@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand term (see values/strings.xml). -->
+    <string name="onboarding_service">Mint</string>
+    <string name="onboarding_service_custom_host">Adresse der Mint</string>
+    <string name="onboarding_custody">Dein Guthaben verwahrt die Mint, die du wählst. Halte die Beträge klein.</string>
+
+    <string name="onboarding_tagline">Inhaberscheine auf Lightning. Mit einem Tipp startklar.</string>
+    <string name="onboarding_username">Deine Adresse</string>
+    <string name="onboarding_start">Los geht\'s</string>
+    <string name="onboarding_claim">Diese Adresse sichern</string>
+    <string name="onboarding_change_title">Neue Adresse wählen</string>
+    <string name="default_account_name">Haupt</string>
+    <string name="new_account_default_name">Ersparnisse</string>
+    <string name="onboarding_new_account_title">Konto hinzufügen</string>
+    <string name="onboarding_new_account_body">Ein neues Konto hat seine eigene Wiederherstellungsphrase, Adresse und sein eigenes Guthaben. Es braucht eine eigene Sicherung.</string>
+    <string name="onboarding_new_account_body_no_address">Ein neues Konto hat seine eigene Wiederherstellungsphrase und sein eigenes Guthaben. Es braucht eine eigene Sicherung.</string>
+    <string name="onboarding_account_name">Name des Kontos</string>
+    <string name="onboarding_create_account">Konto erstellen</string>
+    <string name="onboarding_add_title">Adresse hinzufügen</string>
+
+    <string name="availability_checking">Wird geprüft …</string>
+    <string name="availability_available">✓ Verfügbar</string>
+    <string name="availability_yours">✓ Gehört schon dir</string>
+    <string name="availability_taken">Schon vergeben. Probier einen davon:</string>
+    <string name="availability_unknown">Gerade nicht prüfbar. Du kannst es trotzdem versuchen.</string>
+
+    <string name="onboarding_error_username">Dieser Name geht nicht: %1$s</string>
+
+    <string name="claimed_title">Deine Adresse ist bereit</string>
+    <string name="claimed_title_unconfirmed">Deine Adresse ist registriert</string>
+    <string name="claimed_body">Zahlungen an diese Adresse kommen in dieser Wallet an. Teile sie mit allen, die dir etwas zahlen wollen.</string>
+    <string name="claimed_copy">Adresse kopieren</string>
+    <string name="claimed_copied">Kopiert</string>
+    <string name="claimed_continue">Weiter</string>
+    <string name="onboarding_service_custom">Andere …</string>
+    <string name="onboarding_service_local">Lokale Regtest-Mint (Entwicklermodus)</string>
+    <string name="onboarding_add_body">Ein weiterer Name für dieses Konto auf %1$s. Zahlungen an jede seiner Adressen landen im selben Guthaben.</string>
+    <string name="onboarding_add_elsewhere_title">Adresse bei einem anderen Dienst</string>
+    <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einem anderen Dienst, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei diesem Dienst an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
+    <string name="onboarding_change_body">Wähle den Namen, unter dem man dir auf %1$s zahlt.</string>
+    <string name="onboarding_error_registration">Die Adresse wurde nicht registriert: %1$s</string>
+    <string name="onboarding_error_service">Dieser Host geht nicht: %1$s</string>
+    <plurals name="onboarding_error_limit">
+        <item quantity="one">Dieses Konto hat hier schon %1$d Adresse, mehr erlaubt diese App nicht.</item>
+        <item quantity="other">Dieses Konto hat hier schon %1$d Adressen, mehr erlaubt diese App nicht.</item>
+    </plurals>
+    <plurals name="onboarding_error_account_limit">
+        <item quantity="one">Diese App hat höchstens %1$d Konto, und es ist schon eingerichtet.</item>
+        <item quantity="other">Diese App hat höchstens %1$d Konten, und alle sind schon eingerichtet.</item>
+    </plurals>
+    <plurals name="restore_error_account_limit">
+        <item quantity="one">Diese App hat höchstens %1$d Konto. Um ein anderes wiederherzustellen, lösche zuerst das Konto auf diesem Handy (Einstellungen → Konto), nachdem du es gesichert hast.</item>
+        <item quantity="other">Diese App hat höchstens %1$d Konten. Um ein anderes wiederherzustellen, lösche zuerst eins auf diesem Handy (Einstellungen → Konto), nachdem du es gesichert hast.</item>
+    </plurals>
+    <string name="onboarding_error_network">Keine Verbindung: %1$s</string>
+    <string name="onboarding_restore">Mit Wiederherstellungsphrase wiederherstellen</string>
+    <string name="onboarding_restore_instead">Stattdessen ein Konto wiederherstellen</string>
+
+    <string name="restore_title">Konto wiederherstellen</string>
+    <string name="restore_body">Tippe oder füge die Wiederherstellungsphrase ein, die du aufgeschrieben hast.</string>
+    <string name="restore_phrase">Wiederherstellungsphrase</string>
+    <string name="restore_phrase_valid">✓ Wiederherstellungsphrase ist vollständig</string>
+    <plurals name="restore_phrase_count">
+        <item quantity="one">%1$d Wort. Eine Wiederherstellungsphrase hat 12 oder 24 Wörter.</item>
+        <item quantity="other">%1$d Wörter. Eine Wiederherstellungsphrase hat 12 oder 24 Wörter.</item>
+    </plurals>
+    <string name="restore_phrase_unknown">„%1$s“ ist kein Wort einer Wiederherstellungsphrase. Prüfe die Schreibweise.</string>
+    <string name="restore_phrase_checksum">Die Wörter passen nicht zusammen. Ein Wort ist vielleicht falsch oder an der falschen Stelle.</string>
+    <string name="restore_default_account_name">Wiederhergestellt</string>
+    <string name="restore_start">Wiederherstellen</string>
+    <string name="restore_searching">Dein Geld wird gesucht. Das kann eine Minute dauern.</string>
+    <string name="restore_what">Dein Guthaben kommt zurück, ebenso die Adresse, die die App bei der Einrichtung vorgeschlagen hat. Der bisherige Verlauf und andere Adressen sind nicht Teil der Wiederherstellungsphrase.</string>
+    <string name="restore_error_already">Diese Wiederherstellungsphrase ist schon in dieser Wallet, als Konto „%1$s“. Für eine Adresse bei einem anderen Dienst füge eine unter Einstellungen → Konto → Lightning-Adressen hinzu.</string>
+    <string name="restore_error_service">Dieser Host geht für eine Wiederherstellung nicht. Prüfe, ob es der ist, den du vorher benutzt hast.</string>
+    <string name="restore_error_network">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts geändert.</string>
+
+    <string name="restore_address_title">Deine Adresse</string>
+    <string name="restore_address_found">Wiederhergestellt: %1$s gefunden.</string>
+    <string name="restore_address_found_none">Wiederhergestellt. Zu dieser Wiederherstellungsphrase wurde kein Geld gefunden.</string>
+    <string name="restore_address_body">Deine Adresse wurde nicht von selbst gefunden. Tippe die Adresse ein, die du auf %1$s hattest, um sie zurückzuholen, oder wähle eine neue.</string>
+    <string name="restore_address_submit">Diese Adresse verwenden</string>
+    <string name="restore_cancel">Wiederherstellung abbrechen</string>
+    <string name="restore_cancel_title">Wiederherstellung abbrechen?</string>
+    <string name="restore_cancel_body">Das wiederhergestellte Konto wird von diesem Handy entfernt. Sein Geld bleibt bei der Wiederherstellungsphrase, und du kannst es jederzeit erneut wiederherstellen.</string>
+    <string name="restore_cancel_confirm">Wiederherstellung abbrechen</string>
+    <string name="restore_cancel_keep">Weitermachen</string>
+    <string name="restore_test_phrase">Testphrase verwenden (Entwicklermodus)</string>
+
+    <string name="claimed_body_unconfirmed">Sie ist registriert, aber die App kann nicht gegenprüfen, ob Zahlungen diese Wallet erreichen. Probier zuerst eine kleine Zahlung.</string>
+</resources>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="send_title">Send</string>
+    <string name="send_input">Invoice, Lightning address or link</string>
+    <string name="send_input_hint">lnbc… or name@example.com</string>
+    <string name="send_scan">Scan QR code</string>
+    <string name="send_paste">Paste</string>
+    <string name="send_continue">Continue</string>
+    <string name="send_scan_hint">Point the camera at a QR code.</string>
+    <string name="send_scan_cancel">Cancel</string>
+
+    <string name="send_to_invoice">Lightning invoice</string>
+    <string name="send_internal">Same service: arrives instantly, no Lightning needed.</string>
+    <string name="send_amount_range">Between %1$s and %2$s</string>
+    <string name="send_comment">Message (optional)</string>
+    <string name="send_comment_count">%1$d / %2$d</string>
+    <string name="send_available">You can send up to %1$s.</string>
+    <string name="send_fee">Fee: %1$s</string>
+    <string name="send_no_fee">No fee</string>
+    <string name="send_not_exact">This amount can\'t be made from your balance. Send exactly %1$s, or at most %2$s.</string>
+    <string name="send_below_minimum">The recipient accepts at least %1$s.</string>
+    <string name="send_above_maximum">The recipient accepts at most %1$s.</string>
+    <string name="send_too_much">That\'s more than you can send. At most %1$s.</string>
+    <string name="send_pay">Pay</string>
+    <string name="send_pay_amount">Pay %1$s</string>
+    <string name="send_paying">Paying… This can take a few seconds.</string>
+
+    <string name="send_paid_title">Paid</string>
+    <string name="send_paid_body">%1$s sent to %2$s.</string>
+    <string name="send_paid_body_invoice">%1$s sent.</string>
+    <string name="send_pending_body_invoice">%1$s is still being paid. History shows when it\'s done; if it fails, the money comes back.</string>
+    <string name="send_pending_title">On its way</string>
+    <string name="send_pending_body">%1$s to %2$s is still being paid. History shows when it\'s done; if it fails, the money comes back.</string>
+    <string name="send_failed_title">Not paid</string>
+    <string name="send_try_again">Try again</string>
+    <string name="send_done">Done</string>
+
+    <string name="send_problem_not_recognized">This isn\'t an invoice, Lightning address or payment link.</string>
+    <string name="send_problem_no_amount">This invoice has no amount. Ask the recipient for one with an amount, or for their Lightning address.</string>
+    <string name="send_problem_expired">This invoice has expired. Ask the recipient for a new one.</string>
+    <string name="send_problem_unreachable">Couldn\'t connect. Check your connection and try again. Nothing was paid.</string>
+    <string name="send_problem_payee_refused">The recipient\'s service didn\'t accept this. Check the address.</string>
+    <string name="send_problem_mismatch">The recipient\'s service sent an invoice that doesn\'t match. Nothing was paid.</string>
+    <string name="send_problem_own_address">That\'s this account\'s own address.</string>
+    <string name="send_problem_no_funds">There\'s nothing to send yet.</string>
+    <string name="send_problem_too_much">That\'s more than you can send.</string>
+    <string name="send_problem_not_exact">This amount can\'t be made from your balance.</string>
+    <string name="send_problem_below_minimum">The amount is below what the recipient accepts.</string>
+    <string name="send_problem_above_maximum">The amount is above what the recipient accepts.</string>
+    <string name="send_problem_refused">The payment was refused. Nothing was paid.</string>
+    <string name="send_problem_payment_failed">The payment didn\'t go through. Your money is back in your balance.</string>
+
+    <!-- Sending a note: a link or QR code that holds the money itself. -->
+    <string name="send_or">or</string>
+    <string name="send_create_note">Create a note</string>
+    <string name="note_create_title">Send as a note</string>
+    <string name="note_create_body">Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
+    <string name="note_available">You can make a note of up to %1$s.</string>
+    <string name="note_create">Create note</string>
+    <string name="note_create_pending">The note couldn\'t be confirmed yet, so nothing was handed out. Try again in a moment.</string>
+    <string name="note_title">Note</string>
+    <string name="note_qr_description">QR code of the note</string>
+    <string name="note_bearer_warning">Anyone with this code can spend it. Share it only with the person it\'s for.</string>
+    <string name="note_waiting">Not redeemed yet. You can take it back until it is.</string>
+    <string name="note_uncertified">The amount of this note isn\'t certified.</string>
+    <string name="note_share">Share</string>
+    <string name="note_share_title">Share note</string>
+    <string name="note_copy">Copy</string>
+    <string name="note_reclaim">Take back</string>
+    <string name="note_cancel">Cancel</string>
+    <string name="note_reclaim_title">Take this note back?</string>
+    <string name="note_reclaim_body">The money returns to your balance and this code stops working. If someone has redeemed it already, nothing changes.</string>
+    <string name="note_redeemed">Redeemed. The recipient has the money.</string>
+    <string name="note_already_redeemed">Too late: someone already redeemed this note.</string>
+    <string name="note_reclaimed">Taken back. The money is in your balance again.</string>
+    <string name="note_reclaim_pending">Taking it back… History shows when it\'s confirmed.</string>
+    <string name="note_not_found">This note isn\'t in this account.</string>
+</resources>

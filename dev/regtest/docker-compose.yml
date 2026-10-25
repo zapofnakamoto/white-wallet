@@ -1,0 +1,150 @@
+# Local regtest stack for developing the wallet: bitcoind, two LND nodes and the reference LNURLcash mint.
+# Use ./regtest.sh rather than docker compose directly; it also bootstraps the chain and the channel.
+# Only the mint is exposed, on 127.0.0.1:8111. Everything here is regtest: no real funds.
+name: whitewallet-regtest
+
+x-lnd: &lnd
+  image: lightninglabs/lnd:v0.21.4-beta
+  restart: unless-stopped
+  depends_on: [bitcoind]
+
+services:
+  bitcoind:
+    image: lightninglabs/bitcoin-core:30
+    restart: unless-stopped
+    command:
+      - -regtest
+      - -server
+      - -txindex
+      - -rpcbind=0.0.0.0
+      - -rpcallowip=0.0.0.0/0
+      - -rpcuser=dev
+      - -rpcpassword=dev
+      - -fallbackfee=0.0002
+      - -zmqpubrawblock=tcp://0.0.0.0:28332
+      - -zmqpubrawtx=tcp://0.0.0.0:28333
+    volumes:
+      - bitcoind:/root/.bitcoin
+
+  # The mint's funding source.
+  mint-lnd:
+    <<: *lnd
+    command:
+      - --noseedbackup
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind:18443
+      - --bitcoind.rpcuser=dev
+      - --bitcoind.rpcpass=dev
+      - --bitcoind.zmqpubrawblock=tcp://bitcoind:28332
+      - --bitcoind.zmqpubrawtx=tcp://bitcoind:28333
+      - --rpclisten=0.0.0.0:10009
+      - --restlisten=0.0.0.0:8080
+      - --listen=0.0.0.0:9735
+      - --tlsextradomain=mint-lnd
+      - --alias=mint-lnd
+    volumes:
+      - mint-lnd:/root/.lnd
+
+  # "You": pays invoices and Lightning Addresses (./regtest.sh pay).
+  user-lnd:
+    <<: *lnd
+    command:
+      - --noseedbackup
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind:18443
+      - --bitcoind.rpcuser=dev
+      - --bitcoind.rpcpass=dev
+      - --bitcoind.zmqpubrawblock=tcp://bitcoind:28332
+      - --bitcoind.zmqpubrawtx=tcp://bitcoind:28333
+      - --rpclisten=0.0.0.0:10009
+      - --restlisten=0.0.0.0:8080
+      - --listen=0.0.0.0:9735
+      # mint2 talks to this node by name; autorefresh reissues an existing cert without it.
+      - --tlsextradomain=user-lnd
+      - --tlsautorefresh
+      - --alias=user-lnd
+    volumes:
+      - user-lnd:/root/.lnd
+
+  mint:
+    image: lnurlcash/lnurl-mint:0.12.2
+    restart: unless-stopped
+    depends_on: [mint-lnd]
+    # LND writes its macaroon readable by root only; this dev stack runs the mint as root to read the shared volume.
+    user: root
+    ports:
+      - "127.0.0.1:8111:8111"
+    environment:
+      # The app reaches the mint as localhost:8111 (adb reverse), so that is its public URL and spend domain.
+      BASE_URL: http://localhost:8111
+      USERNAME: mint
+      DATABASE_PATH: /data/mint.db
+      FUNDINGSOURCE_BACKEND: lnd
+      FUNDINGSOURCE_URL: https://mint-lnd:8080
+      FUNDINGSOURCE_CERT_PATH: /lnd/tls.cert
+      MIN_SENDABLE_MSAT: "1000"
+      MIN_MINT_MSAT: "1000"
+      BASE_FEE_MSAT: "1000"
+      FEE_PERCENT_PPM: "0"
+      USERNAME_REGISTRATION_ENABLED: "true"
+      TITLE: White Wallet regtest mint
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        macaroon=/lnd/data/chain/bitcoin/regtest/admin.macaroon
+        echo "waiting for $$macaroon"
+        until [ -f "$$macaroon" ] && [ -f /lnd/tls.cert ]; do sleep 1; done
+        export FUNDINGSOURCE_MACAROON=$$(python -c 'import sys; print(open(sys.argv[1], "rb").read().hex())' "$$macaroon")
+        echo "waiting for mint-lnd to answer"
+        until python -c 'import os, ssl, urllib.request; urllib.request.urlopen(urllib.request.Request("https://mint-lnd:8080/v1/getinfo", headers={"Grpc-Metadata-macaroon": os.environ["FUNDINGSOURCE_MACAROON"]}), context=ssl.create_default_context(cafile="/lnd/tls.cert"), timeout=5)' 2>/dev/null; do sleep 2; done
+        exec uvicorn lnurl_mint.server:app --host 0.0.0.0 --port 8111
+    volumes:
+      - mint-lnd:/lnd:ro
+      - mint:/data
+
+
+  # A second mint on its own Lightning node (user-lnd), for moving notes between services.
+  mint2:
+    image: lnurlcash/lnurl-mint:0.12.2
+    restart: unless-stopped
+    depends_on: [user-lnd]
+    # LND writes its macaroon readable by root only; this dev stack runs the mint as root to read the shared volume.
+    user: root
+    ports:
+      - "127.0.0.1:8112:8112"
+    environment:
+      # Reached as localhost:8112 (adb reverse), like the first mint.
+      BASE_URL: http://localhost:8112
+      USERNAME: mint
+      DATABASE_PATH: /data/mint2.db
+      FUNDINGSOURCE_BACKEND: lnd
+      FUNDINGSOURCE_URL: https://user-lnd:8080
+      FUNDINGSOURCE_CERT_PATH: /lnd/tls.cert
+      MIN_SENDABLE_MSAT: "1000"
+      MIN_MINT_MSAT: "1000"
+      BASE_FEE_MSAT: "2000"
+      FEE_PERCENT_PPM: "0"
+      USERNAME_REGISTRATION_ENABLED: "true"
+      TITLE: White Wallet regtest mint 2
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        macaroon=/lnd/data/chain/bitcoin/regtest/admin.macaroon
+        echo "waiting for $$macaroon"
+        until [ -f "$$macaroon" ] && [ -f /lnd/tls.cert ]; do sleep 1; done
+        export FUNDINGSOURCE_MACAROON=$$(python -c 'import sys; print(open(sys.argv[1], "rb").read().hex())' "$$macaroon")
+        echo "waiting for user-lnd to answer"
+        until python -c 'import os, ssl, urllib.request; urllib.request.urlopen(urllib.request.Request("https://user-lnd:8080/v1/getinfo", headers={"Grpc-Metadata-macaroon": os.environ["FUNDINGSOURCE_MACAROON"]}), context=ssl.create_default_context(cafile="/lnd/tls.cert"), timeout=5)' 2>/dev/null; do sleep 2; done
+        exec uvicorn lnurl_mint.server:app --host 0.0.0.0 --port 8112
+    volumes:
+      - user-lnd:/lnd:ro
+      - mint2:/data
+
+volumes:
+  bitcoind:
+  mint-lnd:
+  user-lnd:
+  mint:
+  mint2:

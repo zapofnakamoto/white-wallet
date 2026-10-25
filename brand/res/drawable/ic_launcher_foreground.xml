@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder mark: a banknote with a lightning bolt. Replace with your own. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,40h48a4,4 0,0 1,4 4v20a4,4 0,0 1,-4 4h-48a4,4 0,0 1,-4 -4v-20a4,4 0,0 1,4 -4z" />
+    <path
+        android:fillColor="@color/brand_launcher_background"
+        android:pathData="M57,43l-11,13h7l-4,9l11,-13h-7z" />
+</vector>

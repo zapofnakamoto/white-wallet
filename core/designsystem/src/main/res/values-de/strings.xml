@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">Zurück</string>
+    <string name="refresh">Aktualisieren</string>
+    <string name="settings">Einstellungen</string>
+    <plurals name="amount_sats">
+        <item quantity="one">%1$s Sat</item>
+        <item quantity="other">%1$s Sats</item>
+    </plurals>
+    <string name="amount_bitcoin">%1$s ₿</string>
+    <plurals name="amount_bitcoin_spoken">
+        <item quantity="one">%1$s Bitcoin</item>
+        <item quantity="other">%1$s Bitcoin</item>
+    </plurals>
+    <string name="amount_input_bitcoin">Betrag in ₿</string>
+    <string name="amount_input_sats">Betrag in Sats</string>
+    <string name="amount_hidden">••••••</string>
+    <string name="amount_hidden_description">Guthaben ausgeblendet</string>
+    <string name="amount_hide">Guthaben ausblenden</string>
+    <string name="amount_show">Guthaben anzeigen</string>
+</resources>

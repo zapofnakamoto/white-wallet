@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "spec": "LUD-03, LUD-25",
+  "description": "The informational GET on a note. Never burns, rotates or alters it. maxWithdrawable is the ONLY authoritative statement of what a note is worth - the URL's own `amount` is a claim and the SERVICE ignores it here. The response's k1 MUST be the bearer secret itself, never a derived or opaque id. Offline verification is mandatory in the current draft, so the response MUST also carry `mintPubkey`, the stable compressed secp256k1 key the SERVICE's note signatures verify against; without it a holder handed a note has nothing to check it against.",
+  "queriedUrl": "https://mint.example/w?k1=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&amount=99999&c=ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+  "requestMustNotSend": [
+    "c",
+    "sig"
+  ],
+  "requestMustSendUnchanged": [
+    "k1"
+  ],
+  "accepted": [
+    {
+      "name": "minimal valid",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "minWithdrawable": 0,
+        "maxWithdrawable": 21000,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      },
+      "maxWithdrawable": 21000
+    },
+    {
+      "name": "minWithdrawable omitted",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": 21000,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      },
+      "maxWithdrawable": 21000
+    },
+    {
+      "name": "echoed k1 in a different casing",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "maxWithdrawable": 21000,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      },
+      "maxWithdrawable": 21000,
+      "why": "k1 is bytes; casing carries no meaning"
+    },
+    {
+      "name": "mintPubkey in a different casing",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": 21000,
+        "mintPubkey": "034F355BDCB7CC0AF728EF3CCEB9615D90684BB5B2CA5F859AB0F0B704075871AA"
+      },
+      "maxWithdrawable": 21000,
+      "why": "a pubkey is bytes too, and a SERVICE that upper-cases its hex is still naming the same key"
+    },
+    {
+      "name": "zero value note",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": 0,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      },
+      "maxWithdrawable": 0
+    }
+  ],
+  "rejected": [
+    {
+      "name": "wrong tag",
+      "body": {
+        "tag": "payRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": 21000,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      }
+    },
+    {
+      "name": "no callback",
+      "body": {
+        "tag": "withdrawRequest",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": 21000,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      }
+    },
+    {
+      "name": "no k1",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "maxWithdrawable": 21000,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      }
+    },
+    {
+      "name": "no maxWithdrawable",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      }
+    },
+    {
+      "name": "maxWithdrawable is a string",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": "21000",
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      }
+    },
+    {
+      "name": "negative maxWithdrawable",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": -1,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      }
+    },
+    {
+      "name": "fractional maxWithdrawable",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": 21000.5,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      },
+      "why": "msat are integers"
+    },
+    {
+      "name": "maxWithdrawable past 2^63",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": 18446744073709552000,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      },
+      "why": "no common integer type holds it and a double rounds it - refuse rather than guess the amount"
+    },
+    {
+      "name": "minWithdrawable above maxWithdrawable",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "minWithdrawable": 30000,
+        "maxWithdrawable": 21000,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      }
+    },
+    {
+      "name": "echoed a different k1 than queried",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "maxWithdrawable": 21000,
+        "mintPubkey": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      },
+      "why": "spec MUST: the response k1 is the bearer secret itself. A SERVICE returning something else is non-compliant, or the note was rotated by someone else"
+    },
+    {
+      "name": "no mintPubkey",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "minWithdrawable": 0,
+        "maxWithdrawable": 21000
+      },
+      "why": "offline verification is mandatory. Without the key a note signature verifies against nothing, and whoever is handed the note is back to the leap of faith the signature exists to remove"
+    },
+    {
+      "name": "mintPubkey that is not a compressed secp256k1 key",
+      "body": {
+        "tag": "withdrawRequest",
+        "callback": "https://mint.example/w/cb",
+        "k1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maxWithdrawable": 21000,
+        "mintPubkey": "4f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      },
+      "why": "an x-only key, a node URI or a truncated hex string verifies nothing. Refused at the response rather than at the first signature check, where the same fault would look like a forged note"
+    }
+  ]
+}

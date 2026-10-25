@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Acme's brand term in German: "Anbieter", as whole sentences. -->
+<resources>
+    <string name="onboarding_service">Anbieter</string>
+    <string name="onboarding_service_custom_host">Adresse des Anbieters</string>
+    <string name="onboarding_custody">Dein Guthaben verwahrt Acme. Halte die Beträge klein.</string>
+    <string name="settings_home_mint">Anbieter</string>
+    <string name="addresses_home_mint">Anbieter: %1$s</string>
+    <string name="claim_home_mint">Auf %1$s, deinem Anbieter</string>
+    <string name="notes_home_mint">Anbieter</string>
+    <string name="settings_mints">Anbieter</string>
+    <string name="onboarding_tagline">Taschengeld auf Lightning.</string>
+</resources>

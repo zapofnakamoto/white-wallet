@@ -1,0 +1,110 @@
+# Build, test and lint every push and pull request, and build both brands. On a version tag (v0.1.0), create the
+# GitHub release with that version's CHANGELOG.md section. No APK: brands build, sign and publish their own
+# (WHITE_LABEL.md §4).
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The conformance suite's mock mint, for the integration tests (they are skipped without it).
+      - name: Check out the LNURLcash conformance suite
+        uses: actions/checkout@v4
+        with:
+          repository: lnurlcash/lnurlcash-conformance
+          ref: 82295e59f92d3eb1f7684560ad118a5e7c4dcb4a   # the commit in protocol/SPEC.md
+          path: conformance
+      - run: npm ci
+        working-directory: conformance
+
+      - name: No brand values outside brand/
+        run: |
+          dev/check-brand.sh brand
+          dev/check-brand.sh brand-examples/acme
+
+      - name: Unit and integration tests, lint, debug build
+        env:
+          LNURLCASH_CONFORMANCE: ${{ github.workspace }}/conformance
+        run: ./gradlew test :feature:settings:testDebugUnitTest :app:lintDebug :app:assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: reports
+          path: |
+            **/build/reports/
+            **/build/test-results/
+
+  brands:
+    # Proves that a fork only edits its brand directory: each sample brand builds as its own app.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        brand: [brand, brand-examples/acme]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :app:assembleRelease -PbrandDir=${{ matrix.brand }}
+
+  new-brand:
+    # The brand scaffolder: its own tests, then a generated brand passes the brand check and builds.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: python3 -m unittest discover -s dev -p 'test_*.py'
+      - run: >
+          dev/new-brand.sh --name "CI Cash" --id org.ci.cash --mint mint.ci.example --primary "#6A1B9A"
+          --logo brand/res/drawable/ic_launcher_foreground.xml --out build/ci-brand --no-mint-check
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [check, brands]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: GitHub release from CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="## [$version]" 'index($0, v) == 1 { on = 1; next } on && /^## \[/ { exit } on' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md" || { echo "CHANGELOG.md has no section '## [$version]'." >&2; exit 1; }
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "White Wallet $version" --notes-file "$RUNNER_TEMP/notes.md"

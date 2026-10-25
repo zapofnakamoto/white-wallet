@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brand palette. The Material 3 theme is built from these; values-night/ holds the dark variants. -->
+<resources>
+    <color name="brand_primary">#3949AB</color>
+    <color name="brand_on_primary">#FFFFFF</color>
+    <color name="brand_secondary">#5C6BC0</color>
+    <color name="brand_tertiary">#00897B</color>
+    <color name="brand_launcher_background">#3949AB</color>
+</resources>

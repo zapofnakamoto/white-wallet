@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_receive">Receive</string>
+    <string name="home_send">Send</string>
+    <string name="home_send_soon">Sending is coming soon</string>
+    <string name="home_tab_wallet">Wallet</string>
+    <string name="home_tab_history">History</string>
+    <string name="home_tab_notes">Notes</string>
+    <string name="home_switch_account">Switch account</string>
+    <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
+    <string name="history_filter_maintenance">Note maintenance</string>
+    <string name="history_only_maintenance">So far only note maintenance, which doesn\'t change your balance.</string>
+    <string name="history_show_maintenance">Show note maintenance</string>
+    <string name="activity_received">Received</string>
+    <string name="activity_claimed">Claimed a note</string>
+    <string name="activity_moved_out">Moved to %1$s</string>
+    <string name="activity_sent">Sent</string>
+    <string name="activity_sent_to">Sent to %1$s</string>
+    <string name="activity_moved_out_other">Moved to another account</string>
+    <string name="activity_moved_in">Moved from %1$s</string>
+    <string name="activity_moved_in_other">Moved from another account</string>
+    <plurals name="activity_combined">
+        <item quantity="one">Combined %1$d note</item>
+        <item quantity="other">Combined %1$d notes</item>
+    </plurals>
+    <string name="activity_rotated">Moved onto a new key</string>
+    <string name="activity_split">Split a note in two</string>
+    <string name="activity_sent_note">Sent a note</string>
+    <string name="activity_note_waiting">Not redeemed yet</string>
+    <string name="activity_note_redeemed">Redeemed</string>
+    <string name="activity_note_taken_back">Taken back</string>
+    <string name="activity_moved_service">Moved to %1$s</string>
+    <string name="activity_moved_service_other">Moved to another service</string>
+    <string name="activity_amount_in">+%1$s</string>
+    <string name="activity_amount_out">−%1$s</string>
+    <string name="activity_pending">Confirming…</string>
+    <string name="activity_failed">Failed, nothing changed</string>
+    <string name="activity_uncertified">Amount not certified</string>
+    <string name="activity_fee">Fee %1$s</string>
+    <string name="activity_automatic">Automatic</string>
+    <string name="activity_manual">By you</string>
+    <!-- Joins the parts of a history row's detail line (time, status, fee). -->
+    <string name="activity_detail_separator">" · "</string>
+    <string name="home_refresh_failed">Could not refresh: %1$s</string>
+    <string name="home_backup_title">Back up your wallet</string>
+    <string name="home_backup_body">If you lose this phone, your recovery phrase is the only way to get your money back. It takes two minutes.</string>
+    <string name="home_backup_action">Back up</string>
+    <string name="home_backup_later">Later</string>
+    <string name="home_address_inactive_title">Your address isn\'t active</string>
+    <string name="home_address_inactive_body">Payments to %1$s won\'t reach this wallet. Choose a new address to keep receiving.</string>
+    <string name="home_address_inactive_action">Choose a new address</string>
+    <string name="accounts_title">Accounts</string>
+    <string name="accounts_add">Add account</string>
+    <string name="accounts_move">Move funds</string>
+    <string name="accounts_separate_backups">Each account has its own recovery phrase. Back up every account.</string>
+    <string name="move_title">Move funds</string>
+    <string name="move_from">From %1$s (%2$s)</string>
+    <string name="move_to">To</string>
+    <string name="move_everything">Move everything</string>
+    <string name="move_amount">Amount</string>
+    <string name="move_action">Move</string>
+    <string name="move_moved">Moved %1$s</string>
+    <string name="move_nothing">There is nothing to move.</string>
+    <string name="move_done">Done</string>
+    <plurals name="home_unresolved">
+        <item quantity="one">%1$d operation is still being confirmed.</item>
+        <item quantity="other">%1$d operations are still being confirmed.</item>
+    </plurals>
+    <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a note may cost a split fee.</string>
+    <string name="move_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>
+    <string name="move_insufficient">Not enough funds for this amount, including fees.</string>
+    <string name="move_split_services">Your funds are held in different places. Move a smaller amount, or everything.</string>
+    <string name="move_failed">Refused: %1$s</string>
+    <string name="home_key_changed_title">%1$s changed its signing key</string>
+    <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Check with its operator before trusting it again.</string>
+    <string name="home_key_changed_action">Details</string>
+</resources>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="send_title">Senden</string>
+    <string name="send_input">Rechnung, Lightning-Adresse oder Link</string>
+    <string name="send_input_hint">lnbc… oder name@example.com</string>
+    <string name="send_scan">QR-Code scannen</string>
+    <string name="send_paste">Einfügen</string>
+    <string name="send_continue">Weiter</string>
+    <string name="send_scan_hint">Richte die Kamera auf einen QR-Code.</string>
+    <string name="send_scan_cancel">Abbrechen</string>
+
+    <string name="send_to_invoice">Lightning-Rechnung</string>
+    <string name="send_internal">Gleicher Dienst: kommt sofort an, ohne Lightning.</string>
+    <string name="send_amount_range">Zwischen %1$s und %2$s</string>
+    <string name="send_comment">Nachricht (optional)</string>
+    <string name="send_comment_count">%1$d / %2$d</string>
+    <string name="send_available">Du kannst bis zu %1$s senden.</string>
+    <string name="send_fee">Gebühr: %1$s</string>
+    <string name="send_no_fee">Keine Gebühr</string>
+    <string name="send_not_exact">Dieser Betrag lässt sich aus deinem Guthaben nicht bilden. Sende genau %1$s oder höchstens %2$s.</string>
+    <string name="send_below_minimum">Der Empfänger nimmt mindestens %1$s an.</string>
+    <string name="send_above_maximum">Der Empfänger nimmt höchstens %1$s an.</string>
+    <string name="send_too_much">Das ist mehr, als du senden kannst. Höchstens %1$s.</string>
+    <string name="send_pay">Bezahlen</string>
+    <string name="send_pay_amount">%1$s bezahlen</string>
+    <string name="send_paying">Wird bezahlt … Das kann ein paar Sekunden dauern.</string>
+
+    <string name="send_paid_title">Bezahlt</string>
+    <string name="send_paid_body">%1$s an %2$s gesendet.</string>
+    <string name="send_paid_body_invoice">%1$s gesendet.</string>
+    <string name="send_pending_body_invoice">%1$s wird noch bezahlt. Der Verlauf zeigt, wann es erledigt ist; schlägt es fehl, kommt das Geld zurück.</string>
+    <string name="send_pending_title">Unterwegs</string>
+    <string name="send_pending_body">%1$s an %2$s wird noch bezahlt. Der Verlauf zeigt, wann es erledigt ist; schlägt es fehl, kommt das Geld zurück.</string>
+    <string name="send_failed_title">Nicht bezahlt</string>
+    <string name="send_try_again">Erneut versuchen</string>
+    <string name="send_done">Fertig</string>
+
+    <string name="send_problem_not_recognized">Das ist keine Rechnung, Lightning-Adresse oder Zahlungslink.</string>
+    <string name="send_problem_no_amount">Diese Rechnung hat keinen Betrag. Bitte den Empfänger um eine mit Betrag oder um seine Lightning-Adresse.</string>
+    <string name="send_problem_expired">Diese Rechnung ist abgelaufen. Bitte den Empfänger um eine neue.</string>
+    <string name="send_problem_unreachable">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts bezahlt.</string>
+    <string name="send_problem_payee_refused">Der Dienst des Empfängers hat das nicht angenommen. Prüfe die Adresse.</string>
+    <string name="send_problem_mismatch">Der Dienst des Empfängers hat eine Rechnung geschickt, die nicht passt. Es wurde nichts bezahlt.</string>
+    <string name="send_problem_own_address">Das ist die eigene Adresse dieses Kontos.</string>
+    <string name="send_problem_no_funds">Es gibt noch nichts zu senden.</string>
+    <string name="send_problem_too_much">Das ist mehr, als du senden kannst.</string>
+    <string name="send_problem_not_exact">Dieser Betrag lässt sich aus deinem Guthaben nicht bilden.</string>
+    <string name="send_problem_below_minimum">Der Betrag liegt unter dem, was der Empfänger annimmt.</string>
+    <string name="send_problem_above_maximum">Der Betrag liegt über dem, was der Empfänger annimmt.</string>
+    <string name="send_problem_refused">Die Zahlung wurde abgelehnt. Es wurde nichts bezahlt.</string>
+    <string name="send_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Dein Geld ist wieder in deinem Guthaben.</string>
+
+    <string name="send_or">oder</string>
+    <string name="send_create_note">Schein erstellen</string>
+    <string name="note_create_title">Als Schein senden</string>
+    <string name="note_create_body">Erstelle einen Schein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
+    <string name="note_available">Du kannst einen Schein über bis zu %1$s erstellen.</string>
+    <string name="note_create">Schein erstellen</string>
+    <string name="note_create_pending">Der Schein ließ sich noch nicht bestätigen, deshalb wurde nichts weitergegeben. Versuche es gleich noch einmal.</string>
+    <string name="note_title">Schein</string>
+    <string name="note_qr_description">QR-Code des Scheins</string>
+    <string name="note_bearer_warning">Jeder mit diesem Code kann ihn ausgeben. Teile ihn nur mit der Person, für die er gedacht ist.</string>
+    <string name="note_waiting">Noch nicht eingelöst. Bis dahin kannst du ihn zurückholen.</string>
+    <string name="note_uncertified">Der Betrag dieses Scheins ist nicht zertifiziert.</string>
+    <string name="note_share">Teilen</string>
+    <string name="note_share_title">Schein teilen</string>
+    <string name="note_copy">Kopieren</string>
+    <string name="note_reclaim">Zurückholen</string>
+    <string name="note_cancel">Abbrechen</string>
+    <string name="note_reclaim_title">Diesen Schein zurückholen?</string>
+    <string name="note_reclaim_body">Das Geld kommt zurück in dein Guthaben und dieser Code funktioniert nicht mehr. Hat ihn schon jemand eingelöst, ändert sich nichts.</string>
+    <string name="note_redeemed">Eingelöst. Der Empfänger hat das Geld.</string>
+    <string name="note_already_redeemed">Zu spät: Jemand hat diesen Schein schon eingelöst.</string>
+    <string name="note_reclaimed">Zurückgeholt. Das Geld ist wieder in deinem Guthaben.</string>
+    <string name="note_reclaim_pending">Wird zurückgeholt … Der Verlauf zeigt, wann es bestätigt ist.</string>
+    <string name="note_not_found">Dieser Schein ist nicht in diesem Konto.</string>
+</resources>

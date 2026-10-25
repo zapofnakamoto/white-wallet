@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "spec": "LUD-25 draft (lnurl/luds#301)",
+  "description": "Classifying a SERVICE response. The distinction that matters for funds is definitive-rejection versus ambiguous-outcome: a parsed {\"status\":\"ERROR\"} means the request was processed and refused, while a transport failure, an unparseable body, or a 200 that does not confirm means the mutation MAY have landed - and for rotate/split/merge the WALLET-generated secrets are then the only copy of the outputs, so they must ride the error rather than be discarded. A confirmed mutation missing a signature the output or caller requires is its own outcome: it definitely landed, so the secrets matter more than ever. `op` says which call each case is driven through - a melt is the one mutation with no signature to return.",
+  "outcomes": {
+    "ok": "the operation is confirmed",
+    "unverifiable": "the mutation is confirmed but a cp1 output came back without its required cs1 certificate, or a legacy hash output came back without the raw signature a strict caller required. The note EXISTS at the output the WALLET disclosed, so keep its secret even while reporting the missing proof",
+    "pending": "this k1 has another operation in flight (a melt); retry shortly",
+    "spent": "the SERVICE is authoritative that the note is already burned; a holder may lock it as spent",
+    "unknown": "the SERVICE does not recognise this note; surface it, do not silently lock it",
+    "error": "definitively rejected for some other stated reason",
+    "ambiguous": "the outcome is not known - preserve any fresh secrets"
+  },
+  "cases": [
+    {
+      "name": "plain success",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "status": "OK"
+      },
+      "expect": "ok",
+      "why": "a bare OK is the conforming answer for a plain hash output since the Part 2 rewrite: the note is real, the WALLET keeps its secret, and nobody the holder hands it to can check it offline, which is what a plain note is. Only a cp1 output is owed a certificate"
+    },
+    {
+      "name": "cp1 output confirmed without a certificate",
+      "op": "mutation",
+      "output": "cp1",
+      "http": 200,
+      "body": {
+        "status": "OK"
+      },
+      "expect": "unverifiable",
+      "why": "a cp1 output is owed a cs1 certificate in c; without one the note it names cannot be verified offline, which is the whole reason to hold a cp1 note. The note exists at the key the WALLET disclosed"
+    },
+    {
+      "name": "cp1 output certified",
+      "op": "mutation",
+      "output": "cp1",
+      "http": 200,
+      "body": {
+        "status": "OK",
+        "c": "cs14w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2atdv6a53"
+      },
+      "expect": "ok",
+      "signature": "cs14w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2atdv6a53"
+    },
+    {
+      "name": "cp1 output certified under both names",
+      "op": "mutation",
+      "output": "cp1",
+      "http": 200,
+      "body": {
+        "status": "OK",
+        "c": "cs14w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2atdv6a53",
+        "sig": "cs14w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2atdv6a53"
+      },
+      "expect": "ok",
+      "signature": "cs14w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2atdv6a53",
+      "why": "a SERVICE moving from the pre-50d740a name may send the certificate as both c and sig; c is the one a WALLET reads, and the extra sig is harmless"
+    },
+    {
+      "name": "a split to a cp1 change that certifies only its first output",
+      "op": "split",
+      "change": "cp1",
+      "http": 200,
+      "body": {
+        "status": "OK",
+        "c": "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+      },
+      "expect": "unverifiable",
+      "why": "the change is a cp1 note and is owed its certificate in c2 exactly as the first output would be; the change is not a lesser note"
+    },
+    {
+      "name": "success with an offline-verification signature",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "status": "OK",
+        "c": "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+      },
+      "expect": "ok",
+      "signature": "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+    },
+    {
+      "name": "split success with both signatures",
+      "op": "split",
+      "http": 200,
+      "body": {
+        "status": "OK",
+        "c": "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+        "c2": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      },
+      "expect": "ok",
+      "signature": "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+      "changeSignature": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+    },
+    {
+      "name": "a split that signs only its first output",
+      "op": "split",
+      "http": 200,
+      "body": {
+        "status": "OK",
+        "c": "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+      },
+      "expect": "ok",
+      "signature": "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+      "why": "both outputs are legacy hash notes; tolerant callers can retain a landed output without proof, while a strict caller may require both raw Part 1 signatures"
+    },
+    {
+      "name": "melt success with a LUD-21 style proof",
+      "op": "melt",
+      "http": 200,
+      "body": {
+        "status": "OK",
+        "pr": "lnbc210n1pjq",
+        "verify": "https://mint.example/verify/abc"
+      },
+      "expect": "ok",
+      "why": "OK on a melt means the payment is in flight, NOT that the note is confirmed spent. A melt mints nothing, so it has no signature to return and none is required"
+    },
+    {
+      "name": "pending",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "status": "ERROR",
+        "reason": "pending"
+      },
+      "expect": "pending",
+      "why": "the exact reason string LUD-25 specifies for a k1 mid-melt"
+    },
+    {
+      "name": "already spent",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "status": "ERROR",
+        "reason": "Note already spent."
+      },
+      "expect": "spent"
+    },
+    {
+      "name": "unknown note",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "status": "ERROR",
+        "reason": "Unknown note."
+      },
+      "expect": "unknown"
+    },
+    {
+      "name": "not found wording",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "status": "ERROR",
+        "reason": "k1 not found"
+      },
+      "expect": "unknown"
+    },
+    {
+      "name": "ambiguous callback wording is treated as spent",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "status": "ERROR",
+        "reason": "Invalid or already spent k1."
+      },
+      "expect": "spent",
+      "why": "an atomic multi-k1 callback cannot say which k1 failed; the spent reading is the safe one"
+    },
+    {
+      "name": "some other refusal",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "status": "ERROR",
+        "reason": "This mint is sunsetting - splits are disabled."
+      },
+      "expect": "error"
+    },
+    {
+      "name": "error with no reason",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "status": "ERROR"
+      },
+      "expect": "error"
+    },
+    {
+      "name": "200 with neither OK nor ERROR",
+      "op": "mutation",
+      "http": 200,
+      "body": {
+        "something": "else"
+      },
+      "expect": "ambiguous",
+      "why": "the mutation was not confirmed and may still have landed"
+    },
+    {
+      "name": "unparseable body",
+      "op": "mutation",
+      "http": 200,
+      "bodyRaw": "not json at all",
+      "expect": "ambiguous"
+    },
+    {
+      "name": "server error",
+      "op": "mutation",
+      "http": 500,
+      "bodyRaw": "upstream failure",
+      "expect": "ambiguous"
+    },
+    {
+      "name": "transport failure",
+      "op": "mutation",
+      "transportError": true,
+      "expect": "ambiguous"
+    },
+    {
+      "name": "timeout",
+      "op": "mutation",
+      "timeout": true,
+      "expect": "ambiguous"
+    }
+  ]
+}

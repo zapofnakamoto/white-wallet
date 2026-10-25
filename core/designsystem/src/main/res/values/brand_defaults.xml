@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Neutral fallbacks so this module compiles on its own. The app's brand/res/values/brand_colors.xml
+  defines the same names and wins at resource merge time. Do not brand the app here.
+-->
+<resources>
+    <color name="brand_primary">#455A64</color>
+    <color name="brand_on_primary">#FFFFFF</color>
+    <color name="brand_secondary">#607D8B</color>
+    <color name="brand_tertiary">#546E7A</color>
+</resources>

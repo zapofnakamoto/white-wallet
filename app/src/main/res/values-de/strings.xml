@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lock_title">%1$s entsperren</string>
+    <string name="lock_subtitle">Mit Fingerabdruck, Gesicht oder Displaysperre</string>
+    <string name="lock_unlock">Entsperren</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Acme says "provider" where the app says "mint": exactly the brand-term strings, as whole sentences. -->
+<resources>
+    <string name="onboarding_service">Provider</string>
+    <string name="onboarding_service_custom_host">Provider address</string>
+    <string name="onboarding_custody">Your funds are held by Acme. Keep amounts small.</string>
+    <string name="settings_home_mint">Provider</string>
+    <string name="addresses_home_mint">Provider: %1$s</string>
+    <string name="claim_home_mint">On %1$s, your provider</string>
+    <string name="notes_home_mint">Provider</string>
+    <string name="settings_mints">Providers</string>
+    <string name="onboarding_tagline">Pocket money on Lightning.</string>
+</resources>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="strategy_tidy_small">Kleine Scheine aufräumen</string>
+    <string name="strategy_tidy_small_hint">Legt kleine Scheine zusammen, sobald sich ein paar angesammelt haben, und lässt große, wie sie sind. Kostenlos.</string>
+</resources>

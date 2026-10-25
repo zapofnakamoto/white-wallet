@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "spec": "LUD-25 draft (lnurl/luds#301)",
+  "generatedBy": "tools/generate.mjs",
+  "description": "Language-neutral conformance vectors for LNURLcash (LUD-25). Every implementation is expected to load these files directly rather than transcribe them.",
+  "files": [
+    "signature.json",
+    "derivation.json",
+    "cash-derivation.json",
+    "bech32.json",
+    "url-admission.json",
+    "input-resolution.json",
+    "note-url.json",
+    "fees.json",
+    "bolt11.json",
+    "callbacks.json",
+    "responses.json",
+    "withdraw-info.json",
+    "pay-request.json",
+    "lifecycle.json",
+    "threat-suite.json",
+    "payment-request.json",
+    "settle-for-value.json",
+    "retried-mutation.json",
+    "mint-to-hash.json",
+    "part2.json",
+    "nostr-seed.json",
+    "spec-vectors.json",
+    "spends.json"
+  ]
+}

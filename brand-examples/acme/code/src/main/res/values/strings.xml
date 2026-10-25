@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="strategy_tidy_small">Tidy up small notes</string>
+    <string name="strategy_tidy_small_hint">Combines small notes once a few have piled up and leaves large ones as they are. Free.</string>
+</resources>

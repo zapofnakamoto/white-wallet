@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "spec": "LUD-25 draft (lnurl/luds#301)",
+  "description": "The state machine a holder must implement, and the transitions that are fund-critical. These are behavioural requirements rather than pure functions, so they are expressed as scenarios the mock mint can drive.",
+  "states": [
+    "pending",
+    "confirmed",
+    "spent"
+  ],
+  "scenarios": [
+    {
+      "name": "mint to a wallet-generated secret",
+      "steps": [
+        "persist a fresh secret",
+        "send its hash as the LUD-12 comment",
+        "pay the invoice",
+        "claim with the persisted secret"
+      ],
+      "requirement": "a SERVICE MUST reject a missing or malformed comment before invoicing. The payment preimage is only settlement proof; the freshly minted bearer k1 is the WALLET-generated secret whose hash was carried in comment."
+    },
+    {
+      "name": "melt is not settlement",
+      "steps": [
+        "melt",
+        "receive OK",
+        "observe the note still reserved"
+      ],
+      "requirement": "OK on a melt means the payment is in flight. The note MUST NOT be treated as confirmed spent until settlement, and a failed payment restores it to outstanding. A holder locking it optimistically must be able to unlock on a confirmed failure."
+    },
+    {
+      "name": "pending lockout",
+      "steps": [
+        "melt k1",
+        "attempt a rotate on the same k1 before settlement"
+      ],
+      "requirement": "the second call fails with reason \"pending\" and MUST be retried, never read as spent"
+    },
+    {
+      "name": "ambiguous rotate",
+      "steps": [
+        "rotate",
+        "the connection drops before a response"
+      ],
+      "requirement": "the fresh secret MUST be preserved, because the SERVICE may have minted it. Probe the input k1 with an informational GET: still live means the request never landed and the secret can be dropped; spent or unknown means the burn landed and the preserved secret is the only remaining money; a failed probe means keep everything."
+    },
+    {
+      "name": "ambiguous split",
+      "steps": [
+        "split",
+        "the response is unparseable"
+      ],
+      "requirement": "BOTH fresh secrets must be preserved, in output order: the split-off note first, then the change"
+    },
+    {
+      "name": "a retried mutation",
+      "steps": [
+        "rotate",
+        "the connection drops after the SERVICE applied it",
+        "the HTTP stack silently resends the identical request"
+      ],
+      "requirement": "a SERVICE MUST recognize the byte-identical retry from the same k1 set, h, h2 and amount, and return the original success, with the same c and c2 where the outputs had any, without moving balance again. A WALLET still persists every fresh output secret before sending the first request and keeps it across an ambiguous transport failure. A request that changes any recorded field is a genuine double-spend attempt and gets the ordinary already-spent refusal."
+    },
+    {
+      "name": "settle a merge or split output",
+      "steps": [
+        "merge",
+        "informational GET on the new note",
+        "rotate"
+      ],
+      "requirement": "neither response carries the output amount, and a fee-charging SERVICE may have deducted from a split's change or refunded into a merge's result. The authoritative value comes from the informational GET, and that GET puts k1 on the wire, so a rotate should follow."
+    },
+    {
+      "name": "a duplicated k1",
+      "steps": [
+        "merge with the same k1 given twice",
+        "observe the refusal"
+      ],
+      "requirement": "a SERVICE MUST refuse a mutation that names the same k1 more than once, atomically and before burning anything - counting one note's value twice into a merge or split output creates money from nothing. The reference mint refuses (inside its transaction, the second burn of a duplicate finds the first already spent it, and everything rolls back); a SERVICE that instead deduplicates and proceeds at the note's true value conserves funds only by accident, and the grader marks it with a warning rather than a pass."
+    },
+    {
+      "name": "an output hash already in use",
+      "steps": [
+        "rotate with h set to the id of an existing note, or to the payment hash of an invoice the SERVICE issued",
+        "observe the refusal"
+      ],
+      "requirement": "a SERVICE MUST refuse h/h2 values that collide with any note id it has ever minted or any invoice payment hash it has ever issued, before burning anything. Minting over an existing id hands the output to whoever already knows that id's preimage - for a pending mint invoice that is its future payer, and for a burned note it is every previous holder - or it bricks a paid mint whose settlement can no longer register under that key. A WALLET drawing fresh 32-byte secrets never collides honestly, so a collision is always adversarial. Refuse with the same reason as any dead k1: which table the id collided with is an oracle nobody is owed."
+    },
+    {
+      "name": "a split into the same hash twice",
+      "steps": [
+        "split with h2 equal to h",
+        "observe the refusal"
+      ],
+      "requirement": "a SERVICE MUST refuse a split whose two output hashes are equal - one id cannot carry two notes, so accepting it either destroys the change or double-mints a single id."
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">Back</string>
+    <string name="refresh">Refresh</string>
+    <string name="settings">Settings</string>
+    <plurals name="amount_sats">
+        <item quantity="one">%1$s sat</item>
+        <item quantity="other">%1$s sats</item>
+    </plurals>
+    <!-- BIP-177: the smallest unit, as a whole number with the bitcoin sign. Put the sign where your language puts currency symbols. -->
+    <string name="amount_bitcoin">₿%1$s</string>
+    <plurals name="amount_bitcoin_spoken">
+        <item quantity="one">%1$s bitcoin</item>
+        <item quantity="other">%1$s bitcoins</item>
+    </plurals>
+    <string name="amount_input_bitcoin">Amount in ₿</string>
+    <string name="amount_input_sats">Amount in sats</string>
+    <string name="amount_hidden">••••••</string>
+    <string name="amount_hidden_description">Balance hidden</string>
+    <string name="amount_hide">Hide balance</string>
+    <string name="amount_show">Show balance</string>
+</resources>

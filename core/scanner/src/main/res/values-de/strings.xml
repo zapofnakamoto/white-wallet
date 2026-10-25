@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scan_no_camera">Die Kamera ist nicht erlaubt. Erlaube sie in den Systemeinstellungen oder füge stattdessen ein.</string>
+</resources>

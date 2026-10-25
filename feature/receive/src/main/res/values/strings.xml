@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="receive_title">Receive</string>
+    <string name="receive_hint">Anyone can pay this address from any Lightning wallet. Payments arrive as notes in this wallet.</string>
+    <string name="receive_copy">Copy</string>
+    <string name="receive_share">Share</string>
+    <string name="receive_copied">Address copied</string>
+    <string name="receive_got">Received %1$s</string>
+    <string name="receive_claim">Claim a note instead</string>
+    <string name="receive_request_amount">Request a specific amount</string>
+    <string name="receive_invoice_intro">Create a Lightning invoice for the amount you want. It can be paid from any Lightning wallet, once.</string>
+    <string name="receive_invoice_create">Create invoice</string>
+    <string name="receive_invoice_range">Choose an amount from %1$s to %2$s.</string>
+    <string name="receive_invoice_unreachable">Couldn\'t connect. Check your connection and try again.</string>
+    <string name="receive_invoice_refused">No invoice could be created. Try again later.</string>
+    <string name="receive_invoice_qr">Lightning invoice</string>
+    <string name="receive_invoice_fee">You receive %1$s after a fee of %2$s.</string>
+    <string name="receive_invoice_waiting">Waiting for payment…</string>
+    <string name="receive_invoice_copied">Invoice copied</string>
+    <string name="receive_invoice_other_amount">Other amount</string>
+    <string name="receive_invoice_expired">This invoice expired without being paid.</string>
+    <string name="receive_invoice_new">New invoice</string>
+    <string name="receive_done">Done</string>
+</resources>

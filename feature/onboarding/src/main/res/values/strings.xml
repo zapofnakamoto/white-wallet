@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Brand term: the strings in this block name the party that holds users' funds ("mint" by default). A brand that
+      uses another word overrides exactly these, per language, in brand/res/values*/strings.xml. All other strings
+      are written without that word. See docs/WHITE_LABEL.md.
+    -->
+    <string name="onboarding_service">Mint</string>
+    <string name="onboarding_service_custom_host">Mint address</string>
+    <string name="onboarding_custody">Your funds are held by the mint you choose. Keep amounts small.</string>
+
+    <string name="onboarding_tagline">Bearer notes on Lightning. Ready in one tap.</string>
+    <string name="onboarding_username">Your address</string>
+    <string name="onboarding_start">Get started</string>
+    <string name="onboarding_claim">Claim this address</string>
+    <string name="onboarding_change_title">Choose a new address</string>
+    <string name="default_account_name">Main</string>
+    <string name="new_account_default_name">Savings</string>
+    <string name="onboarding_new_account_title">Add account</string>
+    <string name="onboarding_new_account_body">A new account has its own recovery phrase, address and balance. It needs its own backup.</string>
+    <string name="onboarding_new_account_body_no_address">A new account has its own recovery phrase and balance. It needs its own backup.</string>
+    <string name="onboarding_account_name">Account name</string>
+    <string name="onboarding_create_account">Create account</string>
+    <string name="onboarding_add_title">Add an address</string>
+
+    <string name="availability_checking">Checking…</string>
+    <string name="availability_available">✓ Available</string>
+    <string name="availability_yours">✓ Already yours</string>
+    <string name="availability_taken">Already taken. Try one of these:</string>
+    <string name="availability_unknown">Couldn\'t check right now. You can still try.</string>
+
+    <string name="onboarding_error_username">That name can\'t be used: %1$s</string>
+
+    <string name="claimed_title">Your address is ready</string>
+    <string name="claimed_title_unconfirmed">Your address is registered</string>
+    <string name="claimed_body">Payments to this address arrive in this wallet. Share it with anyone who wants to pay you.</string>
+    <string name="claimed_copy">Copy address</string>
+    <string name="claimed_copied">Copied</string>
+    <string name="claimed_continue">Continue</string>
+    <string name="onboarding_service_custom">Custom…</string>
+    <string name="onboarding_service_local">Local regtest mint (developer mode)</string>
+    <string name="onboarding_add_body">Another name for this account on %1$s. Payments to any of its addresses arrive in the same balance.</string>
+    <string name="onboarding_add_elsewhere_title">Address on another service</string>
+    <string name="onboarding_add_elsewhere_body">A name for this account on another service, with the same recovery phrase. Payments to it arrive as notes on that service, in this account. Your primary address stays where it is.</string>
+    <string name="onboarding_change_body">Pick the name people will use to pay you on %1$s.</string>
+    <string name="onboarding_error_registration">The address wasn\'t registered: %1$s</string>
+    <string name="onboarding_error_service">This host can\'t be used: %1$s</string>
+    <plurals name="onboarding_error_limit">
+        <item quantity="one">This account already has %1$d address here, the most this app allows.</item>
+        <item quantity="other">This account already has %1$d addresses here, the most this app allows.</item>
+    </plurals>
+    <plurals name="onboarding_error_account_limit">
+        <item quantity="one">This app holds %1$d account at most, and it\'s already set up.</item>
+        <item quantity="other">This app holds %1$d accounts at most, and they\'re all set up.</item>
+    </plurals>
+    <plurals name="restore_error_account_limit">
+        <item quantity="one">This app holds %1$d account at most. To restore another one, delete the account on this phone first (Settings → Account), after backing it up.</item>
+        <item quantity="other">This app holds %1$d accounts at most. To restore another one, delete one on this phone first (Settings → Account), after backing it up.</item>
+    </plurals>
+    <string name="onboarding_error_network">Couldn\'t connect: %1$s</string>
+    <string name="onboarding_restore">Restore from recovery phrase</string>
+    <string name="onboarding_restore_instead">Restore an account instead</string>
+
+    <string name="restore_title">Restore account</string>
+    <string name="restore_body">Type or paste the recovery phrase you wrote down.</string>
+    <string name="restore_phrase">Recovery phrase</string>
+    <string name="restore_phrase_valid">✓ Recovery phrase is complete</string>
+    <plurals name="restore_phrase_count">
+        <item quantity="one">%1$d word. A recovery phrase has 12 or 24 words.</item>
+        <item quantity="other">%1$d words. A recovery phrase has 12 or 24 words.</item>
+    </plurals>
+    <string name="restore_phrase_unknown">“%1$s” isn\'t a recovery phrase word. Check the spelling.</string>
+    <string name="restore_phrase_checksum">The words don\'t fit together. A word may be wrong or out of order.</string>
+    <string name="restore_default_account_name">Restored</string>
+    <string name="restore_start">Restore</string>
+    <string name="restore_searching">Looking for your money. This can take a minute.</string>
+    <string name="restore_what">Your balance comes back, and so does the address the app suggested when you set it up. Past activity and other addresses aren\'t part of the recovery phrase.</string>
+    <string name="restore_error_already">This recovery phrase is already in this wallet, as the account “%1$s”. For an address on another service, add one under Settings → Account → Lightning addresses.</string>
+    <string name="restore_error_service">This host can\'t be used for a restore. Check that it\'s the one you used before.</string>
+    <string name="restore_error_network">Couldn\'t connect. Check your connection and try again. Nothing was changed.</string>
+
+    <string name="restore_address_title">Your address</string>
+    <string name="restore_address_found">Restored: %1$s found.</string>
+    <string name="restore_address_found_none">Restored. No money was found on this recovery phrase.</string>
+    <string name="restore_address_body">Your address wasn\'t found by itself. Type the address you had on %1$s to take it back, or choose a new one.</string>
+    <string name="restore_address_submit">Use this address</string>
+    <string name="restore_cancel">Cancel restore</string>
+    <string name="restore_cancel_title">Cancel the restore?</string>
+    <string name="restore_cancel_body">The restored account is removed from this phone. Its money stays with the recovery phrase, and you can restore it again any time.</string>
+    <string name="restore_cancel_confirm">Cancel restore</string>
+    <string name="restore_cancel_keep">Keep going</string>
+    <string name="restore_test_phrase">Use test phrase (developer mode)</string>
+
+    <string name="claimed_body_unconfirmed">It\'s registered, but the app can\'t double-check that payments reach this wallet. Try a small payment first.</string>
+</resources>

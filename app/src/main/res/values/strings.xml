@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- %1$s: the app's name. -->
+    <string name="lock_title">Unlock %1$s</string>
+    <string name="lock_subtitle">Use your fingerprint, face or screen lock</string>
+    <string name="lock_unlock">Unlock</string>
+</resources>

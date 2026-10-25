@@ -1,0 +1,158 @@
+package whitewallet.core.data
+
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Query
+import androidx.room.RoomDatabase
+import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+internal interface WalletDao {
+    @Query(
+        """
+        SELECT a.id, a.name, a.createdAtMillis, a.host, p.username, p.host AS addressHost,
+               COALESCE((SELECT SUM(n.amountMsat) FROM notes n WHERE n.accountId = a.id AND n.state = 'Outstanding'), 0) AS balanceMsat
+        FROM accounts a LEFT JOIN profile p ON p.accountId = a.id
+        ORDER BY a.createdAtMillis
+        """,
+    )
+    fun accountSummaries(): Flow<List<AccountSummaryRow>>
+
+    @Query("SELECT * FROM accounts WHERE id = :id")
+    suspend fun account(id: String): AccountEntity?
+
+    @Upsert
+    suspend fun saveAccount(account: AccountEntity)
+
+    @Query("SELECT activeAccountId FROM app_state WHERE id = 0")
+    fun activeAccountId(): Flow<String?>
+
+    @Query("SELECT activeAccountId FROM app_state WHERE id = 0")
+    suspend fun currentAccountId(): String?
+
+    @Upsert
+    suspend fun saveAppState(state: AppStateEntity)
+
+    @Query("DELETE FROM accounts WHERE id = :id")
+    suspend fun deleteAccountRow(id: String)
+
+    @Query("DELETE FROM notes WHERE accountId = :id")
+    suspend fun deleteNotes(id: String)
+
+    @Query("DELETE FROM profile WHERE accountId = :id")
+    suspend fun deleteProfile(id: String)
+
+    @Query("DELETE FROM counters WHERE accountId = :id")
+    suspend fun deleteCounters(id: String)
+
+    @Query("DELETE FROM address_scan WHERE accountId = :id")
+    suspend fun deleteAddressScan(id: String)
+
+    @Query("DELETE FROM addresses WHERE accountId = :id")
+    suspend fun deleteAddresses(id: String)
+
+    @Query("SELECT * FROM addresses WHERE accountId = :accountId ORDER BY addedAtMillis")
+    fun addresses(accountId: String): Flow<List<AddressEntity>>
+
+    @Query("SELECT COUNT(*) FROM addresses WHERE accountId = :accountId AND host = :host AND username = :username")
+    suspend fun addressCount(accountId: String, host: String, username: String): Int
+
+    @Upsert
+    suspend fun saveAddress(address: AddressEntity)
+
+    @Query("DELETE FROM addresses WHERE accountId = :accountId AND host = :host AND username = :username")
+    suspend fun deleteAddress(accountId: String, host: String, username: String)
+
+    @Query("DELETE FROM key_checks WHERE accountId = :id")
+    suspend fun deleteKeyChecks(id: String)
+
+    @Query("SELECT * FROM key_checks WHERE accountId = :accountId")
+    fun keyChecks(accountId: String): Flow<List<KeyCheckEntity>>
+
+    @Upsert
+    suspend fun putKeyCheck(check: KeyCheckEntity)
+
+    @Query("DELETE FROM journal WHERE accountId = :id")
+    suspend fun deleteJournal(id: String)
+
+    @Query("SELECT * FROM notes WHERE accountId = :accountId ORDER BY updatedAtMillis DESC")
+    fun notes(accountId: String): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM notes WHERE id = :id")
+    suspend fun note(id: String): NoteEntity?
+
+    @Upsert
+    suspend fun upsertNotes(notes: List<NoteEntity>)
+
+    @Query("SELECT * FROM profile WHERE accountId = :accountId")
+    fun profile(accountId: String): Flow<ProfileEntity?>
+
+    @Query("SELECT * FROM profile WHERE accountId = :accountId")
+    suspend fun currentProfile(accountId: String): ProfileEntity?
+
+    @Upsert
+    suspend fun saveProfile(profile: ProfileEntity)
+
+    @Query("SELECT * FROM services WHERE host = :host")
+    suspend fun service(host: String): ServiceEntity?
+
+    @Query("SELECT * FROM services ORDER BY host")
+    fun services(): Flow<List<ServiceEntity>>
+
+    @Upsert
+    suspend fun saveService(service: ServiceEntity)
+
+    @Query("SELECT next FROM address_scan WHERE accountId = :accountId AND host = :host")
+    suspend fun addressScanFrom(accountId: String, host: String): Long?
+
+    @Upsert
+    suspend fun saveAddressScan(scan: AddressScanEntity)
+
+    @Query("SELECT DISTINCT host FROM counters WHERE accountId = :accountId")
+    suspend fun counterHosts(accountId: String): List<String>
+
+    @Query("SELECT * FROM counters WHERE accountId = :accountId AND host = :host")
+    fun countersFlow(accountId: String, host: String): Flow<List<CounterEntity>>
+
+    @Query("SELECT next FROM address_scan WHERE accountId = :accountId AND host = :host")
+    fun addressScanFlow(accountId: String, host: String): Flow<Long?>
+
+    @Query("SELECT next FROM counters WHERE accountId = :accountId AND host = :host AND purpose = :purpose")
+    suspend fun counter(accountId: String, host: String, purpose: Int): Long?
+
+    @Upsert
+    suspend fun saveCounter(counter: CounterEntity)
+
+    @Upsert
+    suspend fun putJournal(entry: JournalEntity)
+
+    @Query("SELECT * FROM journal WHERE status IN (:statuses) ORDER BY createdAtMillis")
+    suspend fun journal(statuses: List<String>): List<JournalEntity>
+
+    // Newest first; rowid orders rows written in the same millisecond (@Upsert keeps a row's rowid).
+    @Query("SELECT * FROM activity WHERE accountId = :accountId ORDER BY createdAtMillis DESC, rowid DESC")
+    fun activities(accountId: String): Flow<List<ActivityEntity>>
+
+    @Upsert
+    suspend fun putActivity(activity: ActivityEntity)
+
+    @Query("UPDATE activity SET status = :status WHERE journalId = :journalId AND status = 'Pending'")
+    suspend fun settleActivities(journalId: String, status: String)
+
+    @Query("DELETE FROM activity WHERE accountId = :id")
+    suspend fun deleteActivities(id: String)
+}
+
+@Database(
+    entities = [
+        AccountEntity::class, AppStateEntity::class, NoteEntity::class, ServiceEntity::class, ProfileEntity::class,
+        CounterEntity::class, AddressScanEntity::class, JournalEntity::class, KeyCheckEntity::class,
+        AddressEntity::class, ActivityEntity::class,
+    ],
+    version = 2,
+    exportSchema = false,
+)
+internal abstract class WalletDatabase : RoomDatabase() {
+    abstract fun dao(): WalletDao
+}
