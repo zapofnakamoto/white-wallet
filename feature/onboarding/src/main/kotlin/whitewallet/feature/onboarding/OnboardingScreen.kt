@@ -211,7 +211,8 @@ fun OnboardingScreen(
 class ServiceActions(val onSelect: (ServiceOption) -> Unit, val onCustomHost: (String) -> Unit)
 
 /**
- * The address field is the main control (large text, first); the service choice below it is secondary.
+ * The name field is the main control (first); the whole address it makes is spelled out below it, with whether it's
+ * free. The service choice below that is secondary.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -227,10 +228,14 @@ private fun AddressForm(
         value = state.username,
         onValueChange = onUsernameChange,
         label = { Text(stringResource(R.string.onboarding_username)) },
-        suffix = { Text("@${state.host}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-        supportingText = { AvailabilityText(state.availability) },
+        supportingText = {
+            Column {
+                if (state.username.isNotBlank()) Text(stringResource(R.string.onboarding_address_preview, "${state.username.trim()}@${state.host}"))
+                AvailabilityText(state.availability)
+            }
+        },
         isError = state.availability is Availability.Taken || state.availability is Availability.Invalid,
-        textStyle = MaterialTheme.typography.headlineSmall,
+        textStyle = MaterialTheme.typography.titleLarge,
         singleLine = true,
         enabled = !state.busy,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),

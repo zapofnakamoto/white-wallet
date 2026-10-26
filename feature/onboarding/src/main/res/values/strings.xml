@@ -10,7 +10,9 @@
     <string name="onboarding_custody">Your funds are held by the mint you choose. Keep amounts small.</string>
 
     <string name="onboarding_tagline">Bearer notes on Lightning. Ready in one tap.</string>
-    <string name="onboarding_username">Your address</string>
+    <string name="onboarding_username">Your name</string>
+    <!-- %1$s: the whole Lightning Address, name@service -->
+    <string name="onboarding_address_preview">Your address: %1$s</string>
     <string name="onboarding_start">Get started</string>
     <string name="onboarding_claim">Claim this address</string>
     <string name="onboarding_change_title">Choose a new address</string>

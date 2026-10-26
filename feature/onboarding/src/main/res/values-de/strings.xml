@@ -6,7 +6,9 @@
     <string name="onboarding_custody">Dein Guthaben verwahrt die Mint, die du wählst. Halte die Beträge klein.</string>
 
     <string name="onboarding_tagline">Inhaberscheine auf Lightning. Mit einem Tipp startklar.</string>
-    <string name="onboarding_username">Deine Adresse</string>
+    <string name="onboarding_username">Dein Name</string>
+    <!-- %1$s: die ganze Lightning-Adresse, name@dienst -->
+    <string name="onboarding_address_preview">Deine Adresse: %1$s</string>
     <string name="onboarding_start">Los geht\'s</string>
     <string name="onboarding_claim">Diese Adresse sichern</string>
     <string name="onboarding_change_title">Neue Adresse wählen</string>

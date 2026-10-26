@@ -63,7 +63,7 @@ class OnboardingScreenTest {
             )
         }
         compose.onNodeWithText("Address on another service").assertExists()
-        compose.onNodeWithText("@other.example").assertExists()
+        compose.onNodeWithText("Your address: alice@other.example").assertExists()
         compose.onNodeWithText("Mint").performScrollTo().assertExists()
     }
 
