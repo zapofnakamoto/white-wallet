@@ -14,8 +14,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.InvoiceRequest
 import whitewallet.core.wallet.InvoiceStatus
+import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
 
 /** Why no invoice could be made; each maps to a full string. */
@@ -38,6 +41,8 @@ data class ReceiveState(
     val creating: Boolean = false,
     val problem: InvoiceProblem? = null,
     val invoice: ShownInvoice? = null,
+    /** Developer: whether the regtest faucet can pay what is shown, and its last attempt. */
+    val faucet: FaucetState? = null,
 ) {
     /** The amount form shows: always without an address, else once asked for. */
     val showAmountForm: Boolean get() = invoice == null && (address == null || requestingAmount)
@@ -51,12 +56,19 @@ data class ReceiveState(
     val amountMsat: Long? get() = amountText.trim().toLongOrNull()?.takeIf { it > 0 }?.let { it * 1000 }
 }
 
+/** What the regtest faucet sends to the address. */
+internal const val FAUCET_SATS = 1_000L
+
+/** Developer mode on a local regtest mint in a debug build: the faucet can pay this account. */
+data class FaucetState(val paying: Boolean = false, val error: String? = null)
+
 private data class ReceiveUi(
     val requestingAmount: Boolean = false,
     val amountText: String = "",
     val creating: Boolean = false,
     val problem: InvoiceProblem? = null,
     val invoice: ShownInvoice? = null,
+    val faucet: FaucetState = FaucetState(),
 )
 
 /**
@@ -64,13 +76,23 @@ private data class ReceiveUi(
  * (or on request), an invoice for an amount that mints to this account (see [Wallet.requestInvoice]).
  */
 @HiltViewModel
-class ReceiveViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
+class ReceiveViewModel @Inject constructor(
+    private val wallet: Wallet,
+    private val faucet: RegtestFaucet,
+    preferences: AppPreferences,
+    defaults: AppDefaults,
+) : ViewModel() {
     private val received = MutableStateFlow(0L)
     private val ui = MutableStateFlow(ReceiveUi())
     private var watch: Job? = null
 
-    val state: StateFlow<ReceiveState> = combine(wallet.profile, received, ui) { profile, msat, u ->
-        ReceiveState(profile?.address, msat, u.requestingAmount, u.amountText, u.creating, u.problem, u.invoice)
+    /** The faucet only shows in developer mode, in a debug build (it has a host), for an account on a local mint. */
+    private val faucetAvailable = combine(preferences.developerMode, wallet.homeHost) { developer, host ->
+        developer && faucet.host != null && host in defaults.localDevServices
+    }
+
+    val state: StateFlow<ReceiveState> = combine(wallet.profile, received, ui, faucetAvailable) { profile, msat, u, canFaucet ->
+        ReceiveState(profile?.address, msat, u.requestingAmount, u.amountText, u.creating, u.problem, u.invoice, u.faucet.takeIf { canFaucet })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState())
 
     init {
@@ -106,16 +128,35 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet) : ViewMod
         }
     }
 
-    /** Back to the amount form, for another invoice. */
     /** Leaves the success screen: back to the address (or the amount form), counting from zero again. */
     fun receiveMore() {
         received.value = 0
         newInvoice()
     }
 
+    /** Back to the amount form, for another invoice. */
     fun newInvoice() {
         watch?.cancel()
         ui.update { it.copy(invoice = null) }
+    }
+
+    /**
+     * Developer: has the regtest faucet pay the invoice on screen, or [FAUCET_SATS] to the address. A payment to the
+     * address is then looked for at once rather than at the next poll; the invoice's own watch notices it.
+     */
+    fun payFromFaucet() {
+        val s = state.value
+        val target = s.invoice?.takeIf { it.status == InvoiceStatus.Waiting }?.request?.invoice ?: s.address ?: return
+        if (ui.value.faucet.paying) return
+        ui.update { it.copy(faucet = FaucetState(paying = true)) }
+        viewModelScope.launch {
+            val error = runCatching { faucet.pay(target, FAUCET_SATS) }.exceptionOrNull()
+            ui.update { it.copy(faucet = FaucetState(error = error?.let { e -> e.message ?: e.javaClass.simpleName })) }
+            if (error == null && s.invoice == null) {
+                val result = runCatching { wallet.refresh() }.getOrNull()
+                if (result != null && result.receivedMsat > 0) received.value += result.receivedMsat
+            }
+        }
     }
 
     /** Asks the mint until the invoice is paid or expired, while the screen is open. */

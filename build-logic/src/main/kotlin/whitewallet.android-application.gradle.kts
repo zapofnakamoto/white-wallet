@@ -73,9 +73,12 @@ android {
             // The local regtest mints (dev/regtest: mint, mint2), offered in developer mode; release builds can't reach
             // plain http.
             buildConfigField("String", "LOCAL_DEV_SERVICES", "\"localhost:8111,localhost:8112,localhost:8113\"")
+            // dev/regtest's faucet, which pays the app's own address or invoice from Receive in developer mode.
+            buildConfigField("String", "LOCAL_DEV_FAUCET", "\"localhost:8114\"")
         }
         getByName("release") {
             buildConfigField("String", "LOCAL_DEV_SERVICES", "\"\"")
+            buildConfigField("String", "LOCAL_DEV_FAUCET", "\"\"")
             isMinifyEnabled = true
             vcsInfo.include = false
             signingConfigs.findByName("release")?.let { signingConfig = it }

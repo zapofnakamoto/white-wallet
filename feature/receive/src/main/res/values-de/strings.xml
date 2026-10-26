@@ -22,4 +22,9 @@
     <string name="receive_done">Fertig</string>
     <string name="receive_success_title">Zahlung erhalten</string>
     <string name="receive_more">Mehr empfangen</string>
+    <!-- Entwicklermodus auf einer lokalen Regtest-Mint (Debug-Builds): der Faucet von dev/regtest zahlt an diese Wallet. %1$s: ein Betrag -->
+    <string name="receive_faucet_address">Entwickler: %1$s von Regtest erhalten</string>
+    <string name="receive_faucet_invoice">Entwickler: diese Rechnung von Regtest bezahlen</string>
+    <!-- %1$s: der Fehler des Faucets oder der Verbindung, wie er kam -->
+    <string name="receive_faucet_failed">Der Regtest-Faucet hat nicht gezahlt: %1$s. Läuft dev/regtest und ist es verbunden?</string>
 </resources>

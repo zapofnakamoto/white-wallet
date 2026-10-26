@@ -67,7 +67,7 @@ fun ReceiveRoute(onBack: () -> Unit, onClaim: () -> Unit, viewModel: ReceiveView
     val state by viewModel.state.collectAsStateWithLifecycle()
     ReceiveScreen(
         state, onBack, onClaim,
-        InvoiceActions(viewModel::requestAmount, viewModel::onAmountChange, viewModel::createInvoice, viewModel::newInvoice, viewModel::receiveMore),
+        InvoiceActions(viewModel::requestAmount, viewModel::onAmountChange, viewModel::createInvoice, viewModel::newInvoice, viewModel::receiveMore, viewModel::payFromFaucet),
     )
 }
 
@@ -79,6 +79,8 @@ class InvoiceActions(
     val onNewInvoice: () -> Unit = {},
     /** Back from the success screen to the address or a new invoice. */
     val onReceiveMore: () -> Unit = {},
+    /** Developer: have the regtest faucet pay what is shown. */
+    val onFaucet: () -> Unit = {},
 )
 
 @Composable
@@ -98,6 +100,8 @@ fun ReceiveScreen(state: ReceiveState, onBack: () -> Unit, onClaim: () -> Unit, 
                 state.address != null -> AddressContent(state.address, invoice.onRequestAmount)
             }
             if (shown == null) WalletButton(kind = ButtonKind.Text, onClick = onClaim) { Text(stringResource(R.string.receive_claim)) }
+            val payable = shown?.status == InvoiceStatus.Waiting || (shown == null && !state.showAmountForm && state.address != null)
+            state.faucet?.takeIf { payable }?.let { FaucetButton(it, invoice = shown != null, onPay = invoice.onFaucet) }
         }
     }
 }
@@ -141,6 +145,14 @@ private fun ReceivedContent(msat: Long, modifier: Modifier, onDone: () -> Unit, 
         PrimaryButton(stringResource(R.string.receive_done), onDone)
         WalletButton(kind = ButtonKind.Text, onClick = onReceiveMore) { Text(stringResource(R.string.receive_more)) }
     }
+}
+
+/** Developer mode with a local regtest mint: the faucet pays the address or the invoice, as `regtest.sh pay` would. */
+@Composable
+private fun FaucetButton(faucet: FaucetState, invoice: Boolean, onPay: () -> Unit) {
+    val label = if (invoice) stringResource(R.string.receive_faucet_invoice) else stringResource(R.string.receive_faucet_address, formatAmount(FAUCET_SATS * 1_000))
+    WalletButton(kind = ButtonKind.Secondary, onClick = onPay, busy = faucet.paying) { Text(label) }
+    faucet.error?.let { Text(stringResource(R.string.receive_faucet_failed, it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall) }
 }
 
 @Composable

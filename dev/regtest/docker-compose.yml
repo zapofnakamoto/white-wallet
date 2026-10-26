@@ -1,6 +1,6 @@
 # Local regtest stack for developing the wallet: bitcoind, two LND nodes and the reference LNURLcash mint.
 # Use ./regtest.sh rather than docker compose directly; it also bootstraps the chain and the channel.
-# Only the mint is exposed, on 127.0.0.1:8111. Everything here is regtest: no real funds.
+# Only the mints (127.0.0.1:8111-8113) and the faucet (8114) are exposed. Everything here is regtest: no real funds.
 name: whitewallet-regtest
 
 x-lnd: &lnd
@@ -179,6 +179,21 @@ services:
       - mint-lnd:/mint-lnd:ro
       - user-lnd:/user-lnd:ro
       - mint3:/data
+
+  # Pays an address or invoice from user-lnd on request (faucet.py), so a debug build can receive without a terminal.
+  faucet:
+    image: lnurlcash/lnurl-mint:0.12.2
+    restart: unless-stopped
+    depends_on: [mint-lnd, user-lnd]
+    # Reads both nodes' admin macaroons, which LND writes readable by root only.
+    user: root
+    ports:
+      - "127.0.0.1:8114:8114"
+    entrypoint: ["python", "/faucet.py"]
+    volumes:
+      - ./faucet.py:/faucet.py:ro
+      - mint-lnd:/mint-lnd:ro
+      - user-lnd:/user-lnd:ro
 
 volumes:
   bitcoind:

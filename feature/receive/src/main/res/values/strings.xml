@@ -22,4 +22,9 @@
     <string name="receive_done">Done</string>
     <string name="receive_success_title">Payment received</string>
     <string name="receive_more">Receive more</string>
+    <!-- Developer mode on a local regtest mint (debug builds): dev/regtest's faucet pays this wallet. %1$s: an amount -->
+    <string name="receive_faucet_address">Developer: get %1$s from regtest</string>
+    <string name="receive_faucet_invoice">Developer: pay this invoice from regtest</string>
+    <!-- %1$s: the faucet's or the connection's error, as it came -->
+    <string name="receive_faucet_failed">The regtest faucet didn\'t pay: %1$s. Is dev/regtest up and connected?</string>
 </resources>

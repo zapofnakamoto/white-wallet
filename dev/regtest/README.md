@@ -10,8 +10,9 @@ A local Bitcoin regtest network with a real LNURLcash mint, for developing the w
 | `mint` | The reference mint [`lnurlcash/lnurl-mint`](https://github.com/lnurlcash/lnurl-mint) `0.12.2`, at `http://localhost:8111` |
 | `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between services |
 | `mint3` | A third mint (1 sat base fee) at `http://localhost:8113` whose signing key can change: it runs on `mint-lnd` or `user-lnd`, and signs with that node's identity key. `rotate-mint3` switches the node, keeping its notes |
+| `faucet` | [`faucet.py`](faucet.py) at `http://localhost:8114`: pays an address or invoice from `user-lnd` (or `mint-lnd` for `mint2`'s) when the app asks, like `pay` |
 
-`up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints are exposed, on `127.0.0.1:8111`, `127.0.0.1:8112` and `127.0.0.1:8113`; `connect` reverses all three ports.
+`up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints and the faucet are exposed, on `127.0.0.1:8111` to `127.0.0.1:8114`; `connect` reverses all four ports.
 
 Requirements: Docker with Compose, `curl`, `jq`, `python3`. For a device: `adb` (Android SDK platform-tools).
 
@@ -28,6 +29,8 @@ In the app (a **debug** build): Settings → Developer options → turn on devel
 ```
 
 Pull to refresh on Home; the note appears (minus the mint's 1 sat fee).
+
+Or without the terminal: on **Receive**, a debug build in developer mode with an account on a local mint shows **Developer: get ₿1,000 from regtest** (or, with an invoice on screen, **pay this invoice from regtest**). The faucet pays it and the app looks for it at once, so the success screen shows within a second or two.
 
 ## Commands
 

@@ -11,6 +11,7 @@ MINT2_URL="http://localhost:8112"
 MINT2_PORT=8112
 MINT3_URL="http://localhost:8113"
 MINT3_PORT=8113
+FAUCET_PORT=8114
 ADB="${ADB:-$(command -v adb || echo "$HOME/Android/Sdk/platform-tools/adb")}"
 
 log() { printf '\033[1m==>\033[0m %s\n' "$*" >&2; }
@@ -64,6 +65,7 @@ adb_reverse() {
         "$ADB" reverse "tcp:$MINT_PORT" "tcp:$MINT_PORT" >/dev/null && log "adb reverse tcp:$MINT_PORT -> this machine (device: $("$ADB" get-serialno))"
         "$ADB" reverse "tcp:$MINT2_PORT" "tcp:$MINT2_PORT" >/dev/null && log "adb reverse tcp:$MINT2_PORT (second mint) -> this machine"
         "$ADB" reverse "tcp:$MINT3_PORT" "tcp:$MINT3_PORT" >/dev/null && log "adb reverse tcp:$MINT3_PORT (third mint) -> this machine"
+        "$ADB" reverse "tcp:$FAUCET_PORT" "tcp:$FAUCET_PORT" >/dev/null && log "adb reverse tcp:$FAUCET_PORT (faucet) -> this machine"
     else
         log "no Android device or emulator connected; run '$0 connect' once one is"
     fi

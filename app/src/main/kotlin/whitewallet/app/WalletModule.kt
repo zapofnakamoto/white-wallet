@@ -12,6 +12,7 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.DeveloperOptions
 import whitewallet.core.wallet.MintTrustStore
+import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.TrustedMints
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.NotePolicies
@@ -49,6 +50,11 @@ object WalletModule {
             requireAddress = BuildConfig.REQUIRE_ADDRESS,
             collectDefaults = CollectDefaults.fromConfig(BuildConfig.COLLECT_AT_HOME_MINT, BuildConfig.COLLECT_FEE_CAP),
         )
+
+    /** dev/regtest's faucet in debug builds; without a host (release) it pays nothing. */
+    @Provides
+    @Singleton
+    fun regtestFaucet(): RegtestFaucet = RegtestFaucet(BuildConfig.LOCAL_DEV_FAUCET.ifEmpty { null })
 
     /** The built-in note strategies. A brand's code module adds its own to the same set (see docs/WHITE_LABEL.md). */
     @Provides
