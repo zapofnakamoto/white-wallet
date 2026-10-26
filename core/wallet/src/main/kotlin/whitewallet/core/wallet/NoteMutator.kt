@@ -143,12 +143,13 @@ internal class NoteMutator(private val wallet: Wallet) {
             is MutationOutcome.Ambiguous -> {
                 val unknown = entry.copy(status = JournalStatus.Unknown, detail = outcome.cause, updatedAtMillis = wallet.now())
                 wallet.store.putJournal(unknown)
-                if (Reconciler(wallet).reconcile(unknown) == JournalStatus.Confirmed) {
-                    MutationResult.Done(outputs.map { out ->
+                when (Reconciler(wallet).reconcile(unknown)) {
+                    JournalStatus.Confirmed -> MutationResult.Done(outputs.map { out ->
                         wallet.store.note(out.ref.q) ?: Note(out.ref.q, "", host, NoteKind.KeyPath, out.ref.purpose, null, 0, null, NoteState.Outstanding, wallet.now())
                     }, entry.id)
-                } else {
-                    MutationResult.Pending(entry.id)
+                    // Settled already: it never landed, so nothing changed, as for a refusal.
+                    JournalStatus.Rejected -> MutationResult.Refused(RejectionKind.Other, outcome.cause)
+                    else -> MutationResult.Pending(entry.id)
                 }
             }
         }

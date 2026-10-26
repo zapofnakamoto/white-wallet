@@ -306,4 +306,54 @@ class RegtestE2ETest {
         assertEquals(listOf(ActivityKind.SentNote to ActivityStatus.Cancelled), money.map { it.kind to it.status })
         assertEquals(SharedNoteState.Reclaimed, wallet.sharedNote(note.id)?.state)
     }
+
+    @Test
+    fun `a payment to a user on the same mint that drops while someone else pays them is not taken as paid`() = runBlocking<Unit> {
+        val bob = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
+        val bobName = name()
+        assertIs<OnboardResult.Ready>(bob.onboard(bobName, host))
+        val carol = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
+        val carolName = name()
+        assertIs<OnboardResult.Ready>(carol.onboard(carolName, host))
+        regtest("pay", "$carolName@$host", "3000")
+        carol.refresh()
+
+        // Alice's connection drops on every rotate, merge or split while armed, before it reaches the mint. The first
+        // time, Carol pays Bob first: her note takes the key of Bob's that Alice's payment names.
+        var armed = false
+        var carolPaid = false
+        val dropping = LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor { chain ->
+            val url = chain.request().url
+            if (armed && url.queryParameter("k1") != null && url.queryParameter("p1") != null) {
+                if (!carolPaid) {
+                    carolPaid = true
+                    runBlocking { assertIs<PayResult.Paid>(carol.pay(assertIs<PayPreview.Ready>(carol.previewPayment("$bobName@$host")), 700_000)) }
+                }
+                throw java.io.IOException("connection dropped")
+            }
+            chain.proceed(chain.request())
+        }.build()
+        val alice = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(http = dropping))
+        val aliceName = name()
+        assertIs<OnboardResult.Ready>(alice.onboard(aliceName, host))
+        regtest("pay", "$aliceName@$host", "5000")
+        alice.refresh()
+        val start = alice.balanceMsat.first()
+
+        val preview = assertIs<PayPreview.Ready>(alice.previewPayment("$bobName@$host"))
+        assertTrue(preview.internal)
+        armed = true
+        val dropped = alice.pay(preview, 1_000_000)
+        armed = false
+        assertTrue(carolPaid)
+        assertIs<PayResult.Failed>(dropped, "Bob's key holds Carol's note, not Alice's")
+        alice.refresh()
+        assertEquals(start, alice.balanceMsat.first(), "Alice's notes were never spent")
+        assertEquals(emptyList(), alice.activity.first().filter { it.kind == ActivityKind.Sent })
+
+        // Paying again works, at Bob's next key.
+        assertIs<PayResult.Paid>(alice.pay(assertIs<PayPreview.Ready>(alice.previewPayment("$bobName@$host")), 1_000_000))
+        bob.refresh()
+        assertEquals(listOf(700_000L, 1_000_000L), bob.activity.first().filter { it.kind == ActivityKind.Received }.map { it.amountMsat }.sorted())
+    }
 }

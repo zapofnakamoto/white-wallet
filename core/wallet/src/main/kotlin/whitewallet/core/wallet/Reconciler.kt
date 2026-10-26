@@ -16,7 +16,9 @@ import whitewallet.lnurlcash.protocol.RejectionKind
 
 /**
  * Settles mutations whose outcome is unknown by looking up their outputs and inputs by `p`, which never discloses
- * a spend. An output that exists means the mutation landed; an input that is still outstanding means it did not.
+ * a spend. An output of ours that exists means the mutation landed; inputs that are all still outstanding mean it did
+ * not. Someone else's output (an internal transfer) proves nothing: another payer's note may sit at that key. Only
+ * this wallet can spend the inputs, so for such a mutation inputs that are all gone mean it landed.
  */
 internal class Reconciler(private val wallet: Wallet) {
     suspend fun reconcileAll() {
@@ -34,22 +36,26 @@ internal class Reconciler(private val wallet: Wallet) {
         try {
             var landed = false
             for (output in entry.outputs) {
+                if (output.isExternal) continue
                 val q = ByteVector32(output.q)
                 val info = lookup(entry.withdrawUrl, q) ?: continue
                 landed = true
-                if (output.isExternal) continue
                 val cert = info.certificate?.takeIf { Certificates.verify(it, q, info.mintPubkey) }
                 if (wallet.store.note(output.q) == null) {
                     wallet.store.upsertNotes(listOf(Note(output.q, output.accountId, entry.host, NoteKind.KeyPath, output.purpose, output.index,
                         info.maxWithdrawableMsat, cert?.encode(), NoteState.Outstanding, wallet.now())))
                 }
             }
+            if (!landed) {
+                val live = entry.inputIds.map { lookup(entry.withdrawUrl, ByteVector32(it)) != null }
+                if (live.all { it }) return finish(entry, JournalStatus.Rejected)
+                // The payee may have moved the note on already, so its key can't tell; the burned inputs can.
+                landed = live.none { it } && entry.outputs.any { it.isExternal }
+            }
             if (landed) {
                 for (id in entry.inputIds) wallet.store.note(id)?.let { wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = wallet.now()))) }
                 return finish(entry, JournalStatus.Confirmed)
             }
-            val inputsLive = entry.inputIds.all { lookup(entry.withdrawUrl, ByteVector32(it)) != null }
-            if (inputsLive) return finish(entry, JournalStatus.Rejected)
         } catch (e: IOException) {
             // Still unknown; try again on the next refresh.
         } catch (e: ProtocolViolation) {
