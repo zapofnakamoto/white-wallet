@@ -69,7 +69,7 @@ android {
             isPseudoLocalesEnabled = true
             // The local regtest mints (dev/regtest: mint, mint2), offered in developer mode; release builds can't reach
             // plain http.
-            buildConfigField("String", "LOCAL_DEV_SERVICES", "\"localhost:8111,localhost:8112\"")
+            buildConfigField("String", "LOCAL_DEV_SERVICES", "\"localhost:8111,localhost:8112,localhost:8113\"")
         }
         getByName("release") {
             buildConfigField("String", "LOCAL_DEV_SERVICES", "\"\"")

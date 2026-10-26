@@ -2,7 +2,9 @@ package whitewallet.core.wallet
 
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.MnemonicCode
+import fr.acinq.bitcoin.PublicKey
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +32,9 @@ import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.Service
 import whitewallet.lnurlcash.CashBranch
+import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
 
@@ -365,20 +369,39 @@ class Wallet(
     /**
      * Keeps using [host] with the signing key [key] it now presents in place of the pinned one, once the user has seen
      * the change. Only that key: if the mint presents yet another one (or none), nothing changes and false is
-     * returned. A mint the user trusted stays trusted with the new key.
+     * returned. A mint the user trusted stays trusted with the new key, and the notes held there get the mint's
+     * certificates under the new key (see [recertify]).
      */
     suspend fun acceptMintKey(host: String, key: String): Boolean = lock.withLock {
         val service = store.service(host) ?: return false
         val presented = try {
-            client.withdrawDiscovery(host).mintPubkey?.toHex()
+            client.withdrawDiscovery(host).mintPubkey
         } catch (e: Exception) {
             return false
         }
-        if (presented != key) return false
+        if (presented == null || presented.toHex() != key) return false
         val old = service.mintPubkey
         store.saveService(service.copy(mintPubkey = key))
         if (old != null && MintKey(host, old) in trust.trusted.first()) trust.setTrusted(MintKey(host, key), true)
+        recertify(service, presented)
         true
+    }
+
+    /**
+     * Replaces the certificates of every account's notes on [service], signed with its old key, by the mint's current
+     * ones under [key]: a note shared later carries a certificate its recipient can verify. A note whose certificate
+     * doesn't verify is left without one; one the mint doesn't answer for (spent, or no answer) keeps its old one.
+     */
+    private suspend fun recertify(service: Service, key: PublicKey) {
+        val held = store.accounts.first().flatMap { store.notes(it.account.id).first() }
+            .filter { it.host == service.host && it.kind == NoteKind.KeyPath && it.state != NoteState.Spent }
+        val updated = held.mapNotNull { note ->
+            val q = ByteVector32(note.id)
+            val info = runCatching { client.lookup(service.withdrawUrl, q) }.getOrNull() ?: return@mapNotNull null
+            val certificate = info.certificate?.takeIf { Certificates.verify(it, q, key) && it.amountMsat == info.maxWithdrawableMsat }
+            note.copy(certificate = certificate?.encode(), updatedAtMillis = now())
+        }
+        if (updated.isNotEmpty()) store.upsertNotes(updated)
     }
 
     /** Connects to a mint the user names (pinning its key), so it can be trusted before any note from it arrives. */

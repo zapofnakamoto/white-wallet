@@ -79,10 +79,21 @@ internal object Regtest {
         return checkNotNull(Regex("\"payment_request\":\\s*\"([^\"]+)\"").find(out)) { out }.groupValues[1]
     }
 
-    /** Whether user-lnd has been paid [invoice]. */
+    /** Whether [invoice] (of user-lnd, or of mint-lnd from [invoiceForMint3]) has been paid. */
     fun settled(invoice: String): Boolean {
         val hash = checkNotNull(whitewallet.lnurl.Bolt11.decode(invoice)).paymentHashHex
-        return "\"SETTLED\"" in lncliUser("lookupinvoice", hash)
+        return listOf("lncli-user", "lncli-mint").any { node -> runCatching { "\"SETTLED\"" in lncli(node, "lookupinvoice", hash) }.getOrDefault(false) }
+    }
+
+    /**
+     * An invoice the third mint can pay: of the node it doesn't run on now, since LND can't pay its own invoices and
+     * [rotateMint3] moves it between the two.
+     */
+    suspend fun invoiceForMint3(sats: Long): String {
+        val mintLnd = Regex("\"identity_pubkey\":\\s*\"([0-9a-f]{66})\"").find(lncliMint("getinfo"))!!.groupValues[1]
+        if (mintKey(HOST3) == mintLnd) return invoice(sats)
+        val out = lncliMint("addinvoice", "--amt", "$sats", "--memo", "regtest test")
+        return checkNotNull(Regex("\"payment_request\":\\s*\"([^\"]+)\"").find(out)) { out }.groupValues[1]
     }
 
     /**
@@ -110,8 +121,12 @@ internal object Regtest {
         fun state(): String = Regex("\"state\":\\s*\"([A-Z]+)\"").find(lncliUser("lookupinvoice", hash))!!.groupValues[1]
     }
 
-    fun lncliUser(vararg args: String): String {
-        val process = ProcessBuilder(listOf(script.path, "lncli-user") + args).redirectErrorStream(true).start()
+    fun lncliUser(vararg args: String): String = lncli("lncli-user", *args)
+
+    fun lncliMint(vararg args: String): String = lncli("lncli-mint", *args)
+
+    private fun lncli(node: String, vararg args: String): String {
+        val process = ProcessBuilder(listOf(script.path, node) + args).redirectErrorStream(true).start()
         val output = process.inputStream.bufferedReader().readText()
         check(process.waitFor(120, TimeUnit.SECONDS) && process.exitValue() == 0) { "lncli ${args.joinToString(" ")} failed:\n$output" }
         return output

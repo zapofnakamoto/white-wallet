@@ -71,6 +71,19 @@ It onboards an address, receives through it, claims a bearer note, adds a second
 
 `'*RegtestMultiAddressTest*'` guards how the mint assigns address keys when several names share one `cx1`. Each name has its own counter, but all names draw from one sequence of address keys, skipping any key ever used or reserved; an unpaid invoice reserves a key that never gets a note. It also checks that the wallet finds every payment. If a mint changes this strategy, the test fails.
 
+## Trying a mint that changes its signing key
+
+The third mint (`localhost:8113`) gets a new signing key with `regtest.sh rotate-mint3`; `RegtestKeyRotationTest` covers it in the tests. By hand, on a debug build with developer mode on, where onboarding offers the third mint:
+
+1. **A link shared before the change must fail its certificate check.** You need two installs, since all accounts in one app share the mints' pinned keys: `just run` (White Wallet) and `just run brand-examples/acme` (another application ID), on the same phone.
+   - In White Wallet, add an account on `localhost:8113` and fund it: `just pay <name>@localhost:8113 2000`.
+   - Share a note: Send → Create a note, or Notes → a note → Share. Copy the link.
+   - Run `just regtest rotate-mint3`.
+   - In Acme, on an account at `localhost:8111`, go to Receive → Claim a note and paste the link. It must say **"Not certified: the amount can't be verified."** Claiming still works, and the claimed note shows as certified in Notes: it now sits at Acme's own key, signed with the new key.
+2. **Accepting the new key.** Back in White Wallet, refresh. Home shows "localhost:8113 changed its signing key". Open Details: it shows both keys. Choose "Use the new key" and confirm, and the mint works again. A note shared from then on is certified for its recipient.
+
+Each `rotate-mint3` switches the mint between the two nodes, so running it again changes the key back.
+
 ## Troubleshooting
 
 - **Port 8111 in use:** stop whatever uses it, or change the port mapping and `BASE_URL` in `docker-compose.yml` (and `MINT_PORT` in `regtest.sh`).

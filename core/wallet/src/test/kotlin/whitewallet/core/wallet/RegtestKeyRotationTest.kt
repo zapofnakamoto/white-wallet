@@ -5,12 +5,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import fr.acinq.bitcoin.PublicKey
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST3
+import whitewallet.lnurlcash.Certificates
+import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.client.LnurlcashClient
 
 /**
@@ -57,13 +60,51 @@ class RegtestKeyRotationTest {
         assertTrue(store.allNotes().all { it.certificate != null }, "every note, the old one too, verified against the new key")
 
         // Every note spends there, the old one included: an invoice of exactly its amount is paid with it.
-        val invoice = Regtest.invoice(old.amountMsat / 1000)
+        val invoice = Regtest.invoiceForMint3(old.amountMsat / 1000)
         assertIs<PayResult.Paid>(phone2.pay(assertIs<PayPreview.Ready>(phone2.previewPayment(invoice)), old.amountMsat))
         assertTrue(Regtest.settled(invoice))
         assertEquals(NoteState.Spent, store.note(old.id)?.state, "paid with the old note")
         val rest = store.allNotes().filter { it.state == NoteState.Outstanding }
         assertEquals(3, rest.size)
         assertIs<NoteActionResult.Done>(phone2.combineNotes(rest.map { it.id }))
+    }
+
+    @Test
+    fun `a note from before the key change, shared once the new key is accepted, is verified for its recipient`() = runBlocking<Unit> {
+        val alice = Regtest.phone(host = HOST3)
+        alice.fund(2000)
+        val note = alice.notes(HOST3).single()
+        val newKey = Regtest.rotateMint3()
+        assertTrue(alice.wallet.acceptMintKey(HOST3, newKey))
+
+        // The link carries the note's certificate; the recipient checks it against the key the mint presents now.
+        val link = assertNotNull(assertIs<ShareNoteResult.Shared>(alice.wallet.shareNote(note.id)).note.link)
+        val bob = Regtest.phone()
+        val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+        assertTrue(preview.certified, "the amount is verified")
+        assertIs<ClaimResult.Claimed>(bob.wallet.claim(preview))
+    }
+
+    @Test
+    fun `a link shared before the key change fails its certificate check for the recipient, and claiming renews the note`() = runBlocking<Unit> {
+        // Links are meant to be short-lived: a certificate of a key the mint no longer signs with must not pass.
+        val alice = Regtest.phone(host = HOST3)
+        alice.fund(2000)
+        val oldKey = Regtest.mintKey(HOST3)
+        val link = assertNotNull(assertIs<ShareNoteResult.Shared>(alice.wallet.shareNote(alice.notes(HOST3).single().id)).note.link)
+        val newKey = PublicKey.fromHex(Regtest.rotateMint3())
+
+        val bob = Regtest.phone()
+        val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+        val certificate = assertNotNull(preview.link.certificate?.let(Cs1::decode), "the link carries a certificate")
+        assertTrue(Certificates.verify(certificate, preview.link.spend.q, PublicKey.fromHex(oldKey)), "a genuine one, of the old key")
+        assertEquals(preview.info.mintPubkey, newKey)
+        assertEquals(false, preview.certified, "it doesn't count: the mint signs with another key now")
+
+        // Claiming still works, and the note lands at Bob's own key, signed with the new key; the link is spent.
+        val claimed = assertIs<ClaimResult.Claimed>(bob.wallet.claim(preview))
+        assertTrue(claimed.certified)
+        assertIs<ClaimPreview.AlreadySpent>(bob.wallet.previewClaim(link))
     }
 
     @Test
