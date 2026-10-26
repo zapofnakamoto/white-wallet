@@ -9,6 +9,7 @@ import javax.inject.Singleton
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.DeveloperOptions
 import whitewallet.core.wallet.MintTrustStore
@@ -54,7 +55,8 @@ object WalletModule {
     /** dev/regtest's faucet in debug builds; without a host (release) it pays nothing. */
     @Provides
     @Singleton
-    fun regtestFaucet(): RegtestFaucet = RegtestFaucet(BuildConfig.LOCAL_DEV_FAUCET.ifEmpty { null })
+    fun regtestFaucet(wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults): RegtestFaucet =
+        RegtestFaucet(BuildConfig.LOCAL_DEV_FAUCET.ifEmpty { null }, preferences.developerMode, wallet.homeHost, defaults.localDevServices)
 
     /** The built-in note strategies. A brand's code module adds its own to the same set (see docs/WHITE_LABEL.md). */
     @Provides

@@ -43,6 +43,7 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.PayDestination
 import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
@@ -73,6 +74,7 @@ fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, viewModel: SendViewM
         actions = SendActions(
             viewModel::onInputChange, viewModel::startScan, viewModel::stopScan, viewModel::onScanned, viewModel::check,
             viewModel::onAmountChange, viewModel::onCommentChange, viewModel::pay, viewModel::edit, onCreateNote,
+            viewModel::invoiceFromFaucet,
         ),
     )
 }
@@ -88,6 +90,8 @@ class SendActions(
     val onPay: () -> Unit,
     val onEdit: () -> Unit,
     val onCreateNote: () -> Unit,
+    /** Developer: have the regtest faucet make an invoice to pay. */
+    val onFaucet: () -> Unit = {},
 )
 
 @Composable
@@ -166,6 +170,16 @@ private fun InputContent(state: SendState, actions: SendActions) {
     WalletButton(kind = ButtonKind.Secondary, onClick = actions.onCreateNote, enabled = !state.checking, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.send_create_note))
     }
+    state.faucet?.let { FaucetButton(it, enabled = !state.checking, onClick = actions.onFaucet) }
+}
+
+/** Developer mode with a local regtest mint: the faucet makes an invoice to pay, as `regtest.sh invoice` would. */
+@Composable
+private fun FaucetButton(faucet: FaucetState, enabled: Boolean, onClick: () -> Unit) {
+    WalletButton(kind = ButtonKind.Secondary, onClick = onClick, enabled = enabled, busy = faucet.busy, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.send_faucet, formatAmount(FAUCET_SATS * 1_000)))
+    }
+    faucet.error?.let { Text(stringResource(R.string.send_faucet_failed, it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall) }
 }
 
 @Composable

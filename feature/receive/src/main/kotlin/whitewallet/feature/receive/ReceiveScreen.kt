@@ -57,6 +57,7 @@ import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceStatus
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
@@ -151,7 +152,7 @@ private fun ReceivedContent(msat: Long, modifier: Modifier, onDone: () -> Unit, 
 @Composable
 private fun FaucetButton(faucet: FaucetState, invoice: Boolean, onPay: () -> Unit) {
     val label = if (invoice) stringResource(R.string.receive_faucet_invoice) else stringResource(R.string.receive_faucet_address, formatAmount(FAUCET_SATS * 1_000))
-    WalletButton(kind = ButtonKind.Secondary, onClick = onPay, busy = faucet.paying) { Text(label) }
+    WalletButton(kind = ButtonKind.Secondary, onClick = onPay, busy = faucet.busy) { Text(label) }
     faucet.error?.let { Text(stringResource(R.string.receive_faucet_failed, it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall) }
 }
 

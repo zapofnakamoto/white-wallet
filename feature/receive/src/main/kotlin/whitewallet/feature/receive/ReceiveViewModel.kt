@@ -14,8 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import whitewallet.core.wallet.AppDefaults
-import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceRequest
 import whitewallet.core.wallet.InvoiceStatus
 import whitewallet.core.wallet.RegtestFaucet
@@ -59,9 +58,6 @@ data class ReceiveState(
 /** What the regtest faucet sends to the address. */
 internal const val FAUCET_SATS = 1_000L
 
-/** Developer mode on a local regtest mint in a debug build: the faucet can pay this account. */
-data class FaucetState(val paying: Boolean = false, val error: String? = null)
-
 private data class ReceiveUi(
     val requestingAmount: Boolean = false,
     val amountText: String = "",
@@ -76,22 +72,12 @@ private data class ReceiveUi(
  * (or on request), an invoice for an amount that mints to this account (see [Wallet.requestInvoice]).
  */
 @HiltViewModel
-class ReceiveViewModel @Inject constructor(
-    private val wallet: Wallet,
-    private val faucet: RegtestFaucet,
-    preferences: AppPreferences,
-    defaults: AppDefaults,
-) : ViewModel() {
+class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private val faucet: RegtestFaucet) : ViewModel() {
     private val received = MutableStateFlow(0L)
     private val ui = MutableStateFlow(ReceiveUi())
     private var watch: Job? = null
 
-    /** The faucet only shows in developer mode, in a debug build (it has a host), for an account on a local mint. */
-    private val faucetAvailable = combine(preferences.developerMode, wallet.homeHost) { developer, host ->
-        developer && faucet.host != null && host in defaults.localDevServices
-    }
-
-    val state: StateFlow<ReceiveState> = combine(wallet.profile, received, ui, faucetAvailable) { profile, msat, u, canFaucet ->
+    val state: StateFlow<ReceiveState> = combine(wallet.profile, received, ui, faucet.available) { profile, msat, u, canFaucet ->
         ReceiveState(profile?.address, msat, u.requestingAmount, u.amountText, u.creating, u.problem, u.invoice, u.faucet.takeIf { canFaucet })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState())
 
@@ -147,8 +133,8 @@ class ReceiveViewModel @Inject constructor(
     fun payFromFaucet() {
         val s = state.value
         val target = s.invoice?.takeIf { it.status == InvoiceStatus.Waiting }?.request?.invoice ?: s.address ?: return
-        if (ui.value.faucet.paying) return
-        ui.update { it.copy(faucet = FaucetState(paying = true)) }
+        if (ui.value.faucet.busy) return
+        ui.update { it.copy(faucet = FaucetState(busy = true)) }
         viewModelScope.launch {
             val error = runCatching { faucet.pay(target, FAUCET_SATS) }.exceptionOrNull()
             ui.update { it.copy(faucet = FaucetState(error = error?.let { e -> e.message ?: e.javaClass.simpleName })) }

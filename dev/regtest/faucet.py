@@ -1,11 +1,15 @@
-"""Regtest faucet: pays a Lightning Address or invoice from the stack's own Lightning node, on request over HTTP.
+"""Regtest faucet: pays a Lightning Address or invoice from the stack's own Lightning node, or makes an invoice for
+the wallet to pay, on request over HTTP.
 
-It is `regtest.sh pay` for the app: a debug build in developer mode asks it (through `adb reverse tcp:8114`) to pay
-the address or invoice it shows, so receiving can be tried without a terminal. Regtest only, no real funds; it listens
-on 127.0.0.1 of the computer, like the mints.
+It is `regtest.sh pay` and `regtest.sh invoice` for the app: a debug build in developer mode asks it (through
+`adb reverse tcp:8114`), so receiving and sending can be tried without a terminal. Regtest only, no real funds; it
+listens on 127.0.0.1 of the computer, like the mints.
 
     POST /pay?target=<name@localhost:8111 | lnbcrt…>&sats=<amount>
     200 {"paid_sats": 1000, "fee_sats": 0}   or   4xx/502 {"error": "…"}
+
+    POST /invoice?sats=<amount>&host=<the wallet's mint, localhost:8111>
+    200 {"invoice": "lnbcrt…"}   on the node that doesn't fund that mint, which couldn't pay its own invoice
 
 Python standard library only; it runs in the mint image, with both LND volumes mounted read-only.
 """
@@ -117,13 +121,32 @@ def connect(node, peer):
         time.sleep(0.5)
 
 
-def pay(invoice):
-    """Pays [invoice] from user-lnd, or from mint-lnd if it is user-lnd's own (mint2's), as `regtest.sh pay` does."""
-    destination = USER.call("GET", f"/v1/payreq/{invoice}")["destination"]
+def funding_node(host):
+    """The node behind the mint at [host]: fixed for the first two; the third signs with its node's identity key."""
+    if host == "localhost:8112":
+        return USER
+    if host == "localhost:8113":
+        key = get_json(f"{MINTS[host]}/.well-known/lnurlw/_").get("mintPubkey")
+        return USER if key == USER.call("GET", "/v1/getinfo")["identity_pubkey"] else MINT
+    return MINT
+
+
+def invoice(sats, host):
+    """A fresh invoice for [sats] on the node that isn't [host]'s, reachable over the stack's one channel."""
+    if host not in MINTS:
+        raise Refused(f"not a regtest mint: {host}")
+    node = USER if funding_node(host) is MINT else MINT
+    connect(USER, MINT)
+    return {"invoice": node.call("POST", "/v1/invoices", {"value": str(sats), "memo": "White Wallet faucet"})["payment_request"]}
+
+
+def pay(request):
+    """Pays the invoice [request] from user-lnd, or from mint-lnd if it is user-lnd's own (mint2's), as `regtest.sh pay` does."""
+    destination = USER.call("GET", f"/v1/payreq/{request}")["destination"]
     payer = MINT if destination == USER.call("GET", "/v1/getinfo")["identity_pubkey"] else USER
     connect(USER, MINT)
     # The router streams the payment's states; the last one says how it ended.
-    for update in payer.stream("POST", "/v2/router/send", {"payment_request": invoice, "timeout_seconds": 60, "fee_limit_sat": 1000}):
+    for update in payer.stream("POST", "/v2/router/send", {"payment_request": request, "timeout_seconds": 60, "fee_limit_sat": 1000}):
         payment = update.get("result", {})
         if payment.get("status") == "SUCCEEDED":
             return {"paid_sats": int(payment.get("value_sat", 0)), "fee_sats": int(payment.get("fee_sat", 0))}
@@ -139,13 +162,16 @@ class Handler(BaseHTTPRequestHandler):
         url = urllib.parse.urlparse(self.path)
         query = urllib.parse.parse_qs(url.query)
         try:
-            if url.path != "/pay":
-                raise Refused("unknown path; POST /pay?target=…&sats=…", 404)
-            target = query.get("target", [""])[0].removeprefix("lightning:").removeprefix("LIGHTNING:")
             sats = int(query.get("sats", ["1000"])[0])
             if not 0 < sats <= MAX_SATS:
                 raise Refused(f"sats must be between 1 and {MAX_SATS}")
-            self.reply(200, pay(invoice_for(target, sats)))
+            if url.path == "/pay":
+                target = query.get("target", [""])[0].removeprefix("lightning:").removeprefix("LIGHTNING:")
+                self.reply(200, pay(invoice_for(target, sats)))
+            elif url.path == "/invoice":
+                self.reply(200, invoice(sats, query.get("host", [""])[0]))
+            else:
+                raise Refused("unknown path; POST /pay?target=…&sats=… or /invoice?sats=…&host=…", 404)
         except Refused as e:
             self.reply(e.status, {"error": str(e)})
         except (ValueError, KeyError, OSError) as e:

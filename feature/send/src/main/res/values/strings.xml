@@ -75,4 +75,8 @@
     <string name="note_reclaimed">Taken back. The money is in your balance again.</string>
     <string name="note_reclaim_pending">Taking it back… History shows when it\'s confirmed.</string>
     <string name="note_not_found">This note isn\'t in this account.</string>
+    <!-- Developer mode on a local regtest mint (debug builds): dev/regtest's faucet makes an invoice to pay. %1$s: an amount -->
+    <string name="send_faucet">Developer: pay a regtest invoice of %1$s</string>
+    <!-- %1$s: the faucet's or the connection's error, as it came -->
+    <string name="send_faucet_failed">The regtest faucet made no invoice: %1$s. Is dev/regtest up and connected?</string>
 </resources>

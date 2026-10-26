@@ -9,13 +9,19 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
+import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
+
+/** What the regtest faucet's invoice asks for. */
+internal const val FAUCET_SATS = 1_000L
 
 data class SendState(
     val input: String = "",
@@ -32,6 +38,8 @@ data class SendState(
     val quoting: Boolean = false,
     val paying: Boolean = false,
     val result: PayResult? = null,
+    /** Developer: whether the regtest faucet can make an invoice to pay, and its last attempt. */
+    val faucet: FaucetState? = null,
 ) {
     /** The amount to pay in msat, or null while none is entered. */
     val amountMsat: Long? get() = preview?.fixedAmountMsat ?: amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
@@ -39,12 +47,21 @@ data class SendState(
 }
 
 @HiltViewModel
-class SendViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle) : ViewModel() {
+class SendViewModel @Inject constructor(
+    private val wallet: Wallet,
+    private val faucet: RegtestFaucet,
+    savedState: SavedStateHandle,
+) : ViewModel() {
     private val _state = MutableStateFlow(SendState())
     val state: StateFlow<SendState> = _state
     private var quoteJob: Job? = null
 
     init {
+        viewModelScope.launch {
+            faucet.available.collect { available ->
+                _state.update { it.copy(faucet = if (available) it.faucet ?: FaucetState() else null) }
+            }
+        }
         // Opened from a link, shared text or NFC tag: check it right away.
         savedState.get<String>("input")?.takeIf { it.isNotBlank() }?.let(::onScanned)
     }
@@ -58,6 +75,20 @@ class SendViewModel @Inject constructor(private val wallet: Wallet, savedState: 
     fun onScanned(text: String) {
         _state.update { it.copy(input = text.trim(), scanning = false, problem = null) }
         check()
+    }
+
+    /**
+     * Developer: has the regtest faucet make an invoice for [FAUCET_SATS] that this account's mint can pay, and checks
+     * it as if it was pasted, so the rest is the usual flow.
+     */
+    fun invoiceFromFaucet() {
+        if (_state.value.faucet?.busy != false) return
+        _state.update { it.copy(faucet = FaucetState(busy = true)) }
+        viewModelScope.launch {
+            val invoice = runCatching { faucet.invoice(FAUCET_SATS, wallet.homeHost.first() ?: error("no account")) }
+            _state.update { it.copy(faucet = FaucetState(error = invoice.exceptionOrNull()?.let { e -> e.message ?: e.javaClass.simpleName })) }
+            invoice.getOrNull()?.let(::onScanned)
+        }
     }
 
     fun check() {
