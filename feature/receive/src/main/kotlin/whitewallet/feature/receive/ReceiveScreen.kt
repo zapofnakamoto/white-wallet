@@ -3,7 +3,10 @@ package whitewallet.feature.receive
 import android.content.ClipData
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -15,12 +18,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -37,8 +48,10 @@ import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ProblemKind
-import whitewallet.brand.ui.walletColors
+import whitewallet.brand.ui.walletSpacing
+import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.SuccessCheck
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletTopBar
@@ -54,7 +67,7 @@ fun ReceiveRoute(onBack: () -> Unit, onClaim: () -> Unit, viewModel: ReceiveView
     val state by viewModel.state.collectAsStateWithLifecycle()
     ReceiveScreen(
         state, onBack, onClaim,
-        InvoiceActions(viewModel::requestAmount, viewModel::onAmountChange, viewModel::createInvoice, viewModel::newInvoice),
+        InvoiceActions(viewModel::requestAmount, viewModel::onAmountChange, viewModel::createInvoice, viewModel::newInvoice, viewModel::receiveMore),
     )
 }
 
@@ -64,11 +77,18 @@ class InvoiceActions(
     val onAmountChange: (String) -> Unit = {},
     val onCreate: () -> Unit = {},
     val onNewInvoice: () -> Unit = {},
+    /** Back from the success screen to the address or a new invoice. */
+    val onReceiveMore: () -> Unit = {},
 )
 
 @Composable
 fun ReceiveScreen(state: ReceiveState, onBack: () -> Unit, onClaim: () -> Unit, invoice: InvoiceActions = InvoiceActions()) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.receive_title), onBack) }) { padding ->
+        val arrived = state.arrivedMsat
+        if (arrived != null) {
+            ReceivedContent(arrived, Modifier.padding(padding), onDone = onBack, onReceiveMore = invoice.onReceiveMore)
+            return@Scaffold
+        }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             val shown = state.invoice
             WalletStatusScope(receiveStatus(state)) { BrandDecoration(Anchor.ReceiveHeader) }
@@ -77,25 +97,49 @@ fun ReceiveScreen(state: ReceiveState, onBack: () -> Unit, onClaim: () -> Unit, 
                 state.showAmountForm -> AmountForm(state, invoice)
                 state.address != null -> AddressContent(state.address, invoice.onRequestAmount)
             }
-            if (state.receivedMsat > 0) {
-                Text(stringResource(R.string.receive_got, formatAmount(state.receivedMsat)), color = MaterialTheme.walletColors.success, style = MaterialTheme.typography.titleMedium)
-            }
             if (shown == null) WalletButton(kind = ButtonKind.Text, onClick = onClaim) { Text(stringResource(R.string.receive_claim)) }
         }
     }
 }
 
-/** What the screen is about, for the brand's design: waiting, or what arrived. */
+/** What the screen is about, for the brand's design: waiting, or a problem. What arrived has its own screen. */
 private fun receiveStatus(state: ReceiveState): WalletStatus {
     val invoice = state.invoice?.status
     return when {
-        invoice is InvoiceStatus.Paid -> WalletStatus.PaymentReceived(invoice.receivedMsat)
-        state.receivedMsat > 0 -> WalletStatus.PaymentReceived(state.receivedMsat)
         invoice == InvoiceStatus.Expired -> WalletStatus.Problem(ProblemKind.Other)
         state.problem == InvoiceProblem.Unreachable -> WalletStatus.Problem(ProblemKind.Offline)
         state.problem != null -> WalletStatus.Problem(ProblemKind.Other)
         state.invoice != null || (state.address != null && !state.showAmountForm) -> WalletStatus.AwaitingPayment
         else -> WalletStatus.None
+    }
+}
+
+/**
+ * A payment arrived: the brand's picture for it (a check mark by default), what arrived, and the way out. Takes the
+ * whole screen, so the moment is clear; the title is announced to screen readers and the phone gives a short buzz.
+ */
+@Composable
+private fun ReceivedContent(msat: Long, modifier: Modifier, onDone: () -> Unit, onReceiveMore: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(msat) { haptics.performHapticFeedback(HapticFeedbackType.Confirm) }
+    val spacing = MaterialTheme.walletSpacing
+    Column(
+        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = spacing.screen, vertical = spacing.gap),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(spacing.gap),
+    ) {
+        Spacer(Modifier.weight(1f))
+        WalletStatusScope(WalletStatus.PaymentReceived(msat)) { BrandDecoration(Anchor.ReceiveSuccess) { SuccessCheck() } }
+        Text(
+            stringResource(R.string.receive_success_title),
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading(); liveRegion = LiveRegionMode.Polite },
+        )
+        AmountText(msat)
+        Spacer(Modifier.weight(1f))
+        PrimaryButton(stringResource(R.string.receive_done), onDone)
+        WalletButton(kind = ButtonKind.Text, onClick = onReceiveMore) { Text(stringResource(R.string.receive_more)) }
     }
 }
 
@@ -136,10 +180,8 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions) {
 private fun InvoiceContent(shown: ShownInvoice, onDone: () -> Unit, onNewInvoice: () -> Unit) {
     val request = shown.request
     when (val status = shown.status) {
-        is InvoiceStatus.Paid -> {
-            Text(stringResource(R.string.receive_got, formatAmount(status.receivedMsat)), color = MaterialTheme.walletColors.success, style = MaterialTheme.typography.headlineSmall)
-            PrimaryButton(stringResource(R.string.receive_done), onDone)
-        }
+        // Shown by ReceivedContent instead.
+        is InvoiceStatus.Paid -> Unit
         InvoiceStatus.Expired -> {
             Text(stringResource(R.string.receive_invoice_expired), textAlign = TextAlign.Center)
             PrimaryButton(stringResource(R.string.receive_invoice_new), onNewInvoice)

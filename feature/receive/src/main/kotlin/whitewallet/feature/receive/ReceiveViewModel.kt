@@ -41,6 +41,13 @@ data class ReceiveState(
 ) {
     /** The amount form shows: always without an address, else once asked for. */
     val showAmountForm: Boolean get() = invoice == null && (address == null || requestingAmount)
+
+    /** What arrived, once something did: the paid invoice, or what came to the address while the screen is open. */
+    val arrivedMsat: Long? get() = when (val status = invoice?.status) {
+        is InvoiceStatus.Paid -> status.receivedMsat
+        null -> receivedMsat.takeIf { it > 0 }
+        else -> null
+    }
     val amountMsat: Long? get() = amountText.trim().toLongOrNull()?.takeIf { it > 0 }?.let { it * 1000 }
 }
 
@@ -100,6 +107,12 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet) : ViewMod
     }
 
     /** Back to the amount form, for another invoice. */
+    /** Leaves the success screen: back to the address (or the amount form), counting from zero again. */
+    fun receiveMore() {
+        received.value = 0
+        newInvoice()
+    }
+
     fun newInvoice() {
         watch?.cancel()
         ui.update { it.copy(invoice = null) }

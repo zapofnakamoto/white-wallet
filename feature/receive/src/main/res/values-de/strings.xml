@@ -5,7 +5,6 @@
     <string name="receive_copy">Kopieren</string>
     <string name="receive_share">Teilen</string>
     <string name="receive_copied">Adresse kopiert</string>
-    <string name="receive_got">%1$s empfangen</string>
     <string name="receive_claim">Stattdessen einen Schein einlösen</string>
     <string name="receive_request_amount">Einen bestimmten Betrag anfordern</string>
     <string name="receive_invoice_intro">Erstelle eine Lightning-Rechnung über den gewünschten Betrag. Sie kann aus jeder Lightning-Wallet bezahlt werden, einmal.</string>
@@ -21,4 +20,6 @@
     <string name="receive_invoice_expired">Diese Rechnung ist abgelaufen, ohne bezahlt zu werden.</string>
     <string name="receive_invoice_new">Neue Rechnung</string>
     <string name="receive_done">Fertig</string>
+    <string name="receive_success_title">Zahlung erhalten</string>
+    <string name="receive_more">Mehr empfangen</string>
 </resources>

@@ -22,6 +22,12 @@ value class Anchor(val id: String) {
         /** Above the address or invoice on the Receive screen. Default: nothing. */
         val ReceiveHeader = Anchor("receive.header")
 
+        /**
+         * The picture on the screen that says a payment arrived (status [whitewallet.brand.WalletStatus.PaymentReceived],
+         * with the amount so far; it grows when more arrives). Default: a check mark that draws itself.
+         */
+        val ReceiveSuccess = Anchor("receive.success")
+
         /** Above a payment once it is understood: its review, while it is paid, and its result. Default: nothing. */
         val SendHeader = Anchor("send.header")
 

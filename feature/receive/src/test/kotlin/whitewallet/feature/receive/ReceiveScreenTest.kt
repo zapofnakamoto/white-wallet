@@ -22,17 +22,29 @@ class ReceiveScreenTest {
     val compose = createComposeRule()
 
     @Test
-    fun showsTheAddressAndWhatArrived() {
-        compose.setContent { ReceiveScreen(ReceiveState("alice@mint.example", receivedMsat = 21_000), onBack = {}, onClaim = {}) }
+    fun showsTheAddress() {
+        compose.setContent { ReceiveScreen(ReceiveState("alice@mint.example"), onBack = {}, onClaim = {}) }
         compose.onNodeWithText("alice@mint.example").assertExists()
-        compose.onNodeWithText("Received ₿21").assertExists()
+    }
+
+    @Test
+    fun whatArrivesGetsItsOwnScreen() {
+        var more = false
+        compose.setContent {
+            ReceiveScreen(ReceiveState("alice@mint.example", receivedMsat = 21_000), onBack = {}, onClaim = {}, InvoiceActions(onReceiveMore = { more = true }))
+        }
+        compose.onNodeWithText("Payment received").assertExists()
+        compose.onNodeWithText("₿21").assertExists()
+        compose.onNodeWithText("alice@mint.example").assertDoesNotExist()
+        compose.onNodeWithText("Receive more").performScrollTo().performClick()
+        assertTrue(more)
     }
 
     @Test
     @Config(qualifiers = "de")
     fun german() {
         compose.setContent { ReceiveScreen(ReceiveState("alice@mint.example", receivedMsat = 21_000), onBack = {}, onClaim = {}) }
-        compose.onNodeWithText("21 ₿ empfangen").assertExists()
+        compose.onNodeWithText("Zahlung erhalten").assertExists()
     }
 
     @Test
@@ -59,7 +71,8 @@ class ReceiveScreenTest {
         compose.onNodeWithText("You receive ₿20 after a fee of ₿1.").assertExists()
         compose.onNodeWithText("Waiting for payment…").assertExists()
         state = state.copy(invoice = ShownInvoice(request, InvoiceStatus.Paid(20_000)))
-        compose.onNodeWithText("Received ₿20").assertExists()
+        compose.onNodeWithText("Payment received").assertExists()
+        compose.onNodeWithText("₿20").assertExists()
         compose.onNodeWithText("Waiting for payment…").assertDoesNotExist()
     }
 }

@@ -5,7 +5,6 @@
     <string name="receive_copy">Copy</string>
     <string name="receive_share">Share</string>
     <string name="receive_copied">Address copied</string>
-    <string name="receive_got">Received %1$s</string>
     <string name="receive_claim">Claim a note instead</string>
     <string name="receive_request_amount">Request a specific amount</string>
     <string name="receive_invoice_intro">Create a Lightning invoice for the amount you want. It can be paid from any Lightning wallet, once.</string>
@@ -21,4 +20,6 @@
     <string name="receive_invoice_expired">This invoice expired without being paid.</string>
     <string name="receive_invoice_new">New invoice</string>
     <string name="receive_done">Done</string>
+    <string name="receive_success_title">Payment received</string>
+    <string name="receive_more">Receive more</string>
 </resources>
