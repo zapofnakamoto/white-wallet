@@ -46,6 +46,9 @@ jobs:
           dev/check-brand.sh brand
           dev/check-brand.sh brand-examples/acme
 
+      - name: Screens draw through the brand's design
+        run: dev/check-design.sh
+
       - name: Unit and integration tests, lint, debug build
         env:
           LNURLCASH_CONFORMANCE: ${{ github.workspace }}/conformance

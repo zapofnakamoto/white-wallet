@@ -111,11 +111,17 @@ lint:
 check-brand brand=brand:
     dev/check-brand.sh {{ brand }}
 
-# Everything CI checks: tests, both builds, lint, brand checks for every sample brand, scaffolder tests
+# Material components used directly in screens instead of the designsystem's
+[group('checks')]
+check-design:
+    dev/check-design.sh
+
+# Everything CI checks: tests, both builds, lint, brand and design checks, scaffolder tests
 [group('checks')]
 check: test
     ./gradlew :app:assembleDebug :app:assembleRelease :app:lintDebug
     for b in brand brand-examples/*/; do dev/check-brand.sh "${b%/}"; done
+    dev/check-design.sh
     python3 -m unittest discover -s dev -p 'test_*.py'
     ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme
 
