@@ -12,7 +12,9 @@ dependencies {
     "implementation"(project(":core:wallet"))
     "implementation"(libs.findLibrary("androidx-lifecycle-runtime-compose").get())
     "implementation"(libs.findLibrary("androidx-lifecycle-viewmodel-compose").get())
-    "implementation"(libs.findLibrary("androidx-hilt-navigation-compose").get())
+    "implementation"(libs.findLibrary("androidx-hilt-lifecycle-viewmodel-compose").get())
+    // BackHandler.
+    "implementation"(libs.findLibrary("androidx-activity-compose").get())
 
     // Screen tests on the JVM: Compose UI tests under Robolectric (JUnit 4, run by the vintage engine), next to
     // plain JUnit 5 tests.

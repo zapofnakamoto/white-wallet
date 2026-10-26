@@ -81,7 +81,7 @@ class SendNoteTest {
         assertEquals(ActivityStatus.Pending, sentRow().status)
 
         val (bobStore, bobWallet) = recipient(bob)
-        assertIs<ClaimResult.Claimed>(bobWallet.claim(assertIs<ClaimPreview.Ready>(bobWallet.previewClaim(note.link!!))))
+        assertIs<ClaimResult.Claimed>(bobWallet.claim(assertIs<ClaimPreview.Ready>(bobWallet.previewClaim(note.link))))
         assertEquals(30_000, bobWallet.balanceMsat.first())
         assertEquals(1, bobStore.notes("b").first().size)
 

@@ -127,7 +127,6 @@ internal class NoteMutator(private val wallet: Wallet) {
                 val (c, c2) = when (outcome) {
                     is MutationOutcome.Confirmed -> outcome.certificate to outcome.changeCertificate
                     is MutationOutcome.Unverifiable -> outcome.certificate to outcome.changeCertificate
-                    else -> error("unreachable")
                 }
                 val total = inputs.sumOf { it.amountMsat }
                 val notes = outputs.mapIndexed { i, out ->

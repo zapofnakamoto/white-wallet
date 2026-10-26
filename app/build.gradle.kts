@@ -24,7 +24,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.work.runtime)
     // Native secp256k1 for bitcoin-kmp on Android.
     runtimeOnly(libs.secp256k1.jni.android)

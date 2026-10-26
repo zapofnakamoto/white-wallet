@@ -78,7 +78,7 @@ public object MutationClassifier {
         return when (response) {
             is LnurlResponse.Error -> MutationOutcome.Rejected(RejectionKind.fromReason(response.reason), response.reason)
             is LnurlResponse.Ok -> confirmed(type, response.raw)
-            else -> MutationOutcome.Ambiguous("response confirms nothing (HTTP ${(result as HttpResult.Response).status})")
+            else -> MutationOutcome.Ambiguous("response confirms nothing (HTTP ${result.status})")
         }
     }
 

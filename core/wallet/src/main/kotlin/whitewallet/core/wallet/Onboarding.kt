@@ -89,7 +89,7 @@ internal class Onboarding(private val wallet: Wallet) {
         val existing = wallet.store.currentAccountId()
         val creating = newAccountName != null || existing == null
         if (creating && wallet.store.accounts.first().size >= wallet.maxAccounts) return OnboardResult.AccountLimitReached(wallet.maxAccounts)
-        val accountId = if (creating) UUID.randomUUID().toString() else existing!!
+        val accountId = if (creating) UUID.randomUUID().toString() else existing
         if (creating) wallet.createSeed(accountId)
         val result = claim(name, h, accountId, creating, newAccountName?.trim()?.ifEmpty { null } ?: DEFAULT_ACCOUNT_NAME)
         // Kept for the next attempt, so the seed-derived names offered stay the same.

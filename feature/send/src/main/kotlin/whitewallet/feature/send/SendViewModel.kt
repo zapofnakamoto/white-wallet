@@ -35,7 +35,7 @@ data class SendState(
 ) {
     /** The amount to pay in msat, or null while none is entered. */
     val amountMsat: Long? get() = preview?.fixedAmountMsat ?: amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
-    val canPay: Boolean get() = !paying && !quoting && quote is PayQuote.Ok && (quote as PayQuote.Ok).amountMsat == amountMsat
+    val canPay: Boolean get() = !paying && !quoting && quote is PayQuote.Ok && quote.amountMsat == amountMsat
 }
 
 @HiltViewModel
