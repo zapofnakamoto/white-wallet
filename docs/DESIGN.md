@@ -52,7 +52,7 @@ that doesn't know LNURLcash sees a normal withdraw link and can still cash it ou
    amounts small, and can see the mint's details at any time.
 5. **White-label by configuration.** A brand is a directory (`brand/`, or `-PbrandDir=…`): name, application ID,
    colors, icons, texts and feature flags. Brand values never appear in the code (`dev/check-brand.sh`, run by CI).
-   A brand can add code only through `core/brand-api`.
+   A brand can add code only through `core/brand-api` and `core/brand-ui` (its own look, pages and note strategies).
 6. **Every text works in every language.** Plurals, word order and the custodian's name are handled per language,
    never by substituting words (DEVELOPMENT.md, "Text and languages").
 7. **Free distribution.** [Zapstore](https://zapstore.dev) only: no Google Play, no Google Play Services, no
@@ -88,7 +88,7 @@ app            activity, navigation, DI, brand wiring, incoming links, backgroun
 feature/*      onboarding, home, receive, claim, send, notes, settings (UI and view models only)
 core/wallet    all wallet logic, plain Kotlin/JVM; the only app module that uses protocol/*
 core/data      Room on SQLCipher, Keystore-encrypted seeds
-core/*         model, designsystem, scanner (CameraX + ZXing), brand-api
+core/*         model, designsystem, scanner (CameraX + ZXing), brand-api, brand-ui
 protocol/*     LNURL and LNURLcash, plain Kotlin/JVM, no Android
 ```
 

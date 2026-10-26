@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="acme_night">#1F1814</color>
+    <color name="acme_ember">#2C221C</color>
+    <color name="acme_linen">#F3E6DA</color>
+    <color name="acme_fern">#8FD19B</color>
+
+    <color name="brand_background">@color/acme_night</color>
+    <color name="brand_surface">@color/acme_night</color>
+    <color name="brand_surface_container">@color/acme_ember</color>
+    <color name="brand_on_background">@color/acme_linen</color>
+    <color name="brand_on_surface">@color/acme_linen</color>
+    <color name="brand_incoming">@color/acme_fern</color>
+    <color name="brand_success">@color/acme_fern</color>
+</resources>

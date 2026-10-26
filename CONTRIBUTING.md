@@ -38,7 +38,7 @@ that section to the version and tags `v<version>`; CI turns the section into the
 - **The word for the custodian** ("mint") appears only in the strings marked *Brand term*.
 - **No brand values outside `brand/`**: no app name, application ID, mint host or brand color in the code
   (`dev/check-brand.sh`).
-- **Brand-specific behavior** is a brand option or goes through `core/brand-api`, not a fork of the wallet.
+- **Brand-specific behavior** is a brand option or goes through `core/brand-api` / `core/brand-ui`, not a fork of the wallet. Screens use the designsystem's components, not Material's (`dev/check-design.sh`).
 - **Protocol behavior is verified on regtest.** A wallet change that talks to a mint (claims, payments, transfers,
   rotate/merge/split/melt, lookups, reconciliation, fees, addresses, restore) is finished only once a test against
   the local regtest stack verifies it: a `Regtest*` test, run with `just test-regtest`. For a bug, that test

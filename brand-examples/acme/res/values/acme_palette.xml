@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Acme's own palette, under its own names, and which of the app's roles uses which colour (docs/WHITE_LABEL.md,
+  "Design"). values-night/acme_palette.xml maps the dark scheme.
+-->
+<resources>
+    <color name="acme_sand">#FBF4EC</color>
+    <color name="acme_clay">#F1E2D3</color>
+    <color name="acme_bark">#3B2A20</color>
+    <color name="acme_moss">#2E6B3A</color>
+
+    <color name="brand_background">@color/acme_sand</color>
+    <color name="brand_surface">@color/acme_sand</color>
+    <color name="brand_surface_container">@color/acme_clay</color>
+    <color name="brand_on_background">@color/acme_bark</color>
+    <color name="brand_on_surface">@color/acme_bark</color>
+    <color name="brand_incoming">@color/acme_moss</color>
+    <color name="brand_success">@color/acme_moss</color>
+
+    <!-- Squarer than Material, a little more air at the edges. -->
+    <dimen name="brand_corner_small">4dp</dimen>
+    <dimen name="brand_corner_medium">6dp</dimen>
+    <dimen name="brand_corner_large">8dp</dimen>
+    <dimen name="brand_spacing_screen">28dp</dimen>
+</resources>

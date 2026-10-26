@@ -84,10 +84,11 @@ CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests, lin
 | `protocol/lnurlcash-client` | JVM | The only network code: OkHttp with retries disabled, bounded replay |
 | `protocol/lnurlcash-testkit` | JVM | Vendored vectors and the mock mint launcher |
 | `core/model` | JVM | Data classes |
-| `core/brand-api` | JVM | What a brand's own code may plug into: `NoteStrategy` (see docs/WHITE_LABEL.md, "Custom code") |
+| `core/brand-api` | JVM | What a brand's own code may plug into: `NoteStrategy`, `WalletStatus`, `WalletEvent` (see docs/WHITE_LABEL.md, "Custom code") |
+| `core/brand-ui` | Android | What a brand's own code may plug into for its look: `BrandDesign` (theme, components, decorations), `BrandScreen` (see docs/WHITE_LABEL.md, "Design") |
 | `core/wallet` | JVM | Wallet logic: accounts, onboarding, address checks and scanning, claiming, moving funds, rotating, note policies (`NotePolicyEngine`), reconciliation |
 | `core/data` | Android | Room store and Keystore-encrypted seeds. Pre-release there are no migrations: a schema change bumps `WalletDatabase`'s version and the database starts empty (seeds are kept) |
-| `core/designsystem` | Android | Theme and shared Compose components |
+| `core/designsystem` | Android | Theme from the brand's tokens, and the components every screen uses (they draw through the brand's `BrandDesign`) |
 | `core/scanner` | Android | The QR scanner (CameraX + ZXing, no Play Services), shared by Send and Claim |
 | `feature/*` | Android | Onboarding, home, receive, claim, send and settings screens |
 | `app` | Android | Activity, navigation, DI, brand wiring, incoming links, background sync, app lock |
