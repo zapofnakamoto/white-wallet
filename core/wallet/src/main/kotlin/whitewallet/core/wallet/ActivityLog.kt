@@ -4,6 +4,7 @@ import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.Note
 
 /**
  * Writes an account's history ([Activity]) at the moment something happens, so History never has to infer it from
@@ -45,7 +46,14 @@ internal class ActivityLog(private val wallet: Wallet) {
     }
 
     companion object {
-        /** The fee implied by what went in and what came out, when the outputs' amounts are known (certified). */
-        fun fee(inputsMsat: Long, outputsMsat: Long): Long? = (inputsMsat - outputsMsat).takeIf { outputsMsat > 0 && it > 0 }
+        /**
+         * The net fee implied by notes worth [inputsMsat] becoming [outputs] (see [Activity.feeMsat]), when every
+         * output's amount is known: what the mint kept, or, negative, what it paid back. A refund counts only when the
+         * outputs' certificates prove their amounts; without them an amount may just be assumed from the inputs.
+         */
+        fun fee(inputsMsat: Long, outputs: List<Note>): Long? {
+            if (outputs.isEmpty() || outputs.any { it.amountMsat <= 0 }) return null
+            return (inputsMsat - outputs.sumOf { it.amountMsat }).takeIf { it > 0 || it < 0 && outputs.all { o -> o.certificate != null } }
+        }
     }
 }

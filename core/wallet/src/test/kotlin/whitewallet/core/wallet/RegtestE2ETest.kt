@@ -356,4 +356,26 @@ class RegtestE2ETest {
         bob.refresh()
         assertEquals(listOf(700_000L, 1_000_000L), bob.activity.first().filter { it.kind == ActivityKind.Received }.map { it.amountMsat }.sorted())
     }
+
+    @Test
+    fun `a combine the mint pays fees back for shows the refund`() = runBlocking<Unit> {
+        val alice = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
+        val aliceName = name()
+        assertIs<OnboardResult.Ready>(alice.onboard(aliceName, host))
+        regtest("pay", "$aliceName@$host", "5000")
+        alice.refresh()
+        val bob = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(SingleNoteStrategy.ID))
+        val bobName = name()
+        assertIs<OnboardResult.Ready>(bob.onboard(bobName, host))
+        for (amount in listOf(1_000_000L, 700_000L)) {
+            assertIs<PayResult.Paid>(alice.pay(assertIs<PayPreview.Ready>(alice.previewPayment("$bobName@$host")), amount))
+        }
+
+        bob.refresh()
+        // Keep-one-note combined the two notes; the mint paid back a base fee, which its certificate proves.
+        val combined = bob.activity.first().single { it.kind == ActivityKind.Combined }
+        assertEquals(1_701_000, combined.amountMsat)
+        assertEquals(-1_000, combined.feeMsat)
+        assertEquals(1_701_000, bob.balanceMsat.first())
+    }
 }

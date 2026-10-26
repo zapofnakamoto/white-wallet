@@ -159,9 +159,9 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         val target = OutputSpec.Own(accountId, NotePurpose.Wallet)
         return when (val r = mutator.mutate(accountId, host, batch, OperationType.Merge, listOf(target)) { callback, k1s, outs -> Requests.merge(callback, k1s, outs.single().key) }) {
             is MutationResult.Done -> {
-                val out = r.outputs.single().amountMsat
-                log.record("op:${r.journalId}", accountId, ActivityKind.Combined, out.takeIf { it > 0 } ?: inputs, host,
-                    feeMsat = ActivityLog.fee(inputs, out), noteCount = batch.size, automatic = true, journalId = r.journalId)
+                val out = r.outputs.single()
+                log.record("op:${r.journalId}", accountId, ActivityKind.Combined, out.amountMsat.takeIf { it > 0 } ?: inputs, host,
+                    feeMsat = ActivityLog.fee(inputs, r.outputs), noteCount = batch.size, automatic = true, journalId = r.journalId)
                 Outcome.Done(merged = batch.size)
             }
             is MutationResult.Refused -> Outcome.Refused(batch.map { it.id })

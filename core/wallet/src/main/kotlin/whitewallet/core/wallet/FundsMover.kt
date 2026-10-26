@@ -73,7 +73,7 @@ internal class FundsMover(private val wallet: Wallet) {
         when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single().amountMsat
-                log.move(fromId, toId, host, out.takeIf { it > 0 } ?: inputs, ActivityLog.fee(inputs, out), ActivityStatus.Done, result.journalId)
+                log.move(fromId, toId, host, out.takeIf { it > 0 } ?: inputs, ActivityLog.fee(inputs, result.outputs), ActivityStatus.Done, result.journalId)
             }
             is MutationResult.Pending -> log.move(fromId, toId, host, inputs, null, ActivityStatus.Pending, result.journalId)
             else -> Unit
@@ -100,8 +100,7 @@ internal class FundsMover(private val wallet: Wallet) {
         }
         when (result) {
             is MutationResult.Done -> {
-                val outs = result.outputs.sumOf { it.amountMsat }.takeIf { result.outputs.all { it.amountMsat > 0 } } ?: 0
-                log.move(fromId, toId, host, amountMsat, ActivityLog.fee(inputs.sumOf { it.amountMsat }, outs), ActivityStatus.Done, result.journalId)
+                log.move(fromId, toId, host, amountMsat, ActivityLog.fee(inputs.sumOf { it.amountMsat }, result.outputs), ActivityStatus.Done, result.journalId)
             }
             is MutationResult.Pending -> log.move(fromId, toId, host, amountMsat, null, ActivityStatus.Pending, result.journalId)
             else -> Unit

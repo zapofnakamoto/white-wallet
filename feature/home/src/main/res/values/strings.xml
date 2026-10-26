@@ -37,6 +37,8 @@
     <string name="activity_failed">Failed, nothing changed</string>
     <string name="activity_uncertified">Amount not certified</string>
     <string name="activity_fee">Fee %1$s</string>
+    <!-- The mint paid back part of the fees it had taken, e.g. when notes were combined. -->
+    <string name="activity_fee_refunded">Fee refunded %1$s</string>
     <string name="activity_automatic">Automatic</string>
     <string name="activity_manual">By you</string>
     <!-- Joins the parts of a history row's detail line (time, status, fee). -->

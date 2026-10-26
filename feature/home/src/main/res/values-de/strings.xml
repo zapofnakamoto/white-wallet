@@ -37,6 +37,7 @@
     <string name="activity_failed">Fehlgeschlagen, nichts geändert</string>
     <string name="activity_uncertified">Betrag nicht zertifiziert</string>
     <string name="activity_fee">Gebühr %1$s</string>
+    <string name="activity_fee_refunded">Gebühr erstattet %1$s</string>
     <string name="activity_automatic">Automatisch</string>
     <string name="activity_manual">Von dir</string>
     <string name="activity_detail_separator">" · "</string>

@@ -124,8 +124,10 @@ internal class NoteManager(private val wallet: Wallet) {
         }
         val inputs = notes.sumOf { it.amountMsat }
         when (result) {
-            is MutationResult.Done -> log.record("op:${result.journalId}", accountId, ActivityKind.Combined,
-                result.outputs.single().amountMsat.takeIf { it > 0 } ?: inputs, host, noteCount = notes.size, journalId = result.journalId)
+            is MutationResult.Done -> result.outputs.single().let { out ->
+                log.record("op:${result.journalId}", accountId, ActivityKind.Combined, out.amountMsat.takeIf { it > 0 } ?: inputs, host,
+                    feeMsat = ActivityLog.fee(inputs, result.outputs), noteCount = notes.size, journalId = result.journalId)
+            }
             is MutationResult.Pending -> log.record("op:${result.journalId}", accountId, ActivityKind.Combined, inputs, host, ActivityStatus.Pending,
                 noteCount = notes.size, journalId = result.journalId)
             else -> Unit

@@ -169,7 +169,7 @@ data class Activity(
     val kind: ActivityKind,
     /** What changed for the account (for maintenance: the amount involved). Always positive. */
     val amountMsat: Long,
-    /** The mint's fee, if any and if known. */
+    /** The mint's fee, if any and if known. Negative: the mint paid that much back (proven by the certificates of what came out). */
     val feeMsat: Long?,
     val host: String,
     /** For moves, the other account's name. */

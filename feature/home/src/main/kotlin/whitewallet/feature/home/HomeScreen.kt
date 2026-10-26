@@ -308,7 +308,9 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
         }
         if (maintenance) add(stringResource(if (activity.automatic) R.string.activity_automatic else R.string.activity_manual))
         if (activity.certified == false) add(stringResource(R.string.activity_uncertified))
-        activity.feeMsat?.let { add(stringResource(R.string.activity_fee, formatAmount(it))) }
+        activity.feeMsat?.let { fee ->
+            add(if (fee < 0) stringResource(R.string.activity_fee_refunded, formatAmount(-fee)) else stringResource(R.string.activity_fee, formatAmount(fee)))
+        }
     }.joinToString(stringResource(R.string.activity_detail_separator))
     ListItem(
         headlineContent = { Text(title, color = if (maintenance) quiet else Color.Unspecified) },
