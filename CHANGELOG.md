@@ -5,6 +5,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Fixed
+
+- Nothing is paid, split, combined or renewed through a mint that presents a different signing key than the one
+  pinned on first contact; before, only claims and lookups stopped.
+- Lightning Addresses whose invoices carry no or another description hash are paid, as LUD-06 now has the wallet
+  check only the amount; before, addresses on other lnurlcash mints couldn't be paid.
+
 ## [0.1.0]
 
 First public version.

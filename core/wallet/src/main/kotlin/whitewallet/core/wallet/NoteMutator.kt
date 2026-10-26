@@ -76,6 +76,12 @@ internal class NoteMutator(private val wallet: Wallet) {
         val info = runCatching { wallet.client.noteInfo(service.withdrawUrl, spends.first().k1) }.getOrElse {
             return MutationResult.Unreachable(it.message)
         }
+        // Nothing goes out to a mint that signs with another key than the pinned one (see Pinning).
+        try {
+            Pinning.check(wallet, service, info.mintPubkey)
+        } catch (e: MintKeyChangedException) {
+            return MutationResult.Unreachable(e.message)
+        }
         var attempt = 0
         while (true) {
             val reserved = outputs.map { spec ->

@@ -39,6 +39,11 @@ that section to the version and tags `v<version>`; CI turns the section into the
 - **No brand values outside `brand/`**: no app name, application ID, mint host or brand color in the code
   (`dev/check-brand.sh`).
 - **Brand-specific behavior** is a brand option or goes through `core/brand-api`, not a fork of the wallet.
+- **Protocol behavior is verified on regtest.** A wallet change that talks to a mint (claims, payments, transfers,
+  rotate/merge/split/melt, lookups, reconciliation, fees, addresses, restore) is finished only once a test against
+  the local regtest stack verifies it: a `Regtest*` test, run with `just test-regtest`. For a bug, that test
+  reproduces it first and fails without the fix. Mock-mint and unit tests are welcome on top, never instead. See
+  [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#tests).
 - **No migrations yet.** Before the first release, schema changes start the database empty; there is no
   backward compatibility to keep.
 

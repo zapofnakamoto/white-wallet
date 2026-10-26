@@ -42,6 +42,15 @@ LNURLCASH_CONFORMANCE=$PWD/../lnurlcash-conformance ./gradlew test
 
 Those tests drive real HTTP against a mint that misbehaves on purpose: dropped connections mid-rotate, `already in use`, and so on.
 
+The **regtest tests** (`Regtest*` in `core/wallet`) run the wallet against the real reference mints on real (regtest) Lightning, from the stack in `dev/regtest`. They are skipped unless `LNURLCASH_REGTEST=1`:
+
+```sh
+just regtest up       # once
+just test-regtest     # LNURLCASH_REGTEST=1 just test
+```
+
+They are the proof for everything the wallet does with a mint: **a change that touches the LNURLcash protocol is finished only when a regtest test verifies it** (see CONTRIBUTING.md). A bug fix starts with a regtest test that reproduces the bug. Failures the real mint won't produce on request are made on the wire instead, with an OkHttp interceptor on the wallet's client (`LnurlcashClient(http = …)`, see `Regtest.client`): a request dropped before it reaches the mint, an answer lost after it landed, a tampered response. Payments that fail or stay pending use hold invoices on `user-lnd` (`Regtest.holdInvoice`), cancelled or settled when the test says so. The mock-mint tests stay as extra coverage, not as the only proof.
+
 `test` also runs the **screen tests** of every feature module: Compose UI tests under Robolectric on the JVM (`*ScreenTest`, `SettingsScreensTest`), in English and German (`@Config(qualifiers = "de")`). Robolectric emulates the SDK set in `build-logic/test-resources/robolectric.properties`, which can lag `compileSdk`.
 
 What only a device can check runs as **instrumented tests**: the Keystore-encrypted seed, the SQLCipher database and its passphrase (`core/data/src/androidTest`), and the native secp256k1 the app ships (`app/src/androidTest`):

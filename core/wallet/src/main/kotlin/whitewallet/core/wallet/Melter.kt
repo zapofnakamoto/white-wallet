@@ -44,8 +44,9 @@ internal class Melter(private val wallet: Wallet) {
         val service = wallet.store.service(host) ?: return MeltOutcome.Unreachable
         val spend = wallet.branch(accountId, host).spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, spendDomain(host))
         val info = try {
-            wallet.client.noteInfo(service.withdrawUrl, spend.k1)
+            wallet.client.noteInfo(service.withdrawUrl, spend.k1).also { Pinning.check(wallet, service, it.mintPubkey) }
         } catch (e: Exception) {
+            // Including a signing key other than the pinned one: nothing is paid through such a mint.
             return MeltOutcome.Unreachable
         }
         val url = Requests.melt(info.callback, spend.k1, invoice)

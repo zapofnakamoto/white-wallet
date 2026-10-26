@@ -259,7 +259,7 @@ internal class Payer(private val wallet: Wallet) {
         data class Problem(val problem: PayProblem) : Fetched
     }
 
-    /** LUD-06 step 2: asks the payee's service for an invoice and checks it is for this amount and this pay link. */
+    /** LUD-06 step 2: asks the payee's service for an invoice and checks it is for this amount. */
     private suspend fun fetchInvoice(link: PayDestination.PayLink, amountMsat: Long, comment: String?): Fetched {
         val params = listOf("amount" to amountMsat.toString()) +
             listOfNotNull(comment?.trim()?.takeIf { it.isNotEmpty() && link.commentAllowed > 0 }?.take(link.commentAllowed)?.let { "comment" to it })
@@ -272,8 +272,8 @@ internal class Payer(private val wallet: Wallet) {
         }
         if (response is LnurlResponse.Error) return Fetched.Problem(PayProblem.PayeeRefused)
         val invoice = response.raw.string("pr")?.let(Bolt11::decode) ?: return Fetched.Problem(PayProblem.InvoiceMismatch)
-        // The invoice must be for what was asked, and commit to this pay link's metadata (LUD-06).
-        if (invoice.amountMsat != amountMsat || invoice.descriptionHashHex != sha256Hex(link.metadata)) return Fetched.Problem(PayProblem.InvoiceMismatch)
+        // The invoice must be for what was asked. LUD-06 dropped the check of its description hash against the metadata.
+        if (invoice.amountMsat != amountMsat) return Fetched.Problem(PayProblem.InvoiceMismatch)
         return Fetched.Ok(invoice)
     }
 

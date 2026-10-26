@@ -143,9 +143,9 @@ class PayTest {
     }
 
     @Test
-    fun `an invoice that doesn't match the pay link is refused before anything is split`() = withMint {
+    fun `an invoice for another amount than asked is refused before anything is split`() = withMint {
         fund(50)
-        PayLinkServer(wrongHash = true).use { payee ->
+        PayLinkServer(wrongAmount = true).use { payee ->
             assertEquals(PayResult.Failed(PayProblem.InvoiceMismatch), wallet.pay(ready("carol@${payee.host}"), 12_000))
             assertEquals(1, store.notes("a").first().size, "no split happened")
             assertEquals(50_000, balance())
@@ -171,7 +171,7 @@ class PayTest {
     }
 
     /** A LUD-16 payee on another service, issuing test invoices that commit to its metadata. */
-    private class PayLinkServer(private val wrongHash: Boolean = false) : AutoCloseable {
+    private class PayLinkServer(private val wrongAmount: Boolean = false) : AutoCloseable {
         private val server = MockWebServer()
         var lastAmount: String? = null
         var lastComment: String? = null
@@ -188,8 +188,8 @@ class PayTest {
                         "/cb" -> {
                             lastAmount = request.url.queryParameter("amount")
                             lastComment = request.url.queryParameter("comment")
-                            val hash = if (wrongHash) "00".repeat(32) else Payer.sha256Hex(meta)
-                            MockResponse(body = """{"pr":"${TestInvoices.invoice(lastAmount!!.toLong(), null, hash)}","routes":[]}""")
+                            val amount = lastAmount!!.toLong() + if (wrongAmount) 1_000 else 0
+                            MockResponse(body = """{"pr":"${TestInvoices.invoice(amount, null, Payer.sha256Hex(meta))}","routes":[]}""")
                         }
                         else -> MockResponse(code = 404)
                     }
