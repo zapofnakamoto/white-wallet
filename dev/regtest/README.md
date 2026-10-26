@@ -9,8 +9,9 @@ A local Bitcoin regtest network with a real LNURLcash mint, for developing the w
 | `user-lnd` | LND, "you": pays invoices and Lightning Addresses |
 | `mint` | The reference mint [`lnurlcash/lnurl-mint`](https://github.com/lnurlcash/lnurl-mint) `0.12.2`, at `http://localhost:8111` |
 | `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between services |
+| `mint3` | A third mint (1 sat base fee) at `http://localhost:8113` whose signing key can change: it runs on `mint-lnd` or `user-lnd`, and signs with that node's identity key. `rotate-mint3` switches the node, keeping its notes |
 
-`up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints are exposed, on `127.0.0.1:8111` and `127.0.0.1:8112`; `connect` reverses both ports.
+`up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints are exposed, on `127.0.0.1:8111`, `127.0.0.1:8112` and `127.0.0.1:8113`; `connect` reverses all three ports.
 
 Requirements: Docker with Compose, `curl`, `jq`, `python3`. For a device: `adb` (Android SDK platform-tools).
 
@@ -34,10 +35,11 @@ Pull to refresh on Home; the note appears (minus the mint's 1 sat fee).
 |---|---|
 | `up` | Start and bootstrap: wallet, 101 blocks, fund `user-lnd`, open the channel, wait for the mint, `adb reverse` |
 | `pay <target> [sats]` | Pay from `user-lnd`: a BOLT-11 invoice (`lnbcrt…`), a Lightning Address (`alice@localhost:8111`, or `@localhost:8112` on mint2) or an LNURL-pay (bech32 or URL). Default 1000 sats. Invoices of `user-lnd` itself (mint2's) are paid from `mint-lnd`, because LND can't pay its own invoices |
-| `note [sats] [--mint2] [--bech32] [--type]` | Mint a bearer note on the local mint, or with `--mint2` on the second one (default 1000 sats; the mint's fee comes off) and print its link, `lnurlw://localhost:8111/w?k1=<secret>&amount=<msat>`, or with `--bech32` the same URL as an uppercase bech32 LNURL (`LNURL1…`, LUD-01), the form that makes the smallest QR codes. Claim it in the app under **Receive → Claim a note**: paste it, or open that screen, tap the input field and run with `--type` to type it in over adb. The secret is the money: anyone holding the link can claim it |
+| `note [sats] [--mint2\|--mint3] [--bech32] [--type]` | Mint a bearer note on the local mint, or with `--mint2` or `--mint3` on the second or third one (default 1000 sats; the mint's fee comes off) and print its link, `lnurlw://localhost:8111/w?k1=<secret>&amount=<msat>`, or with `--bech32` the same URL as an uppercase bech32 LNURL (`LNURL1…`, LUD-01), the form that makes the smallest QR codes. Claim it in the app under **Receive → Claim a note**: paste it, or open that screen, tap the input field and run with `--type` to type it in over adb. The secret is the money: anyone holding the link can claim it |
 | `invoice <sats> [memo]` | Create an invoice on `user-lnd` (to test paying out from the wallet) |
 | `mine [n]` | Mine blocks |
-| `connect` | `adb reverse` for ports 8111 and 8112 again |
+| `rotate-mint3` | Give the third mint a new signing key: restart it on the other LND node, with the same notes. Prints the new key |
+| `connect` | `adb reverse` for ports 8111, 8112 and 8113 again |
 | `status` | Containers, block height, balances, mint reachability |
 | `logs [service]` | Follow logs |
 | `lncli-user …`, `lncli-mint …` | Run `lncli` on a node |

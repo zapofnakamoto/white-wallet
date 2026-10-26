@@ -30,6 +30,9 @@ internal object Regtest {
     /** The second mint (2 sat base fee), funded by user-lnd. */
     const val HOST2 = "localhost:8112"
 
+    /** The third mint (1 sat base fee), whose signing key [rotateMint3] changes. */
+    const val HOST3 = "localhost:8113"
+
     private val script = File("../../dev/regtest/regtest.sh").canonicalFile
     private val random = SecureRandom()
 
@@ -53,6 +56,18 @@ internal object Regtest {
 
     /** A bearer note minted on the mint (the mint's fee comes off), as its link. */
     fun note(sats: Long, second: Boolean = false): String = if (second) run("note", "$sats", "--mint2") else run("note", "$sats")
+
+    /** A bearer note minted on the third mint, as its link. */
+    fun note3(sats: Long): String = run("note", "$sats", "--mint3")
+
+    /**
+     * Gives the third mint a new signing key, as a mint does that changes its key: it moves to the other Lightning
+     * node, keeping its notes. Returns the new key.
+     */
+    fun rotateMint3(): String = run("rotate-mint3")
+
+    /** The signing key [host] presents now. */
+    suspend fun mintKey(host: String): String = checkNotNull(LnurlcashClient().withdrawDiscovery(host).mintPubkey).toHex()
 
     /** An invoice from user-lnd. */
     fun invoice(sats: Long): String = run("invoice", "$sats", "regtest test")

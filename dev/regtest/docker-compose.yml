@@ -142,9 +142,48 @@ services:
       - user-lnd:/lnd:ro
       - mint2:/data
 
+  # A third mint whose signing key can change: it runs on mint-lnd or user-lnd, as /data/node says, and its signing
+  # key is its node's identity key. `regtest.sh rotate-mint3` switches the node and restarts it with the same notes.
+  mint3:
+    image: lnurlcash/lnurl-mint:0.12.2
+    restart: unless-stopped
+    depends_on: [mint-lnd, user-lnd]
+    # LND writes its macaroon readable by root only; this dev stack runs the mint as root to read the shared volume.
+    user: root
+    ports:
+      - "127.0.0.1:8113:8113"
+    environment:
+      BASE_URL: http://localhost:8113
+      USERNAME: mint
+      DATABASE_PATH: /data/mint3.db
+      FUNDINGSOURCE_BACKEND: lnd
+      MIN_SENDABLE_MSAT: "1000"
+      MIN_MINT_MSAT: "1000"
+      BASE_FEE_MSAT: "1000"
+      FEE_PERCENT_PPM: "0"
+      USERNAME_REGISTRATION_ENABLED: "true"
+      TITLE: White Wallet regtest mint 3
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        node=$$(cat /data/node 2>/dev/null || echo mint-lnd)
+        export FUNDINGSOURCE_URL=https://$$node:8080 FUNDINGSOURCE_CERT_PATH=/$$node/tls.cert
+        macaroon=/$$node/data/chain/bitcoin/regtest/admin.macaroon
+        echo "on $$node; waiting for $$macaroon"
+        until [ -f "$$macaroon" ] && [ -f "$$FUNDINGSOURCE_CERT_PATH" ]; do sleep 1; done
+        export FUNDINGSOURCE_MACAROON=$$(python -c 'import sys; print(open(sys.argv[1], "rb").read().hex())' "$$macaroon")
+        echo "waiting for $$node to answer"
+        until python -c 'import os, ssl, urllib.request; urllib.request.urlopen(urllib.request.Request(os.environ["FUNDINGSOURCE_URL"] + "/v1/getinfo", headers={"Grpc-Metadata-macaroon": os.environ["FUNDINGSOURCE_MACAROON"]}), context=ssl.create_default_context(cafile=os.environ["FUNDINGSOURCE_CERT_PATH"]), timeout=5)' 2>/dev/null; do sleep 2; done
+        exec uvicorn lnurl_mint.server:app --host 0.0.0.0 --port 8113
+    volumes:
+      - mint-lnd:/mint-lnd:ro
+      - user-lnd:/user-lnd:ro
+      - mint3:/data
+
 volumes:
   bitcoind:
   mint-lnd:
   user-lnd:
   mint:
   mint2:
+  mint3:

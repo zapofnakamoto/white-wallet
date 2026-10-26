@@ -95,9 +95,10 @@ test *gradle_args:
     if [[ -d "{{ conformance }}" ]]; then export LNURLCASH_CONFORMANCE="{{ conformance }}"; else echo "note: no conformance checkout at {{ conformance }}; mock-mint tests are skipped" >&2; fi
     ./gradlew test {{ gradle_args }}
 
-# The tests, including those against the local regtest stack (start it with `just regtest up`)
+# The tests, including those against the local regtest stack (started if it isn't running; stop it with `just regtest down`)
 [group('checks')]
 test-regtest *gradle_args:
+    dev/regtest/regtest.sh up >/dev/null
     LNURLCASH_REGTEST=1 just test {{ gradle_args }}
 
 # Android lint (fails on new issues)

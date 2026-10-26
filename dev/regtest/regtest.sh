@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local regtest environment for White Wallet: bitcoind, two LND nodes and the reference LNURLcash mint.
+# Local regtest environment for White Wallet: bitcoind, two LND nodes and three reference LNURLcash mints.
 # Everything is regtest: no real funds. See README.md.
 set -euo pipefail
 
@@ -9,6 +9,8 @@ MINT_URL="http://localhost:8111"
 MINT_PORT=8111
 MINT2_URL="http://localhost:8112"
 MINT2_PORT=8112
+MINT3_URL="http://localhost:8113"
+MINT3_PORT=8113
 ADB="${ADB:-$(command -v adb || echo "$HOME/Android/Sdk/platform-tools/adb")}"
 
 log() { printf '\033[1m==>\033[0m %s\n' "$*" >&2; }
@@ -52,12 +54,16 @@ channel_active() {
     lncli_user listchannels --active_only | jq -e --arg p "$1" '[.channels[] | select(.remote_pubkey == $p)] | length > 0' >/dev/null
 }
 
-mint_reachable() { curl -sf "$MINT_URL/.well-known/lnurlp/_" | jq -e '.withdrawLink' >/dev/null; }
+mint_reachable() { curl -sf "${1:-$MINT_URL}/.well-known/lnurlp/_" | jq -e '.withdrawLink' >/dev/null; }
+
+# The signing key a mint presents (LUD-25 mintPubkey), or nothing.
+mint_key() { curl -sf "${1:-$MINT_URL}/.well-known/lnurlw/_" | jq -er '.mintPubkey // empty'; }
 
 adb_reverse() {
     if [[ -x "$ADB" ]] && "$ADB" get-state >/dev/null 2>&1; then
         "$ADB" reverse "tcp:$MINT_PORT" "tcp:$MINT_PORT" >/dev/null && log "adb reverse tcp:$MINT_PORT -> this machine (device: $("$ADB" get-serialno))"
         "$ADB" reverse "tcp:$MINT2_PORT" "tcp:$MINT2_PORT" >/dev/null && log "adb reverse tcp:$MINT2_PORT (second mint) -> this machine"
+        "$ADB" reverse "tcp:$MINT3_PORT" "tcp:$MINT3_PORT" >/dev/null && log "adb reverse tcp:$MINT3_PORT (third mint) -> this machine"
     else
         log "no Android device or emulator connected; run '$0 connect' once one is"
     fi
@@ -112,6 +118,7 @@ cmd_up() {
 
     log "waiting for the mint"
     wait_for "the mint at $MINT_URL" 120 mint_reachable
+    wait_for "the third mint at $MINT3_URL" 120 mint_key "$MINT3_URL"
     adb_reverse
     cmd_summary
 }
@@ -240,7 +247,8 @@ cmd_note() {
             --type) type=true ;;
             --bech32) bech32=true ;;
             --mint2) mint_url="$MINT2_URL" ;;
-            ''|*[!0-9]*) die "usage: $0 note [sats] [--mint2] [--bech32] [--type]" ;;
+            --mint3) mint_url="$MINT3_URL" ;;
+            ''|*[!0-9]*) die "usage: $0 note [sats] [--mint2|--mint3] [--bech32] [--type]" ;;
             *) sats="$arg" ;;
         esac
     done
@@ -284,6 +292,26 @@ cmd_note() {
     fi
 }
 
+# Moves the third mint to the other Lightning node and restarts it on the same notes: from now on it signs with that
+# node's identity key, as a mint does that changes its signing key. Prints the new key.
+cmd_rotate_mint3() {
+    local old node
+    old="$(mint_key "$MINT3_URL")" || die "the third mint is not reachable at $MINT3_URL (run '$0 up')"
+    node="$("${COMPOSE[@]}" exec -T mint3 sh -c 'cat /data/node 2>/dev/null || echo mint-lnd')"
+    [[ "$node" == "mint-lnd" ]] && node=user-lnd || node=mint-lnd
+    "${COMPOSE[@]}" exec -T mint3 sh -c "echo $node > /data/node"
+    log "moving the third mint to $node"
+    "${COMPOSE[@]}" restart mint3 >/dev/null
+    local start=$SECONDS key=""
+    until [[ -n "$key" && "$key" != "$old" ]]; do
+        (( SECONDS - start > 120 )) && die "timed out waiting for the third mint on $node"
+        sleep 1
+        key="$(mint_key "$MINT3_URL" 2>/dev/null || true)"
+    done
+    log "the third mint signs with $key now (was $old)"
+    echo "$key"
+}
+
 cmd_invoice() {
     local sats="${1:?usage: $0 invoice <sats> [memo]}" memo="${2:-regtest}"
     lncli_user addinvoice --amt "$sats" --memo "$memo" | jq -r '.payment_request'
@@ -296,6 +324,7 @@ cmd_status() {
     echo "user-lnd:      on-chain $(lncli_user walletbalance 2>/dev/null | jq -r '.confirmed_balance // "?"') sat, channels $(lncli_user channelbalance 2>/dev/null | jq -r '"\(.local_balance.sat // "?") local / \(.remote_balance.sat // "?") remote"') sat"
     if mint_reachable; then echo "mint:          reachable at $MINT_URL"; else echo "mint:          NOT reachable at $MINT_URL"; fi
     if curl -sf "$MINT2_URL/.well-known/lnurlp/_" | jq -e '.withdrawLink' >/dev/null; then echo "mint2:         reachable at $MINT2_URL (on user-lnd)"; else echo "mint2:         NOT reachable at $MINT2_URL"; fi
+    if mint_reachable "$MINT3_URL"; then echo "mint3:         reachable at $MINT3_URL (key $(mint_key "$MINT3_URL" || echo '?'))"; else echo "mint3:         NOT reachable at $MINT3_URL"; fi
 }
 
 usage() {
@@ -306,11 +335,12 @@ usage: $0 <command>
   pay <target> [sats]      pay an invoice (lnbcrt...), a Lightning Address (alice@localhost:8111, or :8112 on mint2)
                            or an LNURL-pay
   invoice <sats> [memo]    create an invoice on the user node
-  note [sats] [--mint2] [--bech32] [--type]
+  note [sats] [--mint2|--mint3] [--bech32] [--type]
                            mint a bearer note (default 1000 sats) and print its link, to claim in the app;
-                           --mint2 mints it on the second mint (localhost:8112);
+                           --mint2 mints it on the second mint (localhost:8112), --mint3 on the third (localhost:8113);
                            --bech32 prints it as an uppercase LNURL1... instead of lnurlw://;
                            --type also types it into the focused field on the device
+  rotate-mint3             give the third mint (localhost:8113) a new signing key: move it to the other LND node
   mine [n]                 mine n blocks (default 1)
   connect                  adb reverse tcp:8111 and tcp:8112 again (after replugging a device)
   status                   containers, height, balances, mint reachability
@@ -325,6 +355,7 @@ case "${1:-}" in
     up) cmd_up ;;
     pay) shift; cmd_pay "$@" ;;
     invoice) shift; cmd_invoice "$@" ;;
+    rotate-mint3) cmd_rotate_mint3 ;;
     note) shift; cmd_note "$@" ;;
     mine) mine "${2:-1}"; log "mined ${2:-1} block(s); height $(btc getblockcount)" ;;
     connect) adb_reverse ;;
