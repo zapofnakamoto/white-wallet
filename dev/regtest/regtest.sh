@@ -103,16 +103,20 @@ cmd_up() {
 
     local mint_pub
     mint_pub="$(lncli_mint getinfo | jq -r '.identity_pubkey')"
-    local active pending
-    active="$(lncli_user listchannels | jq --arg p "$mint_pub" '[.channels[] | select(.remote_pubkey == $p)] | length')"
+    local channels pending
+    channels="$(lncli_user listchannels | jq --arg p "$mint_pub" '[.channels[] | select(.remote_pubkey == $p)] | length')"
     pending="$(lncli_user pendingchannels | jq --arg p "$mint_pub" '[.pending_open_channels[] | select(.channel.remote_node_pub == $p)] | length')"
-    if (( active == 0 && pending == 0 )); then
+    # After a restart the containers may have new addresses, and LND keeps dialling the old ones: connect by name.
+    lncli_user connect "$mint_pub@mint-lnd:9735" >/dev/null 2>&1 || true
+    if (( channels == 0 && pending == 0 )); then
         log "opening a 0.1 BTC channel user-lnd -> mint-lnd (0.05 BTC pushed to the mint)"
-        lncli_user connect "$mint_pub@mint-lnd:9735" >/dev/null 2>&1 || true
         lncli_user openchannel --node_key "$mint_pub" --local_amt 10000000 --push_amt 5000000 >/dev/null
     fi
-    if (( active == 0 )); then
+    if (( channels == 0 )); then
         mine 6
+    fi
+    if ! channel_active "$mint_pub"; then
+        log "waiting for the channel to become active"
         wait_for "the channel to become active" 90 channel_active "$mint_pub"
     fi
 
