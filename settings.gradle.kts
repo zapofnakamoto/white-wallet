@@ -27,6 +27,7 @@ if (brandCode.resolve("build.gradle.kts").exists()) {
 include(
     ":app",
     ":core:brand-api",
+    ":core:brand-ui",
     ":core:data",
     ":core:designsystem",
     ":core:scanner",
