@@ -89,6 +89,8 @@ internal class NoteClaimer(private val wallet: Wallet) {
     suspend fun claim(preview: ClaimPreview.Ready, accountId: String): ClaimResult {
         val host = preview.link.host
         val spend = preview.link.spend
+        // A note this account sent as a link and now claims itself: taken back, like NoteSender.reclaim, not received.
+        val ownShared = wallet.store.note(spend.q.toHex())?.takeIf { it.accountId == accountId && it.state == NoteState.Shared }
         repeat(MAX_INDEX_RETRIES) {
             // Persist before disclose: the index is reserved and the journal written before the cp1 leaves the device.
             val reserved = guard.reserve(accountId, host, NotePurpose.Wallet)
@@ -109,8 +111,8 @@ internal class NoteClaimer(private val wallet: Wallet) {
                     wallet.store.upsertNotes(listOf(Note(q.toHex(), accountId, host, NoteKind.KeyPath, NotePurpose.Wallet.value, index, amount,
                         cert?.encode(), NoteState.Outstanding, wallet.now())))
                     wallet.store.putJournal(entry.copy(status = JournalStatus.Confirmed, updatedAtMillis = wallet.now()))
-                    markSpent(spend.q.toHex())
-                    log.record("claim:${entry.id}", accountId, ActivityKind.Claimed, amount, host, certified = cert != null || preview.certified)
+                    markSpent(spend.q.toHex(), accountId)
+                    if (ownShared == null) log.record("claim:${entry.id}", accountId, ActivityKind.Claimed, amount, host, certified = cert != null || preview.certified)
                     rememberService(host)
                     return ClaimResult.Claimed(amount, cert != null)
                 }
@@ -125,7 +127,10 @@ internal class NoteClaimer(private val wallet: Wallet) {
                     wallet.store.putJournal(unknown)
                     val settled = Reconciler(wallet).reconcile(unknown)
                     val claimed = wallet.store.note(q.toHex())?.amountMsat ?: preview.amountMsat
-                    if (settled != JournalStatus.Rejected) {
+                    if (settled != JournalStatus.Rejected && ownShared != null) {
+                        // Either the rotate landed or the note is ours again once reconciled, as for NoteSender.reclaim.
+                        NoteSender(wallet).claimed(ownShared, accountId)
+                    } else if (settled != JournalStatus.Rejected) {
                         val status = if (settled == JournalStatus.Confirmed) ActivityStatus.Done else ActivityStatus.Pending
                         log.record("claim:${entry.id}", accountId, ActivityKind.Claimed, claimed, host, status, certified = preview.certified, journalId = entry.id)
                     }
@@ -140,8 +145,11 @@ internal class NoteClaimer(private val wallet: Wallet) {
         return ClaimResult.Failed(RejectionKind.AlreadyInUse, "no free note index")
     }
 
-    private suspend fun markSpent(id: String) {
-        wallet.store.note(id)?.let { wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = wallet.now()))) }
+    /** The claimed note, if it is one of this app's: spent now, and if it was sent as a link, its History row settled. */
+    private suspend fun markSpent(id: String, into: String) {
+        val note = wallet.store.note(id) ?: return
+        wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Spent, updatedAtMillis = wallet.now())))
+        if (note.state == NoteState.Shared) NoteSender(wallet).claimed(note, into)
     }
 
     companion object {

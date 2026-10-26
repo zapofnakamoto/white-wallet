@@ -287,4 +287,23 @@ class RegtestE2ETest {
         assertTrue(all.rotated > 0)
         assertEquals(before, wallet.balanceMsat.first())
     }
+
+    @Test
+    fun `a sent note claimed back through its own link shows as taken back`() = runBlocking<Unit> {
+        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(SingleNoteStrategy.ID))
+        val name = name()
+        assertIs<OnboardResult.Ready>(wallet.onboard(name, host))
+        regtest("pay", "$name@$host", "5000")
+        wallet.refresh()
+        val start = wallet.balanceMsat.first()
+
+        val note = assertIs<CreateNoteResult.Created>(wallet.createNote(1_000_000)).note
+        assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(note.link!!))))
+        wallet.refresh()
+        assertEquals(start, wallet.balanceMsat.first())
+        // One row, taken back, as with Take back: not a sent note waiting forever next to a claim of the same money.
+        val money = wallet.activity.first().filterNot { it.kind.isMaintenance || it.kind == ActivityKind.Received }
+        assertEquals(listOf(ActivityKind.SentNote to ActivityStatus.Cancelled), money.map { it.kind to it.status })
+        assertEquals(SharedNoteState.Reclaimed, wallet.sharedNote(note.id)?.state)
+    }
 }

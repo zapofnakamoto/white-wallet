@@ -120,6 +120,18 @@ class SendNoteTest {
     }
 
     @Test
+    fun `a shared note claimed back through its own link counts as taken back`() = withMint(strategy = SingleNoteStrategy.ID) {
+        fund(40)
+        val note = assertIs<CreateNoteResult.Created>(wallet.createNote(15_000)).note
+        assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(note.link!!))))
+        assertEquals(40_000, wallet.balanceMsat.first())
+        wallet.refresh()
+        assertEquals(ActivityStatus.Cancelled, sentRow().status)
+        assertEquals(emptyList(), store.activities("a").first().filter { it.kind == ActivityKind.Claimed })
+        assertEquals(SharedNoteState.Reclaimed, wallet.sharedNote(note.id)?.state)
+    }
+
+    @Test
     fun `amounts the notes can't make are refused before anything is split`() = withMint("--baseFeeMsat=1000") {
         fund(10)
         assertEquals(PayQuote.Invalid(PayProblem.TooMuch, 10_000), wallet.quoteNote(20_000))
