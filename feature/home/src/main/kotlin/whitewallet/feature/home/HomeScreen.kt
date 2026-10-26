@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -17,21 +16,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,6 +44,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import whitewallet.core.designsystem.WalletStatusScope
+import whitewallet.core.designsystem.BrandTitle
+import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.NavigationItem
+import whitewallet.core.designsystem.WalletNavigationBar
+import whitewallet.brand.ui.walletColors
+import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.WalletTopBar
@@ -61,6 +63,12 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.wallet.sentNoteId
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletAssistChip
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletFilterChip
+import whitewallet.core.designsystem.WalletListItem
 
 @Composable
 fun HomeRoute(
@@ -79,14 +87,19 @@ fun HomeRoute(
     onOpenService: (String) -> Unit = {},
     /** The Notes tab, if the brand shows one. */
     notesTab: NotesTabSlot? = null,
+    /** The brand's own pages, in the top bar's menu. */
+    menu: List<HomeMenuItem> = emptyList(),
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     HomeScreen(
         appName, state, onSend, onReceive, viewModel::refresh, onSettings, onBackup, viewModel::dismissBackupPrompt, onChangeAddress,
-        AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds), onOpenNote, viewModel::toggleBalanceHidden, onOpenService, notesTab,
+        AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds), onOpenNote, viewModel::toggleBalanceHidden, onOpenService, notesTab, menu,
     )
 }
+
+/** An entry of the top bar's menu: a page of the brand's own. */
+class HomeMenuItem(@StringRes val title: Int, val onClick: () -> Unit)
 
 /**
  * The Notes tab, supplied by the app (the notes view lives in its own module): its content, the actions it adds to
@@ -119,6 +132,7 @@ fun HomeScreen(
     onToggleBalance: () -> Unit = {},
     onOpenService: (String) -> Unit = {},
     notesTab: NotesTabSlot? = null,
+    menu: List<HomeMenuItem> = emptyList(),
 ) {
     var saved by rememberSaveable { mutableStateOf(HomeTab.Wallet) }
     val tab = saved.takeIf { it != HomeTab.Notes || notesTab != null } ?: HomeTab.Wallet
@@ -133,20 +147,29 @@ fun HomeScreen(
                 HomeTab.Notes -> stringResource(R.string.home_tab_notes)
                 HomeTab.History -> stringResource(R.string.home_tab_history)
             }
-            WalletTopBar(title, actions = {
+            val actions: @Composable () -> Unit = {
                 if (tab == HomeTab.Notes) notesTab?.actions?.invoke()
                 IconButton(onClick = if (tab == HomeTab.Notes) notesTab!!.onRefresh else onRefresh) {
                     Icon(painterResource(DesignR.drawable.ic_refresh), stringResource(DesignR.string.refresh))
                 }
                 IconButton(onClick = onSettings) { Icon(painterResource(DesignR.drawable.ic_settings), stringResource(DesignR.string.settings)) }
-            })
+                if (menu.isNotEmpty()) MenuButton(menu)
+            }
+            if (tab == HomeTab.Wallet) {
+                // The wallet tab's title is the app's name, which a brand may draw as its wordmark.
+                WalletTopBar(title = { BrandTitle(Anchor.HomeTitle, title) { Text(title) } }, onBack = null, actions = actions)
+            } else {
+                WalletTopBar(title, actions = actions)
+            }
         },
         bottomBar = {
-            NavigationBar {
-                TabItem(tab == HomeTab.Wallet, DesignR.drawable.ic_wallet, R.string.home_tab_wallet) { saved = HomeTab.Wallet }
-                if (notesTab != null) TabItem(tab == HomeTab.Notes, DesignR.drawable.ic_notes, R.string.home_tab_notes) { saved = HomeTab.Notes }
-                TabItem(tab == HomeTab.History, DesignR.drawable.ic_history, R.string.home_tab_history) { saved = HomeTab.History }
-            }
+            WalletNavigationBar(
+                listOfNotNull(
+                    tabItem(tab == HomeTab.Wallet, DesignR.drawable.ic_wallet, R.string.home_tab_wallet) { saved = HomeTab.Wallet },
+                    if (notesTab != null) tabItem(tab == HomeTab.Notes, DesignR.drawable.ic_notes, R.string.home_tab_notes) { saved = HomeTab.Notes } else null,
+                    tabItem(tab == HomeTab.History, DesignR.drawable.ic_history, R.string.home_tab_history) { saved = HomeTab.History },
+                ),
+            )
         },
     ) { padding ->
         val notes = notesTab?.takeIf { tab == HomeTab.Notes }
@@ -176,14 +199,24 @@ fun HomeScreen(
 }
 
 @Composable
-private fun RowScope.TabItem(selected: Boolean, @DrawableRes icon: Int, @StringRes label: Int, onClick: () -> Unit) {
-    NavigationBarItem(
-        selected = selected,
-        onClick = onClick,
-        icon = { Icon(painterResource(icon), contentDescription = null) },
-        label = { Text(stringResource(label)) },
-    )
+private fun MenuButton(items: List<HomeMenuItem>) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) { Icon(painterResource(DesignR.drawable.ic_more), stringResource(DesignR.string.more)) }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            items.forEach { item ->
+                DropdownMenuItem(text = { Text(stringResource(item.title)) }, onClick = { open = false; item.onClick() })
+            }
+        }
+    }
 }
+
+private fun tabItem(selected: Boolean, @DrawableRes icon: Int, @StringRes label: Int, onClick: () -> Unit) = NavigationItem(
+    selected = selected,
+    onClick = onClick,
+    icon = { Icon(painterResource(icon), contentDescription = null) },
+    label = { Text(stringResource(label)) },
+)
 
 /** Balance, account and the two actions, centred; notices only when something needs the user. */
 @Composable
@@ -207,9 +240,10 @@ private fun WalletTab(
             state.keyChangedHost?.let { KeyChanged(it) { onOpenService(it) } }
             if (state.addressInactive) state.profile?.let { AddressInactive(it.address, onChangeAddress) }
             if (state.showBackupPrompt) BackupPrompt(onBackup, onDismissBackup)
+            WalletStatusScope(state.status) { BrandDecoration(Anchor.HomeHeader) }
             AmountText(state.balanceMsat, hidden = state.balanceHidden, onToggleHidden = onToggleBalance)
             state.accounts.firstOrNull { it.account.id == state.activeAccountId }?.takeIf { state.showAccounts }?.let { active ->
-                AssistChip(
+                WalletAssistChip(
                     onClick = onAccounts,
                     label = { Text(active.account.name) },
                     trailingIcon = { Icon(painterResource(DesignR.drawable.ic_arrow_drop_down), stringResource(R.string.home_switch_account)) },
@@ -243,7 +277,7 @@ private fun HistoryTab(activity: List<Activity>, showMaintenance: Boolean, onSho
     LazyColumn(Modifier.fillMaxSize()) {
         if (activity.any { it.kind.isMaintenance }) {
             item {
-                FilterChip(
+                WalletFilterChip(
                     selected = showMaintenance,
                     onClick = { onShowMaintenance(!showMaintenance) },
                     label = { Text(stringResource(R.string.history_filter_maintenance)) },
@@ -255,10 +289,11 @@ private fun HistoryTab(activity: List<Activity>, showMaintenance: Boolean, onSho
             item {
                 Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     if (activity.isEmpty()) {
+                        WalletStatusScope(WalletStatus.Empty) { BrandDecoration(Anchor.EmptyHistory) }
                         Text(stringResource(R.string.home_empty), textAlign = TextAlign.Center)
                     } else {
                         Text(stringResource(R.string.history_only_maintenance), textAlign = TextAlign.Center)
-                        TextButton(onClick = { onShowMaintenance(true) }) { Text(stringResource(R.string.history_show_maintenance)) }
+                        WalletButton(kind = ButtonKind.Text, onClick = { onShowMaintenance(true) }) { Text(stringResource(R.string.history_show_maintenance)) }
                     }
                 }
             }
@@ -294,8 +329,9 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
     }
     val amountColor = when {
         maintenance || activity.status == ActivityStatus.Failed || activity.status == ActivityStatus.Cancelled -> quiet
-        outgoing || activity.kind == ActivityKind.MovedService -> MaterialTheme.colorScheme.onSurface
-        else -> MaterialTheme.colorScheme.primary
+        activity.kind == ActivityKind.MovedService -> MaterialTheme.colorScheme.onSurface
+        outgoing -> MaterialTheme.walletColors.outgoing
+        else -> MaterialTheme.walletColors.incoming
     }
     val details = buildList {
         add(recentTime(activity.createdAtMillis))
@@ -312,7 +348,7 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
             add(if (fee < 0) stringResource(R.string.activity_fee_refunded, formatAmount(-fee)) else stringResource(R.string.activity_fee, formatAmount(fee)))
         }
     }.joinToString(stringResource(R.string.activity_detail_separator))
-    ListItem(
+    WalletListItem(
         headlineContent = { Text(title, color = if (maintenance) quiet else Color.Unspecified) },
         supportingContent = {
             Text(details, color = if (activity.status == ActivityStatus.Failed) MaterialTheme.colorScheme.error else Color.Unspecified)
@@ -324,35 +360,35 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
 
 @Composable
 private fun KeyChanged(host: String, onDetails: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), modifier = Modifier.fillMaxWidth()) {
+    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.home_key_changed_title, host), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.home_key_changed_body), style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onDetails) { Text(stringResource(R.string.home_key_changed_action)) }
+            WalletButton(onClick = onDetails) { Text(stringResource(R.string.home_key_changed_action)) }
         }
     }
 }
 
 @Composable
 private fun AddressInactive(address: String, onChangeAddress: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), modifier = Modifier.fillMaxWidth()) {
+    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.home_address_inactive_title), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.home_address_inactive_body, address), style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onChangeAddress) { Text(stringResource(R.string.home_address_inactive_action)) }
+            WalletButton(onClick = onChangeAddress) { Text(stringResource(R.string.home_address_inactive_action)) }
         }
     }
 }
 
 @Composable
 private fun BackupPrompt(onBackup: () -> Unit, onLater: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), modifier = Modifier.fillMaxWidth()) {
+    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.home_backup_title), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.home_backup_body), style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onBackup) { Text(stringResource(R.string.home_backup_action)) }
-                TextButton(onClick = onLater) { Text(stringResource(R.string.home_backup_later)) }
+                WalletButton(onClick = onBackup) { Text(stringResource(R.string.home_backup_action)) }
+                WalletButton(kind = ButtonKind.Text, onClick = onLater) { Text(stringResource(R.string.home_backup_later)) }
             }
         }
     }

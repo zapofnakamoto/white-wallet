@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +31,8 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletRadioButton
 
 @HiltViewModel
 class DisplaySettingsViewModel @Inject constructor(private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
@@ -61,8 +61,8 @@ fun DisplaySettingsScreen(unit: AmountUnit, onBack: () -> Unit, onUnit: (AmountU
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
             AmountUnit.entries.forEach { option ->
-                ListItem(
-                    leadingContent = { RadioButton(selected = unit == option, onClick = { onUnit(option) }) },
+                WalletListItem(
+                    leadingContent = { WalletRadioButton(selected = unit == option, onClick = { onUnit(option) }) },
                     headlineContent = { Text(stringResource(unitTitle(option))) },
                     supportingContent = { Text(unitExample(option)) },
                     modifier = Modifier.clickable { onUnit(option) },

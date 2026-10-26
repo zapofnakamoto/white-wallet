@@ -9,13 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +36,11 @@ import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.designsystem.WalletFilterChip
+import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletRadioButton
+import whitewallet.core.designsystem.WalletSwitch
 
 data class NotesSettingsState(
     /** The account's note strategy; null until loaded. */
@@ -137,8 +137,8 @@ private fun NotePolicySettings(state: NotesSettingsState, onNoteStrategy: (NoteS
             modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp),
         )
         state.strategies.forEach { strategy ->
-            ListItem(
-                leadingContent = { RadioButton(selected = current.id == strategy.id, onClick = { onNoteStrategy(strategy) }, enabled = !state.applyingPolicy) },
+            WalletListItem(
+                leadingContent = { WalletRadioButton(selected = current.id == strategy.id, onClick = { onNoteStrategy(strategy) }, enabled = !state.applyingPolicy) },
                 headlineContent = { Text(stringResource(strategy.title)) },
                 supportingContent = { Text(stringResource(strategy.description)) },
                 modifier = Modifier.clickable(enabled = !state.applyingPolicy) { onNoteStrategy(strategy) },
@@ -146,13 +146,13 @@ private fun NotePolicySettings(state: NotesSettingsState, onNoteStrategy: (NoteS
         }
     }
     val included = current.rotatesAddressNotes
-    ListItem(
+    WalletListItem(
         headlineContent = { Text(stringResource(R.string.settings_auto_rotate)) },
         supportingContent = {
             Text(if (included) stringResource(R.string.settings_auto_rotate_included, stringResource(current.title)) else stringResource(R.string.settings_auto_rotate_hint))
         },
         trailingContent = {
-            Switch(checked = included || state.autoRotate, onCheckedChange = onAutoRotate, enabled = !included && !state.applyingPolicy)
+            WalletSwitch(checked = included || state.autoRotate, onCheckedChange = onAutoRotate, enabled = !included && !state.applyingPolicy)
         },
     )
 }
@@ -163,17 +163,17 @@ private fun NotePolicySettings(state: NotesSettingsState, onNoteStrategy: (NoteS
 private fun CollectSettings(state: NotesSettingsState, actions: CollectActions) {
     val home = state.homeHost ?: return
     if (!state.collectOffered) return
-    ListItem(
+    WalletListItem(
         headlineContent = { Text(stringResource(R.string.notes_collect_title, home)) },
         supportingContent = { Text(stringResource(R.string.notes_collect_hint)) },
-        trailingContent = { Switch(checked = state.collectAtHome, onCheckedChange = actions.onCollect, enabled = !state.applyingPolicy) },
+        trailingContent = { WalletSwitch(checked = state.collectAtHome, onCheckedChange = actions.onCollect, enabled = !state.applyingPolicy) },
     )
     if (state.collectAtHome) {
         Column(Modifier.padding(horizontal = 16.dp)) {
             Text(stringResource(R.string.notes_collect_fee_cap), style = MaterialTheme.typography.bodyMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 (CollectDefaults.FEE_CAPS + state.collectFeeCap).distinct().sorted().forEach { percent ->
-                    FilterChip(
+                    WalletFilterChip(
                         selected = percent == state.collectFeeCap,
                         onClick = { actions.onFeeCap(percent) },
                         label = { Text(stringResource(R.string.notes_collect_fee_cap_option, percent)) },
@@ -189,7 +189,7 @@ private fun CollectSettings(state: NotesSettingsState, actions: CollectActions) 
 @Composable
 private fun LastRun(state: NotesSettingsState) {
     if (state.applyingPolicy) {
-        LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+        WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
     }
     val run = state.lastPolicyRun ?: return
     val small = MaterialTheme.typography.bodySmall

@@ -18,7 +18,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.activity.compose.BackHandler
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -26,13 +25,9 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,15 +50,25 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import whitewallet.brand.ui.Anchor
+import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.core.designsystem.BrandTitle
+import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletSuggestionChip
+import whitewallet.core.designsystem.WalletTextField
 
 /**
  * First launch, adding an account, or choosing a new address for the active one (see [OnboardingMode]).
- * [logo] and [appName] come from the app module so the brand stays in brand/.
+ * [logo] and [appName] come from the app module so the brand stays in brand/; a brand design may replace both (the
+ * [Anchor.OnboardingHeader] and [Anchor.OnboardingTitle] decorations).
  */
 @Composable
 fun OnboardingRoute(
@@ -139,7 +144,7 @@ fun OnboardingScreen(
                     )
                     Text(stringResource(R.string.restore_address_body, state.host), textAlign = TextAlign.Center)
                     AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.restore_address_submit))
-                    TextButton(onClick = { confirmCancel = true }, enabled = !state.busy) { Text(stringResource(R.string.restore_cancel)) }
+                    WalletButton(kind = ButtonKind.Text, onClick = { confirmCancel = true }, enabled = !state.busy) { Text(stringResource(R.string.restore_cancel)) }
                 } else if (state.addingAddress) {
                     Text(stringResource(R.string.onboarding_add_body, state.host), textAlign = TextAlign.Center)
                     AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
@@ -151,7 +156,7 @@ fun OnboardingScreen(
                         stringResource(if (state.withAddress) R.string.onboarding_new_account_body else R.string.onboarding_new_account_body_no_address),
                         textAlign = TextAlign.Center,
                     )
-                    OutlinedTextField(
+                    WalletTextField(
                         value = state.accountName,
                         onValueChange = onAccountNameChange,
                         label = { Text(stringResource(R.string.onboarding_account_name)) },
@@ -164,7 +169,7 @@ fun OnboardingScreen(
                     } else {
                         MintForm(state, service, onStart, stringResource(R.string.onboarding_create_account))
                     }
-                    onRestore?.let { TextButton(onClick = it, enabled = !state.busy) { Text(stringResource(R.string.onboarding_restore_instead)) } }
+                    onRestore?.let { WalletButton(kind = ButtonKind.Text, onClick = it, enabled = !state.busy) { Text(stringResource(R.string.onboarding_restore_instead)) } }
                 }
             }
         }
@@ -177,8 +182,8 @@ fun OnboardingScreen(
                 ClaimedContent(claimed, onContinue)
                 return@ScreenColumn
             }
-            logo()
-            Text(appName, style = MaterialTheme.typography.headlineMedium)
+            BrandDecoration(Anchor.OnboardingHeader) { logo() }
+            BrandTitle(Anchor.OnboardingTitle, appName) { Text(appName, style = MaterialTheme.typography.headlineMedium) }
             Text(
                 stringResource(R.string.onboarding_tagline),
                 style = MaterialTheme.typography.bodyMedium,
@@ -191,7 +196,7 @@ fun OnboardingScreen(
                 // Without an address and with a single mint, this is just the button.
                 MintForm(state, service, onStart, stringResource(R.string.onboarding_start))
             }
-            onRestore?.let { TextButton(onClick = it, enabled = !state.busy) { Text(stringResource(R.string.onboarding_restore)) } }
+            onRestore?.let { WalletButton(kind = ButtonKind.Text, onClick = it, enabled = !state.busy) { Text(stringResource(R.string.onboarding_restore)) } }
             Text(
                 stringResource(R.string.onboarding_custody),
                 style = MaterialTheme.typography.bodySmall,
@@ -218,7 +223,7 @@ private fun AddressForm(
     onStart: () -> Unit,
     submitLabel: String,
 ) {
-    OutlinedTextField(
+    WalletTextField(
         value = state.username,
         onValueChange = onUsernameChange,
         label = { Text(stringResource(R.string.onboarding_username)) },
@@ -234,7 +239,7 @@ private fun AddressForm(
     )
     if (state.suggestions.isNotEmpty()) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            state.suggestions.forEach { name -> SuggestionChip(onClick = { onSuggestion(name) }, label = { Text(name) }) }
+            state.suggestions.forEach { name -> WalletSuggestionChip(onClick = { onSuggestion(name) }, label = { Text(name) }) }
         }
     }
     if (state.canChangeHost) ServicePicker(state.serviceOptions, state.selectedService, state.customHost, state.busy, service)
@@ -278,7 +283,7 @@ internal fun ServicePicker(
     var expanded by remember { mutableStateOf(false) }
     val small = MaterialTheme.typography.bodyMedium
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { if (!busy) expanded = it }) {
-        OutlinedTextField(
+        WalletTextField(
             value = optionLabel(selected),
             onValueChange = {},
             readOnly = true,
@@ -309,7 +314,7 @@ internal fun ServicePicker(
         }
     }
     if (selected == ServiceOption.Custom) {
-        OutlinedTextField(
+        WalletTextField(
             value = customHost,
             onValueChange = service.onCustomHost,
             label = { Text(stringResource(R.string.onboarding_service_custom_host)) },
@@ -328,7 +333,7 @@ private fun optionLabel(option: ServiceOption): String = option.host ?: stringRe
 
 @Composable
 private fun AvailabilityText(availability: Availability) {
-    val positive = MaterialTheme.colorScheme.primary
+    val positive = MaterialTheme.walletColors.success
     val (text, color) = when (availability) {
         Availability.Idle -> return
         Availability.Checking -> stringResource(R.string.availability_checking) to Color.Unspecified
@@ -363,7 +368,7 @@ private fun ClaimedContent(claimed: Claimed, onContinue: () -> Unit) {
         stringResource(if (claimed.confirmed) R.string.claimed_body else R.string.claimed_body_unconfirmed),
         textAlign = TextAlign.Center,
     )
-    OutlinedButton(onClick = {
+    WalletButton(kind = ButtonKind.Secondary, onClick = {
         scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("address", claimed.address))) }
         copied = true
     }) { Text(stringResource(if (copied) R.string.claimed_copied else R.string.claimed_copy)) }
@@ -373,11 +378,11 @@ private fun ClaimedContent(claimed: Claimed, onContinue: () -> Unit) {
 /** Cancelling only removes the account from this device; the money stays with the recovery phrase. */
 @Composable
 private fun CancelRestoreDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    WalletDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.restore_cancel_title)) },
         text = { Text(stringResource(R.string.restore_cancel_body)) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.restore_cancel_confirm)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.restore_cancel_keep)) } },
+        confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = onConfirm) { Text(stringResource(R.string.restore_cancel_confirm)) } },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.restore_cancel_keep)) } },
     )
 }

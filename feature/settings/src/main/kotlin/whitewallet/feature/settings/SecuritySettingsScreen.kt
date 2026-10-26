@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +27,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletSwitch
 
 @HiltViewModel
 class SecuritySettingsViewModel @Inject constructor(private val preferences: AppPreferences) : ViewModel() {
@@ -58,12 +58,12 @@ fun SecuritySettingsRoute(onBack: () -> Unit, viewModel: SecuritySettingsViewMod
 fun SecuritySettingsScreen(appLock: Boolean, available: Boolean, onBack: () -> Unit, onAppLock: (Boolean) -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.security_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            ListItem(
+            WalletListItem(
                 headlineContent = { Text(stringResource(R.string.security_app_lock)) },
                 supportingContent = {
                     Text(stringResource(if (available) R.string.security_app_lock_hint else R.string.security_no_screen_lock))
                 },
-                trailingContent = { Switch(checked = appLock, onCheckedChange = onAppLock, enabled = available || appLock) },
+                trailingContent = { WalletSwitch(checked = appLock, onCheckedChange = onAppLock, enabled = available || appLock) },
             )
             Text(
                 stringResource(R.string.security_encrypted),

@@ -16,7 +16,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +42,8 @@ import whitewallet.core.designsystem.localTime
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.lnurlcash.client.LogEntry
 import whitewallet.lnurlcash.client.RequestLog
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
 
 @HiltViewModel
 class RequestLogViewModel @Inject constructor(private val log: RequestLog) : ViewModel() {
@@ -63,10 +64,10 @@ fun RequestLogScreen(entries: List<LogEntry>, onBack: () -> Unit, onClear: () ->
     val scope = rememberCoroutineScope()
     Scaffold(topBar = {
         WalletTopBar(stringResource(R.string.logs_title), onBack) {
-            TextButton(onClick = {
+            WalletButton(kind = ButtonKind.Text, onClick = {
                 scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("request log", entries.joinToString("\n\n") { it.asText() }))) }
             }, enabled = entries.isNotEmpty()) { Text(stringResource(R.string.logs_copy)) }
-            TextButton(onClick = onClear, enabled = entries.isNotEmpty()) { Text(stringResource(R.string.logs_clear)) }
+            WalletButton(kind = ButtonKind.Text, onClick = onClear, enabled = entries.isNotEmpty()) { Text(stringResource(R.string.logs_clear)) }
         }
     }) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {

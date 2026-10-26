@@ -9,17 +9,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -35,12 +27,19 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.ServiceMoveQuote
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletAssistChip
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletSheet
+import whitewallet.core.designsystem.WalletTextField
 
 /** One note's details and what can be done with it: share it whole, split, recheck, renew. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
-    ModalBottomSheet(onDismissRequest = actions.close) {
+    WalletSheet(onDismissRequest = actions.close) {
         Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(formatAmount(note.amountMsat), style = MaterialTheme.typography.headlineMedium)
             Text(stringResource(R.string.notes_sheet_where, note.host, recentTime(note.updatedAtMillis)), style = MaterialTheme.typography.bodyMedium)
@@ -64,12 +63,12 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             )
             val enabled = NotesViewModel.selectable(note) && !state.busy
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = { actions.share(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_share)) }
-                OutlinedButton(onClick = { actions.openSplit(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_split)) }
-                OutlinedButton(onClick = { actions.recheck(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_recheck)) }
-                OutlinedButton(onClick = { actions.renew(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_renew)) }
+                WalletButton(kind = ButtonKind.Tonal, onClick = { actions.share(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_share)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.openSplit(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_split)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.recheck(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_recheck)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.renew(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_renew)) }
             }
-            if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (state.busy) WalletLinearProgress(Modifier.fillMaxWidth())
             state.outcome?.let { Outcome(it, actions.dismissOutcome) }
             Text(stringResource(R.string.notes_share_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(stringResource(R.string.notes_renew_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -86,12 +85,12 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
 
 @Composable
 internal fun SplitDialog(d: NotesDialog.Split, undoneBy: NoteStrategy?, actions: NotesActions) {
-    AlertDialog(
+    WalletDialog(
         onDismissRequest = actions.dismissDialog,
         title = { Text(stringResource(R.string.notes_split_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                WalletTextField(
                     value = d.amountText,
                     onValueChange = actions.splitAmount,
                     label = { Text(stringResource(if (LocalAmountUnit.current == AmountUnit.Bitcoin) R.string.notes_split_amount_bitcoin else R.string.notes_split_amount_sats)) },
@@ -110,8 +109,8 @@ internal fun SplitDialog(d: NotesDialog.Split, undoneBy: NoteStrategy?, actions:
                 undoneBy?.let { Text(stringResource(R.string.notes_split_switches_manual, stringResource(it.title)), style = MaterialTheme.typography.bodySmall) }
             }
         },
-        confirmButton = { TextButton(onClick = actions.split, enabled = d.amountMsat != null) { Text(stringResource(R.string.notes_split)) } },
-        dismissButton = { TextButton(onClick = actions.dismissDialog) { Text(stringResource(R.string.notes_cancel)) } },
+        confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = actions.split, enabled = d.amountMsat != null) { Text(stringResource(R.string.notes_split)) } },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = actions.dismissDialog) { Text(stringResource(R.string.notes_cancel)) } },
     )
 }
 
@@ -119,13 +118,13 @@ internal fun SplitDialog(d: NotesDialog.Split, undoneBy: NoteStrategy?, actions:
 @Composable
 internal fun MoveDialog(d: NotesDialog.Move, state: NotesState, actions: NotesActions) {
     val from = state.mints.firstOrNull { m -> m.notes.any { it.id in state.selected } }?.host
-    AlertDialog(
+    WalletDialog(
         onDismissRequest = actions.dismissDialog,
         title = { Text(stringResource(R.string.notes_move_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.notes_move_hint), style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(
+                WalletTextField(
                     value = d.target,
                     onValueChange = actions.moveTarget,
                     label = { Text(stringResource(R.string.notes_move_target)) },
@@ -135,11 +134,11 @@ internal fun MoveDialog(d: NotesDialog.Move, state: NotesState, actions: NotesAc
                 val suggestions = state.knownHosts.filter { it != from && it != d.target }
                 if (suggestions.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        suggestions.forEach { host -> AssistChip(onClick = { actions.moveTarget(host) }, label = { Text(host) }) }
+                        suggestions.forEach { host -> WalletAssistChip(onClick = { actions.moveTarget(host) }, label = { Text(host) }) }
                     }
                 }
                 when {
-                    d.quoting -> LinearProgressIndicator(Modifier.fillMaxWidth())
+                    d.quoting -> WalletLinearProgress(Modifier.fillMaxWidth())
                     d.quote is ServiceMoveQuote.Ready -> {
                         Text(stringResource(R.string.notes_move_quote, formatAmount(d.quote.amountMsat), formatAmount(d.quote.expectedMsat), d.quote.toHost))
                         Text(
@@ -156,9 +155,9 @@ internal fun MoveDialog(d: NotesDialog.Move, state: NotesState, actions: NotesAc
             }
         },
         confirmButton = {
-            TextButton(onClick = actions.move, enabled = !d.quoting && d.quote is ServiceMoveQuote.Ready) { Text(stringResource(R.string.notes_move)) }
+            WalletButton(kind = ButtonKind.Text, onClick = actions.move, enabled = !d.quoting && d.quote is ServiceMoveQuote.Ready) { Text(stringResource(R.string.notes_move)) }
         },
-        dismissButton = { TextButton(onClick = actions.dismissDialog) { Text(stringResource(R.string.notes_cancel)) } },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = actions.dismissDialog) { Text(stringResource(R.string.notes_cancel)) } },
     )
 }
 

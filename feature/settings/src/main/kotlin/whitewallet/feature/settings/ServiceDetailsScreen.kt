@@ -1,22 +1,14 @@
 package whitewallet.feature.settings
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,12 +35,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.SensitiveClipboard
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.ServiceDetails
 import whitewallet.core.wallet.Wallet
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletCircularProgress
+import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletListItem
 
 data class ServiceDetailsState(
     val details: ServiceDetails? = null,
@@ -119,23 +118,23 @@ fun ServiceDetailsScreen(
     Scaffold(topBar = { WalletTopBar(details?.host ?: stringResource(R.string.service_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             if (details == null) {
-                if (state.loading) CircularProgressIndicator(Modifier.padding(24.dp).align(Alignment.CenterHorizontally))
+                if (state.loading) WalletCircularProgress(Modifier.padding(24.dp).align(Alignment.CenterHorizontally))
                 return@Column
             }
             if (details.reachability == ServiceDetails.Reachability.KeyChanged) {
                 KeyChangedCard(details.host, details.service?.mintPubkey, details.presentedKey, onAcceptKey.takeUnless { state.loading })
             }
-            ListItem(
+            WalletListItem(
                 headlineContent = { Text(stringResource(reachabilityText(details.reachability))) },
                 supportingContent = details.description?.let { { Text(it) } },
                 trailingContent = {
-                    if (state.loading) CircularProgressIndicator() else TextButton(onClick = onRefresh) { Text(stringResource(R.string.service_check_again)) }
+                    if (state.loading) WalletCircularProgress() else WalletButton(kind = ButtonKind.Text, onClick = onRefresh) { Text(stringResource(R.string.service_check_again)) }
                 },
             )
             if (details.isHome) {
-                ListItem(headlineContent = { Text(stringResource(R.string.settings_home_mint)) }, supportingContent = { Text(stringResource(R.string.service_home_hint)) })
+                WalletListItem(headlineContent = { Text(stringResource(R.string.settings_home_mint)) }, supportingContent = { Text(stringResource(R.string.service_home_hint)) })
             }
-            ListItem(
+            WalletListItem(
                 headlineContent = { Text(stringResource(R.string.service_your_money)) },
                 supportingContent = { Text(pluralStringResource(R.plurals.service_balance, details.noteCount, formatAmount(details.balanceMsat), details.noteCount)) },
             )
@@ -144,16 +143,16 @@ fun ServiceDetailsScreen(
                 val ppm = service.feePpm
                 if (base != null && ppm != null) {
                     val percent = NumberFormat.getPercentInstance().apply { maximumFractionDigits = 4 }.format(ppm / 1_000_000.0)
-                    ListItem(
+                    WalletListItem(
                         headlineContent = { Text(stringResource(R.string.service_fees)) },
                         supportingContent = { Text(stringResource(R.string.service_fees_value, formatAmount(base), percent)) },
                     )
                 }
-                ListItem(
+                WalletListItem(
                     headlineContent = { Text(stringResource(R.string.service_limits)) },
                     supportingContent = { Text(stringResource(R.string.service_limits_value, formatAmount(service.minSendableMsat), formatAmount(service.maxSendableMsat))) },
                 )
-                ListItem(
+                WalletListItem(
                     headlineContent = { Text(stringResource(R.string.service_signing_key)) },
                     supportingContent = {
                         Column {
@@ -165,25 +164,25 @@ fun ServiceDetailsScreen(
             }
             val uri = LocalUriHandler.current
             val website = "https://${details.host}"
-            ListItem(
+            WalletListItem(
                 headlineContent = { Text(stringResource(R.string.service_website)) },
                 supportingContent = { Text(website) },
-                trailingContent = { TextButton(onClick = { runCatching { uri.openUri(website) } }) { Text(stringResource(R.string.service_open)) } },
+                trailingContent = { WalletButton(kind = ButtonKind.Text, onClick = { runCatching { uri.openUri(website) } }) { Text(stringResource(R.string.service_open)) } },
             )
             state.watchOnlyKey?.let { key ->
                 HorizontalDivider()
-                ListItem(
+                WalletListItem(
                     headlineContent = { Text(stringResource(R.string.service_watch_only)) },
                     supportingContent = { Text(stringResource(R.string.service_watch_only_hint)) },
                     trailingContent = {
-                        TextButton(onClick = onToggleWatchOnly) { Text(stringResource(if (state.showWatchOnly) R.string.service_hide else R.string.service_show)) }
+                        WalletButton(kind = ButtonKind.Text, onClick = onToggleWatchOnly) { Text(stringResource(if (state.showWatchOnly) R.string.service_hide else R.string.service_show)) }
                     },
                 )
                 if (state.showWatchOnly) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         QrCode(key, description = stringResource(R.string.service_watch_only_qr))
                         Text(key, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
-                        OutlinedButton(onClick = { onCopyWatchOnly(key) }) { Text(stringResource(R.string.service_copy)) }
+                        WalletButton(kind = ButtonKind.Secondary, onClick = { onCopyWatchOnly(key) }) { Text(stringResource(R.string.service_copy)) }
                     }
                 }
             }
@@ -195,8 +194,8 @@ fun ServiceDetailsScreen(
 @Composable
 private fun KeyChangedCard(host: String, remembered: String?, presented: String?, onAccept: ((String) -> Unit)?) {
     var confirming by remember { mutableStateOf(false) }
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+    WalletCard(
+        tone = Tone.Warning,
         modifier = Modifier.fillMaxWidth().padding(16.dp),
     ) {
         Column(Modifier.padding(16.dp)) {
@@ -208,19 +207,19 @@ private fun KeyChangedCard(host: String, remembered: String?, presented: String?
                 Text(key.chunked(4).joinToString(" "), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, color = color)
             }
             if (presented != null && onAccept != null) {
-                Button(onClick = { confirming = true }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.service_key_accept)) }
+                WalletButton(onClick = { confirming = true }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.service_key_accept)) }
             }
         }
     }
     if (confirming && presented != null && onAccept != null) {
-        AlertDialog(
+        WalletDialog(
             onDismissRequest = { confirming = false },
             title = { Text(stringResource(R.string.service_key_accept_title)) },
             text = { Text(stringResource(R.string.service_key_accept_body, host)) },
             confirmButton = {
-                TextButton(onClick = { confirming = false; onAccept(presented) }) { Text(stringResource(R.string.service_key_accept_confirm)) }
+                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false; onAccept(presented) }) { Text(stringResource(R.string.service_key_accept_confirm)) }
             },
-            dismissButton = { TextButton(onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) } },
+            dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) } },
         )
     }
 }

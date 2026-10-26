@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.ProblemKind
+import whitewallet.brand.WalletStatus
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.Profile
@@ -43,7 +45,16 @@ data class HomeState(
     val canAddAccount: Boolean = true,
     /** Accounts are a thing in this app: hidden when the brand allows one and there is one. */
     val showAccounts: Boolean = true,
-)
+) {
+    /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */
+    val status: WalletStatus
+        get() = when {
+            activeAccountId == null -> WalletStatus.None
+            error != null -> WalletStatus.Problem(ProblemKind.Offline)
+            balanceMsat > 0 -> WalletStatus.Idle
+            else -> WalletStatus.Empty
+        }
+}
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(private val wallet: Wallet, private val preferences: AppPreferences) : ViewModel() {

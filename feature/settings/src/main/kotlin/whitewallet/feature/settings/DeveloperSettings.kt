@@ -8,12 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -37,6 +34,10 @@ import kotlinx.coroutines.launch
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletSwitch
 
 /** A page that is only reachable while developer mode is on. Registered by the app module. */
 data class DeveloperPage(@StringRes val title: Int, @StringRes val description: Int, val route: String)
@@ -87,28 +88,30 @@ fun DeveloperSettingsScreen(
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.developer_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            ListItem(
+            WalletListItem(
                 headlineContent = { Text(stringResource(R.string.developer_mode)) },
                 supportingContent = { Text(stringResource(R.string.developer_mode_hint)) },
-                trailingContent = { Switch(checked = enabled, onCheckedChange = onToggle) },
+                trailingContent = { WalletSwitch(checked = enabled, onCheckedChange = onToggle) },
                 modifier = Modifier.clickable { onToggle(!enabled) },
             )
             if (enabled) {
                 HorizontalDivider()
-                ListItem(
+                WalletListItem(
                     headlineContent = { Text(stringResource(R.string.developer_max_addresses)) },
                     supportingContent = { Text(stringResource(R.string.developer_max_addresses_hint)) },
                     trailingContent = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             val fewer = stringResource(R.string.developer_max_addresses_fewer)
                             val more = stringResource(R.string.developer_max_addresses_more)
-                            TextButton(
+                            WalletButton(
+                                kind = ButtonKind.Text,
                                 onClick = { onMaxAddresses(maxAddresses - 1) },
                                 enabled = maxAddresses > 1,
                                 modifier = Modifier.semantics { contentDescription = fewer },
                             ) { Text("−") }
                             Text(NumberFormat.getIntegerInstance().format(maxAddresses), style = MaterialTheme.typography.titleMedium)
-                            TextButton(
+                            WalletButton(
+                                kind = ButtonKind.Text,
                                 onClick = { onMaxAddresses(maxAddresses + 1) },
                                 enabled = maxAddresses < DeveloperSettingsViewModel.MAX_ADDRESSES,
                                 modifier = Modifier.semantics { contentDescription = more },
@@ -125,7 +128,7 @@ fun DeveloperSettingsScreen(
                     )
                 }
                 pages.forEach { page ->
-                    ListItem(
+                    WalletListItem(
                         headlineContent = { Text(stringResource(page.title)) },
                         supportingContent = { Text(stringResource(page.description)) },
                         modifier = Modifier.clickable { onOpenPage(page.route) },

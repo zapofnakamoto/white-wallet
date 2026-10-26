@@ -7,8 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +24,9 @@ import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.wallet.PhraseCheck
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletTextField
 
 /**
  * Restores an account from its recovery phrase on a chosen mint. [onRestored] gets the host, where the account's
@@ -65,7 +66,7 @@ fun RestoreScreen(
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.restore_title), onBack.takeIf { !state.busy }) }) { padding ->
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.restore_body), textAlign = TextAlign.Center)
-            OutlinedTextField(
+            WalletTextField(
                 value = state.phrase,
                 onValueChange = onPhraseChange,
                 label = { Text(stringResource(R.string.restore_phrase)) },
@@ -78,10 +79,10 @@ fun RestoreScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             if (state.developerMode) {
-                OutlinedButton(onClick = onUseTestPhrase, enabled = !state.busy) { Text(stringResource(R.string.restore_test_phrase)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = onUseTestPhrase, enabled = !state.busy) { Text(stringResource(R.string.restore_test_phrase)) }
             }
             if (state.askAccountName) {
-                OutlinedTextField(
+                WalletTextField(
                     value = state.accountName,
                     onValueChange = onAccountNameChange,
                     label = { Text(stringResource(R.string.onboarding_account_name)) },

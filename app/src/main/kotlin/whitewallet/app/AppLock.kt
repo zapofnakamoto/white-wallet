@@ -35,6 +35,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import whitewallet.brand.ui.Anchor
+import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.feature.settings.DeviceAuth
@@ -101,7 +103,7 @@ private fun LockScreen(appName: String, onUnlocked: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
         ) {
-            Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null, modifier = Modifier.size(96.dp))
+            BrandDecoration(Anchor.AppLock) { Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null, modifier = Modifier.size(96.dp)) }
             Text(title, style = MaterialTheme.typography.titleLarge)
             PrimaryButton(stringResource(R.string.lock_unlock), { ask() })
         }

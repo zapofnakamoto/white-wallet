@@ -11,18 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,7 +36,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.text.input.KeyboardType
 import whitewallet.core.wallet.DiscoveryResult
 import whitewallet.core.wallet.IndexHealth
@@ -73,6 +66,12 @@ import whitewallet.core.wallet.KeyStatus
 import whitewallet.core.wallet.RotateAllResult
 import whitewallet.core.wallet.RotateResult
 import whitewallet.core.wallet.Wallet
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletFilterChip
+import whitewallet.core.designsystem.WalletTextField
 
 data class DerivedKeysState(
     val hosts: List<String> = emptyList(),
@@ -288,7 +287,7 @@ fun DerivedKeysScreen(
                     Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         state.hosts.forEach { h ->
                             val label = if (h == state.homeHost) stringResource(R.string.keys_home_mint, h) else h
-                            FilterChip(selected = h == state.host, onClick = { onHost(h) }, label = { Text(label) })
+                            WalletFilterChip(selected = h == state.host, onClick = { onHost(h) }, label = { Text(label) })
                         }
                     }
                 }
@@ -319,14 +318,14 @@ fun DerivedKeysScreen(
 @Composable
 private fun IndexCard(state: DerivedKeysState, onRotateAll: () -> Unit, index: IndexActions) {
     val n = state.index
-    Card(Modifier.fillMaxWidth().padding(16.dp)) {
+    WalletCard(Modifier.fillMaxWidth().padding(16.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.keys_index, n), style = MaterialTheme.typography.titleLarge)
                     state.host?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
-                OutlinedTextField(
+                WalletTextField(
                     value = state.gapInput,
                     onValueChange = index.onGapInput,
                     label = { Text(stringResource(R.string.keys_gap_limit)) },
@@ -341,12 +340,12 @@ private fun IndexCard(state: DerivedKeysState, onRotateAll: () -> Unit, index: I
             state.lastRotate?.let { RotateOutcomeText(it) }
             val enabled = !state.busy && state.host != null
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = index.onScanAhead, enabled = enabled) { Text(stringResource(R.string.keys_scan_ahead, n)) }
-                OutlinedButton(onClick = index.onRecheckAll, enabled = enabled) { Text(stringResource(R.string.keys_recheck_all)) }
-                OutlinedButton(onClick = index.onFind, enabled = enabled) { Text(stringResource(R.string.keys_find_index)) }
-                OutlinedButton(onClick = index.onOpenSet, enabled = enabled) { Text(stringResource(R.string.keys_set_index)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = index.onScanAhead, enabled = enabled) { Text(stringResource(R.string.keys_scan_ahead, n)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = index.onRecheckAll, enabled = enabled) { Text(stringResource(R.string.keys_recheck_all)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = index.onFind, enabled = enabled) { Text(stringResource(R.string.keys_find_index)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = index.onOpenSet, enabled = enabled) { Text(stringResource(R.string.keys_set_index)) }
                 if (state.rotatable.isNotEmpty()) {
-                    OutlinedButton(onClick = onRotateAll, enabled = enabled) { Text(stringResource(R.string.keys_rotate_all, state.rotatable.size)) }
+                    WalletButton(kind = ButtonKind.Secondary, onClick = onRotateAll, enabled = enabled) { Text(stringResource(R.string.keys_rotate_all, state.rotatable.size)) }
                 }
             }
         }
@@ -397,13 +396,13 @@ class IndexActions(
 @Composable
 private fun SetIndexDialog(input: String, floor: Long, actions: IndexActions) {
     val value = input.toLongOrNull()
-    AlertDialog(
+    WalletDialog(
         onDismissRequest = actions.onDismissSet,
         title = { Text(stringResource(R.string.keys_set_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.keys_set_body, floor))
-                OutlinedTextField(
+                WalletTextField(
                     value = input,
                     onValueChange = actions.onSetInput,
                     label = { Text(stringResource(R.string.keys_set_field)) },
@@ -414,9 +413,9 @@ private fun SetIndexDialog(input: String, floor: Long, actions: IndexActions) {
             }
         },
         confirmButton = {
-            TextButton(onClick = actions.onConfirmSet, enabled = value != null && value >= floor) { Text(stringResource(R.string.keys_set_apply)) }
+            WalletButton(kind = ButtonKind.Text, onClick = actions.onConfirmSet, enabled = value != null && value >= floor) { Text(stringResource(R.string.keys_set_apply)) }
         },
-        dismissButton = { TextButton(onClick = actions.onDismissSet) { Text(stringResource(R.string.backup_cancel)) } },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = actions.onDismissSet) { Text(stringResource(R.string.backup_cancel)) } },
     )
 }
 
@@ -436,12 +435,12 @@ private fun RotateDialog(request: RotateRequest, purposes: List<Int>, onConfirm:
         is RotateRequest.All -> stringResource(R.string.keys_rotate_all_title, request.count) to
             stringResource(R.string.keys_rotate_all_body, formatAmount(request.totalMsat), request.nextWalletIndex)
     }
-    AlertDialog(
+    WalletDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(body) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.keys_rotate)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.backup_cancel)) } },
+        confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = onConfirm) { Text(stringResource(R.string.keys_rotate)) } },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.backup_cancel)) } },
     )
 }
 
@@ -488,11 +487,11 @@ private fun KeyRow(
             Text(key.cp1, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
             if (key.failure == null || key.probe != null) Text(lookupText(key.probe), style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onRecheck, enabled = !busy) { Text(stringResource(R.string.keys_recheck)) }
+                WalletButton(kind = ButtonKind.Text, onClick = onRecheck, enabled = !busy) { Text(stringResource(R.string.keys_recheck)) }
                 if (key.noteState == NoteState.Outstanding) {
-                    TextButton(onClick = onRotate, enabled = !busy) { Text(stringResource(R.string.keys_rotate)) }
+                    WalletButton(kind = ButtonKind.Text, onClick = onRotate, enabled = !busy) { Text(stringResource(R.string.keys_rotate)) }
                 }
-                TextButton(onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("cp1", key.cp1))) } }) {
+                WalletButton(kind = ButtonKind.Text, onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("cp1", key.cp1))) } }) {
                     Text(stringResource(R.string.logs_copy))
                 }
             }

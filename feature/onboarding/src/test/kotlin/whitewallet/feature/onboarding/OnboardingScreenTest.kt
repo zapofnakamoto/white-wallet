@@ -1,6 +1,14 @@
 package whitewallet.feature.onboarding
 
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -10,6 +18,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.core.designsystem.LocalAppName
 
 @RunWith(RobolectricTestRunner::class)
 class OnboardingScreenTest {
@@ -85,5 +98,43 @@ class OnboardingScreenTest {
         }
         compose.onNodeWithText("Your address").assertDoesNotExist()
         compose.onNodeWithText("Mint").assertExists()
+    }
+
+    @Test
+    fun withoutABrandDesignTheLogoAndNameShow() {
+        compose.setContent {
+            OnboardingScreen(
+                "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
+                onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+            )
+        }
+        // Decorations are decorative: the default logo is drawn but not read out; the name is a heading.
+        compose.onNodeWithText("logo").assertDoesNotExist()
+        compose.onNode(hasContentDescription("Wallet") and isHeading()).assertExists()
+    }
+
+    @Test
+    fun aBrandDesignDrawsItsOwnHeaderAndTitle() {
+        val anchors = mutableListOf<Anchor>()
+        val design = object : BrandDesign {
+            @Composable
+            override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                anchors += anchor
+                Text("brand ${anchor.id} ${context.appName}", Modifier.testTag(anchor.id))
+            }
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design, LocalAppName provides "Wallet") {
+                OnboardingScreen(
+                    "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
+                    onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                )
+            }
+        }
+        compose.onNodeWithTag(Anchor.OnboardingHeader.id, useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("brand onboarding.title Wallet", useUnmergedTree = true).assertExists()
+        // Whatever the brand draws, screen readers still get the name as a heading.
+        compose.onNode(hasContentDescription("Wallet") and isHeading()).assertExists()
+        assertTrue(Anchor.OnboardingHeader in anchors && Anchor.OnboardingTitle in anchors)
     }
 }

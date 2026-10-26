@@ -1,11 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Neutral fallbacks so this module compiles on its own. The app's brand/res/values/brand_colors.xml
-  defines the same names and wins at resource merge time. Do not brand the app here.
+  The brand's design tokens and their defaults (docs/WHITE_LABEL.md, "Design"). A brand overrides any of these names in
+  its own res/values (and, separately, res/values-night); everything it leaves alone stays as it is. These are roles
+  only: a brand names its own colours however it likes and points the roles at them, e.g.
+  <color name="brand_surface">@color/my_paper</color>. Do not brand the app here.
 -->
 <resources>
+    <!-- "Not set": the role keeps Material's default (or, for the wallet roles, the Material role named below). -->
+    <color name="brand_unset">#00FFFFFF</color>
+
+    <!-- Colour roles: Material 3's colour scheme. These four have neutral values; the rest is unset. -->
     <color name="brand_primary">#455A64</color>
     <color name="brand_on_primary">#FFFFFF</color>
     <color name="brand_secondary">#607D8B</color>
     <color name="brand_tertiary">#546E7A</color>
+    <color name="brand_primary_container">@color/brand_unset</color>
+    <color name="brand_on_primary_container">@color/brand_unset</color>
+    <color name="brand_inverse_primary">@color/brand_unset</color>
+    <color name="brand_on_secondary">@color/brand_unset</color>
+    <color name="brand_secondary_container">@color/brand_unset</color>
+    <color name="brand_on_secondary_container">@color/brand_unset</color>
+    <color name="brand_on_tertiary">@color/brand_unset</color>
+    <color name="brand_tertiary_container">@color/brand_unset</color>
+    <color name="brand_on_tertiary_container">@color/brand_unset</color>
+    <color name="brand_background">@color/brand_unset</color>
+    <color name="brand_on_background">@color/brand_unset</color>
+    <color name="brand_surface">@color/brand_unset</color>
+    <color name="brand_on_surface">@color/brand_unset</color>
+    <color name="brand_surface_variant">@color/brand_unset</color>
+    <color name="brand_on_surface_variant">@color/brand_unset</color>
+    <color name="brand_surface_tint">@color/brand_unset</color>
+    <color name="brand_inverse_surface">@color/brand_unset</color>
+    <color name="brand_inverse_on_surface">@color/brand_unset</color>
+    <color name="brand_error">@color/brand_unset</color>
+    <color name="brand_on_error">@color/brand_unset</color>
+    <color name="brand_error_container">@color/brand_unset</color>
+    <color name="brand_on_error_container">@color/brand_unset</color>
+    <color name="brand_outline">@color/brand_unset</color>
+    <color name="brand_outline_variant">@color/brand_unset</color>
+    <color name="brand_scrim">@color/brand_unset</color>
+    <color name="brand_surface_bright">@color/brand_unset</color>
+    <color name="brand_surface_dim">@color/brand_unset</color>
+    <color name="brand_surface_container">@color/brand_unset</color>
+    <color name="brand_surface_container_high">@color/brand_unset</color>
+    <color name="brand_surface_container_highest">@color/brand_unset</color>
+    <color name="brand_surface_container_low">@color/brand_unset</color>
+    <color name="brand_surface_container_lowest">@color/brand_unset</color>
+
+    <!-- Wallet roles: incoming/success → primary, outgoing/amount → on_surface, warning → error,
+         warning_container/on_warning_container → error_container/on_error_container. -->
+    <color name="brand_incoming">@color/brand_unset</color>
+    <color name="brand_outgoing">@color/brand_unset</color>
+    <color name="brand_success">@color/brand_unset</color>
+    <color name="brand_warning">@color/brand_unset</color>
+    <color name="brand_warning_container">@color/brand_unset</color>
+    <color name="brand_on_warning_container">@color/brand_unset</color>
+    <color name="brand_amount">@color/brand_unset</color>
+
+    <!-- Fonts per group, as res/font/<name>.xml (a font family) or .ttf/.otf: unset falls back to display for
+         headline, to body for title and label, and to the system font. -->
+    <item name="brand_font_display" type="font">@null</item>
+    <item name="brand_font_headline" type="font">@null</item>
+    <item name="brand_font_title" type="font">@null</item>
+    <item name="brand_font_body" type="font">@null</item>
+    <item name="brand_font_label" type="font">@null</item>
+
+    <!-- Text styles (Material's 15): size and line height in sp, weight 1..1000. 0 keeps Material's value. -->
+    <dimen name="brand_text_display_large_size">0sp</dimen>
+    <dimen name="brand_text_display_large_line_height">0sp</dimen>
+    <integer name="brand_text_display_large_weight">0</integer>
+    <dimen name="brand_text_display_medium_size">0sp</dimen>
+    <dimen name="brand_text_display_medium_line_height">0sp</dimen>
+    <integer name="brand_text_display_medium_weight">0</integer>
+    <dimen name="brand_text_display_small_size">0sp</dimen>
+    <dimen name="brand_text_display_small_line_height">0sp</dimen>
+    <integer name="brand_text_display_small_weight">0</integer>
+    <dimen name="brand_text_headline_large_size">0sp</dimen>
+    <dimen name="brand_text_headline_large_line_height">0sp</dimen>
+    <integer name="brand_text_headline_large_weight">0</integer>
+    <dimen name="brand_text_headline_medium_size">0sp</dimen>
+    <dimen name="brand_text_headline_medium_line_height">0sp</dimen>
+    <integer name="brand_text_headline_medium_weight">0</integer>
+    <dimen name="brand_text_headline_small_size">0sp</dimen>
+    <dimen name="brand_text_headline_small_line_height">0sp</dimen>
+    <integer name="brand_text_headline_small_weight">0</integer>
+    <dimen name="brand_text_title_large_size">0sp</dimen>
+    <dimen name="brand_text_title_large_line_height">0sp</dimen>
+    <integer name="brand_text_title_large_weight">0</integer>
+    <dimen name="brand_text_title_medium_size">0sp</dimen>
+    <dimen name="brand_text_title_medium_line_height">0sp</dimen>
+    <integer name="brand_text_title_medium_weight">0</integer>
+    <dimen name="brand_text_title_small_size">0sp</dimen>
+    <dimen name="brand_text_title_small_line_height">0sp</dimen>
+    <integer name="brand_text_title_small_weight">0</integer>
+    <dimen name="brand_text_body_large_size">0sp</dimen>
+    <dimen name="brand_text_body_large_line_height">0sp</dimen>
+    <integer name="brand_text_body_large_weight">0</integer>
+    <dimen name="brand_text_body_medium_size">0sp</dimen>
+    <dimen name="brand_text_body_medium_line_height">0sp</dimen>
+    <integer name="brand_text_body_medium_weight">0</integer>
+    <dimen name="brand_text_body_small_size">0sp</dimen>
+    <dimen name="brand_text_body_small_line_height">0sp</dimen>
+    <integer name="brand_text_body_small_weight">0</integer>
+    <dimen name="brand_text_label_large_size">0sp</dimen>
+    <dimen name="brand_text_label_large_line_height">0sp</dimen>
+    <integer name="brand_text_label_large_weight">0</integer>
+    <dimen name="brand_text_label_medium_size">0sp</dimen>
+    <dimen name="brand_text_label_medium_line_height">0sp</dimen>
+    <integer name="brand_text_label_medium_weight">0</integer>
+    <dimen name="brand_text_label_small_size">0sp</dimen>
+    <dimen name="brand_text_label_small_line_height">0sp</dimen>
+    <integer name="brand_text_label_small_weight">0</integer>
+
+    <!-- Corner radii of Material's shapes. -1dp keeps Material's value (4, 8, 12, 16, 28dp). -->
+    <dimen name="brand_corner_extra_small">-1dp</dimen>
+    <dimen name="brand_corner_small">-1dp</dimen>
+    <dimen name="brand_corner_medium">-1dp</dimen>
+    <dimen name="brand_corner_large">-1dp</dimen>
+    <dimen name="brand_corner_extra_large">-1dp</dimen>
+
+    <!-- Spacing: the padding at a screen's edges and the gap between its blocks. -->
+    <dimen name="brand_spacing_screen">24dp</dimen>
+    <dimen name="brand_spacing_gap">16dp</dimen>
 </resources>

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -35,6 +34,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.WalletListItem
 
 /** A library shipped in the app, with its license. Names are proper nouns and stay untranslated. */
 data class License(val library: String, val license: String, val url: String)
@@ -85,7 +85,7 @@ fun AboutScreen(appName: String, versionName: String, supportUrl: String, onBack
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.about_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             val left = UNLOCK_TAPS - taps
-            ListItem(
+            WalletListItem(
                 headlineContent = { Text(appName, style = MaterialTheme.typography.titleLarge) },
                 supportingContent = {
                     Column {
@@ -108,16 +108,16 @@ fun AboutScreen(appName: String, versionName: String, supportUrl: String, onBack
                 },
             )
             Text(stringResource(R.string.about_body), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 16.dp))
-            ListItem(
+            WalletListItem(
                 headlineContent = { Text(stringResource(R.string.about_support)) },
                 supportingContent = { Text(supportUrl) },
                 modifier = Modifier.clickable { runCatching { uri.openUri(supportUrl) } },
             )
-            ListItem(headlineContent = { Text(stringResource(R.string.about_app_license)) }, supportingContent = { Text(stringResource(R.string.about_app_license_value)) })
+            WalletListItem(headlineContent = { Text(stringResource(R.string.about_app_license)) }, supportingContent = { Text(stringResource(R.string.about_app_license_value)) })
             HorizontalDivider()
             Text(stringResource(R.string.about_licenses), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(16.dp))
             shippedLicenses.forEach { item ->
-                ListItem(
+                WalletListItem(
                     headlineContent = { Text(item.library) },
                     supportingContent = { Text(item.license) },
                     modifier = Modifier.clickable { runCatching { uri.openUri(item.url) } },

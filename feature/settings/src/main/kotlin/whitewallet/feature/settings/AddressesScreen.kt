@@ -10,16 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +39,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.AddressEntry
@@ -54,6 +48,12 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.UnregisterResult
 import whitewallet.core.wallet.Wallet
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.Tone
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletCheckbox
+import whitewallet.core.designsystem.WalletDialog
 
 data class AddressesState(
     val entries: List<AddressEntry> = emptyList(),
@@ -199,7 +199,7 @@ fun AddressesScreen(
 ) {
     Scaffold(topBar = {
         WalletTopBar(stringResource(R.string.addresses_title), onBack) {
-            TextButton(onClick = onCheckAll, enabled = state.checking.isEmpty()) { Text(stringResource(R.string.addresses_check_all)) }
+            WalletButton(kind = ButtonKind.Text, onClick = onCheckAll, enabled = state.checking.isEmpty()) { Text(stringResource(R.string.addresses_check_all)) }
         }
     }) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxWidth()) {
@@ -243,7 +243,7 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
     val scope = rememberCoroutineScope()
     val a = entry.address
     val checking = a.address in state.checking || "*" in state.checking
-    Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+    WalletCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(a.address, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -256,19 +256,20 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
                 Text(stringResource(R.string.addresses_primary_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = { actions.onCheck(a) }, enabled = !checking) { Text(stringResource(R.string.addresses_check)) }
-                TextButton(onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("address", a.address))) } }) {
+                WalletButton(kind = ButtonKind.Text, onClick = { actions.onCheck(a) }, enabled = !checking) { Text(stringResource(R.string.addresses_check)) }
+                WalletButton(kind = ButtonKind.Text, onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("address", a.address))) } }) {
                     Text(stringResource(R.string.addresses_copy))
                 }
                 if (!entry.primary) {
                     // The primary address is always on the home mint.
                     if (a.host == state.homeHost) {
-                        TextButton(onClick = { actions.onMakePrimary(a) }, enabled = !state.busy) { Text(stringResource(R.string.addresses_make_primary)) }
+                        WalletButton(kind = ButtonKind.Text, onClick = { actions.onMakePrimary(a) }, enabled = !state.busy) { Text(stringResource(R.string.addresses_make_primary)) }
                     }
-                    TextButton(
+                    WalletButton(
+                        kind = ButtonKind.Text,
                         onClick = { actions.onUnregister(a) },
                         enabled = !state.busy,
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        tone = Tone.Danger,
                     ) { Text(stringResource(R.string.addresses_unregister)) }
                 }
             }
@@ -301,7 +302,7 @@ private fun MessageText(message: AddressesMessage) {
     }
     Text(
         text,
-        color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.walletColors.success,
         style = MaterialTheme.typography.bodyMedium,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
     )
@@ -312,7 +313,7 @@ private fun AddSection(state: AddressesState, onAdd: () -> Unit, onChangePrimary
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Addresses on other mints don't count: the first one here becomes the primary address.
         val first = state.onPrimaryService == 0
-        Button(onClick = onAdd, enabled = state.canAdd, modifier = Modifier.fillMaxWidth()) {
+        WalletButton(onClick = onAdd, enabled = state.canAdd, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(if (first) R.string.addresses_get else R.string.addresses_add))
         }
         if (!first && state.limit != AppDefaults.UNLIMITED) {
@@ -327,7 +328,7 @@ private fun AddSection(state: AddressesState, onAdd: () -> Unit, onChangePrimary
             )
         }
         if (!first) {
-            OutlinedButton(onClick = onChangePrimary, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+            WalletButton(kind = ButtonKind.Secondary, onClick = onChangePrimary, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.addresses_change_primary))
             }
             Text(stringResource(R.string.addresses_change_primary_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -339,26 +340,27 @@ private fun AddSection(state: AddressesState, onAdd: () -> Unit, onChangePrimary
 @Composable
 private fun UnregisterDialog(address: RegisteredAddress, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     var understood by remember(address) { mutableStateOf(false) }
-    AlertDialog(
+    WalletDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.addresses_unregister_title, address.address)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.addresses_unregister_body))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = understood, onCheckedChange = { understood = it })
+                    WalletCheckbox(checked = understood, onCheckedChange = { understood = it })
                     Text(stringResource(R.string.addresses_unregister_ack), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         },
         confirmButton = {
-            TextButton(
+            WalletButton(
+                kind = ButtonKind.Text,
                 onClick = onConfirm,
                 enabled = understood,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                tone = Tone.Danger,
             ) { Text(stringResource(R.string.addresses_unregister)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.addresses_keep)) } },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.addresses_keep)) } },
     )
 }
 
@@ -366,7 +368,7 @@ private fun UnregisterDialog(address: RegisteredAddress, onConfirm: () -> Unit, 
 @Composable
 private fun AddElsewhereSection(state: AddressesState, onAddElsewhere: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = onAddElsewhere, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+        WalletButton(kind = ButtonKind.Secondary, onClick = onAddElsewhere, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.addresses_add_elsewhere))
         }
         Text(stringResource(R.string.addresses_add_elsewhere_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

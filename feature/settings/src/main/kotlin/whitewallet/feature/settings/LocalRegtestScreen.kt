@@ -8,13 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,6 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
@@ -43,6 +40,9 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.Wallet
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.ProtocolViolation
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
 
 sealed interface LocalMintStatus {
     data object Checking : LocalMintStatus
@@ -146,14 +146,14 @@ private fun MintCard(mint: LocalMint, onRecheck: () -> Unit, onAddAccount: () ->
 
 @Composable
 private fun StatusCard(host: String, status: LocalMintStatus, onRecheck: () -> Unit) {
-    val (container, title) = when (status) {
-        LocalMintStatus.Checking -> CardDefaults.cardColors() to stringResource(R.string.regtest_checking)
-        is LocalMintStatus.Reachable -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer) to
+    val (tone, title) = when (status) {
+        LocalMintStatus.Checking -> Tone.Neutral to stringResource(R.string.regtest_checking)
+        is LocalMintStatus.Reachable -> Tone.Positive to
             stringResource(R.string.regtest_reachable, host)
-        is LocalMintStatus.Unreachable -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer) to
+        is LocalMintStatus.Unreachable -> Tone.Danger to
             stringResource(R.string.regtest_unreachable, host)
     }
-    Card(colors = container, modifier = Modifier.fillMaxWidth()) {
+    WalletCard(tone = tone, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             when (status) {
@@ -165,7 +165,7 @@ private fun StatusCard(host: String, status: LocalMintStatus, onRecheck: () -> U
                 is LocalMintStatus.Unreachable -> Text(status.reason, style = MaterialTheme.typography.bodySmall)
                 LocalMintStatus.Checking -> Unit
             }
-            OutlinedButton(onClick = onRecheck) { Text(stringResource(R.string.regtest_recheck)) }
+            WalletButton(kind = ButtonKind.Secondary, onClick = onRecheck) { Text(stringResource(R.string.regtest_recheck)) }
         }
     }
 }
@@ -176,7 +176,7 @@ private fun Command(text: String) {
     val scope = rememberCoroutineScope()
     Row(Modifier.fillMaxWidth()) {
         Text(text, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f).padding(top = 12.dp))
-        TextButton(onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("command", text))) } }) {
+        WalletButton(kind = ButtonKind.Text, onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("command", text))) } }) {
             Text(stringResource(R.string.logs_copy))
         }
     }

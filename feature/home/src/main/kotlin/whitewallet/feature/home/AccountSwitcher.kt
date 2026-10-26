@@ -8,11 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,6 +16,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.AccountSummary
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletRadioButton
+import whitewallet.core.designsystem.WalletSheet
 
 /** What the account switcher can ask for. */
 class AccountActions(val onSwitch: (String) -> Unit, val onAdd: () -> Unit, val onMove: () -> Unit)
@@ -37,12 +38,12 @@ fun AccountSwitcher(
     onMove: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    WalletSheet(onDismissRequest = onDismiss) {
         Column(Modifier.navigationBarsPadding().padding(bottom = 16.dp)) {
             Text(stringResource(R.string.accounts_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp))
             accounts.forEach { summary ->
-                ListItem(
-                    leadingContent = { RadioButton(selected = summary.account.id == activeId, onClick = { onSelect(summary.account.id) }) },
+                WalletListItem(
+                    leadingContent = { WalletRadioButton(selected = summary.account.id == activeId, onClick = { onSelect(summary.account.id) }) },
                     headlineContent = { Text(summary.account.name) },
                     supportingContent = { Text(summary.profile?.address ?: summary.account.host) },
                     trailingContent = { Text(formatAmount(summary.balanceMsat)) },
@@ -50,8 +51,8 @@ fun AccountSwitcher(
                 )
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (canAdd) OutlinedButton(onClick = onAdd, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.accounts_add)) }
-                OutlinedButton(onClick = onMove, enabled = accounts.size > 1, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.accounts_move)) }
+                if (canAdd) WalletButton(kind = ButtonKind.Secondary, onClick = onAdd, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.accounts_add)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = onMove, enabled = accounts.size > 1, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.accounts_move)) }
             }
             Text(
                 stringResource(R.string.accounts_separate_backups),

@@ -7,12 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +25,10 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.MoveFailure
 import whitewallet.core.wallet.MoveResult
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletRadioButton
+import whitewallet.core.designsystem.WalletSwitch
+import whitewallet.core.designsystem.WalletTextField
 
 @Composable
 fun MoveFundsRoute(onBack: () -> Unit, viewModel: MoveFundsViewModel = hiltViewModel()) {
@@ -56,8 +56,8 @@ fun MoveFundsScreen(
             Text(stringResource(R.string.move_from, from.account.name, formatAmount(from.balanceMsat)), modifier = Modifier.fillMaxWidth())
             Text(stringResource(R.string.move_to), style = MaterialTheme.typography.titleSmall, modifier = Modifier.fillMaxWidth())
             state.targets.forEach { target ->
-                ListItem(
-                    leadingContent = { RadioButton(selected = target.account.id == state.targetId, onClick = { onTarget(target.account.id) }) },
+                WalletListItem(
+                    leadingContent = { WalletRadioButton(selected = target.account.id == state.targetId, onClick = { onTarget(target.account.id) }) },
                     headlineContent = { Text(target.account.name) },
                     supportingContent = { Text(target.profile?.address ?: target.account.host) },
                     modifier = Modifier.clickable { onTarget(target.account.id) },
@@ -65,10 +65,10 @@ fun MoveFundsScreen(
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.move_everything), modifier = Modifier.weight(1f))
-                Switch(checked = state.everything, onCheckedChange = onEverything)
+                WalletSwitch(checked = state.everything, onCheckedChange = onEverything)
             }
             if (!state.everything) {
-                OutlinedTextField(
+                WalletTextField(
                     value = state.amountSats,
                     onValueChange = onAmount,
                     label = { Text(stringResource(R.string.move_amount)) },

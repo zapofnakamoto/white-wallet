@@ -9,14 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,6 +50,11 @@ import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
 import whitewallet.core.wallet.Wallet
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCircularProgress
+import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletTextField
 
 data class CreateNoteState(
     val availableMsat: Long? = null,
@@ -131,7 +131,7 @@ fun CreateNoteScreen(state: CreateNoteState, onBack: () -> Unit, onAmountChange:
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_create_title), onBack.takeIf { !state.creating }) }) { padding ->
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.note_create_body))
-            OutlinedTextField(
+            WalletTextField(
                 value = state.amountText,
                 onValueChange = onAmountChange,
                 label = { Text(amountInputLabel()) },
@@ -255,7 +255,7 @@ fun SharedNoteScreen(
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             val note = state.note
             if (note == null) {
-                if (state.loading) CircularProgressIndicator() else Text(stringResource(R.string.note_not_found))
+                if (state.loading) WalletCircularProgress() else Text(stringResource(R.string.note_not_found))
                 return@ScreenColumn
             }
             AmountText(note.amountMsat)
@@ -267,11 +267,11 @@ fun SharedNoteScreen(
                     Text(stringResource(R.string.note_waiting), style = MaterialTheme.typography.bodyMedium)
                     if (!note.certified) Text(stringResource(R.string.note_uncertified), style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(onClick = { onShare(link) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.note_share)) }
-                        OutlinedButton(onClick = { onCopy(link) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.note_copy)) }
+                        WalletButton(kind = ButtonKind.Secondary, onClick = { onShare(link) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.note_share)) }
+                        WalletButton(kind = ButtonKind.Secondary, onClick = { onCopy(link) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.note_copy)) }
                     }
-                    TextButton(onClick = onAskReclaim, enabled = !state.reclaiming) { Text(stringResource(R.string.note_reclaim)) }
-                    if (state.reclaiming) CircularProgressIndicator()
+                    WalletButton(kind = ButtonKind.Text, onClick = onAskReclaim, enabled = !state.reclaiming) { Text(stringResource(R.string.note_reclaim)) }
+                    if (state.reclaiming) WalletCircularProgress()
                 }
                 SharedNoteState.Redeemed -> Text(
                     stringResource(if (state.alreadyRedeemed) R.string.note_already_redeemed else R.string.note_redeemed),
@@ -287,12 +287,12 @@ fun SharedNoteScreen(
         }
     }
     if (state.confirmReclaim) {
-        AlertDialog(
+        WalletDialog(
             onDismissRequest = onDismissReclaim,
             title = { Text(stringResource(R.string.note_reclaim_title)) },
             text = { Text(stringResource(R.string.note_reclaim_body)) },
-            confirmButton = { TextButton(onClick = onReclaim) { Text(stringResource(R.string.note_reclaim)) } },
-            dismissButton = { TextButton(onClick = onDismissReclaim) { Text(stringResource(R.string.note_cancel)) } },
+            confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = onReclaim) { Text(stringResource(R.string.note_reclaim)) } },
+            dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismissReclaim) { Text(stringResource(R.string.note_cancel)) } },
         )
     }
 }

@@ -3,6 +3,7 @@
     <string name="back">Zurück</string>
     <string name="refresh">Aktualisieren</string>
     <string name="settings">Einstellungen</string>
+    <string name="more">Mehr</string>
     <plurals name="amount_sats">
         <item quantity="one">%1$s Sat</item>
         <item quantity="other">%1$s Sats</item>

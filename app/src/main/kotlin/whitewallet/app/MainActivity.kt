@@ -13,7 +13,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,7 +36,17 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.Optional
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.BrandScreen
+import whitewallet.brand.ui.BrandScreenEntry
+import whitewallet.brand.ui.DefaultBrandDesign
+import whitewallet.brand.ui.LocalWalletEvents
+import whitewallet.core.designsystem.LocalAppName
+import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletTheme
+import whitewallet.feature.home.HomeMenuItem
+import whitewallet.feature.settings.BrandPage
 import whitewallet.core.designsystem.LocalAmountUnit
 import androidx.compose.runtime.CompositionLocalProvider
 import whitewallet.core.wallet.Wallet
@@ -80,6 +89,11 @@ class MainActivity : FragmentActivity() {
     /** Text from a deep link, a share or an NFC tag, waiting to be opened (see [IncomingLink]). */
     private val incoming = MutableStateFlow<String?>(null)
 
+    // The brand's design, if its code module provides one, and its own pages (docs/WHITE_LABEL.md, "Design").
+    @Inject lateinit var design: Optional<BrandDesign>
+    @Inject lateinit var brandScreens: Set<@JvmSuppressWildcards BrandScreen>
+    @Inject lateinit var events: WalletEventHub
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -87,10 +101,11 @@ class MainActivity : FragmentActivity() {
         setContent {
             val display: DisplayViewModel = hiltViewModel()
             val unit by display.amountUnit.collectAsStateWithLifecycle()
-            WalletTheme {
-                CompositionLocalProvider(LocalAmountUnit provides unit) {
+            val appName = stringResource(R.string.app_name)
+            WalletTheme(design.orElse(DefaultBrandDesign)) {
+                CompositionLocalProvider(LocalAmountUnit provides unit, LocalAppName provides appName, LocalWalletEvents provides events.events) {
                     Surface(Modifier.fillMaxSize()) {
-                        AppLockGate(stringResource(R.string.app_name)) { WalletApp(incoming, onIncomingHandled = { incoming.value = null }) }
+                        AppLockGate(appName) { WalletApp(incoming, BrandScreens(brandScreens), onIncomingHandled = { incoming.value = null }) }
                     }
                 }
             }
@@ -168,13 +183,15 @@ internal object Routes {
     const val NEW_ACCOUNT_ON = "account/new?host={host}"
     const val MOVE_FUNDS = "move"
     const val DEVELOPER = "settings/developer"
+    const val BRAND = "brand/{id}"
+    fun brand(id: String) = "brand/$id"
 }
 
 @Composable
-private fun WalletApp(incoming: StateFlow<String?>, onIncomingHandled: () -> Unit, start: StartViewModel = hiltViewModel()) {
+private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, onIncomingHandled: () -> Unit, start: StartViewModel = hiltViewModel()) {
     val startRoute by start.start.collectAsStateWithLifecycle()
     val first = startRoute ?: run {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { WalletCircularProgress() }
         return
     }
     val appName = stringResource(R.string.app_name)
@@ -203,7 +220,8 @@ private fun WalletApp(incoming: StateFlow<String?>, onIncomingHandled: () -> Uni
             OnboardingRoute(
                 appName = appName,
                 logo = { Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null) },
-                onDone = { nav.navigate(Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } } },
+                // The brand's welcome page, if it has one, comes between setup and the wallet.
+                onDone = { nav.navigate(brand.afterOnboarding?.let { Routes.brand(it.id) } ?: Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } } },
                 onRestore = { nav.navigate(Routes.RESTORE) },
             )
         }
@@ -232,6 +250,7 @@ private fun WalletApp(incoming: StateFlow<String?>, onIncomingHandled: () -> Uni
                 onChangeAddress = { nav.navigate(Routes.CHANGE_ADDRESS) },
                 onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
+                menu = brand.on(BrandScreenEntry.HomeMenu).map { screen -> HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) } },
                 notesTab = if (NotesView.fromConfig(BuildConfig.NOTES_VIEW) == NotesView.Tab) notesTab(onSettings = { nav.navigate(Routes.NOTES) }, onOpenShared = { id -> nav.navigate(Routes.note(id)) }) else null,
             )
         }
@@ -267,6 +286,7 @@ private fun WalletApp(incoming: StateFlow<String?>, onIncomingHandled: () -> Uni
             SettingsRoute(
                 BuildConfig.VERSION_NAME,
                 DeveloperPages.all,
+                brandPages = brand.on(BrandScreenEntry.Settings).map { BrandPage(it.title, Routes.brand(it.id)) },
                 onBack = { nav.popBackStack() },
                 onNavigate = { destination ->
                     nav.navigate(
@@ -342,7 +362,34 @@ private fun WalletApp(incoming: StateFlow<String?>, onIncomingHandled: () -> Uni
         composable(Routes.BACKUP) {
             BackupRoute(onDone = { nav.popBackStack() })
         }
+        composable(Routes.BRAND, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+            val screen = brand.byId.getValue(checkNotNull(entry.arguments?.getString("id")))
+            screen.Content(
+                onBack = {
+                    if (screen.entry == BrandScreenEntry.AfterOnboarding) {
+                        nav.navigate(Routes.HOME) { popUpTo(0) { inclusive = true } }
+                    } else {
+                        nav.popBackStack()
+                    }
+                },
+            )
+        }
     }
+}
+
+/** The brand's own pages, checked once: ids unique and usable in a route, at most one welcome page. */
+private class BrandScreens(screens: Set<BrandScreen>) {
+    val byId: Map<String, BrandScreen> = screens.associateBy { it.id }
+
+    init {
+        screens.forEach { check(it.id.matches(Regex("[a-z0-9-]+"))) { "Brand screen id '${it.id}': use lowercase letters, digits and -" } }
+        check(byId.size == screens.size) { "Two brand screens share an id: ${screens.map { it.id }}" }
+        check(screens.count { it.entry == BrandScreenEntry.AfterOnboarding } <= 1) { "More than one brand screen is shown after onboarding" }
+    }
+
+    val afterOnboarding: BrandScreen? = screens.firstOrNull { it.entry == BrandScreenEntry.AfterOnboarding }
+
+    fun on(entry: BrandScreenEntry): List<BrandScreen> = byId.values.filter { it.entry == entry }.sortedBy { it.id }
 }
 
 /** The Notes tab for Home: the notes view, its refresh (asking the mints about every note) and its settings button. */

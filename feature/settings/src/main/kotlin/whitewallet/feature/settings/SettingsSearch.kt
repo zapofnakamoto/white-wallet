@@ -64,6 +64,9 @@ object SettingsSearch {
     fun developerEntries(pages: List<DeveloperPage>): List<SearchEntry> =
         pages.map { SearchEntry(it.title, it.description, SearchDestination.Route(it.route), developerOnly = true) }
 
+    /** The brand's own pages, searchable by title. */
+    fun brandEntries(pages: List<BrandPage>): List<SearchEntry> = pages.map { SearchEntry(it.title, null, SearchDestination.Route(it.route)) }
+
     /**
      * Items containing every word of [query] in their title, location or keywords, ignoring case, accents and
      * punctuation. Title matches come first; otherwise the registry order is kept. A blank query matches nothing.

@@ -12,14 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -34,6 +30,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import whitewallet.core.designsystem.WalletStatusScope
+import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ProblemKind
+import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.AmountText
 import whitewallet.core.scanner.QrScanner
@@ -47,6 +49,10 @@ import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletTextField
 
 /** Pay an invoice, a Lightning Address or a pay link: enter or scan it, review the amount and fee, pay. */
 @Composable
@@ -91,6 +97,7 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             val preview = state.preview
             val result = state.result
+            if (preview != null) WalletStatusScope(sendStatus(state)) { BrandDecoration(Anchor.SendHeader) }
             when {
                 result != null && preview != null -> ResultContent(result, preview, onDone, actions.onEdit)
                 preview != null -> ReviewContent(state, preview, actions)
@@ -101,11 +108,33 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
     }
 }
 
+/** What the screen is about, for the brand's design: the payment going out, its outcome, or what stops it. */
+private fun sendStatus(state: SendState): WalletStatus {
+    val quote = state.quote
+    return when (val result = state.result) {
+        is PayResult.Paid -> WalletStatus.Sent(result.amountMsat)
+        is PayResult.Pending -> WalletStatus.Sending
+        is PayResult.Failed -> WalletStatus.Problem(problemKind(result.problem))
+        null -> when {
+            state.paying -> WalletStatus.Sending
+            quote is PayQuote.Invalid -> WalletStatus.Problem(problemKind(quote.problem))
+            state.problem != null -> WalletStatus.Problem(problemKind(state.problem))
+            else -> WalletStatus.None
+        }
+    }
+}
+
+private fun problemKind(problem: PayProblem): ProblemKind = when (problem) {
+    PayProblem.NoFunds, PayProblem.TooMuch -> ProblemKind.NotEnoughFunds
+    PayProblem.Unreachable -> ProblemKind.Offline
+    else -> ProblemKind.Other
+}
+
 @Composable
 private fun InputContent(state: SendState, actions: SendActions) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
-    OutlinedTextField(
+    WalletTextField(
         value = state.input,
         onValueChange = actions.onInputChange,
         label = { Text(stringResource(R.string.send_input)) },
@@ -116,10 +145,11 @@ private fun InputContent(state: SendState, actions: SendActions) {
         modifier = Modifier.fillMaxWidth(),
     )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        OutlinedButton(onClick = actions.onStartScan, enabled = !state.checking, modifier = Modifier.weight(1f)) {
+        WalletButton(kind = ButtonKind.Secondary, onClick = actions.onStartScan, enabled = !state.checking, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.send_scan))
         }
-        OutlinedButton(
+        WalletButton(
+            kind = ButtonKind.Secondary,
             onClick = {
                 scope.launch {
                     val text = clipboard.getClipEntry()?.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text?.toString()
@@ -133,7 +163,7 @@ private fun InputContent(state: SendState, actions: SendActions) {
     state.problem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
     PrimaryButton(stringResource(R.string.send_continue), actions.onCheck, enabled = state.input.isNotBlank(), busy = state.checking)
     Text(stringResource(R.string.send_or), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    OutlinedButton(onClick = actions.onCreateNote, enabled = !state.checking, modifier = Modifier.fillMaxWidth()) {
+    WalletButton(kind = ButtonKind.Secondary, onClick = actions.onCreateNote, enabled = !state.checking, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.send_create_note))
     }
 }
@@ -145,12 +175,12 @@ private fun ScanContent(actions: SendActions) {
         onScanned = actions.onScanned,
         modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.large),
     )
-    TextButton(onClick = actions.onStopScan) { Text(stringResource(R.string.send_scan_cancel)) }
+    WalletButton(kind = ButtonKind.Text, onClick = actions.onStopScan) { Text(stringResource(R.string.send_scan_cancel)) }
 }
 
 @Composable
 private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: SendActions) {
-    Card(Modifier.fillMaxWidth()) {
+    WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 preview.payee ?: stringResource(R.string.send_to_invoice),
@@ -168,7 +198,7 @@ private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: 
     if (fixed != null) {
         AmountText(fixed, Modifier.fillMaxWidth())
     } else {
-        OutlinedTextField(
+        WalletTextField(
             value = state.amountText,
             onValueChange = actions.onAmountChange,
             label = { Text(amountInputLabel()) },
@@ -183,7 +213,7 @@ private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: 
         )
     }
     if (preview.commentMaxLength > 0) {
-        OutlinedTextField(
+        WalletTextField(
             value = state.comment,
             onValueChange = actions.onCommentChange,
             label = { Text(stringResource(R.string.send_comment)) },
@@ -237,7 +267,7 @@ private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: 
     val to = preview.payee
     when (result) {
         is PayResult.Paid -> {
-            Icon(painterResource(DesignR.drawable.ic_check_circle), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(72.dp))
+            Icon(painterResource(DesignR.drawable.ic_check_circle), contentDescription = null, tint = MaterialTheme.walletColors.success, modifier = Modifier.size(72.dp))
             Text(stringResource(R.string.send_paid_title), style = MaterialTheme.typography.headlineSmall)
             val sats = formatAmount(result.amountMsat)
             Text(if (to != null) stringResource(R.string.send_paid_body, sats, to) else stringResource(R.string.send_paid_body_invoice, sats), textAlign = TextAlign.Center)
@@ -253,7 +283,7 @@ private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: 
             Text(problemText(result.problem), textAlign = TextAlign.Center)
             // Only for an invoice that could still be paid (the money is back or never left).
             if (preview.destination is PayDestination.PayLink || result.problem == PayProblem.PaymentFailed) {
-                TextButton(onClick = onTryAgain) { Text(stringResource(R.string.send_try_again)) }
+                WalletButton(kind = ButtonKind.Text, onClick = onTryAgain) { Text(stringResource(R.string.send_try_again)) }
             }
         }
     }

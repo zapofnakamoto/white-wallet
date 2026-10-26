@@ -6,16 +6,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +26,12 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.Tone
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletCheckbox
+import whitewallet.core.designsystem.WalletDialog
 
 /**
  * Deletes the wallet from this device, following the Bitcoin Design Guide (Settings > Security): an explanation
@@ -89,12 +88,12 @@ fun DeleteWalletScreen(
             Text(stringResource(R.string.delete_balance, formatAmount(state.balanceMsat)), style = MaterialTheme.typography.titleMedium)
 
             if (state.atRisk) {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), modifier = Modifier.fillMaxWidth()) {
+                WalletCard(tone = Tone.Danger, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.delete_not_backed_up), modifier = Modifier.padding(16.dp))
                 }
                 PrimaryButton(stringResource(R.string.delete_backup_first), onBackup)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Checkbox(checked = state.acknowledged, onCheckedChange = onAcknowledge)
+                    WalletCheckbox(checked = state.acknowledged, onCheckedChange = onAcknowledge)
                     Text(stringResource(R.string.delete_acknowledge, formatAmount(state.balanceMsat)))
                 }
             } else if (state.backupVerified) {
@@ -104,25 +103,26 @@ fun DeleteWalletScreen(
                 Text(pluralStringResource(R.plurals.delete_unresolved, state.unresolved, state.unresolved), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             }
 
-            OutlinedButton(
+            WalletButton(
+                kind = ButtonKind.Secondary,
                 onClick = onContinue,
                 enabled = state.canContinue,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                tone = Tone.Danger,
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.delete_continue)) }
         }
     }
     if (state.confirming) {
-        AlertDialog(
+        WalletDialog(
             onDismissRequest = onDismissConfirm,
             title = { Text(stringResource(R.string.delete_confirm_title)) },
             text = { Text(stringResource(R.string.delete_confirm_body)) },
             confirmButton = {
-                TextButton(onClick = onConfirm, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                WalletButton(kind = ButtonKind.Text, onClick = onConfirm, tone = Tone.Danger) {
                     Text(stringResource(R.string.delete_confirm_action))
                 }
             },
-            dismissButton = { TextButton(onClick = onDismissConfirm) { Text(stringResource(R.string.backup_cancel)) } },
+            dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismissConfirm) { Text(stringResource(R.string.backup_cancel)) } },
         )
     }
 }

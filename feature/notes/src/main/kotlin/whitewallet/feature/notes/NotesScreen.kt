@@ -18,20 +18,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +51,11 @@ import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCheckbox
+import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletListItem
 
 /** Everything the notes view can ask for. Navigation ([openShared], [openSettings]) is the caller's. */
 class NotesActions(
@@ -141,7 +142,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize()) {
             item { Summary(state) }
-            if (state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
+            if (state.busy) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
             state.outcome?.takeIf { state.open == null }?.let { outcome -> item { Outcome(outcome, actions.dismissOutcome) } }
             if (state.loaded && state.mints.isEmpty() && state.shared.isEmpty()) {
                 item { Text(stringResource(R.string.notes_empty), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp)) }
@@ -191,7 +192,7 @@ private fun Toolbar(state: NotesState, actions: NotesActions) {
     var menu by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f)) {
-            TextButton(onClick = { menu = true }) {
+            WalletButton(kind = ButtonKind.Text, onClick = { menu = true }) {
                 Text(stringResource(sortLabel(state.sort)))
                 Icon(painterResource(DesignR.drawable.ic_arrow_drop_down), stringResource(R.string.notes_sort))
             }
@@ -201,7 +202,7 @@ private fun Toolbar(state: NotesState, actions: NotesActions) {
                 }
             }
         }
-        if (!state.selecting) TextButton(onClick = actions.startSelecting, enabled = !state.busy) { Text(stringResource(R.string.notes_select)) }
+        if (!state.selecting) WalletButton(kind = ButtonKind.Text, onClick = actions.startSelecting, enabled = !state.busy) { Text(stringResource(R.string.notes_select)) }
     }
     if (state.noteStrategy?.reshapesNotes == true && state.selecting) {
         Text(
@@ -225,7 +226,7 @@ private fun MintHeader(mint: MintNotes, state: NotesState, onMoveAnyway: (String
         stringResource(R.string.notes_home_mint).takeIf { mint.isHome },
         stringResource(R.string.notes_trusted).takeIf { mint.trusted },
     )
-    ListItem(
+    WalletListItem(
         leadingContent = if (mint.trusted) ({ TrustedIcon() }) else null,
         headlineContent = { Text(mint.host, style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() }) },
         supportingContent = if (labels.isEmpty()) null else ({ Text(labels.joinToString(stringResource(R.string.notes_detail_separator))) }),
@@ -239,7 +240,7 @@ private fun MintHeader(mint: MintNotes, state: NotesState, onMoveAnyway: (String
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = { onMoveAnyway(mint.host) }, enabled = !state.busy) { Text(stringResource(R.string.notes_move_anyway)) }
+            WalletButton(kind = ButtonKind.Text, onClick = { onMoveAnyway(mint.host) }, enabled = !state.busy) { Text(stringResource(R.string.notes_move_anyway)) }
         }
     }
 }
@@ -256,9 +257,9 @@ internal fun TrustedIcon() {
 private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
     val selectable = NotesViewModel.selectable(note)
     val status = noteStatus(note)
-    ListItem(
+    WalletListItem(
         leadingContent = if (state.selecting) ({
-            Checkbox(checked = note.id in state.selected, onCheckedChange = { actions.tap(note) }, enabled = selectable && !state.busy)
+            WalletCheckbox(checked = note.id in state.selected, onCheckedChange = { actions.tap(note) }, enabled = selectable && !state.busy)
         }) else null,
         headlineContent = { Text(formatAmount(note.amountMsat), style = MaterialTheme.typography.bodyLarge) },
         supportingContent = status?.let { (text, problem) ->
@@ -285,7 +286,7 @@ private fun noteStatus(note: Note): Pair<String, Boolean>? = when {
 @Composable
 private fun SharedHeader() {
     HorizontalDivider()
-    ListItem(
+    WalletListItem(
         headlineContent = { Text(stringResource(R.string.notes_shared_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() }) },
         supportingContent = { Text(stringResource(R.string.notes_shared_hint)) },
     )
@@ -293,7 +294,7 @@ private fun SharedHeader() {
 
 @Composable
 private fun SharedRow(note: Note, onOpen: (String) -> Unit) {
-    ListItem(
+    WalletListItem(
         headlineContent = { Text(formatAmount(note.amountMsat)) },
         supportingContent = { Text(note.host) },
         trailingContent = { Text(recentTime(note.updatedAtMillis), style = MaterialTheme.typography.bodySmall) },
@@ -314,10 +315,10 @@ private fun SelectionBar(state: NotesState, actions: NotesActions, modifier: Mod
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = actions.combine, enabled = state.canCombine) { Text(stringResource(R.string.notes_combine)) }
-                TextButton(onClick = actions.openMove, enabled = state.canAct) { Text(stringResource(R.string.notes_move)) }
-                TextButton(onClick = actions.recheckSelected, enabled = state.canAct) { Text(stringResource(R.string.notes_recheck)) }
-                TextButton(onClick = actions.stopSelecting, enabled = !state.busy) { Text(stringResource(R.string.notes_cancel)) }
+                WalletButton(kind = ButtonKind.Text, onClick = actions.combine, enabled = state.canCombine) { Text(stringResource(R.string.notes_combine)) }
+                WalletButton(kind = ButtonKind.Text, onClick = actions.openMove, enabled = state.canAct) { Text(stringResource(R.string.notes_move)) }
+                WalletButton(kind = ButtonKind.Text, onClick = actions.recheckSelected, enabled = state.canAct) { Text(stringResource(R.string.notes_recheck)) }
+                WalletButton(kind = ButtonKind.Text, onClick = actions.stopSelecting, enabled = !state.busy) { Text(stringResource(R.string.notes_cancel)) }
             }
         }
     }
@@ -332,7 +333,7 @@ internal fun Outcome(outcome: NotesOutcome, onDismiss: () -> Unit) {
             color = if (outcome.isProblem) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f).padding(vertical = 12.dp),
         )
-        TextButton(onClick = onDismiss) { Text(stringResource(R.string.notes_ok)) }
+        WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.notes_ok)) }
     }
 }
 

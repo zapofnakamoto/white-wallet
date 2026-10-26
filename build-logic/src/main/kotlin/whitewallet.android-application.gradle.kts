@@ -44,6 +44,9 @@ android {
         buildConfigField("int", "MAX_ADDRESSES", brand.getProperty("maxAddresses", "1").trim())
         buildConfigField("String", "NOTE_STRATEGIES", "\"${brand.getProperty("noteStrategies", "single,manual").trim()}\"")
         buildConfigField("String", "DEFAULT_NOTE_STRATEGY", "\"${brand.getProperty("defaultNoteStrategy", "single").trim()}\"")
+        val appearance = brand.getProperty("appearance", "system").trim()
+        check(appearance in setOf("system", "light", "dark")) { "brand.properties: appearance must be system, light or dark, not '$appearance'" }
+        buildConfigField("String", "APPEARANCE", "\"$appearance\"")
     }
     if (releaseStoreFile != null) {
         signingConfigs.create("release") {

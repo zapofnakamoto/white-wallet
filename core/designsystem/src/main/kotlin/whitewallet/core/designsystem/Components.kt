@@ -2,36 +2,33 @@ package whitewallet.core.designsystem
 
 import androidx.compose.ui.semantics.heading
 import android.graphics.Bitmap
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.zxing.BarcodeFormat
+import whitewallet.brand.ui.AmountParams
+import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.brand.ui.QrCodeParams
+import whitewallet.brand.ui.TopBarParams
+import whitewallet.brand.ui.walletSpacing
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 
@@ -49,11 +46,9 @@ fun ChevronIcon() {
 fun AmountText(msat: Long, modifier: Modifier = Modifier, hidden: Boolean = false, onToggleHidden: (() -> Unit)? = null) {
     val spoken = if (hidden) stringResource(R.string.amount_hidden_description) else spokenAmount(msat)
     val toggleLabel = stringResource(if (hidden) R.string.amount_show else R.string.amount_hide)
-    Text(
-        if (hidden) stringResource(R.string.amount_hidden) else formatAmount(msat),
-        style = MaterialTheme.typography.displaySmall,
-        textAlign = TextAlign.Center,
-        modifier = modifier
+    LocalBrandDesign.current.components.Amount(
+        AmountParams(if (hidden) stringResource(R.string.amount_hidden) else formatAmount(msat)),
+        modifier
             .then(if (onToggleHidden != null) Modifier.clickable(onClickLabel = toggleLabel, onClick = onToggleHidden) else Modifier)
             .semantics { contentDescription = spoken },
     )
@@ -62,39 +57,44 @@ fun AmountText(msat: Long, modifier: Modifier = Modifier, hidden: Boolean = fals
 /** A full-width primary action that shows a spinner while [busy]. */
 @Composable
 fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, busy: Boolean = false) {
-    Button(onClick = onClick, enabled = enabled && !busy, modifier = modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-        if (busy) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) else Text(text)
-    }
+    WalletButton(onClick, modifier.fillMaxWidth().heightIn(min = 52.dp), enabled = enabled, busy = busy) { Text(text) }
 }
 
 /** Top bar with an optional back button. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletTopBar(title: String, onBack: (() -> Unit)? = null, actions: @Composable () -> Unit = {}) {
-    TopAppBar(
+    WalletTopBar(
         // A heading, so screen reader users can jump to it.
         title = { Text(title, modifier = Modifier.semantics { heading() }) },
-        navigationIcon = {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back))
+        onBack = onBack,
+        actions = actions,
+    )
+}
+
+/** Top bar with a title of its own (such as a brand's wordmark) and an optional back button. */
+@Composable
+fun WalletTopBar(title: @Composable () -> Unit, onBack: (() -> Unit)?, actions: @Composable () -> Unit) {
+    LocalBrandDesign.current.components.TopBar(
+        TopBarParams(
+            title = title,
+            navigationIcon = {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back))
+                    }
                 }
-            }
-        },
-        actions = { actions() },
+            },
+            actions = { actions() },
+        ),
+        Modifier,
     )
 }
 
 /** Renders [content] as a QR code. Pass a [description] when [content] is a secret, so screen readers never read it out. */
 @Composable
 fun QrCode(content: String, modifier: Modifier = Modifier, size: Dp = 260.dp, description: String = content) {
-    val bitmap = remember(content) { qrBitmap(content) }
-    Image(
-        bitmap = bitmap.asImageBitmap(),
-        contentDescription = null,
-        filterQuality = FilterQuality.None,
-        modifier = modifier.size(size).semantics { contentDescription = description },
-    )
+    val bitmap = remember(content) { qrBitmap(content).asImageBitmap() }
+    LocalBrandDesign.current.components.QrCode(QrCodeParams(bitmap, size), modifier.semantics { contentDescription = description })
 }
 
 private fun qrBitmap(content: String): Bitmap {
@@ -109,9 +109,10 @@ private fun qrBitmap(content: String): Bitmap {
 /** Centered column used by the simple screens. */
 @Composable
 fun ScreenColumn(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val spacing = MaterialTheme.walletSpacing
     Column(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = spacing.screen, vertical = spacing.gap),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(spacing.gap),
     ) { content() }
 }

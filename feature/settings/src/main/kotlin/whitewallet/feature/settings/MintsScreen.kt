@@ -11,12 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,6 +44,11 @@ import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.TrustDefault
 import whitewallet.core.wallet.Wallet
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletSwitch
+import whitewallet.core.designsystem.WalletTextField
 
 data class MintsState(
     val mints: List<MintInfo> = emptyList(),
@@ -126,7 +127,7 @@ fun MintsScreen(
 @Composable
 private fun MintRow(mint: MintInfo, onOpen: (String) -> Unit, onTrusted: (MintInfo, Boolean) -> Unit) {
     val hint = MaterialTheme.typography.bodySmall
-    ListItem(
+    WalletListItem(
         headlineContent = { Text(mint.host) },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -153,7 +154,7 @@ private fun MintRow(mint: MintInfo, onOpen: (String) -> Unit, onTrusted: (MintIn
             }
         },
         trailingContent = {
-            Switch(
+            WalletSwitch(
                 checked = mint.trusted,
                 onCheckedChange = { onTrusted(mint, it) },
                 enabled = mint.pubkey != null,
@@ -170,7 +171,7 @@ private fun AddMint(state: MintsState, onHost: (String) -> Unit, onAdd: () -> Un
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.mints_add_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
+            WalletTextField(
                 value = state.newHost,
                 onValueChange = onHost,
                 label = { Text(stringResource(R.string.mints_add_field)) },
@@ -180,7 +181,7 @@ private fun AddMint(state: MintsState, onHost: (String) -> Unit, onAdd: () -> Un
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false, imeAction = ImeAction.Done),
                 modifier = Modifier.weight(1f),
             )
-            OutlinedButton(onClick = onAdd, enabled = state.newHost.isNotBlank() && !state.adding) { Text(stringResource(R.string.mints_add)) }
+            WalletButton(kind = ButtonKind.Secondary, onClick = onAdd, enabled = state.newHost.isNotBlank() && !state.adding) { Text(stringResource(R.string.mints_add)) }
         }
         state.problem?.let {
             Text(

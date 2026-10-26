@@ -1,8 +1,12 @@
 package whitewallet.feature.claim
 
+import whitewallet.core.designsystem.WalletStatusScope
+import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ProblemKind
 import whitewallet.core.scanner.QrScanner
 import androidx.compose.ui.draw.clip
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
@@ -13,12 +17,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,6 +38,10 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletTextField
 
 @Composable
 fun ClaimRoute(onBack: () -> Unit, viewModel: ClaimViewModel = hiltViewModel()) {
@@ -63,6 +68,12 @@ fun ClaimScreen(
             when (val result = state.result) {
                 null -> Unit
                 else -> {
+                    val status = when (result) {
+                        is ClaimResult.Claimed -> WalletStatus.PaymentReceived(result.amountMsat)
+                        is ClaimResult.Failed -> WalletStatus.Problem(ProblemKind.Other)
+                        ClaimResult.Pending -> WalletStatus.None
+                    }
+                    WalletStatusScope(status) { BrandDecoration(Anchor.ClaimResult) }
                     ResultMessage(result)
                     PrimaryButton(stringResource(R.string.claim_finish), onBack)
                     return@ScreenColumn
@@ -71,10 +82,10 @@ fun ClaimScreen(
             if (state.scanning) {
                 Text(stringResource(R.string.claim_scan_hint), textAlign = TextAlign.Center)
                 QrScanner(onScanned = onScanned, modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.large))
-                TextButton(onClick = onStopScan) { Text(stringResource(R.string.claim_scan_cancel)) }
+                WalletButton(kind = ButtonKind.Text, onClick = onStopScan) { Text(stringResource(R.string.claim_scan_cancel)) }
                 return@ScreenColumn
             }
-            OutlinedTextField(
+            WalletTextField(
                 value = state.input,
                 onValueChange = onInputChange,
                 label = { Text(stringResource(R.string.claim_input)) },
@@ -83,8 +94,9 @@ fun ClaimScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = onStartScan, enabled = !state.busy, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.claim_scan)) }
-                OutlinedButton(
+                WalletButton(kind = ButtonKind.Secondary, onClick = onStartScan, enabled = !state.busy, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.claim_scan)) }
+                WalletButton(
+                    kind = ButtonKind.Secondary,
                     onClick = {
                         scope.launch {
                             val text = clipboard.getClipEntry()?.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text?.toString()
@@ -112,7 +124,7 @@ fun ClaimScreen(
 
 @Composable
 private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
-    Card(Modifier.fillMaxWidth()) {
+    WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             AmountText(preview.amountMsat, Modifier.fillMaxWidth())
             // Without showMints, only what needs the user: an amount that can't be verified, and the bearer warning.

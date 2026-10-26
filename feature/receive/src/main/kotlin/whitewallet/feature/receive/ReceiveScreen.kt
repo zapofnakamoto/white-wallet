@@ -12,11 +12,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +32,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import whitewallet.core.designsystem.WalletStatusScope
+import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ProblemKind
+import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.ScreenColumn
@@ -42,6 +45,9 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.InvoiceStatus
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletTextField
 
 @Composable
 fun ReceiveRoute(onBack: () -> Unit, onClaim: () -> Unit, viewModel: ReceiveViewModel = hiltViewModel()) {
@@ -65,16 +71,31 @@ fun ReceiveScreen(state: ReceiveState, onBack: () -> Unit, onClaim: () -> Unit, 
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.receive_title), onBack) }) { padding ->
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             val shown = state.invoice
+            WalletStatusScope(receiveStatus(state)) { BrandDecoration(Anchor.ReceiveHeader) }
             when {
                 shown != null -> InvoiceContent(shown, onBack, invoice.onNewInvoice)
                 state.showAmountForm -> AmountForm(state, invoice)
                 state.address != null -> AddressContent(state.address, invoice.onRequestAmount)
             }
             if (state.receivedMsat > 0) {
-                Text(stringResource(R.string.receive_got, formatAmount(state.receivedMsat)), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.receive_got, formatAmount(state.receivedMsat)), color = MaterialTheme.walletColors.success, style = MaterialTheme.typography.titleMedium)
             }
-            if (shown == null) TextButton(onClick = onClaim) { Text(stringResource(R.string.receive_claim)) }
+            if (shown == null) WalletButton(kind = ButtonKind.Text, onClick = onClaim) { Text(stringResource(R.string.receive_claim)) }
         }
+    }
+}
+
+/** What the screen is about, for the brand's design: waiting, or what arrived. */
+private fun receiveStatus(state: ReceiveState): WalletStatus {
+    val invoice = state.invoice?.status
+    return when {
+        invoice is InvoiceStatus.Paid -> WalletStatus.PaymentReceived(invoice.receivedMsat)
+        state.receivedMsat > 0 -> WalletStatus.PaymentReceived(state.receivedMsat)
+        invoice == InvoiceStatus.Expired -> WalletStatus.Problem(ProblemKind.Other)
+        state.problem == InvoiceProblem.Unreachable -> WalletStatus.Problem(ProblemKind.Offline)
+        state.problem != null -> WalletStatus.Problem(ProblemKind.Other)
+        state.invoice != null || (state.address != null && !state.showAmountForm) -> WalletStatus.AwaitingPayment
+        else -> WalletStatus.None
     }
 }
 
@@ -84,13 +105,13 @@ private fun AddressContent(address: String, onRequestAmount: () -> Unit) {
     Text(address, style = MaterialTheme.typography.titleMedium)
     Text(stringResource(R.string.receive_hint), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
     CopyShare(address, stringResource(R.string.receive_copied))
-    TextButton(onClick = onRequestAmount) { Text(stringResource(R.string.receive_request_amount)) }
+    WalletButton(kind = ButtonKind.Text, onClick = onRequestAmount) { Text(stringResource(R.string.receive_request_amount)) }
 }
 
 @Composable
 private fun AmountForm(state: ReceiveState, actions: InvoiceActions) {
     Text(stringResource(R.string.receive_invoice_intro), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
-    OutlinedTextField(
+    WalletTextField(
         value = state.amountText,
         onValueChange = actions.onAmountChange,
         label = { Text(amountInputLabel()) },
@@ -116,7 +137,7 @@ private fun InvoiceContent(shown: ShownInvoice, onDone: () -> Unit, onNewInvoice
     val request = shown.request
     when (val status = shown.status) {
         is InvoiceStatus.Paid -> {
-            Text(stringResource(R.string.receive_got, formatAmount(status.receivedMsat)), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.receive_got, formatAmount(status.receivedMsat)), color = MaterialTheme.walletColors.success, style = MaterialTheme.typography.headlineSmall)
             PrimaryButton(stringResource(R.string.receive_done), onDone)
         }
         InvoiceStatus.Expired -> {
@@ -135,7 +156,7 @@ private fun InvoiceContent(shown: ShownInvoice, onDone: () -> Unit, onNewInvoice
             }
             Text(stringResource(R.string.receive_invoice_waiting), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             CopyShare(request.invoice, stringResource(R.string.receive_invoice_copied))
-            TextButton(onClick = onNewInvoice) { Text(stringResource(R.string.receive_invoice_other_amount)) }
+            WalletButton(kind = ButtonKind.Text, onClick = onNewInvoice) { Text(stringResource(R.string.receive_invoice_other_amount)) }
         }
     }
 }
@@ -147,11 +168,11 @@ private fun CopyShare(text: String, copiedMessage: String) {
     val scope = rememberCoroutineScope()
     var copied by remember(text) { mutableStateOf(false) }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick = {
+        WalletButton(kind = ButtonKind.Secondary, onClick = {
             scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("lightning", text))) }
             copied = true
         }) { Text(stringResource(R.string.receive_copy)) }
-        OutlinedButton(onClick = {
+        WalletButton(kind = ButtonKind.Secondary, onClick = {
             val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
             context.startActivity(Intent.createChooser(send, null))
         }) { Text(stringResource(R.string.receive_share)) }

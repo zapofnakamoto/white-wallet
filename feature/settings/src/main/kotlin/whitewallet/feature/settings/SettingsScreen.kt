@@ -1,5 +1,6 @@
 package whitewallet.feature.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,9 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +33,8 @@ import whitewallet.core.designsystem.LocalAmountUnit
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.wallet.AddressStatus
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletTextField
 
 @Composable
 fun SettingsRoute(
@@ -41,11 +42,15 @@ fun SettingsRoute(
     developerPages: List<DeveloperPage>,
     onBack: () -> Unit,
     onNavigate: (SearchDestination) -> Unit,
+    brandPages: List<BrandPage> = emptyList(),
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SettingsScreen(state, versionName, developerPages, onBack, onNavigate)
+    SettingsScreen(state, versionName, developerPages, onBack, brandPages, onNavigate)
 }
+
+/** A page of the brand's own, listed in Settings above About (see docs/WHITE_LABEL.md, "Design"). */
+data class BrandPage(@StringRes val title: Int, val route: String)
 
 /**
  * The settings hub: a short list of pages, each with a live one-line summary, and a search over every setting
@@ -57,6 +62,7 @@ fun SettingsScreen(
     versionName: String,
     developerPages: List<DeveloperPage>,
     onBack: () -> Unit,
+    brandPages: List<BrandPage> = emptyList(),
     onNavigate: (SearchDestination) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -64,7 +70,7 @@ fun SettingsScreen(
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             if (state.accountName != null && !state.backupVerified) BackupWarning { open(SettingsTarget.Backup) }
-            OutlinedTextField(
+            WalletTextField(
                 value = query,
                 onValueChange = { query = it },
                 placeholder = { Text(stringResource(R.string.settings_search)) },
@@ -80,16 +86,16 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
             if (query.isBlank()) {
-                Hub(state, versionName, open)
+                Hub(state, versionName, open, brandPages) { onNavigate(SearchDestination.Route(it)) }
             } else {
-                SearchResults(query, state.developerMode, developerPages, state.hidden, onNavigate)
+                SearchResults(query, state.developerMode, developerPages, state.hidden, onNavigate, brandPages)
             }
         }
     }
 }
 
 @Composable
-private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget) -> Unit) {
+private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget) -> Unit, brandPages: List<BrandPage>, openRoute: (String) -> Unit) {
     // Only links: the account's own page first, the app-wide pages below (Design Guide: multiple wallets).
     state.accountName?.let { name ->
         val (status, color) = addressSummary(state.addressStatus)
@@ -120,6 +126,13 @@ private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget
             stringResource(R.string.settings_developer),
             stringResource(if (state.developerMode) R.string.settings_on else R.string.settings_off),
         ) { open(SettingsTarget.Developer) }
+    }
+    brandPages.forEach { page ->
+        WalletListItem(
+            headlineContent = { Text(stringResource(page.title)) },
+            trailingContent = { ChevronIcon() },
+            modifier = Modifier.clickable { openRoute(page.route) },
+        )
     }
     SummaryRow(stringResource(R.string.about_title), stringResource(R.string.about_version, versionName)) { open(SettingsTarget.About) }
 }
@@ -195,9 +208,10 @@ private fun SearchResults(
     developerPages: List<DeveloperPage>,
     hidden: Set<SettingsTarget>,
     onNavigate: (SearchDestination) -> Unit,
+    brandPages: List<BrandPage>,
 ) {
     val entries = SettingsSearch.entries.filterNot { (it.destination as? SearchDestination.Page)?.target in hidden }
-    val items = (entries + SettingsSearch.developerEntries(developerPages)).map { entry ->
+    val items = (entries + SettingsSearch.developerEntries(developerPages) + SettingsSearch.brandEntries(brandPages)).map { entry ->
         SearchItem(
             title = stringResource(entry.title),
             location = stringResource(locationOf(entry.destination)),
@@ -215,7 +229,7 @@ private fun SearchResults(
         )
     }
     results.forEach { item ->
-        ListItem(
+        WalletListItem(
             headlineContent = { Text(item.title) },
             supportingContent = { Text(item.location) },
             trailingContent = { ChevronIcon() },
@@ -225,7 +239,8 @@ private fun SearchResults(
 }
 
 private fun locationOf(destination: SearchDestination): Int = when (destination) {
-    is SearchDestination.Route -> R.string.developer_title
+    // Developer pages live under developer/; anything else (a brand's page) is listed on the settings page itself.
+    is SearchDestination.Route -> if (destination.route.startsWith("developer/")) R.string.developer_title else R.string.settings_title
     is SearchDestination.Page -> when (destination.target) {
         SettingsTarget.Account -> R.string.settings_account
         SettingsTarget.Backup -> R.string.settings_recovery_phrase
@@ -253,7 +268,7 @@ private fun SummaryRow(
     extraColor: Color = Color.Unspecified,
     onClick: () -> Unit,
 ) {
-    ListItem(
+    WalletListItem(
         headlineContent = { Text(title, color = titleColor) },
         supportingContent = {
             Column {
