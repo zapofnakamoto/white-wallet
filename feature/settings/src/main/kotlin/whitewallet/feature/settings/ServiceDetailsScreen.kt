@@ -1,6 +1,8 @@
 package whitewallet.feature.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +19,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -73,6 +78,16 @@ class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, sa
     }
 
     fun toggleWatchOnly() = _state.update { it.copy(showWatchOnly = !it.showWatchOnly) }
+
+    /** Keeps using the service with the [key] it now presents; if it presents yet another, the refresh shows that. */
+    fun acceptKey(key: String) {
+        val host = _state.value.details?.host ?: return
+        _state.update { it.copy(loading = true) }
+        viewModelScope.launch {
+            wallet.acceptMintKey(host, key)
+            refresh()
+        }
+    }
 }
 
 @Composable
@@ -82,12 +97,14 @@ fun ServiceDetailsRoute(onBack: () -> Unit, viewModel: ServiceDetailsViewModel =
     ServiceDetailsScreen(
         state, onBack, viewModel::refresh, viewModel::toggleWatchOnly,
         onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key) },
+        onAcceptKey = viewModel::acceptKey,
     )
 }
 
 /**
  * One service (brief §6): whether it answers, its description, fees and limits, the signing key pinned on first
- * contact (and a warning if it changed), the account's money there, its website, and the account's watch-only key.
+ * contact (and, if it changed, both keys and a way to use the new one), the account's money there, its website, and
+ * the account's watch-only key.
  */
 @Composable
 fun ServiceDetailsScreen(
@@ -96,6 +113,7 @@ fun ServiceDetailsScreen(
     onRefresh: () -> Unit,
     onToggleWatchOnly: () -> Unit,
     onCopyWatchOnly: (String) -> Unit,
+    onAcceptKey: (String) -> Unit = {},
 ) {
     val details = state.details
     Scaffold(topBar = { WalletTopBar(details?.host ?: stringResource(R.string.service_title), onBack) }) { padding ->
@@ -104,7 +122,9 @@ fun ServiceDetailsScreen(
                 if (state.loading) CircularProgressIndicator(Modifier.padding(24.dp).align(Alignment.CenterHorizontally))
                 return@Column
             }
-            if (details.reachability == ServiceDetails.Reachability.KeyChanged) KeyChangedCard(details.host)
+            if (details.reachability == ServiceDetails.Reachability.KeyChanged) {
+                KeyChangedCard(details.host, details.service?.mintPubkey, details.presentedKey, onAcceptKey.takeUnless { state.loading })
+            }
             ListItem(
                 headlineContent = { Text(stringResource(reachabilityText(details.reachability))) },
                 supportingContent = details.description?.let { { Text(it) } },
@@ -171,13 +191,37 @@ fun ServiceDetailsScreen(
     }
 }
 
+/** The warning for a changed signing key: both keys, and (with [onAccept]) using the new one after a confirmation. */
 @Composable
-private fun KeyChangedCard(host: String) {
+private fun KeyChangedCard(host: String, remembered: String?, presented: String?, onAccept: ((String) -> Unit)?) {
+    var confirming by remember { mutableStateOf(false) }
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
         modifier = Modifier.fillMaxWidth().padding(16.dp),
     ) {
-        Text(stringResource(R.string.service_key_changed, host), modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+        Column(Modifier.padding(16.dp)) {
+            val color = MaterialTheme.colorScheme.onErrorContainer
+            Text(stringResource(R.string.service_key_changed, host), color = color)
+            for ((label, key) in listOf(R.string.service_key_remembered to remembered, R.string.service_key_new to presented)) {
+                if (key == null) continue
+                Text(stringResource(label), style = MaterialTheme.typography.labelMedium, color = color, modifier = Modifier.padding(top = 12.dp))
+                Text(key.chunked(4).joinToString(" "), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, color = color)
+            }
+            if (presented != null && onAccept != null) {
+                Button(onClick = { confirming = true }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.service_key_accept)) }
+            }
+        }
+    }
+    if (confirming && presented != null && onAccept != null) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text(stringResource(R.string.service_key_accept_title)) },
+            text = { Text(stringResource(R.string.service_key_accept_body, host)) },
+            confirmButton = {
+                TextButton(onClick = { confirming = false; onAccept(presented) }) { Text(stringResource(R.string.service_key_accept_confirm)) }
+            },
+            dismissButton = { TextButton(onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) } },
+        )
     }
 }
 

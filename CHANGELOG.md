@@ -5,6 +5,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Added
+
+- A mint that presents a different signing key can be used again: its details page shows the remembered and the new
+  key, and after a warning the new key takes the old one's place.
+
 ### Fixed
 
 - Nothing is paid, split, combined or renewed through a mint that presents a different signing key than the one

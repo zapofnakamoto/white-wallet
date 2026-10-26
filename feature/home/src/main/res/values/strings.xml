@@ -74,6 +74,6 @@
     <string name="move_split_services">Your funds are held in different places. Move a smaller amount, or everything.</string>
     <string name="move_failed">Refused: %1$s</string>
     <string name="home_key_changed_title">%1$s changed its signing key</string>
-    <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Check with its operator before trusting it again.</string>
+    <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it.</string>
     <string name="home_key_changed_action">Details</string>
 </resources>

@@ -72,6 +72,6 @@
     <string name="move_split_services">Dein Guthaben liegt an verschiedenen Orten. Verschiebe einen kleineren Betrag oder alles.</string>
     <string name="move_failed">Abgelehnt: %1$s</string>
     <string name="home_key_changed_title">%1$s hat seinen Signaturschlüssel geändert</string>
-    <string name="home_key_changed_body">Deine Wallet arbeitet nicht mehr damit, es wird also nichts dorthin gesendet. Deine Scheine dort sind unverändert. Frag beim Betreiber nach, bevor du ihm wieder vertraust.</string>
+    <string name="home_key_changed_body">Deine Wallet arbeitet nicht mehr damit, es wird also nichts dorthin gesendet. Deine Scheine dort sind unverändert. Öffne die Details, um den neuen Schlüssel zu sehen und zu entscheiden, ob du ihn verwendest.</string>
     <string name="home_key_changed_action">Details</string>
 </resources>

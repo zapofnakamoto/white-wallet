@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,6 +60,27 @@ class SettingsScreensTest {
         }
         compose.onNodeWithText("Signing key changed").assertExists()
         compose.onNodeWithText("now signs with a different key", substring = true).assertExists()
+    }
+
+    @Test
+    fun aChangedSigningKeyIsUsedOnlyAfterTheUserConfirms() {
+        val presented = "03" + "cd".repeat(32)
+        val accepted = mutableListOf<String>()
+        compose.setContent {
+            ServiceDetailsScreen(
+                ServiceDetailsState(details(ServiceDetails.Reachability.KeyChanged).copy(presentedKey = presented), loading = false),
+                onBack = {}, onRefresh = {}, onToggleWatchOnly = {}, onCopyWatchOnly = {}, onAcceptKey = { accepted += it },
+            )
+        }
+        compose.onNodeWithText("Remembered key").assertExists()
+        compose.onNodeWithText(presented.chunked(4).joinToString(" ")).assertExists()
+        compose.onNodeWithText("Use the new key").performClick()
+        compose.onNodeWithText("Only do this if you know why mint.example changed its key", substring = true).assertExists()
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals(emptyList<String>(), accepted)
+        compose.onNodeWithText("Use the new key").performClick()
+        compose.onNodeWithText("Use it").performClick()
+        assertEquals(listOf(presented), accepted)
     }
 
     @Test

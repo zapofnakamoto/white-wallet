@@ -18,6 +18,8 @@ data class ServiceDetails(
     val balanceMsat: Long,
     val noteCount: Int,
     val isHome: Boolean,
+    /** The signing key the service presents now, when it is not the pinned one ([Reachability.KeyChanged]). */
+    val presentedKey: String? = null,
 ) {
     enum class Reachability {
         Reachable,
@@ -26,7 +28,10 @@ data class ServiceDetails(
         /** Answers, but isn't a usable LNURLcash service (any more). */
         Invalid,
 
-        /** Presents a different signing key than the one pinned on first contact: operations are blocked. */
+        /**
+         * Presents a different signing key than the one pinned on first contact: operations are blocked until the user
+         * accepts the new key ([Wallet.acceptMintKey]).
+         */
         KeyChanged,
     }
 }
@@ -37,11 +42,12 @@ internal class ServiceInspector(private val wallet: Wallet) {
         val h = Onboarding.normalizeHost(host)
             ?: return ServiceDetails(host, null, ServiceDetails.Reachability.Invalid, null, 0, 0, isHome = false)
         var description: String? = null
+        var presented: String? = null
         val reachability = try {
             val pay = wallet.client.servicePayRequest(h)
             description = pay.pay.metadataEntries.firstOrNull { it.first == "text/plain" && !it.second.startsWith("Mint fees:") }?.second
             val pinned = wallet.store.service(h)?.mintPubkey
-            val presented = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey?.toHex() }.getOrNull()
+            presented = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey?.toHex() }.getOrNull()
             if (pinned != null && presented != null && pinned != presented) {
                 ServiceDetails.Reachability.KeyChanged
             } else {
@@ -62,6 +68,7 @@ internal class ServiceInspector(private val wallet: Wallet) {
             balanceMsat = notes.sumOf { it.amountMsat },
             noteCount = notes.size,
             isHome = wallet.store.account(accountId)?.host == h,
+            presentedKey = presented.takeIf { reachability == ServiceDetails.Reachability.KeyChanged },
         )
     }
 }

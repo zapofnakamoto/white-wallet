@@ -86,6 +86,58 @@ class RegtestMintTest {
         assertEquals(4_999_000, alice.balance())
     }
 
+    @Test
+    fun `the user can accept a changed signing key, and the mint is used again for sending and receiving`() = runBlocking<Unit> {
+        var changed = false
+        val alice = Regtest.phone(client = changedKey { changed })
+        alice.fund(5000)
+        val note = alice.notes().single()
+        changed = true
+
+        val details = alice.wallet.serviceDetails(HOST)
+        assertEquals(ServiceDetails.Reachability.KeyChanged, details.reachability)
+        assertEquals(OTHER_KEY, details.presentedKey, "the key the user is shown, and accepts")
+        assertTrue(details.service?.mintPubkey != OTHER_KEY)
+        assertEquals(false, alice.wallet.acceptMintKey(HOST, "03" + "11".repeat(32)), "not a key the mint presents")
+        assertEquals(ServiceDetails.Reachability.KeyChanged, alice.wallet.serviceDetails(HOST).reachability)
+
+        assertTrue(alice.wallet.acceptMintKey(HOST, OTHER_KEY))
+        val after = alice.wallet.serviceDetails(HOST)
+        assertEquals(ServiceDetails.Reachability.Reachable, after.reachability)
+        assertEquals(OTHER_KEY, after.service?.mintPubkey)
+        assertEquals(null, after.presentedKey)
+        assertEquals(setOf(HOST), alice.wallet.trustedHosts.first(), "the home mint stays trusted with its new key")
+
+        // Sending, renewing and receiving work again.
+        assertIs<RotateResult.Rotated>(alice.wallet.rotateNote(note.id))
+        val invoice = Regtest.invoice(1000)
+        assertIs<PayResult.Paid>(alice.wallet.pay(assertIs<PayPreview.Ready>(alice.wallet.previewPayment(invoice)), 1_000_000))
+        assertTrue(Regtest.settled(invoice))
+        Regtest.pay(alice.address, 2000)
+        assertEquals(1_999_000, alice.wallet.refresh().receivedMsat)
+    }
+
+    @Test
+    fun `a trusted mint stays trusted once its new signing key is accepted`() = runBlocking<Unit> {
+        var changed = false
+        val alice = Regtest.phone(client = changedKey { changed })
+        assertIs<ConnectResult.Connected>(alice.wallet.addMint(HOST2))
+        alice.wallet.setMintTrusted(HOST2, true)
+        changed = true
+        assertEquals(ServiceDetails.Reachability.KeyChanged, alice.wallet.serviceDetails(HOST2).reachability)
+        assertTrue(alice.wallet.acceptMintKey(HOST2, OTHER_KEY))
+        assertTrue(HOST2 in alice.wallet.trustedHosts.first())
+        assertEquals(true, assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(1000, second = true))).trusted)
+    }
+
+    /** A client to which, while [changed], every mint presents [OTHER_KEY] as its signing key. */
+    private fun changedKey(changed: () -> Boolean) = Regtest.client { chain ->
+        val response = chain.proceed(chain.request())
+        if (!changed()) return@client response
+        val body = response.body.string().replace(Regex("\"mintPubkey\":\\s*\"[0-9a-fA-F]{66}\""), "\"mintPubkey\":\"$OTHER_KEY\"")
+        response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
+    }
+
     private companion object {
         const val OTHER_KEY = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
     }

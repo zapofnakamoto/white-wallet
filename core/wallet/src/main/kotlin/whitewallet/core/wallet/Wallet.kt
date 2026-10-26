@@ -362,6 +362,25 @@ class Wallet(
         trust.setTrusted(MintKey(host, key), trusted)
     }
 
+    /**
+     * Keeps using [host] with the signing key [key] it now presents in place of the pinned one, once the user has seen
+     * the change. Only that key: if the mint presents yet another one (or none), nothing changes and false is
+     * returned. A mint the user trusted stays trusted with the new key.
+     */
+    suspend fun acceptMintKey(host: String, key: String): Boolean = lock.withLock {
+        val service = store.service(host) ?: return false
+        val presented = try {
+            client.withdrawDiscovery(host).mintPubkey?.toHex()
+        } catch (e: Exception) {
+            return false
+        }
+        if (presented != key) return false
+        val old = service.mintPubkey
+        store.saveService(service.copy(mintPubkey = key))
+        if (old != null && MintKey(host, old) in trust.trusted.first()) trust.setTrusted(MintKey(host, key), true)
+        true
+    }
+
     /** Connects to a mint the user names (pinning its key), so it can be trusted before any note from it arrives. */
     suspend fun addMint(host: String): ConnectResult = connectService(host)
 

@@ -44,7 +44,7 @@
     <string name="addresses_unregister_unknown">Es ließ sich nicht bestätigen, dass %1$s abgemeldet wurde (%2$s). Prüfe es gleich noch einmal.</string>
     <string name="addresses_primary_changed">%1$s ist jetzt deine Hauptadresse.</string>
     <string name="service_home_hint">Neue Adressen dieses Kontos entstehen hier.</string>
-    <string name="service_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis das geklärt ist, sendet und empfängt deine Wallet dort nichts. Deine Scheine dort sind unverändert. Frag den Betreiber, was passiert ist, bevor du ihm wieder vertraust.</string>
+    <string name="service_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Scheine dort sind unverändert.</string>
     <string name="settings_home_mint_hint">%1$s · hier liegen deine Hauptadresse und neue Adressen</string>
     <string name="keys_home_mint">%1$s (Haupt)</string>
     <string name="settings_notes">Schein-Einstellungen</string>
@@ -259,6 +259,12 @@
     <string name="service_invalid">Antwortet, ist aber kein nutzbarer Dienst</string>
     <string name="service_key_changed_short">Signaturschlüssel geändert</string>
     <string name="service_check_again">Erneut prüfen</string>
+    <string name="service_key_remembered">Gemerkter Schlüssel</string>
+    <string name="service_key_new">Neuer Schlüssel</string>
+    <string name="service_key_accept">Neuen Schlüssel verwenden</string>
+    <string name="service_key_accept_title">Neuen Schlüssel verwenden?</string>
+    <string name="service_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
+    <string name="service_key_accept_confirm">Verwenden</string>
     <string name="service_your_money">Dein Geld hier</string>
     <plurals name="service_balance">
         <item quantity="one">%1$s in %2$d Schein</item>
@@ -270,7 +276,7 @@
     <string name="service_limits_value">Von %1$s bis %2$s pro Zahlung</string>
     <string name="service_signing_key">Signaturschlüssel</string>
     <string name="service_signing_key_unknown">Nicht veröffentlicht</string>
-    <string name="service_signing_key_hint">Beim ersten Kontakt gemerkt. Ändert er sich jemals, hält deine Wallet an und warnt dich.</string>
+    <string name="service_signing_key_hint">Beim ersten Kontakt gemerkt. Ändert er sich jemals, hält deine Wallet an und fragt dich.</string>
     <string name="service_website">Website</string>
     <string name="service_open">Öffnen</string>
     <string name="service_watch_only">Beobachtungsschlüssel</string>

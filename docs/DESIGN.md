@@ -156,7 +156,8 @@ policies. A restore is the LUD-26 recovery scan over all three purposes.
   passphrase, itself Keystore-encrypted. Note secrets are re-derived from the seed when needed, never stored.
 - Seeds and spend secrets are never logged.
 - No analytics, no telemetry. Network traffic goes only to the mints and payment destinations the user chooses.
-- A mint's signing key is pinned on first contact; if it changes, every operation with that mint stops.
+- A mint's signing key is pinned on first contact; if it changes, every operation with that mint stops until the user,
+  shown both keys and warned, accepts the new one on the mint's details page (a trusted mint stays trusted).
 - Screens with the recovery phrase or a note link block screenshots (`FLAG_SECURE`). Copied secrets are marked
   sensitive and cleared from the clipboard after 60 seconds.
 - `allowBackup="false"`: the recovery phrase is the backup.
