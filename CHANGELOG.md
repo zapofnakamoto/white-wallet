@@ -17,7 +17,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Moving money between mints, shown before it happens: a summary per mint of what arrives and the fee, or why it
   stays; the button names the amount. When the home mint changes, the money on other mints can go along: an account
   that collects at its home mint moves what its fee cap allows; one that doesn't chooses ("Change home mint" alone,
-  or "Change and move", with a checkbox per mint). A mint's page also offers "Move…" for its money, to any known mint.
+  or "Change and move", with a checkbox per mint). A mint's page also offers "Move…" for its money, to any known mint; while the account collects at its home
+  mint, only to the home (and not from it).
   Afterwards a result says per mint what arrived or why it didn't move, with "Try again". `Wallet.previewMove`,
   `Wallet.moveMoney`.
 - Two new brand-term strings for it: `service_change_home`, `service_make_home`. Brands with their own word for the

@@ -58,6 +58,8 @@ data class ServiceDetailsState(
     val showWatchOnly: Boolean = false,
     /** The brand lets users change their home mint (`allowServiceChange`): from its page, or to this one. */
     val canChangeHome: Boolean = false,
+    /** The account collects at its home mint: money only moves home, so the home's page offers no move. */
+    val collects: Boolean = false,
 )
 
 @HiltViewModel
@@ -71,6 +73,7 @@ class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, sa
         refresh()
         // After a change of the home mint (see onChangeHome), back here: this page may be the old or the new home.
         viewModelScope.launch { wallet.homeHost.drop(1).collect { refresh() } }
+        viewModelScope.launch { wallet.collectAtHome.collect { c -> _state.update { it.copy(collects = c) } } }
     }
 
     fun refresh() {
@@ -164,7 +167,7 @@ fun ServiceDetailsScreen(
             WalletListItem(
                 headlineContent = { Text(stringResource(R.string.service_your_money)) },
                 supportingContent = { Text(pluralStringResource(R.plurals.service_balance, details.noteCount, formatAmount(details.balanceMsat), details.noteCount)) },
-                trailingContent = (details.balanceMsat > 0).takeIf { it }?.let {
+                trailingContent = (details.balanceMsat > 0 && !(details.isHome && state.collects)).takeIf { it }?.let {
                     { WalletButton(kind = ButtonKind.Text, onClick = { onMoveMoney(details.host) }) { Text(stringResource(R.string.service_move_money)) } }
                 },
             )

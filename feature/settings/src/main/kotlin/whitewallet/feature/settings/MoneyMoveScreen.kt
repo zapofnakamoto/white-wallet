@@ -139,14 +139,17 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
         viewModelScope.launch {
             val home = wallet.homeHost.first()
             val from = host.takeIf { mode == MoneyMoveMode.Move }
+            val collects = wallet.collectAtHome.first()
             // Known mints only, home first (as Settings → Mints lists them); never the one the money or account leaves.
+            // While the account collects, money only moves home: collecting would bring it back from anywhere else.
             val targets = wallet.mints.first().map { it.host }.filter { it != (if (mode == MoneyMoveMode.Move) from else home) }
+                .filter { mode == MoneyMoveMode.ChangeHome || !collects || it == home }
             val preset = host.takeIf { mode == MoneyMoveMode.ChangeHome && it in targets } ?: targets.firstOrNull()
             val profile = wallet.profile.first()
             _state.update {
                 it.copy(
                     mode = mode, from = from, targets = targets, target = preset, withAddress = profile != null,
-                    username = profile?.username.orEmpty(), collects = wallet.collectAtHome.first(),
+                    username = profile?.username.orEmpty(), collects = collects,
                 )
             }
             scheduleCheck(immediately = true)

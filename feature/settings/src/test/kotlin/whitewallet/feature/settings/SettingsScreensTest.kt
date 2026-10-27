@@ -133,4 +133,15 @@ class SettingsScreensTest {
         }
         compose.onNodeWithText("999 ₿ in 1 Schein").assertExists()
     }
+
+    @Test
+    fun whileCollectingTheHomePageOffersNoMove() {
+        var state by mutableStateOf(ServiceDetailsState(details(ServiceDetails.Reachability.Reachable), loading = false, collects = true))
+        compose.setContent { ServiceDetailsScreen(state, {}, {}, {}, {}) }
+        compose.onNodeWithText("Move…").assertDoesNotExist()
+        state = state.copy(collects = false)
+        compose.onNodeWithText("Move…").assertExists()
+        state = state.copy(collects = true, details = state.details!!.copy(host = "other.example", isHome = false))
+        compose.onNodeWithText("Move…").assertExists()
+    }
 }
