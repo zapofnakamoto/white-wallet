@@ -20,3 +20,9 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    "Payment received" with the sum, as if it were one payment (seen with the developer faucet tapped several times).
    Idea: keep the sum, but say how many ("2 payments received, ₿2,000 in total", from `newNotes`); an invoice stays
    one payment.
+4. **Derived keys where the mint is.** Developer options → Derived keys looks like a home-mint view: it offers a chip
+   per mint only once the account has key counters there (`Wallet.keyHosts`), and none while there's just one. The
+   keys belong to an account on a mint, so the view fits on the mint's page under Account → Your mints (account
+   mode, next to the watch-only key): a "Derived keys" row, shown only while developer options are on, opening the
+   view for that mint (a mint without counters yet shows its empty indexes rather than nothing). Then the developer
+   entry can go, or stay as a shortcut to the home mint's.
