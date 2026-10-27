@@ -71,7 +71,7 @@ internal sealed interface MintInvoice {
 }
 
 /**
- * Receiving by invoice, for accounts without (or besides) a Lightning Address: the home mint's minting payRequest
+ * Receiving by invoice, for accounts without (or besides) a Lightning address: the home mint's minting payRequest
  * issues an invoice whose note goes to a fresh wallet key of the account. The key is reserved and the expected note
  * journaled ([OperationType.Mint], no melt) before the invoice is shown; [MintReconciler] picks the note up once
  * paid, records it in History, and drops the entry once the invoice expired unpaid.

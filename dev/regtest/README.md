@@ -6,9 +6,9 @@ A local Bitcoin regtest network with a real LNURLcash mint, for developing the w
 |---|---|
 | `bitcoind` | Bitcoin Core in regtest mode |
 | `mint-lnd` | LND, the mint's funding source |
-| `user-lnd` | LND, "you": pays invoices and Lightning Addresses |
+| `user-lnd` | LND, "you": pays invoices and Lightning addresses |
 | `mint` | The reference mint [`lnurlcash/lnurl-mint`](https://github.com/lnurlcash/lnurl-mint) `0.12.2`, at `http://localhost:8111` |
-| `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between services |
+| `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between mints |
 | `mint3` | A third mint (1 sat base fee) at `http://localhost:8113` whose signing key can change: it runs on `mint-lnd` or `user-lnd`, and signs with that node's identity key. `rotate-mint3` switches the node, keeping its notes |
 | `faucet` | [`faucet.py`](faucet.py) at `http://localhost:8114`: when the app asks, pays an address or invoice from `user-lnd` (or `mint-lnd` for `mint2`'s), like `pay`, or makes an invoice for the app to pay, like `invoice`, on the node that doesn't fund the app's mint |
 
@@ -39,7 +39,7 @@ Sending works the same way: on **Send**, **Developer: pay a regtest invoice of �
 | Command | |
 |---|---|
 | `up` | Start and bootstrap: wallet, 101 blocks, fund `user-lnd`, open the channel, wait for the mint, `adb reverse` |
-| `pay <target> [sats]` | Pay from `user-lnd`: a BOLT-11 invoice (`lnbcrt…`), a Lightning Address (`alice@localhost:8111`, or `@localhost:8112` on mint2) or an LNURL-pay (bech32 or URL). Default 1000 sats. Invoices of `user-lnd` itself (mint2's) are paid from `mint-lnd`, because LND can't pay its own invoices |
+| `pay <target> [sats]` | Pay from `user-lnd`: a BOLT-11 invoice (`lnbcrt…`), a Lightning address (`alice@localhost:8111`, or `@localhost:8112` on mint2) or an LNURL-pay (bech32 or URL). Default 1000 sats. Invoices of `user-lnd` itself (mint2's) are paid from `mint-lnd`, because LND can't pay its own invoices |
 | `note [sats] [--mint2\|--mint3] [--bech32] [--type]` | Mint a bearer note on the local mint, or with `--mint2` or `--mint3` on the second or third one (default 1000 sats; the mint's fee comes off) and print its link, `lnurlw://localhost:8111/w?k1=<secret>&amount=<msat>`, or with `--bech32` the same URL as an uppercase bech32 LNURL (`LNURL1…`, LUD-01), the form that makes the smallest QR codes. Claim it in the app under **Receive → Claim a note**: paste it, or open that screen, tap the input field and run with `--type` to type it in over adb. The secret is the money: anyone holding the link can claim it |
 | `invoice <sats> [memo]` | Create an invoice on `user-lnd` (to test paying out from the wallet) |
 | `mine [n]` | Mine blocks |
@@ -92,5 +92,5 @@ Each `rotate-mint3` switches the mint between the two nodes, so running it again
 ## Troubleshooting
 
 - **Port 8111 in use:** stop whatever uses it, or change the port mapping and `BASE_URL` in `docker-compose.yml` (and `MINT_PORT` in `regtest.sh`).
-- **App says the service can't be reached:** `regtest.sh status`, then `regtest.sh connect`.
+- **App says the mint can't be reached:** `regtest.sh status`, then `regtest.sh connect`.
 - **Anything odd:** `regtest.sh reset && regtest.sh up` starts from scratch. Accounts in the app that used the old mint stop working (their notes lived on the old chain); delete them.

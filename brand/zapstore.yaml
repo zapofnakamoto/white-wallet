@@ -4,13 +4,13 @@
 repository: https://github.com/zapofnakamoto/white-wallet
 release_source: ./app/build/outputs/apk/release/app-release.apk
 name: White Wallet
-summary: Bearer notes on Lightning, with a Lightning Address
+summary: Bearer notes on Lightning, with a Lightning address
 description: |
   A Lightning wallet built on LNURLcash: your money is held as bearer notes on a mint you choose, and your
   recovery phrase stays on your phone.
 
-  - A Lightning Address that receives while you're offline
-  - Pay invoices and Lightning Addresses, or hand out a note as a link
+  - A Lightning address that receives while you're offline
+  - Pay invoices and Lightning addresses, or hand out a note as a link
   - Claim notes from links, QR codes and NFC tags
   - Several accounts, encrypted storage, optional app lock
 tags:

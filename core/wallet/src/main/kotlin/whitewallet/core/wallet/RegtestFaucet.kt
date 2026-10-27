@@ -35,7 +35,7 @@ class RegtestFaucet(
         developer && host != null && home in localDevMints
     }
 
-    /** Pays [target] (a Lightning Address on a local mint, or an invoice) [sats]; returns what arrived. */
+    /** Pays [target] (a Lightning address on a local mint, or an invoice) [sats]; returns what arrived. */
     suspend fun pay(target: String, sats: Long): Long =
         call("pay", "target" to target, "sats" to sats.toString())["paid_sats"]?.jsonPrimitive?.longOrNull ?: sats
 

@@ -1,4 +1,4 @@
-"""Regtest faucet: pays a Lightning Address or invoice from the stack's own Lightning node, or makes an invoice for
+"""Regtest faucet: pays a Lightning address or invoice from the stack's own Lightning node, or makes an invoice for
 the wallet to pay, on request over HTTP.
 
 It is `regtest.sh pay` and `regtest.sh invoice` for the app: a debug build in developer mode asks it (through
@@ -87,7 +87,7 @@ def inside(url):
 
 
 def invoice_for(target, sats):
-    """The invoice to pay: [target] itself, or one fetched from the Lightning Address [target] for [sats]."""
+    """The invoice to pay: [target] itself, or one fetched from the Lightning address [target] for [sats]."""
     if target.lower().startswith("lnbcrt"):
         return target
     name, _, host = target.partition("@")

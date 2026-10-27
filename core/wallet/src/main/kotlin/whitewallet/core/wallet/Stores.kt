@@ -39,7 +39,7 @@ interface WalletStore {
     /** Makes [profile] the account's primary address, adding it to [addresses] if it is not there yet. */
     suspend fun saveProfile(accountId: String, profile: Profile)
 
-    /** Every Lightning Address registered to the account, oldest first; the primary one is always among them. */
+    /** Every Lightning address registered to the account, oldest first; the primary one is always among them. */
     fun addresses(accountId: String): Flow<List<RegisteredAddress>>
     suspend fun saveAddress(accountId: String, address: RegisteredAddress)
     suspend fun deleteAddress(accountId: String, username: String, host: String)
@@ -75,7 +75,7 @@ interface WalletStore {
     /** The account's indexes on [host] (purpose 0/1 counters and the purpose-2 scan start), updated on every change. */
     fun indexesFlow(accountId: String, host: String): Flow<KeyIndexes>
 
-    /** First purpose-2 index the next Lightning Address scan starts from. */
+    /** First purpose-2 index the next Lightning address scan starts from. */
     suspend fun addressScanFrom(accountId: String, host: String): Long
     suspend fun setAddressScanFrom(accountId: String, host: String, index: Long)
 
@@ -124,7 +124,7 @@ interface AppPreferences {
     suspend fun setDeveloperOptionsUnlocked()
 
     /**
-     * How many Lightning Addresses an account may register per mint while developer mode is on; null until set,
+     * How many Lightning addresses an account may register per mint while developer mode is on; null until set,
      * then the brand's limit applies (see [AppDefaults.addressLimit]).
      */
     val maxAddressesPerMint: Flow<Int?>

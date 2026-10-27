@@ -39,7 +39,7 @@ sealed interface OnboardResult {
     data class AccountLimitReached(val limit: Int) : OnboardResult
 }
 
-/** One of an account's Lightning Addresses, whether it is the primary one, and its last check (null: not checked). */
+/** One of an account's Lightning addresses, whether it is the primary one, and its last check (null: not checked). */
 data class AddressEntry(val address: RegisteredAddress, val primary: Boolean, val status: AddressStatus?)
 
 sealed interface UnregisterResult {

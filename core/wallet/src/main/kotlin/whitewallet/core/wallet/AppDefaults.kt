@@ -83,9 +83,9 @@ data class AppDefaults(
     val allowUnitChange: Boolean = true,
     /** Accounts this wallet may hold (brand `maxAccounts`); [UNLIMITED] for no limit. Enforced by [Wallet.maxAccounts]. */
     val maxAccounts: Int = UNLIMITED,
-    /** Lightning Addresses an account may hold per mint (brand `maxAddresses`); [UNLIMITED] for no limit. */
+    /** Lightning addresses an account may hold per mint (brand `maxAddresses`); [UNLIMITED] for no limit. */
     val maxAddresses: Int = 1,
-    /** Whether setup asks for a Lightning Address (brand `requireAddress`); see [Wallet.requireAddress]. */
+    /** Whether setup asks for a Lightning address (brand `requireAddress`); see [Wallet.requireAddress]. */
     val requireAddress: Boolean = true,
     /** Where users see and manage their notes (brand `notesView`). */
     val notesView: NotesView = NotesView.Tab,

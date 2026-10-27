@@ -25,7 +25,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Note links, invoices, Lightning Addresses and pay links (LUD-17 schemes). -->
+            <!-- Note links, invoices, Lightning addresses and pay links (LUD-17 schemes). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

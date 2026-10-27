@@ -9,7 +9,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - An empty wallet says how money gets in: a line under the ₿0 balance (not while the balance is hidden). Brands can
   reword it (`home_wallet_empty`).
-- With `allowServiceChange=true`, users can change their home mint from the mint pages (with `showMints=true`):
+- With `allowMintChange=true`, users can change their home mint from the mint pages (with `showMints=true`):
   "Change home mint" on the home mint's page, "Make this my home mint" on another one's, picking from the mints they
   already know (a new one is added under Mints first). Their name there becomes the primary address and invoices are
   paid there from then on. The old address keeps working and the old home stays trusted. Changing the home moves no
@@ -26,8 +26,30 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   be removed there (its key and trust are forgotten, notes and history stay). Account → Your mints lists the active
   account's mints with its money there, and its pages have the account's actions, including "Move all money here"
   on the home. `Wallet.mints` (device-wide now), `Wallet.accountMints`, `Wallet.removeMint`.
-- Five new brand-term strings for it: `service_change_home`, `service_make_home`, `settings_account_mints`,
-  `mints_home_of`, `mints_remove`. Brands with their own word for the mint override them too.
+- Five new brand-term strings for it: `mint_change_home`, `mint_make_home`, `settings_account_mints`,
+  `mints_home_mint_of`, `mints_remove_mint`. Brands with their own word for the mint override them too.
+
+### Changed
+
+- The party that holds the funds is a mint everywhere. About 40 strings said "service" or "host" for it; they are
+  written without the word where that reads naturally ("✓ Trusted", "The notes are already there."), and the
+  recipient of a payment is "the recipient's wallet". Fifteen that need the word say "mint" and are brand terms now:
+  `activity_moved_mint_other`, `notes_mints`, `notes_move_title`, `notes_move_target`,
+  `notes_problem_different_mints`, `onboarding_add_elsewhere_title`, `onboarding_add_elsewhere_body`,
+  `restore_error_mint`, `addresses_add_elsewhere`, `settings_strategy_single_hint`, `mint_title`, `about_body`,
+  `notes_collect_search`, `mints_intro`, `mints_add_field`. Brands with their own word override 28 strings per
+  language (docs/WHITE_LABEL.md lists them).
+- String keys say what the text says: `onboarding_service` is `onboarding_mint`, `onboarding_service_custom_host`
+  `onboarding_mint_address`, `onboarding_custody` `onboarding_mint_custody`, the mint page's `service_*` keys are
+  `mint_*`, and every other key that said service says mint. Brands rename their overrides;
+  `dev/check-brand.sh` now names an override whose string the app no longer has.
+- Brand options: `defaultServiceHost` is `defaultMintHost`, `serviceSuggestions` `mintSuggestions`,
+  `allowServiceChange` `allowMintChange`.
+- The app says "Renew" wherever it said "Rotate" (Settings: "Auto-renew incoming notes"; the developer keys page);
+  keys `keys_rotate*` are `keys_renew*`, `settings_auto_rotate*` `settings_auto_renew*`.
+- In code, `Service` is `Mint`: `Wallet.connectMint`, `Wallet.mintDetails`, `Wallet.moveToMint`,
+  `Wallet.quoteMintMove`, `ActivityKind.MovedMint`, and `MintNotes` for a brand's `NoteStrategy.plan`. The database
+  starts empty once (version 3).
 
 ## [0.3.0]
 

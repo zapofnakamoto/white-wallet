@@ -257,7 +257,7 @@ private fun AddressForm(
     PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
 }
 
-/** A new account without a Lightning Address: the mint (when there is a choice) and the button. */
+/** A new account without a Lightning address: the mint (when there is a choice) and the button. */
 @Composable
 private fun MintForm(state: OnboardingState, mint: MintActions, onStart: () -> Unit, submitLabel: String) {
     if (state.canChangeHost) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)

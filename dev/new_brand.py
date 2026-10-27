@@ -455,10 +455,10 @@ allowMintChange={"false" if o.lock else "true"}
 defaultAmountUnit={o.unit}
 # Whether users may switch the unit under Settings → Amounts. With false, amounts always show in defaultAmountUnit.
 allowUnitChange={"false" if o.lock_unit else "true"}
-# Whether every account needs a Lightning Address. With false, setup only creates the account (a single button when
+# Whether every account needs a Lightning address. With false, setup only creates the account (a single button when
 # allowMintChange=false); users receive by invoice and can still get an address later in Settings.
 requireAddress={"false" if o.no_address else "true"}
-# Accounts the app holds (1 hides everything about accounts) and Lightning Addresses an account may register per
+# Accounts the app holds (1 hides everything about accounts) and Lightning addresses an account may register per
 # mint. 0 means no limit.
 maxAccounts={o.max_accounts}
 maxAddresses={o.max_addresses}
@@ -633,9 +633,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--unit", choices=("bitcoin", "sats"), default="bitcoin", help="default amount unit (default: bitcoin, BIP-177)")
     parser.add_argument("--lock-unit", action="store_true", help="always show amounts in --unit; users can't switch")
     parser.add_argument("--lock", action="store_true", help="lock users to --mint (hide the mint choice in onboarding)")
-    parser.add_argument("--no-address", action="store_true", help="don't ask for a Lightning Address at setup; users receive by invoice and can add one later")
+    parser.add_argument("--no-address", action="store_true", help="don't ask for a Lightning address at setup; users receive by invoice and can add one later")
     parser.add_argument("--max-accounts", type=int, default=0, help="accounts the app holds; 1 hides accounts entirely (default: 0, no limit)")
-    parser.add_argument("--max-addresses", type=int, default=1, help="Lightning Addresses per account and mint (default: 1; 0 for no limit)")
+    parser.add_argument("--max-addresses", type=int, default=1, help="Lightning addresses per account and mint (default: 1; 0 for no limit)")
     parser.add_argument("--note-strategy", choices=("single", "manual"), default="single", help="how a new account keeps its notes: single (keep one note per mint) or manual (default: single)")
     parser.add_argument("--no-strategy-choice", action="store_true", help="offer only --note-strategy, so users have nothing to choose")
     parser.add_argument("--collect-at-home", choices=("hidden", "off", "on", "always"), default="off", help="moving notes from other mints to the home mint automatically: hidden, off (offered), on, or always (no switch) (default: off)")

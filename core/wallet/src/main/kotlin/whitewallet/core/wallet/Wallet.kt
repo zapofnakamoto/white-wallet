@@ -59,7 +59,7 @@ class Wallet(
     /** How many accounts this wallet may hold (brand `maxAccounts`); [AppDefaults.UNLIMITED] for no limit. */
     val maxAccounts: Int = AppDefaults.UNLIMITED,
     /**
-     * Whether every account needs a Lightning Address (brand `requireAddress`). Without, an account is set up with
+     * Whether every account needs a Lightning address (brand `requireAddress`). Without, an account is set up with
      * just its mint ([createAccount]) and receives by invoice ([requestInvoice]) until it registers one.
      */
     val requireAddress: Boolean = true,
@@ -125,7 +125,7 @@ class Wallet(
         if (id == null || primary == null) null else statuses[id to primary.address]
     }
 
-    /** Every Lightning Address of the active account, oldest first, with its last check. */
+    /** Every Lightning address of the active account, oldest first, with its last check. */
     val addresses: Flow<List<AddressEntry>> = ofActive(emptyList()) { id ->
         combine(store.addresses(id), store.profile(id), addressStatuses) { list, primary, statuses ->
             list.map { AddressEntry(it, primary?.username == it.username && primary.host == it.host, statuses[id to it.address]) }
@@ -204,7 +204,7 @@ class Wallet(
     suspend fun needsAddress(): Boolean = requireAddress && store.currentAccountId()?.let { store.currentProfile(it) == null } ?: false
 
     /**
-     * Creates an account on the mint at [host] without a Lightning Address, with a fresh recovery phrase, and makes
+     * Creates an account on the mint at [host] without a Lightning address, with a fresh recovery phrase, and makes
      * it active. Only where addresses aren't required ([requireAddress]); otherwise accounts start with [onboard].
      */
     suspend fun createAccount(host: String, name: String): CreateAccountResult = lock.withLock {
@@ -274,7 +274,7 @@ class Wallet(
      */
     suspend fun changeHome(host: String, username: String): OnboardResult = changeHome(host, username, emptyList()).result
 
-    /** [changeHome] for an account without a Lightning Address ([requireAddress] `false`): only the mint changes. */
+    /** [changeHome] for an account without a Lightning address ([requireAddress] `false`): only the mint changes. */
     suspend fun changeHome(host: String): ConnectResult = changeHome(host, emptyList()).result
 
     /**
@@ -290,7 +290,7 @@ class Wallet(
         HomeChanged(result, moneyMove.move(id, result.profile.host, lines))
     }
 
-    /** [changeHome] with [lines] for an account without a Lightning Address. */
+    /** [changeHome] with [lines] for an account without a Lightning address. */
     suspend fun changeHome(host: String, lines: List<MovePreview.Line>): HomeChanged<ConnectResult> = lock.withLock {
         val (id, keepTrusted) = leavingHome(host) ?: return@withLock HomeChanged(ConnectResult.Failed(OnboardResult.MintInvalid(ALREADY_HOME)))
         check(store.currentProfile(id) == null) { "the account has an address; pass the name to use on the new home" }
@@ -340,7 +340,7 @@ class Wallet(
         store.setActiveAccount(accountId)
     }
 
-    /** Reads what the user entered or scanned: an invoice, a Lightning Address or a pay link (see [Payer]). */
+    /** Reads what the user entered or scanned: an invoice, a Lightning address or a pay link (see [Payer]). */
     suspend fun previewPayment(input: String): PayPreview = payer.preview(input)
 
     /** Whether [amountMsat] can be paid to [preview]'s destination right now, and the fee. */
@@ -407,7 +407,7 @@ class Wallet(
     /** Every account's notes (spent ones too), for what concerns the whole device. */
     private val allNotes: Flow<List<Note>> = ofEveryAccount(store::notes)
 
-    /** Every account's Lightning Addresses. */
+    /** Every account's Lightning addresses. */
     private val allAddresses: Flow<List<RegisteredAddress>> = ofEveryAccount(store::addresses)
 
     /**
@@ -432,7 +432,7 @@ class Wallet(
     }
 
     /**
-     * The active account's mints: its home, then every mint where it has money or a Lightning Address, by host; with its
+     * The active account's mints: its home, then every mint where it has money or a Lightning address, by host; with its
      * money there. What the account can do there (change home, move money) starts from here.
      */
     val accountMints: Flow<List<AccountMint>> = combine(homeHost, notes, ofActive(emptyList(), store::addresses), trustedHosts()) { home, notes, addresses, trusted ->
@@ -635,7 +635,7 @@ class Wallet(
 
     /**
      * An invoice for [amountMsat] that mints a note to the active account on its home mint once paid (see
-     * [InvoiceReceiver]); the way to receive without a Lightning Address. Follow it with [invoiceStatus].
+     * [InvoiceReceiver]); the way to receive without a Lightning address. Follow it with [invoiceStatus].
      */
     suspend fun requestInvoice(amountMsat: Long): InvoiceRequest = lock.withLock { invoices.request(amountMsat) }
 

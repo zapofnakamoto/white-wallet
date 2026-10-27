@@ -53,7 +53,7 @@ class WalletMockMintTest {
     }
 
     @Test
-    fun `refresh finds auto-minted Lightning Address notes across a gap`() = runBlocking<Unit> {
+    fun `refresh finds auto-minted Lightning address notes across a gap`() = runBlocking<Unit> {
         MockMint.start().use { mint ->
             val store = InMemoryWalletStore()
             val wallet = wallet(mint, store)

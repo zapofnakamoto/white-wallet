@@ -65,7 +65,7 @@ sealed interface KeyStatus {
 
 /**
  * The local derivation indexes for one account and mint: the next unused index for purposes 0 (wallet) and
- * 1 (change), and the index the next Lightning Address scan (purpose 2) starts from.
+ * 1 (change), and the index the next Lightning address scan (purpose 2) starts from.
  */
 data class KeyIndexes(val wallet: Long, val change: Long, val addressScanFrom: Long) {
     fun of(purpose: Int): Long = when (purpose) {

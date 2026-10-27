@@ -25,7 +25,7 @@ sealed interface RestoreResult {
 /**
  * Recovers an account from its recovery phrase alone (LUD-26 recovery): every key of each purpose is looked up on
  * the mint until a gap of unused ones, which imports every note and sets the indexes past the last used key.
- * Lightning Addresses can't be recovered this way (the mint maps names to keys, not keys to names); the account is
+ * Lightning addresses can't be recovered this way (the mint maps names to keys, not keys to names); the account is
  * left without one, and the user enters an address they had or picks a new one (see [Wallet.needsAddress]).
  * Only lookups are sent, so a restore that fails half way changes nothing at the mint and is undone locally.
  */

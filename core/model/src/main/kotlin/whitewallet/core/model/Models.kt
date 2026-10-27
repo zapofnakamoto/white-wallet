@@ -20,7 +20,7 @@ enum class NoteState {
 enum class NoteKind { KeyPath, Bearer }
 
 /**
- * One account: its own recovery phrase, home mint ([host]), notes, and Lightning Addresses (none, if the brand
+ * One account: its own recovery phrase, home mint ([host]), notes, and Lightning addresses (none, if the brand
  * doesn't require one). The primary address, when there is one, is always on [host].
  */
 data class Account(val id: String, val name: String, val createdAtMillis: Long, val host: String)
@@ -63,7 +63,7 @@ data class Profile(val username: String, val host: String) {
 }
 
 /**
- * A Lightning Address registered to an account. An account can hold several on a mint; all of them pay into the
+ * A Lightning address registered to an account. An account can hold several on a mint; all of them pay into the
  * same note keys (LUD-26 purpose 2). The account's [Profile] is the primary one, shown on Home and Receive.
  */
 data class RegisteredAddress(val username: String, val host: String, val addedAtMillis: Long) {
@@ -120,7 +120,7 @@ data class JournalEntry(
 
 /** What an [Activity] row stands for. */
 enum class ActivityKind(val isMaintenance: Boolean) {
-    /** A payment to one of the account's Lightning Addresses. */
+    /** A payment to one of the account's Lightning addresses. */
     Received(false),
 
     /** A note someone handed over, now in this wallet. */
@@ -132,7 +132,7 @@ enum class ActivityKind(val isMaintenance: Boolean) {
     /** Funds moved from here to another account of this wallet. */
     MovedOut(false),
 
-    /** A payment to an invoice, a Lightning Address or a pay link. */
+    /** A payment to an invoice, a Lightning address or a pay link. */
     Sent(false),
 
     /** Notes moved to another mint of the same account (melted here, minted there). */

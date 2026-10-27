@@ -84,7 +84,7 @@ internal data class ProfileEntity(@PrimaryKey val accountId: String, val usernam
     fun toModel() = Profile(username, host)
 }
 
-/** Every Lightning Address an account registered; the `profile` row names the primary one. */
+/** Every Lightning address an account registered; the `profile` row names the primary one. */
 @Entity(tableName = "addresses", primaryKeys = ["accountId", "host", "username"])
 internal data class AddressEntity(val accountId: String, val host: String, val username: String, val addedAtMillis: Long) {
     fun toModel() = RegisteredAddress(username, host, addedAtMillis)
@@ -93,7 +93,7 @@ internal data class AddressEntity(val accountId: String, val host: String, val u
 @Entity(tableName = "counters", primaryKeys = ["accountId", "host", "purpose"])
 internal data class CounterEntity(val accountId: String, val host: String, val purpose: Int, val next: Long)
 
-/** First purpose-2 index the next Lightning Address scan starts from, per account and host. */
+/** First purpose-2 index the next Lightning address scan starts from, per account and host. */
 @Entity(tableName = "address_scan", primaryKeys = ["accountId", "host"])
 internal data class AddressScanEntity(val accountId: String, val host: String, val next: Long)
 

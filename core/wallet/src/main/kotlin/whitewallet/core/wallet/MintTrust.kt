@@ -71,7 +71,7 @@ data class AccountMint(
     /** The account's money there, and in how many notes. */
     val balanceMsat: Long,
     val noteCount: Int,
-    /** The account's Lightning Addresses there. */
+    /** The account's Lightning addresses there. */
     val addresses: Int,
     val trusted: Boolean,
 )

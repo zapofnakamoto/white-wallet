@@ -146,7 +146,7 @@ cmd_summary() {
     cat <<SUMMARY
 
   Regtest mint is up:   $MINT_URL   (mint key $mint_key)
-  In the app, use service:  localhost:$MINT_PORT
+  In the app, use mint: localhost:$MINT_PORT
     (Developer options > Local regtest > "Add account on local mint")
 
   Pay an address:   $0 pay alice@localhost:$MINT_PORT 1000
@@ -224,7 +224,7 @@ cmd_pay() {
     if [[ -n "$url" ]]; then
         local pay
         pay="$(curl -sf "$url")" || die "could not fetch $url"
-        [[ "$(jq -r '.status // ""' <<<"$pay")" == "ERROR" ]] && die "service says: $(jq -r '.reason' <<<"$pay")"
+        [[ "$(jq -r '.status // ""' <<<"$pay")" == "ERROR" ]] && die "mint says: $(jq -r '.reason' <<<"$pay")"
         [[ "$(jq -r '.tag' <<<"$pay")" == "payRequest" ]] || die "$url is not an LNURL-pay endpoint"
         local msat=$(( sats * 1000 )) min max callback sep response
         min="$(jq -r '.minSendable' <<<"$pay")"; max="$(jq -r '.maxSendable' <<<"$pay")"
@@ -232,7 +232,7 @@ cmd_pay() {
         callback="$(jq -r '.callback' <<<"$pay")"
         [[ "$callback" == *\?* ]] && sep="&" || sep="?"
         response="$(curl -sf "${callback}${sep}amount=${msat}")" || die "callback failed"
-        [[ "$(jq -r '.status // ""' <<<"$response")" == "ERROR" ]] && die "service says: $(jq -r '.reason' <<<"$response")"
+        [[ "$(jq -r '.status // ""' <<<"$response")" == "ERROR" ]] && die "mint says: $(jq -r '.reason' <<<"$response")"
         invoice="$(jq -r '.pr' <<<"$response")"
         log "paying $sats sats to $target"
     fi
@@ -349,7 +349,7 @@ usage() {
 usage: $0 <command>
 
   up                       start and bootstrap the stack (idempotent), then adb reverse
-  pay <target> [sats]      pay an invoice (lnbcrt...), a Lightning Address (alice@localhost:8111, or :8112 on mint2)
+  pay <target> [sats]      pay an invoice (lnbcrt...), a Lightning address (alice@localhost:8111, or :8112 on mint2)
                            or an LNURL-pay
   invoice <sats> [memo]    create an invoice on the user node
   note [sats] [--mint2|--mint3] [--bech32] [--type]

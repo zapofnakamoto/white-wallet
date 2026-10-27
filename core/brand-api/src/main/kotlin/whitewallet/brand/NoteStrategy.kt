@@ -49,7 +49,7 @@ data class MintNotes(
 data class StrategyNote(
     val id: String,
     val amountMsat: Long,
-    /** On a key of a Lightning Address (an incoming payment), not on one of the wallet's own keys. */
+    /** On a key of a Lightning address (an incoming payment), not on one of the wallet's own keys. */
     val onAddressKey: Boolean,
     val updatedAtMillis: Long,
 )

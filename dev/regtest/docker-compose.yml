@@ -46,7 +46,7 @@ services:
     volumes:
       - mint-lnd:/root/.lnd
 
-  # "You": pays invoices and Lightning Addresses (./regtest.sh pay).
+  # "You": pays invoices and Lightning addresses (./regtest.sh pay).
   user-lnd:
     <<: *lnd
     command:
@@ -105,7 +105,7 @@ services:
       - mint:/data
 
 
-  # A second mint on its own Lightning node (user-lnd), for moving notes between services.
+  # A second mint on its own Lightning node (user-lnd), for moving notes between mints.
   mint2:
     image: lnurlcash/lnurl-mint:0.12.2
     restart: unless-stopped

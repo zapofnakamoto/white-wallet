@@ -78,7 +78,7 @@ data class DerivedKeysState(
     /** The mint of the account's primary address. */
     val homeHost: String? = null,
     val host: String? = null,
-    /** LUD-26 purpose: 0 wallet, 1 change, 2 Lightning Address. */
+    /** LUD-26 purpose: 0 wallet, 1 change, 2 Lightning address. */
     val purpose: Int = 2,
     val indexes: KeyIndexes? = null,
     val keys: List<DerivedKey> = emptyList(),

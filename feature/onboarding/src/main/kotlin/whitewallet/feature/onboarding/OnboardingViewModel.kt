@@ -96,7 +96,7 @@ data class OnboardingState(
     val restoredMsat: Long = 0,
     /** Set once a restore was cancelled: whether another account remains on this device. */
     val restoreCancelled: Boolean? = null,
-    /** False when a new account starts without a Lightning Address (brand `requireAddress=false`): only its mint is asked for. */
+    /** False when a new account starts without a Lightning address (brand `requireAddress=false`): only its mint is asked for. */
     val withAddress: Boolean = true,
 ) {
     val changingAddress: Boolean get() = mode == OnboardingMode.ChangeAddress

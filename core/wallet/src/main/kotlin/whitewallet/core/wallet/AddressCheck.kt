@@ -5,7 +5,7 @@ import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 
-/** Whether a Lightning Address on a mint points at an account's note branch. */
+/** Whether a Lightning address on a mint points at an account's note branch. */
 sealed interface AddressStatus {
     /** Registered to the account: the mint publishes its own `cx1` for it (LUD-26 `text/cpub`). */
     data object Ours : AddressStatus

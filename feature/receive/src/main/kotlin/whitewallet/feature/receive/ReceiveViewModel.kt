@@ -31,7 +31,7 @@ sealed interface InvoiceProblem {
 data class ShownInvoice(val request: InvoiceRequest.Ready, val status: InvoiceStatus = InvoiceStatus.Waiting)
 
 data class ReceiveState(
-    /** The primary Lightning Address; null if the account has none (then it receives by invoice only). */
+    /** The primary Lightning address; null if the account has none (then it receives by invoice only). */
     val address: String? = null,
     val receivedMsat: Long = 0,
     /** The user asked for an invoice instead of the address. */
@@ -68,7 +68,7 @@ private data class ReceiveUi(
 )
 
 /**
- * Shows the Lightning Address and checks for incoming payments while the screen is open; or, without an address
+ * Shows the Lightning address and checks for incoming payments while the screen is open; or, without an address
  * (or on request), an invoice for an amount that mints to this account (see [Wallet.requestInvoice]).
  */
 @HiltViewModel

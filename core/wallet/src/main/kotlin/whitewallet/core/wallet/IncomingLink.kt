@@ -14,7 +14,7 @@ sealed interface IncomingLink {
     /** A note link (`lnurlw://…?k1=…`, also bech32 or behind `lightning:`). */
     data class Claim(override val text: String) : IncomingLink
 
-    /** An invoice, a Lightning Address, a pay link, or a `bitcoin:` URI with a `lightning=` invoice. */
+    /** An invoice, a Lightning address, a pay link, or a `bitcoin:` URI with a `lightning=` invoice. */
     data class Pay(override val text: String) : IncomingLink
 
     companion object {

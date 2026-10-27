@@ -115,7 +115,7 @@ class RegtestPayTest {
     }
 
     @Test
-    fun `a Lightning Address elsewhere gets an invoice for the chosen amount, with the comment, paid over Lightning`() = runBlocking<Unit> {
+    fun `a Lightning address elsewhere gets an invoice for the chosen amount, with the comment, paid over Lightning`() = runBlocking<Unit> {
         val carol = LightningAddressPayee()
         val alice = Regtest.phone(client = Regtest.client(carol))
         alice.fund(5000)

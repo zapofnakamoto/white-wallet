@@ -184,7 +184,7 @@ fun AddressesRoute(
     )
 }
 
-/** The active account's Lightning Addresses: check them, pick the primary one, add or unregister addresses. */
+/** The active account's Lightning addresses: check them, pick the primary one, add or unregister addresses. */
 @Composable
 fun AddressesScreen(
     state: AddressesState,

@@ -34,7 +34,7 @@ sealed interface PayDestination {
     data class Invoice(val invoice: Bolt11Invoice) : PayDestination
 
     /**
-     * A LUD-06 pay link (a Lightning Address, `lnurlp://` or bech32 LNURL). [transfer] is set when the payee is on a
+     * A LUD-06 pay link (a Lightning address, `lnurlp://` or bech32 LNURL). [transfer] is set when the payee is on a
      * mint this account holds notes on and publishes a `text/cpub`: then the notes are handed over directly
      * (LUD-26 internal transfer), without Lightning.
      */
@@ -54,7 +54,7 @@ class InternalTransfer internal constructor(internal val branch: CashBranch, int
 
 /** Why a payment can't be made (or wasn't). Every case maps to a full string in the app. */
 enum class PayProblem {
-    /** Not an invoice, Lightning Address or pay link. */
+    /** Not an invoice, Lightning address or pay link. */
     NotRecognized,
 
     /** An invoice that leaves the amount open (a note pays an exact amount). */
@@ -100,7 +100,7 @@ sealed interface PayPreview {
         val maxMsat: Long,
         /** 0 when no comment can be sent (an invoice, or an internal transfer, which carries none). */
         val commentMaxLength: Int,
-        /** Who is paid: the Lightning Address or pay link identifier; null for a bare invoice. */
+        /** Who is paid: the Lightning address or pay link identifier; null for a bare invoice. */
         val payee: String?,
         /** What the payee says the payment is for. */
         val description: String?,
@@ -136,7 +136,7 @@ sealed interface PayResult {
 }
 
 /**
- * Pays an invoice, Lightning Address or pay link from the active account's notes. A note pays exactly one amount,
+ * Pays an invoice, Lightning address or pay link from the active account's notes. A note pays exactly one amount,
  * so the notes are first merged and split into one worth exactly that (see [PayPlanner]); then either that note is
  * melted into the invoice (LUD-25), or, for a payee on the same mint, the last merge/split names the payee's key
  * as its output (LUD-26 internal transfer). Every step is journaled; a melt is never retried.

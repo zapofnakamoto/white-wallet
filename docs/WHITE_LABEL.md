@@ -27,13 +27,13 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 | `appName` | Launcher label and in-app title |
 | `applicationId` | Android package ID. Must be unique to your fork |
 | `versionCode`, `versionName` | Release version |
-| `defaultServiceHost` | LNURLcash mint preselected during onboarding (`host` or `host:port`) |
-| `serviceSuggestions` | Comma-separated mints offered in the onboarding dropdown (the default is always first; users can still pick "Custom…") |
-| `allowServiceChange` | `false` hides the mint field, locking users to your mint. With `true`, users can also add a Lightning address on another mint (same recovery phrase), change their home mint from the mint pages and move money between the mints they know, which needs `showMints=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose) |
+| `defaultMintHost` | LNURLcash mint preselected during onboarding (`host` or `host:port`) |
+| `mintSuggestions` | Comma-separated mints offered in the onboarding dropdown (the default is always first; users can still pick "Custom…") |
+| `allowMintChange` | `false` hides the mint field, locking users to your mint. With `true`, users can also add a Lightning address on another mint (same recovery phrase), change their home mint from the mint pages and move money between the mints they know, which needs `showMints=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose) |
 | `supportUrl` | Exposed as `BuildConfig.SUPPORT_URL` |
-| `requireAddress` | Whether every account needs a Lightning Address. `true` (default): setup asks for a name. `false`: setup only creates the account on its mint, which is a single "Get started" button when `allowServiceChange=false`; users receive by invoice (Receive → amount → QR) and can still get an address later in Settings → Account → Lightning addresses. Restoring skips the address step too |
+| `requireAddress` | Whether every account needs a Lightning address. `true` (default): setup asks for a name. `false`: setup only creates the account on its mint, which is a single "Get started" button when `allowMintChange=false`; users receive by invoice (Receive → amount → QR) and can still get an address later in Settings → Account → Lightning addresses. Restoring skips the address step too |
 | `maxAccounts` | How many accounts the app holds. `1` hides everything about accounts (no switcher, no "Add account"); at the limit, new accounts and restores are refused with a message. `0` = no limit (default) |
-| `maxAddresses` | Lightning Addresses an account may register per mint. Default `1`; `0` = no limit. Developer mode can override it for testing |
+| `maxAddresses` | Lightning addresses an account may register per mint. Default `1`; `0` = no limit. Developer mode can override it for testing |
 | `noteStrategies` | The note strategies users can choose from under Settings → Account → Note settings, in this order: `single` (keep only one note per mint), `manual` (keep notes as they arrive), and any your code module adds (see "Custom code"). One entry hides the choice. Default `single,manual` |
 | `defaultNoteStrategy` | The strategy a new account starts with; one of `noteStrategies`. Default `single` |
 | `collectAtHomeMint` | "Move everything to the home mint" in Settings → Account → Note settings: notes on other mints (claimed notes, or an old home mint) are moved to the account's home mint automatically, over Lightning, when the move costs at most the fee cap. `hidden` = not offered, `off` = offered and starts off (default), `on` = offered and starts on (users can switch it per account), `always` = every account collects and users have no switch. When users change their home mint, a summary shows what moves and its fee first; with `on` or `always` the cap decides, otherwise they choose per mint |
@@ -50,27 +50,42 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 
 ### Naming the custodian, in any language
 
-The app calls the party that holds users' funds a **mint**. Nearly all text is written without that word ("Couldn't connect", "Not confirmed yet"), so translations stay natural. Only a handful of strings name it; they sit in a block marked *Brand term* at the top of each feature module's `res/values/strings.xml`:
+The app calls the party that holds users' funds a **mint**. Most text is written without that word ("Couldn't connect", "The notes are already there."), so translations stay natural. Only the strings that can't do without it name it, 28 per language; they sit in a block marked *Brand term* at the top of each feature module's `res/values/strings.xml`, and their keys say `mint` where the text does (`<screen>_<what it says>`):
 
 | String | Default (en) |
 |---|---|
+| `claim_home_mint` | On %1$s, your home mint |
+| `activity_moved_mint_other` | Moved to another mint |
+| `notes_home_mint` | Home mint |
+| `notes_mints` | %1$d mint / %1$d mints (plural) |
+| `notes_move_title` | Move to another mint |
+| `notes_move_target` | Mint, e.g. example.com |
+| `notes_problem_different_mints` | Select notes on one mint. |
 | `onboarding_mint` | Mint |
 | `onboarding_mint_address` | Mint address |
 | `onboarding_mint_custody` | Your funds are held by the mint you choose. Keep amounts small. |
+| `onboarding_add_elsewhere_title` | Address on another mint |
+| `onboarding_add_elsewhere_body` | A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is. |
+| `restore_error_mint` | This mint can't be used for a restore. Check that it's the one you used before. |
 | `settings_home_mint` | Home mint |
-| `addresses_home_mint` | Home mint: %1$s |
-| `claim_home_mint` | On %1$s, your home mint |
-| `notes_home_mint` | Home mint |
 | `settings_mints` | Mints |
+| `addresses_home_mint` | Home mint: %1$s |
 | `mint_change_home` | Change home mint |
 | `mint_make_home` | Make this my home mint |
 | `settings_account_mints` | Your mints |
 | `mints_home_mint_of` | Home mint of %1$s |
 | `mints_remove_mint` | Remove mint |
+| `addresses_add_elsewhere` | Add an address on another mint |
+| `settings_strategy_single_hint` | Combine all notes into one per mint. Free. |
+| `mint_title` | Mint |
+| `about_body` | A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device. |
+| `notes_collect_search` | Move everything to the home mint |
+| `mints_intro` | Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted. |
+| `mints_add_field` | Mint, e.g. example.com |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 
-To use another word ("custodian", "provider", …), override exactly these in `brand/res/values/strings.xml`, and once per language in `brand/res/values-<lang>/strings.xml`, as whole translated sentences. Word substitution is deliberately not offered: articles, gender and case change with the word in many languages. Keep the `%1$s` placeholders.
+To use another word ("custodian", "provider", …), override exactly these in `brand/res/values/strings.xml`, and once per language in `brand/res/values-<lang>/strings.xml`, as whole translated sentences. Word substitution is deliberately not offered: articles, gender and case change with the word in many languages. Keep the `%1$s` placeholders. `dev/check-brand.sh` fails on an override whose string no longer exists (a key renamed in a White Wallet release), so a brand notices before its word quietly falls back to "mint".
 
 ## 2. `brand/res/`
 
@@ -81,7 +96,7 @@ To use another word ("custodian", "provider", …), override exactly these in `b
 | `font/`, `values/*.xml` | Fonts, text sizes, corners and spacing (see "Design"): optional |
 | `drawable/ic_launcher_foreground.xml` | Launcher icon foreground (adaptive icon, 108dp canvas, keep the mark inside the central 66dp) |
 | `drawable/ic_brand_logo.xml` | Logo on the onboarding and app lock screens |
-| `drawable/ic_activity_*.xml` | Optional: the History icons (`received`, `claimed`, `sent`, `sent_note`, `moved`, `moved_service`, `split`, `combined`, `rotated`, and `automatic`, the badge on entries the wallet made by itself). To change how they are framed, see `ActivityIcon` under "Design" |
+| `drawable/ic_activity_*.xml` | Optional: the History icons (`received`, `claimed`, `sent`, `sent_note`, `moved`, `moved_mint`, `split`, `combined`, `rotated`, and `automatic`, the badge on entries the wallet made by itself). To change how they are framed, see `ActivityIcon` under "Design" |
 | `mipmap-anydpi/ic_launcher.xml` | Usually unchanged; combines background color and foreground |
 
 You can also add `values/strings.xml` here to override any user-facing string from the feature modules, using the same names (for example `onboarding_tagline`). App resources take precedence over library resources. The app ships in English and German; for each language you support, put its brand-term strings in `values-<lang>/strings.xml`.

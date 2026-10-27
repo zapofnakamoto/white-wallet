@@ -187,7 +187,7 @@ internal object Regtest {
 }
 
 /**
- * A Lightning Address `carol@payee.example` that is no mint: its LUD-16 pay link is answered on the wire (it never
+ * A Lightning address `carol@payee.example` that is no mint: its LUD-16 pay link is answered on the wire (it never
  * reaches a server), and its invoices come from user-lnd, so paying it is a real Lightning payment. [invoiceFor] makes
  * the invoice for an amount; by default it commits to the pay link's metadata.
  */

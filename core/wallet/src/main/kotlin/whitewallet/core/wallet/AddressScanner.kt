@@ -4,7 +4,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.lnurlcash.NotePurpose
 
 /**
- * Finds notes the mint auto-minted for Lightning Address payments (LUD-26 purpose 2) by looking up each derived
+ * Finds notes the mint auto-minted for Lightning address payments (LUD-26 purpose 2) by looking up each derived
  * key by `p`, stopping after [GAP_LIMIT] consecutive unused indices.
  */
 internal class AddressScanner(private val wallet: Wallet) {

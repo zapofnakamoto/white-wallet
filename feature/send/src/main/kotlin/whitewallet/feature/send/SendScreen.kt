@@ -51,7 +51,7 @@ import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletTextField
 
-/** Pay an invoice, a Lightning Address or a pay link: enter or scan it, review the amount and fee, pay. */
+/** Pay an invoice, a Lightning address or a pay link: enter or scan it, review the amount and fee, pay. */
 @Composable
 fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, viewModel: SendViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()

@@ -22,7 +22,7 @@ import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.spendDomain
 
 /**
- * Guards how the reference mint handles several Lightning Addresses registered to the same `cx1`, and that the
+ * Guards how the reference mint handles several Lightning addresses registered to the same `cx1`, and that the
  * wallet finds every payment to any of them. The wallet relies on this; if a mint changes its strategy, this fails.
  *
  * What the mint does (lnurl_mint/db.py: upsert_username, claim_next_index, _id_in_use):

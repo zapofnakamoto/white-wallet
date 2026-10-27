@@ -5,7 +5,7 @@ where in the code, is in [DEVELOPMENT.md](DEVELOPMENT.md); how to make your own 
 [WHITE_LABEL.md](WHITE_LABEL.md).
 
 White Wallet is a minimal, white-label Android wallet for **LNURLcash** ([LUD-25/26](https://github.com/lnurl/luds/pull/301))
-bearer notes on Lightning. It works on first launch: setup asks for a name for the Lightning Address and a mint, both
+bearer notes on Lightning. It works on first launch: setup asks for a name for the Lightning address and a mint, both
 preselected, and anyone can rebrand it by editing one directory.
 
 > **Spec status:** LUD-25 and LUD-26 are drafts in an open pull request
@@ -17,10 +17,10 @@ preselected, and anyone can rebrand it by editing one directory.
 ## LNURLcash in short
 
 LNURLcash turns an LNURL-withdraw link ([LUD-03](https://github.com/lnurl/luds/blob/luds/03.md)) into a bearer note.
-A note is a withdraw link whose `k1` a service has credited with value:
+A note is a withdraw link whose `k1` a mint has credited with value:
 
 ```
-lnurlw://<service>/w?k1=<spend>&c=<certificate>
+lnurlw://<mint>/w?k1=<spend>&c=<certificate>
 ```
 
 Whoever holds the link holds the money. It can be copied, shown as a QR code, tapped over NFC or printed. A wallet
@@ -28,24 +28,24 @@ that doesn't know LNURLcash sees a normal withdraw link and can still cash it ou
 
 | Term | Meaning |
 |---|---|
-| **Service** (mint) | Custodial LNURL server that tracks notes as `Q → value`. It never holds the secret. The app calls it a mint; brands may use another word (WHITE_LABEL.md, "Naming the custodian"). |
+| **Mint** (LUD-25: `SERVICE`) | Custodial LNURL server that tracks notes as `Q → value`. It never holds the secret. The app calls it a mint; brands may use another word (WHITE_LABEL.md, "Naming the custodian"). |
 | **Note** | Identified by a public key `Q`, encoded `cp1…`. Opened by a spend: `ck1…` (key-path signature), `cw1…` (script-path witness), or a 64-hex preimage (plain bearer note). The wallet creates notes locally. |
-| **Mint** (verb) | Pay the service's `payRequest` with the LUD-12 comment `cp1<Q>`. Once paid, `Q` is credited. |
+| **Mint** (verb) | Pay the mint's `payRequest` with the LUD-12 comment `cp1<Q>`. Once paid, `Q` is credited. |
 | **Melt** | Pay a BOLT-11 invoice from one note. `OK` means the payment is in flight, not that the note is spent. |
 | **Rotate / Split / Merge** | Burn notes and mint fresh ones at keys the wallet chooses. |
-| **Certificate** `cs1…` | Signature by the service's `mintPubkey` over amount and `Q`, for offline checks. Proves issuance, not that the note is unspent. |
-| **Deterministic notes** (LUD-26) | Key-path notes derived from a seed per service and per *purpose*: 0 wallet, 1 change, 2 Lightning Address. Recoverable from the seed alone. |
+| **Certificate** `cs1…` | Signature by the mint's `mintPubkey` over amount and `Q`, for offline checks. Proves issuance, not that the note is unspent. |
+| **Deterministic notes** (LUD-26) | Key-path notes derived from a seed per mint and per *purpose*: 0 wallet, 1 change, 2 Lightning address. Recoverable from the seed alone. |
 | **`cx1…`** | Watch-only branch export (an xpub for notes). |
-| **Lightning Address auto-mint** (LUD-26) | The wallet registers `name` against its `cx1` with a signed proof; the service mints a purpose-2 note for every payment to `name@domain`. |
+| **Lightning address auto-mint** (LUD-26) | The wallet registers `name` against its `cx1` with a signed proof; the mint mints a purpose-2 note for every payment to `name@domain`. |
 
 ## Principles
 
 1. **Works on first try.** Sane defaults everywhere; setup is one or two taps. A brand can reduce it further
    (`requireAddress=false`: one "Get started" button).
-2. **Few, plain features.** Receive (a Lightning Address, an invoice for a set amount, or a note someone hands over),
+2. **Few, plain features.** Receive (a Lightning address, an invoice for a set amount, or a note someone hands over),
    send (pay an invoice, address or LNURL-pay link, or hand out a note), balance and history. No protocol words in
    the main flows; the bearer nature of a shared note is always stated.
-3. **Service-agnostic.** The app stores a mint's host and its pinned signing key; everything else (fees, limits,
+3. **Mint-agnostic.** The app stores a mint's host and its pinned signing key; everything else (fees, limits,
    callbacks) comes from the mint at runtime. Any LNURLcash mint works, including self-hosted ones
    ([lnurl-mint](https://github.com/lnurlcash/lnurl-mint), [cln-mint](https://github.com/lnurlcash/cln-mint), …).
 4. **The custodian is named honestly.** Users are told once, at setup, that a mint holds their funds and to keep
@@ -63,7 +63,7 @@ recovery-phrase backup with verification, and explicit confirmation for destruct
 
 ### Accounts
 
-The wallet can hold several accounts, each with **its own recovery phrase**, home mint, Lightning Addresses, notes
+The wallet can hold several accounts, each with **its own recovery phrase**, home mint, Lightning addresses, notes
 and history. That's one backup per account, in exchange for strong separation. An account can hold notes on several
 mints; "collect at home mint" moves them home automatically within a fee cap. Brands can limit accounts
 (`maxAccounts=1` hides them entirely) and addresses.
@@ -139,8 +139,8 @@ says where each is enforced.
 4. **A melt is settled by lookup.** The note is `Paying` (out of the balance) until a lookup shows it burned (paid) or
    spendable again (failed, money back). `pending` means "ask later", never "spent".
 5. **Received notes are rotated immediately** into the wallet's own seed-derived keys, including notes minted by
-   paying the service's own invoice: whoever saw that invoice may know the preimage.
-6. **Never accept a service-generated secret.**
+   paying the mint's own invoice: whoever saw that invoice may know the preimage.
+6. **Never accept a mint-generated secret.**
 7. **A shared note stays the wallet's until redeemed.** It is `Shared` until a lookup shows it burned, and can be
    taken back (rotated to a fresh key) until then.
 
@@ -189,7 +189,7 @@ conformance suite follows the PR text, and so does this app.
 
 | Topic | LUD-25/26 PR text | `lnurlcash-kotlin` README |
 |---|---|---|
-| `ck1` signature message | BIP-341 sighash of a canonical spend transaction bound to the service domain | Schnorr over `sha256("LNURLcash")` ("Part 2") |
+| `ck1` signature message | BIP-341 sighash of a canonical spend transaction bound to the mint's domain | Schnorr over `sha256("LNURLcash")` ("Part 2") |
 | Address registration proof | `sha256("LNURLcash:register:" ‖ domain ‖ ":" ‖ username)` | `sha256("LNURLcash:<action>:<username>")`, no domain |
 | Terminology | Key path / script path, `cw1` | "Part 1" (hash) / "Part 2" (key) notes |
 
