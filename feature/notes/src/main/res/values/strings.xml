@@ -6,13 +6,13 @@
       are written without that word. See docs/WHITE_LABEL.md.
     -->
     <string name="notes_home_mint">Home mint</string>
-    <plurals name="notes_services">
+    <plurals name="notes_mints">
         <item quantity="one">%1$d mint</item>
         <item quantity="other">%1$d mints</item>
     </plurals>
     <string name="notes_move_title">Move to another mint</string>
     <string name="notes_move_target">Mint, e.g. example.com</string>
-    <string name="notes_problem_different_services">Select notes on one mint.</string>
+    <string name="notes_problem_different_mints">Select notes on one mint.</string>
 
     <string name="notes_title">Notes</string>
     <string name="notes_settings">Note settings</string>
@@ -84,8 +84,8 @@
     <string name="notes_problem_not_found">These notes changed in the meantime. Select them again.</string>
     <string name="notes_problem_too_few">Select at least two notes to combine.</string>
     <string name="notes_problem_invalid_amount">This note is too small to split, or the amount doesn\'t fit.</string>
-    <string name="notes_problem_same_service">The notes are already there.</string>
-    <string name="notes_problem_service_invalid">That address can\'t hold notes.</string>
+    <string name="notes_problem_same_mint">The notes are already there.</string>
+    <string name="notes_problem_mint_invalid">That address can\'t hold notes.</string>
     <string name="notes_problem_unreachable">Couldn\'t connect. Check your connection and try again. Nothing changed.</string>
     <string name="notes_problem_below_minimum">That\'s too little to move there.</string>
     <string name="notes_problem_above_maximum">That\'s too much to move there at once.</string>

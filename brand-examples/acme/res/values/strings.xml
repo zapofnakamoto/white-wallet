@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Acme says "provider" where the app says "mint": exactly the brand-term strings, as whole sentences. -->
 <resources>
-    <string name="onboarding_service">Provider</string>
-    <string name="onboarding_service_custom_host">Provider address</string>
-    <string name="onboarding_custody">Your funds are held by Acme. Keep amounts small.</string>
+    <string name="onboarding_mint">Provider</string>
+    <string name="onboarding_mint_address">Provider address</string>
+    <string name="onboarding_mint_custody">Your funds are held by Acme. Keep amounts small.</string>
     <string name="settings_home_mint">Provider</string>
     <string name="addresses_home_mint">Provider: %1$s</string>
     <string name="claim_home_mint">On %1$s, your provider</string>
     <string name="notes_home_mint">Provider</string>
     <string name="settings_mints">Providers</string>
-    <string name="service_change_home">Change provider</string>
-    <string name="service_make_home">Make this my provider</string>
+    <string name="mint_change_home">Change provider</string>
+    <string name="mint_make_home">Make this my provider</string>
     <string name="settings_account_mints">Your providers</string>
-    <string name="mints_home_of">Provider of %1$s</string>
-    <string name="mints_remove">Remove provider</string>
-    <string name="activity_moved_service_other">Moved to another provider</string>
+    <string name="mints_home_mint_of">Provider of %1$s</string>
+    <string name="mints_remove_mint">Remove provider</string>
+    <string name="activity_moved_mint_other">Moved to another provider</string>
     <string name="onboarding_add_elsewhere_title">Address with another provider</string>
     <string name="onboarding_add_elsewhere_body">A name for this account with another provider, with the same recovery phrase. Payments to it arrive as notes with that provider, in this account. Your primary address stays where it is.</string>
-    <string name="restore_error_service">This provider can\'t be used for a restore. Check that it\'s the one you used before.</string>
-    <plurals name="notes_services">
+    <string name="restore_error_mint">This provider can\'t be used for a restore. Check that it\'s the one you used before.</string>
+    <plurals name="notes_mints">
         <item quantity="one">%1$d provider</item>
         <item quantity="other">%1$d providers</item>
     </plurals>
     <string name="notes_move_title">Move to another provider</string>
     <string name="notes_move_target">Provider, e.g. example.com</string>
-    <string name="notes_problem_different_services">Select notes with one provider.</string>
+    <string name="notes_problem_different_mints">Select notes with one provider.</string>
     <string name="addresses_add_elsewhere">Add an address with another provider</string>
     <string name="settings_strategy_single_hint">Combine all notes into one per provider. Free.</string>
-    <string name="service_title">Provider</string>
+    <string name="mint_title">Provider</string>
     <string name="about_body">A Lightning wallet that keeps your money as notes with a provider you choose. Your recovery phrase stays on this device.</string>
     <string name="notes_collect_search">Move everything to your provider</string>
     <string name="mints_intro">Trust a provider by its signing key: notes from trusted providers are marked with a check. If a provider ever signs with a different key, it is no longer trusted.</string>

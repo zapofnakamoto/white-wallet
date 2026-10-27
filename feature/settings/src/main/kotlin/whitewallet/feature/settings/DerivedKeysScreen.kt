@@ -300,7 +300,7 @@ fun DerivedKeysScreen(
                 }
             }
             item { IndexCard(state, rotate.onAskAll, index) }
-            if (state.host == null) item { Text(stringResource(R.string.keys_no_service), modifier = Modifier.padding(16.dp)) }
+            if (state.host == null) item { Text(stringResource(R.string.keys_no_mint), modifier = Modifier.padding(16.dp)) }
             items(state.keys, key = { it.id.index }) { key ->
                 KeyRow(
                     key, expanded = state.expanded == key.id.index, busy = state.busy, onToggle = { onToggle(key.id.index) },
@@ -345,7 +345,7 @@ private fun IndexCard(state: DerivedKeysState, onRotateAll: () -> Unit, index: I
                 WalletButton(kind = ButtonKind.Secondary, onClick = index.onFind, enabled = enabled) { Text(stringResource(R.string.keys_find_index)) }
                 WalletButton(kind = ButtonKind.Secondary, onClick = index.onOpenSet, enabled = enabled) { Text(stringResource(R.string.keys_set_index)) }
                 if (state.rotatable.isNotEmpty()) {
-                    WalletButton(kind = ButtonKind.Secondary, onClick = onRotateAll, enabled = enabled) { Text(stringResource(R.string.keys_rotate_all, state.rotatable.size)) }
+                    WalletButton(kind = ButtonKind.Secondary, onClick = onRotateAll, enabled = enabled) { Text(stringResource(R.string.keys_renew_all, state.rotatable.size)) }
                 }
             }
         }
@@ -425,21 +425,21 @@ class RotateActions(val onAsk: (Long) -> Unit, val onAskAll: () -> Unit, val onC
 @Composable
 private fun RotateDialog(request: RotateRequest, purposes: List<Int>, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     val (title, body) = when (request) {
-        is RotateRequest.One -> stringResource(R.string.keys_rotate_title) to stringResource(
-            R.string.keys_rotate_body,
+        is RotateRequest.One -> stringResource(R.string.keys_renew_title) to stringResource(
+            R.string.keys_renew_body,
             formatAmount(request.key.noteAmountMsat ?: 0),
             request.key.id.index,
             stringResource(purposes[request.key.id.purpose]),
             request.nextWalletIndex,
         )
-        is RotateRequest.All -> stringResource(R.string.keys_rotate_all_title, request.count) to
-            stringResource(R.string.keys_rotate_all_body, formatAmount(request.totalMsat), request.nextWalletIndex)
+        is RotateRequest.All -> stringResource(R.string.keys_renew_all_title, request.count) to
+            stringResource(R.string.keys_renew_all_body, formatAmount(request.totalMsat), request.nextWalletIndex)
     }
     WalletDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(body) },
-        confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = onConfirm) { Text(stringResource(R.string.keys_rotate)) } },
+        confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = onConfirm) { Text(stringResource(R.string.keys_renew)) } },
         dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.backup_cancel)) } },
     )
 }
@@ -448,13 +448,13 @@ private fun RotateDialog(request: RotateRequest, purposes: List<Int>, onConfirm:
 private fun RotateOutcomeText(outcome: RotateOutcome) {
     val (text, error) = when (outcome) {
         is RotateOutcome.One -> when (val r = outcome.result) {
-            is RotateResult.Rotated -> stringResource(R.string.keys_rotated, formatAmount(r.amountMsat), r.fromIndex, r.toIndex) to false
-            is RotateResult.Failed -> stringResource(R.string.keys_rotate_failed, r.reason ?: "") to true
-            RotateResult.Pending -> stringResource(R.string.keys_rotate_pending) to false
-            is RotateResult.NotRotatable -> stringResource(R.string.keys_rotate_not_possible, r.reason) to true
+            is RotateResult.Rotated -> stringResource(R.string.keys_renewed, formatAmount(r.amountMsat), r.fromIndex, r.toIndex) to false
+            is RotateResult.Failed -> stringResource(R.string.keys_renew_failed, r.reason ?: "") to true
+            RotateResult.Pending -> stringResource(R.string.keys_renew_pending) to false
+            is RotateResult.NotRotatable -> stringResource(R.string.keys_renew_not_possible, r.reason) to true
         }
         is RotateOutcome.All -> outcome.result.let { r ->
-            val summary = stringResource(R.string.keys_rotated_all, r.rotated, formatAmount(r.totalMsat), r.failed, r.pending)
+            val summary = stringResource(R.string.keys_renewed_all, r.rotated, formatAmount(r.totalMsat), r.failed, r.pending)
             (r.stoppedEarly?.let { summary + "\n" + stringResource(R.string.keys_scan_stopped, it) } ?: summary) to (r.failed > 0 || r.stoppedEarly != null)
         }
     }
@@ -489,7 +489,7 @@ private fun KeyRow(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 WalletButton(kind = ButtonKind.Text, onClick = onRecheck, enabled = !busy) { Text(stringResource(R.string.keys_recheck)) }
                 if (key.noteState == NoteState.Outstanding) {
-                    WalletButton(kind = ButtonKind.Text, onClick = onRotate, enabled = !busy) { Text(stringResource(R.string.keys_rotate)) }
+                    WalletButton(kind = ButtonKind.Text, onClick = onRotate, enabled = !busy) { Text(stringResource(R.string.keys_renew)) }
                 }
                 WalletButton(kind = ButtonKind.Text, onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("cp1", key.cp1))) } }) {
                     Text(stringResource(R.string.logs_copy))

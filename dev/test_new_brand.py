@@ -110,8 +110,8 @@ class LogoTest(unittest.TestCase):
 class BrandDirectoryTest(unittest.TestCase):
     def test_every_language_gets_the_same_brand_terms(self):
         english = [name for name, _ in nb.brand_terms("values")]
-        self.assertIn("onboarding_service", english)
-        self.assertIn("notes_services", english)  # plurals count too
+        self.assertIn("onboarding_mint", english)
+        self.assertIn("notes_mints", english)  # plurals count too
         for qualifier in nb.languages():
             with self.subTest(qualifier):
                 self.assertEqual(english, [name for name, _ in nb.brand_terms(qualifier)])

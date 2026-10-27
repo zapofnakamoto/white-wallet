@@ -5,12 +5,12 @@
       uses another word overrides exactly these, per language, in brand/res/values*/strings.xml. All other strings
       are written without that word. See docs/WHITE_LABEL.md.
     -->
-    <string name="onboarding_service">Mint</string>
-    <string name="onboarding_service_custom_host">Mint address</string>
-    <string name="onboarding_custody">Your funds are held by the mint you choose. Keep amounts small.</string>
+    <string name="onboarding_mint">Mint</string>
+    <string name="onboarding_mint_address">Mint address</string>
+    <string name="onboarding_mint_custody">Your funds are held by the mint you choose. Keep amounts small.</string>
     <string name="onboarding_add_elsewhere_title">Address on another mint</string>
     <string name="onboarding_add_elsewhere_body">A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is.</string>
-    <string name="restore_error_service">This mint can\'t be used for a restore. Check that it\'s the one you used before.</string>
+    <string name="restore_error_mint">This mint can\'t be used for a restore. Check that it\'s the one you used before.</string>
 
     <string name="onboarding_tagline">Bearer notes on Lightning. Ready in one tap.</string>
     <string name="onboarding_username">Your name</string>
@@ -42,12 +42,12 @@
     <string name="claimed_copy">Copy address</string>
     <string name="claimed_copied">Copied</string>
     <string name="claimed_continue">Continue</string>
-    <string name="onboarding_service_custom">Custom…</string>
-    <string name="onboarding_service_local">Local regtest mint (developer mode)</string>
+    <string name="onboarding_mint_custom">Custom…</string>
+    <string name="onboarding_mint_local">Local regtest mint (developer mode)</string>
     <string name="onboarding_add_body">Another name for this account on %1$s. Payments to any of its addresses arrive in the same balance.</string>
     <string name="onboarding_change_body">Pick the name people will use to pay you on %1$s.</string>
     <string name="onboarding_error_registration">The address wasn\'t registered: %1$s</string>
-    <string name="onboarding_error_service">Can\'t be used: %1$s</string>
+    <string name="onboarding_error_mint">Can\'t be used: %1$s</string>
     <plurals name="onboarding_error_limit">
         <item quantity="one">This account already has %1$d address here, the most this app allows.</item>
         <item quantity="other">This account already has %1$d addresses here, the most this app allows.</item>

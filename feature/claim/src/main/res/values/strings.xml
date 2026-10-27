@@ -15,7 +15,7 @@
     <string name="claim_scan_cancel">Cancel</string>
     <string name="claim_check">Check note</string>
     <string name="claim_action">Claim %1$s</string>
-    <string name="claim_service">On %1$s</string>
+    <string name="claim_mint">On %1$s</string>
     <string name="claim_bearer_warning">Until you claim it, whoever gave you this link can still spend it.</string>
     <string name="claim_invalid">Not a valid note: %1$s</string>
     <string name="claim_spent">This note has already been spent.</string>
@@ -24,7 +24,7 @@
     <string name="claim_finish">Done</string>
     <string name="claim_certified">Certified: the amount is signed</string>
     <string name="claim_not_certified">Not certified: the amount can\'t be verified.</string>
-    <string name="claim_other_service">This note is held by %1$s and stays there.</string>
+    <string name="claim_other_mint">This note is held by %1$s and stays there.</string>
     <string name="claim_network">Couldn\'t connect: %1$s</string>
     <string name="claim_failed">The claim was refused: %1$s</string>
     <string name="claim_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>

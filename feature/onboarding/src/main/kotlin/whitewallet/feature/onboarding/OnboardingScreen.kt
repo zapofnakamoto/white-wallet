@@ -200,7 +200,7 @@ fun OnboardingScreen(
             }
             onRestore?.let { WalletButton(kind = ButtonKind.Text, onClick = it, enabled = !state.busy) { Text(stringResource(R.string.onboarding_restore)) } }
             Text(
-                stringResource(R.string.onboarding_custody),
+                stringResource(R.string.onboarding_mint_custody),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -271,7 +271,7 @@ private fun ErrorText(state: OnboardingState) {
         val message = when (error) {
             is OnboardingError.Username -> stringResource(R.string.onboarding_error_username, error.detail)
             is OnboardingError.Registration -> stringResource(R.string.onboarding_error_registration, error.detail)
-            is OnboardingError.Service -> stringResource(R.string.onboarding_error_service, error.detail)
+            is OnboardingError.Service -> stringResource(R.string.onboarding_error_mint, error.detail)
             is OnboardingError.Network -> stringResource(R.string.onboarding_error_network, error.detail)
             is OnboardingError.Limit -> pluralStringResource(R.plurals.onboarding_error_limit, error.limit, error.limit)
             is OnboardingError.AccountLimit -> pluralStringResource(R.plurals.onboarding_error_account_limit, error.limit, error.limit)
@@ -297,7 +297,7 @@ internal fun ServicePicker(
             value = optionLabel(selected),
             onValueChange = {},
             readOnly = true,
-            label = { Text(stringResource(R.string.onboarding_service)) },
+            label = { Text(stringResource(R.string.onboarding_mint)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             textStyle = small,
             singleLine = true,
@@ -311,7 +311,7 @@ internal fun ServicePicker(
                         Column {
                             Text(optionLabel(option), style = small)
                             if (option is ServiceOption.LocalDev) {
-                                Text(stringResource(R.string.onboarding_service_local), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.onboarding_mint_local), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     },
@@ -327,7 +327,7 @@ internal fun ServicePicker(
         WalletTextField(
             value = customHost,
             onValueChange = service.onCustomHost,
-            label = { Text(stringResource(R.string.onboarding_service_custom_host)) },
+            label = { Text(stringResource(R.string.onboarding_mint_address)) },
             placeholder = { Text("mint.example.com", style = small) },
             textStyle = small,
             singleLine = true,
@@ -339,7 +339,7 @@ internal fun ServicePicker(
 }
 
 @Composable
-private fun optionLabel(option: ServiceOption): String = option.host ?: stringResource(R.string.onboarding_service_custom)
+private fun optionLabel(option: ServiceOption): String = option.host ?: stringResource(R.string.onboarding_mint_custom)
 
 @Composable
 private fun AvailabilityText(availability: Availability) {

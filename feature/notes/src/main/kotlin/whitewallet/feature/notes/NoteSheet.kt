@@ -175,11 +175,11 @@ private fun quoteProblemText(quote: ServiceMoveQuote.Invalid): String {
 internal fun problemText(problem: NoteProblem): String = stringResource(
     when (problem) {
         NoteProblem.NotFound -> R.string.notes_problem_not_found
-        NoteProblem.DifferentServices -> R.string.notes_problem_different_services
+        NoteProblem.DifferentServices -> R.string.notes_problem_different_mints
         NoteProblem.TooFewNotes -> R.string.notes_problem_too_few
         NoteProblem.InvalidAmount -> R.string.notes_problem_invalid_amount
-        NoteProblem.SameService -> R.string.notes_problem_same_service
-        NoteProblem.ServiceInvalid -> R.string.notes_problem_service_invalid
+        NoteProblem.SameService -> R.string.notes_problem_same_mint
+        NoteProblem.ServiceInvalid -> R.string.notes_problem_mint_invalid
         NoteProblem.Unreachable -> R.string.notes_problem_unreachable
         NoteProblem.BelowMinimum -> R.string.notes_problem_below_minimum
         NoteProblem.AboveMaximum -> R.string.notes_problem_above_maximum

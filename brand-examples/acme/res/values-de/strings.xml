@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Acme's brand term in German: "Anbieter", as whole sentences. -->
 <resources>
-    <string name="onboarding_service">Anbieter</string>
-    <string name="onboarding_service_custom_host">Adresse des Anbieters</string>
-    <string name="onboarding_custody">Dein Guthaben verwahrt Acme. Halte die Beträge klein.</string>
+    <string name="onboarding_mint">Anbieter</string>
+    <string name="onboarding_mint_address">Adresse des Anbieters</string>
+    <string name="onboarding_mint_custody">Dein Guthaben verwahrt Acme. Halte die Beträge klein.</string>
     <string name="settings_home_mint">Anbieter</string>
     <string name="addresses_home_mint">Anbieter: %1$s</string>
     <string name="claim_home_mint">Auf %1$s, deinem Anbieter</string>
     <string name="notes_home_mint">Anbieter</string>
     <string name="settings_mints">Anbieter</string>
-    <string name="service_change_home">Anbieter wechseln</string>
-    <string name="service_make_home">Zu meinem Anbieter machen</string>
+    <string name="mint_change_home">Anbieter wechseln</string>
+    <string name="mint_make_home">Zu meinem Anbieter machen</string>
     <string name="settings_account_mints">Deine Anbieter</string>
-    <string name="mints_home_of">Anbieter von %1$s</string>
-    <string name="mints_remove">Anbieter entfernen</string>
-    <string name="activity_moved_service_other">Zu einem anderen Anbieter verschoben</string>
+    <string name="mints_home_mint_of">Anbieter von %1$s</string>
+    <string name="mints_remove_mint">Anbieter entfernen</string>
+    <string name="activity_moved_mint_other">Zu einem anderen Anbieter verschoben</string>
     <string name="onboarding_add_elsewhere_title">Adresse bei einem anderen Anbieter</string>
     <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einem anderen Anbieter, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei diesem Anbieter an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
-    <string name="restore_error_service">Dieser Anbieter geht für eine Wiederherstellung nicht. Prüfe, ob es der ist, den du vorher benutzt hast.</string>
-    <plurals name="notes_services">
+    <string name="restore_error_mint">Dieser Anbieter geht für eine Wiederherstellung nicht. Prüfe, ob es der ist, den du vorher benutzt hast.</string>
+    <plurals name="notes_mints">
         <item quantity="one">%1$d Anbieter</item>
         <item quantity="other">%1$d Anbieter</item>
     </plurals>
     <string name="notes_move_title">Zu einem anderen Anbieter verschieben</string>
     <string name="notes_move_target">Anbieter, z. B. example.com</string>
-    <string name="notes_problem_different_services">Wähle Scheine bei einem einzigen Anbieter aus.</string>
+    <string name="notes_problem_different_mints">Wähle Scheine bei einem einzigen Anbieter aus.</string>
     <string name="addresses_add_elsewhere">Adresse bei einem anderen Anbieter hinzufügen</string>
     <string name="settings_strategy_single_hint">Alle Scheine zu einem pro Anbieter zusammenlegen. Kostenlos.</string>
-    <string name="service_title">Anbieter</string>
+    <string name="mint_title">Anbieter</string>
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einem Anbieter deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
     <string name="notes_collect_search">Alles zu deinem Anbieter verschieben</string>
     <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Scheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut.</string>

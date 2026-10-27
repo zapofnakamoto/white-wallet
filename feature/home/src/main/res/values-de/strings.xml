@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand term (see values/strings.xml). -->
-    <string name="activity_moved_service_other">Zu einer anderen Mint verschoben</string>
+    <string name="activity_moved_mint_other">Zu einer anderen Mint verschoben</string>
 
     <string name="home_receive">Empfangen</string>
     <string name="home_send">Senden</string>
@@ -30,13 +30,13 @@
         <item quantity="one">%1$d Schein zusammengelegt</item>
         <item quantity="other">%1$d Scheine zusammengelegt</item>
     </plurals>
-    <string name="activity_rotated">Auf einen neuen Schlüssel verschoben</string>
+    <string name="activity_renewed">Auf einen neuen Schlüssel verschoben</string>
     <string name="activity_split">Einen Schein in zwei geteilt</string>
     <string name="activity_sent_note">Schein verschickt</string>
     <string name="activity_note_waiting">Noch nicht eingelöst</string>
     <string name="activity_note_redeemed">Eingelöst</string>
     <string name="activity_note_taken_back">Zurückgeholt</string>
-    <string name="activity_moved_service">Zu %1$s verschoben</string>
+    <string name="activity_moved_mint">Zu %1$s verschoben</string>
     <string name="activity_amount_in">+%1$s</string>
     <string name="activity_amount_out">−%1$s</string>
     <string name="activity_pending">Wird bestätigt …</string>
@@ -75,7 +75,7 @@
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Scheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="move_pending">Noch nicht bestätigt. Deine Wallet prüft beim nächsten Aktualisieren erneut.</string>
     <string name="move_insufficient">Nicht genug Guthaben für diesen Betrag samt Gebühren.</string>
-    <string name="move_split_services">Dein Guthaben liegt an verschiedenen Orten. Verschiebe einen kleineren Betrag oder alles.</string>
+    <string name="move_split_mints">Dein Guthaben liegt an verschiedenen Orten. Verschiebe einen kleineren Betrag oder alles.</string>
     <string name="move_failed">Abgelehnt: %1$s</string>
     <string name="home_key_changed_title">%1$s hat seinen Signaturschlüssel geändert</string>
     <string name="home_key_changed_body">Deine Wallet arbeitet nicht mehr damit, es wird also nichts dorthin gesendet. Deine Scheine dort sind unverändert. Öffne die Details, um den neuen Schlüssel zu sehen und zu entscheiden, ob du ihn verwendest.</string>

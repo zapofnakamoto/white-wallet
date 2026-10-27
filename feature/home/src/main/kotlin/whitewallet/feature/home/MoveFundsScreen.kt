@@ -91,7 +91,7 @@ private fun ResultText(result: MoveResult) {
         MoveResult.Pending -> stringResource(R.string.move_pending) to false
         is MoveResult.Failed -> when (result.reason) {
             MoveFailure.InsufficientFunds -> stringResource(R.string.move_insufficient)
-            MoveFailure.SplitAcrossServices -> stringResource(R.string.move_split_services)
+            MoveFailure.SplitAcrossServices -> stringResource(R.string.move_split_mints)
             MoveFailure.NothingToMove -> stringResource(R.string.move_nothing)
             else -> stringResource(R.string.move_failed, result.detail ?: result.reason.name)
         } to true

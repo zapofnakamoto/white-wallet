@@ -96,7 +96,7 @@ fun RestoreScreen(
                 val message = when (error) {
                     is RestoreError.AlreadyInWallet -> stringResource(R.string.restore_error_already, error.accountName)
                     is RestoreError.AccountLimit -> pluralStringResource(R.plurals.restore_error_account_limit, error.limit, error.limit)
-                    RestoreError.Service -> stringResource(R.string.restore_error_service)
+                    RestoreError.Service -> stringResource(R.string.restore_error_mint)
                     RestoreError.Network -> stringResource(R.string.restore_error_network)
                 }
                 Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)

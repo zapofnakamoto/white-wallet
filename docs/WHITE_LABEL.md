@@ -54,19 +54,19 @@ The app calls the party that holds users' funds a **mint**. Nearly all text is w
 
 | String | Default (en) |
 |---|---|
-| `onboarding_service` | Mint |
-| `onboarding_service_custom_host` | Mint address |
-| `onboarding_custody` | Your funds are held by the mint you choose. Keep amounts small. |
+| `onboarding_mint` | Mint |
+| `onboarding_mint_address` | Mint address |
+| `onboarding_mint_custody` | Your funds are held by the mint you choose. Keep amounts small. |
 | `settings_home_mint` | Home mint |
 | `addresses_home_mint` | Home mint: %1$s |
 | `claim_home_mint` | On %1$s, your home mint |
 | `notes_home_mint` | Home mint |
 | `settings_mints` | Mints |
-| `service_change_home` | Change home mint |
-| `service_make_home` | Make this my home mint |
+| `mint_change_home` | Change home mint |
+| `mint_make_home` | Make this my home mint |
 | `settings_account_mints` | Your mints |
-| `mints_home_of` | Home mint of %1$s |
-| `mints_remove` | Remove mint |
+| `mints_home_mint_of` | Home mint of %1$s |
+| `mints_remove_mint` | Remove mint |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 

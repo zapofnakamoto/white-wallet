@@ -11,7 +11,7 @@
     <string name="claim_scan_cancel">Abbrechen</string>
     <string name="claim_check">Schein prüfen</string>
     <string name="claim_action">%1$s einlösen</string>
-    <string name="claim_service">Auf %1$s</string>
+    <string name="claim_mint">Auf %1$s</string>
     <string name="claim_bearer_warning">Bis du ihn einlöst, kann jeder, der dir diesen Link gegeben hat, ihn noch ausgeben.</string>
     <string name="claim_invalid">Kein gültiger Schein: %1$s</string>
     <string name="claim_spent">Dieser Schein wurde bereits ausgegeben.</string>
@@ -20,7 +20,7 @@
     <string name="claim_finish">Fertig</string>
     <string name="claim_certified">Zertifiziert: Der Betrag ist signiert</string>
     <string name="claim_not_certified">Nicht zertifiziert: Der Betrag lässt sich nicht prüfen.</string>
-    <string name="claim_other_service">Dieser Schein liegt bei %1$s und bleibt dort.</string>
+    <string name="claim_other_mint">Dieser Schein liegt bei %1$s und bleibt dort.</string>
     <string name="claim_network">Keine Verbindung: %1$s</string>
     <string name="claim_failed">Das Einlösen wurde abgelehnt: %1$s</string>
     <string name="claim_pending">Noch nicht bestätigt. Deine Wallet prüft beim nächsten Aktualisieren erneut.</string>

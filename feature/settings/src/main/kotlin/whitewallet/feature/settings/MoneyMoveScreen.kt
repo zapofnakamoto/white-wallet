@@ -306,9 +306,9 @@ fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, view
 fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMoveActions) {
     val title = stringResource(
         when (state.mode) {
-            MoneyMoveMode.ChangeHome -> R.string.service_change_home
+            MoneyMoveMode.ChangeHome -> R.string.mint_change_home
             MoneyMoveMode.Move -> R.string.money_move_title
-            MoneyMoveMode.MoveHome -> R.string.service_move_all_here
+            MoneyMoveMode.MoveHome -> R.string.mint_move_all_here
         },
     )
     Scaffold(topBar = { WalletTopBar(title, onClose.takeIf { state.outcome == null && !state.busy }) }) { padding ->
@@ -416,7 +416,7 @@ private fun ErrorText(error: MoneyMoveError) {
     val text = when (error) {
         is MoneyMoveError.Name -> stringResource(R.string.money_error_name, error.detail)
         is MoneyMoveError.Registration -> stringResource(R.string.money_error_registration, error.detail)
-        is MoneyMoveError.Service -> stringResource(R.string.money_error_service, error.detail)
+        is MoneyMoveError.Service -> stringResource(R.string.money_error_mint, error.detail)
         is MoneyMoveError.Network -> stringResource(R.string.money_error_network, error.detail)
     }
     Text(text, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
@@ -442,12 +442,12 @@ private fun ReviewContent(preview: MovePreview, state: MoneyMoveState, actions: 
             PrimaryButton(stringResource(R.string.money_change_and_move, formatAmount(moving)), { actions.onConfirm(true) }, busy = state.busy)
             if (!state.collects) {
                 WalletButton(kind = ButtonKind.Secondary, onClick = { actions.onConfirm(false) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.service_change_home))
+                    Text(stringResource(R.string.mint_change_home))
                 }
                 Text(stringResource(R.string.money_review_stays_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             }
         }
-        else -> PrimaryButton(stringResource(R.string.service_change_home), { actions.onConfirm(false) }, busy = state.busy)
+        else -> PrimaryButton(stringResource(R.string.mint_change_home), { actions.onConfirm(false) }, busy = state.busy)
     }
     WalletButton(kind = ButtonKind.Text, onClick = actions.onBack, enabled = !state.busy) { Text(stringResource(R.string.money_back)) }
 }

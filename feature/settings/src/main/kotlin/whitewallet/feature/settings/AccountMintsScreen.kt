@@ -59,7 +59,7 @@ fun AccountMintsScreen(mints: List<AccountMint>, onBack: () -> Unit, onOpen: (St
                     supportingContent = {
                         Column {
                             if (mint.isHome) Text(stringResource(R.string.settings_home_mint), style = hint, color = MaterialTheme.colorScheme.primary)
-                            Text(pluralStringResource(R.plurals.service_balance, mint.noteCount, formatAmount(mint.balanceMsat), mint.noteCount), style = hint)
+                            Text(pluralStringResource(R.plurals.mint_balance, mint.noteCount, formatAmount(mint.balanceMsat), mint.noteCount), style = hint)
                             if (mint.addresses > 0) Text(pluralStringResource(R.plurals.account_mints_addresses, mint.addresses, mint.addresses), style = hint)
                         }
                     },

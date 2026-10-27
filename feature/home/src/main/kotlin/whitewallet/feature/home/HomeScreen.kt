@@ -374,12 +374,12 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
         ActivityKind.MovedOut -> activity.counterparty?.let { stringResource(R.string.activity_moved_out, it) } ?: stringResource(R.string.activity_moved_out_other)
         ActivityKind.MovedIn -> activity.counterparty?.let { stringResource(R.string.activity_moved_in, it) } ?: stringResource(R.string.activity_moved_in_other)
         ActivityKind.Combined -> (activity.noteCount ?: 0).let { pluralStringResource(R.plurals.activity_combined, it, it) }
-        ActivityKind.Rotated -> stringResource(R.string.activity_rotated)
+        ActivityKind.Rotated -> stringResource(R.string.activity_renewed)
         ActivityKind.Sent -> activity.counterparty?.let { stringResource(R.string.activity_sent_to, it) } ?: stringResource(R.string.activity_sent)
         ActivityKind.Split -> stringResource(R.string.activity_split)
         ActivityKind.SentNote -> stringResource(R.string.activity_sent_note)
-        ActivityKind.MovedService -> activity.counterparty?.let { stringResource(R.string.activity_moved_service, it) }
-            ?: stringResource(R.string.activity_moved_service_other)
+        ActivityKind.MovedService -> activity.counterparty?.let { stringResource(R.string.activity_moved_mint, it) }
+            ?: stringResource(R.string.activity_moved_mint_other)
     }
     val (type, direction) = when (activity.kind) {
         ActivityKind.Received -> ActivityType.Received to MoneyDirection.In

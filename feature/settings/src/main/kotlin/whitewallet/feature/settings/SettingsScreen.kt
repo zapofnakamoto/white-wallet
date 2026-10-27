@@ -285,7 +285,7 @@ private fun SummaryRow(
 private fun notesSummary(state: SettingsState): String {
     val strategy = state.noteStrategy ?: return ""
     val title = stringResource(strategy.title)
-    val withRotate = if (state.autoRotate && !strategy.rotatesAddressNotes) stringResource(R.string.settings_notes_with_rotate, title) else title
+    val withRotate = if (state.autoRotate && !strategy.rotatesAddressNotes) stringResource(R.string.settings_notes_with_renew, title) else title
     val home = state.homeHost
     return if (state.collectAtHome && home != null) stringResource(R.string.settings_notes_with_collect, withRotate, home) else withRotate
 }

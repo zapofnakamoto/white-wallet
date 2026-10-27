@@ -147,9 +147,9 @@ private fun NotePolicySettings(state: NotesSettingsState, onNoteStrategy: (NoteS
     }
     val included = current.rotatesAddressNotes
     WalletListItem(
-        headlineContent = { Text(stringResource(R.string.settings_auto_rotate)) },
+        headlineContent = { Text(stringResource(R.string.settings_auto_renew)) },
         supportingContent = {
-            Text(if (included) stringResource(R.string.settings_auto_rotate_included, stringResource(current.title)) else stringResource(R.string.settings_auto_rotate_hint))
+            Text(if (included) stringResource(R.string.settings_auto_renew_included, stringResource(current.title)) else stringResource(R.string.settings_auto_renew_hint))
         },
         trailingContent = {
             WalletSwitch(checked = included || state.autoRotate, onCheckedChange = onAutoRotate, enabled = !included && !state.applyingPolicy)

@@ -129,7 +129,7 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
             AmountText(preview.amountMsat, Modifier.fillMaxWidth())
             // Without showMints, only what needs the user: an amount that can't be verified, and the bearer warning.
             if (showMints) {
-                Text(stringResource(if (preview.isOwnService) R.string.claim_home_mint else R.string.claim_service, preview.link.host), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(if (preview.isOwnService) R.string.claim_home_mint else R.string.claim_mint, preview.link.host), style = MaterialTheme.typography.bodyMedium)
                 // Trust is the user's own list (Settings → Mints), by signing key; nothing is blocked either way.
                 Text(
                     stringResource(if (preview.trusted) R.string.claim_trusted else R.string.claim_not_trusted),
@@ -144,7 +144,7 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
                     color = if (preview.certified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 )
             }
-            if (showMints && !preview.isOwnService) Text(stringResource(R.string.claim_other_service, preview.link.host), style = MaterialTheme.typography.bodySmall)
+            if (showMints && !preview.isOwnService) Text(stringResource(R.string.claim_other_mint, preview.link.host), style = MaterialTheme.typography.bodySmall)
             Text(stringResource(R.string.claim_bearer_warning), style = MaterialTheme.typography.bodySmall)
         }
     }

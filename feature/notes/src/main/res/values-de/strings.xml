@@ -2,13 +2,13 @@
 <resources>
     <!-- Brand term (see values/strings.xml). -->
     <string name="notes_home_mint">Haupt-Mint</string>
-    <plurals name="notes_services">
+    <plurals name="notes_mints">
         <item quantity="one">%1$d Mint</item>
         <item quantity="other">%1$d Mints</item>
     </plurals>
     <string name="notes_move_title">Zu einer anderen Mint verschieben</string>
     <string name="notes_move_target">Mint, z. B. example.com</string>
-    <string name="notes_problem_different_services">Wähle Scheine bei einer einzigen Mint aus.</string>
+    <string name="notes_problem_different_mints">Wähle Scheine bei einer einzigen Mint aus.</string>
 
     <string name="notes_title">Scheine</string>
     <string name="notes_settings">Schein-Einstellungen</string>
@@ -78,8 +78,8 @@
     <string name="notes_problem_not_found">Diese Scheine haben sich inzwischen geändert. Wähle sie erneut aus.</string>
     <string name="notes_problem_too_few">Wähle mindestens zwei Scheine zum Zusammenlegen aus.</string>
     <string name="notes_problem_invalid_amount">Dieser Schein ist zu klein zum Teilen, oder der Betrag passt nicht.</string>
-    <string name="notes_problem_same_service">Die Scheine sind schon dort.</string>
-    <string name="notes_problem_service_invalid">Diese Adresse kann keine Scheine verwahren.</string>
+    <string name="notes_problem_same_mint">Die Scheine sind schon dort.</string>
+    <string name="notes_problem_mint_invalid">Diese Adresse kann keine Scheine verwahren.</string>
     <string name="notes_problem_unreachable">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts geändert.</string>
     <string name="notes_problem_below_minimum">Das ist zu wenig, um es dorthin zu verschieben.</string>
     <string name="notes_problem_above_maximum">Das ist zu viel, um es auf einmal dorthin zu verschieben.</string>

@@ -134,7 +134,7 @@ private fun MintRow(mint: MintInfo, onOpen: (String) -> Unit, onTrusted: (MintIn
         headlineContent = { Text(mint.host) },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (mint.homeOf.isNotEmpty()) Text(stringResource(R.string.mints_home_of, mint.homeOf.joinToString(", ")), style = hint, color = MaterialTheme.colorScheme.primary)
+                if (mint.homeOf.isNotEmpty()) Text(stringResource(R.string.mints_home_mint_of, mint.homeOf.joinToString(", ")), style = hint, color = MaterialTheme.colorScheme.primary)
                 Text(
                     mint.pubkey?.let { stringResource(R.string.mints_key, it.take(8) + "…" + it.takeLast(8)) } ?: stringResource(R.string.mints_no_key),
                     style = hint,

@@ -176,7 +176,7 @@ private fun Summary(state: NotesState) {
         if (state.noteCount > 0) {
             val parts = buildList {
                 add(pluralStringResource(R.plurals.notes_count, state.noteCount, state.noteCount))
-                if (state.mints.size > 1) add(pluralStringResource(R.plurals.notes_services, state.mints.size, state.mints.size))
+                if (state.mints.size > 1) add(pluralStringResource(R.plurals.notes_mints, state.mints.size, state.mints.size))
             }
             Text(parts.joinToString(stringResource(R.string.notes_detail_separator)), style = MaterialTheme.typography.bodyMedium)
         }

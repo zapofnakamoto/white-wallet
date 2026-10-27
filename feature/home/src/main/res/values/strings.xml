@@ -5,7 +5,7 @@
       uses another word overrides exactly these, per language, in brand/res/values*/strings.xml. All other strings
       are written without that word. See docs/WHITE_LABEL.md.
     -->
-    <string name="activity_moved_service_other">Moved to another mint</string>
+    <string name="activity_moved_mint_other">Moved to another mint</string>
 
     <string name="home_receive">Receive</string>
     <string name="home_send">Send</string>
@@ -34,13 +34,13 @@
         <item quantity="one">Combined %1$d note</item>
         <item quantity="other">Combined %1$d notes</item>
     </plurals>
-    <string name="activity_rotated">Moved onto a new key</string>
+    <string name="activity_renewed">Moved onto a new key</string>
     <string name="activity_split">Split a note in two</string>
     <string name="activity_sent_note">Sent a note</string>
     <string name="activity_note_waiting">Not redeemed yet</string>
     <string name="activity_note_redeemed">Redeemed</string>
     <string name="activity_note_taken_back">Taken back</string>
-    <string name="activity_moved_service">Moved to %1$s</string>
+    <string name="activity_moved_mint">Moved to %1$s</string>
     <string name="activity_amount_in">+%1$s</string>
     <string name="activity_amount_out">−%1$s</string>
     <string name="activity_pending">Confirming…</string>
@@ -81,7 +81,7 @@
     <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a note may cost a split fee.</string>
     <string name="move_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>
     <string name="move_insufficient">Not enough funds for this amount, including fees.</string>
-    <string name="move_split_services">Your funds are held in different places. Move a smaller amount, or everything.</string>
+    <string name="move_split_mints">Your funds are held in different places. Move a smaller amount, or everything.</string>
     <string name="move_failed">Refused: %1$s</string>
     <string name="home_key_changed_title">%1$s changed its signing key</string>
     <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it.</string>
