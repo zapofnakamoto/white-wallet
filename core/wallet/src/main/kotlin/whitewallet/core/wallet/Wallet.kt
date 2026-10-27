@@ -263,8 +263,25 @@ class Wallet(
     suspend fun setPrimaryAddress(address: RegisteredAddress) = lock.withLock {
         val id = activeId()
         check(store.addresses(id).first().any { it.username == address.username && it.host == address.host }) { "not an address of this account" }
-        check(address.host == store.account(id)?.host) { "the primary address is on the home mint" }
+        check(address.host == store.account(id)?.host) { "the primary address is on the home mint; use moveHome" }
         store.saveProfile(id, Profile(address.username, address.host))
+    }
+
+    /**
+     * Makes [address], one of the active account's addresses on another mint (see [addAddress]), the primary address
+     * and its mint the account's home: invoices are minted there from now on, and collecting at the home mint moves
+     * money there (the policies run right away). The old home mint stays trusted if it was, so the notes still held
+     * there don't turn untrusted with the move.
+     */
+    suspend fun moveHome(address: RegisteredAddress) = lock.withLock {
+        val id = activeId()
+        check(store.addresses(id).first().any { it.username == address.username && it.host == address.host }) { "not an address of this account" }
+        val account = checkNotNull(store.account(id)) { "no active account" }
+        check(address.host != account.host) { "already the home mint; use setPrimaryAddress" }
+        store.service(account.host)?.mintPubkey?.let { MintKey(account.host, it) }?.takeIf { isTrusted(it) }?.let { trust.setTrusted(it, true) }
+        store.saveAccount(account.copy(host = address.host))
+        store.saveProfile(id, Profile(address.username, address.host))
+        applyPolicies(id)
     }
 
     /** Frees one of the active account's addresses at its service. Never the primary one. */

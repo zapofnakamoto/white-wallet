@@ -9,6 +9,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - An empty wallet says how money gets in: a line under the ₿0 balance (not while the balance is hidden). Brands can
   reword it (`home_wallet_empty`).
+- With `allowServiceChange=true`, an address on another mint can become the primary address (Settings → Lightning
+  addresses → Make primary), which moves the account's home there: invoices are paid there from then on and, if the
+  account collects at its home mint, its money follows. The old home stays trusted. `Wallet.moveHome`.
 
 ## [0.3.0]
 

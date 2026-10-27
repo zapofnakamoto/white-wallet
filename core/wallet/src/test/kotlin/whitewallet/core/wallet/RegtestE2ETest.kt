@@ -229,6 +229,36 @@ class RegtestE2ETest {
     }
 
     @Test
+    fun `moving home to the second mint collects the money there, and the old address keeps working`() = runBlocking<Unit> {
+        val second = "localhost:8112"
+        val store = InMemoryWalletStore()
+        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID),
+            collectDefaults = CollectDefaults(enabled = true, feeCapPercent = 2))
+        suspend fun on(h: String) = store.notes(store.currentAccountId()!!).first().filter { it.host == h && it.state == NoteState.Outstanding }
+        val alice = name()
+        assertIs<OnboardResult.Ready>(wallet.onboard(alice, host))
+        regtest("pay", "$alice@$host", "3000")
+        wallet.refresh()
+        assertEquals(1, on(host).size)
+        val bob = name()
+        assertTrue(assertIs<OnboardResult.Ready>(wallet.addAddress(bob, limit = 1, host = second)).confirmed)
+
+        // The move runs the policies: the money on the old home goes to the new one over Lightning right away.
+        wallet.moveHome(wallet.addresses.first().single { it.address.host == second }.address)
+        assertEquals(second, wallet.homeHost.first())
+        assertEquals("$bob@$second", wallet.profile.first()?.address)
+        assertEquals(emptyList(), on(host), "nothing left on the old home")
+        assertEquals(host, wallet.lastPolicyRun.first()?.collected?.single()?.host, "collected from the old home")
+        assertEquals(1, on(second).size)
+
+        // A payment to the old address arrives on the old mint and is collected at the new home too.
+        regtest("pay", "$alice@$host", "3000")
+        wallet.refresh()
+        assertEquals(emptyList(), on(host))
+        assertEquals(2, on(second).size)
+    }
+
+    @Test
     fun `onboard, receive, claim, add an account, move funds, receive again`() = runBlocking<Unit> {
         val store = InMemoryWalletStore()
         val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))

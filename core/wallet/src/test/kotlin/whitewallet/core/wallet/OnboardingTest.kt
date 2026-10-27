@@ -251,6 +251,49 @@ class OnboardingTest {
     }
 
     @Test
+    fun `an address on another mint can become the primary one, which moves the home there`() = withService { _, homeHost ->
+        MockWebServer().use { server ->
+            server.dispatcher = FakeService(server, publishCpub = true, registrationEnabled = true)
+            server.start()
+            val otherHost = "localhost:${server.port}"
+            val wallet = wallet()
+            assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+            assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 1, host = otherHost))
+            assertTrue(wallet.mints.first().single { it.host == homeHost }.trusted)
+            val (alice, bob) = wallet.addresses.first().map { it.address }
+
+            assertFailsWith<IllegalStateException>("already home") { wallet.moveHome(alice) }
+            wallet.moveHome(bob)
+            assertEquals(otherHost, wallet.homeHost.first())
+            assertEquals("bob@$otherHost", wallet.profile.first()?.address)
+            assertEquals(listOf("alice@$homeHost" to false, "bob@$otherHost" to true), wallet.addresses.first().map { it.address.address to it.primary })
+            val mints = wallet.mints.first()
+            assertEquals(TrustDefault.Home, mints.single { it.host == otherHost }.trustedByDefault)
+            assertTrue(mints.single { it.host == homeHost }.trusted, "the old home stays trusted")
+
+            // And back: the old home's address is now one on another mint.
+            wallet.moveHome(alice)
+            assertEquals(homeHost, wallet.homeHost.first())
+            assertEquals("alice@$homeHost", wallet.profile.first()?.address)
+        }
+    }
+
+    @Test
+    fun `moving home keeps an old home the user untrusted untrusted`() = withService { _, homeHost ->
+        MockWebServer().use { server ->
+            server.dispatcher = FakeService(server, publishCpub = true, registrationEnabled = true)
+            server.start()
+            val otherHost = "localhost:${server.port}"
+            val wallet = wallet()
+            assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+            assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 1, host = otherHost))
+            wallet.setMintTrusted(homeHost, false)
+            wallet.moveHome(wallet.addresses.first().single { it.address.host == otherHost }.address)
+            assertFalse(wallet.mints.first().single { it.host == homeHost }.trusted)
+        }
+    }
+
+    @Test
     fun `without a home address, an address on another mint still isn't primary`() = withService { _, homeHost ->
         MockWebServer().use { server ->
             server.dispatcher = FakeService(server, publishCpub = true, registrationEnabled = true)

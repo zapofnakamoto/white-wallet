@@ -47,6 +47,11 @@
     <string name="addresses_unregister_failed">%1$s is still registered: %2$s</string>
     <string name="addresses_unregister_unknown">Couldn\'t confirm that %1$s was unregistered (%2$s). Check it again in a moment.</string>
     <string name="addresses_primary_changed">%1$s is now your primary address.</string>
+    <string name="addresses_move_home_title">Make %1$s your primary address?</string>
+    <string name="addresses_move_home_body">• Home and Receive show this address, and invoices you create are paid at %1$s.\n• Your other addresses keep working.</string>
+    <string name="addresses_move_home_collect">• Money at %1$s is moved to %2$s automatically, when that costs at most %3$d %%.</string>
+    <string name="addresses_move_home_stay">• Money at %1$s stays there, and stays yours.</string>
+    <string name="addresses_move_home_cancel">Cancel</string>
     <string name="service_home_hint">New addresses of this account are made here.</string>
     <string name="service_key_changed">%1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn\'t send or receive there. Your notes there are unchanged.</string>
     <string name="settings_home_mint_hint">%1$s · where your primary address and new addresses live</string>

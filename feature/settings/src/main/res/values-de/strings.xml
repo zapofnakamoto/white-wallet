@@ -43,6 +43,11 @@
     <string name="addresses_unregister_failed">%1$s ist noch registriert: %2$s</string>
     <string name="addresses_unregister_unknown">Es ließ sich nicht bestätigen, dass %1$s abgemeldet wurde (%2$s). Prüfe es gleich noch einmal.</string>
     <string name="addresses_primary_changed">%1$s ist jetzt deine Hauptadresse.</string>
+    <string name="addresses_move_home_title">%1$s zur Hauptadresse machen?</string>
+    <string name="addresses_move_home_body">• Startbildschirm und „Empfangen“ zeigen diese Adresse, und Rechnungen, die du erstellst, werden bei %1$s bezahlt.\n• Deine anderen Adressen funktionieren weiter.</string>
+    <string name="addresses_move_home_collect">• Geld bei %1$s wird automatisch zu %2$s verschoben, wenn das höchstens %3$d %% kostet.</string>
+    <string name="addresses_move_home_stay">• Geld bei %1$s bleibt dort und bleibt deins.</string>
+    <string name="addresses_move_home_cancel">Abbrechen</string>
     <string name="service_home_hint">Neue Adressen dieses Kontos entstehen hier.</string>
     <string name="service_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Scheine dort sind unverändert.</string>
     <string name="settings_home_mint_hint">%1$s · hier liegen deine Hauptadresse und neue Adressen</string>

@@ -69,6 +69,10 @@ data class AddressesState(
     val homeHost: String? = null,
     /** The brand lets users pick other mints (`allowServiceChange`), so addresses can be added on one too. */
     val otherServices: Boolean = false,
+    /** An address on another mint waiting for confirmation to become primary, which moves the home there. */
+    val confirmMove: RegisteredAddress? = null,
+    /** The fee cap in percent if the account collects at its home mint: then money follows a move. Null: it doesn't. */
+    val collectFeeCap: Int? = null,
 ) {
     /** Addresses on the home mint (the primary address's), where new ones are added. */
     val onPrimaryService: Int get() = entries.count { it.address.host == homeHost }
@@ -90,6 +94,7 @@ private data class AddressesUi(
     val checking: Set<String> = emptySet(),
     val busy: Boolean = false,
     val confirm: RegisteredAddress? = null,
+    val confirmMove: RegisteredAddress? = null,
     val message: AddressesMessage? = null,
 )
 
@@ -97,9 +102,10 @@ private data class AddressesUi(
 class AddressesViewModel @Inject constructor(private val wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
     private val ui = MutableStateFlow(AddressesUi())
     private val limit = combine(preferences.developerMode, preferences.maxAddressesPerService, defaults::addressLimit)
+    private val collectFeeCap = combine(wallet.collectAtHome, wallet.collectFeeCap) { on, cap -> cap.takeIf { on } }
 
-    val state: StateFlow<AddressesState> = combine(wallet.addresses, limit, ui, wallet.homeHost) { entries, limit, ui, home ->
-        AddressesState(entries, limit, ui.checking, ui.busy, ui.confirm, ui.message, home, defaults.allowServiceChange)
+    val state: StateFlow<AddressesState> = combine(wallet.addresses, limit, ui, wallet.homeHost, collectFeeCap) { entries, limit, ui, home, cap ->
+        AddressesState(entries, limit, ui.checking, ui.busy, ui.confirm, ui.message, home, defaults.allowServiceChange, ui.confirmMove, cap)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState())
 
     init {
@@ -120,9 +126,24 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
         }
     }
 
-    fun makePrimary(address: RegisteredAddress) = act {
-        wallet.setPrimaryAddress(address)
-        ui.update { it.copy(message = AddressesMessage.PrimaryChanged(address.address)) }
+    /** On the home mint right away; one on another mint moves the home there, so it asks first ([confirmMove]). */
+    fun makePrimary(address: RegisteredAddress) {
+        if (address.host != state.value.homeHost) return ui.update { it.copy(confirmMove = address, message = null) }
+        act {
+            wallet.setPrimaryAddress(address)
+            ui.update { it.copy(message = AddressesMessage.PrimaryChanged(address.address)) }
+        }
+    }
+
+    fun dismissMove() = ui.update { it.copy(confirmMove = null) }
+
+    fun confirmMove() {
+        val address = ui.value.confirmMove ?: return
+        ui.update { it.copy(confirmMove = null) }
+        act {
+            wallet.moveHome(address)
+            ui.update { it.copy(message = AddressesMessage.PrimaryChanged(address.address)) }
+        }
     }
 
     fun askUnregister(address: RegisteredAddress) = ui.update { it.copy(confirm = address, message = null) }
@@ -166,6 +187,8 @@ class AddressActions(
     val onCheck: (RegisteredAddress) -> Unit,
     val onMakePrimary: (RegisteredAddress) -> Unit,
     val onUnregister: (RegisteredAddress) -> Unit,
+    val onConfirmMove: () -> Unit = {},
+    val onDismissMove: () -> Unit = {},
 )
 
 @Composable
@@ -179,7 +202,7 @@ fun AddressesRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     AddressesScreen(
         state, onBack, onAdd, onChangePrimary, viewModel::checkAll,
-        AddressActions(viewModel::check, viewModel::makePrimary, viewModel::askUnregister),
+        AddressActions(viewModel::check, viewModel::makePrimary, viewModel::askUnregister, viewModel::confirmMove, viewModel::dismissMove),
         viewModel::confirmUnregister, viewModel::dismissUnregister, onAddElsewhere,
     )
 }
@@ -234,6 +257,7 @@ fun AddressesScreen(
         }
     }
     state.confirm?.let { UnregisterDialog(it, onConfirmUnregister, onDismissUnregister) }
+    state.confirmMove?.let { MoveHomeDialog(it, state, actions.onConfirmMove, actions.onDismissMove) }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -261,8 +285,8 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
                     Text(stringResource(R.string.addresses_copy))
                 }
                 if (!entry.primary) {
-                    // The primary address is always on the home mint.
-                    if (a.host == state.homeHost) {
+                    // The primary address is always on the home mint: one on another mint moves the home there.
+                    if (a.host == state.homeHost || state.otherServices) {
                         WalletButton(kind = ButtonKind.Text, onClick = { actions.onMakePrimary(a) }, enabled = !state.busy) { Text(stringResource(R.string.addresses_make_primary)) }
                     }
                     WalletButton(
@@ -361,6 +385,29 @@ private fun UnregisterDialog(address: RegisteredAddress, onConfirm: () -> Unit, 
             ) { Text(stringResource(R.string.addresses_unregister)) }
         },
         dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.addresses_keep)) } },
+    )
+}
+
+/** Making an address on another mint primary moves the account's home there, and maybe its money: said first. */
+@Composable
+private fun MoveHomeDialog(address: RegisteredAddress, state: AddressesState, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val old = state.homeHost.orEmpty()
+    WalletDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.addresses_move_home_title, address.address)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.addresses_move_home_body, address.host))
+                Text(
+                    state.collectFeeCap?.let { stringResource(R.string.addresses_move_home_collect, old, address.host, it) }
+                        ?: stringResource(R.string.addresses_move_home_stay, old),
+                )
+            }
+        },
+        confirmButton = {
+            WalletButton(kind = ButtonKind.Text, onClick = onConfirm) { Text(stringResource(R.string.addresses_make_primary)) }
+        },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.addresses_move_home_cancel)) } },
     )
 }
 
