@@ -63,7 +63,7 @@ import whitewallet.core.designsystem.R as DesignR
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
-import whitewallet.core.designsystem.WalletReleaseBadge
+import whitewallet.core.designsystem.WithReleaseBadge
 import whitewallet.core.designsystem.WalletSuggestionChip
 import whitewallet.core.designsystem.WalletTextField
 
@@ -185,8 +185,7 @@ fun OnboardingScreen(
                 return@ScreenColumn
             }
             BrandDecoration(Anchor.OnboardingHeader) { logo() }
-            BrandTitle(Anchor.OnboardingTitle, appName) { Text(appName, style = MaterialTheme.typography.headlineMedium) }
-            WalletReleaseBadge()
+            WithReleaseBadge { BrandTitle(Anchor.OnboardingTitle, appName) { Text(appName, style = MaterialTheme.typography.headlineMedium) } }
             Text(
                 stringResource(R.string.onboarding_tagline),
                 style = MaterialTheme.typography.bodyMedium,

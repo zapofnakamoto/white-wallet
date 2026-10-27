@@ -7,8 +7,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
-- An alpha or beta release says so: a badge by the version in About and under the name at setup, with a sentence on
-  what it means. The brand's `releaseStage` decides (`auto`, the default, is beta below 1.0.0); brands can reword it
+- An alpha or beta release says so: a badge beside the app's name (or the brand's wordmark) at setup and on the
+  wallet tab, and by the version in About, with a sentence on what it means at setup and in About. The brand's `releaseStage` decides (`auto`, the default, is beta below 1.0.0); brands can reword it
   through strings and restyle the badge (`ReleaseBadge`).
 
 ## [0.2.0]

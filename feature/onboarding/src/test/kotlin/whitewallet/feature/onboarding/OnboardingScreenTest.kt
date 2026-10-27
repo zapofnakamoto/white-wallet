@@ -147,7 +147,7 @@ class OnboardingScreenTest {
             @Composable
             override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
                 stage = context.releaseStage
-                default()
+                if (anchor == Anchor.OnboardingTitle) Text("wordmark") else default()
             }
         }
         compose.setContent {
@@ -158,6 +158,8 @@ class OnboardingScreenTest {
                 )
             }
         }
+        // The badge sits by the brand's own title, once.
+        compose.onNodeWithText("wordmark", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Alpha").assertExists()
         compose.onNodeWithText("This app is an alpha version: it is still being built and may have bugs.").performScrollTo().assertExists()
         // A brand drawing its own title knows the stage too.

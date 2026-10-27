@@ -1,5 +1,6 @@
 package whitewallet.feature.home
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -15,6 +16,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.brand.ReleaseStage
+import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
@@ -47,6 +50,25 @@ class HomeScreenTest {
         compose.onNodeWithText("₿845").performClick()
         compose.onNodeWithText("₿845").assertDoesNotExist()
         compose.onNodeWithText("••••••").assertExists()
+    }
+
+    @Test
+    fun aBetaCarriesItsBadgeInTheTitle() {
+        compose.setContent {
+            CompositionLocalProvider(LocalReleaseStage provides ReleaseStage.Beta) {
+                HomeScreen(
+                    "Wallet", HomeState(), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
+                    onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Beta").assertExists()
+    }
+
+    @Test
+    fun aStableReleaseHasNoBadgeInTheTitle() {
+        show(HomeState())
+        compose.onNodeWithText("Beta").assertDoesNotExist()
     }
 
     @Test

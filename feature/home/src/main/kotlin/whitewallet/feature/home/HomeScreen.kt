@@ -48,6 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.BrandTitle
+import whitewallet.core.designsystem.WithReleaseBadge
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.WalletStatus
@@ -162,8 +163,9 @@ fun HomeScreen(
                 if (menu.isNotEmpty()) MenuButton(menu)
             }
             if (tab == HomeTab.Wallet) {
-                // The wallet tab's title is the app's name, which a brand may draw as its wordmark.
-                WalletTopBar(title = { BrandTitle(Anchor.HomeTitle, title) { Text(title) } }, onBack = null, actions = actions)
+                // The wallet tab's title is the app's name, which a brand may draw as its wordmark; an alpha or beta
+                // carries its badge.
+                WalletTopBar(title = { WithReleaseBadge(centered = false) { BrandTitle(Anchor.HomeTitle, title) { Text(title) } } }, onBack = null, actions = actions)
             } else {
                 WalletTopBar(title, actions = actions)
             }
