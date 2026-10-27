@@ -252,7 +252,7 @@
     </plurals>
     <string name="developer_max_addresses">Lightning addresses per host</string>
     <string name="developer_max_addresses_hint">How many addresses an account may register on one host. Back to 1 when developer mode is off.</string>
-    <string name="search_kw_addresses">lightning address, receive, name, username, check, validate, status, home, mint, custodian, service, host</string>
+    <string name="search_kw_addresses">lightning address, receive, name, username, check, validate, status, home, mint, custodian, mint, host</string>
     <plurals name="delete_unresolved">
         <item quantity="one">%1$d operation is still being confirmed. Deleting now may lose it.</item>
         <item quantity="other">%1$d operations are still being confirmed. Deleting now may lose them.</item>
@@ -299,7 +299,7 @@
     <string name="mint_show">Show</string>
     <string name="mint_hide">Hide</string>
     <string name="mint_copy">Copy</string>
-    <string name="search_kw_mint">mint, service, server, fees, limits, signing key, website, reachable</string>
+    <string name="search_kw_mint">mint, mint, server, fees, limits, signing key, website, reachable</string>
     <string name="search_kw_watch_only">watch only, xpub, cx1, export, public key, view</string>
 
     <string name="security_title">Security</string>
@@ -346,7 +346,7 @@
         <item quantity="one">%1$d known, %2$d trusted</item>
         <item quantity="other">%1$d known, %2$d trusted</item>
     </plurals>
-    <string name="search_kw_mints">trust, trusted, key, signing key, service, custodian</string>
+    <string name="search_kw_mints">trust, trusted, key, signing key, mint, custodian</string>
     <string name="about_developer_unlocked">Developer options are now in Settings.</string>
     <plurals name="about_developer_taps">
         <item quantity="one">%1$d more tap to show developer options</item>

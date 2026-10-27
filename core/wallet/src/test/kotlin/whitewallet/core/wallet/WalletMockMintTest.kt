@@ -38,17 +38,17 @@ class WalletMockMintTest {
     private suspend fun wallet(mint: MockMint, store: InMemoryWalletStore = InMemoryWalletStore(), client: LnurlcashClient = LnurlcashClient()): Wallet {
         val wallet = Wallet(store, InMemorySeedStore(mapOf(ACCOUNT to words)), client)
         store.addAccount(ACCOUNT, "Main", Profile("alice", mint.host))
-        assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+        assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
         return wallet
     }
 
     @Test
-    fun `connecting pins the service key`() = runBlocking<Unit> {
+    fun `connecting pins the mint key`() = runBlocking<Unit> {
         MockMint.start().use { mint ->
             val store = InMemoryWalletStore()
             wallet(mint, store)
-            val service = assertNotNull(store.serviceMap[mint.host])
-            assertEquals("034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa", service.mintPubkey)
+            val known = assertNotNull(store.mintMap[mint.host])
+            assertEquals("034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa", known.mintPubkey)
         }
     }
 
@@ -80,7 +80,7 @@ class WalletMockMintTest {
             val preview = assertIs<ClaimPreview.Ready>(wallet.previewClaim("lightning:lnurlw://${mint.host}/w?k1=${bearer.k1}&amount=21000"))
             assertEquals(21_000, preview.amountMsat)
             assertTrue(preview.certified)
-            assertTrue(preview.isOwnService)
+            assertTrue(preview.isOwnMint)
 
             val claimed = assertIs<ClaimResult.Claimed>(wallet.claim(preview))
             assertEquals(21_000, claimed.amountMsat)
@@ -109,15 +109,15 @@ class WalletMockMintTest {
     }
 
     @Test
-    fun `a prepared entry that never reached the service is rejected on refresh`() = runBlocking<Unit> {
+    fun `a prepared entry that never reached the mint is rejected on refresh`() = runBlocking<Unit> {
         MockMint.start().use { mint ->
             val store = InMemoryWalletStore()
             val wallet = wallet(mint, store)
             val bearer = Spend.Bearer(ByteVector32(Hex.decode("44".repeat(32))))
             mint.credit(bearer.h.toHex(), 3_000)
-            val service = assertNotNull(store.serviceMap[mint.host])
+            val known = assertNotNull(store.mintMap[mint.host])
             val q = CashBranch.fromSeed(fr.acinq.bitcoin.MnemonicCode.toSeed(words, ""), mint.host).notePubkey(NotePurpose.Wallet, 0)
-            store.putJournal(JournalEntry("crashed", ACCOUNT, OperationType.Rotate, mint.host, service.withdrawUrl, listOf(bearer.q.toHex()),
+            store.putJournal(JournalEntry("crashed", ACCOUNT, OperationType.Rotate, mint.host, known.withdrawUrl, listOf(bearer.q.toHex()),
                 listOf(bearer.k1), listOf(OutputRef(ACCOUNT, 0, 0, q.toHex())), Requests.rotate("${mint.url}/w/cb", bearer.k1, q),
                 JournalStatus.Prepared, null, 0, 0))
             wallet.refresh()

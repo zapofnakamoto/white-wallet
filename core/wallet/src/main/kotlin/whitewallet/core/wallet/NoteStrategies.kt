@@ -2,25 +2,25 @@ package whitewallet.core.wallet
 
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
-import whitewallet.brand.ServiceNotes
+import whitewallet.brand.MintNotes
 
 /** Leaves notes as they arrive (auto-rotate, if on, still applies). */
 class ManualStrategy(override val title: Int = 0, override val description: Int = 0) : NoteStrategy {
     override val id = ID
     override val reshapesNotes = false
-    override fun plan(service: ServiceNotes): List<NoteStep> = emptyList()
+    override fun plan(mint: MintNotes): List<NoteStep> = emptyList()
 
     companion object {
         const val ID = "manual"
     }
 }
 
-/** One note per service: everything is merged (free), and a single note left on an address key is rotated. */
+/** One note per mint: everything is merged (free), and a single note left on an address key is rotated. */
 class SingleNoteStrategy(override val title: Int = 0, override val description: Int = 0) : NoteStrategy {
     override val id = ID
     override val rotatesAddressNotes = true
-    override fun plan(service: ServiceNotes): List<NoteStep> {
-        val notes = service.notes.sortedBy { it.updatedAtMillis }
+    override fun plan(mint: MintNotes): List<NoteStep> {
+        val notes = mint.notes.sortedBy { it.updatedAtMillis }
         return when {
             notes.size > 1 -> listOf(NoteStep.Combine(notes.map { it.id }))
             notes.singleOrNull()?.onAddressKey == true -> listOf(NoteStep.Rotate(notes.single().id))

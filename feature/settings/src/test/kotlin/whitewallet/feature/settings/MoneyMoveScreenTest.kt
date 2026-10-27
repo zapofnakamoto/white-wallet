@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import whitewallet.core.wallet.MoneyMoved
 import whitewallet.core.wallet.MovePreview
 import whitewallet.core.wallet.NoteProblem
-import whitewallet.core.wallet.ServiceMoveResult
+import whitewallet.core.wallet.MintMoveResult
 
 @RunWith(RobolectricTestRunner::class)
 class MoneyMoveScreenTest {
@@ -72,8 +72,8 @@ class MoneyMoveScreenTest {
         val outcome = MoneyMoveOutcome(
             homeChanged = true, address = "alice@new.example",
             moved = listOf(
-                MoneyMoved("old.example", 100_000, ServiceMoveResult.Moved(99_000, 1_000)),
-                MoneyMoved("same.example", 3_000_000, ServiceMoveResult.Failed(NoteProblem.PaymentFailed)),
+                MoneyMoved("old.example", 100_000, MintMoveResult.Moved(99_000, 1_000)),
+                MoneyMoved("same.example", 3_000_000, MintMoveResult.Failed(NoteProblem.PaymentFailed)),
             ),
         )
         compose.setContent {

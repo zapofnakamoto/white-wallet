@@ -38,10 +38,10 @@ internal sealed interface MutationResult {
     /** Landed; [outputs] are the recorded output notes, in request order. */
     data class Done(val outputs: List<Note>, val journalId: String) : MutationResult
 
-    /** Processed and refused by the service. Nothing changed. */
+    /** Processed and refused by the mint. Nothing changed. */
     data class Refused(val kind: RejectionKind, val reason: String?) : MutationResult
 
-    /** The service could not be asked (unknown service or no answer before anything was sent). Nothing changed. */
+    /** The mint could not be asked (unknown mint or no answer before anything was sent). Nothing changed. */
     data class Unreachable(val reason: String?) : MutationResult
 
     /** Sent, outcome unknown; the journal entry [journalId] is settled by reconciliation on a later refresh. */
@@ -58,7 +58,7 @@ internal class NoteMutator(private val wallet: Wallet) {
 
     /**
      * Journals and sends one mutation of [fromId]'s [inputs], then records its outputs (in [outputs] order).
-     * If the service says an output key is `already in use`, the local index was behind: the index is rediscovered
+     * If the mint says an output key is `already in use`, the local index was behind: the index is rediscovered
      * and the mutation retried with fresh output keys, up to [IN_USE_RETRIES] times.
      */
     suspend fun mutate(
@@ -69,16 +69,16 @@ internal class NoteMutator(private val wallet: Wallet) {
         outputs: List<OutputSpec>,
         buildUrl: (callback: String, k1s: List<String>, outputs: List<ReservedOutput>) -> String,
     ): MutationResult {
-        val service = wallet.store.service(host) ?: return MutationResult.Unreachable("unknown host $host")
+        val mint = wallet.store.mint(host) ?: return MutationResult.Unreachable("unknown host $host")
         val domain = spendDomain(host)
         val branch = wallet.branch(fromId, host)
         val spends = inputs.map { note -> branch.spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, domain) }
-        val info = runCatching { wallet.client.noteInfo(service.withdrawUrl, spends.first().k1) }.getOrElse {
+        val info = runCatching { wallet.client.noteInfo(mint.withdrawUrl, spends.first().k1) }.getOrElse {
             return MutationResult.Unreachable(it.message)
         }
         // Nothing goes out to a mint that signs with another key than the pinned one (see Pinning).
         try {
-            Pinning.check(wallet, service, info.mintPubkey)
+            Pinning.check(wallet, mint, info.mintPubkey)
         } catch (e: MintKeyChangedException) {
             return MutationResult.Unreachable(e.message)
         }
@@ -90,7 +90,7 @@ internal class NoteMutator(private val wallet: Wallet) {
                     is OutputSpec.External -> spec.keyAt(attempt).let { ReservedOutput(it, OutputRef.external(it.toHex())) }
                 }
             }
-            val result = send(fromId, host, service.withdrawUrl, inputs, spends, type, reserved, info, buildUrl(info.callback, spends.map(Spend::k1), reserved))
+            val result = send(fromId, host, mint.withdrawUrl, inputs, spends, type, reserved, info, buildUrl(info.callback, spends.map(Spend::k1), reserved))
             if (result is MutationResult.Refused && result.kind == RejectionKind.AlreadyInUse && attempt < IN_USE_RETRIES) {
                 attempt++
                 outputs.filterIsInstance<OutputSpec.Own>().distinct().forEach { guard.recover(it.accountId, host, it.purpose) }

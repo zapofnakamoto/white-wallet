@@ -81,7 +81,7 @@ fun OnboardingRoute(
     onBack: (() -> Unit)? = null,
     /** Offers restoring from a recovery phrase instead (first run and new account). */
     onRestore: (() -> Unit)? = null,
-    /** Preselects the service for a new account (e.g. the local regtest mint). */
+    /** Preselects the mint for a new account (e.g. the local regtest mint). */
     presetHost: String? = null,
     /** For [OnboardingMode.RestoreAddress]: the restore was cancelled; whether another account remains. */
     onRestoreCancelled: (remains: Boolean) -> Unit = {},
@@ -94,7 +94,7 @@ fun OnboardingRoute(
     LaunchedEffect(state.done) { if (state.done) onDone() }
     LaunchedEffect(state.restoreCancelled) { state.restoreCancelled?.let(onRestoreCancelled) }
     OnboardingScreen(
-        appName, logo, state, onBack, viewModel::onUsernameChange, ServiceActions(viewModel::onServiceSelected, viewModel::onCustomHostChange), viewModel::onSuggestion,
+        appName, logo, state, onBack, viewModel::onUsernameChange, MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange), viewModel::onSuggestion,
         viewModel::start, viewModel::onContinue, viewModel::onAccountNameChange, onRestore, viewModel::cancelRestore,
     )
 }
@@ -106,7 +106,7 @@ fun OnboardingScreen(
     state: OnboardingState,
     onBack: (() -> Unit)?,
     onUsernameChange: (String) -> Unit,
-    service: ServiceActions,
+    mint: MintActions,
     onSuggestion: (String) -> Unit,
     onStart: () -> Unit,
     onContinue: () -> Unit,
@@ -136,7 +136,7 @@ fun OnboardingScreen(
                     ClaimedContent(claimed, onContinue)
                 } else if (state.changingAddress) {
                     Text(stringResource(R.string.onboarding_change_body, state.host), textAlign = TextAlign.Center)
-                    AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
+                    AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
                 } else if (state.restoringAddress) {
                     Text(
                         if (state.restoredMsat > 0) stringResource(R.string.restore_address_found, formatAmount(state.restoredMsat))
@@ -145,14 +145,14 @@ fun OnboardingScreen(
                         textAlign = TextAlign.Center,
                     )
                     Text(stringResource(R.string.restore_address_body, state.host), textAlign = TextAlign.Center)
-                    AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.restore_address_submit))
+                    AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.restore_address_submit))
                     WalletButton(kind = ButtonKind.Text, onClick = { confirmCancel = true }, enabled = !state.busy) { Text(stringResource(R.string.restore_cancel)) }
                 } else if (state.addingAddress) {
                     Text(stringResource(R.string.onboarding_add_body, state.host), textAlign = TextAlign.Center)
-                    AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
+                    AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
                 } else if (state.addingElsewhere) {
                     Text(stringResource(R.string.onboarding_add_elsewhere_body), textAlign = TextAlign.Center)
-                    AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
+                    AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
                 } else {
                     Text(
                         stringResource(if (state.withAddress) R.string.onboarding_new_account_body else R.string.onboarding_new_account_body_no_address),
@@ -167,9 +167,9 @@ fun OnboardingScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     if (state.withAddress) {
-                        AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_create_account))
+                        AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_create_account))
                     } else {
-                        MintForm(state, service, onStart, stringResource(R.string.onboarding_create_account))
+                        MintForm(state, mint, onStart, stringResource(R.string.onboarding_create_account))
                     }
                     onRestore?.let { WalletButton(kind = ButtonKind.Text, onClick = it, enabled = !state.busy) { Text(stringResource(R.string.onboarding_restore_instead)) } }
                 }
@@ -193,10 +193,10 @@ fun OnboardingScreen(
                 textAlign = TextAlign.Center,
             )
             if (state.withAddress) {
-                AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_start))
+                AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_start))
             } else {
                 // Without an address and with a single mint, this is just the button.
-                MintForm(state, service, onStart, stringResource(R.string.onboarding_start))
+                MintForm(state, mint, onStart, stringResource(R.string.onboarding_start))
             }
             onRestore?.let { WalletButton(kind = ButtonKind.Text, onClick = it, enabled = !state.busy) { Text(stringResource(R.string.onboarding_restore)) } }
             Text(
@@ -212,19 +212,19 @@ fun OnboardingScreen(
     }
 }
 
-/** What the service dropdown can ask for. */
-class ServiceActions(val onSelect: (ServiceOption) -> Unit, val onCustomHost: (String) -> Unit)
+/** What the mint dropdown can ask for. */
+class MintActions(val onSelect: (MintOption) -> Unit, val onCustomHost: (String) -> Unit)
 
 /**
  * The name field is the main control (first); the whole address it makes is spelled out below it, with whether it's
- * free. The service choice below that is secondary.
+ * free. The mint choice below that is secondary.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AddressForm(
     state: OnboardingState,
     onUsernameChange: (String) -> Unit,
-    service: ServiceActions,
+    mint: MintActions,
     onSuggestion: (String) -> Unit,
     onStart: () -> Unit,
     submitLabel: String,
@@ -252,15 +252,15 @@ private fun AddressForm(
             state.suggestions.forEach { name -> WalletSuggestionChip(onClick = { onSuggestion(name) }, label = { Text(name) }) }
         }
     }
-    if (state.canChangeHost) ServicePicker(state.serviceOptions, state.selectedService, state.customHost, state.busy, service)
+    if (state.canChangeHost) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
     ErrorText(state)
     PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
 }
 
 /** A new account without a Lightning Address: the mint (when there is a choice) and the button. */
 @Composable
-private fun MintForm(state: OnboardingState, service: ServiceActions, onStart: () -> Unit, submitLabel: String) {
-    if (state.canChangeHost) ServicePicker(state.serviceOptions, state.selectedService, state.customHost, state.busy, service)
+private fun MintForm(state: OnboardingState, mint: MintActions, onStart: () -> Unit, submitLabel: String) {
+    if (state.canChangeHost) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
     ErrorText(state)
     PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
 }
@@ -271,7 +271,7 @@ private fun ErrorText(state: OnboardingState) {
         val message = when (error) {
             is OnboardingError.Username -> stringResource(R.string.onboarding_error_username, error.detail)
             is OnboardingError.Registration -> stringResource(R.string.onboarding_error_registration, error.detail)
-            is OnboardingError.Service -> stringResource(R.string.onboarding_error_mint, error.detail)
+            is OnboardingError.Mint -> stringResource(R.string.onboarding_error_mint, error.detail)
             is OnboardingError.Network -> stringResource(R.string.onboarding_error_network, error.detail)
             is OnboardingError.Limit -> pluralStringResource(R.plurals.onboarding_error_limit, error.limit, error.limit)
             is OnboardingError.AccountLimit -> pluralStringResource(R.plurals.onboarding_error_account_limit, error.limit, error.limit)
@@ -280,15 +280,15 @@ private fun ErrorText(state: OnboardingState) {
     }
 }
 
-/** Secondary: a compact dropdown of suggested services, the local dev mint in developer mode, and "Custom". */
+/** Secondary: a compact dropdown of suggested mints, the local dev mint in developer mode, and "Custom". */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun ServicePicker(
-    options: List<ServiceOption>,
-    selected: ServiceOption,
+internal fun MintPicker(
+    options: List<MintOption>,
+    selected: MintOption,
     customHost: String,
     busy: Boolean,
-    service: ServiceActions,
+    mint: MintActions,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val small = MaterialTheme.typography.bodyMedium
@@ -310,23 +310,23 @@ internal fun ServicePicker(
                     text = {
                         Column {
                             Text(optionLabel(option), style = small)
-                            if (option is ServiceOption.LocalDev) {
+                            if (option is MintOption.LocalDev) {
                                 Text(stringResource(R.string.onboarding_mint_local), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     },
                     onClick = {
                         expanded = false
-                        service.onSelect(option)
+                        mint.onSelect(option)
                     },
                 )
             }
         }
     }
-    if (selected == ServiceOption.Custom) {
+    if (selected == MintOption.Custom) {
         WalletTextField(
             value = customHost,
-            onValueChange = service.onCustomHost,
+            onValueChange = mint.onCustomHost,
             label = { Text(stringResource(R.string.onboarding_mint_address)) },
             placeholder = { Text("mint.example.com", style = small) },
             textStyle = small,
@@ -339,7 +339,7 @@ internal fun ServicePicker(
 }
 
 @Composable
-private fun optionLabel(option: ServiceOption): String = option.host ?: stringResource(R.string.onboarding_mint_custom)
+private fun optionLabel(option: MintOption): String = option.host ?: stringResource(R.string.onboarding_mint_custom)
 
 @Composable
 private fun AvailabilityText(availability: Availability) {

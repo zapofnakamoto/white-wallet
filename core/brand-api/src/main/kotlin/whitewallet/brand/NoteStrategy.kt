@@ -1,12 +1,12 @@
 package whitewallet.brand
 
 /**
- * A way of keeping an account's notes: which shape the notes on one service should have. The wallet asks [plan] for
+ * A way of keeping an account's notes: which shape the notes on one mint should have. The wallet asks [plan] for
  * the next steps, runs them, and asks again with the new notes, until the plan is empty.
  *
  * A strategy only proposes. The wallet checks every step, runs it with its usual safeguards, skips what doesn't apply
- * (unknown notes, impossible amounts) and stops when a service doesn't answer. Money never leaves the account: a
- * strategy can combine, split and rotate notes on one service, nothing else.
+ * (unknown notes, impossible amounts) and stops when a mint doesn't answer. Money never leaves the account: a
+ * strategy can combine, split and rotate notes on one mint, nothing else.
  *
  * Register one in a brand's code module (Hilt `@IntoSet`) and name its [id] in brand.properties `noteStrategies`.
  */
@@ -32,15 +32,15 @@ interface NoteStrategy {
      */
     val reshapesNotes: Boolean get() = true
 
-    /** The next steps for one service's notes; empty once they have the shape this strategy wants. */
-    fun plan(service: ServiceNotes): List<NoteStep>
+    /** The next steps for one mint's notes; empty once they have the shape this strategy wants. */
+    fun plan(mint: MintNotes): List<NoteStep>
 }
 
-/** One service's spendable notes of an account, with what that service charges. */
-data class ServiceNotes(
+/** One mint's spendable notes of an account, with what that mint charges. */
+data class MintNotes(
     val host: String,
     val notes: List<StrategyNote>,
-    /** The service's fee per operation that creates notes (split), in millisatoshi; merges and rotations are free. */
+    /** The mint's fee per operation that creates notes (split), in millisatoshi; merges and rotations are free. */
     val feeBaseMsat: Long,
 ) {
     val totalMsat: Long get() = notes.sumOf { it.amountMsat }
@@ -59,7 +59,7 @@ sealed interface NoteStep {
     data class Combine(val noteIds: List<String>) : NoteStep
 
     /**
-     * Split a note in two: one worth [firstMsat], the other the rest minus the service's fee. [firstMsat] must leave
+     * Split a note in two: one worth [firstMsat], the other the rest minus the mint's fee. [firstMsat] must leave
      * at least 1 msat after the fee (`1 <= firstMsat <= amount - feeBaseMsat - 1`).
      */
     data class Split(val noteId: String, val firstMsat: Long) : NoteStep

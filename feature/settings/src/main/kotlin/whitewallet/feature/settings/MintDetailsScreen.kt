@@ -46,7 +46,7 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintUse
 import whitewallet.core.wallet.RemoveMintResult
-import whitewallet.core.wallet.ServiceDetails
+import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.Wallet
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
@@ -55,12 +55,12 @@ import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletListItem
 
-data class ServiceDetailsState(
-    val details: ServiceDetails? = null,
+data class MintDetailsState(
+    val details: MintDetails? = null,
     val loading: Boolean = true,
     val watchOnlyKey: String? = null,
     val showWatchOnly: Boolean = false,
-    /** The brand lets users change their home mint (`allowServiceChange`): from its page, or to this one. */
+    /** The brand lets users change their home mint (`allowMintChange`): from its page, or to this one. */
     val canChangeHome: Boolean = false,
     /** The account collects at its home mint: money only moves home, so the home's page offers no move. */
     val collects: Boolean = false,
@@ -76,11 +76,11 @@ data class ServiceDetailsState(
 )
 
 @HiltViewModel
-class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) : ViewModel() {
-    /** The service to show: the route's `host`, else the account's home service. */
+class MintDetailsViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) : ViewModel() {
+    /** The mint to show: the route's `host`, else the account's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
-    private val _state = MutableStateFlow(ServiceDetailsState(canChangeHome = defaults.allowServiceChange, device = savedState.get<Boolean>("device") ?: false))
-    val state: StateFlow<ServiceDetailsState> = _state
+    private val _state = MutableStateFlow(MintDetailsState(canChangeHome = defaults.allowMintChange, device = savedState.get<Boolean>("device") ?: false))
+    val state: StateFlow<MintDetailsState> = _state
 
     init {
         refresh()
@@ -99,7 +99,7 @@ class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, sa
         _state.update { it.copy(loading = true) }
         viewModelScope.launch {
             val host = requestedHost ?: wallet.homeHost.first() ?: return@launch _state.update { it.copy(loading = false) }
-            val details = wallet.serviceDetails(host)
+            val details = wallet.mintDetails(host)
             val mint = wallet.mints.first().firstOrNull { it.host == details.host }
             _state.update { it.copy(details = details, loading = false, watchOnlyKey = wallet.watchOnlyKey(details.host), mint = mint) }
         }
@@ -118,7 +118,7 @@ class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, sa
         }
     }
 
-    /** Keeps using the service with the [key] it now presents; if it presents yet another, the refresh shows that. */
+    /** Keeps using the mint with the [key] it now presents; if it presents yet another, the refresh shows that. */
     fun acceptKey(key: String) {
         val host = _state.value.details?.host ?: return
         _state.update { it.copy(loading = true) }
@@ -130,7 +130,7 @@ class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, sa
 }
 
 @Composable
-fun ServiceDetailsRoute(
+fun MintDetailsRoute(
     onBack: () -> Unit,
     /** Opens the change of the home mint: to [host] when it is given, else to one the user picks. */
     onChangeHome: (host: String?) -> Unit = {},
@@ -138,12 +138,12 @@ fun ServiceDetailsRoute(
     onMoveMoney: (host: String) -> Unit = {},
     /** Opens moving all of the account's money on other mints to its home mint. */
     onMoveAllHere: () -> Unit = {},
-    viewModel: ServiceDetailsViewModel = hiltViewModel(),
+    viewModel: MintDetailsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     LaunchedEffect(state.removed) { if (state.removed) onBack() }
-    ServiceDetailsScreen(
+    MintDetailsScreen(
         state, onBack, viewModel::refresh, viewModel::toggleWatchOnly,
         onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key) },
         onAcceptKey = viewModel::acceptKey,
@@ -155,13 +155,13 @@ fun ServiceDetailsRoute(
 }
 
 /**
- * One service (brief §6): whether it answers, its description, fees and limits, the signing key pinned on first
+ * One mint (brief §6): whether it answers, its description, fees and limits, the signing key pinned on first
  * contact (and, if it changed, both keys and a way to use the new one), the account's money there, its website, and
  * the account's watch-only key.
  */
 @Composable
-fun ServiceDetailsScreen(
-    state: ServiceDetailsState,
+fun MintDetailsScreen(
+    state: MintDetailsState,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onToggleWatchOnly: () -> Unit,
@@ -179,8 +179,8 @@ fun ServiceDetailsScreen(
                 if (state.loading) WalletCircularProgress(Modifier.padding(24.dp).align(Alignment.CenterHorizontally))
                 return@Column
             }
-            if (details.reachability == ServiceDetails.Reachability.KeyChanged) {
-                KeyChangedCard(details.host, details.service?.mintPubkey, details.presentedKey, onAcceptKey.takeUnless { state.loading })
+            if (details.reachability == MintDetails.Reachability.KeyChanged) {
+                KeyChangedCard(details.host, details.mint?.mintPubkey, details.presentedKey, onAcceptKey.takeUnless { state.loading })
             }
             WalletListItem(
                 headlineContent = { Text(stringResource(reachabilityText(details.reachability))) },
@@ -196,9 +196,9 @@ fun ServiceDetailsScreen(
             } else {
                 AccountSection(details, state, onChangeHome, onMoveMoney, onMoveAllHere)
             }
-            details.service?.let { service ->
-                val base = service.feeBaseMsat
-                val ppm = service.feePpm
+            details.mint?.let { mint ->
+                val base = mint.feeBaseMsat
+                val ppm = mint.feePpm
                 if (base != null && ppm != null) {
                     val percent = NumberFormat.getPercentInstance().apply { maximumFractionDigits = 4 }.format(ppm / 1_000_000.0)
                     WalletListItem(
@@ -208,13 +208,13 @@ fun ServiceDetailsScreen(
                 }
                 WalletListItem(
                     headlineContent = { Text(stringResource(R.string.mint_limits)) },
-                    supportingContent = { Text(stringResource(R.string.mint_limits_value, formatAmount(service.minSendableMsat), formatAmount(service.maxSendableMsat))) },
+                    supportingContent = { Text(stringResource(R.string.mint_limits_value, formatAmount(mint.minSendableMsat), formatAmount(mint.maxSendableMsat))) },
                 )
                 WalletListItem(
                     headlineContent = { Text(stringResource(R.string.mint_signing_key)) },
                     supportingContent = {
                         Column {
-                            Text(service.mintPubkey?.chunked(4)?.joinToString(" ") ?: stringResource(R.string.mint_signing_key_unknown), fontFamily = FontFamily.Monospace)
+                            Text(mint.mintPubkey?.chunked(4)?.joinToString(" ") ?: stringResource(R.string.mint_signing_key_unknown), fontFamily = FontFamily.Monospace)
                             Text(stringResource(R.string.mint_signing_key_hint), style = MaterialTheme.typography.bodySmall)
                         }
                     },
@@ -252,8 +252,8 @@ fun ServiceDetailsScreen(
 /** What the active account has and can do on this mint: change or make home, its money there, moving it. */
 @Composable
 private fun AccountSection(
-    details: ServiceDetails,
-    state: ServiceDetailsState,
+    details: MintDetails,
+    state: MintDetailsState,
     onChangeHome: (host: String?) -> Unit,
     onMoveMoney: (host: String) -> Unit,
     onMoveAllHere: () -> Unit,
@@ -348,9 +348,9 @@ private fun KeyChangedCard(host: String, remembered: String?, presented: String?
     }
 }
 
-private fun reachabilityText(reachability: ServiceDetails.Reachability): Int = when (reachability) {
-    ServiceDetails.Reachability.Reachable -> R.string.mint_reachable
-    ServiceDetails.Reachability.Unreachable -> R.string.mint_unreachable
-    ServiceDetails.Reachability.Invalid -> R.string.mint_invalid
-    ServiceDetails.Reachability.KeyChanged -> R.string.mint_key_changed_short
+private fun reachabilityText(reachability: MintDetails.Reachability): Int = when (reachability) {
+    MintDetails.Reachability.Reachable -> R.string.mint_reachable
+    MintDetails.Reachability.Unreachable -> R.string.mint_unreachable
+    MintDetails.Reachability.Invalid -> R.string.mint_invalid
+    MintDetails.Reachability.KeyChanged -> R.string.mint_key_changed_short
 }

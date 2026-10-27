@@ -31,7 +31,7 @@ class ClaimScreenTest {
     private val ready = ClaimPreview.Ready(
         NoteLink("https://other.example/w", Spend.Bearer(ByteVector32(Hex.decode("66".repeat(32)))), 5_000_000, null),
         NoteInfo("https://other.example/cb", 5_000_000, PublicKey(Hex.decode("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")), null),
-        amountMsat = 5_000_000, certified = true, isOwnService = false, trusted = true,
+        amountMsat = 5_000_000, certified = true, isOwnMint = false, trusted = true,
     )
 
     @Test

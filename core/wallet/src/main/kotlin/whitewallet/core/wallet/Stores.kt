@@ -14,11 +14,11 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.model.Service
+import whitewallet.core.model.Mint
 
 /**
  * Persistent wallet state for every account. Implemented by core:data on Android and in memory for tests.
- * Services (a host's withdraw URL and pinned key) are shared; everything else is per account.
+ * Mints (a host's withdraw URL and pinned key) are shared; everything else is per account.
  */
 interface WalletStore {
     val accounts: Flow<List<AccountSummary>>
@@ -44,14 +44,14 @@ interface WalletStore {
     suspend fun saveAddress(accountId: String, address: RegisteredAddress)
     suspend fun deleteAddress(accountId: String, username: String, host: String)
 
-    suspend fun service(host: String): Service?
-    suspend fun saveService(service: Service)
+    suspend fun mint(host: String): Mint?
+    suspend fun saveMint(mint: Mint)
 
     /** Forgets the mint at [host] and its pinned key (see [Wallet.removeMint]); notes and history stay. */
-    suspend fun removeService(host: String)
+    suspend fun removeMint(host: String)
 
     /** Every mint the wallet has connected to (all accounts share them), by host. */
-    val services: Flow<List<Service>>
+    val mints: Flow<List<Mint>>
 
     /** A note by `Q`, whichever account holds it. */
     suspend fun note(id: String): Note?
@@ -63,7 +63,7 @@ interface WalletStore {
     /** The next index [reserveIndex] would return, without reserving it. */
     suspend fun currentIndex(accountId: String, host: String, purpose: Int): Long = currentIndexOrNull(accountId, host, purpose) ?: 0
 
-    /** Like [currentIndex], but null if the counter was never set (the account has not used this service and purpose yet). */
+    /** Like [currentIndex], but null if the counter was never set (the account has not used this mint and purpose yet). */
     suspend fun currentIndexOrNull(accountId: String, host: String, purpose: Int): Long?
 
     /** Every host the account has a wallet or change counter on (set by its first use, or by a restore). */
@@ -79,7 +79,7 @@ interface WalletStore {
     suspend fun addressScanFrom(accountId: String, host: String): Long
     suspend fun setAddressScanFrom(accountId: String, host: String, index: Long)
 
-    /** The last answer the service gave for each of the account's derived keys that was looked up, kept across restarts. */
+    /** The last answer the mint gave for each of the account's derived keys that was looked up, kept across restarts. */
     fun keyChecks(accountId: String): Flow<Map<KeyId, KeyProbe>>
 
     /** Saves [probe] as the last answer for [id], replacing the previous one. */
@@ -124,11 +124,11 @@ interface AppPreferences {
     suspend fun setDeveloperOptionsUnlocked()
 
     /**
-     * How many Lightning Addresses an account may register per service while developer mode is on; null until set,
+     * How many Lightning Addresses an account may register per mint while developer mode is on; null until set,
      * then the brand's limit applies (see [AppDefaults.addressLimit]).
      */
-    val maxAddressesPerService: Flow<Int?>
-    suspend fun setMaxAddressesPerService(max: Int)
+    val maxAddressesPerMint: Flow<Int?>
+    suspend fun setMaxAddressesPerMint(max: Int)
 
     /** The unit the user chose for amounts, or null to follow the brand's default ([AppDefaults.defaultAmountUnit]). */
     val amountUnit: Flow<AmountUnit?>

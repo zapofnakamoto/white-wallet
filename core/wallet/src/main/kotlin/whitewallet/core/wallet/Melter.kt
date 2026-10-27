@@ -21,10 +21,10 @@ import whitewallet.lnurlcash.spendDomain
 internal sealed interface MeltOutcome {
     data class Paid(val journalId: String) : MeltOutcome
 
-    /** The service tried and the payment failed; the note is outstanding again. */
+    /** The mint tried and the payment failed; the note is outstanding again. */
     data class PaymentFailed(val journalId: String) : MeltOutcome
 
-    /** The service refused the melt; nothing was paid. */
+    /** The mint refused the melt; nothing was paid. */
     data class Refused(val journalId: String, val reason: String?) : MeltOutcome
 
     /** In flight past the wait; reconciliation settles it on a later refresh. */
@@ -36,22 +36,22 @@ internal sealed interface MeltOutcome {
 
 /**
  * LUD-25 melt of one of the wallet's own notes: journal, lock the note as [NoteState.Paying] (out of the balance),
- * send once (never retried), then wait a little for the service to pay. [beforeSend] runs once the journal entry
+ * send once (never retried), then wait a little for the mint to pay. [beforeSend] runs once the journal entry
  * exists, before anything is sent (to write History rows linked to it).
  */
 internal class Melter(private val wallet: Wallet) {
     suspend fun melt(accountId: String, host: String, note: Note, invoice: String, beforeSend: suspend (journalId: String) -> Unit = {}): MeltOutcome {
-        val service = wallet.store.service(host) ?: return MeltOutcome.Unreachable
+        val mint = wallet.store.mint(host) ?: return MeltOutcome.Unreachable
         val spend = wallet.branch(accountId, host).spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, spendDomain(host))
         val info = try {
-            wallet.client.noteInfo(service.withdrawUrl, spend.k1).also { Pinning.check(wallet, service, it.mintPubkey) }
+            wallet.client.noteInfo(mint.withdrawUrl, spend.k1).also { Pinning.check(wallet, mint, it.mintPubkey) }
         } catch (e: Exception) {
             // Including a signing key other than the pinned one: nothing is paid through such a mint.
             return MeltOutcome.Unreachable
         }
         val url = Requests.melt(info.callback, spend.k1, invoice)
         val created = wallet.now()
-        val entry = JournalEntry(UUID.randomUUID().toString(), accountId, OperationType.Melt, host, service.withdrawUrl, listOf(note.id),
+        val entry = JournalEntry(UUID.randomUUID().toString(), accountId, OperationType.Melt, host, mint.withdrawUrl, listOf(note.id),
             listOf(spend.k1), emptyList(), url, JournalStatus.Prepared, null, created, created)
         wallet.store.putJournal(entry)
         wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Paying, updatedAtMillis = created)))
@@ -70,7 +70,7 @@ internal class Melter(private val wallet: Wallet) {
         }
         wallet.store.putJournal(inFlight)
 
-        // The service pays in the background; the note is burned once the payment settles, or restored if it fails.
+        // The mint pays in the background; the note is burned once the payment settles, or restored if it fails.
         val melts = MeltReconciler(wallet)
         var wait = POLL_START_MILLIS
         val deadline = wallet.now() + wallet.payWaitMillis
@@ -119,7 +119,7 @@ internal class MeltReconciler(private val wallet: Wallet) {
             note?.let { wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = wallet.now()))) }
             return finish(entry, JournalStatus.Confirmed)
         }
-        // The service said OK, so it marked the note pending before answering: outstanding again means it failed.
+        // The mint said OK, so it marked the note pending before answering: outstanding again means it failed.
         // Without that answer the request may still be on its way, so wait before calling it failed.
         val answered = entry.detail == IN_FLIGHT
         if (answered || final || wallet.now() - entry.createdAtMillis > LOST_ANSWER_GRACE_MILLIS) {
@@ -136,7 +136,7 @@ internal class MeltReconciler(private val wallet: Wallet) {
     }
 
     companion object {
-        /** Journal detail of a melt the service accepted (its payment is in flight). */
+        /** Journal detail of a melt the mint accepted (its payment is in flight). */
         const val IN_FLIGHT = "in flight"
         private const val LOST_ANSWER_GRACE_MILLIS = 120_000L
     }

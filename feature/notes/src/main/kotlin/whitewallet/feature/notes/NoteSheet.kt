@@ -26,7 +26,7 @@ import whitewallet.core.model.AmountUnit
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.NoteProblem
-import whitewallet.core.wallet.ServiceMoveQuote
+import whitewallet.core.wallet.MintMoveQuote
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletAssistChip
 import whitewallet.core.designsystem.WalletButton
@@ -139,14 +139,14 @@ internal fun MoveDialog(d: NotesDialog.Move, state: NotesState, actions: NotesAc
                 }
                 when {
                     d.quoting -> WalletLinearProgress(Modifier.fillMaxWidth())
-                    d.quote is ServiceMoveQuote.Ready -> {
+                    d.quote is MintMoveQuote.Ready -> {
                         Text(stringResource(R.string.notes_move_quote, formatAmount(d.quote.amountMsat), formatAmount(d.quote.expectedMsat), d.quote.toHost))
                         Text(
                             if (d.quote.feeMsat > 0) stringResource(R.string.notes_fee, formatAmount(d.quote.feeMsat)) else stringResource(R.string.notes_no_fee),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                    d.quote is ServiceMoveQuote.Invalid -> Text(
+                    d.quote is MintMoveQuote.Invalid -> Text(
                         quoteProblemText(d.quote),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
@@ -155,14 +155,14 @@ internal fun MoveDialog(d: NotesDialog.Move, state: NotesState, actions: NotesAc
             }
         },
         confirmButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = actions.move, enabled = !d.quoting && d.quote is ServiceMoveQuote.Ready) { Text(stringResource(R.string.notes_move)) }
+            WalletButton(kind = ButtonKind.Text, onClick = actions.move, enabled = !d.quoting && d.quote is MintMoveQuote.Ready) { Text(stringResource(R.string.notes_move)) }
         },
         dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = actions.dismissDialog) { Text(stringResource(R.string.notes_cancel)) } },
     )
 }
 
 @Composable
-private fun quoteProblemText(quote: ServiceMoveQuote.Invalid): String {
+private fun quoteProblemText(quote: MintMoveQuote.Invalid): String {
     val limit = quote.limitMsat
     return when {
         quote.problem == NoteProblem.BelowMinimum && limit != null -> stringResource(R.string.notes_problem_below_minimum_amount, formatAmount(limit))
@@ -175,11 +175,11 @@ private fun quoteProblemText(quote: ServiceMoveQuote.Invalid): String {
 internal fun problemText(problem: NoteProblem): String = stringResource(
     when (problem) {
         NoteProblem.NotFound -> R.string.notes_problem_not_found
-        NoteProblem.DifferentServices -> R.string.notes_problem_different_mints
+        NoteProblem.DifferentMints -> R.string.notes_problem_different_mints
         NoteProblem.TooFewNotes -> R.string.notes_problem_too_few
         NoteProblem.InvalidAmount -> R.string.notes_problem_invalid_amount
-        NoteProblem.SameService -> R.string.notes_problem_same_mint
-        NoteProblem.ServiceInvalid -> R.string.notes_problem_mint_invalid
+        NoteProblem.SameMint -> R.string.notes_problem_same_mint
+        NoteProblem.MintInvalid -> R.string.notes_problem_mint_invalid
         NoteProblem.Unreachable -> R.string.notes_problem_unreachable
         NoteProblem.BelowMinimum -> R.string.notes_problem_below_minimum
         NoteProblem.AboveMaximum -> R.string.notes_problem_above_maximum

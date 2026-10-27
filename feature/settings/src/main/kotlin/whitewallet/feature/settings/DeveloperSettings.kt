@@ -48,7 +48,7 @@ class DeveloperSettingsViewModel @Inject constructor(private val preferences: Ap
 
     /** The developer limit, starting from the brand's until changed here. */
     private val brandLimit = defaults.maxAddresses.coerceIn(1, MAX_ADDRESSES)
-    val maxAddresses: StateFlow<Int> = preferences.maxAddressesPerService.map { it ?: brandLimit }
+    val maxAddresses: StateFlow<Int> = preferences.maxAddressesPerMint.map { it ?: brandLimit }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), brandLimit)
 
     fun setEnabled(value: Boolean) {
@@ -56,7 +56,7 @@ class DeveloperSettingsViewModel @Inject constructor(private val preferences: Ap
     }
 
     fun setMaxAddresses(value: Int) {
-        viewModelScope.launch { preferences.setMaxAddressesPerService(value.coerceIn(1, MAX_ADDRESSES)) }
+        viewModelScope.launch { preferences.setMaxAddressesPerMint(value.coerceIn(1, MAX_ADDRESSES)) }
     }
 
     companion object {

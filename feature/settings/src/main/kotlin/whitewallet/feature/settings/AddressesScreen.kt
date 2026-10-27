@@ -57,7 +57,7 @@ import whitewallet.core.designsystem.WalletDialog
 
 data class AddressesState(
     val entries: List<AddressEntry> = emptyList(),
-    /** How many addresses the account may hold per service right now. */
+    /** How many addresses the account may hold per mint right now. */
     val limit: Int = 1,
     /** Addresses being checked (by address), or every one while "Check all" runs. */
     val checking: Set<String> = emptySet(),
@@ -67,12 +67,12 @@ data class AddressesState(
     val message: AddressesMessage? = null,
     /** The account's home mint, where new addresses are added. */
     val homeHost: String? = null,
-    /** The brand lets users pick other mints (`allowServiceChange`), so addresses can be added on one too. */
-    val otherServices: Boolean = false,
+    /** The brand lets users pick other mints (`allowMintChange`), so addresses can be added on one too. */
+    val otherMints: Boolean = false,
 ) {
     /** Addresses on the home mint (the primary address's), where new ones are added. */
-    val onPrimaryService: Int get() = entries.count { it.address.host == homeHost }
-    val canAdd: Boolean get() = !busy && onPrimaryService < limit
+    val onPrimaryMint: Int get() = entries.count { it.address.host == homeHost }
+    val canAdd: Boolean get() = !busy && onPrimaryMint < limit
 
     /** Addresses on other mints, per mint in the order they were added. */
     val elsewhere: Map<String, List<AddressEntry>> get() = entries.filter { it.address.host != homeHost }.groupBy { it.address.host }
@@ -96,10 +96,10 @@ private data class AddressesUi(
 @HiltViewModel
 class AddressesViewModel @Inject constructor(private val wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
     private val ui = MutableStateFlow(AddressesUi())
-    private val limit = combine(preferences.developerMode, preferences.maxAddressesPerService, defaults::addressLimit)
+    private val limit = combine(preferences.developerMode, preferences.maxAddressesPerMint, defaults::addressLimit)
 
     val state: StateFlow<AddressesState> = combine(wallet.addresses, limit, ui, wallet.homeHost) { entries, limit, ui, home ->
-        AddressesState(entries, limit, ui.checking, ui.busy, ui.confirm, ui.message, home, defaults.allowServiceChange)
+        AddressesState(entries, limit, ui.checking, ui.busy, ui.confirm, ui.message, home, defaults.allowMintChange)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState())
 
     init {
@@ -230,7 +230,7 @@ fun AddressesScreen(
                 }
                 items(entries, key = { it.address.address }) { entry -> AddressCard(entry, state, actions) }
             }
-            if (state.otherServices) item { AddElsewhereSection(state, onAddElsewhere) }
+            if (state.otherMints) item { AddElsewhereSection(state, onAddElsewhere) }
         }
     }
     state.confirm?.let { UnregisterDialog(it, onConfirmUnregister, onDismissUnregister) }
@@ -312,16 +312,16 @@ private fun MessageText(message: AddressesMessage) {
 private fun AddSection(state: AddressesState, onAdd: () -> Unit, onChangePrimary: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Addresses on other mints don't count: the first one here becomes the primary address.
-        val first = state.onPrimaryService == 0
+        val first = state.onPrimaryMint == 0
         WalletButton(onClick = onAdd, enabled = state.canAdd, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(if (first) R.string.addresses_get else R.string.addresses_add))
         }
         if (!first && state.limit != AppDefaults.UNLIMITED) {
             Text(
-                if (state.onPrimaryService > state.limit) {
+                if (state.onPrimaryMint > state.limit) {
                     stringResource(R.string.addresses_over_limit, state.limit)
                 } else {
-                    pluralStringResource(R.plurals.addresses_limit, state.limit, state.onPrimaryService, state.limit)
+                    pluralStringResource(R.plurals.addresses_limit, state.limit, state.onPrimaryMint, state.limit)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

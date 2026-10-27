@@ -21,7 +21,7 @@ import whitewallet.core.wallet.MintKeyChangedException
 sealed interface RestoreError {
     data class AlreadyInWallet(val accountName: String) : RestoreError
     data class AccountLimit(val limit: Int) : RestoreError
-    data object Service : RestoreError
+    data object Mint : RestoreError
     data object Network : RestoreError
 }
 
@@ -29,8 +29,8 @@ data class RestoreState(
     val phrase: String = "",
     val host: String,
     val canChangeHost: Boolean,
-    val serviceOptions: List<ServiceOption> = emptyList(),
-    val selectedService: ServiceOption = ServiceOption.Custom,
+    val mintOptions: List<MintOption> = emptyList(),
+    val selectedMint: MintOption = MintOption.Custom,
     val customHost: String = "",
     /** Asked for when the restored account joins existing ones; the first account gets the default name. */
     val askAccountName: Boolean = false,
@@ -55,7 +55,7 @@ class RestoreViewModel @Inject constructor(
     private val defaults: AppDefaults,
     private val preferences: AppPreferences,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(RestoreState(host = defaults.defaultServiceHost, canChangeHost = defaults.allowServiceChange))
+    private val _state = MutableStateFlow(RestoreState(host = defaults.defaultMintHost, canChangeHost = defaults.allowMintChange))
     val state: StateFlow<RestoreState> = _state
     private var initialized = false
     private var defaultAccountName = ""
@@ -69,11 +69,11 @@ class RestoreViewModel @Inject constructor(
         viewModelScope.launch {
             preferences.developerMode.collect { developerMode ->
                 _state.update { s ->
-                    val options = serviceOptions(defaults, developerMode)
-                    val selected = keepSelection(options, s.serviceOptions, s.selectedService, s.host)
+                    val options = mintOptions(defaults, developerMode)
+                    val selected = keepSelection(options, s.mintOptions, s.selectedMint, s.host)
                     s.copy(
-                        serviceOptions = options, selectedService = selected, developerMode = developerMode,
-                        customHost = if (selected == ServiceOption.Custom) s.host else s.customHost,
+                        mintOptions = options, selectedMint = selected, developerMode = developerMode,
+                        customHost = if (selected == MintOption.Custom) s.host else s.customHost,
                     )
                 }
             }
@@ -87,7 +87,7 @@ class RestoreViewModel @Inject constructor(
         if (_state.value.developerMode) onPhraseChange(TEST_PHRASE)
     }
     fun onAccountNameChange(value: String) = _state.update { it.copy(accountName = value) }
-    fun onServiceSelected(option: ServiceOption) = _state.update { it.copy(selectedService = option, host = option.host ?: it.customHost, error = null) }
+    fun onMintSelected(option: MintOption) = _state.update { it.copy(selectedMint = option, host = option.host ?: it.customHost, error = null) }
     fun onCustomHostChange(value: String) = _state.update { it.copy(customHost = value, host = value, error = null) }
 
     fun restore() {
@@ -101,7 +101,7 @@ class RestoreViewModel @Inject constructor(
             } catch (e: IOException) {
                 return@launch _state.update { it.copy(busy = false, error = RestoreError.Network) }
             } catch (e: MintKeyChangedException) {
-                return@launch _state.update { it.copy(busy = false, error = RestoreError.Service) }
+                return@launch _state.update { it.copy(busy = false, error = RestoreError.Mint) }
             }
             val error = when (result) {
                 is RestoreResult.Restored -> {
@@ -111,7 +111,7 @@ class RestoreViewModel @Inject constructor(
                 }
                 is RestoreResult.AlreadyInWallet -> RestoreError.AlreadyInWallet(result.accountName)
                 is RestoreResult.AccountLimitReached -> RestoreError.AccountLimit(result.limit)
-                is RestoreResult.ServiceInvalid -> RestoreError.Service
+                is RestoreResult.MintInvalid -> RestoreError.Mint
                 is RestoreResult.NetworkError -> RestoreError.Network
                 // The button is only enabled for a valid phrase.
                 is RestoreResult.InvalidPhrase -> null

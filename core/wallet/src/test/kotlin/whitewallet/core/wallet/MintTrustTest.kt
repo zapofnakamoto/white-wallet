@@ -27,14 +27,14 @@ class MintTrustTest {
                 // Learn the other mint's key first, for a brand list.
                 val probe = InMemoryWalletStore()
                 val scout = Wallet(probe, InMemorySeedStore(), LnurlcashClient())
-                assertIs<ConnectResult.Connected>(scout.connectService(other.host))
-                val otherKey = probe.serviceMap.getValue(other.host).mintPubkey!!
+                assertIs<ConnectResult.Connected>(scout.connectMint(other.host))
+                val otherKey = probe.mintMap.getValue(other.host).mintPubkey!!
 
                 val store = InMemoryWalletStore()
                 val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID),
                     trust = MintTrustStore.InMemory(), brandTrusted = brand(home.host, other.host, otherKey))
                 store.addAccount("a", "Main", Profile("alice", home.host), host = home.host)
-                assertIs<ConnectResult.Connected>(wallet.connectService(home.host))
+                assertIs<ConnectResult.Connected>(wallet.connectMint(home.host))
                 test(wallet, store, home, other)
             }
         }
@@ -71,8 +71,8 @@ class MintTrustTest {
     fun `trust names the key, so a changed key is no longer trusted`() = withMints { wallet, store, _, other ->
         wallet.addMint(other.host)
         wallet.setMintTrusted(other.host, true)
-        val service = store.serviceMap.getValue(other.host)
-        store.saveService(service.copy(mintPubkey = "03" + "11".repeat(32)))
+        val mint = store.mintMap.getValue(other.host)
+        store.saveMint(mint.copy(mintPubkey = "03" + "11".repeat(32)))
         assertFalse(wallet.info(other.host).trusted)
     }
 

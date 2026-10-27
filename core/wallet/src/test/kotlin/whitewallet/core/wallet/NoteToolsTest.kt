@@ -29,7 +29,7 @@ class NoteToolsTest {
         val store = InMemoryWalletStore()
         val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
         store.addAccount("a", "Main", Profile("alice", mint.host))
-        assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+        assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
         return store to wallet
     }
 

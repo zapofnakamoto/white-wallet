@@ -31,12 +31,12 @@ class RegtestKeyRotationTest {
         val (old, toRenew) = alice.notes(HOST3).sortedBy { it.amountMsat }
         assertTrue(old.certificate != null && toRenew.certificate != null, "both signed with the first key")
         val link = Regtest.note3(1000)
-        val firstKey = assertNotNull(alice.wallet.serviceDetails(HOST3).service?.mintPubkey)
+        val firstKey = assertNotNull(alice.wallet.mintDetails(HOST3).mint?.mintPubkey)
 
         val newKey = Regtest.rotateMint3()
         assertTrue(newKey != firstKey)
-        val details = alice.wallet.serviceDetails(HOST3)
-        assertEquals(ServiceDetails.Reachability.KeyChanged, details.reachability)
+        val details = alice.wallet.mintDetails(HOST3)
+        assertEquals(MintDetails.Reachability.KeyChanged, details.reachability)
         assertEquals(newKey, details.presentedKey)
         assertTrue(alice.wallet.acceptMintKey(HOST3, newKey))
 
@@ -56,7 +56,7 @@ class RegtestKeyRotationTest {
         val restored = assertIs<RestoreResult.Restored>(phone2.restore(alice.wallet.recoveryPhrase().joinToString(" "), HOST3, "Main"))
         assertEquals(held.size, restored.notes)
         assertEquals(alice.balance(), phone2.balanceMsat.first())
-        assertEquals(newKey, phone2.serviceDetails(HOST3).service?.mintPubkey)
+        assertEquals(newKey, phone2.mintDetails(HOST3).mint?.mintPubkey)
         assertTrue(store.allNotes().all { it.certificate != null }, "every note, the old one too, verified against the new key")
 
         // Every note spends there, the old one included: an invoice of exactly its amount is paid with it.

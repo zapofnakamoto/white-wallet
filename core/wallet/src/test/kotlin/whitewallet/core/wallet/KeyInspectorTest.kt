@@ -34,7 +34,7 @@ class KeyInspectorTest {
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient())
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
         }
     }
@@ -74,7 +74,7 @@ class KeyInspectorTest {
 
         // Spend the note behind the wallet's back (as another device with the same phrase would).
         val client = LnurlcashClient()
-        val withdrawUrl = assertIs<ConnectResult.Connected>(wallet.connectService(mint.host)).service.withdrawUrl
+        val withdrawUrl = assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host)).mint.withdrawUrl
         val spend = branch.spend(NotePurpose.Wallet, 0, spendDomain(mint.host))
         val info = client.noteInfo(withdrawUrl, spend.k1)
         assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, branch.notePubkey(NotePurpose.Wallet, 7))))
@@ -86,10 +86,10 @@ class KeyInspectorTest {
 
     @Test
     fun `lookup answers survive a restart, and a lookup without an answer does not erase them`() = withMint {
-        // Key 2 is spent at the service, but this wallet never held it (as after a restore).
+        // Key 2 is spent at the mint, but this wallet never held it (as after a restore).
         credit(NotePurpose.Wallet, 2, 1_000)
         val client = LnurlcashClient()
-        val withdrawUrl = assertIs<ConnectResult.Connected>(wallet.connectService(mint.host)).service.withdrawUrl
+        val withdrawUrl = assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host)).mint.withdrawUrl
         val spend = branch.spend(NotePurpose.Wallet, 2, spendDomain(mint.host))
         val info = client.noteInfo(withdrawUrl, spend.k1)
         assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, branch.notePubkey(NotePurpose.Change, 50))))
@@ -104,7 +104,7 @@ class KeyInspectorTest {
         assertEquals(listOf(KeyStatus.HandedOut, KeyStatus.Skipped, KeyStatus.Spent, KeyStatus.HandedOut, KeyStatus.Next), keys.take(5).map { it.status })
         assertIs<KeyProbe.Unused>(keys[1].probe)
 
-        // The service stops answering: the key keeps its last answer, and the failure is shown beside it.
+        // The mint stops answering: the key keeps its last answer, and the failure is shown beside it.
         restarted.recordProbe(KeyId("a", mint.host, 0, 1), KeyProbe.Failed("offline", Long.MAX_VALUE))
         val after = restarted.derivedKeys(mint.host, NotePurpose.Wallet.value)[1]
         assertEquals(KeyStatus.Skipped, after.status)

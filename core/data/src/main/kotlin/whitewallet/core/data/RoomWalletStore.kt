@@ -13,7 +13,7 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.model.Service
+import whitewallet.core.model.Mint
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyIndexes
 import whitewallet.core.wallet.KeyProbe
@@ -62,10 +62,10 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
         dao.saveAddress(AddressEntity(accountId, address.host, address.username, address.addedAtMillis))
     override suspend fun deleteAddress(accountId: String, username: String, host: String) = dao.deleteAddress(accountId, host, username)
 
-    override suspend fun service(host: String) = dao.service(host)?.toModel()
-    override suspend fun saveService(service: Service) = dao.saveService(ServiceEntity.from(service))
-    override suspend fun removeService(host: String) = dao.removeService(host)
-    override val services: Flow<List<Service>> = dao.services().map { list -> list.map { it.toModel() } }
+    override suspend fun mint(host: String) = dao.mint(host)?.toModel()
+    override suspend fun saveMint(mint: Mint) = dao.saveMint(MintEntity.from(mint))
+    override suspend fun removeMint(host: String) = dao.removeMint(host)
+    override val mints: Flow<List<Mint>> = dao.mints().map { list -> list.map { it.toModel() } }
 
     override suspend fun note(id: String) = dao.note(id)?.toModel()
     override suspend fun upsertNotes(notes: List<Note>) = dao.upsertNotes(notes.map(NoteEntity::from))

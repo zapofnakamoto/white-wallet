@@ -47,7 +47,7 @@ class PayTest {
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
             wallet.payWaitMillis = 3_000
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
         }
     }
@@ -153,7 +153,7 @@ class PayTest {
     }
 
     @Test
-    fun `a payee on the same service gets the notes directly, at their published key`() = withMint("--registeredAddress") {
+    fun `a payee on the same mint gets the notes directly, at their published key`() = withMint("--registeredAddress") {
         fund(50)
         val preview = ready("mint@${mint.host}")
         assertTrue(preview.internal)
@@ -161,16 +161,16 @@ class PayTest {
         assertEquals(PayResult.Paid(20_000, 0), wallet.pay(preview, 20_000))
         assertEquals(30_000, balance())
 
-        // The note sits at the payee's purpose-2 key the service hinted at.
+        // The note sits at the payee's purpose-2 key the mint hinted at.
         val pay = assertIs<LnurlResponse.PayRequest>(LnurlcashClient().get("${mint.url}/.well-known/lnurlp/mint"))
         val cpub = pay.metadataEntries.single { it.first == "text/cpub" }.second
         val payeeKey = CashBranch.fromCx1(cpub.substringBeforeLast(':'))!!.notePubkey(NotePurpose.LightningAddress, 0)
-        val service = store.serviceMap[mint.host]!!
-        assertEquals(20_000, LnurlcashClient().lookup(service.withdrawUrl, payeeKey).maxWithdrawableMsat)
+        val known = store.mintMap[mint.host]!!
+        assertEquals(20_000, LnurlcashClient().lookup(known.withdrawUrl, payeeKey).maxWithdrawableMsat)
         assertTrue(store.notes("a").first().none { it.id == payeeKey.toHex() }, "never recorded as our note")
     }
 
-    /** A LUD-16 payee on another service, issuing test invoices that commit to its metadata. */
+    /** A LUD-16 payee on another mint, issuing test invoices that commit to its metadata. */
     private class PayLinkServer(private val wrongAmount: Boolean = false) : AutoCloseable {
         private val server = MockWebServer()
         var lastAmount: String? = null

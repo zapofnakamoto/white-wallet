@@ -30,7 +30,7 @@ class KeyViewSyncTest {
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient())
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             wallet.setAutoRotate(true)
 
             val changes = CopyOnWriteArrayList<Unit>()

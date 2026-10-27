@@ -14,7 +14,7 @@ import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.testkit.MockMint
 
-class ServiceDetailsTest {
+class MintDetailsTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
     private fun withWallet(test: suspend (MockMint, InMemoryWalletStore, Wallet) -> Unit) = runBlocking<Unit> {
@@ -23,7 +23,7 @@ class ServiceDetailsTest {
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             test(mint, store, wallet)
         }
     }
@@ -33,10 +33,10 @@ class ServiceDetailsTest {
         val branch = CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
         mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, 0)), 21_000)
         wallet.refresh()
-        val details = wallet.serviceDetails(mint.host)
-        assertEquals(ServiceDetails.Reachability.Reachable, details.reachability)
-        assertEquals(1_000, details.service?.feeBaseMsat)
-        assertNotNull(details.service?.mintPubkey)
+        val details = wallet.mintDetails(mint.host)
+        assertEquals(MintDetails.Reachability.Reachable, details.reachability)
+        assertEquals(1_000, details.mint?.feeBaseMsat)
+        assertNotNull(details.mint?.mintPubkey)
         assertEquals(21_000, details.balanceMsat)
         assertEquals(1, details.noteCount)
         assertEquals(true, details.isHome)
@@ -44,11 +44,11 @@ class ServiceDetailsTest {
     }
 
     @Test
-    fun `a changed signing key and an unreachable service are told apart`() = withWallet { mint, store, wallet ->
-        val service = assertNotNull(store.service(mint.host))
-        store.saveService(service.copy(mintPubkey = "02" + "11".repeat(32)))
-        assertEquals(ServiceDetails.Reachability.KeyChanged, wallet.serviceDetails(mint.host).reachability)
-        assertEquals(ServiceDetails.Reachability.Unreachable, wallet.serviceDetails("localhost:1").reachability)
-        assertEquals(ServiceDetails.Reachability.Invalid, wallet.serviceDetails("{host}").reachability)
+    fun `a changed signing key and an unreachable mint are told apart`() = withWallet { mint, store, wallet ->
+        val mint = assertNotNull(store.mint(mint.host))
+        store.saveMint(mint.copy(mintPubkey = "02" + "11".repeat(32)))
+        assertEquals(MintDetails.Reachability.KeyChanged, wallet.mintDetails(mint.host).reachability)
+        assertEquals(MintDetails.Reachability.Unreachable, wallet.mintDetails("localhost:1").reachability)
+        assertEquals(MintDetails.Reachability.Invalid, wallet.mintDetails("{host}").reachability)
     }
 }

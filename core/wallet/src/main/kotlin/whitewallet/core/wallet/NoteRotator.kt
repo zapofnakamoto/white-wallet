@@ -14,7 +14,7 @@ sealed interface RotateResult {
     /** The note now lives at wallet key (purpose 0) [toIndex]. */
     data class Rotated(val fromIndex: Long, val toIndex: Long, val amountMsat: Long, val certified: Boolean) : RotateResult
 
-    /** Nothing changed. [noAnswer] is true when the service could not be reached at all. */
+    /** Nothing changed. [noAnswer] is true when the mint could not be reached at all. */
     data class Failed(val reason: String?, val noAnswer: Boolean) : RotateResult
 
     /** Sent, outcome unknown; reconciliation settles it on the next refresh. */
@@ -41,7 +41,7 @@ internal class NoteRotator(private val wallet: Wallet) {
         return rotate(accountId, note, automatic)
     }
 
-    /** Every outstanding note of [purpose] on [host], one at a time. Stops if the service stops answering. */
+    /** Every outstanding note of [purpose] on [host], one at a time. Stops if the mint stops answering. */
     suspend fun rotateAll(accountId: String, host: String, purpose: Int, automatic: Boolean = false): RotateAllResult {
         val notes = wallet.store.notes(accountId).first()
             .filter { it.host == host && it.purpose == purpose && it.isRotatable() }

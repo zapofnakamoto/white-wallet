@@ -64,7 +64,7 @@ import whitewallet.core.wallet.MoneyMoved
 import whitewallet.core.wallet.MovePreview
 import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.OnboardResult
-import whitewallet.core.wallet.ServiceMoveResult
+import whitewallet.core.wallet.MintMoveResult
 import whitewallet.core.wallet.Wallet
 
 /**
@@ -79,14 +79,14 @@ enum class NameCheck { Idle, Checking, Available, Yours, Taken, Unknown }
 sealed interface MoneyMoveError {
     data class Name(val detail: String) : MoneyMoveError
     data class Registration(val detail: String) : MoneyMoveError
-    data class Service(val detail: String) : MoneyMoveError
+    data class Mint(val detail: String) : MoneyMoveError
     data class Network(val detail: String) : MoneyMoveError
 }
 
 /** After the change or move: the new primary address (if the home changed and the account has one), and per mint what happened. */
 data class MoneyMoveOutcome(val homeChanged: Boolean, val address: String?, val moved: List<MoneyMoved>) {
     /** Mints whose money didn't move and might on another try. */
-    val retryable: List<String> get() = moved.filter { it.result is ServiceMoveResult.Failed }.map { it.host }
+    val retryable: List<String> get() = moved.filter { it.result is MintMoveResult.Failed }.map { it.host }
 }
 
 data class MoneyMoveState(
@@ -181,7 +181,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
         if (!s.canContinue) return
         _state.update { it.copy(busy = true, error = null) }
         launchFailing(target) {
-            val preview = wallet.previewMove(target, s.from) ?: return@launchFailing fail(MoneyMoveError.Service(target))
+            val preview = wallet.previewMove(target, s.from) ?: return@launchFailing fail(MoneyMoveError.Mint(target))
             if (s.changingHome && preview.lines.isEmpty()) return@launchFailing run(s.copy(preview = preview), move = false)
             _state.update { it.copy(busy = false, preview = preview) }
         }
@@ -203,7 +203,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
         val target = _state.value.target ?: return
         _state.update { it.copy(busy = true) }
         launchFailing(target) {
-            val preview = wallet.previewMove(target) ?: return@launchFailing fail(MoneyMoveError.Service(target))
+            val preview = wallet.previewMove(target) ?: return@launchFailing fail(MoneyMoveError.Mint(target))
             val again = preview.copy(lines = preview.lines.filter { it.host in outcome.retryable })
             _state.update { it.copy(busy = false, outcome = null, preview = again, homeChanged = it.homeChanged || outcome.homeChanged, excluded = emptySet()) }
         }
@@ -224,14 +224,14 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
                 is OnboardResult.UsernameInvalid -> return fail(MoneyMoveError.Name(r.reason))
                 is OnboardResult.RegistrationFailed -> return fail(MoneyMoveError.Registration(r.reason.orEmpty()))
                 is OnboardResult.NetworkError -> return fail(MoneyMoveError.Network(r.reason))
-                is OnboardResult.ServiceInvalid -> return fail(MoneyMoveError.Service(r.reason))
+                is OnboardResult.MintInvalid -> return fail(MoneyMoveError.Mint(r.reason))
                 is OnboardResult.LimitReached, is OnboardResult.AccountLimitReached -> return fail(MoneyMoveError.Registration(r.toString()))
             }
         } else {
             val changed = wallet.changeHome(target, lines)
             when (val r = changed.result) {
                 is ConnectResult.Connected -> changed.moved
-                is ConnectResult.Failed -> return fail((r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network(it.reason) } ?: MoneyMoveError.Service(r.result.toString()))
+                is ConnectResult.Failed -> return fail((r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network(it.reason) } ?: MoneyMoveError.Mint(r.result.toString()))
             }
         }
         _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, null, moved)) }
@@ -244,7 +244,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
         } catch (e: IOException) {
             fail(MoneyMoveError.Network(e.message.orEmpty()))
         } catch (e: MintKeyChangedException) {
-            fail(MoneyMoveError.Service(host))
+            fail(MoneyMoveError.Mint(host))
         }
     }
 
@@ -416,7 +416,7 @@ private fun ErrorText(error: MoneyMoveError) {
     val text = when (error) {
         is MoneyMoveError.Name -> stringResource(R.string.money_error_name, error.detail)
         is MoneyMoveError.Registration -> stringResource(R.string.money_error_registration, error.detail)
-        is MoneyMoveError.Service -> stringResource(R.string.money_error_mint, error.detail)
+        is MoneyMoveError.Mint -> stringResource(R.string.money_error_mint, error.detail)
         is MoneyMoveError.Network -> stringResource(R.string.money_error_network, error.detail)
     }
     Text(text, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
@@ -496,9 +496,9 @@ private fun OutcomeContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, act
     outcome.moved.forEach { m ->
         val amount = formatAmount(m.amountMsat)
         val (text, error) = when (val r = m.result) {
-            is ServiceMoveResult.Moved -> stringResource(R.string.money_result_moved, formatAmount(r.arrivedMsat), m.host, formatAmount(r.feeMsat)) to false
-            ServiceMoveResult.Pending -> stringResource(R.string.money_result_pending, amount, m.host) to false
-            is ServiceMoveResult.Failed -> stringResource(R.string.money_result_failed, amount, m.host, reason(r.problem)) to true
+            is MintMoveResult.Moved -> stringResource(R.string.money_result_moved, formatAmount(r.arrivedMsat), m.host, formatAmount(r.feeMsat)) to false
+            MintMoveResult.Pending -> stringResource(R.string.money_result_pending, amount, m.host) to false
+            is MintMoveResult.Failed -> stringResource(R.string.money_result_failed, amount, m.host, reason(r.problem)) to true
         }
         Text(text, color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center)
     }

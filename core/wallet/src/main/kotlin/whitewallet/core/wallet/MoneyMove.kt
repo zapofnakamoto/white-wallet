@@ -35,7 +35,7 @@ data class MovePreview(
 }
 
 /** What [Wallet.moveMoney] did with one mint's money ([amountMsat] of it): moved, still settling, or not moved and why. */
-data class MoneyMoved(val host: String, val amountMsat: Long, val result: ServiceMoveResult)
+data class MoneyMoved(val host: String, val amountMsat: Long, val result: MintMoveResult)
 
 /** What [Wallet.changeHome] with money to move did: the change's [result], then per mint what the move did. */
 data class HomeChanged<R>(val result: R, val moved: List<MoneyMoved> = emptyList())
@@ -59,9 +59,9 @@ internal class MoneyMove(private val wallet: Wallet) {
      * it costs at most the fee the user confirmed; otherwise nothing is sent ([NoteProblem.Declined]).
      */
     suspend fun move(accountId: String, toHost: String, lines: List<MovePreview.Line>): List<MoneyMoved> = lines.map { line ->
-        val confirmed = line.quote as? MovePreview.Quote.Ok ?: return@map MoneyMoved(line.host, line.amountMsat, ServiceMoveResult.Failed(NoteProblem.Declined))
+        val confirmed = line.quote as? MovePreview.Quote.Ok ?: return@map MoneyMoved(line.host, line.amountMsat, MintMoveResult.Failed(NoteProblem.Declined))
         val notes = movable(accountId).filter { it.host == line.host }
-        if (notes.isEmpty()) return@map MoneyMoved(line.host, line.amountMsat, ServiceMoveResult.Failed(NoteProblem.NotFound))
+        if (notes.isEmpty()) return@map MoneyMoved(line.host, line.amountMsat, MintMoveResult.Failed(NoteProblem.NotFound))
         val result = NoteManager(wallet).move(accountId, notes.map { it.id }, toHost, automatic = false) { quote, notesMsat ->
             notesMsat - quote.expectedMsat <= confirmed.feeMsat
         }
@@ -70,8 +70,8 @@ internal class MoneyMove(private val wallet: Wallet) {
 
     private suspend fun quote(ids: List<String>, toHost: String, total: Long): MovePreview.Quote =
         when (val q = NoteManager(wallet).quoteMove(ids, toHost)) {
-            is ServiceMoveQuote.Ready -> MovePreview.Quote.Ok(q.expectedMsat, total - q.expectedMsat)
-            is ServiceMoveQuote.Invalid ->
+            is MintMoveQuote.Ready -> MovePreview.Quote.Ok(q.expectedMsat, total - q.expectedMsat)
+            is MintMoveQuote.Invalid ->
                 if (q.problem == NoteProblem.BelowMinimum) MovePreview.Quote.TooSmall(q.limitMsat) else MovePreview.Quote.Unavailable(q.problem)
         }
 

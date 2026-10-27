@@ -27,9 +27,9 @@ android {
         versionCode = brand("versionCode").toInt()
         versionName = brand("versionName")
         resValue("string", "app_name", brand("appName"))
-        buildConfigField("String", "DEFAULT_SERVICE_HOST", "\"${brand("defaultServiceHost")}\"")
-        buildConfigField("boolean", "ALLOW_SERVICE_CHANGE", brand("allowServiceChange"))
-        buildConfigField("String", "SERVICE_SUGGESTIONS", "\"${brand.getProperty("serviceSuggestions", "").trim()}\"")
+        buildConfigField("String", "DEFAULT_MINT_HOST", "\"${brand("defaultMintHost")}\"")
+        buildConfigField("boolean", "ALLOW_MINT_CHANGE", brand("allowMintChange"))
+        buildConfigField("String", "MINT_SUGGESTIONS", "\"${brand.getProperty("mintSuggestions", "").trim()}\"")
         buildConfigField("String", "SUPPORT_URL", "\"${brand("supportUrl")}\"")
         buildConfigField("String", "DEFAULT_AMOUNT_UNIT", "\"${brand.getProperty("defaultAmountUnit", "bitcoin").trim()}\"")
         buildConfigField("boolean", "REQUIRE_ADDRESS", brand.getProperty("requireAddress", "true").trim().toBooleanStrict().toString())
@@ -76,12 +76,12 @@ android {
             isPseudoLocalesEnabled = true
             // The local regtest mints (dev/regtest: mint, mint2), offered in developer mode; release builds can't reach
             // plain http.
-            buildConfigField("String", "LOCAL_DEV_SERVICES", "\"localhost:8111,localhost:8112,localhost:8113\"")
+            buildConfigField("String", "LOCAL_DEV_MINTS", "\"localhost:8111,localhost:8112,localhost:8113\"")
             // dev/regtest's faucet, which pays the app's own address or invoice from Receive in developer mode.
             buildConfigField("String", "LOCAL_DEV_FAUCET", "\"localhost:8114\"")
         }
         getByName("release") {
-            buildConfigField("String", "LOCAL_DEV_SERVICES", "\"\"")
+            buildConfigField("String", "LOCAL_DEV_MINTS", "\"\"")
             buildConfigField("String", "LOCAL_DEV_FAUCET", "\"\"")
             isMinifyEnabled = true
             vcsInfo.include = false

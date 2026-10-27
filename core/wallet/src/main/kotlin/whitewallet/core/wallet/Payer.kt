@@ -35,7 +35,7 @@ sealed interface PayDestination {
 
     /**
      * A LUD-06 pay link (a Lightning Address, `lnurlp://` or bech32 LNURL). [transfer] is set when the payee is on a
-     * service this account holds notes on and publishes a `text/cpub`: then the notes are handed over directly
+     * mint this account holds notes on and publishes a `text/cpub`: then the notes are handed over directly
      * (LUD-26 internal transfer), without Lightning.
      */
     data class PayLink(
@@ -49,7 +49,7 @@ sealed interface PayDestination {
     ) : PayDestination
 }
 
-/** A payee's purpose-2 branch on the same service, from their `text/cpub` (`cx1:<next index>`). */
+/** A payee's purpose-2 branch on the same mint, from their `text/cpub` (`cx1:<next index>`). */
 class InternalTransfer internal constructor(internal val branch: CashBranch, internal val nextIndex: Long)
 
 /** Why a payment can't be made (or wasn't). Every case maps to a full string in the app. */
@@ -84,10 +84,10 @@ enum class PayProblem {
     BelowMinimum,
     AboveMaximum,
 
-    /** The service refused the payment; nothing was paid. */
+    /** The mint refused the payment; nothing was paid. */
     Refused,
 
-    /** The service tried and the payment failed; the money is back. */
+    /** The mint tried and the payment failed; the money is back. */
     PaymentFailed,
 }
 
@@ -138,7 +138,7 @@ sealed interface PayResult {
 /**
  * Pays an invoice, Lightning Address or pay link from the active account's notes. A note pays exactly one amount,
  * so the notes are first merged and split into one worth exactly that (see [PayPlanner]); then either that note is
- * melted into the invoice (LUD-25), or, for a payee on the same service, the last merge/split names the payee's key
+ * melted into the invoice (LUD-25), or, for a payee on the same mint, the last merge/split names the payee's key
  * as its output (LUD-26 internal transfer). Every step is journaled; a melt is never retried.
  */
 internal class Payer(private val wallet: Wallet) {
@@ -200,7 +200,7 @@ internal class Payer(private val wallet: Wallet) {
         val accountId = wallet.activeId()
         val choice = choose(accountId, preview, amountMsat)
         if (choice != null) return PayQuote.Ok(amountMsat, choice.second.feeMsat.coerceAtLeast(0))
-        // No plan anywhere: too much for every service, or an amount the notes can't make exactly.
+        // No plan anywhere: too much for every mint, or an amount the notes can't make exactly.
         val (host, notes) = candidates(accountId, preview).maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(h)) } ?: return PayQuote.Invalid(PayProblem.NoFunds)
         val all = PayPlanner.max(notes, baseFee(host))
         return if (amountMsat > all) PayQuote.Invalid(PayProblem.TooMuch, all) else PayQuote.Unreachable(PayPlanner.maxWithChange(notes, baseFee(host)), all)
@@ -318,7 +318,7 @@ internal class Payer(private val wallet: Wallet) {
         }
     }
 
-    /** The service and plan to pay [amountMsat] with: the primary address's service first, then the others. */
+    /** The mint and plan to pay [amountMsat] with: the primary address's mint first, then the others. */
     private suspend fun choose(accountId: String, preview: PayPreview.Ready, amountMsat: Long): Pair<String, PayPlan>? =
         candidates(accountId, preview).firstNotNullOfOrNull { (host, notes) -> PayPlanner.plan(notes, amountMsat, baseFee(host))?.let { host to it } }
 
@@ -335,7 +335,7 @@ internal class Payer(private val wallet: Wallet) {
         outstanding(accountId).groupBy { it.host }.filterKeys { onlyHost == null || it == onlyHost }
             .maxOfOrNull { (host, notes) -> PayPlanner.max(notes, baseFee(host)) } ?: 0
 
-    private suspend fun baseFee(host: String): Long = wallet.store.service(host)?.feeBaseMsat ?: 0
+    private suspend fun baseFee(host: String): Long = wallet.store.mint(host)?.feeBaseMsat ?: 0
 
     private suspend fun outstanding(accountId: String): List<Note> =
         wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null }

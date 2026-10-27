@@ -5,18 +5,18 @@ import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 
-/** Whether a Lightning Address on a service points at an account's note branch. */
+/** Whether a Lightning Address on a mint points at an account's note branch. */
 sealed interface AddressStatus {
-    /** Registered to the account: the service publishes its own `cx1` for it (LUD-26 `text/cpub`). */
+    /** Registered to the account: the mint publishes its own `cx1` for it (LUD-26 `text/cpub`). */
     data object Ours : AddressStatus
 
-    /** Registered, but the service does not publish a `cx1`, so ownership cannot be confirmed. */
+    /** Registered, but the mint does not publish a `cx1`, so ownership cannot be confirmed. */
     data object Unconfirmed : AddressStatus
 
-    /** Nobody has this name on the service. */
+    /** Nobody has this name on the mint. */
     data object Available : AddressStatus
 
-    /** Someone else has it (or it is one of the service's own reserved names). */
+    /** Someone else has it (or it is one of the mint's own reserved names). */
     data object Taken : AddressStatus
 
     data class Invalid(val reason: String) : AddressStatus
@@ -24,7 +24,7 @@ sealed interface AddressStatus {
     data class CheckFailed(val reason: String) : AddressStatus
 }
 
-/** Looks a username up at the service's LUD-16 endpoint and compares its `text/cpub` with the account's branch. */
+/** Looks a username up at the mint's LUD-16 endpoint and compares its `text/cpub` with the account's branch. */
 internal class AddressCheck(private val wallet: Wallet) {
     /** [accountId] is the account whose branch counts as "ours", or null for an account that does not exist yet. */
     suspend fun check(username: String, host: String, accountId: String?): AddressStatus {

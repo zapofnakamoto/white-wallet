@@ -7,7 +7,7 @@ import whitewallet.brand.ReleaseStage
 import whitewallet.core.model.AmountUnit
 
 class AppDefaultsTest {
-    private val defaults = AppDefaults(defaultServiceHost = "mint.example", allowServiceChange = false)
+    private val defaults = AppDefaults(defaultMintHost = "mint.example", allowMintChange = false)
 
     @Test
     fun `amounts show in bitcoin unless the user picks sats`() {

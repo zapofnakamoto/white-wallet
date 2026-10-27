@@ -10,7 +10,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
-import whitewallet.brand.ServiceNotes
+import whitewallet.brand.MintNotes
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.CashBranch
@@ -28,8 +28,8 @@ class CustomStrategyTest {
         override val id = "chunks"
         override val title = 0
         override val description = 0
-        override fun plan(service: ServiceNotes): List<NoteStep> =
-            service.notes.filter { it.amountMsat > maxMsat + service.feeBaseMsat }.map { NoteStep.Split(it.id, maxMsat) }
+        override fun plan(mint: MintNotes): List<NoteStep> =
+            mint.notes.filter { it.amountMsat > maxMsat + mint.feeBaseMsat }.map { NoteStep.Split(it.id, maxMsat) }
     }
 
     /** Proposes only what can't be done: unknown notes, impossible amounts, rotating a wallet note. */
@@ -37,8 +37,8 @@ class CustomStrategyTest {
         override val id = "nonsense"
         override val title = 0
         override val description = 0
-        override fun plan(service: ServiceNotes): List<NoteStep> = listOf(NoteStep.Combine(listOf("nope", "nada"))) +
-            service.notes.flatMap { listOf(NoteStep.Split(it.id, it.amountMsat), NoteStep.Combine(listOf(it.id)), NoteStep.Rotate(it.id)) }
+        override fun plan(mint: MintNotes): List<NoteStep> = listOf(NoteStep.Combine(listOf("nope", "nada"))) +
+            mint.notes.flatMap { listOf(NoteStep.Split(it.id, it.amountMsat), NoteStep.Combine(listOf(it.id)), NoteStep.Rotate(it.id)) }
     }
 
     private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: CashBranch) {
@@ -52,7 +52,7 @@ class CustomStrategyTest {
             val strategies = NoteStrategies(listOf(ManualStrategy(), strategy), listOf(ManualStrategy.ID, strategy.id), strategy.id)
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), strategies = strategies)
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
         }
     }
@@ -60,7 +60,7 @@ class CustomStrategyTest {
     @Test
     fun `a brand strategy reshapes incoming notes, round after round`() = withMint(Chunks(10_000)) {
         assertEquals("chunks", wallet.noteStrategy.first().id, "the brand's default")
-        val fee = assertNotNull(store.service(mint.host)).feeBaseMsat ?: 0
+        val fee = assertNotNull(store.mint(mint.host)).feeBaseMsat ?: 0
         mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, 0)), 35_000 + 3 * fee)
         wallet.refresh()
         val amounts = outstanding().map { it.amountMsat }.sortedDescending()

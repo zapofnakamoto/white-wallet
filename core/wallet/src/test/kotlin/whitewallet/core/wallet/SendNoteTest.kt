@@ -36,12 +36,12 @@ class SendNoteTest {
         suspend fun notes(state: NoteState) = store.notes("a").first().filter { it.state == state }.map { it.amountMsat }.sorted()
         suspend fun sentRow() = store.activities("a").first().single { it.kind == ActivityKind.SentNote }
 
-        /** Someone else's wallet on the same service. */
+        /** Someone else's wallet on the same mint. */
         suspend fun recipient(words: List<String>): Pair<InMemoryWalletStore, Wallet> {
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(mapOf("b" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
             store.addAccount("b", "Bob", Profile("bob", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             return store to wallet
         }
     }
@@ -52,7 +52,7 @@ class SendNoteTest {
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to alice)), LnurlcashClient(), policies = NotePolicies.InMemory(strategy))
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(alice, ""), mint.host)).test()
         }
     }

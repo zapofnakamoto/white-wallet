@@ -16,7 +16,7 @@ import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.model.Service
+import whitewallet.core.model.Mint
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
 
@@ -62,8 +62,8 @@ internal data class NoteEntity(
 }
 
 /** Shared by all accounts: what a host is and the key pinned for it. */
-@Entity(tableName = "services")
-internal data class ServiceEntity(
+@Entity(tableName = "mints")
+internal data class MintEntity(
     @PrimaryKey val host: String,
     val withdrawUrl: String,
     val mintPubkey: String?,
@@ -72,10 +72,10 @@ internal data class ServiceEntity(
     val feeBaseMsat: Long?,
     val feePpm: Long?,
 ) {
-    fun toModel() = Service(host, withdrawUrl, mintPubkey, minSendableMsat, maxSendableMsat, feeBaseMsat, feePpm)
+    fun toModel() = Mint(host, withdrawUrl, mintPubkey, minSendableMsat, maxSendableMsat, feeBaseMsat, feePpm)
 
     companion object {
-        fun from(s: Service) = ServiceEntity(s.host, s.withdrawUrl, s.mintPubkey, s.minSendableMsat, s.maxSendableMsat, s.feeBaseMsat, s.feePpm)
+        fun from(s: Mint) = MintEntity(s.host, s.withdrawUrl, s.mintPubkey, s.minSendableMsat, s.maxSendableMsat, s.feeBaseMsat, s.feePpm)
     }
 }
 
@@ -98,7 +98,7 @@ internal data class CounterEntity(val accountId: String, val host: String, val p
 internal data class AddressScanEntity(val accountId: String, val host: String, val next: Long)
 
 /**
- * The last answer the service gave for one derived key (public lookup by `p`, never by spend). Failed lookups are
+ * The last answer the mint gave for one derived key (public lookup by `p`, never by spend). Failed lookups are
  * not saved. [result] is the [KeyProbe] subtype; [amountMsat], [certified] and [imported] belong to `Outstanding`,
  * [reason] to `Refused`.
  */

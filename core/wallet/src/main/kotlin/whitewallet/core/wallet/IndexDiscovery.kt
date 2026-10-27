@@ -6,7 +6,7 @@ import whitewallet.lnurlcash.NotePurpose
 
 data class DiscoveryResult(val next: Long, val checked: Int, val imported: Int, val stoppedEarly: String?)
 
-/** The state of one purpose's index on one service, for the developer key page. */
+/** The state of one purpose's index on one mint, for the developer key page. */
 data class IndexHealth(val next: Long, val highestUsed: Long, val lastVerifiedAtMillis: Long?) {
     /** The counter would hand out a key the wallet knows is used. */
     val behind: Boolean get() = next <= highestUsed
@@ -27,14 +27,14 @@ internal class IndexDiscovery(private val wallet: Wallet) {
 
     suspend fun discover(accountId: String, host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): DiscoveryResult {
         val current = current(accountId, host, purpose)
-        val service = wallet.store.service(host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
+        val mint = wallet.store.mint(host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
         var lastUsed = highestKnownUsed(accountId, host, purpose)
         var index = lastUsed + 1
         var unused = 0
         var checked = 0
         var imported = 0
         while (unused < gap) {
-            val probe = prober.probe(KeyId(accountId, host, purpose, index), service)
+            val probe = prober.probe(KeyId(accountId, host, purpose, index), mint)
             checked++
             when (probe) {
                 is KeyProbe.Outstanding -> { lastUsed = index; unused = 0; if (probe.imported) imported++ }
@@ -58,7 +58,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
 
 /**
  * Hands out output keys for the wallet's own purposes (0 wallet, 1 change), never one it knows is used:
- * on an account's first use of a service the index is discovered first, and keys the wallet already holds a note
+ * on an account's first use of a mint the index is discovered first, and keys the wallet already holds a note
  * at are skipped. Persist before disclose: each index is reserved durably before its key is named in a request.
  */
 internal class IndexGuard(private val wallet: Wallet) {
@@ -77,7 +77,7 @@ internal class IndexGuard(private val wallet: Wallet) {
         error("no free key found for purpose ${purpose.value}")
     }
 
-    /** The service says a key is already in use: the local index is behind, so find the real one. */
+    /** The mint says a key is already in use: the local index is behind, so find the real one. */
     suspend fun recover(accountId: String, host: String, purpose: NotePurpose) = discovery.discover(accountId, host, purpose.value)
 
     private companion object {

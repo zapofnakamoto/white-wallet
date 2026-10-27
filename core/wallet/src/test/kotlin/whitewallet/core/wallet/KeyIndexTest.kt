@@ -27,7 +27,7 @@ class KeyIndexTest {
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
         }
     }
@@ -55,12 +55,12 @@ class KeyIndexTest {
         val store2 = InMemoryWalletStore()
         val wallet2 = Wallet(store2, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
         store2.addAccount("a", "Main", Profile("alice", mint.host))
-        assertIs<ConnectResult.Connected>(wallet2.connectService(mint.host))
+        assertIs<ConnectResult.Connected>(wallet2.connectMint(mint.host))
         return store2 to wallet2
     }
 
     @Test
-    fun `keys used by another device are discovered when the service says already in use`() = withMint {
+    fun `keys used by another device are discovered when the mint says already in use`() = withMint {
         // The other device used wallet keys #0..#4: three outstanding, two spent (rotated onward to #3, #4).
         (0L..2L).forEach { credit(NotePurpose.Wallet, it, 1_000) }
         val (store2, wallet2) = otherDevice()

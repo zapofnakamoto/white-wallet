@@ -62,7 +62,7 @@ internal sealed interface MintInvoice {
             }
             val raw = response.raw.string("pr") ?: return Mismatch
             val invoice = Bolt11.decode(raw) ?: return Mismatch
-            // The reference service's minting invoices carry a memo rather than the metadata hash; a hash, if given, must match.
+            // The reference mint's minting invoices carry a memo rather than the metadata hash; a hash, if given, must match.
             val hashOk = invoice.descriptionHashHex == null || invoice.descriptionHashHex == Payer.sha256Hex(pay.pay.metadata)
             if (invoice.amountMsat != amountMsat || !hashOk) return Mismatch
             return Ok(invoice.raw, invoice.expiresAtSeconds * 1000)
@@ -93,14 +93,14 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
         if (amountMsat < pay.pay.minSendable || amountMsat > pay.pay.maxSendable || expected <= 0) {
             return InvoiceRequest.OutOfRange(pay.pay.minSendable, pay.pay.maxSendable)
         }
-        val service = wallet.store.service(host) ?: return InvoiceRequest.Unreachable
+        val mint = wallet.store.mint(host) ?: return InvoiceRequest.Unreachable
         repeat(IN_USE_RETRIES + 1) {
             val reserved = guard.reserve(accountId, host, NotePurpose.Wallet)
             when (val fetched = MintInvoice.fetch(wallet, pay, amountMsat, reserved.key)) {
                 is MintInvoice.Ok -> {
                     val id = UUID.randomUUID().toString()
                     val now = wallet.now()
-                    wallet.store.putJournal(JournalEntry(id, accountId, OperationType.Mint, host, service.withdrawUrl, emptyList(), emptyList(),
+                    wallet.store.putJournal(JournalEntry(id, accountId, OperationType.Mint, host, mint.withdrawUrl, emptyList(), emptyList(),
                         listOf(reserved.ref), fetched.invoice, JournalStatus.Prepared, null, now, now))
                     return InvoiceRequest.Ready(id, fetched.invoice, amountMsat, expected, fetched.expiresAtMillis)
                 }

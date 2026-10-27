@@ -23,7 +23,7 @@ import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.testkit.MockMint
 
-/** The notes page: combine, split, and move notes to another service. */
+/** The notes page: combine, split, and move notes to another mint. */
 class NotesTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
@@ -47,7 +47,7 @@ class NotesTest {
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
             wallet.payWaitMillis = 3_000
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
         }
     }
@@ -63,7 +63,7 @@ class NotesTest {
     }
 
     @Test
-    fun `combining needs two notes on one service`() = withMint {
+    fun `combining needs two notes on one mint`() = withMint {
         fund(10)
         assertEquals(NoteActionResult.Failed(NoteProblem.TooFewNotes), wallet.combineNotes(outstanding().map { it.id }))
         assertEquals(NoteActionResult.Failed(NoteProblem.NotFound), wallet.combineNotes(listOf("nope", outstanding().single().id)))
@@ -82,21 +82,21 @@ class NotesTest {
     }
 
     @Test
-    fun `notes move to another service, merged and melted here, minted there to our own key`() = withMint("--baseFeeMsat=1000") {
+    fun `notes move to another mint, merged and melted here, minted there to our own key`() = withMint("--baseFeeMsat=1000") {
         fund(30, 20)
-        TargetService(feeMsat = 2_000).use { target ->
+        TargetMint(feeMsat = 2_000).use { target ->
             val ids = outstanding().map { it.id }
-            val quote = assertIs<ServiceMoveQuote.Ready>(wallet.quoteServiceMove(ids, target.host))
+            val quote = assertIs<MintMoveQuote.Ready>(wallet.quoteMintMove(ids, target.host))
             assertEquals(51_000, quote.amountMsat, "merged, with the refund")
             assertEquals(49_000, quote.expectedMsat, "the target's 2 sat mint fee")
 
-            assertEquals(ServiceMoveResult.Moved(49_000, 2_000), wallet.moveToService(ids, target.host))
+            assertEquals(MintMoveResult.Moved(49_000, 2_000), wallet.moveToMint(ids, target.host))
             assertEquals(emptyList(), on(mint.host))
             assertEquals(listOf(49_000L), on(target.host))
             val arrived = outstanding().single()
             assertEquals(NotePurpose.Wallet.value, arrived.purpose, "a wallet key of this account on the target")
             assertEquals(arrived.id, target.mintedTo)
-            val moved = history().single { it.kind == ActivityKind.MovedService }
+            val moved = history().single { it.kind == ActivityKind.MovedMint }
             assertEquals(ActivityStatus.Done, moved.status)
             assertEquals(target.host, moved.counterparty)
             assertEquals(2_000, moved.feeMsat)
@@ -106,32 +106,32 @@ class NotesTest {
     @Test
     fun `a move whose payment fails gives the money back and expects nothing on the target`() = withMint("--meltAlwaysFails") {
         fund(30)
-        TargetService(feeMsat = 0, mints = false).use { target ->
+        TargetMint(feeMsat = 0, mints = false).use { target ->
             val id = outstanding().single().id
-            assertEquals(ServiceMoveResult.Failed(NoteProblem.PaymentFailed), wallet.moveToService(listOf(id), target.host))
+            assertEquals(MintMoveResult.Failed(NoteProblem.PaymentFailed), wallet.moveToMint(listOf(id), target.host))
             assertEquals(listOf(30_000L), on(mint.host))
-            assertEquals(ActivityStatus.Failed, history().single { it.kind == ActivityKind.MovedService }.status)
+            assertEquals(ActivityStatus.Failed, history().single { it.kind == ActivityKind.MovedMint }.status)
             assertEquals(0, store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).size, "nothing left to reconcile")
         }
     }
 
     @Test
-    fun `moving needs another, working service`() = withMint {
+    fun `moving needs another, working mint`() = withMint {
         fund(30)
         val ids = outstanding().map { it.id }
-        assertEquals(ServiceMoveQuote.Invalid(NoteProblem.SameService), wallet.quoteServiceMove(ids, mint.host))
-        assertEquals(ServiceMoveQuote.Invalid(NoteProblem.Unreachable), wallet.quoteServiceMove(ids, "localhost:1"))
-        TargetService(feeMsat = 0, wrongInvoice = true).use { target ->
-            assertEquals(ServiceMoveResult.Failed(NoteProblem.InvoiceMismatch), wallet.moveToService(ids, target.host))
+        assertEquals(MintMoveQuote.Invalid(NoteProblem.SameMint), wallet.quoteMintMove(ids, mint.host))
+        assertEquals(MintMoveQuote.Invalid(NoteProblem.Unreachable), wallet.quoteMintMove(ids, "localhost:1"))
+        TargetMint(feeMsat = 0, wrongInvoice = true).use { target ->
+            assertEquals(MintMoveResult.Failed(NoteProblem.InvoiceMismatch), wallet.moveToMint(ids, target.host))
             assertEquals(listOf(30_000L), on(mint.host), "nothing was melted")
         }
     }
 
     /**
-     * Another LNURLcash service, just enough of one: a minting payRequest whose invoices (test invoices, unpayable)
+     * Another LNURLcash mint, just enough of one: a minting payRequest whose invoices (test invoices, unpayable)
      * mint the commented key once requested, unless [mints] is off, and lookups by `p`.
      */
-    class TargetService(private val feeMsat: Long, private val mints: Boolean = true, private val wrongInvoice: Boolean = false) : AutoCloseable {
+    class TargetMint(private val feeMsat: Long, private val mints: Boolean = true, private val wrongInvoice: Boolean = false) : AutoCloseable {
         private val server = MockWebServer()
         val host get() = "localhost:${server.port}"
         private val minted = mutableMapOf<String, Long>()

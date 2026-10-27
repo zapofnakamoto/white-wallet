@@ -34,11 +34,11 @@ data class HomeState(
     val refreshing: Boolean = false,
     val unresolved: Int = 0,
     val error: String? = null,
-    /** A service that now presents another signing key than the pinned one: the wallet stops working with it. */
+    /** A mint that now presents another signing key than the pinned one: the wallet stops working with it. */
     val keyChangedHost: String? = null,
     /** Funds are at risk until the recovery phrase is backed up. */
     val showBackupPrompt: Boolean = false,
-    /** The service no longer routes the profile's address to this wallet (checked on refresh). */
+    /** The mint no longer routes the profile's address to this wallet (checked on refresh). */
     val addressInactive: Boolean = false,
     val backupPromptDismissed: Boolean = false,
     /** The balance shows as dots until tapped (kept across launches). */

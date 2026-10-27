@@ -71,19 +71,19 @@ enum class HistoryFilterOption {
 }
 
 data class AppDefaults(
-    val defaultServiceHost: String,
-    val allowServiceChange: Boolean,
-    /** Services offered in the onboarding dropdown, default first. */
-    val serviceSuggestions: List<String> = listOf(defaultServiceHost),
+    val defaultMintHost: String,
+    val allowMintChange: Boolean,
+    /** Mints offered in the onboarding dropdown, default first. */
+    val mintSuggestions: List<String> = listOf(defaultMintHost),
     /** The local regtest mints, offered in developer mode in debug builds; empty in release builds. */
-    val localDevServices: List<String> = emptyList(),
+    val localDevMints: List<String> = emptyList(),
     /** How amounts are shown until the user picks a unit (brand `defaultAmountUnit`). */
     val defaultAmountUnit: AmountUnit = AmountUnit.Bitcoin,
     /** Whether users may pick another unit under Settings → Amounts (brand `allowUnitChange`); else always [defaultAmountUnit]. */
     val allowUnitChange: Boolean = true,
     /** Accounts this wallet may hold (brand `maxAccounts`); [UNLIMITED] for no limit. Enforced by [Wallet.maxAccounts]. */
     val maxAccounts: Int = UNLIMITED,
-    /** Lightning Addresses an account may hold per service (brand `maxAddresses`); [UNLIMITED] for no limit. */
+    /** Lightning Addresses an account may hold per mint (brand `maxAddresses`); [UNLIMITED] for no limit. */
     val maxAddresses: Int = 1,
     /** Whether setup asks for a Lightning Address (brand `requireAddress`); see [Wallet.requireAddress]. */
     val requireAddress: Boolean = true,

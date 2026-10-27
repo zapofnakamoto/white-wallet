@@ -6,14 +6,14 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
-import whitewallet.brand.ServiceNotes
+import whitewallet.brand.MintNotes
 import whitewallet.brand.StrategyNote
 
 class NoteStrategiesTest {
     private class Named(override val id: String) : NoteStrategy {
         override val title = 0
         override val description = 0
-        override fun plan(service: ServiceNotes): List<NoteStep> = emptyList()
+        override fun plan(mint: MintNotes): List<NoteStep> = emptyList()
     }
 
     private val all = listOf(SingleNoteStrategy(), ManualStrategy(), Named("keep-small"))
@@ -51,9 +51,9 @@ class NoteStrategiesTest {
         val single = SingleNoteStrategy()
         val a = StrategyNote("a", 1_000, onAddressKey = true, updatedAtMillis = 2)
         val b = StrategyNote("b", 2_000, onAddressKey = false, updatedAtMillis = 1)
-        assertEquals(listOf(NoteStep.Combine(listOf("b", "a"))), single.plan(ServiceNotes("h", listOf(a, b), 0)))
-        assertEquals(listOf(NoteStep.Rotate("a")), single.plan(ServiceNotes("h", listOf(a), 0)))
-        assertEquals(emptyList(), single.plan(ServiceNotes("h", listOf(b), 0)))
-        assertEquals(emptyList(), ManualStrategy().plan(ServiceNotes("h", listOf(a, b), 0)))
+        assertEquals(listOf(NoteStep.Combine(listOf("b", "a"))), single.plan(MintNotes("h", listOf(a, b), 0)))
+        assertEquals(listOf(NoteStep.Rotate("a")), single.plan(MintNotes("h", listOf(a), 0)))
+        assertEquals(emptyList(), single.plan(MintNotes("h", listOf(b), 0)))
+        assertEquals(emptyList(), ManualStrategy().plan(MintNotes("h", listOf(a, b), 0)))
     }
 }

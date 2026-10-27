@@ -21,19 +21,19 @@ class RegtestMintTest {
     fun `connecting pins the signing key, and the details show fees, limits and the money there`() = runBlocking<Unit> {
         val alice = Regtest.phone()
         alice.fund(1000, 2000)
-        val home = alice.wallet.serviceDetails(HOST)
-        assertEquals(ServiceDetails.Reachability.Reachable, home.reachability)
+        val home = alice.wallet.mintDetails(HOST)
+        assertEquals(MintDetails.Reachability.Reachable, home.reachability)
         assertTrue(home.isHome)
-        val service = assertNotNull(home.service)
-        assertEquals(1_000, service.feeBaseMsat)
-        assertNotNull(service.mintPubkey)
+        val known = assertNotNull(home.mint)
+        assertEquals(1_000, known.feeBaseMsat)
+        assertNotNull(known.mintPubkey)
         assertEquals(2_998_000, home.balanceMsat)
         assertEquals(2, home.noteCount)
 
-        assertIs<ConnectResult.Connected>(alice.wallet.connectService(HOST2))
-        val second = alice.wallet.serviceDetails(HOST2)
-        assertEquals(2_000, second.service?.feeBaseMsat, "the second mint's 2 sat fee")
-        assertTrue(second.service?.mintPubkey != service.mintPubkey, "each mint signs with its own key")
+        assertIs<ConnectResult.Connected>(alice.wallet.connectMint(HOST2))
+        val second = alice.wallet.mintDetails(HOST2)
+        assertEquals(2_000, second.mint?.feeBaseMsat, "the second mint's 2 sat fee")
+        assertTrue(second.mint?.mintPubkey != known.mintPubkey, "each mint signs with its own key")
         assertEquals(false, second.isHome)
     }
 
@@ -69,7 +69,7 @@ class RegtestMintTest {
         changed = true
         sent = 0
 
-        assertEquals(ServiceDetails.Reachability.KeyChanged, alice.wallet.serviceDetails(HOST).reachability)
+        assertEquals(MintDetails.Reachability.KeyChanged, alice.wallet.mintDetails(HOST).reachability)
         assertEquals(NoteCheck.KeyChanged(HOST), alice.wallet.recheckNote(note.id))
         assertIs<ClaimPreview.Invalid>(alice.wallet.previewClaim(Regtest.note(1000)))
         assertTrue(alice.wallet.rotateNote(note.id) !is RotateResult.Rotated)
@@ -94,17 +94,17 @@ class RegtestMintTest {
         val note = alice.notes().single()
         changed = true
 
-        val details = alice.wallet.serviceDetails(HOST)
-        assertEquals(ServiceDetails.Reachability.KeyChanged, details.reachability)
+        val details = alice.wallet.mintDetails(HOST)
+        assertEquals(MintDetails.Reachability.KeyChanged, details.reachability)
         assertEquals(OTHER_KEY, details.presentedKey, "the key the user is shown, and accepts")
-        assertTrue(details.service?.mintPubkey != OTHER_KEY)
+        assertTrue(details.mint?.mintPubkey != OTHER_KEY)
         assertEquals(false, alice.wallet.acceptMintKey(HOST, "03" + "11".repeat(32)), "not a key the mint presents")
-        assertEquals(ServiceDetails.Reachability.KeyChanged, alice.wallet.serviceDetails(HOST).reachability)
+        assertEquals(MintDetails.Reachability.KeyChanged, alice.wallet.mintDetails(HOST).reachability)
 
         assertTrue(alice.wallet.acceptMintKey(HOST, OTHER_KEY))
-        val after = alice.wallet.serviceDetails(HOST)
-        assertEquals(ServiceDetails.Reachability.Reachable, after.reachability)
-        assertEquals(OTHER_KEY, after.service?.mintPubkey)
+        val after = alice.wallet.mintDetails(HOST)
+        assertEquals(MintDetails.Reachability.Reachable, after.reachability)
+        assertEquals(OTHER_KEY, after.mint?.mintPubkey)
         assertEquals(null, after.presentedKey)
         assertEquals(setOf(HOST), alice.wallet.trustedHosts.first(), "the home mint stays trusted with its new key")
 
@@ -124,7 +124,7 @@ class RegtestMintTest {
         assertIs<ConnectResult.Connected>(alice.wallet.addMint(HOST2))
         alice.wallet.setMintTrusted(HOST2, true)
         changed = true
-        assertEquals(ServiceDetails.Reachability.KeyChanged, alice.wallet.serviceDetails(HOST2).reachability)
+        assertEquals(MintDetails.Reachability.KeyChanged, alice.wallet.mintDetails(HOST2).reachability)
         assertTrue(alice.wallet.acceptMintKey(HOST2, OTHER_KEY))
         assertTrue(HOST2 in alice.wallet.trustedHosts.first())
         assertEquals(true, assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(1000, second = true))).trusted)

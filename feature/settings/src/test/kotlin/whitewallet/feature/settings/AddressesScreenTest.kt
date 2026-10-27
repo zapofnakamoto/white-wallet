@@ -31,37 +31,37 @@ class AddressesScreenTest {
 
     @Test
     fun anAddressOnAnotherMintIsListedUnderItAndCanNotBecomePrimary() {
-        show(AddressesState(listOf(home, other), homeHost = "home.example", otherServices = true))
+        show(AddressesState(listOf(home, other), homeHost = "home.example", otherMints = true))
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("alice@other.example"))
         compose.onNodeWithText("other.example").assertExists()
         compose.onNodeWithText("Make primary").assertDoesNotExist()
     }
 
     @Test
-    fun anotherServiceIsOfferedOnlyWhenTheBrandAllowsIt() {
+    fun anotherMintIsOfferedOnlyWhenTheBrandAllowsIt() {
         var asked = false
-        show(AddressesState(listOf(home), homeHost = "home.example", otherServices = true), onAddElsewhere = { asked = true })
+        show(AddressesState(listOf(home), homeHost = "home.example", otherMints = true), onAddElsewhere = { asked = true })
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Add an address on another mint"))
         compose.onNodeWithText("Add an address on another mint").performClick()
         assertEquals(true, asked)
     }
 
     @Test
-    fun aLockedBrandShowsNoOtherService() {
-        show(AddressesState(listOf(home), homeHost = "home.example", otherServices = false))
+    fun aLockedBrandShowsNoOtherMint() {
+        show(AddressesState(listOf(home), homeHost = "home.example", otherMints = false))
         compose.onNodeWithText("Add an address on another mint").assertDoesNotExist()
     }
 
     @Test
     fun withOnlyAnAddressElsewhereTheFirstOneHereIsStillOffered() {
-        show(AddressesState(listOf(other), homeHost = "home.example", otherServices = true))
+        show(AddressesState(listOf(other), homeHost = "home.example", otherMints = true))
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Get a Lightning address"))
     }
 
     @Test
     @Config(qualifiers = "de")
     fun german() {
-        show(AddressesState(listOf(home), homeHost = "home.example", otherServices = true))
+        show(AddressesState(listOf(home), homeHost = "home.example", otherMints = true))
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Adresse bei einer anderen Mint hinzufügen"))
     }
 }

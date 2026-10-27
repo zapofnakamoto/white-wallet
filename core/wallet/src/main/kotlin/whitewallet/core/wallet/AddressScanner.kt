@@ -4,7 +4,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.lnurlcash.NotePurpose
 
 /**
- * Finds notes the service auto-minted for Lightning Address payments (LUD-26 purpose 2) by looking up each derived
+ * Finds notes the mint auto-minted for Lightning Address payments (LUD-26 purpose 2) by looking up each derived
  * key by `p`, stopping after [GAP_LIMIT] consecutive unused indices.
  */
 internal class AddressScanner(private val wallet: Wallet) {
@@ -12,7 +12,7 @@ internal class AddressScanner(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
 
     suspend fun scan(accountId: String, host: String): RefreshResult {
-        val service = wallet.store.service(host) ?: return RefreshResult(0, 0)
+        val mint = wallet.store.mint(host) ?: return RefreshResult(0, 0)
         val purpose = NotePurpose.LightningAddress.value
         val start = wallet.store.addressScanFrom(accountId, host)
         var index = start
@@ -21,7 +21,7 @@ internal class AddressScanner(private val wallet: Wallet) {
         var found = 0
         var received = 0L
         while (gap < GAP_LIMIT) {
-            when (val probe = prober.probe(KeyId(accountId, host, purpose, index), service)) {
+            when (val probe = prober.probe(KeyId(accountId, host, purpose, index), mint)) {
                 is KeyProbe.Outstanding -> {
                     if (probe.imported) {
                         found++

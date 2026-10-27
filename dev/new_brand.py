@@ -447,16 +447,16 @@ applicationId={o.id}
 versionCode=1
 versionName=0.1.0
 # The LNURLcash mint preselected during onboarding (host, optionally with :port).
-defaultServiceHost={o.mint}
+defaultMintHost={o.mint}
 # Mints offered in the onboarding dropdown (comma-separated; the default is always included). Users can also pick "Custom".
-serviceSuggestions={suggestions}
-allowServiceChange={"false" if o.lock else "true"}
+mintSuggestions={suggestions}
+allowMintChange={"false" if o.lock else "true"}
 # How amounts are shown until the user picks a unit in Settings: bitcoin (BIP-177: ₿1,000) or sats (1,000 sats).
 defaultAmountUnit={o.unit}
 # Whether users may switch the unit under Settings → Amounts. With false, amounts always show in defaultAmountUnit.
 allowUnitChange={"false" if o.lock_unit else "true"}
 # Whether every account needs a Lightning Address. With false, setup only creates the account (a single button when
-# allowServiceChange=false); users receive by invoice and can still get an address later in Settings.
+# allowMintChange=false); users receive by invoice and can still get an address later in Settings.
 requireAddress={"false" if o.no_address else "true"}
 # Accounts the app holds (1 hides everything about accounts) and Lightning Addresses an account may register per
 # mint. 0 means no limit.

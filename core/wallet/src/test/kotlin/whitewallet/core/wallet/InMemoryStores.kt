@@ -14,7 +14,7 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.model.Service
+import whitewallet.core.model.Mint
 
 class InMemoryWalletStore : WalletStore {
     private val accountMap = MutableStateFlow<Map<String, Account>>(emptyMap())
@@ -22,7 +22,7 @@ class InMemoryWalletStore : WalletStore {
     private val profiles = MutableStateFlow<Map<String, Profile>>(emptyMap())
     private val addressMap = MutableStateFlow<Map<String, List<RegisteredAddress>>>(emptyMap())
     private val active = MutableStateFlow<String?>(null)
-    val serviceMap = mutableMapOf<String, Service>()
+    val mintMap = mutableMapOf<String, Mint>()
     val counters = mutableMapOf<Triple<String, String, Int>, Long>()
     val scanFrom = mutableMapOf<Pair<String, String>, Long>()
     val journal = linkedMapOf<String, JournalEntry>()
@@ -73,17 +73,17 @@ class InMemoryWalletStore : WalletStore {
     override suspend fun deleteAddress(accountId: String, username: String, host: String) {
         addressMap.value = addressMap.value + (accountId to addressMap.value[accountId].orEmpty().filterNot { it.username == username && it.host == host })
     }
-    override suspend fun service(host: String) = serviceMap[host]
-    override suspend fun saveService(service: Service) {
-        serviceMap[service.host] = service
-        servicesFlow.value = serviceMap.values.sortedBy { it.host }
+    override suspend fun mint(host: String) = mintMap[host]
+    override suspend fun saveMint(mint: Mint) {
+        mintMap[mint.host] = mint
+        mintsFlow.value = mintMap.values.sortedBy { it.host }
     }
-    override suspend fun removeService(host: String) {
-        serviceMap.remove(host)
-        servicesFlow.value = serviceMap.values.sortedBy { it.host }
+    override suspend fun removeMint(host: String) {
+        mintMap.remove(host)
+        mintsFlow.value = mintMap.values.sortedBy { it.host }
     }
-    private val servicesFlow = MutableStateFlow<List<Service>>(emptyList())
-    override val services get() = servicesFlow
+    private val mintsFlow = MutableStateFlow<List<Mint>>(emptyList())
+    override val mints get() = mintsFlow
     override suspend fun note(id: String) = noteMap.value[id]
     override suspend fun upsertNotes(notes: List<Note>) { noteMap.value = noteMap.value + notes.associateBy { it.id } }
     override suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long {

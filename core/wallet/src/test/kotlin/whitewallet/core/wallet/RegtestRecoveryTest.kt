@@ -161,9 +161,9 @@ class RegtestRecoveryTest {
         alice.wallet.payWaitMillis = 1_000
         alice.fund(3000)
         val ids = alice.notes().map { it.id }
-        val quote = assertIs<ServiceMoveQuote.Ready>(alice.wallet.quoteServiceMove(ids, HOST2))
+        val quote = assertIs<MintMoveQuote.Ready>(alice.wallet.quoteMintMove(ids, HOST2))
 
-        assertEquals(ServiceMoveResult.Pending, outage.during { alice.wallet.moveToService(ids, HOST2) })
+        assertEquals(MintMoveResult.Pending, outage.during { alice.wallet.moveToMint(ids, HOST2) })
         assertEquals(1, outage.hits, "a melt is never sent twice")
         assertEquals(0, alice.balance(), "out of the balance while in flight")
 
@@ -172,7 +172,7 @@ class RegtestRecoveryTest {
         assertEquals(0, alice.wallet.unresolvedOperations())
         assertEquals(emptyList(), alice.notes(HOST))
         assertEquals(listOf(quote.expectedMsat), alice.notes(HOST2).map { it.amountMsat })
-        assertEquals(listOf(ActivityStatus.Done), alice.wallet.activity.first().filter { it.kind == ActivityKind.MovedService }.map { it.status })
+        assertEquals(listOf(ActivityStatus.Done), alice.wallet.activity.first().filter { it.kind == ActivityKind.MovedMint }.map { it.status })
     }
 
     @Test
@@ -314,7 +314,7 @@ class RegtestRecoveryTest {
         val store = InMemoryWalletStore()
         val offline = Wallet(store, InMemorySeedStore(), Regtest.client { Regtest.dropped() }, policies = NotePolicies.InMemory(ManualStrategy.ID))
         val result = offline.restore(phone1.wallet.recoveryPhrase().joinToString(" "), HOST, "Main")
-        assertTrue(result is RestoreResult.NetworkError || result is RestoreResult.ServiceInvalid, "$result")
+        assertTrue(result is RestoreResult.NetworkError || result is RestoreResult.MintInvalid, "$result")
         assertEquals(emptyList(), store.accounts.first())
         assertEquals(emptyList(), store.allNotes())
     }

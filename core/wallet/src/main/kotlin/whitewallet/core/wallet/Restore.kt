@@ -18,7 +18,7 @@ sealed interface RestoreResult {
     /** The wallet already holds [limit] accounts, the most this app allows ([Wallet.maxAccounts]). Nothing changed. */
     data class AccountLimitReached(val limit: Int) : RestoreResult
 
-    data class ServiceInvalid(val reason: String) : RestoreResult
+    data class MintInvalid(val reason: String) : RestoreResult
     data class NetworkError(val reason: String) : RestoreResult
 }
 
@@ -42,12 +42,12 @@ internal class Restore(private val wallet: Wallet) {
             if (wallet.seeds.load(summary.account.id) == words) return RestoreResult.AlreadyInWallet(summary.account.name)
         }
         if (accounts.size >= wallet.maxAccounts) return RestoreResult.AccountLimitReached(wallet.maxAccounts)
-        when (val connected = Onboarding(wallet).connectService(host)) {
+        when (val connected = Onboarding(wallet).connectMint(host)) {
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed -> return when (val r = connected.result) {
                 is OnboardResult.NetworkError -> RestoreResult.NetworkError(r.reason)
-                is OnboardResult.ServiceInvalid -> RestoreResult.ServiceInvalid(r.reason)
-                else -> RestoreResult.ServiceInvalid(r.toString())
+                is OnboardResult.MintInvalid -> RestoreResult.MintInvalid(r.reason)
+                else -> RestoreResult.MintInvalid(r.toString())
             }
         }
         val h = checkNotNull(Onboarding.normalizeHost(host))

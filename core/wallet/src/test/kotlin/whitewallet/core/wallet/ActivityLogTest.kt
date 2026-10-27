@@ -41,7 +41,7 @@ class ActivityLogTest {
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient())
             store.addAccount("b", "Savings", Profile("bob", mint.host))
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(wordsA, ""), mint.host)).test()
         }
     }
@@ -125,10 +125,10 @@ class ActivityLogTest {
     fun `a pending row is settled when its journal entry is`() = withMint {
         val bearer = Spend.Bearer(ByteVector32(Hex.decode("44".repeat(32))))
         mint.credit(bearer.h.toHex(), 3_000)
-        val service = assertNotNull(store.serviceMap[mint.host])
+        val known = assertNotNull(store.mintMap[mint.host])
         val q = branchA.notePubkey(NotePurpose.Wallet, 0)
         // A claim that was journaled but never reached the mint (e.g. the app died).
-        store.putJournal(JournalEntry("crashed", "a", OperationType.Rotate, mint.host, service.withdrawUrl, listOf(bearer.q.toHex()),
+        store.putJournal(JournalEntry("crashed", "a", OperationType.Rotate, mint.host, known.withdrawUrl, listOf(bearer.q.toHex()),
             listOf(bearer.k1), listOf(OutputRef("a", 0, 0, q.toHex())), Requests.rotate("${mint.url}/w/cb", bearer.k1, q),
             JournalStatus.Prepared, null, 0, 0))
         store.putActivity(Activity("claim:crashed", "a", ActivityKind.Claimed, 3_000, null, mint.host, null, true, null, false,

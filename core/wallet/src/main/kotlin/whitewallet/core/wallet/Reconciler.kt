@@ -78,7 +78,7 @@ internal class Reconciler(private val wallet: Wallet) {
         return status
     }
 
-    /** The note's info, or null if the service says it is unknown or spent. Other refusals are rethrown as IOException. */
+    /** The note's info, or null if the mint says it is unknown or spent. Other refusals are rethrown as IOException. */
     private suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo? = try {
         wallet.client.lookup(withdrawUrl, q)
     } catch (e: NoteLookupError) {

@@ -57,7 +57,7 @@ fun RequestLogRoute(onBack: () -> Unit, viewModel: RequestLogViewModel = hiltVie
     RequestLogScreen(entries, onBack, viewModel::clear)
 }
 
-/** Developer page: every request to a service, newest first. Tap an entry to see the full URL and response. */
+/** Developer page: every request to a mint, newest first. Tap an entry to see the full URL and response. */
 @Composable
 fun RequestLogScreen(entries: List<LogEntry>, onBack: () -> Unit, onClear: () -> Unit) {
     val clipboard = LocalClipboard.current

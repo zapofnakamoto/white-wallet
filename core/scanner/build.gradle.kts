@@ -8,7 +8,7 @@ android {
 }
 
 dependencies {
-    // Scanning without Google Play Services (no ML Kit): CameraX frames decoded by ZXing.
+    // Scanning without Google Play Mints (no ML Kit): CameraX frames decoded by ZXing.
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)

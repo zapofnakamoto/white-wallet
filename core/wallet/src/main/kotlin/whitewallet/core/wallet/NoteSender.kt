@@ -51,10 +51,10 @@ sealed interface CreateNoteResult {
 sealed interface ShareNoteResult {
     data class Shared(val note: SharedNote) : ShareNoteResult
 
-    /** The service says the note is already spent (now recorded); nothing was handed out. */
+    /** The mint says the note is already spent (now recorded); nothing was handed out. */
     data object AlreadySpent : ShareNoteResult
 
-    /** The service couldn't confirm the note is still there; nothing was handed out. */
+    /** The mint couldn't confirm the note is still there; nothing was handed out. */
     data object Unreachable : ShareNoteResult
 
     /** Not an outstanding note of the active account with a derived key. */
@@ -84,7 +84,7 @@ internal class NoteSender(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
     private val mutator = NoteMutator(wallet)
 
-    /** The most a single note can be made worth from one service's notes. */
+    /** The most a single note can be made worth from one mint's notes. */
     suspend fun availableMsat(): Long = candidates(wallet.activeId()).maxOfOrNull { (host, notes) -> PayPlanner.max(notes, baseFee(host)) } ?: 0
 
     suspend fun quote(amountMsat: Long): PayQuote {
@@ -120,7 +120,7 @@ internal class NoteSender(private val wallet: Wallet) {
     }
 
     /**
-     * Hands out the whole note [id] as it is, without splitting: once the service confirms it is still there, it is
+     * Hands out the whole note [id] as it is, without splitting: once the mint confirms it is still there, it is
      * marked shared and gets a History row, like a note made with [create].
      */
     suspend fun share(id: String): ShareNoteResult {
@@ -192,9 +192,9 @@ internal class NoteSender(private val wallet: Wallet) {
 
     /** Looks [note] up by `p`; burned means redeemed (recorded as such). */
     private suspend fun check(note: Note): Check {
-        val service = wallet.store.service(note.host) ?: return Check.Unknown
+        val mint = wallet.store.mint(note.host) ?: return Check.Unknown
         try {
-            wallet.client.lookup(service.withdrawUrl, ByteVector32(note.id))
+            wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id))
             return Check.Waiting
         } catch (e: NoteLookupError) {
             if (e.kind != RejectionKind.Spent) return if (e.kind == RejectionKind.Pending) Check.Waiting else Check.Unknown
@@ -222,15 +222,15 @@ internal class NoteSender(private val wallet: Wallet) {
     }
 
     private suspend fun link(note: Note): String? {
-        val service = wallet.store.service(note.host) ?: return null
+        val mint = wallet.store.mint(note.host) ?: return null
         val spend = wallet.branch(note.accountId, note.host).spend(NotePurpose.entries.first { it.value == note.purpose }, note.index ?: return null, spendDomain(note.host))
-        return NoteLink(service.withdrawUrl, spend, note.amountMsat, note.certificate).encode()
+        return NoteLink(mint.withdrawUrl, spend, note.amountMsat, note.certificate).encode()
     }
 
     private suspend fun activity(accountId: String, noteId: String): Activity? =
         wallet.store.activities(accountId).first().firstOrNull { it.id == activityId(noteId) && it.kind == ActivityKind.SentNote }
 
-    /** The services to make the note on: the home mint first, then the others. */
+    /** The mints to make the note on: the home mint first, then the others. */
     private suspend fun candidates(accountId: String): List<Pair<String, List<Note>>> {
         val primary = wallet.store.account(accountId)?.host
         return wallet.store.notes(accountId).first()
@@ -238,7 +238,7 @@ internal class NoteSender(private val wallet: Wallet) {
             .groupBy { it.host }.toList().sortedBy { it.first != primary }
     }
 
-    private suspend fun baseFee(host: String): Long = wallet.store.service(host)?.feeBaseMsat ?: 0
+    private suspend fun baseFee(host: String): Long = wallet.store.mint(host)?.feeBaseMsat ?: 0
 
     companion object {
         fun activityId(noteId: String) = "$SENT_NOTE_PREFIX$noteId"

@@ -106,7 +106,7 @@ fun WalletActivityIcon(type: ActivityType, direction: MoneyDirection, automatic:
         ActivityType.Sent -> R.drawable.ic_activity_sent
         ActivityType.SentNote -> R.drawable.ic_activity_sent_note
         ActivityType.MovedAccounts -> R.drawable.ic_activity_moved
-        ActivityType.MovedServices -> R.drawable.ic_activity_moved_service
+        ActivityType.MovedMints -> R.drawable.ic_activity_moved_mint
         ActivityType.Split -> R.drawable.ic_activity_split
         ActivityType.Combined -> R.drawable.ic_activity_combined
         ActivityType.Renewed -> R.drawable.ic_activity_rotated

@@ -212,7 +212,7 @@ class NavigationBarParams(val items: List<NavigationItem>)
 class QrCodeParams(val bitmap: ImageBitmap, val size: Dp)
 
 /** What a history entry is. [Split], [Combined] and [Renewed] are note maintenance: the balance stays the same. */
-enum class ActivityType { Received, Claimed, Sent, SentNote, MovedAccounts, MovedServices, Split, Combined, Renewed }
+enum class ActivityType { Received, Claimed, Sent, SentNote, MovedAccounts, MovedMints, Split, Combined, Renewed }
 
 /** Which way the entry moved the account's money: [Within] keeps it in the account (a move between mints, maintenance). */
 enum class MoneyDirection { In, Out, Within }

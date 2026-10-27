@@ -35,9 +35,9 @@ internal class DataStorePreferences(
         prefs.edit { it[DEVELOPER_UNLOCKED] = true }
     }
 
-    override val maxAddressesPerService: Flow<Int?> = prefs.data.map { it[MAX_ADDRESSES] }
+    override val maxAddressesPerMint: Flow<Int?> = prefs.data.map { it[MAX_ADDRESSES] }
 
-    override suspend fun setMaxAddressesPerService(max: Int) {
+    override suspend fun setMaxAddressesPerMint(max: Int) {
         prefs.edit { it[MAX_ADDRESSES] = max.coerceAtLeast(1) }
     }
 
@@ -124,7 +124,7 @@ internal class DataStorePreferences(
     private companion object {
         val DEVELOPER_MODE = booleanPreferencesKey("developer_mode")
         val DEVELOPER_UNLOCKED = booleanPreferencesKey("developer_options_unlocked")
-        val MAX_ADDRESSES = intPreferencesKey("max_addresses_per_service")
+        val MAX_ADDRESSES = intPreferencesKey("max_addresses_per_mint")
         val AMOUNT_UNIT = stringPreferencesKey("amount_unit")
         val BALANCE_HIDDEN = booleanPreferencesKey("balance_hidden")
         val APP_LOCK = booleanPreferencesKey("app_lock")

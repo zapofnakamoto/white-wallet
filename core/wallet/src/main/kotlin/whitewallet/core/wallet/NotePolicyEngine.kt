@@ -3,7 +3,7 @@ package whitewallet.core.wallet
 import kotlinx.coroutines.flow.first
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
-import whitewallet.brand.ServiceNotes
+import whitewallet.brand.MintNotes
 import whitewallet.brand.StrategyNote
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
@@ -86,10 +86,10 @@ data class CollectDefaults(
 internal data class CollectPolicy(val homeHost: String, val feeCapPercent: Int)
 
 /**
- * Brings an account to the state its note policies describe, per service:
+ * Brings an account to the state its note policies describe, per mint:
  * - the note strategy (see [NoteStrategy]) proposes steps, which run here with the usual safeguards, round after round
- *   until it proposes none. Steps that don't apply are skipped; notes the service refused are left out of later
- *   rounds; a service that doesn't answer (or an outcome still pending) ends the run;
+ *   until it proposes none. Steps that don't apply are skipped; notes the mint refused are left out of later
+ *   rounds; a mint that doesn't answer (or an outcome still pending) ends the run;
  * - auto-rotate: no outstanding note on an address key (purpose 2); each is rotated onto the next wallet key. Part of
  *   strategies that rotate themselves.
  * Before that, with "collect at home mint", every other mint's notes are moved to the home mint (see [collect]), so
@@ -115,10 +115,10 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     private suspend fun follow(accountId: String, host: String, strategy: NoteStrategy, start: PolicyRun): PolicyRun {
         var run = start
         val skipped = mutableSetOf<String>()
-        val fee = wallet.store.service(host)?.feeBaseMsat ?: 0
+        val fee = wallet.store.mint(host)?.feeBaseMsat ?: 0
         repeat(MAX_ROUNDS) {
             val notes = outstanding(accountId).filter { it.host == host && it.id !in skipped }.associateBy { it.id }
-            val steps = strategy.plan(ServiceNotes(host, notes.values.map { it.forStrategy() }, fee))
+            val steps = strategy.plan(MintNotes(host, notes.values.map { it.forStrategy() }, fee))
             // One step per round: the first that applies. Later steps may name notes it spends, so the strategy plans
             // again with the notes as they are then. Refused notes are left out, so every round changes something.
             val outcome = steps.firstNotNullOfOrNull { step ->
@@ -229,9 +229,9 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             }
             val total = notes.sumOf { it.amountMsat }
             run = when (result) {
-                is ServiceMoveResult.Moved -> run.copy(collected = run.collected + Collected(host, result.arrivedMsat, result.feeMsat))
-                ServiceMoveResult.Pending -> run.copy(collected = run.collected + Collected(host, 0, 0, pending = true))
-                is ServiceMoveResult.Failed -> {
+                is MintMoveResult.Moved -> run.copy(collected = run.collected + Collected(host, result.arrivedMsat, result.feeMsat))
+                MintMoveResult.Pending -> run.copy(collected = run.collected + Collected(host, 0, 0, pending = true))
+                is MintMoveResult.Failed -> {
                     val reason = refused ?: when (result.problem) {
                         NoteProblem.BelowMinimum -> NotCollected.Reason.TooSmall(result.limitMsat)
                         else -> NotCollected.Reason.Failed(result.problem).also {
@@ -242,7 +242,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
                     run.copy(notCollected = run.notCollected + NotCollected(host, total, reason))
                 }
             }
-            if (result == ServiceMoveResult.Pending) break
+            if (result == MintMoveResult.Pending) break
         }
         return run
     }
@@ -256,7 +256,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         /** Spends per merge request; LUD-25 notes ~8-12 `ck1`s fit common URL limits. */
         const val MAX_MERGE = 10
 
-        /** Steps per service and run: a strategy that never settles still ends. The next refresh continues. */
+        /** Steps per mint and run: a strategy that never settles still ends. The next refresh continues. */
         const val MAX_ROUNDS = 50
 
         /** How long collecting leaves a mint alone after a move from it failed. */

@@ -90,8 +90,8 @@ fun HomeRoute(
     onSend: (() -> Unit)? = null,
     /** Opens a sent note (its QR code while nobody has redeemed it). */
     onOpenNote: (String) -> Unit = {},
-    /** Opens a service's details (from the changed-signing-key warning). */
-    onOpenService: (String) -> Unit = {},
+    /** Opens a mint's details (from the changed-signing-key warning). */
+    onOpenMint: (String) -> Unit = {},
     /** The Notes tab, if the brand shows one. */
     notesTab: NotesTabSlot? = null,
     /** The brand's own pages, in the top bar's menu. */
@@ -101,7 +101,7 @@ fun HomeRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     HomeScreen(
         appName, state, onSend, onReceive, viewModel::refresh, onSettings, onBackup, viewModel::dismissBackupPrompt, onChangeAddress,
-        AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds), onOpenNote, viewModel::toggleBalanceHidden, onOpenService, notesTab, menu,
+        AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds), onOpenNote, viewModel::toggleBalanceHidden, onOpenMint, notesTab, menu,
     )
 }
 
@@ -137,7 +137,7 @@ fun HomeScreen(
     accountActions: AccountActions,
     onOpenNote: (String) -> Unit = {},
     onToggleBalance: () -> Unit = {},
-    onOpenService: (String) -> Unit = {},
+    onOpenMint: (String) -> Unit = {},
     notesTab: NotesTabSlot? = null,
     menu: List<HomeMenuItem> = emptyList(),
 ) {
@@ -187,7 +187,7 @@ fun HomeScreen(
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {
             when (tab) {
-                HomeTab.Wallet -> WalletTab(state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenService)
+                HomeTab.Wallet -> WalletTab(state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenMint)
                 HomeTab.Notes -> notesTab?.content?.invoke()
                 HomeTab.History -> HistoryTab(state.activity, state.historyFilter, historyFilters, { historyFilters = it }, onOpenNote)
             }
@@ -237,7 +237,7 @@ private fun WalletTab(
     onDismissBackup: () -> Unit,
     onChangeAddress: () -> Unit,
     onToggleBalance: () -> Unit,
-    onOpenService: (String) -> Unit,
+    onOpenMint: (String) -> Unit,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(
@@ -245,7 +245,7 @@ private fun WalletTab(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         ) {
-            state.keyChangedHost?.let { KeyChanged(it) { onOpenService(it) } }
+            state.keyChangedHost?.let { KeyChanged(it) { onOpenMint(it) } }
             if (state.addressInactive) state.profile?.let { AddressInactive(it.address, onChangeAddress) }
             if (state.showBackupPrompt) BackupPrompt(onBackup, onDismissBackup)
             WalletStatusScope(state.status) { BrandDecoration(Anchor.HomeHeader) }
@@ -290,7 +290,7 @@ private enum class HistoryFilter(val label: Int, val icon: Int) {
         fun of(kind: ActivityKind): HistoryFilter = when (kind) {
             ActivityKind.Received, ActivityKind.Claimed -> Received
             ActivityKind.Sent, ActivityKind.SentNote -> Sent
-            ActivityKind.MovedIn, ActivityKind.MovedOut, ActivityKind.MovedService -> Moved
+            ActivityKind.MovedIn, ActivityKind.MovedOut, ActivityKind.MovedMint -> Moved
             ActivityKind.Split, ActivityKind.Combined, ActivityKind.Rotated -> Maintenance
         }
     }
@@ -378,7 +378,7 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
         ActivityKind.Sent -> activity.counterparty?.let { stringResource(R.string.activity_sent_to, it) } ?: stringResource(R.string.activity_sent)
         ActivityKind.Split -> stringResource(R.string.activity_split)
         ActivityKind.SentNote -> stringResource(R.string.activity_sent_note)
-        ActivityKind.MovedService -> activity.counterparty?.let { stringResource(R.string.activity_moved_mint, it) }
+        ActivityKind.MovedMint -> activity.counterparty?.let { stringResource(R.string.activity_moved_mint, it) }
             ?: stringResource(R.string.activity_moved_mint_other)
     }
     val (type, direction) = when (activity.kind) {
@@ -388,22 +388,22 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
         ActivityKind.MovedOut -> ActivityType.MovedAccounts to MoneyDirection.Out
         ActivityKind.Sent -> ActivityType.Sent to MoneyDirection.Out
         ActivityKind.SentNote -> ActivityType.SentNote to MoneyDirection.Out
-        ActivityKind.MovedService -> ActivityType.MovedServices to MoneyDirection.Within
+        ActivityKind.MovedMint -> ActivityType.MovedMints to MoneyDirection.Within
         ActivityKind.Split -> ActivityType.Split to MoneyDirection.Within
         ActivityKind.Combined -> ActivityType.Combined to MoneyDirection.Within
         ActivityKind.Rotated -> ActivityType.Renewed to MoneyDirection.Within
     }
     val outgoing = direction == MoneyDirection.Out
     val sats = formatAmount(activity.amountMsat)
-    // A move between services keeps the money in the account (less the fee), as does a note taken back: no sign.
+    // A move between mints keeps the money in the account (less the fee), as does a note taken back: no sign.
     val amount = when {
-        maintenance || activity.kind == ActivityKind.MovedService || activity.status == ActivityStatus.Cancelled -> sats
+        maintenance || activity.kind == ActivityKind.MovedMint || activity.status == ActivityStatus.Cancelled -> sats
         outgoing -> stringResource(R.string.activity_amount_out, sats)
         else -> stringResource(R.string.activity_amount_in, sats)
     }
     val amountColor = when {
         maintenance || activity.status == ActivityStatus.Failed || activity.status == ActivityStatus.Cancelled -> quiet
-        activity.kind == ActivityKind.MovedService -> MaterialTheme.colorScheme.onSurface
+        activity.kind == ActivityKind.MovedMint -> MaterialTheme.colorScheme.onSurface
         outgoing -> MaterialTheme.walletColors.outgoing
         else -> MaterialTheme.walletColors.incoming
     }

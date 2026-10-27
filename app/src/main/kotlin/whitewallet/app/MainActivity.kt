@@ -86,7 +86,7 @@ import whitewallet.feature.settings.RequestLogRoute
 import whitewallet.feature.settings.SettingsRoute
 import whitewallet.feature.settings.SecuritySettingsRoute
 import whitewallet.feature.settings.AboutRoute
-import whitewallet.feature.settings.ServiceDetailsRoute
+import whitewallet.feature.settings.MintDetailsRoute
 
 @AndroidEntryPoint
 // FragmentActivity because the recovery phrase screen uses BiometricPrompt.
@@ -177,18 +177,18 @@ internal object Routes {
     const val NOTE_LIST = "notes"
     const val MINTS = "settings/mints"
     const val DISPLAY = "settings/display"
-    const val SERVICE = "settings/service?host={host}&device={device}"
+    const val MINT = "settings/mint?host={host}&device={device}"
     const val ACCOUNT_MINTS = "settings/account/mints"
     const val SECURITY = "settings/security"
     const val ABOUT = "settings/about"
-    fun service(host: String, device: Boolean = false) = "settings/service?host=${Uri.encode(host)}&device=$device"
+    fun mint(host: String, device: Boolean = false) = "settings/mint?host=${Uri.encode(host)}&device=$device"
     const val ADD_ADDRESS = "addresses/add"
     const val ADD_ADDRESS_ELSEWHERE = "addresses/add-elsewhere"
-    const val CHANGE_SERVICE = "settings/service/change?host={host}"
-    fun changeService(host: String?) = if (host == null) "settings/service/change" else "settings/service/change?host=${Uri.encode(host)}"
-    const val MOVE_MONEY = "settings/service/move?from={from}"
-    fun moveMoney(from: String) = "settings/service/move?from=${Uri.encode(from)}"
-    const val MOVE_HOME = "settings/service/move-home"
+    const val CHANGE_MINT = "settings/mint/change?host={host}"
+    fun changeMint(host: String?) = if (host == null) "settings/mint/change" else "settings/mint/change?host=${Uri.encode(host)}"
+    const val MOVE_MONEY = "settings/mint/move?from={from}"
+    fun moveMoney(from: String) = "settings/mint/move?from=${Uri.encode(from)}"
+    const val MOVE_HOME = "settings/mint/move-home"
     const val DELETE = "delete"
     const val NEW_ACCOUNT = "account/new"
     const val NEW_ACCOUNT_ON = "account/new?host={host}"
@@ -254,7 +254,7 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
                 appName,
                 onSend = { nav.navigate(Routes.SEND) },
                 onOpenNote = { id -> nav.navigate(Routes.note(id)) },
-                onOpenService = { host -> nav.navigate(Routes.service(host)) },
+                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
                 onReceive = { nav.navigate(Routes.RECEIVE) },
                 onSettings = { nav.navigate(Routes.SETTINGS) },
                 onBackup = { nav.navigate(Routes.BACKUP) },
@@ -336,20 +336,20 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
             )
         }
         composable(
-            Routes.SERVICE,
+            Routes.MINT,
             arguments = listOf(
                 navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null },
                 navArgument("device") { type = NavType.BoolType; defaultValue = false },
             ),
         ) {
-            ServiceDetailsRoute(
+            MintDetailsRoute(
                 onBack = { nav.popBackStack() },
-                onChangeHome = { host -> nav.navigate(Routes.changeService(host)) },
+                onChangeHome = { host -> nav.navigate(Routes.changeMint(host)) },
                 onMoveMoney = { host -> nav.navigate(Routes.moveMoney(host)) },
                 onMoveAllHere = { nav.navigate(Routes.MOVE_HOME) },
             )
         }
-        composable(Routes.CHANGE_SERVICE, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
+        composable(Routes.CHANGE_MINT, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
             MoneyMoveRoute(MoneyMoveMode.ChangeHome, entry.arguments?.getString("host"), onClose = { nav.popBackStack() })
         }
         composable(Routes.MOVE_MONEY, arguments = listOf(navArgument("from") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
@@ -359,10 +359,10 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
             MoneyMoveRoute(MoneyMoveMode.MoveHome, null, onClose = { nav.popBackStack() })
         }
         composable(Routes.ACCOUNT_MINTS) {
-            AccountMintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.service(host)) })
+            AccountMintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.mint(host)) })
         }
         composable(Routes.MINTS) {
-            MintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.service(host, device = true)) })
+            MintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.mint(host, device = true)) })
         }
         composable(Routes.SECURITY) {
             SecuritySettingsRoute(onBack = { nav.popBackStack() })

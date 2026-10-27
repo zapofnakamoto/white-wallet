@@ -28,8 +28,8 @@ import whitewallet.core.wallet.NoteCheck
 import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.RotateResult
-import whitewallet.core.wallet.ServiceMoveQuote
-import whitewallet.core.wallet.ServiceMoveResult
+import whitewallet.core.wallet.MintMoveQuote
+import whitewallet.core.wallet.MintMoveResult
 import whitewallet.core.wallet.ShareNoteResult
 import whitewallet.core.wallet.SplitLimits
 import whitewallet.core.wallet.Wallet
@@ -95,7 +95,7 @@ sealed interface NotesDialog {
         val amountMsat: Long? get() = amountText.toLongOrNull()?.times(1000)?.takeIf { it in minMsat..limits.maxMsat }
     }
 
-    data class Move(val target: String = "", val quote: ServiceMoveQuote? = null, val quoting: Boolean = false) : NotesDialog
+    data class Move(val target: String = "", val quote: MintMoveQuote? = null, val quoting: Boolean = false) : NotesDialog
 }
 
 sealed interface NotesOutcome {
@@ -128,7 +128,7 @@ class NotesViewModel @Inject constructor(
     private var quoteJob: Job? = null
 
     /** In developer mode, the local regtest mints are offered as move targets too. */
-    private val devHosts = preferences.developerMode.map { on -> on to if (on) defaults.localDevServices else emptyList() }
+    private val devHosts = preferences.developerMode.map { on -> on to if (on) defaults.localDevMints else emptyList() }
     private val hosts = combine(wallet.homeHost, wallet.trustedHosts, ::Pair)
     private val context = combine(hosts, wallet.lastPolicyRun, wallet.noteStrategy, devHosts, preferences.notesSort) { (home, trusted), run, strategy, dev, sort ->
         Context(home, trusted, run?.notCollected.orEmpty(), strategy, dev.first, dev.second, sort?.let { runCatching { NoteSort.valueOf(it) }.getOrNull() } ?: NoteSort.Largest)
@@ -313,7 +313,7 @@ class NotesViewModel @Inject constructor(
 
     fun move() {
         val d = state.value.dialog as? NotesDialog.Move ?: return
-        if (d.quote !is ServiceMoveQuote.Ready || d.quoting) return
+        if (d.quote !is MintMoveQuote.Ready || d.quoting) return
         moveTo(state.value.selected, d.quote.toHost)
     }
 
@@ -324,10 +324,10 @@ class NotesViewModel @Inject constructor(
     }
 
     private fun moveTo(ids: Set<String>, host: String) = act(ids) {
-        when (val r = wallet.moveToService(it, host)) {
-            is ServiceMoveResult.Moved -> NotesOutcome.Moved(r.arrivedMsat, host)
-            ServiceMoveResult.Pending -> NotesOutcome.Pending
-            is ServiceMoveResult.Failed -> NotesOutcome.Failed(r.problem)
+        when (val r = wallet.moveToMint(it, host)) {
+            is MintMoveResult.Moved -> NotesOutcome.Moved(r.arrivedMsat, host)
+            MintMoveResult.Pending -> NotesOutcome.Pending
+            is MintMoveResult.Failed -> NotesOutcome.Failed(r.problem)
         }
     }
 
@@ -347,7 +347,7 @@ class NotesViewModel @Inject constructor(
         ui.update { it.copy(dialog = d.copy(quoting = true)) }
         quoteJob = viewModelScope.launch {
             if (!immediately) delay(QUOTE_DEBOUNCE_MILLIS)
-            val quote = wallet.quoteServiceMove(ids, d.target)
+            val quote = wallet.quoteMintMove(ids, d.target)
             ui.update { s -> (s.dialog as? NotesDialog.Move)?.let { s.copy(dialog = it.copy(quote = quote, quoting = false)) } ?: s }
         }
     }

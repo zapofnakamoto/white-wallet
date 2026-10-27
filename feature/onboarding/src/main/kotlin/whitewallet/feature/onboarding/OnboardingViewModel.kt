@@ -21,7 +21,7 @@ import whitewallet.core.wallet.Wallet
 import java.io.IOException
 import whitewallet.core.wallet.MintKeyChangedException
 
-/** Live result of checking the typed name on the service. */
+/** Live result of checking the typed name on the mint. */
 sealed interface Availability {
     data object Idle : Availability
     data object Checking : Availability
@@ -42,14 +42,14 @@ enum class OnboardingMode {
     /** Adds another account with its own recovery phrase. */
     NewAccount,
 
-    /** Picks a different primary address for the active account, on its current service. The old one stays registered. */
+    /** Picks a different primary address for the active account, on its current mint. The old one stays registered. */
     ChangeAddress,
 
-    /** Registers another (non-primary) address for the active account, on its current service. */
+    /** Registers another (non-primary) address for the active account, on its current mint. */
     AddAddress,
 
     /**
-     * Registers an address for the active account on another service: same recovery phrase, that service's own keys.
+     * Registers an address for the active account on another mint: same recovery phrase, that mint's own keys.
      * Never primary; payments to it arrive as notes there.
      */
     AddAddressElsewhere,
@@ -61,28 +61,28 @@ enum class OnboardingMode {
     RestoreAddress,
 }
 
-/** An entry of the service dropdown. */
-sealed interface ServiceOption {
+/** An entry of the mint dropdown. */
+sealed interface MintOption {
     /** The host it stands for; null for [Custom], whose host the user types. */
     val host: String?
 
-    data class Suggested(override val host: String) : ServiceOption
+    data class Suggested(override val host: String) : MintOption
 
     /** The local regtest mint (dev/regtest); only offered in developer mode in debug builds. */
-    data class LocalDev(override val host: String) : ServiceOption
+    data class LocalDev(override val host: String) : MintOption
 
-    data object Custom : ServiceOption {
+    data object Custom : MintOption {
         override val host: String? = null
     }
 }
 
 data class OnboardingState(
     val username: String,
-    /** The service actually used: the selected option's host, or [customHost] for [ServiceOption.Custom]. */
+    /** The mint actually used: the selected option's host, or [customHost] for [MintOption.Custom]. */
     val host: String,
     val canChangeHost: Boolean,
-    val serviceOptions: List<ServiceOption> = emptyList(),
-    val selectedService: ServiceOption = ServiceOption.Custom,
+    val mintOptions: List<MintOption> = emptyList(),
+    val selectedMint: MintOption = MintOption.Custom,
     val customHost: String = "",
     val mode: OnboardingMode = OnboardingMode.FirstRun,
     val accountName: String = "",
@@ -115,7 +115,7 @@ sealed interface OnboardingError {
     val detail: String
     data class Username(override val detail: String) : OnboardingError
     data class Registration(override val detail: String) : OnboardingError
-    data class Service(override val detail: String) : OnboardingError
+    data class Mint(override val detail: String) : OnboardingError
     data class Network(override val detail: String) : OnboardingError
     data class Limit(val limit: Int) : OnboardingError {
         override val detail: String get() = limit.toString()
@@ -134,7 +134,7 @@ class OnboardingViewModel @Inject constructor(
     private val preferences: AppPreferences,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
-        OnboardingState(UsernameSuggestions.random(), defaults.defaultServiceHost, defaults.allowServiceChange, withAddress = defaults.requireAddress),
+        OnboardingState(UsernameSuggestions.random(), defaults.defaultMintHost, defaults.allowMintChange, withAddress = defaults.requireAddress),
     )
     val state: StateFlow<OnboardingState> = _state
     private var checkJob: Job? = null
@@ -144,7 +144,7 @@ class OnboardingViewModel @Inject constructor(
 
     /**
      * Call once from the screen. [defaultAccountName] names the first account (localized by the caller); a new
-     * account starts with [newAccountName]. When changing the address, the service is fixed to the current one.
+     * account starts with [newAccountName]. When changing the address, the mint is fixed to the current one.
      */
     fun init(mode: OnboardingMode, defaultAccountName: String, newAccountName: String, presetHost: String? = null) {
         if (initialized) return
@@ -155,7 +155,7 @@ class OnboardingViewModel @Inject constructor(
                 OnboardingMode.FirstRun -> suggestDefaultName()
                 OnboardingMode.NewAccount -> {
                     _state.update {
-                        it.copy(mode = mode, accountName = newAccountName, canChangeHost = defaults.allowServiceChange, host = presetHost ?: it.host)
+                        it.copy(mode = mode, accountName = newAccountName, canChangeHost = defaults.allowMintChange, host = presetHost ?: it.host)
                     }
                     suggestDefaultName()
                 }
@@ -165,7 +165,7 @@ class OnboardingViewModel @Inject constructor(
                 }
                 OnboardingMode.AddAddressElsewhere -> {
                     homeHost = wallet.homeHost.first()
-                    val other = serviceOptions(defaults, preferences.developerMode.first()).firstNotNullOfOrNull { o -> o.host?.takeIf { it != homeHost } }
+                    val other = mintOptions(defaults, preferences.developerMode.first()).firstNotNullOfOrNull { o -> o.host?.takeIf { it != homeHost } }
                     // The same name as at home is the natural first try.
                     val name = wallet.profile.first()?.username.orEmpty()
                     _state.update { it.copy(mode = mode, host = other.orEmpty(), canChangeHost = true, withAddress = true, username = name) }
@@ -185,13 +185,13 @@ class OnboardingViewModel @Inject constructor(
                 }
             }
             // The dropdown follows developer mode (the local mint appears while it is on).
-            launch { preferences.developerMode.collect(::updateServiceOptions) }
+            launch { preferences.developerMode.collect(::updateMintOptions) }
             scheduleCheck(immediately = true)
         }
     }
 
-    fun onServiceSelected(option: ServiceOption) {
-        _state.update { it.copy(selectedService = option, host = option.host ?: it.customHost, error = null) }
+    fun onMintSelected(option: MintOption) {
+        _state.update { it.copy(selectedMint = option, host = option.host ?: it.customHost, error = null) }
         onHostChanged()
     }
 
@@ -200,7 +200,7 @@ class OnboardingViewModel @Inject constructor(
         onHostChanged()
     }
 
-    /** The derived name depends on the service; it follows the host unless the user typed their own. */
+    /** The derived name depends on the mint; it follows the host unless the user typed their own. */
     private fun onHostChanged() {
         viewModelScope.launch {
             suggestDefaultName()
@@ -223,10 +223,10 @@ class OnboardingViewModel @Inject constructor(
     /** For [OnboardingMode.AddAddressElsewhere]: the home mint, left out of the choice. */
     private var homeHost: String? = null
 
-    private fun updateServiceOptions(developerMode: Boolean) = _state.update { s ->
-        val options = serviceOptions(defaults, developerMode).filter { it.host == null || it.host != homeHost }
-        val selected = keepSelection(options, s.serviceOptions, s.selectedService, s.host)
-        s.copy(serviceOptions = options, selectedService = selected, customHost = if (selected == ServiceOption.Custom) s.host else s.customHost)
+    private fun updateMintOptions(developerMode: Boolean) = _state.update { s ->
+        val options = mintOptions(defaults, developerMode).filter { it.host == null || it.host != homeHost }
+        val selected = keepSelection(options, s.mintOptions, s.selectedMint, s.host)
+        s.copy(mintOptions = options, selectedMint = selected, customHost = if (selected == MintOption.Custom) s.host else s.customHost)
     }
 
     fun onAccountNameChange(value: String) = _state.update { it.copy(accountName = value) }
@@ -249,7 +249,7 @@ class OnboardingViewModel @Inject constructor(
             } catch (e: IOException) {
                 fail(OnboardingError.Network(e.message.orEmpty()))
             } catch (e: MintKeyChangedException) {
-                fail(OnboardingError.Service(e.message.orEmpty()))
+                fail(OnboardingError.Mint(e.message.orEmpty()))
             }
         }
     }
@@ -273,7 +273,7 @@ class OnboardingViewModel @Inject constructor(
             }
             is OnboardResult.UsernameInvalid -> fail(OnboardingError.Username(result.reason))
             is OnboardResult.RegistrationFailed -> fail(OnboardingError.Registration(result.reason ?: ""))
-            is OnboardResult.ServiceInvalid -> fail(OnboardingError.Service(result.reason))
+            is OnboardResult.MintInvalid -> fail(OnboardingError.Mint(result.reason))
             is OnboardResult.NetworkError -> fail(OnboardingError.Network(result.reason))
             is OnboardResult.LimitReached -> fail(OnboardingError.Limit(result.limit))
             is OnboardResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
@@ -286,7 +286,7 @@ class OnboardingViewModel @Inject constructor(
         when (val result = wallet.createAccount(s.host, name)) {
             is CreateAccountResult.Created -> _state.update { it.copy(busy = false, done = true) }
             is CreateAccountResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
-            is CreateAccountResult.ServiceInvalid -> fail(OnboardingError.Service(result.reason))
+            is CreateAccountResult.MintInvalid -> fail(OnboardingError.Mint(result.reason))
             is CreateAccountResult.NetworkError -> fail(OnboardingError.Network(result.reason))
         }
     }
@@ -304,9 +304,9 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    /** Addresses per service: the brand's limit, or the developer setting while developer mode is on. */
+    /** Addresses per mint: the brand's limit, or the developer setting while developer mode is on. */
     private suspend fun addressLimit(): Int =
-        defaults.addressLimit(preferences.developerMode.first(), preferences.maxAddressesPerService.first())
+        defaults.addressLimit(preferences.developerMode.first(), preferences.maxAddressesPerMint.first())
 
     private fun fail(error: OnboardingError) = _state.update { it.copy(busy = false, error = error) }
 
@@ -350,14 +350,14 @@ class OnboardingViewModel @Inject constructor(
     }
 }
 
-/** The service dropdown: the brand's suggestions, the local regtest mints in developer mode, and "Custom". */
-internal fun serviceOptions(defaults: AppDefaults, developerMode: Boolean): List<ServiceOption> =
-    defaults.serviceSuggestions.map(ServiceOption::Suggested) +
-        (if (developerMode) defaults.localDevServices.map(ServiceOption::LocalDev) else emptyList()) +
-        ServiceOption.Custom
+/** The mint dropdown: the brand's suggestions, the local regtest mints in developer mode, and "Custom". */
+internal fun mintOptions(defaults: AppDefaults, developerMode: Boolean): List<MintOption> =
+    defaults.mintSuggestions.map(MintOption::Suggested) +
+        (if (developerMode) defaults.localDevMints.map(MintOption::LocalDev) else emptyList()) +
+        MintOption.Custom
 
 /** Keeps the current choice if it is still offered; otherwise picks the option for [host], or Custom. */
-internal fun keepSelection(options: List<ServiceOption>, before: List<ServiceOption>, selected: ServiceOption, host: String): ServiceOption =
-    selected.takeIf { it in options && (it != ServiceOption.Custom || before.isNotEmpty()) }
+internal fun keepSelection(options: List<MintOption>, before: List<MintOption>, selected: MintOption, host: String): MintOption =
+    selected.takeIf { it in options && (it != MintOption.Custom || before.isNotEmpty()) }
         ?: options.firstOrNull { it.host == host }
-        ?: ServiceOption.Custom
+        ?: MintOption.Custom

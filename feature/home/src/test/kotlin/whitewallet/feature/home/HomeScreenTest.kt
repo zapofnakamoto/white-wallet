@@ -30,10 +30,10 @@ class HomeScreenTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun show(state: HomeState, onOpenService: (String) -> Unit = {}, onToggle: () -> Unit = {}) = compose.setContent {
+    private fun show(state: HomeState, onOpenMint: (String) -> Unit = {}, onToggle: () -> Unit = {}) = compose.setContent {
         HomeScreen(
             "Wallet", state, onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
-            onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = onToggle, onOpenService = onOpenService,
+            onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = onToggle, onOpenMint = onOpenMint,
         )
     }
 
@@ -109,7 +109,7 @@ class HomeScreenTest {
     @Test
     fun aChangedSigningKeyLeadsToTheDetails() {
         var opened: String? = null
-        show(HomeState(keyChangedHost = "mint.example"), onOpenService = { opened = it })
+        show(HomeState(keyChangedHost = "mint.example"), onOpenMint = { opened = it })
         compose.onNodeWithText("mint.example changed its signing key").assertExists()
         compose.onNodeWithText("Details").performClick()
         assertEquals("mint.example", opened)
@@ -144,7 +144,7 @@ class HomeScreenTest {
         row("r", ActivityKind.Received),
         row("s", ActivityKind.Sent, counterparty = "bob@mint.example"),
         row("n", ActivityKind.SentNote),
-        row("m", ActivityKind.MovedService, automatic = true, counterparty = "home.example"),
+        row("m", ActivityKind.MovedMint, automatic = true, counterparty = "home.example"),
         row("c", ActivityKind.Combined, automatic = true),
         row("x", ActivityKind.Split),
     )
@@ -186,7 +186,7 @@ class HomeScreenTest {
 
     @Test
     fun aBrandCanOfferOnlyTheMaintenanceSwitchOrNoFilter() {
-        show(HomeState(activity = listOf(row("n", ActivityKind.SentNote), row("m", ActivityKind.MovedService), row("x", ActivityKind.Split)),
+        show(HomeState(activity = listOf(row("n", ActivityKind.SentNote), row("m", ActivityKind.MovedMint), row("x", ActivityKind.Split)),
             historyFilter = HistoryFilterOption.Maintenance))
         compose.onNodeWithText("History").performClick()
         compose.onNodeWithText("Moved").assertDoesNotExist()

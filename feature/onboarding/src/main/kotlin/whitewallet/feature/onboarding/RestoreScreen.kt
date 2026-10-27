@@ -48,7 +48,7 @@ fun RestoreRoute(
     SecureScreen {
         RestoreScreen(
             state, onBack, viewModel::onPhraseChange, viewModel::onAccountNameChange,
-            ServiceActions(viewModel::onServiceSelected, viewModel::onCustomHostChange), viewModel::restore, viewModel::useTestPhrase,
+            MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange), viewModel::restore, viewModel::useTestPhrase,
         )
     }
 }
@@ -59,7 +59,7 @@ fun RestoreScreen(
     onBack: () -> Unit,
     onPhraseChange: (String) -> Unit,
     onAccountNameChange: (String) -> Unit,
-    service: ServiceActions,
+    mint: MintActions,
     onRestore: () -> Unit,
     onUseTestPhrase: () -> Unit = {},
 ) {
@@ -91,12 +91,12 @@ fun RestoreScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            if (state.canChangeHost) ServicePicker(state.serviceOptions, state.selectedService, state.customHost, state.busy, service)
+            if (state.canChangeHost) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
             state.error?.let { error ->
                 val message = when (error) {
                     is RestoreError.AlreadyInWallet -> stringResource(R.string.restore_error_already, error.accountName)
                     is RestoreError.AccountLimit -> pluralStringResource(R.plurals.restore_error_account_limit, error.limit, error.limit)
-                    RestoreError.Service -> stringResource(R.string.restore_error_mint)
+                    RestoreError.Mint -> stringResource(R.string.restore_error_mint)
                     RestoreError.Network -> stringResource(R.string.restore_error_network)
                 }
                 Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)

@@ -27,7 +27,7 @@ import whitewallet.testkit.MockMint
 
 /**
  * "Collect at home mint": notes on other mints move to the home mint when the move costs at most the fee cap. The
- * account's notes start on the mock mint ([MockMint]); its home mint is a [NotesTest.TargetService].
+ * account's notes start on the mock mint ([MockMint]); its home mint is a [NotesTest.TargetMint].
  */
 class CollectTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
@@ -57,7 +57,7 @@ class CollectTest {
                 policies = NotePolicies.InMemory(ManualStrategy.ID), collectDefaults = defaults)
             wallet.payWaitMillis = 3_000
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
         }
     }
@@ -65,12 +65,12 @@ class CollectTest {
     @Test
     fun `notes on another mint move home when the fee is under the cap`() = withMint {
         fund(30, 20)
-        NotesTest.TargetService(feeMsat = 500).use { home ->
+        NotesTest.TargetMint(feeMsat = 500).use { home ->
             moveHomeTo(home.host)
             wallet.setCollectAtHome(true)
             assertEquals(emptyList(), on(mint.host))
             assertEquals(listOf(49_500L), on(home.host))
-            val moved = store.activities("a").first().single { it.kind == ActivityKind.MovedService }
+            val moved = store.activities("a").first().single { it.kind == ActivityKind.MovedMint }
             assertEquals(true, moved.automatic)
             assertEquals(listOf(Collected(mint.host, 49_500, 500)), wallet.lastPolicyRun.first()?.collected)
         }
@@ -80,7 +80,7 @@ class CollectTest {
     fun `a note claimed from a mint the wallet never used is collected right away`() = runBlocking<Unit> {
         assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start().use { other ->
-            NotesTest.TargetService(feeMsat = 0).use { home ->
+            NotesTest.TargetMint(feeMsat = 0).use { home ->
                 val store = InMemoryWalletStore()
                 val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), now = { clock },
                     policies = NotePolicies.InMemory(ManualStrategy.ID), collectDefaults = CollectDefaults(enabled = true))
@@ -89,7 +89,7 @@ class CollectTest {
                 val bearer = Spend.Bearer(ByteVector32(Hex.decode("55".repeat(32))))
                 other.credit(bearer.h.toHex(), 21_000)
                 assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim("lnurlw://${other.host}/w?k1=${bearer.k1}"))))
-                assertNotNull(store.service(other.host), "the claimed note's mint is remembered")
+                assertNotNull(store.mint(other.host), "the claimed note's mint is remembered")
                 val notes = store.notes("a").first().filter { it.state == NoteState.Outstanding }
                 assertEquals(listOf(home.host to 21_000L), notes.map { it.host to it.amountMsat })
             }
@@ -99,7 +99,7 @@ class CollectTest {
     @Test
     fun `over the cap nothing is sent, until the cap allows it`() = withMint {
         fund(50)
-        NotesTest.TargetService(feeMsat = 2_000).use { home ->
+        NotesTest.TargetMint(feeMsat = 2_000).use { home ->
             moveHomeTo(home.host)
             wallet.setCollectAtHome(true)
             assertEquals(listOf(50_000L), on(mint.host))
@@ -114,7 +114,7 @@ class CollectTest {
     @Test
     fun `notes worth less than the home mint's fee stay`() = withMint {
         fund(3)
-        NotesTest.TargetService(feeMsat = 5_000).use { home ->
+        NotesTest.TargetMint(feeMsat = 5_000).use { home ->
             moveHomeTo(home.host)
             wallet.setCollectFeeCap(100)
             wallet.setCollectAtHome(true)
@@ -126,7 +126,7 @@ class CollectTest {
     @Test
     fun `after a failed payment the mint is left alone for an hour`() = withMint("--meltAlwaysFails") {
         fund(30)
-        NotesTest.TargetService(feeMsat = 0, mints = false).use { home ->
+        NotesTest.TargetMint(feeMsat = 0, mints = false).use { home ->
             moveHomeTo(home.host)
             wallet.setCollectAtHome(true)
             assertEquals(1, melts())
@@ -144,7 +144,7 @@ class CollectTest {
     @Test
     fun `a payment still unsettled on that mint holds collecting back`() = withMint {
         fund(30)
-        NotesTest.TargetService(feeMsat = 0).use { home ->
+        NotesTest.TargetMint(feeMsat = 0).use { home ->
             moveHomeTo(home.host)
             store.putJournal(JournalEntry("melt", "a", OperationType.Melt, mint.host, "http://${mint.host}/w", emptyList(), emptyList(), emptyList(),
                 "lnbc1", JournalStatus.Unknown, null, clock, clock))
@@ -179,7 +179,7 @@ class CollectTest {
         assertFailsWith<IllegalStateException> { wallet.setCollectAtHome(false) }
         assertEquals(true, wallet.collectAtHome.first())
         fund(30, 20)
-        NotesTest.TargetService(feeMsat = 500).use { home ->
+        NotesTest.TargetMint(feeMsat = 500).use { home ->
             moveHomeTo(home.host)
             wallet.refresh()
             assertEquals(emptyList(), on(mint.host))

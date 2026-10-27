@@ -83,7 +83,7 @@ class RegtestMultiAddressTest {
         assertIs<OnboardResult.Ready>(wallet.onboard(alice, host))
         val account = assertNotNull(store.currentAccountId())
         val branch = wallet.branch(account, host)
-        val withdrawUrl = assertNotNull(store.service(host)).withdrawUrl
+        val withdrawUrl = assertNotNull(store.mint(host)).withdrawUrl
         suspend fun register(name: String) {
             val sig = AddressProof.sign(branch, AddressProof.Action.Register, spendDomain(host), name)
             assertEquals(RegistrationOutcome.Registered, client.register(host, name, branch.cx1(), sig), "registering $name")

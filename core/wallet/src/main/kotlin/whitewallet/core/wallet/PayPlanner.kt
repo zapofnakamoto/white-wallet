@@ -3,8 +3,8 @@ package whitewallet.core.wallet
 import whitewallet.core.model.Note
 
 /**
- * How to turn an account's notes on one service into one note worth exactly the amount to pay, under LUD-25's fee
- * rules: a split costs the service's base fee, taken from the change (which must stay above zero); a merge of n
+ * How to turn an account's notes on one mint into one note worth exactly the amount to pay, under LUD-25's fee
+ * rules: a split costs the mint's base fee, taken from the change (which must stay above zero); a merge of n
  * notes refunds (n - 1) base fees; a note used as is costs nothing.
  */
 internal data class PayPlan(

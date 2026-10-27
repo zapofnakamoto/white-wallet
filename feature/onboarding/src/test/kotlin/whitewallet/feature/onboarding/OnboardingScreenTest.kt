@@ -43,7 +43,7 @@ class OnboardingScreenTest {
         )
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}),
+                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
                 onSuggestion = { picked = it }, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
@@ -53,14 +53,14 @@ class OnboardingScreenTest {
     }
 
     @Test
-    fun anAddressOnAnotherServiceOffersTheServiceChoice() {
+    fun anAddressOnAnotherMintOffersTheMintChoice() {
         val state = OnboardingState(
             username = "alice", host = "other.example", canChangeHost = true, mode = OnboardingMode.AddAddressElsewhere,
-            serviceOptions = listOf(ServiceOption.Suggested("other.example"), ServiceOption.Custom), selectedService = ServiceOption.Suggested("other.example"),
+            mintOptions = listOf(MintOption.Suggested("other.example"), MintOption.Custom), selectedMint = MintOption.Suggested("other.example"),
         )
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = {}, onUsernameChange = {}, service = ServiceActions({}, {}),
+                "Wallet", logo = {}, state = state, onBack = {}, onUsernameChange = {}, mint = MintActions({}, {}),
                 onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
@@ -75,7 +75,7 @@ class OnboardingScreenTest {
         val state = OnboardingState(username = "", host = "mint.example", canChangeHost = false, withAddress = false)
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}),
+                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
                 onSuggestion = {}, onStart = { started = true }, onContinue = {}, onAccountNameChange = {}, onRestore = {},
             )
         }
@@ -90,11 +90,11 @@ class OnboardingScreenTest {
     fun withoutAnAddressTheMintIsStillOfferedWhenThereIsAChoice() {
         val state = OnboardingState(
             username = "", host = "mint.example", canChangeHost = true, withAddress = false,
-            serviceOptions = listOf(ServiceOption.Suggested("mint.example"), ServiceOption.Custom), selectedService = ServiceOption.Suggested("mint.example"),
+            mintOptions = listOf(MintOption.Suggested("mint.example"), MintOption.Custom), selectedMint = MintOption.Suggested("mint.example"),
         )
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}),
+                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
                 onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
@@ -107,7 +107,7 @@ class OnboardingScreenTest {
         compose.setContent {
             OnboardingScreen(
                 "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
-                onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                onBack = null, onUsernameChange = {}, mint = MintActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
         // Decorations are decorative: the default logo is drawn but not read out; the name is a heading.
@@ -129,7 +129,7 @@ class OnboardingScreenTest {
             CompositionLocalProvider(LocalBrandDesign provides design, LocalAppName provides "Wallet") {
                 OnboardingScreen(
                     "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
-                    onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                    onBack = null, onUsernameChange = {}, mint = MintActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
                 )
             }
         }
@@ -154,7 +154,7 @@ class OnboardingScreenTest {
             CompositionLocalProvider(LocalBrandDesign provides design, LocalReleaseStage provides ReleaseStage.Alpha) {
                 OnboardingScreen(
                     "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
-                    onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                    onBack = null, onUsernameChange = {}, mint = MintActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
                 )
             }
         }
@@ -171,7 +171,7 @@ class OnboardingScreenTest {
         compose.setContent {
             OnboardingScreen(
                 "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
-                onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                onBack = null, onUsernameChange = {}, mint = MintActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
         compose.onNodeWithText("Beta").assertDoesNotExist()

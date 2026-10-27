@@ -24,16 +24,16 @@ enum class MoveFailure {
     NothingToMove,
     InsufficientFunds,
 
-    /** The funds are spread over several services and no single one holds the amount. */
-    SplitAcrossServices,
+    /** The funds are spread over several mints and no single one holds the amount. */
+    SplitAcrossMints,
     SameAccount,
     UnknownAccount,
     Refused,
 }
 
 /**
- * Moves notes from one account to another. Notes never leave their service: the source spends them into keys
- * derived from the target account's own recovery phrase (a rotate, merge or split), so the service sees an
+ * Moves notes from one account to another. Notes never leave their mint: the source spends them into keys
+ * derived from the target account's own recovery phrase (a rotate, merge or split), so the mint sees an
  * ordinary mutation and only split fees apply.
  */
 internal class FundsMover(private val wallet: Wallet) {
@@ -60,7 +60,7 @@ internal class FundsMover(private val wallet: Wallet) {
         require(amountMsat > 0) { "amount must be positive" }
         if (byHost.values.sumOf { notes -> notes.sumOf { it.amountMsat } } < amountMsat) return MoveResult.Failed(MoveFailure.InsufficientFunds)
         val (host, notes) = byHost.entries.firstOrNull { (_, n) -> n.sumOf { it.amountMsat } >= amountMsat }?.toPair()
-            ?: return MoveResult.Failed(MoveFailure.SplitAcrossServices)
+            ?: return MoveResult.Failed(MoveFailure.SplitAcrossMints)
         return movePart(fromId, toId, host, notes, amountMsat)
     }
 

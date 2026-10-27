@@ -34,7 +34,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             wallet.refresh()
             Result.success()
         } catch (e: Exception) {
-            // Offline, a service down, a pinned key that changed: try again next period; the UI shows the details.
+            // Offline, a mint down, a pinned key that changed: try again next period; the UI shows the details.
             Result.retry()
         }
     }

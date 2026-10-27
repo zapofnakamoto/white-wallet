@@ -94,17 +94,17 @@ internal interface WalletDao {
     @Upsert
     suspend fun saveProfile(profile: ProfileEntity)
 
-    @Query("SELECT * FROM services WHERE host = :host")
-    suspend fun service(host: String): ServiceEntity?
+    @Query("SELECT * FROM mints WHERE host = :host")
+    suspend fun mint(host: String): MintEntity?
 
-    @Query("SELECT * FROM services ORDER BY host")
-    fun services(): Flow<List<ServiceEntity>>
+    @Query("SELECT * FROM mints ORDER BY host")
+    fun mints(): Flow<List<MintEntity>>
 
     @Upsert
-    suspend fun saveService(service: ServiceEntity)
+    suspend fun saveMint(mint: MintEntity)
 
-    @Query("DELETE FROM services WHERE host = :host")
-    suspend fun removeService(host: String)
+    @Query("DELETE FROM mints WHERE host = :host")
+    suspend fun removeMint(host: String)
 
     @Query("SELECT next FROM address_scan WHERE accountId = :accountId AND host = :host")
     suspend fun addressScanFrom(accountId: String, host: String): Long?
@@ -149,11 +149,11 @@ internal interface WalletDao {
 
 @Database(
     entities = [
-        AccountEntity::class, AppStateEntity::class, NoteEntity::class, ServiceEntity::class, ProfileEntity::class,
+        AccountEntity::class, AppStateEntity::class, NoteEntity::class, MintEntity::class, ProfileEntity::class,
         CounterEntity::class, AddressScanEntity::class, JournalEntity::class, KeyCheckEntity::class,
         AddressEntity::class, ActivityEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 internal abstract class WalletDatabase : RoomDatabase() {

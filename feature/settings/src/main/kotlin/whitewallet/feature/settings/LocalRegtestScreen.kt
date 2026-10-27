@@ -68,7 +68,7 @@ class LocalRegtestViewModel @Inject constructor(
     defaults: AppDefaults,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
-        LocalRegtestState(defaults.localDevServices.mapIndexed { i, host -> LocalMint(host, if (i == 0) "" else " --mint${i + 1}") }),
+        LocalRegtestState(defaults.localDevMints.mapIndexed { i, host -> LocalMint(host, if (i == 0) "" else " --mint${i + 1}") }),
     )
     val state: StateFlow<LocalRegtestState> = _state
 
@@ -105,7 +105,7 @@ fun LocalRegtestRoute(onBack: () -> Unit, onAddAccount: (host: String) -> Unit, 
 }
 
 /**
- * Developer page: the local regtest mints (dev/regtest: two, to try notes on several services), their status, and the
+ * Developer page: the local regtest mints (dev/regtest: two, to try notes on several mints), their status, and the
  * commands to drive them from the computer.
  */
 @Composable

@@ -26,13 +26,13 @@ class RegtestFaucet(
     val host: String?,
     developerMode: Flow<Boolean> = flowOf(false),
     homeHost: Flow<String?> = flowOf(null),
-    localDevServices: List<String> = emptyList(),
+    localDevMints: List<String> = emptyList(),
     private val http: OkHttpClient = OkHttpClient(),
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) {
     /** Whether to offer it: a debug build (it has a host), developer mode, and an account on a local regtest mint. */
     val available: Flow<Boolean> = combine(developerMode, homeHost) { developer, home ->
-        developer && host != null && home in localDevServices
+        developer && host != null && home in localDevMints
     }
 
     /** Pays [target] (a Lightning Address on a local mint, or an invoice) [sats]; returns what arrived. */

@@ -138,7 +138,7 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
             reload()
         }
         // Stay in sync with changes made anywhere else (refresh, auto-rotate, claims, other screens):
-        // observe the same store Home observes, re-subscribing when the service changes.
+        // observe the same store Home observes, re-subscribing when the mint changes.
         viewModelScope.launch {
             _state.map { it.host }.distinctUntilChanged().filterNotNull()
                 .flatMapLatest { wallet.keyViewChanges(it) }
@@ -526,7 +526,7 @@ private fun statusHint(status: KeyStatus, purpose: Int): String = stringResource
     },
 )
 
-/** What the service said at the last lookup this session. */
+/** What the mint said at the last lookup this session. */
 @Composable
 private fun lookupText(probe: KeyProbe?): String {
     if (probe == null) return stringResource(R.string.keys_lookup_none)

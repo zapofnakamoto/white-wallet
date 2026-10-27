@@ -37,7 +37,7 @@ class NotePolicyTest {
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient(), policies = policies)
             store.addAccount("b", "Savings", Profile("bob", mint.host))
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, policies, wallet).test()
         }
     }
@@ -85,7 +85,7 @@ class NotePolicyTest {
     }
 
     @Test
-    fun `keep only one note merges everything on the service into one wallet note`() = withMint {
+    fun `keep only one note merges everything on the mint into one wallet note`() = withMint {
         // An existing wallet note plus three incoming payments.
         val index = store.reserveIndex("a", mint.host, 0)
         mint.credit(Cp1.encode(branchA.notePubkey(NotePurpose.Wallet, index)), 5_000)

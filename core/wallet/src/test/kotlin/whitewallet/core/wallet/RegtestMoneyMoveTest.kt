@@ -28,7 +28,7 @@ class RegtestMoneyMoveTest {
 
         // The node won't pay itself: nothing is lost, and trying again fails the same way.
         repeat(2) {
-            assertEquals(ServiceMoveResult.Failed(NoteProblem.PaymentFailed), phone.wallet.moveMoney(Regtest.HOST3, listOf(line)).single().result)
+            assertEquals(MintMoveResult.Failed(NoteProblem.PaymentFailed), phone.wallet.moveMoney(Regtest.HOST3, listOf(line)).single().result)
             assertEquals(before.map { it.amountMsat }, phone.notes().map { it.amountMsat })
             assertEquals(emptyList(), phone.notes(Regtest.HOST3))
         }
@@ -47,7 +47,7 @@ class RegtestMoneyMoveTest {
             val changed = change.await()
             refresh.await()
             assertIs<OnboardResult.Ready>(changed.result)
-            assertIs<ServiceMoveResult.Moved>(changed.moved.single().result, "to $to")
+            assertIs<MintMoveResult.Moved>(changed.moved.single().result, "to $to")
             assertEquals(1, phone.notes(to).size)
         }
     }

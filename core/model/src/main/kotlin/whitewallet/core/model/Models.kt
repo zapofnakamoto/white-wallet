@@ -7,10 +7,10 @@ enum class NoteState {
     /** An operation on it may or may not have landed; reconciliation will settle it. */
     Ambiguous,
 
-    /** Burned at the service. */
+    /** Burned at the mint. */
     Spent,
 
-    /** Being melted: the service is paying an invoice from it. Not in the balance; burned once the payment settles, outstanding again if it fails. */
+    /** Being melted: the mint is paying an invoice from it. Not in the balance; burned once the payment settles, outstanding again if it fails. */
     Paying,
 
     /** Handed out as a link (sent as a note). Not in the balance; spent once someone redeems it, or once taken back. */
@@ -34,7 +34,7 @@ data class Note(
     val id: String,
     /** The account whose seed the note's key derives from. */
     val accountId: String,
-    /** The service host exactly as stored (port included). */
+    /** The mint host exactly as stored (port included). */
     val host: String,
     val kind: NoteKind,
     /** LUD-26 derivation coordinates for key-path notes; the secret is re-derived from the seed when needed. */
@@ -46,8 +46,8 @@ data class Note(
     val updatedAtMillis: Long,
 )
 
-/** A service the wallet talks to. Only [host] is configuration; the rest is fetched from it. */
-data class Service(
+/** A mint the wallet talks to. Only [host] is configuration; the rest is fetched from it. */
+data class Mint(
     val host: String,
     val withdrawUrl: String,
     /** Pinned on first contact; operations stop if it ever changes. */
@@ -63,7 +63,7 @@ data class Profile(val username: String, val host: String) {
 }
 
 /**
- * A Lightning Address registered to an account. An account can hold several on a service; all of them pay into the
+ * A Lightning Address registered to an account. An account can hold several on a mint; all of them pay into the
  * same note keys (LUD-26 purpose 2). The account's [Profile] is the primary one, shown on Home and Receive.
  */
 data class RegisteredAddress(val username: String, val host: String, val addedAtMillis: Long) {
@@ -73,7 +73,7 @@ data class RegisteredAddress(val username: String, val host: String, val addedAt
 enum class OperationType {
     Rotate, Split, Merge, Melt,
 
-    /** A note minted at one of our keys by paying the service's invoice (the receiving side of a move between services). */
+    /** A note minted at one of our keys by paying the mint's invoice (the receiving side of a move between mints). */
     Mint,
 }
 
@@ -135,8 +135,8 @@ enum class ActivityKind(val isMaintenance: Boolean) {
     /** A payment to an invoice, a Lightning Address or a pay link. */
     Sent(false),
 
-    /** Notes moved to another service of the same account (melted here, minted there). */
-    MovedService(false),
+    /** Notes moved to another mint of the same account (melted here, minted there). */
+    MovedMint(false),
 
     /** One note split in two from the notes page. */
     Split(true),

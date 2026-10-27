@@ -128,16 +128,16 @@ class RegtestE2ETest {
         // Two notes on the first mint: merged, melted into the second mint's invoice, minted there to our key.
         val ids = notes(host).map { it.id }
         assertEquals(2, ids.size)
-        val quote = assertIs<ServiceMoveQuote.Ready>(wallet.quoteServiceMove(ids, second))
-        val moved = assertIs<ServiceMoveResult.Moved>(wallet.moveToService(ids, second))
+        val quote = assertIs<MintMoveQuote.Ready>(wallet.quoteMintMove(ids, second))
+        val moved = assertIs<MintMoveResult.Moved>(wallet.moveToMint(ids, second))
         assertEquals(quote.expectedMsat, moved.arrivedMsat, "the second mint charges its advertised 2 sat fee")
         assertEquals(emptyList(), notes(host))
         assertEquals(listOf(moved.arrivedMsat), notes(second).map { it.amountMsat })
 
         // And back again.
-        val back = assertIs<ServiceMoveResult.Moved>(wallet.moveToService(notes(second).map { it.id }, host))
+        val back = assertIs<MintMoveResult.Moved>(wallet.moveToMint(notes(second).map { it.id }, host))
         assertEquals(listOf(back.arrivedMsat), notes(host).map { it.amountMsat })
-        assertEquals(2, wallet.activity.first().count { it.kind == ActivityKind.MovedService && it.status == ActivityStatus.Done })
+        assertEquals(2, wallet.activity.first().count { it.kind == ActivityKind.MovedMint && it.status == ActivityStatus.Done })
     }
 
     @Test
@@ -159,7 +159,7 @@ class RegtestE2ETest {
         assertEquals(home.amountMsat, collected?.arrivedMsat)
         assertTrue(collected!!.feeMsat * 100 <= 2 * (home.amountMsat + collected.feeMsat), "within the 2 % cap")
         assertTrue(home.amountMsat < claimed.amountMsat)
-        assertTrue(wallet.activity.first().single { it.kind == ActivityKind.MovedService }.automatic)
+        assertTrue(wallet.activity.first().single { it.kind == ActivityKind.MovedMint }.automatic)
 
         // A small note: the home mint's 1 sat fee alone is over 1 %, so it stays where it is.
         wallet.setCollectFeeCap(1)
@@ -262,7 +262,7 @@ class RegtestE2ETest {
 
         // Then the money the user confirmed: over Lightning, arrived as quoted.
         val moved = wallet.moveMoney(second, preview.lines.filter { it.quote is MovePreview.Quote.Ok && !it.overCap(2) }).single()
-        assertEquals(ServiceMoveResult.Moved(quoted.arrivesMsat, quoted.feeMsat), moved.result)
+        assertEquals(MintMoveResult.Moved(quoted.arrivesMsat, quoted.feeMsat), moved.result)
         assertEquals(emptyList(), on(host), "nothing left on the old home")
         assertEquals(listOf(quoted.arrivesMsat), on(second).map { it.amountMsat })
         assertEquals(1, on(third).size, "the small note stayed")

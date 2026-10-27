@@ -6,7 +6,7 @@ import fr.acinq.secp256k1.Hex
 /**
  * Builds BOLT-11 invoices for tests: well-formed with a valid checksum, but with an all-zero signature, so nothing
  * can ever pay one. Enough for the wallet, which reads the amount, expiry and description hash and leaves the
- * signature to the service.
+ * signature to the mint.
  */
 object TestInvoices {
     fun invoice(

@@ -4,7 +4,7 @@ import java.io.IOException
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Service
+import whitewallet.core.model.Mint
 import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.protocol.NoteLookupError
@@ -14,11 +14,11 @@ import whitewallet.lnurlcash.protocol.RejectionKind
 /** Identifies one derived note key. */
 data class KeyId(val accountId: String, val host: String, val purpose: Int, val index: Long)
 
-/** What the service said about a derived key the last time it was looked up (by `p`, never by spend). */
+/** What the mint said about a derived key the last time it was looked up (by `p`, never by spend). */
 sealed interface KeyProbe {
     val checkedAtMillis: Long
 
-    /** The service has never seen this key. */
+    /** The mint has never seen this key. */
     data class Unused(override val checkedAtMillis: Long) : KeyProbe
 
     /** An outstanding note. [imported] is true if this lookup added it to the wallet. */
@@ -35,17 +35,17 @@ sealed interface KeyProbe {
 
 /**
  * Looks up one derived key and brings the wallet in line with the answer: an outstanding note the wallet does not
- * know is imported, and a note the wallet holds follows the service's state (outstanding or spent).
+ * know is imported, and a note the wallet holds follows the mint's state (outstanding or spent).
  */
 internal class KeyProber(private val wallet: Wallet) {
-    suspend fun probe(id: KeyId, service: Service): KeyProbe {
+    suspend fun probe(id: KeyId, mint: Mint): KeyProbe {
         val purpose = NotePurpose.entries.first { it.value == id.purpose }
         val q = wallet.branch(id.accountId, id.host).notePubkey(purpose, id.index)
         val noteId = q.toHex()
         val now = wallet.now()
         val result = try {
-            val info = wallet.client.lookup(service.withdrawUrl, q)
-            val pinned = Pinning.check(wallet, service, info.mintPubkey)
+            val info = wallet.client.lookup(mint.withdrawUrl, q)
+            val pinned = Pinning.check(wallet, mint, info.mintPubkey)
             val certificate = info.certificate?.takeIf { Certificates.verify(it, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }
             val existing = wallet.store.note(noteId)
             if (existing == null || existing.state == NoteState.Spent || existing.amountMsat != info.maxWithdrawableMsat) {

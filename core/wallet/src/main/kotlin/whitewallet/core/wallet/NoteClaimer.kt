@@ -30,9 +30,9 @@ sealed interface ClaimPreview {
         val link: NoteLink,
         val info: NoteInfo,
         val amountMsat: Long,
-        /** True if the service's certificate for this note verified against its key. */
+        /** True if the mint's certificate for this note verified against its key. */
         val certified: Boolean,
-        val isOwnService: Boolean,
+        val isOwnMint: Boolean,
         /** The note's mint, with the key it signs with now, is one the user trusts (see [Wallet.mints]). */
         val trusted: Boolean = false,
     ) : ClaimPreview
@@ -46,7 +46,7 @@ sealed interface ClaimPreview {
 sealed interface ClaimResult {
     data class Claimed(val amountMsat: Long, val certified: Boolean) : ClaimResult
 
-    /** Refused by the service; nothing changed. */
+    /** Refused by the mint; nothing changed. */
     data class Failed(val kind: RejectionKind, val reason: String?) : ClaimResult
 
     /** Not known yet whether it landed. Kept in the journal and settled on the next refresh. */
@@ -75,14 +75,14 @@ internal class NoteClaimer(private val wallet: Wallet) {
         }
         if (info.maxWithdrawableMsat <= 0) return ClaimPreview.AlreadySpent
         val own = wallet.store.account(accountId)?.host
-        val service = wallet.store.service(link.host)
-        if (service?.mintPubkey != null && service.mintPubkey != info.mintPubkey.toHex()) {
+        val mint = wallet.store.mint(link.host)
+        if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey.toHex()) {
             return ClaimPreview.Invalid("the signing key of ${link.host} changed")
         }
         val certificate = (link.certificate?.let(Cs1::decode) ?: info.certificate)
         val certified = certificate != null && certificate.amountMsat == info.maxWithdrawableMsat &&
             Certificates.verify(certificate, spend.q, info.mintPubkey)
-        return ClaimPreview.Ready(link, info, info.maxWithdrawableMsat, certified, isOwnService = link.host == own,
+        return ClaimPreview.Ready(link, info, info.maxWithdrawableMsat, certified, isOwnMint = link.host == own,
             trusted = wallet.isTrusted(MintKey(link.host, info.mintPubkey.toHex())))
     }
 
@@ -113,13 +113,13 @@ internal class NoteClaimer(private val wallet: Wallet) {
                     wallet.store.putJournal(entry.copy(status = JournalStatus.Confirmed, updatedAtMillis = wallet.now()))
                     markSpent(spend.q.toHex(), accountId)
                     if (ownShared == null) log.record("claim:${entry.id}", accountId, ActivityKind.Claimed, amount, host, certified = cert != null || preview.certified)
-                    rememberService(host)
+                    rememberMint(host)
                     return ClaimResult.Claimed(amount, cert != null)
                 }
                 is MutationOutcome.Rejected -> {
                     wallet.store.putJournal(entry.copy(status = JournalStatus.Rejected, detail = outcome.reason, updatedAtMillis = wallet.now()))
                     if (outcome.kind != RejectionKind.AlreadyInUse) return ClaimResult.Failed(outcome.kind, outcome.reason)
-                    // The local index is behind what the service has seen: find the real one before retrying.
+                    // The local index is behind what the mint has seen: find the real one before retrying.
                     guard.recover(accountId, host, NotePurpose.Wallet)
                 }
                 is MutationOutcome.Ambiguous -> {
@@ -157,10 +157,10 @@ internal class NoteClaimer(private val wallet: Wallet) {
     }
 
     /**
-     * A note from a mint this wallet hasn't used yet: its service record (withdraw URL, fees, pinned key) is what
+     * A note from a mint this wallet hasn't used yet: its mint record (withdraw URL, fees, pinned key) is what
      * every later operation on the note needs (paying, combining, moving it). Best effort; a move retries it.
      */
-    private suspend fun rememberService(host: String) {
-        if (wallet.store.service(host) == null) Onboarding(wallet).connectService(host)
+    private suspend fun rememberMint(host: String) {
+        if (wallet.store.mint(host) == null) Onboarding(wallet).connectMint(host)
     }
 }

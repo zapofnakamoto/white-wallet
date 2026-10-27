@@ -10,7 +10,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
-import whitewallet.brand.ServiceNotes
+import whitewallet.brand.MintNotes
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -81,7 +81,7 @@ class RegtestNotesTest {
     }
 
     @Test
-    fun `a note to send is quoted with the mint's split fee, and one bigger than any service holds is refused`() = runBlocking<Unit> {
+    fun `a note to send is quoted with the mint's split fee, and one bigger than any mint holds is refused`() = runBlocking<Unit> {
         val alice = Regtest.phone()
         alice.fund(2000, 3000)
         val sendable = alice.wallet.sendableNoteMsat()
@@ -154,8 +154,8 @@ class RegtestNotesTest {
             override val id = "chunks"
             override val title = 0
             override val description = 0
-            override fun plan(service: ServiceNotes): List<NoteStep> =
-                service.notes.filter { it.amountMsat > 1_000_000 + service.feeBaseMsat }.map { NoteStep.Split(it.id, 1_000_000) }
+            override fun plan(mint: MintNotes): List<NoteStep> =
+                mint.notes.filter { it.amountMsat > 1_000_000 + mint.feeBaseMsat }.map { NoteStep.Split(it.id, 1_000_000) }
         }
         val store = InMemoryWalletStore()
         val strategies = NoteStrategies(listOf(ManualStrategy(), chunks), listOf(ManualStrategy.ID, chunks.id), chunks.id)
@@ -179,7 +179,7 @@ class RegtestNotesTest {
         val home = alice.notes().single()
         assertEquals(home.amountMsat, alice.balance())
         assertTrue(home.amountMsat > 4_999_000 + 2_000_000, "the claimed note arrived, less the move's fees: ${home.amountMsat}")
-        assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedService }.automatic)
+        assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedMint }.automatic)
     }
 
     @Test
@@ -192,6 +192,6 @@ class RegtestNotesTest {
         assertEquals(true, alice.wallet.collectAtHome.first())
         assertEquals(emptyList(), alice.notes(Regtest.HOST2))
         assertTrue(alice.notes().single().amountMsat > 2_990_000, "home, less the move's fees: ${alice.notes()}")
-        assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedService }.automatic)
+        assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedMint }.automatic)
     }
 }

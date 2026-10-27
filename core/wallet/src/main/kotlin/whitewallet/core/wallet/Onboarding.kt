@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Account
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.model.Service
+import whitewallet.core.model.Mint
 import whitewallet.lnurlcash.AddressProof
 import whitewallet.lnurlcash.client.RegistrationOutcome
 import whitewallet.lnurlcash.protocol.ProtocolViolation
@@ -15,8 +15,8 @@ import whitewallet.lnurlcash.spendDomain
 
 sealed interface OnboardResult {
     /**
-     * The address is saved. [confirmed] is true when the service publishes our own `cx1` for it, which proves
-     * payments to it reach this wallet; false when the service accepted it but does not expose a `cx1` to check.
+     * The address is saved. [confirmed] is true when the mint publishes our own `cx1` for it, which proves
+     * payments to it reach this wallet; false when the mint accepted it but does not expose a `cx1` to check.
      */
     data class Ready(val profile: Profile, val confirmed: Boolean) : OnboardResult
 
@@ -25,14 +25,14 @@ sealed interface OnboardResult {
 
     data class UsernameInvalid(val reason: String) : OnboardResult
 
-    /** The service refused the registration for another reason, e.g. registration is turned off. */
+    /** The mint refused the registration for another reason, e.g. registration is turned off. */
     data class RegistrationFailed(val reason: String?) : OnboardResult
 
-    data class ServiceInvalid(val reason: String) : OnboardResult
+    data class MintInvalid(val reason: String) : OnboardResult
 
     data class NetworkError(val reason: String) : OnboardResult
 
-    /** The account already holds [limit] addresses on this service (see [Wallet.addAddress]). Nothing changed. */
+    /** The account already holds [limit] addresses on this mint (see [Wallet.addAddress]). Nothing changed. */
     data class LimitReached(val limit: Int) : OnboardResult
 
     /** The wallet already holds [limit] accounts, the most this app allows ([Wallet.maxAccounts]). Nothing changed. */
@@ -43,7 +43,7 @@ sealed interface OnboardResult {
 data class AddressEntry(val address: RegisteredAddress, val primary: Boolean, val status: AddressStatus?)
 
 sealed interface UnregisterResult {
-    /** The service freed the name; it is gone from the account. */
+    /** The mint freed the name; it is gone from the account. */
     data object Unregistered : UnregisterResult
 
     /** The name no longer points at this account (someone else holds it); removed from the account. */
@@ -52,7 +52,7 @@ sealed interface UnregisterResult {
     /** Refused: the primary address can't be unregistered. Make another address primary first. */
     data object IsPrimary : UnregisterResult
 
-    /** The service kept the name; nothing changed. */
+    /** The mint kept the name; nothing changed. */
     data class Failed(val reason: String) : UnregisterResult
 
     /** Not known whether it worked; the address stays listed until a check shows it is free. */
@@ -60,7 +60,7 @@ sealed interface UnregisterResult {
 }
 
 sealed interface ConnectResult {
-    data class Connected(val service: Service) : ConnectResult
+    data class Connected(val mint: Mint) : ConnectResult
     data class Failed(val result: OnboardResult) : ConnectResult
 }
 
@@ -71,7 +71,7 @@ sealed interface CreateAccountResult {
 
     /** The wallet already holds [limit] accounts, the most this app allows ([Wallet.maxAccounts]). Nothing changed. */
     data class AccountLimitReached(val limit: Int) : CreateAccountResult
-    data class ServiceInvalid(val reason: String) : CreateAccountResult
+    data class MintInvalid(val reason: String) : CreateAccountResult
     data class NetworkError(val reason: String) : CreateAccountResult
 }
 
@@ -85,7 +85,7 @@ internal class Onboarding(private val wallet: Wallet) {
      */
     suspend fun onboard(username: String, host: String, newAccountName: String?): OnboardResult {
         val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
-        val h = normalizeHost(host) ?: return OnboardResult.ServiceInvalid("not a valid host")
+        val h = normalizeHost(host) ?: return OnboardResult.MintInvalid("not a valid host")
         val existing = wallet.store.currentAccountId()
         val creating = newAccountName != null || existing == null
         if (creating && wallet.store.accounts.first().size >= wallet.maxAccounts) return OnboardResult.AccountLimitReached(wallet.maxAccounts)
@@ -103,9 +103,9 @@ internal class Onboarding(private val wallet: Wallet) {
      */
     suspend fun addAddress(username: String, limit: Int, host: String? = null): OnboardResult {
         val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
-        val accountId = wallet.store.currentAccountId() ?: return OnboardResult.ServiceInvalid("no account")
-        val home = wallet.store.account(accountId)?.host ?: return OnboardResult.ServiceInvalid("no account")
-        val h = host?.let { normalizeHost(it) ?: return OnboardResult.ServiceInvalid("not a valid host") } ?: home
+        val accountId = wallet.store.currentAccountId() ?: return OnboardResult.MintInvalid("no account")
+        val home = wallet.store.account(accountId)?.host ?: return OnboardResult.MintInvalid("no account")
+        val h = host?.let { normalizeHost(it) ?: return OnboardResult.MintInvalid("not a valid host") } ?: home
         val onHost = wallet.store.addresses(accountId).first().filter { it.host == h }
         if (onHost.none { it.username == name } && onHost.size >= limit) return OnboardResult.LimitReached(limit)
         // The primary address is always on the home mint; one on another mint is an extra way to get paid.
@@ -115,14 +115,14 @@ internal class Onboarding(private val wallet: Wallet) {
 
     /** See [Wallet.createAccount]. The new recovery phrase is kept only if the mint answers as one. */
     suspend fun createAccount(host: String, name: String): CreateAccountResult {
-        val h = normalizeHost(host) ?: return CreateAccountResult.ServiceInvalid("not a valid host")
+        val h = normalizeHost(host) ?: return CreateAccountResult.MintInvalid("not a valid host")
         if (wallet.store.accounts.first().size >= wallet.maxAccounts) return CreateAccountResult.AccountLimitReached(wallet.maxAccounts)
-        when (val connected = connectService(h)) {
+        when (val connected = connectMint(h)) {
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed -> return when (val r = connected.result) {
                 is OnboardResult.NetworkError -> CreateAccountResult.NetworkError(r.reason)
-                is OnboardResult.ServiceInvalid -> CreateAccountResult.ServiceInvalid(r.reason)
-                else -> CreateAccountResult.ServiceInvalid(r.toString())
+                is OnboardResult.MintInvalid -> CreateAccountResult.MintInvalid(r.reason)
+                else -> CreateAccountResult.MintInvalid(r.toString())
             }
         }
         val accountId = UUID.randomUUID().toString()
@@ -133,7 +133,7 @@ internal class Onboarding(private val wallet: Wallet) {
     }
 
     /**
-     * Frees [address] at its service with an unregister proof. Whatever the service answers, a lookup afterwards
+     * Frees [address] at its mint with an unregister proof. Whatever the mint answers, a lookup afterwards
      * decides: only a name that is gone (or no longer ours) leaves the account.
      */
     suspend fun unregister(accountId: String, address: RegisteredAddress): UnregisterResult {
@@ -159,7 +159,7 @@ internal class Onboarding(private val wallet: Wallet) {
     }
 
     private suspend fun claim(name: String, h: String, accountId: String, creating: Boolean, accountName: String, primary: Boolean = true): OnboardResult {
-        when (val connected = connectService(h)) {
+        when (val connected = connectMint(h)) {
             is ConnectResult.Failed -> return connected.result
             is ConnectResult.Connected -> Unit
         }
@@ -178,7 +178,7 @@ internal class Onboarding(private val wallet: Wallet) {
         val sig = AddressProof.sign(branch, AddressProof.Action.Register, spendDomain(h), name)
         when (val outcome = wallet.client.register(h, name, branch.cx1(), sig)) {
             is RegistrationOutcome.Rejected -> {
-                // Lost a race for the name, or the service refuses registrations. Look again to tell which.
+                // Lost a race for the name, or the mint refuses registrations. Look again to tell which.
                 return if (addresses.check(name, h, accountId) == AddressStatus.Taken) taken(name, accountId, h) else OnboardResult.RegistrationFailed(outcome.reason)
             }
             // The answer was lost; the lookup below shows whether it landed.
@@ -195,17 +195,17 @@ internal class Onboarding(private val wallet: Wallet) {
         }
     }
 
-    suspend fun connectService(host: String): ConnectResult {
-        val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.ServiceInvalid("not a valid host"))
+    suspend fun connectMint(host: String): ConnectResult {
+        val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid("not a valid host"))
         return try {
             val pay = wallet.client.servicePayRequest(h)
             val discovered = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey }.getOrNull()
-            val existing = wallet.store.service(h)
+            val existing = wallet.store.mint(h)
             val pinned = existing?.mintPubkey
             if (pinned != null && discovered != null && pinned != discovered.toHex()) {
-                return ConnectResult.Failed(OnboardResult.ServiceInvalid("the signing key of this host changed"))
+                return ConnectResult.Failed(OnboardResult.MintInvalid("the signing key of this host changed"))
             }
-            val service = Service(
+            val mint = Mint(
                 host = h,
                 withdrawUrl = pay.withdrawUrl,
                 mintPubkey = pinned ?: discovered?.toHex(),
@@ -214,10 +214,10 @@ internal class Onboarding(private val wallet: Wallet) {
                 feeBaseMsat = pay.fee?.baseMsat,
                 feePpm = pay.fee?.ppm,
             )
-            wallet.store.saveService(service)
-            ConnectResult.Connected(service)
+            wallet.store.saveMint(mint)
+            ConnectResult.Connected(mint)
         } catch (e: ProtocolViolation) {
-            ConnectResult.Failed(OnboardResult.ServiceInvalid(e.message ?: "not an LNURLcash server"))
+            ConnectResult.Failed(OnboardResult.MintInvalid(e.message ?: "not an LNURLcash server"))
         } catch (e: IOException) {
             ConnectResult.Failed(OnboardResult.NetworkError(e.message ?: "network error"))
         }

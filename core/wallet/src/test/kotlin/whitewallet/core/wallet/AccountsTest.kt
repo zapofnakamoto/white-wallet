@@ -61,7 +61,7 @@ class AccountsTest {
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient())
             store.addAccount("b", "Savings", Profile("bob", mint.host))
             store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectService(mint.host))
+            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(wordsA, ""), mint.host)).test()
         }
     }
@@ -83,7 +83,7 @@ class AccountsTest {
         assertEquals(0, balance("a"))
         assertEquals(21_000, balance("b"))
         val moved = store.allNotes().single { it.accountId == "b" }
-        assertNotNull(moved.certificate, "the service certified the moved note")
+        assertNotNull(moved.certificate, "the mint certified the moved note")
         assertEquals(NoteState.Spent, store.allNotes().single { it.accountId == "a" }.state)
     }
 
@@ -123,7 +123,7 @@ class AccountsTest {
 
     @Test
     fun `a new account gets its own recovery phrase and becomes active`() = runBlocking<Unit> {
-        // Onboarding a second account is covered against a fake service in OnboardingTest; here only the seed separation.
+        // Onboarding a second account is covered against a fake mint in OnboardingTest; here only the seed separation.
         val store = InMemoryWalletStore()
         val seeds = InMemorySeedStore(mapOf("a" to wordsA))
         store.addAccount("a", "Main", Profile("alice", "mint.example"))

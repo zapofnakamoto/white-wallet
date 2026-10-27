@@ -32,7 +32,7 @@ import whitewallet.lnurlcash.client.RequestLog
 @Module
 @InstallIn(SingletonComponent::class)
 object WalletModule {
-    /** In-memory log of every request to a service, shown under Developer options. */
+    /** In-memory log of every request to a mint, shown under Developer options. */
     @Provides
     @Singleton
     fun requestLog(): RequestLog = RequestLog()
@@ -58,7 +58,7 @@ object WalletModule {
     @Provides
     @Singleton
     fun regtestFaucet(wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults): RegtestFaucet =
-        RegtestFaucet(BuildConfig.LOCAL_DEV_FAUCET.ifEmpty { null }, preferences.developerMode, wallet.homeHost, defaults.localDevServices)
+        RegtestFaucet(BuildConfig.LOCAL_DEV_FAUCET.ifEmpty { null }, preferences.developerMode, wallet.homeHost, defaults.localDevMints)
 
     /** The built-in note strategies. A brand's code module adds its own to the same set (see docs/WHITE_LABEL.md). */
     @Provides
@@ -80,11 +80,11 @@ object WalletModule {
 
     @Provides
     fun defaults(): AppDefaults = AppDefaults(
-        defaultServiceHost = BuildConfig.DEFAULT_SERVICE_HOST,
-        allowServiceChange = BuildConfig.ALLOW_SERVICE_CHANGE,
-        serviceSuggestions = (listOf(BuildConfig.DEFAULT_SERVICE_HOST) + BuildConfig.SERVICE_SUGGESTIONS.split(','))
+        defaultMintHost = BuildConfig.DEFAULT_MINT_HOST,
+        allowMintChange = BuildConfig.ALLOW_MINT_CHANGE,
+        mintSuggestions = (listOf(BuildConfig.DEFAULT_MINT_HOST) + BuildConfig.MINT_SUGGESTIONS.split(','))
             .map(String::trim).filter(String::isNotEmpty).distinct(),
-        localDevServices = BuildConfig.LOCAL_DEV_SERVICES.split(',').map(String::trim).filter(String::isNotEmpty),
+        localDevMints = BuildConfig.LOCAL_DEV_MINTS.split(',').map(String::trim).filter(String::isNotEmpty),
         defaultAmountUnit = AmountUnit.fromConfig(BuildConfig.DEFAULT_AMOUNT_UNIT),
         allowUnitChange = BuildConfig.ALLOW_UNIT_CHANGE,
         maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
