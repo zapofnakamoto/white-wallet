@@ -4,13 +4,13 @@
 name: whitewallet-regtest
 
 x-lnd: &lnd
-  image: lightninglabs/lnd:v0.21.4-beta
+  image: lightninglabs/lnd:v0.21.5-beta
   restart: unless-stopped
   depends_on: [bitcoind]
 
 services:
   bitcoind:
-    image: lightninglabs/bitcoin-core:30
+    image: lightninglabs/bitcoin-core:31
     restart: unless-stopped
     command:
       - -regtest
