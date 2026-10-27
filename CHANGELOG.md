@@ -5,11 +5,20 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.3.0]
+
 ### Added
 
 - An alpha or beta release says so: a badge beside the app's name (or the brand's wordmark) at setup and on the
-  wallet tab, and by the version in About, with a sentence on what it means at setup and in About. The brand's `releaseStage` decides (`auto`, the default, is beta below 1.0.0); brands can reword it
-  through strings and restyle the badge (`ReleaseBadge`).
+  wallet tab, and by the version in About, with a sentence on what it means at setup and in About. The brand's
+  `releaseStage` decides; brands can reword it through strings and restyle the badge (`ReleaseBadge`).
+
+### Changed
+
+- `releaseStage` defaults to `auto`, which is beta below 1.0.0: a brand whose `versionName` is below 1.0.0 now shows
+  the beta badge, unless it sets `releaseStage=stable`.
+- Built with Gradle 9.8.2 and Kotlin 2.4.21, with DataStore 1.3.0, CameraX 1.6.2, OkHttp 5.5.1 and
+  kotlinx.serialization 1.12.0.
 
 ## [0.2.0]
 
