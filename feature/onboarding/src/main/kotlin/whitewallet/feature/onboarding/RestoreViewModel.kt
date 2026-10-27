@@ -14,6 +14,8 @@ import whitewallet.core.wallet.PhraseCheck
 import whitewallet.core.wallet.RecoveryPhrase
 import whitewallet.core.wallet.RestoreResult
 import whitewallet.core.wallet.Wallet
+import java.io.IOException
+import whitewallet.core.wallet.MintKeyChangedException
 
 /** Why a restore didn't happen; each maps to a full string resource. */
 sealed interface RestoreError {
@@ -94,7 +96,14 @@ class RestoreViewModel @Inject constructor(
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             val name = if (s.askAccountName) s.accountName.trim() else defaultAccountName
-            val error = when (val result = wallet.restore(s.phrase, s.host, name)) {
+            val result = try {
+                wallet.restore(s.phrase, s.host, name)
+            } catch (e: IOException) {
+                return@launch _state.update { it.copy(busy = false, error = RestoreError.Network) }
+            } catch (e: MintKeyChangedException) {
+                return@launch _state.update { it.copy(busy = false, error = RestoreError.Service) }
+            }
+            val error = when (result) {
                 is RestoreResult.Restored -> {
                     // The phrase isn't needed any more; don't keep it in memory longer than the screen.
                     _state.update { it.copy(busy = false, phrase = "", restoredOn = s.host.trim().lowercase()) }

@@ -88,6 +88,13 @@ class Wallet(
     private val discovery = IndexDiscovery(this)
     private val indexVerifiedAt = MutableStateFlow<Map<Triple<String, String, Int>, Long>>(emptyMap())
     private val policyEngine = NotePolicyEngine(this)
+    private val restorer = Restore(this)
+    private val payer = Payer(this)
+    private val sender = NoteSender(this)
+    private val noteManager = NoteManager(this)
+    private val moneyMove = MoneyMove(this)
+    private val invoices = InvoiceReceiver(this)
+    private val serviceInspector = ServiceInspector(this)
     private val _lastPolicyRun = MutableStateFlow<Map<String, PolicyRun>>(emptyMap())
 
     /**
@@ -100,19 +107,18 @@ class Wallet(
      * The service's last answer for each of the active account's looked-up keys (scans, rechecks, rotates), for the
      * developer key page. Saved, so it survives restarts.
      */
-    val keyProbes: Flow<Map<KeyId, KeyProbe>> =
-        store.activeAccountId.flatMapLatest { id -> id?.let(store::keyChecks) ?: flowOf(emptyMap()) }
+    val keyProbes: Flow<Map<KeyId, KeyProbe>> = ofActive(emptyMap(), store::keyChecks)
 
     val accounts: Flow<List<AccountSummary>> get() = store.accounts
     val activeAccount: Flow<AccountSummary?> = combine(store.accounts, store.activeAccountId) { list, id -> list.firstOrNull { it.account.id == id } }
 
-    val profile: Flow<Profile?> = store.activeAccountId.flatMapLatest { id -> id?.let(store::profile) ?: flowOf(null) }
+    val profile: Flow<Profile?> = ofActive(null, store::profile)
 
     /** The active account's home mint; null before there is an account. */
     val homeHost: Flow<String?> = activeAccount.map { it?.account?.host }.distinctUntilChanged()
-    val notes: Flow<List<Note>> = store.activeAccountId.flatMapLatest { id -> id?.let(store::notes) ?: flowOf(emptyList()) }
+    val notes: Flow<List<Note>> = ofActive(emptyList(), store::notes)
     val balanceMsat: Flow<Long> = notes.map { notes -> notes.filter { it.state == NoteState.Outstanding }.sumOf { it.amountMsat } }
-    val backupVerified: Flow<Boolean> = store.activeAccountId.flatMapLatest { id -> id?.let(seeds::backupVerified) ?: flowOf(false) }
+    val backupVerified: Flow<Boolean> = ofActive(false, seeds::backupVerified)
 
     /** The last known status of the active account's primary address; null until checked. Refreshed by [refresh]. */
     val addressStatus: Flow<AddressStatus?> = combine(store.activeAccountId, profile, addressStatuses) { id, primary, statuses ->
@@ -120,42 +126,35 @@ class Wallet(
     }
 
     /** Every Lightning Address of the active account, oldest first, with its last check. */
-    val addresses: Flow<List<AddressEntry>> = store.activeAccountId.flatMapLatest { id ->
-        if (id == null) {
-            flowOf(emptyList())
-        } else {
-            combine(store.addresses(id), store.profile(id), addressStatuses) { list, primary, statuses ->
-                list.map { AddressEntry(it, primary?.username == it.username && primary.host == it.host, statuses[id to it.address]) }
-            }
+    val addresses: Flow<List<AddressEntry>> = ofActive(emptyList()) { id ->
+        combine(store.addresses(id), store.profile(id), addressStatuses) { list, primary, statuses ->
+            list.map { AddressEntry(it, primary?.username == it.username && primary.host == it.host, statuses[id to it.address]) }
         }
     }
 
     /** The active account's auto-rotate setting. */
-    val autoRotate: Flow<Boolean> = store.activeAccountId.flatMapLatest { id -> id?.let(policies::autoRotate) ?: flowOf(false) }
+    val autoRotate: Flow<Boolean> = ofActive(false, policies::autoRotate)
 
     /** The active account's history, newest first (see [Activity]). */
-    val activity: Flow<List<Activity>> = store.activeAccountId.flatMapLatest { id -> id?.let(store::activities) ?: flowOf(emptyList()) }
+    val activity: Flow<List<Activity>> = ofActive(emptyList(), store::activities)
 
     /** Whether another account may be created or restored ([maxAccounts]). */
     val canAddAccount: Flow<Boolean> = store.accounts.map { it.size < maxAccounts }
 
     /** The active account's note strategy: its choice, or the brand's default. */
-    val noteStrategy: Flow<NoteStrategy> = store.activeAccountId.flatMapLatest { id ->
-        id?.let { policies.strategy(it).map(strategies::resolve) } ?: flowOf(strategies.default)
-    }
+    val noteStrategy: Flow<NoteStrategy> = ofActive(strategies.default) { id -> policies.strategy(id).map(strategies::resolve) }
 
     /** The note strategies a user can choose from, in the brand's order. */
     val noteStrategies: List<NoteStrategy> get() = strategies.offered
 
     /** Whether the active account moves notes from other mints to its home mint (see [CollectDefaults.active]). */
-    val collectAtHome: Flow<Boolean> = store.activeAccountId.flatMapLatest { id ->
-        id?.let { policies.collect(it).map(collectDefaults::active) } ?: flowOf(false)
-    }
+    val collectAtHome: Flow<Boolean> = ofActive(false) { id -> policies.collect(id).map(collectDefaults::active) }
 
     /** The active account's fee cap for those moves, in percent. */
-    val collectFeeCap: Flow<Int> = store.activeAccountId.flatMapLatest { id ->
-        id?.let { policies.collectFeeCap(it).map { it ?: collectDefaults.feeCapPercent } } ?: flowOf(collectDefaults.feeCapPercent)
-    }
+    val collectFeeCap: Flow<Int> = ofActive(collectDefaults.feeCapPercent, ::collectFeeCap)
+
+    /** [accountId]'s fee cap for collecting, in percent: its own setting, or the brand's default. */
+    private fun collectFeeCap(accountId: String): Flow<Int> = policies.collectFeeCap(accountId).map { it ?: collectDefaults.feeCapPercent }
 
     /** Switches collecting at the home mint on or off for the active account and applies it right away. */
     suspend fun setCollectAtHome(enabled: Boolean) = lock.withLock {
@@ -218,7 +217,7 @@ class Wallet(
      * address afterwards; give it one with [onboard] (no new account name), which accepts an address it already owns.
      */
     suspend fun restore(phrase: String, host: String, accountName: String): RestoreResult =
-        lock.withLock { Restore(this).restore(phrase, host, accountName) }
+        lock.withLock { restorer.restore(phrase, host, accountName) }
 
     /** The active account's BIP-39 recovery phrase. Only for the backup screen; never log or persist it elsewhere. */
     suspend fun recoveryPhrase(): List<String> = checkNotNull(seeds.load(activeId())) { "account has no seed" }
@@ -288,7 +287,7 @@ class Wallet(
         val result = onboarding.onboard(username, host, newAccountName = null)
         if (result !is OnboardResult.Ready) return@withLock HomeChanged(result)
         keepTrusted?.let { trust.setTrusted(it, true) }
-        HomeChanged(result, MoneyMove(this).move(id, result.profile.host, lines))
+        HomeChanged(result, moneyMove.move(id, result.profile.host, lines))
     }
 
     /** [changeHome] with [lines] for an account without a Lightning Address. */
@@ -299,7 +298,7 @@ class Wallet(
         if (result !is ConnectResult.Connected) return@withLock HomeChanged(result)
         store.saveAccount(checkNotNull(store.account(id)).copy(host = result.service.host))
         keepTrusted?.let { trust.setTrusted(it, true) }
-        HomeChanged(result, MoneyMove(this).move(id, result.service.host, lines))
+        HomeChanged(result, moneyMove.move(id, result.service.host, lines))
     }
 
     /**
@@ -310,7 +309,7 @@ class Wallet(
     suspend fun previewMove(toHost: String, fromHost: String? = null): MovePreview? {
         val id = activeId()
         val h = Onboarding.normalizeHost(toHost) ?: return null
-        return MoneyMove(this).preview(id, h, fromHost, policies.collectFeeCap(id).first() ?: collectDefaults.feeCapPercent)
+        return moneyMove.preview(id, h, fromHost, collectFeeCap(id).first())
     }
 
     /**
@@ -319,7 +318,7 @@ class Wallet(
      */
     suspend fun moveMoney(toHost: String, lines: List<MovePreview.Line>): List<MoneyMoved> = lock.withLock {
         val h = requireNotNull(Onboarding.normalizeHost(toHost)) { "not a valid host" }
-        MoneyMove(this).move(activeId(), h, lines)
+        moneyMove.move(activeId(), h, lines)
     }
 
     /**
@@ -341,16 +340,15 @@ class Wallet(
         store.setActiveAccount(accountId)
     }
 
-    /** Settles unknown outcomes, then checks every account's address and scans for new notes. */
     /** Reads what the user entered or scanned: an invoice, a Lightning Address or a pay link (see [Payer]). */
-    suspend fun previewPayment(input: String): PayPreview = Payer(this).preview(input)
+    suspend fun previewPayment(input: String): PayPreview = payer.preview(input)
 
     /** Whether [amountMsat] can be paid to [preview]'s destination right now, and the fee. */
-    suspend fun quotePayment(preview: PayPreview.Ready, amountMsat: Long): PayQuote = Payer(this).quote(preview, amountMsat)
+    suspend fun quotePayment(preview: PayPreview.Ready, amountMsat: Long): PayQuote = payer.quote(preview, amountMsat)
 
     /** Pays [amountMsat] to [preview]'s destination from the active account. [comment] goes to pay links that accept one. */
     suspend fun pay(preview: PayPreview.Ready, amountMsat: Long, comment: String? = null): PayResult =
-        lock.withLock { Payer(this).pay(preview, amountMsat, comment) }
+        lock.withLock { payer.pay(preview, amountMsat, comment) }
 
     /**
      * The name a new account on [host] suggests first: derived from the recovery phrase it is about to get, so a
@@ -370,7 +368,7 @@ class Wallet(
         val accountId = activeId()
         val h = Onboarding.normalizeHost(host) ?: return null
         val branch = branchIfSeeded(accountId, h) ?: return null
-        return DefaultAddress.names(branch).firstOrNull { AddressCheck(this).check(it, h, accountId) == AddressStatus.Ours }
+        return DefaultAddress.names(branch).firstOrNull { addressCheck.check(it, h, accountId) == AddressStatus.Ours }
     }
 
     /** The active account's addresses a restore can't find by itself (not seed-derived): to be written down. */
@@ -383,7 +381,7 @@ class Wallet(
     }
 
     /** A service as the details page shows it, checked live (this also refreshes its stored fees and limits). */
-    suspend fun serviceDetails(host: String): ServiceDetails = ServiceInspector(this).details(host)
+    suspend fun serviceDetails(host: String): ServiceDetails = serviceInspector.details(host)
 
     /**
      * The active account's watch-only key (`cx1`) on [host]: it lets someone see the account's notes there and pay
@@ -392,29 +390,25 @@ class Wallet(
     suspend fun watchOnlyKey(host: String): String? = branchIfSeeded(activeId(), host)?.cx1()
 
     /** The most one note can be sent as, from the active account's notes. */
-    suspend fun sendableNoteMsat(): Long = NoteSender(this).availableMsat()
+    suspend fun sendableNoteMsat(): Long = sender.availableMsat()
 
     /** What sending [amountMsat] as a note would cost, or why it can't be made. */
-    suspend fun quoteNote(amountMsat: Long): PayQuote = NoteSender(this).quote(amountMsat)
+    suspend fun quoteNote(amountMsat: Long): PayQuote = sender.quote(amountMsat)
 
     /** Makes a note worth exactly [amountMsat] and hands it out as a link (out of the balance until taken back). */
-    suspend fun createNote(amountMsat: Long): CreateNoteResult = lock.withLock { NoteSender(this).create(amountMsat) }
+    suspend fun createNote(amountMsat: Long): CreateNoteResult = lock.withLock { sender.create(amountMsat) }
 
     /** A sent note of the active account, with its link while nobody has redeemed it. */
-    suspend fun sharedNote(id: String): SharedNote? = NoteSender(this).sharedNote(id)
+    suspend fun sharedNote(id: String): SharedNote? = sender.sharedNote(id)
 
     /** Takes back a sent note nobody has redeemed yet. */
-    suspend fun reclaimNote(id: String): ReclaimResult = lock.withLock { NoteSender(this).reclaim(id) }
+    suspend fun reclaimNote(id: String): ReclaimResult = lock.withLock { sender.reclaim(id) }
 
     /** Every account's notes (spent ones too), for what concerns the whole device. */
-    private val allNotes: Flow<List<Note>> = store.accounts.flatMapLatest { accounts ->
-        if (accounts.isEmpty()) flowOf(emptyList()) else combine(accounts.map { store.notes(it.account.id) }) { lists -> lists.flatMap { it.toList() } }
-    }
+    private val allNotes: Flow<List<Note>> = ofEveryAccount(store::notes)
 
     /** Every account's Lightning Addresses. */
-    private val allAddresses: Flow<List<RegisteredAddress>> = store.accounts.flatMapLatest { accounts ->
-        if (accounts.isEmpty()) flowOf(emptyList()) else combine(accounts.map { store.addresses(it.account.id) }) { lists -> lists.flatMap { it.toList() } }
-    }
+    private val allAddresses: Flow<List<RegisteredAddress>> = ofEveryAccount(store::addresses)
 
     /**
      * Every mint the wallet has used (connected to, or holding any account's notes), on this device and for all
@@ -441,7 +435,7 @@ class Wallet(
      * The active account's mints: its home, then every mint where it has money or a Lightning Address, by host; with its
      * money there. What the account can do there (change home, move money) starts from here.
      */
-    val accountMints: Flow<List<AccountMint>> = combine(homeHost, notes, store.activeAccountId.flatMapLatest { id -> id?.let(store::addresses) ?: flowOf(emptyList()) }, trustedHosts()) { home, notes, addresses, trusted ->
+    val accountMints: Flow<List<AccountMint>> = combine(homeHost, notes, ofActive(emptyList(), store::addresses), trustedHosts()) { home, notes, addresses, trusted ->
         val live = notes.filter { it.state == NoteState.Outstanding }
         (listOfNotNull(home) + live.map { it.host } + addresses.map { it.host }).distinct().map { host ->
             AccountMint(
@@ -463,7 +457,7 @@ class Wallet(
             accounts.any { it.account.host == h } -> MintUse.Home
             accounts.any { a -> store.notes(a.account.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
             accounts.any { a -> store.addresses(a.account.id).first().any { it.host == h } } -> MintUse.Address
-            store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).any { it.host == h } -> MintUse.OpenOperation
+            store.journal(UNSETTLED).any { it.host == h } -> MintUse.OpenOperation
             else -> null
         }
         if (use != null) return@withLock RemoveMintResult.InUse(use)
@@ -538,7 +532,7 @@ class Wallet(
     }
 
     /** Hands out the active account's note [id] whole, as a link (see [NoteSender.share]). */
-    suspend fun shareNote(id: String): ShareNoteResult = lock.withLock { NoteSender(this).share(id) }
+    suspend fun shareNote(id: String): ShareNoteResult = lock.withLock { sender.share(id) }
 
     /** Asks the service about the active account's outstanding note [id] and follows its answer (see [NoteCheck]). */
     suspend fun recheckNote(id: String): NoteCheck = lock.withLock { recheck(id) }
@@ -592,25 +586,26 @@ class Wallet(
 
     /** Checks whether sent note [id] has been redeemed (on top of the check every refresh does). */
     suspend fun checkSharedNote(id: String): SharedNote? = lock.withLock {
-        NoteSender(this).reconcile(activeId())
-        NoteSender(this).sharedNote(id)
+        sender.reconcile(activeId())
+        sender.sharedNote(id)
     }
 
     /** Merges the active account's notes [ids] (on one service) into one. */
-    suspend fun combineNotes(ids: Collection<String>): NoteActionResult = lock.withLock { NoteManager(this).combine(ids) }
+    suspend fun combineNotes(ids: Collection<String>): NoteActionResult = lock.withLock { noteManager.combine(ids) }
 
     /** The amounts note [id] can be split into, or null if it is too small to split. */
-    suspend fun splitLimits(id: String): SplitLimits? = NoteManager(this).splitLimits(id)
+    suspend fun splitLimits(id: String): SplitLimits? = noteManager.splitLimits(id)
 
     /** Splits note [id] into one worth [amountMsat] and the change (minus the service's split fee). */
-    suspend fun splitNote(id: String, amountMsat: Long): NoteActionResult = lock.withLock { NoteManager(this).split(id, amountMsat) }
+    suspend fun splitNote(id: String, amountMsat: Long): NoteActionResult = lock.withLock { noteManager.split(id, amountMsat) }
 
     /** What moving notes [ids] to the service at [toHost] would send and deliver. */
-    suspend fun quoteServiceMove(ids: Collection<String>, toHost: String): ServiceMoveQuote = NoteManager(this).quoteMove(ids, toHost)
+    suspend fun quoteServiceMove(ids: Collection<String>, toHost: String): ServiceMoveQuote = noteManager.quoteMove(ids, toHost)
 
     /** Moves notes [ids] to the service at [toHost]: melted here, minted there to a key of this account. */
-    suspend fun moveToService(ids: Collection<String>, toHost: String): ServiceMoveResult = lock.withLock { NoteManager(this).move(ids, toHost) }
+    suspend fun moveToService(ids: Collection<String>, toHost: String): ServiceMoveResult = lock.withLock { noteManager.move(ids, toHost) }
 
+    /** Settles unknown outcomes, then checks every account's address and scans for new notes. */
     suspend fun refresh(): RefreshResult = lock.withLock {
         reconciler.reconcileAll()
         val active = store.currentAccountId()
@@ -632,7 +627,7 @@ class Wallet(
                 val scanned = scanner.scan(id, host)
                 if (id == active) result = RefreshResult(result.newNotes + scanned.newNotes, result.receivedMsat + scanned.receivedMsat)
             }
-            NoteSender(this).reconcile(id)
+            sender.reconcile(id)
             applyPolicies(id)
         }
         result
@@ -642,11 +637,11 @@ class Wallet(
      * An invoice for [amountMsat] that mints a note to the active account on its home mint once paid (see
      * [InvoiceReceiver]); the way to receive without a Lightning Address. Follow it with [invoiceStatus].
      */
-    suspend fun requestInvoice(amountMsat: Long): InvoiceRequest = lock.withLock { InvoiceReceiver(this).request(amountMsat) }
+    suspend fun requestInvoice(amountMsat: Long): InvoiceRequest = lock.withLock { invoices.request(amountMsat) }
 
     /** Looks up whether invoice [id] was paid; a paid one's note is in the wallet afterwards. */
     suspend fun invoiceStatus(id: String): InvoiceStatus = lock.withLock {
-        InvoiceReceiver(this).status(id).also { if (it is InvoiceStatus.Paid) applyPolicies(activeId()) }
+        invoices.status(id).also { if (it is InvoiceStatus.Paid) applyPolicies(activeId()) }
     }
 
     suspend fun previewClaim(input: String): ClaimPreview = claimer.preview(input, activeId())
@@ -712,7 +707,6 @@ class Wallet(
     suspend fun derivedKeys(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): List<DerivedKey> =
         activeId().let { id -> inspector.keys(id, host, purpose, gap, store.keyChecks(id).first(), failedProbes.value) }
 
-    /** Looks up [count] keys from [from], ignoring the gap limit, importing any notes found. */
     /** Looks up keys index until index + [gap], importing notes and moving the index past any used key found. */
     suspend fun scanKeysAhead(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult =
         lock.withLock { inspector.scanAhead(activeId(), host, purpose, gap) }
@@ -720,7 +714,7 @@ class Wallet(
     suspend fun recheckKey(host: String, purpose: Int, index: Long): KeyProbe =
         lock.withLock { inspector.recheck(KeyId(activeId(), host, purpose, index)) }
 
-/** Finds the right index for [purpose] on [host] (lookups past the highest used key, gap limit 20) and sets it. */
+    /** Finds the right index for [purpose] on [host] (lookups past the highest used key, gap limit 20) and sets it. */
     suspend fun findKeyIndex(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): DiscoveryResult =
         lock.withLock { discovery.discover(activeId(), host, purpose, gap) }
 
@@ -747,9 +741,7 @@ class Wallet(
         indexVerifiedAt.update { it + (Triple(accountId, host, purpose) to now()) }
 
     /** The active account's indexes on [host], updated on every change (from any screen or background refresh). */
-    fun keyIndexesFlow(host: String): Flow<KeyIndexes> = store.activeAccountId
-        .flatMapLatest { id -> id?.let { store.indexesFlow(it, host) } ?: flowOf(KeyIndexes(0, 0, 0)) }
-        .distinctUntilChanged()
+    fun keyIndexesFlow(host: String): Flow<KeyIndexes> = ofActive(KeyIndexes(0, 0, 0)) { id -> store.indexesFlow(id, host) }.distinctUntilChanged()
 
     /**
      * Emits whenever anything the developer key page shows for [host] may have changed: the active account's notes,
@@ -784,17 +776,26 @@ class Wallet(
         }
     }
 
-    suspend fun unresolvedOperations(): Int = store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown))
+    suspend fun unresolvedOperations(): Int = store.journal(UNSETTLED)
         // An invoice waiting to be paid isn't stuck (see [requestInvoice]).
         .count { !(it.type == OperationType.Mint && it.detail == null) }
 
     /** Applies [accountId]'s note policies; must be called under the lock. */
     private suspend fun applyPolicies(accountId: String) {
         val collect = collectDefaults.takeIf { it.active(policies.collect(accountId).first()) }?.let {
-            store.account(accountId)?.host?.let { home -> CollectPolicy(home, policies.collectFeeCap(accountId).first() ?: it.feeCapPercent) }
+            store.account(accountId)?.host?.let { home -> CollectPolicy(home, collectFeeCap(accountId).first()) }
         }
         val run = policyEngine.apply(accountId, strategies.resolve(policies.strategy(accountId).first()), policies.autoRotate(accountId).first(), collect)
         if (run.didSomething) _lastPolicyRun.update { it + (accountId to run) }
+    }
+
+    /** [ofAccount] of whichever account is active, following switches; [none] while there is no account. */
+    private fun <T> ofActive(none: T, ofAccount: (String) -> Flow<T>): Flow<T> =
+        store.activeAccountId.flatMapLatest { id -> id?.let(ofAccount) ?: flowOf(none) }
+
+    /** [ofAccount] of every account, joined, following accounts being added and removed. */
+    private fun <T> ofEveryAccount(ofAccount: (String) -> Flow<List<T>>): Flow<List<T>> = store.accounts.flatMapLatest { accounts ->
+        if (accounts.isEmpty()) flowOf(emptyList()) else combine(accounts.map { ofAccount(it.account.id) }) { lists -> lists.flatMap { it.toList() } }
     }
 
     internal suspend fun activeId(): String = checkNotNull(store.currentAccountId()) { "no active account" }
@@ -841,6 +842,9 @@ class Wallet(
 
     private companion object {
         const val ALREADY_HOME = "this is already the home mint"
+
+        /** Journal entries whose outcome isn't settled yet. */
+        val UNSETTLED = setOf(JournalStatus.Prepared, JournalStatus.Unknown)
     }
 }
 
@@ -872,128 +876,3 @@ data class NotesCheck(val checked: Int, val gone: Int, val unreachable: List<Str
 
 /** Notes a lookup can confirm and a rotate can renew: outstanding, at a key derived from the seed. */
 internal fun Note.isRecheckable(): Boolean = state == NoteState.Outstanding && kind == NoteKind.KeyPath && purpose != null && index != null
-
-/** Brand-level defaults, provided by the app module from brand/brand.properties. */
-/** Whether users see Developer options (brand `developerOptions`). */
-enum class DeveloperOptions {
-    /** Always, in Settings. */
-    Shown,
-
-    /** Hidden until the user taps the version in About seven times. */
-    Unlock,
-
-    /** Never (release builds; a debug build treats it as [Unlock], so development stays possible). */
-    Hidden;
-
-    companion object {
-        fun fromConfig(value: String, debug: Boolean): DeveloperOptions {
-            val configured = entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) }
-                ?: error("developerOptions must be shown, unlock or hidden, not '$value'")
-            return if (debug && configured == Hidden) Unlock else configured
-        }
-    }
-}
-
-/**
- * The brand's `releaseStage`: `alpha`, `beta` or `stable` as set, or `auto` (the default) for beta while [versionName]
- * is below 1.0.0 and stable from then on.
- */
-fun releaseStageFromConfig(value: String, versionName: String): ReleaseStage = when (val v = value.trim().lowercase()) {
-    "auto" -> {
-        val major = versionName.substringBefore('.').toIntOrNull()
-            ?: error("releaseStage=auto needs a versionName that starts with a number, not '$versionName'")
-        if (major < 1) ReleaseStage.Beta else ReleaseStage.Stable
-    }
-    else -> ReleaseStage.entries.firstOrNull { it.name.lowercase() == v }
-        ?: error("releaseStage must be auto, alpha, beta or stable, not '$value'")
-}
-
-/** Where the notes view lives (brand `notesView`). */
-enum class NotesView {
-    /** A Notes tab next to Wallet and History. */
-    Tab,
-
-    /** A page under Settings → Account. */
-    Settings,
-
-    /** Nowhere: the note strategy keeps the notes, and users only see their balance and history. */
-    Hidden;
-
-    companion object {
-        fun fromConfig(value: String): NotesView =
-            entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) } ?: error("notesView must be tab, settings or hidden, not '$value'")
-    }
-}
-
-/** Which filters the History tab offers (brand `historyFilter`). */
-enum class HistoryFilterOption {
-    /** Received, sent, moved and note maintenance. */
-    Types,
-
-    /** Only showing or hiding note maintenance. */
-    Maintenance,
-
-    /** None; note maintenance stays hidden. */
-    None;
-
-    companion object {
-        fun fromConfig(value: String): HistoryFilterOption =
-            entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) } ?: error("historyFilter must be types, maintenance or none, not '$value'")
-    }
-}
-
-data class AppDefaults(
-    val defaultServiceHost: String,
-    val allowServiceChange: Boolean,
-    /** Services offered in the onboarding dropdown, default first. */
-    val serviceSuggestions: List<String> = listOf(defaultServiceHost),
-    /** The local regtest mints, offered in developer mode in debug builds; empty in release builds. */
-    val localDevServices: List<String> = emptyList(),
-    /** How amounts are shown until the user picks a unit (brand `defaultAmountUnit`). */
-    val defaultAmountUnit: AmountUnit = AmountUnit.Bitcoin,
-    /** Whether users may pick another unit under Settings → Amounts (brand `allowUnitChange`); else always [defaultAmountUnit]. */
-    val allowUnitChange: Boolean = true,
-    /** Accounts this wallet may hold (brand `maxAccounts`); [UNLIMITED] for no limit. Enforced by [Wallet.maxAccounts]. */
-    val maxAccounts: Int = UNLIMITED,
-    /** Lightning Addresses an account may hold per service (brand `maxAddresses`); [UNLIMITED] for no limit. */
-    val maxAddresses: Int = 1,
-    /** Whether setup asks for a Lightning Address (brand `requireAddress`); see [Wallet.requireAddress]. */
-    val requireAddress: Boolean = true,
-    /** Where users see and manage their notes (brand `notesView`). */
-    val notesView: NotesView = NotesView.Tab,
-    /** Which filters the History tab offers (brand `historyFilter`). */
-    val historyFilter: HistoryFilterOption = HistoryFilterOption.Types,
-    /**
-     * Whether users see mints at all (brand `showMints`): Settings → Mints, the home mint's page, which mint a claimed
-     * note is on and whether it's trusted. Without, the app is just a wallet; the mints work the same underneath.
-     */
-    val showMints: Boolean = true,
-    /** Whether Settings shows Developer options (brand `developerOptions`); see [developerOptionsVisible]. */
-    val developerOptions: DeveloperOptions = DeveloperOptions.Shown,
-    /** How finished the app is (brand `releaseStage`), shown at setup and in About unless [ReleaseStage.Stable]. */
-    val releaseStage: ReleaseStage = ReleaseStage.Stable,
-) {
-    /** The address limit in effect: the developer setting while developer mode is on (if set), else the brand's. */
-    fun addressLimit(developerMode: Boolean, developerLimit: Int?): Int = developerLimit?.takeIf { developerMode } ?: maxAddresses
-
-    /**
-     * Whether Developer options (and with them developer mode) are reachable: always with [DeveloperOptions.Shown]; with
-     * [DeveloperOptions.Unlock] once the user unlocked them in About, or while developer mode is on (debug builds start
-     * with it on); never with [DeveloperOptions.Hidden].
-     */
-    fun developerOptionsVisible(developerMode: Boolean, unlocked: Boolean): Boolean = when (developerOptions) {
-        DeveloperOptions.Shown -> true
-        DeveloperOptions.Unlock -> unlocked || developerMode
-        DeveloperOptions.Hidden -> false
-    }
-
-    /** The unit amounts are shown in: the user's [chosen] one if the brand lets them choose, else the brand's. */
-    fun amountUnit(chosen: AmountUnit?): AmountUnit = chosen?.takeIf { allowUnitChange } ?: defaultAmountUnit
-
-    companion object {
-        const val UNLIMITED = Int.MAX_VALUE
-
-        /** A brand.properties limit: 0 (or less) means no limit. */
-        fun limit(configured: Int): Int = if (configured <= 0) UNLIMITED else configured
-    }
-}

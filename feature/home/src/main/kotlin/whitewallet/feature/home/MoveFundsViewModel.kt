@@ -14,6 +14,9 @@ import kotlinx.coroutines.launch
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.wallet.MoveResult
 import whitewallet.core.wallet.Wallet
+import java.io.IOException
+import whitewallet.core.wallet.MintKeyChangedException
+import whitewallet.core.wallet.MoveFailure
 
 data class MoveFundsState(
     val from: AccountSummary? = null,
@@ -51,7 +54,13 @@ class MoveFundsViewModel @Inject constructor(private val wallet: Wallet) : ViewM
         if (!s.canMove) return
         input.update { it.copy(busy = true) }
         viewModelScope.launch {
-            val result = wallet.moveFunds(target, s.amountMsat)
+            val result = try {
+                wallet.moveFunds(target, s.amountMsat)
+            } catch (e: IOException) {
+                MoveResult.Failed(MoveFailure.Refused, e.message)
+            } catch (e: MintKeyChangedException) {
+                MoveResult.Failed(MoveFailure.Refused, e.message)
+            }
             input.update { it.copy(busy = false, result = result) }
         }
     }

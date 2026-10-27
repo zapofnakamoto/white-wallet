@@ -46,6 +46,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.core.wallet.MintKeyChangedException
+import java.io.IOException
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.PrimaryButton
@@ -178,9 +180,9 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
         val target = s.target ?: return
         if (!s.canContinue) return
         _state.update { it.copy(busy = true, error = null) }
-        viewModelScope.launch {
-            val preview = wallet.previewMove(target, s.from) ?: return@launch fail(MoneyMoveError.Service(target))
-            if (s.changingHome && preview.lines.isEmpty()) return@launch run(s.copy(preview = preview), move = false)
+        launchFailing(target) {
+            val preview = wallet.previewMove(target, s.from) ?: return@launchFailing fail(MoneyMoveError.Service(target))
+            if (s.changingHome && preview.lines.isEmpty()) return@launchFailing run(s.copy(preview = preview), move = false)
             _state.update { it.copy(busy = false, preview = preview) }
         }
     }
@@ -192,7 +194,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
         val s = _state.value
         if (s.busy || s.preview == null) return
         _state.update { it.copy(busy = true) }
-        viewModelScope.launch { run(s, move) }
+        launchFailing(s.target ?: return) { run(s, move) }
     }
 
     /** From the result: the money that didn't move, quoted again for the user to confirm; the home stays as it is now. */
@@ -200,8 +202,8 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
         val outcome = _state.value.outcome ?: return
         val target = _state.value.target ?: return
         _state.update { it.copy(busy = true) }
-        viewModelScope.launch {
-            val preview = wallet.previewMove(target) ?: return@launch fail(MoneyMoveError.Service(target))
+        launchFailing(target) {
+            val preview = wallet.previewMove(target) ?: return@launchFailing fail(MoneyMoveError.Service(target))
             val again = preview.copy(lines = preview.lines.filter { it.host in outcome.retryable })
             _state.update { it.copy(busy = false, outcome = null, preview = again, homeChanged = it.homeChanged || outcome.homeChanged, excluded = emptySet()) }
         }
@@ -233,6 +235,17 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
             }
         }
         _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, null, moved)) }
+    }
+
+    /** Runs [block]; a network failure or a changed signing key at [host] ends it as an error. */
+    private fun launchFailing(host: String, block: suspend () -> Unit) = viewModelScope.launch {
+        try {
+            block()
+        } catch (e: IOException) {
+            fail(MoneyMoveError.Network(e.message.orEmpty()))
+        } catch (e: MintKeyChangedException) {
+            fail(MoneyMoveError.Service(host))
+        }
     }
 
     private fun fail(error: MoneyMoveError) = _state.update { it.copy(busy = false, error = error, preview = null) }

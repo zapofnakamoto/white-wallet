@@ -111,7 +111,7 @@ class MainActivity : FragmentActivity() {
             WalletTheme(design.orElse(DefaultBrandDesign)) {
                 CompositionLocalProvider(LocalAmountUnit provides unit, LocalAppName provides appName, LocalReleaseStage provides defaults.releaseStage, LocalWalletEvents provides events.events) {
                     Surface(Modifier.fillMaxSize()) {
-                        AppLockGate(appName) { WalletApp(incoming, BrandScreens(brandScreens), onIncomingHandled = { incoming.value = null }) }
+                        AppLockGate(appName) { WalletApp(incoming, BrandScreens(brandScreens), showNotesTab = defaults.notesView == NotesView.Tab, onIncomingHandled = { incoming.value = null }) }
                     }
                 }
             }
@@ -199,7 +199,7 @@ internal object Routes {
 }
 
 @Composable
-private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, onIncomingHandled: () -> Unit, start: StartViewModel = hiltViewModel()) {
+private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNotesTab: Boolean, onIncomingHandled: () -> Unit, start: StartViewModel = hiltViewModel()) {
     val startRoute by start.start.collectAsStateWithLifecycle()
     val first = startRoute ?: run {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { WalletCircularProgress() }
@@ -262,7 +262,7 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, onIncom
                 onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
                 menu = brand.on(BrandScreenEntry.HomeMenu).map { screen -> HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) } },
-                notesTab = if (NotesView.fromConfig(BuildConfig.NOTES_VIEW) == NotesView.Tab) notesTab(onSettings = { nav.navigate(Routes.NOTES) }, onOpenShared = { id -> nav.navigate(Routes.note(id)) }) else null,
+                notesTab = if (showNotesTab) notesTab(onSettings = { nav.navigate(Routes.NOTES) }, onOpenShared = { id -> nav.navigate(Routes.note(id)) }) else null,
             )
         }
         composable(Routes.NOTE_LIST) {

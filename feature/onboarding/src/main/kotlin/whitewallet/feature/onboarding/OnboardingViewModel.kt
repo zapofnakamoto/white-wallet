@@ -18,6 +18,8 @@ import whitewallet.core.wallet.CreateAccountResult
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.UsernameSuggestions
 import whitewallet.core.wallet.Wallet
+import java.io.IOException
+import whitewallet.core.wallet.MintKeyChangedException
 
 /** Live result of checking the typed name on the service. */
 sealed interface Availability {
@@ -242,29 +244,39 @@ class OnboardingViewModel @Inject constructor(
         checkJob?.cancel()
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            if (!s.withAddress) return@launch createAccount(s)
-            val result = when (s.mode) {
-                OnboardingMode.FirstRun -> wallet.onboard(s.username, s.host, defaultAccountName)
-                OnboardingMode.NewAccount -> wallet.onboard(s.username, s.host, s.accountName.trim())
-                OnboardingMode.ChangeAddress -> wallet.onboard(s.username, s.host, null)
-                OnboardingMode.AddAddress -> wallet.addAddress(s.username, addressLimit())
-                OnboardingMode.AddAddressElsewhere -> wallet.addAddress(s.username, addressLimit(), s.host)
-                OnboardingMode.RestoreAddress -> wallet.onboard(s.username, s.host, null)
+            try {
+                submit(s)
+            } catch (e: IOException) {
+                fail(OnboardingError.Network(e.message.orEmpty()))
+            } catch (e: MintKeyChangedException) {
+                fail(OnboardingError.Service(e.message.orEmpty()))
             }
-            when (result) {
-                is OnboardResult.Ready -> _state.update {
-                    it.copy(busy = false, claimed = Claimed(result.profile.address, result.confirmed), availability = Availability.Yours)
-                }
-                is OnboardResult.UsernameTaken -> _state.update {
-                    it.copy(busy = false, availability = Availability.Taken, suggestions = result.suggestions)
-                }
-                is OnboardResult.UsernameInvalid -> fail(OnboardingError.Username(result.reason))
-                is OnboardResult.RegistrationFailed -> fail(OnboardingError.Registration(result.reason ?: ""))
-                is OnboardResult.ServiceInvalid -> fail(OnboardingError.Service(result.reason))
-                is OnboardResult.NetworkError -> fail(OnboardingError.Network(result.reason))
-                is OnboardResult.LimitReached -> fail(OnboardingError.Limit(result.limit))
-                is OnboardResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
+        }
+    }
+
+    private suspend fun submit(s: OnboardingState) {
+        if (!s.withAddress) return createAccount(s)
+        val result = when (s.mode) {
+            OnboardingMode.FirstRun -> wallet.onboard(s.username, s.host, defaultAccountName)
+            OnboardingMode.NewAccount -> wallet.onboard(s.username, s.host, s.accountName.trim())
+            OnboardingMode.ChangeAddress -> wallet.onboard(s.username, s.host, null)
+            OnboardingMode.AddAddress -> wallet.addAddress(s.username, addressLimit())
+            OnboardingMode.AddAddressElsewhere -> wallet.addAddress(s.username, addressLimit(), s.host)
+            OnboardingMode.RestoreAddress -> wallet.onboard(s.username, s.host, null)
+        }
+        when (result) {
+            is OnboardResult.Ready -> _state.update {
+                it.copy(busy = false, claimed = Claimed(result.profile.address, result.confirmed), availability = Availability.Yours)
             }
+            is OnboardResult.UsernameTaken -> _state.update {
+                it.copy(busy = false, availability = Availability.Taken, suggestions = result.suggestions)
+            }
+            is OnboardResult.UsernameInvalid -> fail(OnboardingError.Username(result.reason))
+            is OnboardResult.RegistrationFailed -> fail(OnboardingError.Registration(result.reason ?: ""))
+            is OnboardResult.ServiceInvalid -> fail(OnboardingError.Service(result.reason))
+            is OnboardResult.NetworkError -> fail(OnboardingError.Network(result.reason))
+            is OnboardResult.LimitReached -> fail(OnboardingError.Limit(result.limit))
+            is OnboardResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
         }
     }
 

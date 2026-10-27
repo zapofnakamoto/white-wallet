@@ -13,6 +13,9 @@ import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.Wallet
+import java.io.IOException
+import whitewallet.core.wallet.MintKeyChangedException
+import whitewallet.lnurlcash.protocol.RejectionKind
 
 data class ClaimState(
     val input: String = "",
@@ -60,7 +63,13 @@ class ClaimViewModel @Inject constructor(private val wallet: Wallet, savedState:
         if (_state.value.busy) return
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
-            val result = wallet.claim(preview)
+            val result = try {
+                wallet.claim(preview)
+            } catch (e: IOException) {
+                ClaimResult.Failed(RejectionKind.Other, e.message)
+            } catch (e: MintKeyChangedException) {
+                ClaimResult.Failed(RejectionKind.Other, e.message)
+            }
             _state.update { it.copy(busy = false, result = result) }
         }
     }

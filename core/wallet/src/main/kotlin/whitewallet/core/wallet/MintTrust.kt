@@ -10,7 +10,7 @@ data class MintKey(val host: String, val pubkey: String)
 /**
  * The user's trust choices, on this device and for all accounts. Trust always names a key: if a mint's key changes,
  * it is no longer trusted (and the wallet stops operating with it anyway, see [Pinning]).
- * [untrusted] records mints the user untrusted although they are trusted by default (the home mint, the brand's).
+ * [untrusted] records mints the user untrusted, although they are trusted by default (the home mint, the brand's).
  */
 interface MintTrustStore {
     val trusted: Flow<Set<MintKey>>
