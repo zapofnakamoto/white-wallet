@@ -8,6 +8,10 @@
     <color name="acme_clay">#F1E2D3</color>
     <color name="acme_bark">#3B2A20</color>
     <color name="acme_moss">#2E6B3A</color>
+    <color name="acme_night">#1F1814</color>
+    <color name="acme_ember">#2C221C</color>
+    <color name="acme_linen">#F3E6DA</color>
+    <color name="acme_fern">#8FD19B</color>
 
     <color name="brand_background">@color/acme_sand</color>
     <color name="brand_surface">@color/acme_sand</color>

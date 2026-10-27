@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The roles in the dark scheme. The colours themselves are all in values/acme_palette.xml: lint wants a default. -->
 <resources>
-    <color name="acme_night">#1F1814</color>
-    <color name="acme_ember">#2C221C</color>
-    <color name="acme_linen">#F3E6DA</color>
-    <color name="acme_fern">#8FD19B</color>
-
     <color name="brand_background">@color/acme_night</color>
     <color name="brand_surface">@color/acme_night</color>
     <color name="brand_surface_container">@color/acme_ember</color>
