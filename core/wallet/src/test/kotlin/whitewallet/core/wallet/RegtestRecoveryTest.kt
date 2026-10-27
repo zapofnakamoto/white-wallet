@@ -11,6 +11,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
+import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.lnurlcash.client.LnurlcashClient
 
 /**
@@ -44,6 +45,134 @@ class RegtestRecoveryTest {
                 armed = false
             }
         }
+    }
+
+    /**
+     * The phone goes offline while [during]: the first request [matching] reaches the mint and acts (or, without
+     * [reaches], never leaves), its answer is lost, and every request after it (the replay, the lookups that would
+     * settle it) fails. The operation is left in flight, for the next refresh to settle.
+     */
+    private class Outage(val reaches: Boolean = true, val matching: (okhttp3.HttpUrl) -> Boolean = { it.isMutation }) {
+        private var armed = false
+        private var down = false
+
+        /** How many requests reached the mint and lost their answer. */
+        var hits = 0
+        val client = Regtest.client { chain ->
+            val request = chain.request()
+            if (down) Regtest.dropped()
+            if (!armed || !matching(request.url)) return@client chain.proceed(request)
+            hits++
+            down = true
+            if (!reaches) Regtest.dropped()
+            chain.proceed(request).close()
+            Regtest.lost()
+        }
+
+        suspend fun <T> during(block: suspend () -> T): T {
+            armed = true
+            try {
+                return block()
+            } finally {
+                armed = false
+                down = false
+            }
+        }
+    }
+
+    @Test
+    fun `a payment to a user on the same mint that loses the connection is pending, then settled as paid once`() = runBlocking<Unit> {
+        val bob = Regtest.phone()
+        val outage = Outage()
+        val alice = Regtest.phone(client = outage.client)
+        alice.fund(2000)
+        val preview = assertIs<PayPreview.Ready>(alice.wallet.previewPayment(bob.address))
+        assertTrue(preview.internal)
+
+        assertEquals(PayResult.Pending(1_999_000), outage.during { alice.wallet.pay(preview, 1_999_000) })
+        assertEquals(1, outage.hits)
+        assertEquals(0, alice.balance(), "out of the balance while in flight")
+        assertEquals(listOf(ActivityStatus.Pending), alice.wallet.activity.first().filter { it.kind == ActivityKind.Sent }.map { it.status })
+
+        // The payee's key can't tell (another payer may sit there); the burned inputs can.
+        alice.wallet.refresh()
+        assertEquals(0, alice.wallet.unresolvedOperations())
+        assertEquals(listOf(ActivityStatus.Done), alice.wallet.activity.first().filter { it.kind == ActivityKind.Sent }.map { it.status })
+        assertEquals(0, alice.balance())
+        bob.wallet.refresh()
+        assertEquals(1_999_000, bob.balance(), "paid once")
+    }
+
+    @Test
+    fun `a renewal that never reached the mint before the connection went is pending, then the note is spendable again`() = runBlocking<Unit> {
+        val outage = Outage(reaches = false)
+        val alice = Regtest.phone(client = outage.client)
+        alice.fund(2000)
+        val note = alice.notes().single()
+
+        assertEquals(RotateResult.Pending, outage.during { alice.wallet.rotateNote(note.id) })
+        assertEquals(NoteState.Ambiguous, alice.store.note(note.id)?.state)
+        assertEquals(0, alice.balance(), "not counted while it may be burned")
+
+        alice.wallet.refresh()
+        assertEquals(0, alice.wallet.unresolvedOperations())
+        assertEquals(listOf(note.id), alice.notes().map { it.id }, "the same note, outstanding again")
+        assertEquals(1_999_000, alice.balance())
+        assertIs<RotateResult.Rotated>(alice.wallet.rotateNote(note.id))
+    }
+
+    @Test
+    fun `a note made to send that loses the connection is not handed out, and its money comes back`() = runBlocking<Unit> {
+        val outage = Outage()
+        val alice = Regtest.phone(client = outage.client)
+        alice.fund(5000)
+
+        assertEquals(CreateNoteResult.Pending, outage.during { alice.wallet.createNote(1_000_000) })
+        assertEquals(1, outage.hits)
+        alice.wallet.refresh()
+        assertEquals(0, alice.wallet.unresolvedOperations())
+        assertEquals(emptyList(), alice.wallet.activity.first().filter { it.kind == ActivityKind.SentNote }, "no link was ever shown")
+        assertEquals(4_999_000 - 1_000, alice.balance(), "both halves of the split are ours, less its fee")
+        assertEquals(2, alice.notes().size)
+    }
+
+    @Test
+    fun `a move to another account that loses the connection is pending, then lands in the other account`() = runBlocking<Unit> {
+        val outage = Outage()
+        val phone = Regtest.phone(client = outage.client)
+        val main = phone.store.currentAccountId()!!
+        assertIs<OnboardResult.Ready>(phone.wallet.onboard(Regtest.name(), HOST, newAccountName = "Savings"))
+        val savings = phone.store.currentAccountId()!!
+        phone.wallet.switchAccount(main)
+        phone.fund(2000)
+
+        assertEquals(MoveResult.Pending, outage.during { phone.wallet.moveFunds(savings, null) })
+        assertEquals(listOf(ActivityStatus.Pending), phone.wallet.activity.first().filter { it.kind == ActivityKind.MovedOut }.map { it.status })
+        phone.wallet.refresh()
+        assertEquals(0, phone.wallet.unresolvedOperations())
+        assertEquals(mapOf(main to 0L, savings to 1_999_000L), phone.wallet.accounts.first().associate { it.account.id to it.balanceMsat })
+        assertEquals(listOf(ActivityStatus.Done), phone.wallet.activity.first().filter { it.kind == ActivityKind.MovedOut }.map { it.status })
+    }
+
+    @Test
+    fun `a move to another mint whose melt loses the connection is pending, then arrives on the other mint`() = runBlocking<Unit> {
+        val outage = Outage(matching = { it.isMelt })
+        val alice = Regtest.phone(client = outage.client)
+        alice.wallet.payWaitMillis = 1_000
+        alice.fund(3000)
+        val ids = alice.notes().map { it.id }
+        val quote = assertIs<ServiceMoveQuote.Ready>(alice.wallet.quoteServiceMove(ids, HOST2))
+
+        assertEquals(ServiceMoveResult.Pending, outage.during { alice.wallet.moveToService(ids, HOST2) })
+        assertEquals(1, outage.hits, "a melt is never sent twice")
+        assertEquals(0, alice.balance(), "out of the balance while in flight")
+
+        // The melt is settled at the first mint, and the note expected at our key is found on the second.
+        alice.refreshUntil { alice.notes(HOST2).isNotEmpty() && alice.wallet.unresolvedOperations() == 0 }
+        assertEquals(0, alice.wallet.unresolvedOperations())
+        assertEquals(emptyList(), alice.notes(HOST))
+        assertEquals(listOf(quote.expectedMsat), alice.notes(HOST2).map { it.amountMsat })
+        assertEquals(listOf(ActivityStatus.Done), alice.wallet.activity.first().filter { it.kind == ActivityKind.MovedService }.map { it.status })
     }
 
     @Test

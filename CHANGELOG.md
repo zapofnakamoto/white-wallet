@@ -17,6 +17,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   pinned on first contact; before, only claims and lookups stopped.
 - Lightning Addresses whose invoices carry no or another description hash are paid, as LUD-06 now has the wallet
   check only the amount; before, addresses on other lnurlcash mints couldn't be paid.
+- Notes in a payment, move or renewal whose answer never came back are out of the balance until the mint has
+  settled it, and are never picked for another payment meanwhile; before, they still counted, though the mint might
+  already have spent them.
 
 ## [0.1.0]
 

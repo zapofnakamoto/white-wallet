@@ -48,7 +48,14 @@ internal class Reconciler(private val wallet: Wallet) {
             }
             if (!landed) {
                 val live = entry.inputIds.map { lookup(entry.withdrawUrl, ByteVector32(it)) != null }
-                if (live.all { it }) return finish(entry, JournalStatus.Rejected)
+                if (live.all { it }) {
+                    // It never landed: the inputs are spendable again.
+                    for (id in entry.inputIds) {
+                        wallet.store.note(id)?.takeIf { it.state == NoteState.Ambiguous }
+                            ?.let { wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now()))) }
+                    }
+                    return finish(entry, JournalStatus.Rejected)
+                }
                 // The payee may have moved the note on already, so its key can't tell; the burned inputs can.
                 landed = live.none { it } && entry.outputs.any { it.isExternal }
             }

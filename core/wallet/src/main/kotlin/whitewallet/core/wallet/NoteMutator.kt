@@ -154,7 +154,11 @@ internal class NoteMutator(private val wallet: Wallet) {
                     }, entry.id)
                     // Settled already: it never landed, so nothing changed, as for a refusal.
                     JournalStatus.Rejected -> MutationResult.Refused(RejectionKind.Other, outcome.cause)
-                    else -> MutationResult.Pending(entry.id)
+                    // The inputs may be burned already: out of the balance and never picked again until settled.
+                    else -> {
+                        wallet.store.upsertNotes(inputs.map { it.copy(state = NoteState.Ambiguous, updatedAtMillis = wallet.now()) })
+                        MutationResult.Pending(entry.id)
+                    }
                 }
             }
         }
