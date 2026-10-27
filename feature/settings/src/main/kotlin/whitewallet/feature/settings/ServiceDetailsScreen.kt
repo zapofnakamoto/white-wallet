@@ -32,6 +32,7 @@ import java.text.NumberFormat
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -40,6 +41,7 @@ import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.SensitiveClipboard
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ServiceDetails
 import whitewallet.core.wallet.Wallet
 import whitewallet.brand.ui.ButtonKind
@@ -54,17 +56,21 @@ data class ServiceDetailsState(
     val loading: Boolean = true,
     val watchOnlyKey: String? = null,
     val showWatchOnly: Boolean = false,
+    /** The brand lets users change their home mint (`allowServiceChange`): from its page, or to this one. */
+    val canChangeHome: Boolean = false,
 )
 
 @HiltViewModel
-class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle) : ViewModel() {
+class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) : ViewModel() {
     /** The service to show: the route's `host`, else the account's home service. */
     private val requestedHost: String? = savedState.get<String>("host")
-    private val _state = MutableStateFlow(ServiceDetailsState())
+    private val _state = MutableStateFlow(ServiceDetailsState(canChangeHome = defaults.allowServiceChange))
     val state: StateFlow<ServiceDetailsState> = _state
 
     init {
         refresh()
+        // After a change of the home mint (see onChangeHome), back here: this page may be the old or the new home.
+        viewModelScope.launch { wallet.homeHost.drop(1).collect { refresh() } }
     }
 
     fun refresh() {
@@ -90,13 +96,19 @@ class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, sa
 }
 
 @Composable
-fun ServiceDetailsRoute(onBack: () -> Unit, viewModel: ServiceDetailsViewModel = hiltViewModel()) {
+fun ServiceDetailsRoute(
+    onBack: () -> Unit,
+    /** Opens the change of the home mint: to [host] when it is given, else to one the user picks. */
+    onChangeHome: (host: String?) -> Unit = {},
+    viewModel: ServiceDetailsViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     ServiceDetailsScreen(
         state, onBack, viewModel::refresh, viewModel::toggleWatchOnly,
         onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key) },
         onAcceptKey = viewModel::acceptKey,
+        onChangeHome = onChangeHome,
     )
 }
 
@@ -113,6 +125,7 @@ fun ServiceDetailsScreen(
     onToggleWatchOnly: () -> Unit,
     onCopyWatchOnly: (String) -> Unit,
     onAcceptKey: (String) -> Unit = {},
+    onChangeHome: (host: String?) -> Unit = {},
 ) {
     val details = state.details
     Scaffold(topBar = { WalletTopBar(details?.host ?: stringResource(R.string.service_title), onBack) }) { padding ->
@@ -132,7 +145,17 @@ fun ServiceDetailsScreen(
                 },
             )
             if (details.isHome) {
-                WalletListItem(headlineContent = { Text(stringResource(R.string.settings_home_mint)) }, supportingContent = { Text(stringResource(R.string.service_home_hint)) })
+                WalletListItem(
+                    headlineContent = { Text(stringResource(R.string.settings_home_mint)) },
+                    supportingContent = { Text(stringResource(R.string.service_home_hint)) },
+                    trailingContent = state.canChangeHome.takeIf { it }?.let {
+                        { WalletButton(kind = ButtonKind.Text, onClick = { onChangeHome(null) }) { Text(stringResource(R.string.service_change_home)) } }
+                    },
+                )
+            } else if (state.canChangeHome) {
+                WalletButton(kind = ButtonKind.Secondary, onClick = { onChangeHome(details.host) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Text(stringResource(R.string.service_make_home))
+                }
             }
             WalletListItem(
                 headlineContent = { Text(stringResource(R.string.service_your_money)) },

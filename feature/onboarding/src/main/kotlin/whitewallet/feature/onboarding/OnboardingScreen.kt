@@ -126,6 +126,7 @@ fun OnboardingScreen(
                 state.changingAddress -> R.string.onboarding_change_title
                 state.addingAddress -> R.string.onboarding_add_title
                 state.addingElsewhere -> R.string.onboarding_add_elsewhere_title
+                state.changingService -> R.string.onboarding_change_service_title
                 state.restoringAddress -> R.string.restore_address_title
                 else -> R.string.onboarding_new_account_title
             },
@@ -150,6 +151,8 @@ fun OnboardingScreen(
                 } else if (state.addingAddress) {
                     Text(stringResource(R.string.onboarding_add_body, state.host), textAlign = TextAlign.Center)
                     AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
+                } else if (state.changingService) {
+                    ChangeServiceContent(state, onUsernameChange, service, onSuggestion, onStart)
                 } else if (state.addingElsewhere) {
                     Text(stringResource(R.string.onboarding_add_elsewhere_body), textAlign = TextAlign.Center)
                     AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
@@ -210,6 +213,32 @@ fun OnboardingScreen(
             }
         }
     }
+}
+
+/** Where the account moves, what happens to the money on the old home, then the name there (if it has one) and the mint. */
+@Composable
+private fun ChangeServiceContent(
+    state: OnboardingState,
+    onUsernameChange: (String) -> Unit,
+    service: ServiceActions,
+    onSuggestion: (String) -> Unit,
+    onStart: () -> Unit,
+) {
+    Text(
+        stringResource(if (state.withAddress) R.string.onboarding_change_service_body else R.string.onboarding_change_service_body_no_address),
+        textAlign = TextAlign.Center,
+    )
+    state.leavingHost?.let { old ->
+        Text(
+            state.collectFeeCap?.let { stringResource(R.string.onboarding_change_service_collect, old, it) }
+                ?: stringResource(R.string.onboarding_change_service_stay, old),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+    val submit = stringResource(R.string.onboarding_change_service_submit)
+    if (state.withAddress) AddressForm(state, onUsernameChange, service, onSuggestion, onStart, submit) else MintForm(state, service, onStart, submit)
 }
 
 /** What the service dropdown can ask for. */

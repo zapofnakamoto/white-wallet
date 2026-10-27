@@ -69,6 +69,38 @@ class OnboardingScreenTest {
         compose.onNodeWithText("Mint").performScrollTo().assertExists()
     }
 
+    private fun changing(withAddress: Boolean, collectFeeCap: Int?) = OnboardingState(
+        username = "alice", host = "other.example", canChangeHost = true, mode = OnboardingMode.ChangeService, withAddress = withAddress,
+        serviceOptions = listOf(ServiceOption.Suggested("other.example"), ServiceOption.Custom), selectedService = ServiceOption.Suggested("other.example"),
+        leavingHost = "home.example", collectFeeCap = collectFeeCap,
+    )
+
+    private fun showChange(state: OnboardingState, onStart: () -> Unit = {}) = compose.setContent {
+        OnboardingScreen(
+            "Wallet", logo = {}, state = state, onBack = {}, onUsernameChange = {}, service = ServiceActions({}, {}),
+            onSuggestion = {}, onStart = onStart, onContinue = {}, onAccountNameChange = {},
+        )
+    }
+
+    @Test
+    fun changingTheHomeMintAsksForTheNameThereAndSaysTheMoneyFollows() {
+        var started = false
+        showChange(changing(withAddress = true, collectFeeCap = 2), onStart = { started = true })
+        compose.onNodeWithText("Change home mint").assertExists()
+        compose.onNodeWithText("Your address: alice@other.example").assertExists()
+        compose.onNodeWithText("Money at home.example is moved there automatically, when that costs at most 2 %.").assertExists()
+        compose.onNodeWithText("Move my account").performScrollTo().performClick()
+        assertTrue(started)
+    }
+
+    @Test
+    fun changingTheHomeMintWithoutCollectingSaysTheMoneyStays() {
+        showChange(changing(withAddress = false, collectFeeCap = null))
+        compose.onNodeWithText("Money at home.example stays there, and stays yours.").assertExists()
+        compose.onNodeWithText("Your address: alice@other.example").assertDoesNotExist()
+        compose.onNodeWithText("Mint").performScrollTo().assertExists()
+    }
+
     @Test
     fun withoutAnAddressAndOneMintSetupIsOneButton() {
         var started = false

@@ -9,9 +9,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - An empty wallet says how money gets in: a line under the ₿0 balance (not while the balance is hidden). Brands can
   reword it (`home_wallet_empty`).
-- With `allowServiceChange=true`, an address on another mint can become the primary address (Settings → Lightning
-  addresses → Make primary), which moves the account's home there: invoices are paid there from then on and, if the
-  account collects at its home mint, its money follows. The old home stays trusted. `Wallet.moveHome`.
+- With `allowServiceChange=true`, users can change their home mint from the mint pages (with `showMints=true`):
+  "Change home mint" on the home mint's page, "Make this my home mint" on another one's. Their name there becomes the
+  primary address, invoices are paid there from then on and, if the account collects at its home mint, its money
+  follows. The old address keeps working and the old home stays trusted. `Wallet.changeHome`.
+- Three new brand-term strings for it: `onboarding_change_service_title`, `service_change_home`, `service_make_home`.
+  Brands with their own word for the mint override them too.
 
 ## [0.3.0]
 

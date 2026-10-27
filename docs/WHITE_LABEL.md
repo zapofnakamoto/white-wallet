@@ -29,7 +29,7 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 | `versionCode`, `versionName` | Release version |
 | `defaultServiceHost` | LNURLcash mint preselected during onboarding (`host` or `host:port`) |
 | `serviceSuggestions` | Comma-separated mints offered in the onboarding dropdown (the default is always first; users can still pick "Custom…") |
-| `allowServiceChange` | `false` hides the mint field, locking users to your mint. With `true`, users can also add a Lightning address on another mint (same recovery phrase), and make it primary, which moves their home mint there (with `collectAtHomeMint` on or `always`, their money follows) |
+| `allowServiceChange` | `false` hides the mint field, locking users to your mint. With `true`, users can also add a Lightning address on another mint (same recovery phrase), and change their home mint from the mint pages, which needs `showMints=true` (with `collectAtHomeMint` on or `always`, their money follows) |
 | `supportUrl` | Exposed as `BuildConfig.SUPPORT_URL` |
 | `requireAddress` | Whether every account needs a Lightning Address. `true` (default): setup asks for a name. `false`: setup only creates the account on its mint, which is a single "Get started" button when `allowServiceChange=false`; users receive by invoice (Receive → amount → QR) and can still get an address later in Settings → Account → Lightning addresses. Restoring skips the address step too |
 | `maxAccounts` | How many accounts the app holds. `1` hides everything about accounts (no switcher, no "Add account"); at the limit, new accounts and restores are refused with a message. `0` = no limit (default) |
@@ -62,6 +62,9 @@ The app calls the party that holds users' funds a **mint**. Nearly all text is w
 | `claim_home_mint` | On %1$s, your home mint |
 | `notes_home_mint` | Home mint |
 | `settings_mints` | Mints |
+| `onboarding_change_service_title` | Change home mint |
+| `service_change_home` | Change home mint |
+| `service_make_home` | Make this my home mint |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 

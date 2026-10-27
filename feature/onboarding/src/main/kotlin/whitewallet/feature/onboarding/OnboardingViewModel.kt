@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.wallet.ConnectResult
 import whitewallet.core.wallet.CreateAccountResult
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.UsernameSuggestions
@@ -51,6 +52,12 @@ enum class OnboardingMode {
      * Never primary; payments to it arrive as notes there.
      */
     AddAddressElsewhere,
+
+    /**
+     * Moves the active account's home to another service (brand `allowServiceChange`), with its primary address there
+     * if the account has one (see [Wallet.changeHome]). The old address stays registered.
+     */
+    ChangeService,
 
     /**
      * Gives a just-restored account (no address yet) its address on the mint it was restored from: one it already
@@ -96,16 +103,20 @@ data class OnboardingState(
     val restoreCancelled: Boolean? = null,
     /** False when a new account starts without a Lightning Address (brand `requireAddress=false`): only its mint is asked for. */
     val withAddress: Boolean = true,
+    /** For [OnboardingMode.ChangeService]: the home being left, and the fee cap if the account collects at home. */
+    val leavingHost: String? = null,
+    val collectFeeCap: Int? = null,
 ) {
     val changingAddress: Boolean get() = mode == OnboardingMode.ChangeAddress
     val addingAddress: Boolean get() = mode == OnboardingMode.AddAddress
     val addingElsewhere: Boolean get() = mode == OnboardingMode.AddAddressElsewhere
+    val changingService: Boolean get() = mode == OnboardingMode.ChangeService
     val restoringAddress: Boolean get() = mode == OnboardingMode.RestoreAddress
 
     /** The address belongs to the active account (not to an account being created). */
-    val forExistingAccount: Boolean get() = changingAddress || addingAddress || addingElsewhere || restoringAddress
+    val forExistingAccount: Boolean get() = changingAddress || addingAddress || addingElsewhere || changingService || restoringAddress
     val canSubmit: Boolean get() = !busy && (if (withAddress) addressOk else host.isNotBlank()) &&
-        (mode != OnboardingMode.NewAccount || accountName.isNotBlank()) && (mode != OnboardingMode.AddAddressElsewhere || host.isNotBlank())
+        (mode != OnboardingMode.NewAccount || accountName.isNotBlank()) && (!addingElsewhere && !changingService || host.isNotBlank())
     private val addressOk: Boolean get() = username.isNotBlank() && availability !is Availability.Taken && availability !is Availability.Invalid
 }
 
@@ -168,6 +179,20 @@ class OnboardingViewModel @Inject constructor(
                     val name = wallet.profile.first()?.username.orEmpty()
                     _state.update { it.copy(mode = mode, host = other.orEmpty(), canChangeHost = true, withAddress = true, username = name) }
                 }
+                OnboardingMode.ChangeService -> {
+                    homeHost = wallet.homeHost.first()
+                    val target = presetHost?.takeIf { it != homeHost }
+                        ?: serviceOptions(defaults, preferences.developerMode.first()).firstNotNullOfOrNull { o -> o.host?.takeIf { it != homeHost } }
+                    val profile = wallet.profile.first()
+                    val cap = if (wallet.collectAtHome.first()) wallet.collectFeeCap.first() else null
+                    // The same name as now is the natural first try.
+                    _state.update {
+                        it.copy(
+                            mode = mode, host = target.orEmpty(), canChangeHost = true, withAddress = profile != null, username = profile?.username.orEmpty(),
+                            leavingHost = homeHost, collectFeeCap = cap,
+                        )
+                    }
+                }
                 OnboardingMode.RestoreAddress -> {
                     // The mint the account was restored from (also after an app restart half way through).
                     val host = presetHost ?: wallet.keyHosts().firstOrNull() ?: _state.value.host
@@ -218,7 +243,7 @@ class OnboardingViewModel @Inject constructor(
         _state.update { it.copy(username = name) }
     }
 
-    /** For [OnboardingMode.AddAddressElsewhere]: the home mint, left out of the choice. */
+    /** For [OnboardingMode.AddAddressElsewhere] and [OnboardingMode.ChangeService]: the home mint, left out of the choice. */
     private var homeHost: String? = null
 
     private fun updateServiceOptions(developerMode: Boolean) = _state.update { s ->
@@ -242,13 +267,14 @@ class OnboardingViewModel @Inject constructor(
         checkJob?.cancel()
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            if (!s.withAddress) return@launch createAccount(s)
+            if (!s.withAddress) return@launch if (s.changingService) changeMint(s) else createAccount(s)
             val result = when (s.mode) {
                 OnboardingMode.FirstRun -> wallet.onboard(s.username, s.host, defaultAccountName)
                 OnboardingMode.NewAccount -> wallet.onboard(s.username, s.host, s.accountName.trim())
                 OnboardingMode.ChangeAddress -> wallet.onboard(s.username, s.host, null)
                 OnboardingMode.AddAddress -> wallet.addAddress(s.username, addressLimit())
                 OnboardingMode.AddAddressElsewhere -> wallet.addAddress(s.username, addressLimit(), s.host)
+                OnboardingMode.ChangeService -> wallet.changeHome(s.host, s.username)
                 OnboardingMode.RestoreAddress -> wallet.onboard(s.username, s.host, null)
             }
             when (result) {
@@ -276,6 +302,18 @@ class OnboardingViewModel @Inject constructor(
             is CreateAccountResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
             is CreateAccountResult.ServiceInvalid -> fail(OnboardingError.Service(result.reason))
             is CreateAccountResult.NetworkError -> fail(OnboardingError.Network(result.reason))
+        }
+    }
+
+    /** An account without an address only changes its mint: nothing to show afterwards. */
+    private suspend fun changeMint(s: OnboardingState) {
+        when (val result = wallet.changeHome(s.host)) {
+            is ConnectResult.Connected -> _state.update { it.copy(busy = false, done = true) }
+            is ConnectResult.Failed -> when (val r = result.result) {
+                is OnboardResult.NetworkError -> fail(OnboardingError.Network(r.reason))
+                is OnboardResult.ServiceInvalid -> fail(OnboardingError.Service(r.reason))
+                else -> fail(OnboardingError.Service(r.toString()))
+            }
         }
     }
 

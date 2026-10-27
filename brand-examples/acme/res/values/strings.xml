@@ -9,5 +9,8 @@
     <string name="claim_home_mint">On %1$s, your provider</string>
     <string name="notes_home_mint">Provider</string>
     <string name="settings_mints">Providers</string>
+    <string name="onboarding_change_service_title">Change provider</string>
+    <string name="service_change_home">Change provider</string>
+    <string name="service_make_home">Make this my provider</string>
     <string name="onboarding_tagline">Pocket money on Lightning.</string>
 </resources>

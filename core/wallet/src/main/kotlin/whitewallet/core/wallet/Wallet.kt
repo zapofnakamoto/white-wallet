@@ -263,25 +263,46 @@ class Wallet(
     suspend fun setPrimaryAddress(address: RegisteredAddress) = lock.withLock {
         val id = activeId()
         check(store.addresses(id).first().any { it.username == address.username && it.host == address.host }) { "not an address of this account" }
-        check(address.host == store.account(id)?.host) { "the primary address is on the home mint; use moveHome" }
+        check(address.host == store.account(id)?.host) { "the primary address is on the home mint; use changeHome" }
         store.saveProfile(id, Profile(address.username, address.host))
     }
 
     /**
-     * Makes [address], one of the active account's addresses on another mint (see [addAddress]), the primary address
-     * and its mint the account's home: invoices are minted there from now on, and collecting at the home mint moves
-     * money there (the policies run right away). The old home mint stays trusted if it was, so the notes still held
-     * there don't turn untrusted with the move.
+     * Moves the active account's home to the mint at [host], with [username] there as its primary address: claimed like
+     * [onboard] does, so a name the account already holds there is taken as it is. From then on invoices are minted
+     * there, and collecting at the home mint moves the money there (the policies run right away). The old primary
+     * address stays registered, and the old home stays trusted if it was. Nothing moves unless the claim succeeds.
      */
-    suspend fun moveHome(address: RegisteredAddress) = lock.withLock {
+    suspend fun changeHome(host: String, username: String): OnboardResult = lock.withLock {
+        val (id, keepTrusted) = leavingHome(host) ?: return@withLock OnboardResult.ServiceInvalid(ALREADY_HOME)
+        onboarding.onboard(username, host, newAccountName = null).also { if (it is OnboardResult.Ready) movedHome(id, keepTrusted) }
+    }
+
+    /** [changeHome] for an account without a Lightning Address ([requireAddress] `false`): only the mint changes. */
+    suspend fun changeHome(host: String): ConnectResult = lock.withLock {
+        val (id, keepTrusted) = leavingHome(host) ?: return@withLock ConnectResult.Failed(OnboardResult.ServiceInvalid(ALREADY_HOME))
+        check(store.currentProfile(id) == null) { "the account has an address; pass the name to use on the new home" }
+        onboarding.connectService(host).also { result ->
+            if (result !is ConnectResult.Connected) return@also
+            store.saveAccount(checkNotNull(store.account(id)).copy(host = result.service.host))
+            movedHome(id, keepTrusted)
+        }
+    }
+
+    /**
+     * The active account and its home mint's trusted key, about to be left for [host]; null if [host] already is the
+     * home. Its trust is read now: once the account has moved, the home default no longer covers it.
+     */
+    private suspend fun leavingHome(host: String): Pair<String, MintKey?>? {
         val id = activeId()
-        check(store.addresses(id).first().any { it.username == address.username && it.host == address.host }) { "not an address of this account" }
-        val account = checkNotNull(store.account(id)) { "no active account" }
-        check(address.host != account.host) { "already the home mint; use setPrimaryAddress" }
-        store.service(account.host)?.mintPubkey?.let { MintKey(account.host, it) }?.takeIf { isTrusted(it) }?.let { trust.setTrusted(it, true) }
-        store.saveAccount(account.copy(host = address.host))
-        store.saveProfile(id, Profile(address.username, address.host))
-        applyPolicies(id)
+        val home = checkNotNull(store.account(id)) { "no active account" }.host
+        if (Onboarding.normalizeHost(host) == home) return null
+        return id to store.service(home)?.mintPubkey?.let { MintKey(home, it) }?.takeIf { isTrusted(it) }
+    }
+
+    private suspend fun movedHome(accountId: String, keepTrusted: MintKey?) {
+        keepTrusted?.let { trust.setTrusted(it, true) }
+        applyPolicies(accountId)
     }
 
     /** Frees one of the active account's addresses at its service. Never the primary one. */
@@ -738,6 +759,10 @@ class Wallet(
         seedCache[accountId]?.let { return it }
         val words = checkNotNull(seeds.load(accountId)) { "account has no seed" }
         return MnemonicCode.toSeed(words, "").also { seedCache[accountId] = it }
+    }
+
+    private companion object {
+        const val ALREADY_HOME = "this is already the home mint"
     }
 }
 

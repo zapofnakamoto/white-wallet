@@ -229,7 +229,7 @@ class RegtestE2ETest {
     }
 
     @Test
-    fun `moving home to the second mint collects the money there, and the old address keeps working`() = runBlocking<Unit> {
+    fun `changing the home mint to the second one collects the money there, and the old address keeps working`() = runBlocking<Unit> {
         val second = "localhost:8112"
         val store = InMemoryWalletStore()
         val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID),
@@ -240,13 +240,12 @@ class RegtestE2ETest {
         regtest("pay", "$alice@$host", "3000")
         wallet.refresh()
         assertEquals(1, on(host).size)
-        val bob = name()
-        assertTrue(assertIs<OnboardResult.Ready>(wallet.addAddress(bob, limit = 1, host = second)).confirmed)
 
-        // The move runs the policies: the money on the old home goes to the new one over Lightning right away.
-        wallet.moveHome(wallet.addresses.first().single { it.address.host == second }.address)
+        // The same name on the second mint becomes the primary address there. The move runs the policies: the money
+        // on the old home goes to the new one over Lightning right away.
+        assertTrue(assertIs<OnboardResult.Ready>(wallet.changeHome(second, alice)).confirmed)
         assertEquals(second, wallet.homeHost.first())
-        assertEquals("$bob@$second", wallet.profile.first()?.address)
+        assertEquals("$alice@$second", wallet.profile.first()?.address)
         assertEquals(emptyList(), on(host), "nothing left on the old home")
         assertEquals(host, wallet.lastPolicyRun.first()?.collected?.single()?.host, "collected from the old home")
         assertEquals(1, on(second).size)

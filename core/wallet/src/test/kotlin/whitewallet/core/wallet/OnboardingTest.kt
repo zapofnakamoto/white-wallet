@@ -250,47 +250,81 @@ class OnboardingTest {
         }
     }
 
-    @Test
-    fun `an address on another mint can become the primary one, which moves the home there`() = withService { _, homeHost ->
-        MockWebServer().use { server ->
-            server.dispatcher = FakeService(server, publishCpub = true, registrationEnabled = true)
-            server.start()
-            val otherHost = "localhost:${server.port}"
-            val wallet = wallet()
-            assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
-            assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 1, host = otherHost))
-            assertTrue(wallet.mints.first().single { it.host == homeHost }.trusted)
-            val (alice, bob) = wallet.addresses.first().map { it.address }
-
-            assertFailsWith<IllegalStateException>("already home") { wallet.moveHome(alice) }
-            wallet.moveHome(bob)
-            assertEquals(otherHost, wallet.homeHost.first())
-            assertEquals("bob@$otherHost", wallet.profile.first()?.address)
-            assertEquals(listOf("alice@$homeHost" to false, "bob@$otherHost" to true), wallet.addresses.first().map { it.address.address to it.primary })
-            val mints = wallet.mints.first()
-            assertEquals(TrustDefault.Home, mints.single { it.host == otherHost }.trustedByDefault)
-            assertTrue(mints.single { it.host == homeHost }.trusted, "the old home stays trusted")
-
-            // And back: the old home's address is now one on another mint.
-            wallet.moveHome(alice)
-            assertEquals(homeHost, wallet.homeHost.first())
-            assertEquals("alice@$homeHost", wallet.profile.first()?.address)
+    /** Runs [test] with a second fake mint next to the one [withService] gives. */
+    private fun withTwoServices(test: suspend (home: FakeService, homeHost: String, other: FakeService, otherHost: String) -> Unit) =
+        withService { home, homeHost ->
+            MockWebServer().use { server ->
+                val other = FakeService(server, publishCpub = true, registrationEnabled = true)
+                server.dispatcher = other
+                server.start()
+                test(home, homeHost, other, "localhost:${server.port}")
+            }
         }
+
+    @Test
+    fun `changing the home mint claims the name there as the primary address, and the old one stays`() = withTwoServices { home, homeHost, other, otherHost ->
+        val wallet = wallet()
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+        assertTrue(wallet.mints.first().single { it.host == homeHost }.trusted)
+
+        val moved = assertIs<OnboardResult.Ready>(wallet.changeHome(otherHost, "alice"))
+        assertTrue(moved.confirmed)
+        assertEquals(otherHost, wallet.homeHost.first())
+        assertEquals("alice@$otherHost", wallet.profile.first()?.address)
+        assertEquals(listOf("alice@$homeHost" to false, "alice@$otherHost" to true), wallet.addresses.first().map { it.address.address to it.primary })
+        assertNotEquals(home.registered["alice"], other.registered["alice"], "the new home's own cx1 of the phrase")
+        val mints = wallet.mints.first()
+        assertEquals(TrustDefault.Home, mints.single { it.host == otherHost }.trustedByDefault)
+        assertTrue(mints.single { it.host == homeHost }.trusted, "the old home stays trusted")
+
+        // And back: the address there is already ours, so nothing is registered again.
+        val posts = home.posts
+        assertIs<OnboardResult.Ready>(wallet.changeHome(homeHost, "alice"))
+        assertEquals(homeHost, wallet.homeHost.first())
+        assertEquals("alice@$homeHost", wallet.profile.first()?.address)
+        assertEquals(posts, home.posts)
     }
 
     @Test
-    fun `moving home keeps an old home the user untrusted untrusted`() = withService { _, homeHost ->
-        MockWebServer().use { server ->
-            server.dispatcher = FakeService(server, publishCpub = true, registrationEnabled = true)
-            server.start()
-            val otherHost = "localhost:${server.port}"
-            val wallet = wallet()
-            assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
-            assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 1, host = otherHost))
-            wallet.setMintTrusted(homeHost, false)
-            wallet.moveHome(wallet.addresses.first().single { it.address.host == otherHost }.address)
-            assertFalse(wallet.mints.first().single { it.host == homeHost }.trusted)
-        }
+    fun `an address added on another mint before is taken as it is when moving there`() = withTwoServices { _, homeHost, other, otherHost ->
+        val wallet = wallet()
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+        assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 1, host = otherHost))
+        val posts = other.posts
+        assertIs<OnboardResult.Ready>(wallet.changeHome(otherHost, "bob"))
+        assertEquals(posts, other.posts, "nothing registered again")
+        assertEquals("bob@$otherHost", wallet.profile.first()?.address)
+        assertEquals(2, wallet.addresses.first().size)
+    }
+
+    @Test
+    fun `a taken name or the same mint moves nothing`() = withTwoServices { _, homeHost, other, otherHost ->
+        val wallet = wallet()
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+        other.registered["alice"] = CashBranch.fromSeed(ByteArray(32) { 7 }, otherHost).cx1()
+        assertIs<OnboardResult.UsernameTaken>(wallet.changeHome(otherHost, "alice"))
+        assertIs<OnboardResult.ServiceInvalid>(wallet.changeHome(homeHost, "alice"))
+        assertEquals(homeHost, wallet.homeHost.first())
+        assertEquals("alice@$homeHost", wallet.profile.first()?.address)
+    }
+
+    @Test
+    fun `changing the home mint keeps an old home the user untrusted untrusted`() = withTwoServices { _, homeHost, _, otherHost ->
+        val wallet = wallet()
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+        wallet.setMintTrusted(homeHost, false)
+        assertIs<OnboardResult.Ready>(wallet.changeHome(otherHost, "alice"))
+        assertFalse(wallet.mints.first().single { it.host == homeHost }.trusted)
+    }
+
+    @Test
+    fun `an account without an address just changes its mint`() = withTwoServices { _, homeHost, _, otherHost ->
+        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
+        assertIs<CreateAccountResult.Created>(wallet.createAccount(homeHost, "Main"))
+        assertIs<ConnectResult.Connected>(wallet.changeHome(otherHost))
+        assertEquals(otherHost, wallet.homeHost.first())
+        assertNull(wallet.profile.first())
+        assertIs<ConnectResult.Failed>(wallet.changeHome(otherHost), "already home")
     }
 
     @Test

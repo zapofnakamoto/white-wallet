@@ -181,6 +181,8 @@ internal object Routes {
     fun service(host: String) = "settings/service?host=${Uri.encode(host)}"
     const val ADD_ADDRESS = "addresses/add"
     const val ADD_ADDRESS_ELSEWHERE = "addresses/add-elsewhere"
+    const val CHANGE_SERVICE = "settings/service/change?host={host}"
+    fun changeService(host: String?) = if (host == null) "settings/service/change" else "settings/service/change?host=${Uri.encode(host)}"
     const val DELETE = "delete"
     const val NEW_ACCOUNT = "account/new"
     const val NEW_ACCOUNT_ON = "account/new?host={host}"
@@ -328,7 +330,13 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, onIncom
             )
         }
         composable(Routes.SERVICE, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) {
-            ServiceDetailsRoute(onBack = { nav.popBackStack() })
+            ServiceDetailsRoute(onBack = { nav.popBackStack() }, onChangeHome = { host -> nav.navigate(Routes.changeService(host)) })
+        }
+        composable(Routes.CHANGE_SERVICE, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
+            OnboardingRoute(
+                appName, logo = {}, onDone = { nav.popBackStack() }, mode = OnboardingMode.ChangeService, onBack = { nav.popBackStack() },
+                presetHost = entry.arguments?.getString("host"),
+            )
         }
         composable(Routes.MINTS) {
             MintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.service(host)) })

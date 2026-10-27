@@ -91,6 +91,41 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun theHomeMintCanBeChangedFromItsPageWhenTheBrandAllowsIt() {
+        var asked: String? = "unset"
+        compose.setContent {
+            ServiceDetailsScreen(
+                ServiceDetailsState(details(ServiceDetails.Reachability.Reachable), loading = false, canChangeHome = true),
+                {}, {}, {}, {}, onChangeHome = { asked = it },
+            )
+        }
+        compose.onNodeWithText("Change home mint").performScrollTo().performClick()
+        assertEquals(null, asked)
+        compose.onNodeWithText("Make this my home mint").assertDoesNotExist()
+    }
+
+    @Test
+    fun anotherMintCanBecomeTheHome() {
+        var asked: String? = null
+        compose.setContent {
+            ServiceDetailsScreen(
+                ServiceDetailsState(details(ServiceDetails.Reachability.Reachable).copy(isHome = false), loading = false, canChangeHome = true),
+                {}, {}, {}, {}, onChangeHome = { asked = it },
+            )
+        }
+        compose.onNodeWithText("Make this my home mint").performScrollTo().performClick()
+        assertEquals("mint.example", asked)
+    }
+
+    @Test
+    fun aLockedBrandOffersNoChangeOfTheHomeMint() {
+        compose.setContent {
+            ServiceDetailsScreen(ServiceDetailsState(details(ServiceDetails.Reachability.Reachable), loading = false), {}, {}, {}, {})
+        }
+        compose.onNodeWithText("Change home mint").assertDoesNotExist()
+    }
+
+    @Test
     @Config(qualifiers = "de")
     fun germanAmountsPutTheSignAfterTheNumber() {
         compose.setContent {

@@ -8,6 +8,7 @@
     <string name="onboarding_service">Mint</string>
     <string name="onboarding_service_custom_host">Mint address</string>
     <string name="onboarding_custody">Your funds are held by the mint you choose. Keep amounts small.</string>
+    <string name="onboarding_change_service_title">Change home mint</string>
 
     <string name="onboarding_tagline">Bearer notes on Lightning. Ready in one tap.</string>
     <string name="onboarding_username">Your name</string>
@@ -44,6 +45,11 @@
     <string name="onboarding_add_body">Another name for this account on %1$s. Payments to any of its addresses arrive in the same balance.</string>
     <string name="onboarding_add_elsewhere_title">Address on another service</string>
     <string name="onboarding_add_elsewhere_body">A name for this account on another service, with the same recovery phrase. Payments to it arrive as notes on that service, in this account. Your primary address stays where it is.</string>
+    <string name="onboarding_change_service_body">Your account moves to the service you pick: your name there becomes your primary address, and invoices you create are paid there. Your current address keeps working.</string>
+    <string name="onboarding_change_service_body_no_address">Your account moves to the service you pick: invoices you create are paid there.</string>
+    <string name="onboarding_change_service_collect">Money at %1$s is moved there automatically, when that costs at most %2$d %%.</string>
+    <string name="onboarding_change_service_stay">Money at %1$s stays there, and stays yours.</string>
+    <string name="onboarding_change_service_submit">Move my account</string>
     <string name="onboarding_change_body">Pick the name people will use to pay you on %1$s.</string>
     <string name="onboarding_error_registration">The address wasn\'t registered: %1$s</string>
     <string name="onboarding_error_service">This host can\'t be used: %1$s</string>

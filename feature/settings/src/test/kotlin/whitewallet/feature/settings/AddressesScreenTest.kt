@@ -25,42 +25,16 @@ class AddressesScreenTest {
     private val home = AddressEntry(RegisteredAddress("alice", "home.example", 0), primary = true, status = AddressStatus.Ours)
     private val other = AddressEntry(RegisteredAddress("alice", "other.example", 1), primary = false, status = AddressStatus.Ours)
 
-    private fun show(state: AddressesState, onAddElsewhere: () -> Unit = {}, actions: AddressActions = AddressActions({}, {}, {})) = compose.setContent {
-        AddressesScreen(state, {}, {}, {}, {}, actions, {}, {}, onAddElsewhere)
+    private fun show(state: AddressesState, onAddElsewhere: () -> Unit = {}) = compose.setContent {
+        AddressesScreen(state, {}, {}, {}, {}, AddressActions({}, {}, {}), {}, {}, onAddElsewhere)
     }
 
     @Test
-    fun anAddressOnAnotherMintIsListedUnderItAndCanBecomePrimary() {
-        var made: RegisteredAddress? = null
-        show(AddressesState(listOf(home, other), homeHost = "home.example", otherServices = true), actions = AddressActions({}, { made = it }, {}))
+    fun anAddressOnAnotherMintIsListedUnderItAndCanNotBecomePrimary() {
+        show(AddressesState(listOf(home, other), homeHost = "home.example", otherServices = true))
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("alice@other.example"))
         compose.onNodeWithText("other.example").assertExists()
-        compose.onNodeWithText("Make primary").performClick()
-        assertEquals(other.address, made)
-    }
-
-    @Test
-    fun aLockedBrandOffersNoMoveToAnotherMint() {
-        show(AddressesState(listOf(home, other), homeHost = "home.example", otherServices = false))
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("alice@other.example"))
         compose.onNodeWithText("Make primary").assertDoesNotExist()
-    }
-
-    @Test
-    fun movingHomeSaysTheMoneyFollowsWhenTheAccountCollects() {
-        var confirmed = false
-        val actions = AddressActions({}, {}, {}, onConfirmMove = { confirmed = true })
-        show(AddressesState(listOf(home, other), homeHost = "home.example", otherServices = true, confirmMove = other.address, collectFeeCap = 2), actions = actions)
-        compose.onNodeWithText("Make alice@other.example your primary address?").assertExists()
-        compose.onNodeWithText("• Money at home.example is moved to other.example automatically, when that costs at most 2 %.").assertExists()
-        compose.onNodeWithText("Make primary").performClick()
-        assertEquals(true, confirmed)
-    }
-
-    @Test
-    fun movingHomeSaysTheMoneyStaysWhenTheAccountDoesNotCollect() {
-        show(AddressesState(listOf(home, other), homeHost = "home.example", otherServices = true, confirmMove = other.address))
-        compose.onNodeWithText("• Money at home.example stays there, and stays yours.").assertExists()
     }
 
     @Test
