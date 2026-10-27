@@ -39,6 +39,7 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 | `collectAtHomeMint` | "Move everything to the home mint" in Settings → Account → Note settings: notes on other mints (claimed notes, or an old home mint) are moved to the account's home mint automatically, over Lightning, when the move costs at most the fee cap. `hidden` = not offered, `off` = offered and starts off (default), `on` = offered and starts on (users can switch it per account), `always` = every account collects and users have no switch |
 | `collectFeeCap` | The default fee cap for those moves, in percent of what is moved (default `2`). Users pick 1, 2, 5 or 10 % |
 | `notesView` | Where users see and manage their notes (share one as a QR code, split, combine, move, recheck, renew): `tab` (default) = a **Notes** tab next to Wallet and History, `settings` = a page under Settings → Account, `hidden` = nowhere; the note strategy keeps the notes by itself and users only see their balance and history |
+| `historyFilter` | Filters on the History tab: `types` (default) = chips for received, sent, moved and note maintenance; `maintenance` = one chip that shows or hides note maintenance; `none` = no filters, and note maintenance stays hidden |
 | `showMints` | `false` hides everything about mints from users: Settings → Mints, the home mint's page, and on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged). Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`) and `collectAtHomeMint` `hidden` or `always` |
 | `appearance` | `system` (default) follows the phone's light or dark setting; `light` or `dark` always uses that scheme, for a brand with a single look. See "Design" |
 | `developerOptions` | Developer options in Settings (developer mode, request log, derived keys): `shown` (default) = always; `unlock` = hidden until the user taps the version in Settings → About seven times, as on Android itself; `hidden` = never in release builds. A debug build treats `hidden` as `unlock`, and starts with developer mode on, so the options show there anyway |
@@ -74,6 +75,7 @@ To use another word ("custodian", "provider", …), override exactly these in `b
 | `font/`, `values/*.xml` | Fonts, text sizes, corners and spacing (see "Design"): optional |
 | `drawable/ic_launcher_foreground.xml` | Launcher icon foreground (adaptive icon, 108dp canvas, keep the mark inside the central 66dp) |
 | `drawable/ic_brand_logo.xml` | Logo on the onboarding and app lock screens |
+| `drawable/ic_activity_*.xml` | Optional: the History icons (`received`, `claimed`, `sent`, `sent_note`, `moved`, `moved_service`, `split`, `combined`, `rotated`, and `automatic`, the badge on entries the wallet made by itself). To change how they are framed, see `ActivityIcon` under "Design" |
 | `mipmap-anydpi/ic_launcher.xml` | Usually unchanged; combines background color and foreground |
 
 You can also add `values/strings.xml` here to override any user-facing string from the feature modules, using the same names (for example `onboarding_tagline`). App resources take precedence over library resources. The app ships in English and German; for each language you support, put its brand-term strings in `values-<lang>/strings.xml`.
@@ -101,7 +103,7 @@ brand chooses every value, under names of its own.
 |---|---|---|
 | 1. Tokens | `res/` | colour roles, fonts, text sizes, corners, spacing |
 | 2. Theme | `code/`: `BrandDesign.Theme` | change any token, or add CompositionLocals of the brand's own |
-| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts and QR codes look |
+| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the icons of History entries (`ActivityIcon`: type, direction, automatic) look |
 | 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark) |
 | 5. Status and events | `code/`: `WalletStatus`, `WalletEvent` | what a screen is about and what just happened, to show or react to |
 | 6. Screens | `code/`: `BrandScreen` | pages of the brand's own, reached from Settings, the wallet's menu or right after setup |

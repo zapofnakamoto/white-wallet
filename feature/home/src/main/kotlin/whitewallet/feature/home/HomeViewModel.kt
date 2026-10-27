@@ -18,7 +18,9 @@ import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.Profile
 import whitewallet.core.wallet.AddressStatus
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.Wallet
 
@@ -45,6 +47,8 @@ data class HomeState(
     val canAddAccount: Boolean = true,
     /** Accounts are a thing in this app: hidden when the brand allows one and there is one. */
     val showAccounts: Boolean = true,
+    /** Which filters History offers (brand `historyFilter`). */
+    val historyFilter: HistoryFilterOption = HistoryFilterOption.Types,
 ) {
     /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */
     val status: WalletStatus
@@ -57,8 +61,8 @@ data class HomeState(
 }
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(private val wallet: Wallet, private val preferences: AppPreferences) : ViewModel() {
-    private val status = MutableStateFlow(HomeState())
+class HomeViewModel @Inject constructor(private val wallet: Wallet, private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
+    private val status = MutableStateFlow(HomeState(historyFilter = defaults.historyFilter))
 
     private val walletFlags = combine(wallet.backupVerified, wallet.addressStatus, preferences.balanceHidden, ::Triple)
     private val accountInfo = combine(wallet.accounts, wallet.activeAccount, ::Pair)

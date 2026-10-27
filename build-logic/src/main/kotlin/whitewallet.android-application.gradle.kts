@@ -37,6 +37,7 @@ android {
         buildConfigField("int", "COLLECT_FEE_CAP", brand.getProperty("collectFeeCap", "2").trim())
         buildConfigField("String", "TRUSTED_MINTS", "\"" + brand.getProperty("trustedMints", "").trim() + "\"")
         buildConfigField("String", "NOTES_VIEW", "\"${brand.getProperty("notesView", "tab").trim()}\"")
+        buildConfigField("String", "HISTORY_FILTER", "\"${brand.getProperty("historyFilter", "types").trim()}\"")
         buildConfigField("boolean", "ALLOW_UNIT_CHANGE", brand.getProperty("allowUnitChange", "true").trim().toBooleanStrict().toString())
         buildConfigField("String", "DEVELOPER_OPTIONS", "\"${brand.getProperty("developerOptions", "shown").trim()}\"")
         buildConfigField("boolean", "SHOW_MINTS", brand.getProperty("showMints", "true").trim().toBooleanStrict().toString())

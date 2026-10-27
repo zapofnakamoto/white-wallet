@@ -7,6 +7,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- History shows an icon for each kind of entry, marks what the wallet did by itself ("Automatic") and what the user
+  did, and can be narrowed to received, sent, moved and note maintenance. Brands choose the filters
+  (`historyFilter`) and can restyle the icons (`ActivityIcon`, or the `ic_activity_*` drawables).
+
 - A mint that presents a different signing key can be used again: its details page shows the remembered and the new
   key, and after a warning the new key takes the old one's place. The notes held there get the mint's certificates
   under the new key, so a note shared afterwards is verified for its recipient.

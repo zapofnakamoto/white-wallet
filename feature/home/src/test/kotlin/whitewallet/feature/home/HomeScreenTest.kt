@@ -4,7 +4,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
@@ -18,6 +20,7 @@ import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.wallet.HistoryFilterOption
 
 @RunWith(RobolectricTestRunner::class)
 class HomeScreenTest {
@@ -91,5 +94,83 @@ class HomeScreenTest {
         compose.onNodeWithText("Verlauf").performClick()
         compose.onNodeWithText("Pflege der Scheine anzeigen").performClick()
         compose.onNodeWithText("Gebühr erstattet 1 ₿", substring = true).assertExists()
+    }
+
+    private fun row(id: String, kind: ActivityKind, automatic: Boolean = false, counterparty: String? = null) =
+        Activity(id, "a", kind, 1_000_000, null, "mint.example", counterparty, true, 2, automatic = automatic, status = ActivityStatus.Done,
+            journalId = id, createdAtMillis = 0)
+
+    private val mixed = listOf(
+        row("r", ActivityKind.Received),
+        row("s", ActivityKind.Sent, counterparty = "bob@mint.example"),
+        row("n", ActivityKind.SentNote),
+        row("m", ActivityKind.MovedService, automatic = true, counterparty = "home.example"),
+        row("c", ActivityKind.Combined, automatic = true),
+        row("x", ActivityKind.Split),
+    )
+
+    @Test
+    fun whoDidAnEntryShowsNextToItsTitle() {
+        show(HomeState(activity = mixed))
+        compose.onNodeWithText("History").performClick()
+        compose.onNodeWithText("Note maintenance").performClick()
+        compose.onAllNodesWithText("Automatic").assertCountEquals(1)
+        compose.onAllNodesWithText("By you").assertCountEquals(1)
+        compose.onNodeWithText("Sent a note").assertDoesNotExist()
+        // A move home that collecting did by itself is automatic too; a payment the user made says nothing.
+        compose.onNodeWithText("Moved").performClick()
+        compose.onAllNodesWithText("Automatic").assertCountEquals(2)
+    }
+
+    @Test
+    fun theHistoryNarrowsToAKindOfEntry() {
+        show(HomeState(activity = mixed))
+        compose.onNodeWithText("History").performClick()
+        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
+        compose.onNodeWithText("Sent to bob@mint.example").assertExists()
+
+        compose.onNodeWithText("Sent").performClick()
+        compose.onNodeWithText("Sent to bob@mint.example").assertExists()
+        compose.onNodeWithText("Sent a note").assertExists()
+        compose.onNodeWithText("Moved to home.example").assertDoesNotExist()
+
+        compose.onNodeWithText("Moved").performClick()
+        compose.onNodeWithText("Moved to home.example").assertExists()
+        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
+
+        compose.onNodeWithText("Sent").performClick()
+        compose.onNodeWithText("Moved").performClick()
+        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
+        compose.onNodeWithText("Sent a note").assertExists()
+    }
+
+    @Test
+    fun aBrandCanOfferOnlyTheMaintenanceSwitchOrNoFilter() {
+        show(HomeState(activity = listOf(row("n", ActivityKind.SentNote), row("m", ActivityKind.MovedService), row("x", ActivityKind.Split)),
+            historyFilter = HistoryFilterOption.Maintenance))
+        compose.onNodeWithText("History").performClick()
+        compose.onNodeWithText("Moved").assertDoesNotExist()
+        compose.onNodeWithText("Note maintenance").performClick()
+        compose.onNodeWithText("Split a note in two").assertExists()
+        compose.onNodeWithText("Sent a note").assertExists()
+    }
+
+    @Test
+    fun withoutFiltersMaintenanceStaysHidden() {
+        show(HomeState(activity = mixed, historyFilter = HistoryFilterOption.None))
+        compose.onNodeWithText("History").performClick()
+        compose.onNodeWithText("Note maintenance").assertDoesNotExist()
+        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
+        compose.onNodeWithText("Sent a note").assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun theFiltersInGerman() {
+        show(HomeState(activity = mixed))
+        compose.onNodeWithText("Verlauf").performClick()
+        compose.onNodeWithText("Verschoben").performClick()
+        compose.onNodeWithText("Automatisch").assertExists()
+        compose.onNodeWithText("Gesendet").assertExists()
     }
 }

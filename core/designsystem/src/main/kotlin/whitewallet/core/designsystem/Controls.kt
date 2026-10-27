@@ -6,8 +6,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
+import whitewallet.brand.ui.ActivityIconParams
+import whitewallet.brand.ui.ActivityType
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.ButtonParams
 import whitewallet.brand.ui.CardParams
@@ -16,6 +19,7 @@ import whitewallet.brand.ui.ChipParams
 import whitewallet.brand.ui.DialogParams
 import whitewallet.brand.ui.ListRowParams
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.brand.ui.MoneyDirection
 import whitewallet.brand.ui.NavigationBarParams
 import whitewallet.brand.ui.NavigationItem
 import whitewallet.brand.ui.ProgressKind
@@ -86,6 +90,26 @@ fun WalletListItem(
 ) {
     LocalBrandDesign.current.components.ListRow(
         ListRowParams(headlineContent, overlineContent, supportingContent, leadingContent, trailingContent),
+        modifier,
+    )
+}
+
+/** A history entry's mark, drawn by the brand ([whitewallet.brand.ui.BrandComponents.ActivityIcon]) with the type's icon. */
+@Composable
+fun WalletActivityIcon(type: ActivityType, direction: MoneyDirection, automatic: Boolean, settled: Boolean, modifier: Modifier = Modifier) {
+    val icon = when (type) {
+        ActivityType.Received -> R.drawable.ic_activity_received
+        ActivityType.Claimed -> R.drawable.ic_activity_claimed
+        ActivityType.Sent -> R.drawable.ic_activity_sent
+        ActivityType.SentNote -> R.drawable.ic_activity_sent_note
+        ActivityType.MovedAccounts -> R.drawable.ic_activity_moved
+        ActivityType.MovedServices -> R.drawable.ic_activity_moved_service
+        ActivityType.Split -> R.drawable.ic_activity_split
+        ActivityType.Combined -> R.drawable.ic_activity_combined
+        ActivityType.Renewed -> R.drawable.ic_activity_rotated
+    }
+    LocalBrandDesign.current.components.ActivityIcon(
+        ActivityIconParams(type, direction, automatic, settled, painterResource(icon), painterResource(R.drawable.ic_activity_automatic)),
         modifier,
     )
 }

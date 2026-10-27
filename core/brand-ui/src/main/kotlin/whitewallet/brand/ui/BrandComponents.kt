@@ -1,9 +1,12 @@
 package whitewallet.brand.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -17,6 +20,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalTextStyle
@@ -33,9 +37,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -86,6 +92,9 @@ interface BrandComponents {
 
     /** A QR code to scan: the code itself is drawn by the app; a design may frame it, never alter it. */
     @Composable fun QrCode(params: QrCodeParams, modifier: Modifier) = DefaultComponents.qrCode(params, modifier)
+
+    /** The leading mark of a history entry: what kind it is, and whether the wallet did it by itself. */
+    @Composable fun ActivityIcon(params: ActivityIconParams, modifier: Modifier) = DefaultComponents.activityIcon(params, modifier)
 }
 
 /** How prominent a button is: one [Primary] action per screen, [Secondary] and [Text] for the rest. */
@@ -195,6 +204,25 @@ class NavigationItem(val selected: Boolean, val onClick: () -> Unit, val icon: @
 class NavigationBarParams(val items: List<NavigationItem>)
 
 class QrCodeParams(val bitmap: ImageBitmap, val size: Dp)
+
+/** What a history entry is. [Split], [Combined] and [Renewed] are note maintenance: the balance stays the same. */
+enum class ActivityType { Received, Claimed, Sent, SentNote, MovedAccounts, MovedServices, Split, Combined, Renewed }
+
+/** Which way the entry moved the account's money: [Within] keeps it in the account (a move between mints, maintenance). */
+enum class MoneyDirection { In, Out, Within }
+
+class ActivityIconParams(
+    val type: ActivityType,
+    val direction: MoneyDirection,
+    /** Done by the wallet itself (the note strategy, collecting at the home mint), not by the user. */
+    val automatic: Boolean,
+    /** False while it is still being confirmed, and when it failed or was taken back. */
+    val settled: Boolean,
+    /** The type's icon (a brand may replace the drawable, or draw its own). */
+    val icon: Painter,
+    /** The mark for [automatic] entries. */
+    val automaticBadge: Painter,
+)
 
 /** Material 3, as the app looks without a brand design. Brand components can call these to wrap or fall back. */
 object DefaultComponents : BrandComponents {
@@ -347,5 +375,30 @@ object DefaultComponents : BrandComponents {
     @Composable
     fun qrCode(params: QrCodeParams, modifier: Modifier) {
         Image(params.bitmap, contentDescription = null, modifier = modifier.size(params.size), filterQuality = FilterQuality.None)
+    }
+
+    /** The type's icon on a circle tinted by where the money went; a small badge when the wallet did it by itself. */
+    @Composable
+    fun activityIcon(params: ActivityIconParams, modifier: Modifier) {
+        val maintenance = params.type == ActivityType.Split || params.type == ActivityType.Combined || params.type == ActivityType.Renewed
+        val tint = when {
+            maintenance || !params.settled -> MaterialTheme.colorScheme.onSurfaceVariant
+            params.direction == MoneyDirection.In -> MaterialTheme.walletColors.incoming
+            params.direction == MoneyDirection.Out -> MaterialTheme.walletColors.outgoing
+            else -> MaterialTheme.colorScheme.onSurface
+        }
+        Box(modifier.size(40.dp)) {
+            Box(Modifier.size(40.dp).background(tint.copy(alpha = 0.12f), CircleShape), contentAlignment = Alignment.Center) {
+                Icon(params.icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+            }
+            if (params.automatic) {
+                Box(
+                    Modifier.align(Alignment.BottomEnd).size(18.dp).background(MaterialTheme.colorScheme.surface, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(params.automaticBadge, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
+                }
+            }
+        }
     }
 }

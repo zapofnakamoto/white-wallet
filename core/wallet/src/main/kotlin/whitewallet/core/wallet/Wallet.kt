@@ -790,6 +790,23 @@ enum class NotesView {
     }
 }
 
+/** Which filters the History tab offers (brand `historyFilter`). */
+enum class HistoryFilterOption {
+    /** Received, sent, moved and note maintenance. */
+    Types,
+
+    /** Only showing or hiding note maintenance. */
+    Maintenance,
+
+    /** None; note maintenance stays hidden. */
+    None;
+
+    companion object {
+        fun fromConfig(value: String): HistoryFilterOption =
+            entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) } ?: error("historyFilter must be types, maintenance or none, not '$value'")
+    }
+}
+
 data class AppDefaults(
     val defaultServiceHost: String,
     val allowServiceChange: Boolean,
@@ -809,6 +826,8 @@ data class AppDefaults(
     val requireAddress: Boolean = true,
     /** Where users see and manage their notes (brand `notesView`). */
     val notesView: NotesView = NotesView.Tab,
+    /** Which filters the History tab offers (brand `historyFilter`). */
+    val historyFilter: HistoryFilterOption = HistoryFilterOption.Types,
     /**
      * Whether users see mints at all (brand `showMints`): Settings → Mints, the home mint's page, which mint a claimed
      * note is on and whether it's trusted. Without, the app is just a wallet; the mints work the same underneath.

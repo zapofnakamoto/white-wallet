@@ -9,6 +9,9 @@
     <string name="home_switch_account">Switch account</string>
     <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
     <string name="history_filter_maintenance">Note maintenance</string>
+    <string name="history_filter_received">Received</string>
+    <string name="history_filter_sent">Sent</string>
+    <string name="history_filter_moved">Moved</string>
     <string name="history_only_maintenance">So far only note maintenance, which doesn\'t change your balance.</string>
     <string name="history_show_maintenance">Show note maintenance</string>
     <string name="activity_received">Received</string>

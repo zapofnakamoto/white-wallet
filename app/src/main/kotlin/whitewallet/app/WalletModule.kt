@@ -12,6 +12,7 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.DeveloperOptions
+import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.wallet.MintTrustStore
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.TrustedMints
@@ -89,6 +90,7 @@ object WalletModule {
         maxAddresses = AppDefaults.limit(BuildConfig.MAX_ADDRESSES),
         requireAddress = BuildConfig.REQUIRE_ADDRESS,
         notesView = NotesView.fromConfig(BuildConfig.NOTES_VIEW),
+        historyFilter = HistoryFilterOption.fromConfig(BuildConfig.HISTORY_FILTER),
         showMints = BuildConfig.SHOW_MINTS,
         developerOptions = DeveloperOptions.fromConfig(BuildConfig.DEVELOPER_OPTIONS, debug = BuildConfig.DEBUG),
     )

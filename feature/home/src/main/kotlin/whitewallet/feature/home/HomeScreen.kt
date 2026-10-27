@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -63,7 +65,11 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.wallet.sentNoteId
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.brand.ui.ActivityType
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.MoneyDirection
+import whitewallet.core.designsystem.WalletActivityIcon
+import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.designsystem.WalletAssistChip
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
@@ -136,7 +142,7 @@ fun HomeScreen(
 ) {
     var saved by rememberSaveable { mutableStateOf(HomeTab.Wallet) }
     val tab = saved.takeIf { it != HomeTab.Notes || notesTab != null } ?: HomeTab.Wallet
-    var showMaintenance by rememberSaveable { mutableStateOf(false) }
+    var historyFilters by rememberSaveable { mutableStateOf(emptySet<HistoryFilter>()) }
     var showAccounts by remember { mutableStateOf(false) }
     // Back from History returns to the wallet before leaving the app.
     BackHandler(enabled = tab != HomeTab.Wallet) { saved = HomeTab.Wallet }
@@ -181,7 +187,7 @@ fun HomeScreen(
             when (tab) {
                 HomeTab.Wallet -> WalletTab(state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenService)
                 HomeTab.Notes -> notesTab?.content?.invoke()
-                HomeTab.History -> HistoryTab(state.activity, showMaintenance, { showMaintenance = it }, onOpenNote)
+                HomeTab.History -> HistoryTab(state.activity, state.historyFilter, historyFilters, { historyFilters = it }, onOpenNote)
             }
         }
     }
@@ -267,22 +273,68 @@ private fun WalletTab(
     }
 }
 
+/** The kinds of History entries a user can narrow the list to. */
+private enum class HistoryFilter(val label: Int, val icon: Int) {
+    Received(R.string.history_filter_received, DesignR.drawable.ic_activity_received),
+    Sent(R.string.history_filter_sent, DesignR.drawable.ic_activity_sent),
+    Moved(R.string.history_filter_moved, DesignR.drawable.ic_activity_moved),
+    Maintenance(R.string.history_filter_maintenance, DesignR.drawable.ic_activity_combined);
+
+    companion object {
+        fun of(kind: ActivityKind): HistoryFilter = when (kind) {
+            ActivityKind.Received, ActivityKind.Claimed -> Received
+            ActivityKind.Sent, ActivityKind.SentNote -> Sent
+            ActivityKind.MovedIn, ActivityKind.MovedOut, ActivityKind.MovedService -> Moved
+            ActivityKind.Split, ActivityKind.Combined, ActivityKind.Rotated -> Maintenance
+        }
+    }
+}
+
 /**
  * What happened to the account's money, one row per event. Note maintenance (merges, rotations) is logged too but
- * hidden unless the filter is on, since it doesn't change the balance.
+ * hidden unless the user asks for it, since it doesn't change the balance. Depending on the brand ([option]), the
+ * user narrows the list to kinds of entries ([selected]; none selected: everything but maintenance), only shows or
+ * hides maintenance, or has no filter.
  */
 @Composable
-private fun HistoryTab(activity: List<Activity>, showMaintenance: Boolean, onShowMaintenance: (Boolean) -> Unit, onOpenNote: (String) -> Unit) {
-    val visible = if (showMaintenance) activity else activity.filterNot { it.kind.isMaintenance }
+private fun HistoryTab(
+    activity: List<Activity>,
+    option: HistoryFilterOption,
+    selected: Set<HistoryFilter>,
+    onSelect: (Set<HistoryFilter>) -> Unit,
+    onOpenNote: (String) -> Unit,
+) {
+    val available = when (option) {
+        HistoryFilterOption.Types -> HistoryFilter.entries.filter { f -> activity.any { HistoryFilter.of(it.kind) == f } }
+        HistoryFilterOption.Maintenance -> listOf(HistoryFilter.Maintenance).filter { activity.any { it.kind.isMaintenance } }
+        HistoryFilterOption.None -> emptyList()
+    }
+    // A filter whose entries are gone (or that the brand doesn't offer) doesn't hide anything.
+    val active = selected.filter { it in available }.toSet()
+    // Kinds to choose from: more than one, or the one maintenance switch; and always once one is on, to turn it off.
+    val chips = available.takeIf { it.size > 1 || option == HistoryFilterOption.Maintenance || active.isNotEmpty() }.orEmpty()
+    val visible = when {
+        option == HistoryFilterOption.Maintenance && HistoryFilter.Maintenance in active -> activity
+        active.isNotEmpty() -> activity.filter { HistoryFilter.of(it.kind) in active }
+        else -> activity.filterNot { it.kind.isMaintenance }
+    }
     LazyColumn(Modifier.fillMaxSize()) {
-        if (activity.any { it.kind.isMaintenance }) {
+        if (chips.isNotEmpty()) {
             item {
-                WalletFilterChip(
-                    selected = showMaintenance,
-                    onClick = { onShowMaintenance(!showMaintenance) },
-                    label = { Text(stringResource(R.string.history_filter_maintenance)) },
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
+                Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    chips.forEach { filter ->
+                        WalletFilterChip(
+                            selected = filter in active,
+                            onClick = { onSelect(if (filter in active) active - filter else active + filter) },
+                            label = { Text(stringResource(filter.label)) },
+                            leadingIcon = if (option == HistoryFilterOption.Types) {
+                                { Icon(painterResource(filter.icon), contentDescription = null, modifier = Modifier.size(18.dp)) }
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                }
             }
         }
         if (visible.isEmpty()) {
@@ -293,7 +345,11 @@ private fun HistoryTab(activity: List<Activity>, showMaintenance: Boolean, onSho
                         Text(stringResource(R.string.home_empty), textAlign = TextAlign.Center)
                     } else {
                         Text(stringResource(R.string.history_only_maintenance), textAlign = TextAlign.Center)
-                        WalletButton(kind = ButtonKind.Text, onClick = { onShowMaintenance(true) }) { Text(stringResource(R.string.history_show_maintenance)) }
+                        if (HistoryFilter.Maintenance in available) {
+                            WalletButton(kind = ButtonKind.Text, onClick = { onSelect(setOf(HistoryFilter.Maintenance)) }) {
+                                Text(stringResource(R.string.history_show_maintenance))
+                            }
+                        }
                     }
                 }
             }
@@ -319,7 +375,19 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
         ActivityKind.MovedService -> activity.counterparty?.let { stringResource(R.string.activity_moved_service, it) }
             ?: stringResource(R.string.activity_moved_service_other)
     }
-    val outgoing = activity.kind == ActivityKind.MovedOut || activity.kind == ActivityKind.Sent || activity.kind == ActivityKind.SentNote
+    val (type, direction) = when (activity.kind) {
+        ActivityKind.Received -> ActivityType.Received to MoneyDirection.In
+        ActivityKind.Claimed -> ActivityType.Claimed to MoneyDirection.In
+        ActivityKind.MovedIn -> ActivityType.MovedAccounts to MoneyDirection.In
+        ActivityKind.MovedOut -> ActivityType.MovedAccounts to MoneyDirection.Out
+        ActivityKind.Sent -> ActivityType.Sent to MoneyDirection.Out
+        ActivityKind.SentNote -> ActivityType.SentNote to MoneyDirection.Out
+        ActivityKind.MovedService -> ActivityType.MovedServices to MoneyDirection.Within
+        ActivityKind.Split -> ActivityType.Split to MoneyDirection.Within
+        ActivityKind.Combined -> ActivityType.Combined to MoneyDirection.Within
+        ActivityKind.Rotated -> ActivityType.Renewed to MoneyDirection.Within
+    }
+    val outgoing = direction == MoneyDirection.Out
     val sats = formatAmount(activity.amountMsat)
     // A move between services keeps the money in the account (less the fee), as does a note taken back: no sign.
     val amount = when {
@@ -333,6 +401,12 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
         outgoing -> MaterialTheme.walletColors.outgoing
         else -> MaterialTheme.walletColors.incoming
     }
+    // Who did it, next to the title: the wallet by itself, or (for note maintenance, which is mostly automatic) the user.
+    val by = when {
+        activity.automatic -> stringResource(R.string.activity_automatic)
+        maintenance -> stringResource(R.string.activity_manual)
+        else -> null
+    }
     val details = buildList {
         add(recentTime(activity.createdAtMillis))
         val sentNote = activity.kind == ActivityKind.SentNote
@@ -342,17 +416,19 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
             ActivityStatus.Cancelled -> add(stringResource(R.string.activity_note_taken_back))
             ActivityStatus.Done -> if (sentNote) add(stringResource(R.string.activity_note_redeemed))
         }
-        if (maintenance) add(stringResource(if (activity.automatic) R.string.activity_automatic else R.string.activity_manual))
         if (activity.certified == false) add(stringResource(R.string.activity_uncertified))
         activity.feeMsat?.let { fee ->
             add(if (fee < 0) stringResource(R.string.activity_fee_refunded, formatAmount(-fee)) else stringResource(R.string.activity_fee, formatAmount(fee)))
         }
     }.joinToString(stringResource(R.string.activity_detail_separator))
+    val settled = activity.status == ActivityStatus.Done || (activity.kind == ActivityKind.SentNote && activity.status == ActivityStatus.Pending)
     WalletListItem(
         headlineContent = { Text(title, color = if (maintenance) quiet else Color.Unspecified) },
+        overlineContent = by?.let { { Text(it) } },
         supportingContent = {
             Text(details, color = if (activity.status == ActivityStatus.Failed) MaterialTheme.colorScheme.error else Color.Unspecified)
         },
+        leadingContent = { WalletActivityIcon(type, direction, activity.automatic, settled) },
         trailingContent = { Text(amount, style = MaterialTheme.typography.titleMedium, color = amountColor) },
         modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
     )

@@ -9,6 +9,9 @@
     <string name="home_switch_account">Konto wechseln</string>
     <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Schein ein.</string>
     <string name="history_filter_maintenance">Pflege der Scheine</string>
+    <string name="history_filter_received">Empfangen</string>
+    <string name="history_filter_sent">Gesendet</string>
+    <string name="history_filter_moved">Verschoben</string>
     <string name="history_only_maintenance">Bisher nur Pflege der Scheine, die dein Guthaben nicht verändert.</string>
     <string name="history_show_maintenance">Pflege der Scheine anzeigen</string>
     <string name="activity_received">Empfangen</string>

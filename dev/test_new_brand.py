@@ -122,7 +122,7 @@ class BrandDirectoryTest(unittest.TestCase):
             logo.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></svg>')
             options = nb.parse_args(["--name", "Acme Cash", "--id", "com.acme.cash", "--mint", "mint.acme.com", "--primary", "#0B6E4F", "--logo", str(logo), "--lock", "--unit", "sats", "--lock-unit",
                                      "--max-accounts", "1", "--max-addresses", "0", "--note-strategy", "manual", "--no-address",
-                                     "--collect-at-home", "always", "--collect-fee-cap", "5", "--notes-view", "hidden", "--hide-mints", "--no-strategy-choice", "--developer-options", "unlock",
+                                     "--collect-at-home", "always", "--collect-fee-cap", "5", "--notes-view", "hidden", "--history-filter", "maintenance", "--hide-mints", "--no-strategy-choice", "--developer-options", "unlock",
                                      "--trusted-mint", "mint.example:02" + "ab" * 32])
             nb.write_brand(options, out)
             expected = {"brand.properties", "zapstore.yaml", "res/values/brand_colors.xml", "res/values-night/brand_colors.xml",
@@ -132,7 +132,7 @@ class BrandDirectoryTest(unittest.TestCase):
             props = (out / "brand.properties").read_text()
             for line in ("appName=Acme Cash", "applicationId=com.acme.cash", "allowServiceChange=false", "defaultAmountUnit=sats", "allowUnitChange=false", "supportUrl=https://mint.acme.com",
                          "requireAddress=false", "maxAccounts=1", "maxAddresses=0", "noteStrategies=manual\n", "defaultNoteStrategy=manual",
-                         "collectAtHomeMint=always", "collectFeeCap=5", "notesView=hidden", "showMints=false", "developerOptions=unlock",
+                         "collectAtHomeMint=always", "collectFeeCap=5", "notesView=hidden", "historyFilter=maintenance", "showMints=false", "developerOptions=unlock",
                          "trustedMints=mint.example:02" + "ab" * 32):
                 self.assertIn(line, props)
             for xml in out.rglob("*.xml"):

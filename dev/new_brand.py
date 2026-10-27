@@ -474,6 +474,9 @@ collectFeeCap={o.collect_fee_cap}
 # Where users manage their notes (share, split, combine, recheck, renew): tab = a Notes tab next to Wallet and
 # History, settings = a page under Settings → Account, hidden = nowhere (the note strategy keeps them by itself).
 notesView={o.notes_view}
+# Filters on the History tab: types = received, sent, moved and note maintenance, maintenance = only showing or hiding
+# note maintenance, none = no filters (note maintenance stays hidden).
+historyFilter={o.history_filter}
 # false hides everything about mints: Settings → Mints, the home mint's page, and which mint a claimed note is on.
 showMints={"false" if o.hide_mints else "true"}
 # Developer options in Settings: shown = always, unlock = hidden until the version in About is tapped seven times,
@@ -634,6 +637,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--no-strategy-choice", action="store_true", help="offer only --note-strategy, so users have nothing to choose")
     parser.add_argument("--collect-at-home", choices=("hidden", "off", "on", "always"), default="off", help="moving notes from other mints to the home mint automatically: hidden, off (offered), on, or always (no switch) (default: off)")
     parser.add_argument("--trusted-mint", action="append", default=[], metavar="HOST:PUBKEY", help="a mint shown as trusted from the start, with its signing key (repeatable)")
+    parser.add_argument("--history-filter", choices=("types", "maintenance", "none"), default="types", help="filters on the History tab: kinds of entries, only note maintenance, or none (default: types)")
     parser.add_argument("--notes-view", choices=("tab", "settings", "hidden"), default="tab", help="where users manage their notes: a Notes tab, a page in Settings → Account, or hidden (default: tab)")
     parser.add_argument("--developer-options", choices=("shown", "unlock", "hidden"), default="shown", help="Developer options in Settings: shown, unlock (tap the version in About seven times) or hidden in release builds (default: shown)")
     parser.add_argument("--hide-mints", action="store_true", help="hide everything about mints (Settings → Mints, the home mint's page, a claimed note's mint)")

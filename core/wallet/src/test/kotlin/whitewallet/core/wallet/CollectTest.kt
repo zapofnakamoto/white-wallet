@@ -193,4 +193,12 @@ class CollectTest {
         assertEquals(NotesView.Tab, NotesView.fromConfig("tab"))
         assertFailsWith<IllegalStateException> { NotesView.fromConfig("drawer") }
     }
+
+    @Test
+    fun `which history filters there are is a brand choice`() {
+        assertEquals(HistoryFilterOption.Types, HistoryFilterOption.fromConfig("types"))
+        assertEquals(HistoryFilterOption.None, HistoryFilterOption.fromConfig(" None "))
+        assertEquals(HistoryFilterOption.Maintenance, HistoryFilterOption.fromConfig("maintenance"))
+        assertFailsWith<IllegalStateException> { HistoryFilterOption.fromConfig("all") }
+    }
 }
