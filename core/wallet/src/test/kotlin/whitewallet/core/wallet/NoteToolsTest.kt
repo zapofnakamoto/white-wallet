@@ -34,7 +34,7 @@ class NoteToolsTest {
     }
 
     private fun withMint(test: suspend (MockMint) -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "LNURLCASH_CONFORMANCE not set")
+        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start().use { mint ->
             val branch = CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
             mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, 0)), 21_000)

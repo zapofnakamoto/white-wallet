@@ -7,8 +7,6 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 adb := env("ADB", `command -v adb || echo "$HOME/Android/Sdk/platform-tools/adb"`)
 brand := env("BRAND", "brand")
-# A prepared lnurlcash-conformance checkout enables the mock-mint tests (docs/DEVELOPMENT.md, "Tests").
-conformance := env("LNURLCASH_CONFORMANCE", justfile_directory() / ".." / "lnurlcash-conformance")
 
 # List the tasks
 default:
@@ -87,12 +85,10 @@ pair address="" code="":
 connect address:
     {{ adb }} connect {{ address }}
 
-# Unit, protocol, wallet and screen tests (plus mock-mint tests when the conformance checkout exists)
+# Unit, protocol, wallet, screen and mock-mint tests (the conformance suite is prepared in .conformance/ first)
 [group('checks')]
 test *gradle_args:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [[ -d "{{ conformance }}" ]]; then export LNURLCASH_CONFORMANCE="{{ conformance }}"; else echo "note: no conformance checkout at {{ conformance }}; mock-mint tests are skipped" >&2; fi
+    dev/conformance.sh
     ./gradlew test {{ gradle_args }}
 
 # The tests, including those against the local regtest stack (started if it isn't running; stop it with `just regtest down`)

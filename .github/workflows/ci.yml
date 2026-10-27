@@ -32,14 +32,8 @@ jobs:
           node-version: 22
 
       # The conformance suite's mock mint, for the integration tests (they are skipped without it).
-      - name: Check out the LNURLcash conformance suite
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: lnurlcash/lnurlcash-conformance
-          ref: 82295e59f92d3eb1f7684560ad118a5e7c4dcb4a   # the commit in protocol/SPEC.md
-          path: conformance
-      - run: npm ci
-        working-directory: conformance
+      - name: LNURLcash conformance suite
+        run: dev/conformance.sh
 
       - name: No brand values outside brand/
         run: |
@@ -50,8 +44,6 @@ jobs:
         run: dev/check-design.sh
 
       - name: Unit and integration tests, lint, debug build
-        env:
-          LNURLCASH_CONFORMANCE: ${{ github.workspace }}/conformance
         run: ./gradlew test :feature:settings:testDebugUnitTest :app:lintDebug :app:assembleDebug
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

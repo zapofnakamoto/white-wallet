@@ -21,7 +21,7 @@ class MintTrustTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
     private fun withMints(brand: (home: String, other: String, otherKey: String) -> List<MintKey> = { _, _, _ -> emptyList() }, test: suspend (Wallet, InMemoryWalletStore, MockMint, MockMint) -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "LNURLCASH_CONFORMANCE not set")
+        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start().use { home ->
             MockMint.start().use { other ->
                 // Learn the other mint's key first, for a brand list.

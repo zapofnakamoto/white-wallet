@@ -35,14 +35,17 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
-    // Opt-in integration tests read these; read through providers so the configuration cache tracks them.
-    // LNURLCASH_CONFORMANCE: path to a prepared lnurlcash-conformance checkout (mock mint tests).
-    // LNURLCASH_REGTEST=1: the local regtest stack from dev/regtest is up (real mint tests).
-    for (name in listOf("LNURLCASH_CONFORMANCE", "LNURLCASH_REGTEST")) {
-        val value = providers.environmentVariable(name)
-        inputs.property(name, value.orElse(""))
-        value.orNull?.let { environment(name, it) }
-    }
+    // The mock mint tests run against the conformance suite that dev/conformance.sh prepares in .conformance/; the
+    // lockfile it installed from is an input, so they run again once it is there.
+    val conformance = rootDir.resolve(".conformance")
+    inputs.property("conformance", providers.fileContents(
+        rootProject.layout.projectDirectory.file(".conformance/node_modules/.package-lock.prepared")).asText.orElse(""))
+    environment("LNURLCASH_CONFORMANCE", conformance.path)
+    // LNURLCASH_REGTEST=1: the local regtest stack from dev/regtest is up (real mint tests). Read through a provider
+    // so the configuration cache tracks it.
+    val regtest = providers.environmentVariable("LNURLCASH_REGTEST")
+    inputs.property("LNURLCASH_REGTEST", regtest.orElse(""))
+    regtest.orNull?.let { environment("LNURLCASH_REGTEST", it) }
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {

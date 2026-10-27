@@ -25,12 +25,12 @@ import whitewallet.lnurlcash.protocol.RejectionKind
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.testkit.MockMint
 
-/** Runs the client against the conformance mock mint. Skipped unless LNURLCASH_CONFORMANCE points at a checkout. */
+/** Runs the client against the conformance mock mint. Skipped until dev/conformance.sh has prepared it. */
 class MockMintIntegrationTest {
     private val seed = Hex.decode("000102030405060708090a0b0c0d0e0f")
 
     @BeforeEach
-    fun requireMockMint() = assumeTrue(MockMint.available, "LNURLCASH_CONFORMANCE not set")
+    fun requireMockMint() = assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
 
     @Test
     fun `credit, look up, and rotate a key-path note`() = runBlocking<Unit> {

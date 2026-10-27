@@ -25,7 +25,7 @@ class KeyViewSyncTest {
 
     @Test
     fun `an auto-rotate during a refresh reaches observers of the key view`() = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "LNURLCASH_CONFORMANCE not set")
+        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start().use { mint ->
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient())

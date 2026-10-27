@@ -30,7 +30,7 @@ class NotePolicyTest {
     }
 
     private fun withMint(test: suspend Fixture.() -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "LNURLCASH_CONFORMANCE not set")
+        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start().use { mint ->
             val store = InMemoryWalletStore()
             val policies = NotePolicies.InMemory()

@@ -28,7 +28,7 @@ The conformance `spec-vectors.json` was transcribed from luds `50d740a`. Every v
 | `bech32.json`, `input-resolution.json` | `lnurl`, `lnurlcash-protocol` | `note` cases checked for accept/reject only (they predate `ck1` k1s) |
 | `responses.json` | `lnurlcash-protocol` | Cases modelling a legacy hash output with a bare OK are skipped, because this wallet always names `cp1` outputs |
 | `pay-request.json`, `withdraw-info.json` | `lnurlcash-protocol` | |
-| mock mint (`mock-mint/`) | `lnurlcash-client` integration tests | Runs when `LNURLCASH_CONFORMANCE` points at a checkout with `npm ci` done |
+| mock mint (`mock-mint/`) | `lnurlcash-client` integration tests | Runs once `dev/conformance.sh` has prepared the suite in `.conformance/` |
 | `signature.json`, `cash-derivation.json`, `callbacks.json`, `note-url.json` | not used | Describe the superseded pre-taproot draft (certificates over `sha256(k1)`, hardened per-note secrets, `h`/`h2` parameter names). The mock mint still accepts `h`/`h2` as aliases; this wallet sends `p1`/`p2` as the PR specifies. |
 
 ## Requirements the wallet relies on
@@ -76,5 +76,5 @@ A POST for a name someone else holds is an overwrite attempt, which the referenc
 ## Updating to a new spec revision
 
 1. Re-vendor `spec/` from the new PR head and `conformance/` from the conformance repo, and update the commits above.
-2. Run `./gradlew test` with `LNURLCASH_CONFORMANCE` set, and fix what fails.
+2. Run `just test` (`dev/conformance.sh` moves `.conformance/` to the new commit), and fix what fails.
 3. Update the tables in this file.

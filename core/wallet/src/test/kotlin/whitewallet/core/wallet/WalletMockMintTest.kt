@@ -33,7 +33,7 @@ class WalletMockMintTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
     @BeforeEach
-    fun requireMockMint() = assumeTrue(MockMint.available, "LNURLCASH_CONFORMANCE not set")
+    fun requireMockMint() = assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
 
     private suspend fun wallet(mint: MockMint, store: InMemoryWalletStore = InMemoryWalletStore(), client: LnurlcashClient = LnurlcashClient()): Wallet {
         val wallet = Wallet(store, InMemorySeedStore(mapOf(ACCOUNT to words)), client)

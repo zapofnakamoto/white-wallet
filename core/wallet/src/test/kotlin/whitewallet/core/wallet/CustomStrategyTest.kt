@@ -46,7 +46,7 @@ class CustomStrategyTest {
     }
 
     private fun withMint(strategy: NoteStrategy, test: suspend Fixture.() -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "LNURLCASH_CONFORMANCE not set")
+        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start().use { mint ->
             val store = InMemoryWalletStore()
             val strategies = NoteStrategies(listOf(ManualStrategy(), strategy), listOf(ManualStrategy.ID, strategy.id), strategy.id)

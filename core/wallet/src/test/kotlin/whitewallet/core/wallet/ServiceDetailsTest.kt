@@ -18,7 +18,7 @@ class ServiceDetailsTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
     private fun withWallet(test: suspend (MockMint, InMemoryWalletStore, Wallet) -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "LNURLCASH_CONFORMANCE not set")
+        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start("--baseFeeMsat=1000").use { mint ->
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))

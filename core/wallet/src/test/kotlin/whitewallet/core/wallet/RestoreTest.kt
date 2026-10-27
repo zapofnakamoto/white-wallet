@@ -109,7 +109,7 @@ class RestoreTest {
     private val seeds = InMemorySeedStore()
 
     private fun withMint(test: suspend (MockMint, InMemoryWalletStore, Wallet) -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "LNURLCASH_CONFORMANCE not set")
+        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start().use { mint ->
             val store = InMemoryWalletStore()
             test(mint, store, Wallet(store, seeds, LnurlcashClient()))

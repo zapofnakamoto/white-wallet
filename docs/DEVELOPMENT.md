@@ -4,12 +4,12 @@
 
 - JDK 21 (Gradle runs on it; bytecode targets Java 17)
 - Android SDK with platform 37 and build-tools 36+. Point `local.properties` at it: `sdk.dir=/path/to/Android/Sdk`
-- Optional, for integration tests: Node.js and a checkout of [lnurlcash-conformance](https://github.com/lnurlcash/lnurlcash-conformance)
+- Optional, for integration tests: Node.js; `dev/conformance.sh` prepares [lnurlcash-conformance](https://github.com/lnurlcash/lnurlcash-conformance)
 - Optional: [just](https://just.systems) for the shortcuts below
 
 ## Shortcuts
 
-`just` lists the everyday tasks from the `justfile`: `just build`, `just install`, `just run` (install and open), `just logcat`, `just test`, `just test-regtest`, `just lint`, `just check` (everything CI checks), `just new-brand …`, `just regtest up|status|connect|…`, `just note 500`, `just pay <address> 1000`. Tasks that take a brand default to `brand/`: `just run brand-examples/acme`, or `BRAND=… just …`. With several devices connected, set `ANDROID_SERIAL` (see `just devices`). `just test` uses a conformance checkout at `../lnurlcash-conformance` (or `LNURLCASH_CONFORMANCE`) when there is one.
+`just` lists the everyday tasks from the `justfile`: `just build`, `just install`, `just run` (install and open), `just logcat`, `just test`, `just test-regtest`, `just lint`, `just check` (everything CI checks), `just new-brand …`, `just regtest up|status|connect|…`, `just note 500`, `just pay <address> 1000`. Tasks that take a brand default to `brand/`: `just run brand-examples/acme`, or `BRAND=… just …`. With several devices connected, set `ANDROID_SERIAL` (see `just devices`). `just test` prepares the conformance suite in `.conformance/` first.
 
 To install on a phone without a cable (Android 11+), open Developer options → Wireless debugging → "Pair device with pairing code" on the phone and run `just pair`: it asks for the pairing address and code, then for the address under "IP address & Port" to connect to. Later sessions only need `just connect <ip:port>`. `just phone` then builds the latest debug build, installs it on the connected phone (never an emulator) and opens it. `just regtest connect` forwards the local regtest mints over wireless debugging as well, for as long as the phone stays connected.
 
@@ -31,13 +31,13 @@ A brand in its own repository builds against a checkout of this one with `-Pbran
 
 This runs the protocol vector tests (LUD-25/26 spec vectors and conformance vectors) and the wallet tests.
 
-The tests against the conformance **mock mint** are skipped unless `LNURLCASH_CONFORMANCE` points at a prepared checkout:
+The tests against the conformance **mock mint** are skipped until the suite is prepared in `.conformance/`
+(git-ignored), at the commit pinned in `protocol/SPEC.md`. `dev/conformance.sh` clones it, checks out that commit and
+runs `npm ci`, each only when needed; `just test` and CI run it first:
 
 ```sh
-git clone https://github.com/lnurlcash/lnurlcash-conformance ../lnurlcash-conformance
-git -C ../lnurlcash-conformance checkout 82295e59f92d3eb1f7684560ad118a5e7c4dcb4a   # the commit in protocol/SPEC.md
-(cd ../lnurlcash-conformance && npm ci)
-LNURLCASH_CONFORMANCE=$PWD/../lnurlcash-conformance ./gradlew test
+dev/conformance.sh   # once, and again after the pin in protocol/SPEC.md moves
+./gradlew test
 ```
 
 Those tests drive real HTTP against a mint that misbehaves on purpose: dropped connections mid-rotate, `already in use`, and so on.
