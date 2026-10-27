@@ -26,3 +26,9 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    mode, next to the watch-only key): a "Derived keys" row, shown only while developer options are on, opening the
    view for that mint (a mint without counters yet shows its empty indexes rather than nothing). Then the developer
    entry can go, or stay as a shortcut to the home mint's.
+5. **Mint pickers that say more than the name.** New mints are added at setup, when adding an account, or under
+   Settings → Mints; everywhere else (change home, move money) a dropdown of known mints shows only hosts. Each entry
+   should show what helps choosing: the host, trusted (or a changed key, as a warning), the active account's money
+   there ("₿5,000 here", plus "₿2,000 in 2 other accounts" when there is some), "Home mint" where it is. Order: home,
+   then trusted, then the rest, each by the account's money there. Untrusted mints stay pickable but marked, and the
+   move summary says so before money goes to one. One shared picker component for all these places.
