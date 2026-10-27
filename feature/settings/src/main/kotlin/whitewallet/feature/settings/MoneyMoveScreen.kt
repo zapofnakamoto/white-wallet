@@ -202,29 +202,30 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
 
     private suspend fun run(s: MoneyMoveState, move: Boolean) {
         val target = s.target ?: return
-        var address: String? = null
-        if (s.changingHome) {
-            if (s.withAddress) {
-                when (val r = wallet.changeHome(target, s.username)) {
-                    is OnboardResult.Ready -> address = r.profile.address
-                    is OnboardResult.UsernameTaken -> return _state.update {
-                        it.copy(busy = false, preview = null, nameCheck = NameCheck.Taken, suggestions = r.suggestions)
-                    }
-                    is OnboardResult.UsernameInvalid -> return fail(MoneyMoveError.Name(r.reason))
-                    is OnboardResult.RegistrationFailed -> return fail(MoneyMoveError.Registration(r.reason.orEmpty()))
-                    is OnboardResult.NetworkError -> return fail(MoneyMoveError.Network(r.reason))
-                    is OnboardResult.ServiceInvalid -> return fail(MoneyMoveError.Service(r.reason))
-                    is OnboardResult.LimitReached, is OnboardResult.AccountLimitReached -> return fail(MoneyMoveError.Registration(r.toString()))
+        val lines = if (move) s.chosen else emptyList()
+        if (!s.changingHome) return _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(false, null, wallet.moveMoney(target, lines))) }
+        // The change and the move in one step: a refresh in between would collect the money itself.
+        val moved = if (s.withAddress) {
+            val changed = wallet.changeHome(target, s.username, lines)
+            when (val r = changed.result) {
+                is OnboardResult.Ready -> return _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, r.profile.address, changed.moved)) }
+                is OnboardResult.UsernameTaken -> return _state.update {
+                    it.copy(busy = false, preview = null, nameCheck = NameCheck.Taken, suggestions = r.suggestions)
                 }
-            } else {
-                when (val r = wallet.changeHome(target)) {
-                    is ConnectResult.Connected -> Unit
-                    is ConnectResult.Failed -> return fail((r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network(it.reason) } ?: MoneyMoveError.Service(r.result.toString()))
-                }
+                is OnboardResult.UsernameInvalid -> return fail(MoneyMoveError.Name(r.reason))
+                is OnboardResult.RegistrationFailed -> return fail(MoneyMoveError.Registration(r.reason.orEmpty()))
+                is OnboardResult.NetworkError -> return fail(MoneyMoveError.Network(r.reason))
+                is OnboardResult.ServiceInvalid -> return fail(MoneyMoveError.Service(r.reason))
+                is OnboardResult.LimitReached, is OnboardResult.AccountLimitReached -> return fail(MoneyMoveError.Registration(r.toString()))
+            }
+        } else {
+            val changed = wallet.changeHome(target, lines)
+            when (val r = changed.result) {
+                is ConnectResult.Connected -> changed.moved
+                is ConnectResult.Failed -> return fail((r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network(it.reason) } ?: MoneyMoveError.Service(r.result.toString()))
             }
         }
-        val moved = if (move) wallet.moveMoney(target, s.chosen) else emptyList()
-        _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(s.changingHome, address, moved)) }
+        _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, null, moved)) }
     }
 
     private fun fail(error: MoneyMoveError) = _state.update { it.copy(busy = false, error = error, preview = null) }

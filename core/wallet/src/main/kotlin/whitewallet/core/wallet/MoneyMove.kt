@@ -37,6 +37,9 @@ data class MovePreview(
 /** What [Wallet.moveMoney] did with one mint's money ([amountMsat] of it): moved, still settling, or not moved and why. */
 data class MoneyMoved(val host: String, val amountMsat: Long, val result: ServiceMoveResult)
 
+/** What [Wallet.changeHome] with money to move did: the change's [result], then per mint what the move did. */
+data class HomeChanged<R>(val result: R, val moved: List<MoneyMoved> = emptyList())
+
 /**
  * Moves the account's money between mints at a fee the user saw: quotes per mint ([preview]), then moves each mint's
  * notes, combined into one, over Lightning ([move], see [NoteManager.move]).

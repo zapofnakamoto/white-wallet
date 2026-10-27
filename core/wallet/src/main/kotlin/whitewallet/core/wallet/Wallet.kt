@@ -273,20 +273,33 @@ class Wallet(
      * there. Money stays where it is: move it with [moveMoney] (an account that collects at its home mint also has it
      * moved by its next refresh). The old primary address stays registered, and the old home stays trusted if it was.
      */
-    suspend fun changeHome(host: String, username: String): OnboardResult = lock.withLock {
-        val (id, keepTrusted) = leavingHome(host) ?: return@withLock OnboardResult.ServiceInvalid(ALREADY_HOME)
-        onboarding.onboard(username, host, newAccountName = null).also { if (it is OnboardResult.Ready) keepTrusted?.let { key -> trust.setTrusted(key, true) } }
-    }
+    suspend fun changeHome(host: String, username: String): OnboardResult = changeHome(host, username, emptyList()).result
 
     /** [changeHome] for an account without a Lightning Address ([requireAddress] `false`): only the mint changes. */
-    suspend fun changeHome(host: String): ConnectResult = lock.withLock {
-        val (id, keepTrusted) = leavingHome(host) ?: return@withLock ConnectResult.Failed(OnboardResult.ServiceInvalid(ALREADY_HOME))
+    suspend fun changeHome(host: String): ConnectResult = changeHome(host, emptyList()).result
+
+    /**
+     * [changeHome], then [moveMoney] of [lines] to the new home, with nothing in between: a refresh slipping in would
+     * collect the money itself (when the account collects at its home mint) and leave the move nothing to do. Nothing
+     * moves unless the change succeeds.
+     */
+    suspend fun changeHome(host: String, username: String, lines: List<MovePreview.Line>): HomeChanged<OnboardResult> = lock.withLock {
+        val (id, keepTrusted) = leavingHome(host) ?: return@withLock HomeChanged(OnboardResult.ServiceInvalid(ALREADY_HOME))
+        val result = onboarding.onboard(username, host, newAccountName = null)
+        if (result !is OnboardResult.Ready) return@withLock HomeChanged(result)
+        keepTrusted?.let { trust.setTrusted(it, true) }
+        HomeChanged(result, MoneyMove(this).move(id, result.profile.host, lines))
+    }
+
+    /** [changeHome] with [lines] for an account without a Lightning Address. */
+    suspend fun changeHome(host: String, lines: List<MovePreview.Line>): HomeChanged<ConnectResult> = lock.withLock {
+        val (id, keepTrusted) = leavingHome(host) ?: return@withLock HomeChanged(ConnectResult.Failed(OnboardResult.ServiceInvalid(ALREADY_HOME)))
         check(store.currentProfile(id) == null) { "the account has an address; pass the name to use on the new home" }
-        onboarding.connectService(host).also { result ->
-            if (result !is ConnectResult.Connected) return@also
-            store.saveAccount(checkNotNull(store.account(id)).copy(host = result.service.host))
-            keepTrusted?.let { trust.setTrusted(it, true) }
-        }
+        val result = onboarding.connectService(host)
+        if (result !is ConnectResult.Connected) return@withLock HomeChanged(result)
+        store.saveAccount(checkNotNull(store.account(id)).copy(host = result.service.host))
+        keepTrusted?.let { trust.setTrusted(it, true) }
+        HomeChanged(result, MoneyMove(this).move(id, result.service.host, lines))
     }
 
     /**

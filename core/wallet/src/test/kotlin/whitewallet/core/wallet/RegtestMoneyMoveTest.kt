@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 
@@ -30,6 +31,24 @@ class RegtestMoneyMoveTest {
             assertEquals(ServiceMoveResult.Failed(NoteProblem.PaymentFailed), phone.wallet.moveMoney(Regtest.HOST3, listOf(line)).single().result)
             assertEquals(before.map { it.amountMsat }, phone.notes().map { it.amountMsat })
             assertEquals(emptyList(), phone.notes(Regtest.HOST3))
+        }
+    }
+
+    @Test
+    fun `back and forth between two homes, the money goes along each time even while the app refreshes`() = runBlocking<Unit> {
+        val phone = Regtest.phone(strategy = SingleNoteStrategy.ID, collectDefaults = CollectDefaults(offered = false, always = true))
+        phone.fund(3000)
+        val name = phone.address.substringBefore("@")
+        listOf(Regtest.HOST2, Regtest.HOST, Regtest.HOST2, Regtest.HOST).forEach { to ->
+            val lines = assertNotNull(phone.wallet.previewMove(to)).lines
+            // A refresh waiting for the lock (the app's background sync) must not get between the change and the move.
+            val change = async { phone.wallet.changeHome(to, name, lines) }
+            val refresh = async { phone.wallet.refresh() }
+            val changed = change.await()
+            refresh.await()
+            assertIs<OnboardResult.Ready>(changed.result)
+            assertIs<ServiceMoveResult.Moved>(changed.moved.single().result, "to $to")
+            assertEquals(1, phone.notes(to).size)
         }
     }
 }
