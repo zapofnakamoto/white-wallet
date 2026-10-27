@@ -1,19 +1,19 @@
 package whitewallet.core.wallet
 
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.BeforeEach
+import whitewallet.brand.MintNotes
+import whitewallet.brand.NoteStep
+import whitewallet.brand.NoteStrategy
+import whitewallet.core.model.ActivityKind
+import whitewallet.core.wallet.Regtest.HOST
+import whitewallet.lnurlcash.client.LnurlcashClient
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.BeforeEach
-import whitewallet.brand.NoteStep
-import whitewallet.brand.NoteStrategy
-import whitewallet.brand.MintNotes
-import whitewallet.core.model.ActivityKind
-import whitewallet.core.wallet.Regtest.HOST
-import whitewallet.lnurlcash.client.LnurlcashClient
 
 /** What the notes page and the note strategies do with notes, on the real mint. */
 class RegtestNotesTest {

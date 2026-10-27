@@ -10,11 +10,11 @@ import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.model.Mint
 
 class InMemoryWalletStore : WalletStore {
     private val accountMap = MutableStateFlow<Map<String, Account>>(emptyMap())

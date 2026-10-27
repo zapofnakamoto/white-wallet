@@ -1,8 +1,8 @@
 package whitewallet.core.wallet
 
+import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
-import whitewallet.brand.MintNotes
 
 /** Leaves notes as they arrive (auto-rotate, if on, still applies). */
 class ManualStrategy(override val title: Int = 0, override val description: Int = 0) : NoteStrategy {

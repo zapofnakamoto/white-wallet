@@ -1,17 +1,17 @@
 package whitewallet.core.wallet
 
-import java.io.IOException
-import java.security.SecureRandom
-import java.util.UUID
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Account
+import whitewallet.core.model.Mint
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.model.Mint
 import whitewallet.lnurlcash.AddressProof
 import whitewallet.lnurlcash.client.RegistrationOutcome
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.spendDomain
+import java.io.IOException
+import java.security.SecureRandom
+import java.util.UUID
 
 sealed interface OnboardResult {
     /**

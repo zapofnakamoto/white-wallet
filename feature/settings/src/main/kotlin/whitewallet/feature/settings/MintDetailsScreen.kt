@@ -29,31 +29,31 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.text.NumberFormat
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.SensitiveClipboard
-import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.core.designsystem.formatAmount
-import whitewallet.core.wallet.AppDefaults
-import whitewallet.core.wallet.MintInfo
-import whitewallet.core.wallet.MintUse
-import whitewallet.core.wallet.RemoveMintResult
-import whitewallet.core.wallet.MintDetails
-import whitewallet.core.wallet.Wallet
-import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.MintDetails
+import whitewallet.core.wallet.MintInfo
+import whitewallet.core.wallet.MintUse
+import whitewallet.core.wallet.RemoveMintResult
+import whitewallet.core.wallet.Wallet
+import java.text.NumberFormat
+import javax.inject.Inject
 
 data class MintDetailsState(
     val details: MintDetails? = null,

@@ -1,10 +1,10 @@
 package whitewallet.core.wallet
 
-import java.io.IOException
 import kotlinx.coroutines.flow.first
-import whitewallet.core.model.NoteState
 import whitewallet.core.model.Mint
+import whitewallet.core.model.NoteState
 import whitewallet.lnurlcash.protocol.ProtocolViolation
+import java.io.IOException
 
 /** What the mint details page shows about one mint (brief §6): stored facts, checked live where possible. */
 data class MintDetails(

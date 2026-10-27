@@ -1,16 +1,12 @@
 package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.MnemonicCode
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
-import whitewallet.brand.MintNotes
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.CashBranch
@@ -18,6 +14,10 @@ import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.testkit.MockMint
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 
 /** A brand's own note strategy, run by the wallet (see [NoteStrategy]). Against the mock mint. */
 class CustomStrategyTest {

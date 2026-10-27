@@ -1,9 +1,9 @@
 package whitewallet.core.wallet
 
 import kotlinx.coroutines.flow.first
+import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
-import whitewallet.brand.MintNotes
 import whitewallet.brand.StrategyNote
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus

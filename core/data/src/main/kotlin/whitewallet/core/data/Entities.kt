@@ -9,6 +9,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -16,7 +17,6 @@ import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.model.Mint
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
 

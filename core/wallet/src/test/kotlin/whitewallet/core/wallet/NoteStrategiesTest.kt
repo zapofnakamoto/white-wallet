@@ -1,13 +1,13 @@
 package whitewallet.core.wallet
 
+import whitewallet.brand.MintNotes
+import whitewallet.brand.NoteStep
+import whitewallet.brand.NoteStrategy
+import whitewallet.brand.StrategyNote
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-import whitewallet.brand.NoteStep
-import whitewallet.brand.NoteStrategy
-import whitewallet.brand.MintNotes
-import whitewallet.brand.StrategyNote
 
 class NoteStrategiesTest {
     private class Named(override val id: String) : NoteStrategy {

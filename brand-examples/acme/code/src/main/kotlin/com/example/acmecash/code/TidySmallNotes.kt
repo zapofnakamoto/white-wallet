@@ -1,8 +1,8 @@
 package com.example.acmecash.code
 
+import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
-import whitewallet.brand.ServiceNotes
 
 /**
  * Acme's note strategy: small notes are combined once a few have piled up (free), large ones are left alone, so paying
@@ -14,10 +14,10 @@ class TidySmallNotes : NoteStrategy {
     override val description = R.string.strategy_tidy_small_hint
     override val rotatesAddressNotes = true
 
-    override fun plan(service: ServiceNotes): List<NoteStep> {
-        val small = service.notes.filter { it.amountMsat < SMALL_MSAT }.sortedBy { it.updatedAtMillis }
+    override fun plan(mint: MintNotes): List<NoteStep> {
+        val small = mint.notes.filter { it.amountMsat < SMALL_MSAT }.sortedBy { it.updatedAtMillis }
         if (small.size >= PILE) return listOf(NoteStep.Combine(small.map { it.id }))
-        return service.notes.filter { it.onAddressKey }.map { NoteStep.Rotate(it.id) }
+        return mint.notes.filter { it.onAddressKey }.map { NoteStep.Rotate(it.id) }
     }
 
     private companion object {

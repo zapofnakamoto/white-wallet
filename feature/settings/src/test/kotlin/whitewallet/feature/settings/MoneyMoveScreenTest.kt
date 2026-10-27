@@ -16,10 +16,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.core.wallet.MintMoveResult
 import whitewallet.core.wallet.MoneyMoved
 import whitewallet.core.wallet.MovePreview
 import whitewallet.core.wallet.NoteProblem
-import whitewallet.core.wallet.MintMoveResult
 
 @RunWith(RobolectricTestRunner::class)
 class MoneyMoveScreenTest {

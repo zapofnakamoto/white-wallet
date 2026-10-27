@@ -18,8 +18,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import whitewallet.core.model.Mint
 import whitewallet.core.wallet.AccountMint
-import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintDetails
+import whitewallet.core.wallet.MintInfo
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsScreensTest {

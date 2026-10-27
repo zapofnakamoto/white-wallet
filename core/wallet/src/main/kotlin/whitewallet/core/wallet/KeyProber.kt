@@ -1,15 +1,15 @@
 package whitewallet.core.wallet
 
-import java.io.IOException
+import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Mint
 import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
+import java.io.IOException
 
 /** Identifies one derived note key. */
 data class KeyId(val accountId: String, val host: String, val purpose: Int, val index: Long)
