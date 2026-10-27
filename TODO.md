@@ -14,3 +14,9 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    shows the result per row: reachable, unreachable, key changed (leading to the page with the warning). The user
    decides when, so the app never asks every mint on its own. On top of that, rows can show what operations already
    saw without asking anyone: a mint that stopped one with a different key (`Pinning`).
+3. **Several payments on one success screen.** Receive (address shown) adds up everything that arrives while the
+   screen is open (`ReceiveViewModel.received`), and keeps adding after the success screen is up; one refresh can
+   also find several payments at once (`RefreshResult` has only a total and `newNotes`). The screen then says
+   "Payment received" with the sum, as if it were one payment (seen with the developer faucet tapped several times).
+   Idea: keep the sum, but say how many ("2 payments received, ₿2,000 in total", from `newNotes`); an invoice stays
+   one payment.
