@@ -58,6 +58,7 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.wallet.HomeChangePreview
 import whitewallet.core.designsystem.releaseNotice
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.brand.ui.ButtonKind
@@ -96,6 +97,7 @@ fun OnboardingRoute(
     OnboardingScreen(
         appName, logo, state, onBack, viewModel::onUsernameChange, ServiceActions(viewModel::onServiceSelected, viewModel::onCustomHostChange), viewModel::onSuggestion,
         viewModel::start, viewModel::onContinue, viewModel::onAccountNameChange, onRestore, viewModel::cancelRestore,
+        ReviewActions(viewModel::confirmChange, viewModel::backFromReview),
     )
 }
 
@@ -113,6 +115,7 @@ fun OnboardingScreen(
     onAccountNameChange: (String) -> Unit,
     onRestore: (() -> Unit)? = null,
     onCancelRestore: () -> Unit = {},
+    review: ReviewActions = ReviewActions({}, {}),
 ) {
     val claimed = state.claimed
     var confirmCancel by rememberSaveable { mutableStateOf(false) }
@@ -152,7 +155,7 @@ fun OnboardingScreen(
                     Text(stringResource(R.string.onboarding_add_body, state.host), textAlign = TextAlign.Center)
                     AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
                 } else if (state.changingService) {
-                    ChangeServiceContent(state, onUsernameChange, service, onSuggestion, onStart)
+                    ChangeServiceContent(state, onUsernameChange, service, onSuggestion, onStart, review)
                 } else if (state.addingElsewhere) {
                     Text(stringResource(R.string.onboarding_add_elsewhere_body), textAlign = TextAlign.Center)
                     AddressForm(state, onUsernameChange, service, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
@@ -215,7 +218,7 @@ fun OnboardingScreen(
     }
 }
 
-/** Where the account moves, what happens to the money on the old home, then the name there (if it has one) and the mint. */
+/** Step one: where the account moves, and its name there (if it has one). Step two: the [ReviewContent]. */
 @Composable
 private fun ChangeServiceContent(
     state: OnboardingState,
@@ -223,22 +226,53 @@ private fun ChangeServiceContent(
     service: ServiceActions,
     onSuggestion: (String) -> Unit,
     onStart: () -> Unit,
+    review: ReviewActions,
 ) {
+    state.review?.let { return ReviewContent(it, state.busy, review) }
     Text(
         stringResource(if (state.withAddress) R.string.onboarding_change_service_body else R.string.onboarding_change_service_body_no_address),
         textAlign = TextAlign.Center,
     )
-    state.leavingHost?.let { old ->
-        Text(
-            state.collectFeeCap?.let { stringResource(R.string.onboarding_change_service_collect, old, it) }
-                ?: stringResource(R.string.onboarding_change_service_stay, old),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
-    val submit = stringResource(R.string.onboarding_change_service_submit)
+    val submit = stringResource(R.string.onboarding_change_service_continue)
     if (state.withAddress) AddressForm(state, onUsernameChange, service, onSuggestion, onStart, submit) else MintForm(state, service, onStart, submit)
+}
+
+/** What the summary before changing the home mint can do. */
+class ReviewActions(val onConfirm: (moveMoney: Boolean) -> Unit, val onBack: () -> Unit)
+
+/**
+ * What changing the home mint does with the money elsewhere, per mint: what moves and the fee, or why it stays. The
+ * confirming button names the amount that moves, so nothing is paid by mistake.
+ */
+@Composable
+private fun ReviewContent(preview: HomeChangePreview, busy: Boolean, actions: ReviewActions) {
+    Text(stringResource(R.string.change_review_title, preview.toHost), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+    preview.lines.forEach { line -> Text(reviewLine(line, preview), textAlign = TextAlign.Center) }
+    val moving = preview.movingMsat
+    if (moving > 0) Text(stringResource(R.string.change_review_fee_total, formatAmount(preview.feeMsat)), style = MaterialTheme.typography.titleSmall)
+    when {
+        moving > 0 && preview.collects -> PrimaryButton(stringResource(R.string.change_review_move_with, formatAmount(moving)), { actions.onConfirm(true) }, busy = busy)
+        moving > 0 && preview.canMove -> {
+            PrimaryButton(stringResource(R.string.change_review_move_with, formatAmount(moving)), { actions.onConfirm(true) }, busy = busy)
+            WalletButton(kind = ButtonKind.Secondary, onClick = { actions.onConfirm(false) }, enabled = !busy) { Text(stringResource(R.string.change_review_leave)) }
+        }
+        else -> PrimaryButton(stringResource(R.string.onboarding_change_service_submit), { actions.onConfirm(false) }, busy = busy)
+    }
+    WalletButton(kind = ButtonKind.Text, onClick = actions.onBack, enabled = !busy) { Text(stringResource(R.string.change_review_back)) }
+}
+
+@Composable
+private fun reviewLine(line: HomeChangePreview.Line, preview: HomeChangePreview): String {
+    val amount = formatAmount(line.amountMsat)
+    return when (val o = line.outcome) {
+        is HomeChangePreview.Outcome.Moves ->
+            if (preview.collects || preview.canMove) stringResource(R.string.change_review_moves, amount, line.host, formatAmount(o.arrivesMsat), formatAmount(o.feeMsat))
+            else stringResource(R.string.change_review_stays, amount, line.host)
+        is HomeChangePreview.Outcome.TooExpensive -> stringResource(R.string.change_review_too_expensive, amount, line.host, preview.feeCapPercent)
+        is HomeChangePreview.Outcome.TooSmall -> stringResource(R.string.change_review_too_small, amount, line.host)
+        is HomeChangePreview.Outcome.Unknown -> stringResource(R.string.change_review_unknown, amount, line.host)
+        HomeChangePreview.Outcome.Stays -> stringResource(R.string.change_review_stays, amount, line.host)
+    }
 }
 
 /** What the service dropdown can ask for. */

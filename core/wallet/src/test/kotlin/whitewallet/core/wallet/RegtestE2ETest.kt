@@ -240,15 +240,29 @@ class RegtestE2ETest {
         regtest("pay", "$alice@$host", "3000")
         wallet.refresh()
         assertEquals(1, on(host).size)
+        // A small note on a third mint: moving it costs more than 2 %, so it stays there (now and after the change).
+        val third = "localhost:8113"
+        val small = regtest("note", "30", "--mint3").trim().lines().last()
+        assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(small))))
+        assertEquals(1, on(third).size)
+
+        // The summary first: the old home's money moves for a quoted fee within the cap; the small note stays.
+        val preview = assertNotNull(wallet.previewChangeHome(second))
+        val fromHome = preview.lines.single { it.host == host }
+        val moves = assertIs<HomeChangePreview.Outcome.Moves>(fromHome.outcome)
+        assertTrue(moves.feeMsat * 100 <= 2 * fromHome.amountMsat, "within the 2 % cap")
+        assertTrue(preview.lines.single { it.host == third }.outcome !is HomeChangePreview.Outcome.Moves, "the small note stays")
+        assertEquals(1, on(host).size, "the summary moved nothing")
 
         // The same name on the second mint becomes the primary address there. The move runs the policies: the money
-        // on the old home goes to the new one over Lightning right away.
+        // on the old home goes to the new one over Lightning right away, as quoted.
         assertTrue(assertIs<OnboardResult.Ready>(wallet.changeHome(second, alice)).confirmed)
         assertEquals(second, wallet.homeHost.first())
         assertEquals("$alice@$second", wallet.profile.first()?.address)
         assertEquals(emptyList(), on(host), "nothing left on the old home")
         assertEquals(host, wallet.lastPolicyRun.first()?.collected?.single()?.host, "collected from the old home")
-        assertEquals(1, on(second).size)
+        assertEquals(listOf(moves.arrivesMsat), on(second).map { it.amountMsat }, "arrived as quoted")
+        assertEquals(1, on(third).size, "the small note stayed")
 
         // A payment to the old address arrives on the old mint and is collected at the new home too.
         regtest("pay", "$alice@$host", "3000")

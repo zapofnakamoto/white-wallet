@@ -270,23 +270,38 @@ class Wallet(
     /**
      * Moves the active account's home to the mint at [host], with [username] there as its primary address: claimed like
      * [onboard] does, so a name the account already holds there is taken as it is. From then on invoices are minted
-     * there, and collecting at the home mint moves the money there (the policies run right away). The old primary
-     * address stays registered, and the old home stays trusted if it was. Nothing moves unless the claim succeeds.
+     * there, and collecting at the home mint moves the money there (the policies run right away); with [moveMoney], an
+     * account that doesn't collect has it moved this once, within its fee cap (not where the brand hides collecting).
+     * Show [previewChangeHome] first. The old primary address stays registered, and the old home stays trusted if it
+     * was. Nothing moves unless the claim succeeds.
      */
-    suspend fun changeHome(host: String, username: String): OnboardResult = lock.withLock {
+    suspend fun changeHome(host: String, username: String, moveMoney: Boolean = false): OnboardResult = lock.withLock {
         val (id, keepTrusted) = leavingHome(host) ?: return@withLock OnboardResult.ServiceInvalid(ALREADY_HOME)
-        onboarding.onboard(username, host, newAccountName = null).also { if (it is OnboardResult.Ready) movedHome(id, keepTrusted) }
+        onboarding.onboard(username, host, newAccountName = null).also { if (it is OnboardResult.Ready) movedHome(id, keepTrusted, moveMoney) }
     }
 
     /** [changeHome] for an account without a Lightning Address ([requireAddress] `false`): only the mint changes. */
-    suspend fun changeHome(host: String): ConnectResult = lock.withLock {
+    suspend fun changeHome(host: String, moveMoney: Boolean = false): ConnectResult = lock.withLock {
         val (id, keepTrusted) = leavingHome(host) ?: return@withLock ConnectResult.Failed(OnboardResult.ServiceInvalid(ALREADY_HOME))
         check(store.currentProfile(id) == null) { "the account has an address; pass the name to use on the new home" }
         onboarding.connectService(host).also { result ->
             if (result !is ConnectResult.Connected) return@also
             store.saveAccount(checkNotNull(store.account(id)).copy(host = result.service.host))
-            movedHome(id, keepTrusted)
+            movedHome(id, keepTrusted, moveMoney)
         }
+    }
+
+    /**
+     * What [changeHome] to [host] would do with the active account's money on other mints: per mint, what moves and
+     * for which fee (quoted like collecting does), or why it stays. Null if [host] is invalid or already the home.
+     * Connects to [host] (pinning its key) to ask for the quotes; nothing is paid.
+     */
+    suspend fun previewChangeHome(host: String): HomeChangePreview? {
+        val id = activeId()
+        val h = Onboarding.normalizeHost(host)?.takeIf { it != store.account(id)?.host } ?: return null
+        val collects = collectDefaults.active(policies.collect(id).first())
+        val cap = policies.collectFeeCap(id).first() ?: collectDefaults.feeCapPercent
+        return HomeChange(this).preview(id, h, collects, canMove = !collects && collectDefaults.offered, cap)
     }
 
     /**
@@ -300,9 +315,9 @@ class Wallet(
         return id to store.service(home)?.mintPubkey?.let { MintKey(home, it) }?.takeIf { isTrusted(it) }
     }
 
-    private suspend fun movedHome(accountId: String, keepTrusted: MintKey?) {
+    private suspend fun movedHome(accountId: String, keepTrusted: MintKey?, moveMoney: Boolean) {
         keepTrusted?.let { trust.setTrusted(it, true) }
-        applyPolicies(accountId)
+        applyPolicies(accountId, collectOnce = moveMoney && collectDefaults.offered)
     }
 
     /** Frees one of the active account's addresses at its service. Never the primary one. */
@@ -710,9 +725,9 @@ class Wallet(
         // An invoice waiting to be paid isn't stuck (see [requestInvoice]).
         .count { !(it.type == OperationType.Mint && it.detail == null) }
 
-    /** Applies [accountId]'s note policies; must be called under the lock. */
-    private suspend fun applyPolicies(accountId: String) {
-        val collect = collectDefaults.takeIf { it.active(policies.collect(accountId).first()) }?.let {
+    /** Applies [accountId]'s note policies; must be called under the lock. [collectOnce] collects even if it's off. */
+    private suspend fun applyPolicies(accountId: String, collectOnce: Boolean = false) {
+        val collect = collectDefaults.takeIf { collectOnce || it.active(policies.collect(accountId).first()) }?.let {
             store.account(accountId)?.host?.let { home -> CollectPolicy(home, policies.collectFeeCap(accountId).first() ?: it.feeCapPercent) }
         }
         val run = policyEngine.apply(accountId, strategies.resolve(policies.strategy(accountId).first()), policies.autoRotate(accountId).first(), collect)

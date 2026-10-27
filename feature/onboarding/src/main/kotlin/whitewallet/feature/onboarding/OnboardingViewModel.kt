@@ -16,6 +16,7 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.ConnectResult
 import whitewallet.core.wallet.CreateAccountResult
+import whitewallet.core.wallet.HomeChangePreview
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.UsernameSuggestions
 import whitewallet.core.wallet.Wallet
@@ -103,9 +104,8 @@ data class OnboardingState(
     val restoreCancelled: Boolean? = null,
     /** False when a new account starts without a Lightning Address (brand `requireAddress=false`): only its mint is asked for. */
     val withAddress: Boolean = true,
-    /** For [OnboardingMode.ChangeService]: the home being left, and the fee cap if the account collects at home. */
-    val leavingHost: String? = null,
-    val collectFeeCap: Int? = null,
+    /** For [OnboardingMode.ChangeService]: what the change would do with the money elsewhere, shown for confirmation. */
+    val review: HomeChangePreview? = null,
 ) {
     val changingAddress: Boolean get() = mode == OnboardingMode.ChangeAddress
     val addingAddress: Boolean get() = mode == OnboardingMode.AddAddress
@@ -184,13 +184,9 @@ class OnboardingViewModel @Inject constructor(
                     val target = presetHost?.takeIf { it != homeHost }
                         ?: serviceOptions(defaults, preferences.developerMode.first()).firstNotNullOfOrNull { o -> o.host?.takeIf { it != homeHost } }
                     val profile = wallet.profile.first()
-                    val cap = if (wallet.collectAtHome.first()) wallet.collectFeeCap.first() else null
                     // The same name as now is the natural first try.
                     _state.update {
-                        it.copy(
-                            mode = mode, host = target.orEmpty(), canChangeHost = true, withAddress = profile != null, username = profile?.username.orEmpty(),
-                            leavingHost = homeHost, collectFeeCap = cap,
-                        )
+                        it.copy(mode = mode, host = target.orEmpty(), canChangeHost = true, withAddress = profile != null, username = profile?.username.orEmpty())
                     }
                 }
                 OnboardingMode.RestoreAddress -> {
@@ -214,12 +210,12 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun onServiceSelected(option: ServiceOption) {
-        _state.update { it.copy(selectedService = option, host = option.host ?: it.customHost, error = null) }
+        _state.update { it.copy(selectedService = option, host = option.host ?: it.customHost, error = null, review = null) }
         onHostChanged()
     }
 
     fun onCustomHostChange(value: String) {
-        _state.update { it.copy(customHost = value, host = value, error = null) }
+        _state.update { it.copy(customHost = value, host = value, error = null, review = null) }
         onHostChanged()
     }
 
@@ -255,7 +251,7 @@ class OnboardingViewModel @Inject constructor(
     fun onAccountNameChange(value: String) = _state.update { it.copy(accountName = value) }
 
     fun onUsernameChange(value: String) {
-        _state.update { it.copy(username = value, error = null, suggestions = emptyList()) }
+        _state.update { it.copy(username = value, error = null, suggestions = emptyList(), review = null) }
         scheduleCheck()
     }
 
@@ -266,15 +262,41 @@ class OnboardingViewModel @Inject constructor(
         if (!s.canSubmit) return
         checkJob?.cancel()
         _state.update { it.copy(busy = true, error = null) }
+        // Changing the home mint shows what it does with the money first (see [confirmChange]).
+        if (s.changingService) return review(s)
+        submit(s, moveMoney = false)
+    }
+
+    /** From the summary: change the home mint, and with [moveMoney] have the money moved even if the account doesn't collect. */
+    fun confirmChange(moveMoney: Boolean) {
+        val s = _state.value
+        if (s.busy || s.review == null) return
+        _state.update { it.copy(busy = true) }
+        submit(s, moveMoney)
+    }
+
+    /** Back from the summary to the choice of mint and name. */
+    fun backFromReview() = _state.update { if (it.busy) it else it.copy(review = null) }
+
+    private fun review(s: OnboardingState) {
         viewModelScope.launch {
-            if (!s.withAddress) return@launch if (s.changingService) changeMint(s) else createAccount(s)
+            val preview = wallet.previewChangeHome(s.host) ?: return@launch fail(OnboardingError.Service(s.host))
+            // Nothing elsewhere: nothing to confirm.
+            if (preview.lines.isEmpty()) return@launch submit(s, moveMoney = false)
+            _state.update { it.copy(busy = false, review = preview) }
+        }
+    }
+
+    private fun submit(s: OnboardingState, moveMoney: Boolean) {
+        viewModelScope.launch {
+            if (!s.withAddress) return@launch if (s.changingService) changeMint(s, moveMoney) else createAccount(s)
             val result = when (s.mode) {
                 OnboardingMode.FirstRun -> wallet.onboard(s.username, s.host, defaultAccountName)
                 OnboardingMode.NewAccount -> wallet.onboard(s.username, s.host, s.accountName.trim())
                 OnboardingMode.ChangeAddress -> wallet.onboard(s.username, s.host, null)
                 OnboardingMode.AddAddress -> wallet.addAddress(s.username, addressLimit())
                 OnboardingMode.AddAddressElsewhere -> wallet.addAddress(s.username, addressLimit(), s.host)
-                OnboardingMode.ChangeService -> wallet.changeHome(s.host, s.username)
+                OnboardingMode.ChangeService -> wallet.changeHome(s.host, s.username, moveMoney)
                 OnboardingMode.RestoreAddress -> wallet.onboard(s.username, s.host, null)
             }
             when (result) {
@@ -282,7 +304,7 @@ class OnboardingViewModel @Inject constructor(
                     it.copy(busy = false, claimed = Claimed(result.profile.address, result.confirmed), availability = Availability.Yours)
                 }
                 is OnboardResult.UsernameTaken -> _state.update {
-                    it.copy(busy = false, availability = Availability.Taken, suggestions = result.suggestions)
+                    it.copy(busy = false, availability = Availability.Taken, suggestions = result.suggestions, review = null)
                 }
                 is OnboardResult.UsernameInvalid -> fail(OnboardingError.Username(result.reason))
                 is OnboardResult.RegistrationFailed -> fail(OnboardingError.Registration(result.reason ?: ""))
@@ -306,8 +328,8 @@ class OnboardingViewModel @Inject constructor(
     }
 
     /** An account without an address only changes its mint: nothing to show afterwards. */
-    private suspend fun changeMint(s: OnboardingState) {
-        when (val result = wallet.changeHome(s.host)) {
+    private suspend fun changeMint(s: OnboardingState, moveMoney: Boolean) {
+        when (val result = wallet.changeHome(s.host, moveMoney)) {
             is ConnectResult.Connected -> _state.update { it.copy(busy = false, done = true) }
             is ConnectResult.Failed -> when (val r = result.result) {
                 is OnboardResult.NetworkError -> fail(OnboardingError.Network(r.reason))
@@ -334,7 +356,7 @@ class OnboardingViewModel @Inject constructor(
     private suspend fun addressLimit(): Int =
         defaults.addressLimit(preferences.developerMode.first(), preferences.maxAddressesPerService.first())
 
-    private fun fail(error: OnboardingError) = _state.update { it.copy(busy = false, error = error) }
+    private fun fail(error: OnboardingError) = _state.update { it.copy(busy = false, error = error, review = null) }
 
     private fun scheduleCheck(immediately: Boolean = false) {
         checkJob?.cancel()
