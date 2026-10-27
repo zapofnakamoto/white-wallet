@@ -5,6 +5,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Added
+
+- An empty wallet says how money gets in: a line under the ₿0 balance (not while the balance is hidden). Brands can
+  reword it (`home_wallet_empty`).
+
 ## [0.3.0]
 
 ### Added

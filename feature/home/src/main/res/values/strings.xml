@@ -8,6 +8,7 @@
     <string name="home_tab_notes">Notes</string>
     <string name="home_switch_account">Switch account</string>
     <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
+    <string name="home_wallet_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
     <string name="history_filter_maintenance">Note maintenance</string>
     <string name="history_filter_received">Received</string>
     <string name="history_filter_sent">Sent</string>

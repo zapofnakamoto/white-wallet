@@ -8,6 +8,7 @@
     <string name="home_tab_notes">Scheine</string>
     <string name="home_switch_account">Konto wechseln</string>
     <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Schein ein.</string>
+    <string name="home_wallet_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Schein ein.</string>
     <string name="history_filter_maintenance">Pflege der Scheine</string>
     <string name="history_filter_received">Empfangen</string>
     <string name="history_filter_sent">Gesendet</string>

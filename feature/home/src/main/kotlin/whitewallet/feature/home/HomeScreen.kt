@@ -250,6 +250,10 @@ private fun WalletTab(
             if (state.showBackupPrompt) BackupPrompt(onBackup, onDismissBackup)
             WalletStatusScope(state.status) { BrandDecoration(Anchor.HomeHeader) }
             AmountText(state.balanceMsat, hidden = state.balanceHidden, onToggleHidden = onToggleBalance)
+            // Nothing in the wallet yet: say how money gets in. Not while the balance is hidden, which would give it away.
+            if (state.status == WalletStatus.Empty && !state.balanceHidden) {
+                Text(stringResource(R.string.home_wallet_empty), textAlign = TextAlign.Center)
+            }
             state.accounts.firstOrNull { it.account.id == state.activeAccountId }?.takeIf { state.showAccounts }?.let { active ->
                 WalletAssistChip(
                     onClick = onAccounts,

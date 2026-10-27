@@ -53,6 +53,24 @@ class HomeScreenTest {
     }
 
     @Test
+    fun anEmptyWalletSaysHowMoneyGetsIn() {
+        show(HomeState(activeAccountId = "a"))
+        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertExists()
+    }
+
+    @Test
+    fun aWalletWithMoneyHasNoEmptyHint() {
+        show(HomeState(activeAccountId = "a", balanceMsat = 845_000))
+        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertDoesNotExist()
+    }
+
+    @Test
+    fun aHiddenBalanceDoesNotGiveAwayAnEmptyWallet() {
+        show(HomeState(activeAccountId = "a", balanceHidden = true))
+        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertDoesNotExist()
+    }
+
+    @Test
     fun aBetaCarriesItsBadgeInTheTitle() {
         compose.setContent {
             CompositionLocalProvider(LocalReleaseStage provides ReleaseStage.Beta) {
