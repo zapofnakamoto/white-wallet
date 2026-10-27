@@ -229,7 +229,7 @@ class RegtestE2ETest {
     }
 
     @Test
-    fun `changing the home mint to the second one collects the money there, and the old address keeps working`() = runBlocking<Unit> {
+    fun `changing the home mint to the second one, then moving the money there as quoted`() = runBlocking<Unit> {
         val second = "localhost:8112"
         val store = InMemoryWalletStore()
         val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID),
@@ -240,31 +240,34 @@ class RegtestE2ETest {
         regtest("pay", "$alice@$host", "3000")
         wallet.refresh()
         assertEquals(1, on(host).size)
-        // A small note on a third mint: moving it costs more than 2 %, so it stays there (now and after the change).
+        // A small note on a third mint: moving it costs more than 2 %, so the summary leaves it out.
         val third = "localhost:8113"
         val small = regtest("note", "30", "--mint3").trim().lines().last()
         assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(small))))
         assertEquals(1, on(third).size)
 
-        // The summary first: the old home's money moves for a quoted fee within the cap; the small note stays.
-        val preview = assertNotNull(wallet.previewChangeHome(second))
+        // The summary first: the old home's money moves for a quoted fee within the cap; the small note doesn't.
+        val preview = assertNotNull(wallet.previewMove(second))
         val fromHome = preview.lines.single { it.host == host }
-        val moves = assertIs<HomeChangePreview.Outcome.Moves>(fromHome.outcome)
-        assertTrue(moves.feeMsat * 100 <= 2 * fromHome.amountMsat, "within the 2 % cap")
-        assertTrue(preview.lines.single { it.host == third }.outcome !is HomeChangePreview.Outcome.Moves, "the small note stays")
-        assertEquals(1, on(host).size, "the summary moved nothing")
+        val quoted = assertIs<MovePreview.Quote.Ok>(fromHome.quote)
+        assertTrue(!fromHome.overCap(2), "within the 2 % cap")
+        val smallLine = preview.lines.single { it.host == third }
+        assertTrue(smallLine.quote !is MovePreview.Quote.Ok || smallLine.overCap(2), "the small note stays")
 
-        // The same name on the second mint becomes the primary address there. The move runs the policies: the money
-        // on the old home goes to the new one over Lightning right away, as quoted.
+        // The change itself moves nothing: the same name on the second mint becomes the primary address there.
         assertTrue(assertIs<OnboardResult.Ready>(wallet.changeHome(second, alice)).confirmed)
         assertEquals(second, wallet.homeHost.first())
         assertEquals("$alice@$second", wallet.profile.first()?.address)
+        assertEquals(1, on(host).size, "the change moved nothing")
+
+        // Then the money the user confirmed: over Lightning, arrived as quoted.
+        val moved = wallet.moveMoney(second, preview.lines.filter { it.quote is MovePreview.Quote.Ok && !it.overCap(2) }).single()
+        assertEquals(ServiceMoveResult.Moved(quoted.arrivesMsat, quoted.feeMsat), moved.result)
         assertEquals(emptyList(), on(host), "nothing left on the old home")
-        assertEquals(host, wallet.lastPolicyRun.first()?.collected?.single()?.host, "collected from the old home")
-        assertEquals(listOf(moves.arrivesMsat), on(second).map { it.amountMsat }, "arrived as quoted")
+        assertEquals(listOf(quoted.arrivesMsat), on(second).map { it.amountMsat })
         assertEquals(1, on(third).size, "the small note stayed")
 
-        // A payment to the old address arrives on the old mint and is collected at the new home too.
+        // A payment to the old address arrives on the old mint and is collected at the new home.
         regtest("pay", "$alice@$host", "3000")
         wallet.refresh()
         assertEquals(emptyList(), on(host))

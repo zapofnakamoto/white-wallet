@@ -79,6 +79,8 @@ import whitewallet.feature.settings.DerivedKeysRoute
 import whitewallet.feature.settings.DeveloperSettingsRoute
 import whitewallet.feature.settings.LocalRegtestRoute
 import whitewallet.feature.settings.MintsRoute
+import whitewallet.feature.settings.MoneyMoveMode
+import whitewallet.feature.settings.MoneyMoveRoute
 import whitewallet.feature.settings.RequestLogRoute
 import whitewallet.feature.settings.SettingsRoute
 import whitewallet.feature.settings.SecuritySettingsRoute
@@ -183,6 +185,8 @@ internal object Routes {
     const val ADD_ADDRESS_ELSEWHERE = "addresses/add-elsewhere"
     const val CHANGE_SERVICE = "settings/service/change?host={host}"
     fun changeService(host: String?) = if (host == null) "settings/service/change" else "settings/service/change?host=${Uri.encode(host)}"
+    const val MOVE_MONEY = "settings/service/move?from={from}"
+    fun moveMoney(from: String) = "settings/service/move?from=${Uri.encode(from)}"
     const val DELETE = "delete"
     const val NEW_ACCOUNT = "account/new"
     const val NEW_ACCOUNT_ON = "account/new?host={host}"
@@ -330,13 +334,17 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, onIncom
             )
         }
         composable(Routes.SERVICE, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) {
-            ServiceDetailsRoute(onBack = { nav.popBackStack() }, onChangeHome = { host -> nav.navigate(Routes.changeService(host)) })
+            ServiceDetailsRoute(
+                onBack = { nav.popBackStack() },
+                onChangeHome = { host -> nav.navigate(Routes.changeService(host)) },
+                onMoveMoney = { host -> nav.navigate(Routes.moveMoney(host)) },
+            )
         }
         composable(Routes.CHANGE_SERVICE, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
-            OnboardingRoute(
-                appName, logo = {}, onDone = { nav.popBackStack() }, mode = OnboardingMode.ChangeService, onBack = { nav.popBackStack() },
-                presetHost = entry.arguments?.getString("host"),
-            )
+            MoneyMoveRoute(MoneyMoveMode.ChangeHome, entry.arguments?.getString("host"), onClose = { nav.popBackStack() })
+        }
+        composable(Routes.MOVE_MONEY, arguments = listOf(navArgument("from") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
+            MoneyMoveRoute(MoneyMoveMode.Move, entry.arguments?.getString("from"), onClose = { nav.popBackStack() })
         }
         composable(Routes.MINTS) {
             MintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.service(host)) })

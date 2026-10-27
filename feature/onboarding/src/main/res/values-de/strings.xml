@@ -4,7 +4,6 @@
     <string name="onboarding_service">Mint</string>
     <string name="onboarding_service_custom_host">Adresse der Mint</string>
     <string name="onboarding_custody">Dein Guthaben verwahrt die Mint, die du wählst. Halte die Beträge klein.</string>
-    <string name="onboarding_change_service_title">Haupt-Mint wechseln</string>
 
     <string name="onboarding_tagline">Inhaberscheine auf Lightning. Mit einem Tipp startklar.</string>
     <string name="onboarding_username">Dein Name</string>
@@ -41,20 +40,6 @@
     <string name="onboarding_add_body">Ein weiterer Name für dieses Konto auf %1$s. Zahlungen an jede seiner Adressen landen im selben Guthaben.</string>
     <string name="onboarding_add_elsewhere_title">Adresse bei einem anderen Dienst</string>
     <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einem anderen Dienst, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei diesem Dienst an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
-    <string name="onboarding_change_service_body">Dein Konto zieht zu dem Dienst um, den du wählst: Dein Name dort wird deine Hauptadresse, und Rechnungen, die du erstellst, werden dort bezahlt. Deine bisherige Adresse funktioniert weiter.</string>
-    <string name="onboarding_change_service_body_no_address">Dein Konto zieht zu dem Dienst um, den du wählst: Rechnungen, die du erstellst, werden dort bezahlt.</string>
-    <string name="onboarding_change_service_submit">Konto umziehen</string>
-    <string name="onboarding_change_service_continue">Weiter</string>
-    <string name="change_review_title">Umzug zu %1$s</string>
-    <string name="change_review_moves">%1$s bei %2$s: ungefähr %3$s kommen an, die Gebühr ist ungefähr %4$s.</string>
-    <string name="change_review_stays">%1$s bleiben bei %2$s.</string>
-    <string name="change_review_too_expensive">%1$s bleiben bei %2$s: Das Verschieben würde mehr als %3$d %% kosten.</string>
-    <string name="change_review_too_small">%1$s bleiben bei %2$s: zu wenig zum Verschieben.</string>
-    <string name="change_review_unknown">%1$s bei %2$s: Für das Verschieben gibt es gerade keinen Preis. Es bleibt vorerst dort.</string>
-    <string name="change_review_fee_total">Gebühren insgesamt: ungefähr %1$s</string>
-    <string name="change_review_move_with">Konto und %1$s umziehen</string>
-    <string name="change_review_leave">Konto umziehen, Geld dort lassen</string>
-    <string name="change_review_back">Zurück</string>
     <string name="onboarding_change_body">Wähle den Namen, unter dem man dir auf %1$s zahlt.</string>
     <string name="onboarding_error_registration">Die Adresse wurde nicht registriert: %1$s</string>
     <string name="onboarding_error_service">Dieser Host geht nicht: %1$s</string>

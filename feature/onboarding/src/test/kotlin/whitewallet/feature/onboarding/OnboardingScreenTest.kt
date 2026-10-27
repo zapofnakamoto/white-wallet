@@ -25,7 +25,6 @@ import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ReleaseStage
 import whitewallet.core.designsystem.LocalAppName
 import whitewallet.core.designsystem.LocalReleaseStage
-import whitewallet.core.wallet.HomeChangePreview
 
 @RunWith(RobolectricTestRunner::class)
 class OnboardingScreenTest {
@@ -68,69 +67,6 @@ class OnboardingScreenTest {
         compose.onNodeWithText("Address on another service").assertExists()
         compose.onNodeWithText("Your address: alice@other.example").assertExists()
         compose.onNodeWithText("Mint").performScrollTo().assertExists()
-    }
-
-    private fun changing(withAddress: Boolean = true, review: HomeChangePreview? = null) = OnboardingState(
-        username = "alice", host = "other.example", canChangeHost = true, mode = OnboardingMode.ChangeService, withAddress = withAddress,
-        serviceOptions = listOf(ServiceOption.Suggested("other.example"), ServiceOption.Custom), selectedService = ServiceOption.Suggested("other.example"),
-        review = review,
-    )
-
-    private fun preview(vararg lines: HomeChangePreview.Line, collects: Boolean = true, canMove: Boolean = false) =
-        HomeChangePreview("other.example", lines.toList(), collects, canMove, feeCapPercent = 2)
-
-    private val moves = HomeChangePreview.Line("home.example", 1_000_000, HomeChangePreview.Outcome.Moves(980_000, 20_000))
-
-    private fun showChange(state: OnboardingState, onStart: () -> Unit = {}, review: ReviewActions = ReviewActions({}, {})) = compose.setContent {
-        OnboardingScreen(
-            "Wallet", logo = {}, state = state, onBack = {}, onUsernameChange = {}, service = ServiceActions({}, {}),
-            onSuggestion = {}, onStart = onStart, onContinue = {}, onAccountNameChange = {}, review = review,
-        )
-    }
-
-    @Test
-    fun changingTheHomeMintAsksForTheNameThereFirst() {
-        var started = false
-        showChange(changing(), onStart = { started = true })
-        compose.onNodeWithText("Change home mint").assertExists()
-        compose.onNodeWithText("Your address: alice@other.example").assertExists()
-        compose.onNodeWithText("Continue").performScrollTo().performClick()
-        assertTrue(started)
-    }
-
-    @Test
-    fun theSummaryNamesWhatMovesAndItsFeeOnTheButton() {
-        var moved: Boolean? = null
-        var back = false
-        val over = HomeChangePreview.Line("old.example", 60_000, HomeChangePreview.Outcome.TooExpensive(2_000))
-        showChange(changing(review = preview(moves, over)), review = ReviewActions({ moved = it }, { back = true }))
-        compose.onNodeWithText("Move to other.example").assertExists()
-        compose.onNodeWithText("₿1,000 at home.example: about ₿980 arrives, the fee is about ₿20.").assertExists()
-        compose.onNodeWithText("₿60 stays at old.example: moving it would cost more than 2 %.").assertExists()
-        compose.onNodeWithText("Fees in total: about ₿20").assertExists()
-        compose.onNodeWithText("Move my account, leave my money there").assertDoesNotExist()
-        compose.onNodeWithText("Move my account and ₿1,000").performScrollTo().performClick()
-        assertEquals(true, moved)
-        compose.onNodeWithText("Back").performScrollTo().performClick()
-        assertTrue(back)
-    }
-
-    @Test
-    fun withoutCollectingTheUserChoosesWhetherTheMoneyMoves() {
-        var moved: Boolean? = null
-        showChange(changing(withAddress = false, review = preview(moves, collects = false, canMove = true)), review = ReviewActions({ moved = it }, {}))
-        compose.onNodeWithText("Move my account and ₿1,000").assertExists()
-        compose.onNodeWithText("Move my account, leave my money there").performScrollTo().performClick()
-        assertEquals(false, moved)
-    }
-
-    @Test
-    fun whereTheBrandDoesNotCollectTheMoneyIsSaidToStay() {
-        val stays = HomeChangePreview.Line("home.example", 1_000_000, HomeChangePreview.Outcome.Stays)
-        showChange(changing(review = preview(stays, collects = false, canMove = false)))
-        compose.onNodeWithText("₿1,000 stays at home.example.").assertExists()
-        compose.onNodeWithText("Move my account").performScrollTo().assertExists()
-        compose.onNodeWithText("Fees in total: about ₿0").assertDoesNotExist()
     }
 
     @Test

@@ -29,14 +29,14 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 | `versionCode`, `versionName` | Release version |
 | `defaultServiceHost` | LNURLcash mint preselected during onboarding (`host` or `host:port`) |
 | `serviceSuggestions` | Comma-separated mints offered in the onboarding dropdown (the default is always first; users can still pick "Custom…") |
-| `allowServiceChange` | `false` hides the mint field, locking users to your mint. With `true`, users can also add a Lightning address on another mint (same recovery phrase), and change their home mint from the mint pages, which needs `showMints=true` (with `collectAtHomeMint` on or `always`, their money follows) |
+| `allowServiceChange` | `false` hides the mint field, locking users to your mint. With `true`, users can also add a Lightning address on another mint (same recovery phrase), change their home mint from the mint pages and move money between the mints they know, which needs `showMints=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose) |
 | `supportUrl` | Exposed as `BuildConfig.SUPPORT_URL` |
 | `requireAddress` | Whether every account needs a Lightning Address. `true` (default): setup asks for a name. `false`: setup only creates the account on its mint, which is a single "Get started" button when `allowServiceChange=false`; users receive by invoice (Receive → amount → QR) and can still get an address later in Settings → Account → Lightning addresses. Restoring skips the address step too |
 | `maxAccounts` | How many accounts the app holds. `1` hides everything about accounts (no switcher, no "Add account"); at the limit, new accounts and restores are refused with a message. `0` = no limit (default) |
 | `maxAddresses` | Lightning Addresses an account may register per mint. Default `1`; `0` = no limit. Developer mode can override it for testing |
 | `noteStrategies` | The note strategies users can choose from under Settings → Account → Note settings, in this order: `single` (keep only one note per mint), `manual` (keep notes as they arrive), and any your code module adds (see "Custom code"). One entry hides the choice. Default `single,manual` |
 | `defaultNoteStrategy` | The strategy a new account starts with; one of `noteStrategies`. Default `single` |
-| `collectAtHomeMint` | "Move everything to the home mint" in Settings → Account → Note settings: notes on other mints (claimed notes, or an old home mint) are moved to the account's home mint automatically, over Lightning, when the move costs at most the fee cap. `hidden` = not offered, `off` = offered and starts off (default), `on` = offered and starts on (users can switch it per account), `always` = every account collects and users have no switch. When users change their home mint, a summary shows what moves and its fee first; with `off`, they choose there whether the money moves this once |
+| `collectAtHomeMint` | "Move everything to the home mint" in Settings → Account → Note settings: notes on other mints (claimed notes, or an old home mint) are moved to the account's home mint automatically, over Lightning, when the move costs at most the fee cap. `hidden` = not offered, `off` = offered and starts off (default), `on` = offered and starts on (users can switch it per account), `always` = every account collects and users have no switch. When users change their home mint, a summary shows what moves and its fee first; with `on` or `always` the cap decides, otherwise they choose per mint |
 | `collectFeeCap` | The default fee cap for those moves, in percent of what is moved (default `2`). Users pick 1, 2, 5 or 10 % |
 | `notesView` | Where users see and manage their notes (share one as a QR code, split, combine, move, recheck, renew): `tab` (default) = a **Notes** tab next to Wallet and History, `settings` = a page under Settings → Account, `hidden` = nowhere; the note strategy keeps the notes by itself and users only see their balance and history |
 | `historyFilter` | Filters on the History tab: `types` (default) = chips for received, sent, moved and note maintenance; `maintenance` = one chip that shows or hides note maintenance; `none` = no filters, and note maintenance stays hidden |
@@ -62,7 +62,6 @@ The app calls the party that holds users' funds a **mint**. Nearly all text is w
 | `claim_home_mint` | On %1$s, your home mint |
 | `notes_home_mint` | Home mint |
 | `settings_mints` | Mints |
-| `onboarding_change_service_title` | Change home mint |
 | `service_change_home` | Change home mint |
 | `service_make_home` | Make this my home mint |
 

@@ -9,7 +9,6 @@
     <string name="claim_home_mint">Auf %1$s, deinem Anbieter</string>
     <string name="notes_home_mint">Anbieter</string>
     <string name="settings_mints">Anbieter</string>
-    <string name="onboarding_change_service_title">Anbieter wechseln</string>
     <string name="service_change_home">Anbieter wechseln</string>
     <string name="service_make_home">Zu meinem Anbieter machen</string>
     <string name="onboarding_tagline">Taschengeld auf Lightning.</string>

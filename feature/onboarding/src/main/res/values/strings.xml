@@ -8,7 +8,6 @@
     <string name="onboarding_service">Mint</string>
     <string name="onboarding_service_custom_host">Mint address</string>
     <string name="onboarding_custody">Your funds are held by the mint you choose. Keep amounts small.</string>
-    <string name="onboarding_change_service_title">Change home mint</string>
 
     <string name="onboarding_tagline">Bearer notes on Lightning. Ready in one tap.</string>
     <string name="onboarding_username">Your name</string>
@@ -45,20 +44,6 @@
     <string name="onboarding_add_body">Another name for this account on %1$s. Payments to any of its addresses arrive in the same balance.</string>
     <string name="onboarding_add_elsewhere_title">Address on another service</string>
     <string name="onboarding_add_elsewhere_body">A name for this account on another service, with the same recovery phrase. Payments to it arrive as notes on that service, in this account. Your primary address stays where it is.</string>
-    <string name="onboarding_change_service_body">Your account moves to the service you pick: your name there becomes your primary address, and invoices you create are paid there. Your current address keeps working.</string>
-    <string name="onboarding_change_service_body_no_address">Your account moves to the service you pick: invoices you create are paid there.</string>
-    <string name="onboarding_change_service_submit">Move my account</string>
-    <string name="onboarding_change_service_continue">Continue</string>
-    <string name="change_review_title">Move to %1$s</string>
-    <string name="change_review_moves">%1$s at %2$s: about %3$s arrives, the fee is about %4$s.</string>
-    <string name="change_review_stays">%1$s stays at %2$s.</string>
-    <string name="change_review_too_expensive">%1$s stays at %2$s: moving it would cost more than %3$d %%.</string>
-    <string name="change_review_too_small">%1$s stays at %2$s: too little to move.</string>
-    <string name="change_review_unknown">%1$s at %2$s: no price for moving it right now. It stays there for now.</string>
-    <string name="change_review_fee_total">Fees in total: about %1$s</string>
-    <string name="change_review_move_with">Move my account and %1$s</string>
-    <string name="change_review_leave">Move my account, leave my money there</string>
-    <string name="change_review_back">Back</string>
     <string name="onboarding_change_body">Pick the name people will use to pay you on %1$s.</string>
     <string name="onboarding_error_registration">The address wasn\'t registered: %1$s</string>
     <string name="onboarding_error_service">This host can\'t be used: %1$s</string>

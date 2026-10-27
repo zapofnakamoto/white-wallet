@@ -10,14 +10,18 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - An empty wallet says how money gets in: a line under the ₿0 balance (not while the balance is hidden). Brands can
   reword it (`home_wallet_empty`).
 - With `allowServiceChange=true`, users can change their home mint from the mint pages (with `showMints=true`):
-  "Change home mint" on the home mint's page, "Make this my home mint" on another one's. Their name there becomes the
-  primary address, invoices are paid there from then on and, if the account collects at its home mint, its money
-  follows. The old address keeps working and the old home stays trusted. `Wallet.changeHome`.
-- Before the home mint changes, a summary shows the money on other mints: what moves, about what arrives and the fee,
-  or why it stays (over the fee cap, too small). The button names the amount that moves; with collecting off, users
-  choose whether it moves this once. `Wallet.previewChangeHome`.
-- Three new brand-term strings for it: `onboarding_change_service_title`, `service_change_home`, `service_make_home`.
-  Brands with their own word for the mint override them too.
+  "Change home mint" on the home mint's page, "Make this my home mint" on another one's, picking from the mints they
+  already know (a new one is added under Mints first). Their name there becomes the primary address and invoices are
+  paid there from then on. The old address keeps working and the old home stays trusted. Changing the home moves no
+  money by itself. `Wallet.changeHome`.
+- Moving money between mints, shown before it happens: a summary per mint of what arrives and the fee, or why it
+  stays; the button names the amount. When the home mint changes, the money on other mints can go along: an account
+  that collects at its home mint moves what its fee cap allows; one that doesn't chooses ("Change home mint" alone,
+  or "Change and move", with a checkbox per mint). A mint's page also offers "Move…" for its money, to any known mint.
+  Afterwards a result says per mint what arrived or why it didn't move, with "Try again". `Wallet.previewMove`,
+  `Wallet.moveMoney`.
+- Two new brand-term strings for it: `service_change_home`, `service_make_home`. Brands with their own word for the
+  mint override them too.
 
 ## [0.3.0]
 
