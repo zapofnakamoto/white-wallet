@@ -121,6 +121,17 @@ cmd_up() {
         log "waiting for the channel to become active"
         wait_for "the channel to become active" 90 channel_active "$mint_pub"
     fi
+    # The tests pay mostly from user-lnd into the mint, so a stack that keeps running drains user-lnd's side (and LND
+    # keeps 1% of the channel as a reserve it won't spend). Below 0.01 BTC, the mint pays it back up to half.
+    local user_sat
+    user_sat="$(lncli_user listchannels --active_only | jq --arg p "$mint_pub" '[.channels[] | select(.remote_pubkey == $p) | .local_balance | tonumber] | add // 0')"
+    if (( user_sat < 1000000 )); then
+        local top_up=$(( 5000000 - user_sat )) invoice result
+        log "user-lnd's side of the channel is down to $user_sat sats: moving $top_up sats back from mint-lnd"
+        invoice="$(lncli_user addinvoice --amt "$top_up" --memo "regtest top-up" | jq -r '.payment_request')"
+        result="$(lncli_mint payinvoice --force --json "$invoice" 2>&1)" || die "top-up failed: $result"
+        [[ "$(jq -rs 'last | .status // empty' <<<"$result" 2>/dev/null)" == "SUCCEEDED" ]] || die "top-up did not succeed: $result"
+    fi
 
     log "waiting for the mint"
     wait_for "the mint at $MINT_URL" 120 mint_reachable
