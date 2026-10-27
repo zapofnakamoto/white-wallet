@@ -64,7 +64,7 @@ class OnboardingScreenTest {
                 onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
-        compose.onNodeWithText("Address on another service").assertExists()
+        compose.onNodeWithText("Address on another mint").assertExists()
         compose.onNodeWithText("Your address: alice@other.example").assertExists()
         compose.onNodeWithText("Mint").performScrollTo().assertExists()
     }

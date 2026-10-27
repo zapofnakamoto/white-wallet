@@ -508,8 +508,8 @@ LAUNCHER_ICON = """<?xml version="1.0" encoding="utf-8"?>
 
 def brand_terms(qualifier: str) -> list[tuple[str, str]]:
     """
-    The brand-term strings of every feature module in one language, in module order. The block marked "Brand term" in
-    the English strings names them; the values come from that language's file.
+    The brand-term strings (and plurals) of every feature module in one language, in module order, each as its whole
+    element. The block marked "Brand term" in the English strings names them; the elements come from that language's file.
     """
     terms = []
     for english in sorted(ROOT.glob("feature/*/src/main/res/values/strings.xml")):
@@ -517,8 +517,8 @@ def brand_terms(qualifier: str) -> list[tuple[str, str]]:
         if not block:
             continue
         translated = english.parent.parent / qualifier / "strings.xml"
-        values = dict(re.findall(r'<string name="([^"]+)">(.*?)</string>', translated.read_text(encoding="utf-8"), re.S)) if translated.exists() else {}
-        terms += [(name, values[name]) for name in re.findall(r'<string name="([^"]+)">', block.group(1)) if name in values]
+        elements = {m.group(2): m.group(0) for m in re.finditer(r'<(string|plurals) name="([^"]+)">.*?</\1>', translated.read_text(encoding="utf-8"), re.S)} if translated.exists() else {}
+        terms += [(name, elements[name]) for name in re.findall(r'<(?:string|plurals) name="([^"]+)">', block.group(1)) if name in elements]
     return terms
 
 
@@ -531,7 +531,7 @@ def languages() -> list[str]:
 def strings_template(qualifier: str) -> str:
     """The brand-term strings as a commented-out override, so the defaults apply until the brand edits them."""
     terms = brand_terms(qualifier)
-    lines = "\n".join(f'    <string name="{name}">{value}</string>' for name, value in terms)
+    lines = "\n".join(f"    {element}" for _, element in terms)
     language = "English" if qualifier == "values" else qualifier.removeprefix("values-")
     return f"""<?xml version="1.0" encoding="utf-8"?>
 <resources>

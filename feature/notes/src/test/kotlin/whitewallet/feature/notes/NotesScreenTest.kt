@@ -48,7 +48,7 @@ class NotesScreenTest {
     fun theOverviewShowsTheTotalPerMintAndOnlyUnusualStatus() {
         compose.setContent { NotesContent(state(), NotesActions()) }
         compose.onNodeWithText("₿47,430").assertExists()
-        compose.onNodeWithText("4 notes · 2 services").assertExists()
+        compose.onNodeWithText("4 notes · 2 mints").assertExists()
         compose.onNodeWithText("home.example").assertExists()
         compose.onNodeWithText("Home mint").assertExists()
         compose.onNodeWithText("₿45,000").assertExists()
@@ -61,7 +61,7 @@ class NotesScreenTest {
             NotesContent(state({ it.copy(mints = listOf(MintNotes("home.example", true, home, trusted = true), MintNotes("other.example", false, other)), open = "h1") }), NotesActions())
         }
         compose.onNodeWithText("Home mint · Trusted").assertExists()
-        compose.onNodeWithText("From a service you trust").assertExists()
+        compose.onNodeWithText("Trusted").assertExists()
     }
 
     @Test
@@ -155,7 +155,7 @@ class NotesScreenTest {
     @Config(qualifiers = "de")
     fun german() {
         compose.setContent { NotesContent(state({ it.copy(selecting = true, selected = setOf("h1", "h2")) }), NotesActions()) }
-        compose.onNodeWithText("4 Scheine · 2 Dienste").assertExists()
+        compose.onNodeWithText("4 Scheine · 2 Mints").assertExists()
         compose.onNodeWithText("Haupt-Mint").assertExists()
         compose.onNodeWithText("2 Scheine ausgewählt · 45.000 ₿").assertExists()
         compose.onNodeWithText("Zusammenlegen").assertExists()

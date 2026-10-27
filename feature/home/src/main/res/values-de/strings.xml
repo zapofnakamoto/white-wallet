@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Brand term (see values/strings.xml). -->
+    <string name="activity_moved_service_other">Zu einer anderen Mint verschoben</string>
+
     <string name="home_receive">Empfangen</string>
     <string name="home_send">Senden</string>
     <string name="home_send_soon">Senden kommt bald</string>
@@ -34,7 +37,6 @@
     <string name="activity_note_redeemed">Eingelöst</string>
     <string name="activity_note_taken_back">Zurückgeholt</string>
     <string name="activity_moved_service">Zu %1$s verschoben</string>
-    <string name="activity_moved_service_other">Zu einem anderen Dienst verschoben</string>
     <string name="activity_amount_in">+%1$s</string>
     <string name="activity_amount_out">−%1$s</string>
     <string name="activity_pending">Wird bestätigt …</string>

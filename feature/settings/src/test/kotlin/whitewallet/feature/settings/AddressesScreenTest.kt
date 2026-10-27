@@ -41,15 +41,15 @@ class AddressesScreenTest {
     fun anotherServiceIsOfferedOnlyWhenTheBrandAllowsIt() {
         var asked = false
         show(AddressesState(listOf(home), homeHost = "home.example", otherServices = true), onAddElsewhere = { asked = true })
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Add an address on another service"))
-        compose.onNodeWithText("Add an address on another service").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Add an address on another mint"))
+        compose.onNodeWithText("Add an address on another mint").performClick()
         assertEquals(true, asked)
     }
 
     @Test
     fun aLockedBrandShowsNoOtherService() {
         show(AddressesState(listOf(home), homeHost = "home.example", otherServices = false))
-        compose.onNodeWithText("Add an address on another service").assertDoesNotExist()
+        compose.onNodeWithText("Add an address on another mint").assertDoesNotExist()
     }
 
     @Test
@@ -62,6 +62,6 @@ class AddressesScreenTest {
     @Config(qualifiers = "de")
     fun german() {
         show(AddressesState(listOf(home), homeHost = "home.example", otherServices = true))
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Adresse bei einem anderen Dienst hinzufügen"))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Adresse bei einer anderen Mint hinzufügen"))
     }
 }

@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Brand term (see values/strings.xml). -->
     <string name="notes_home_mint">Haupt-Mint</string>
+    <plurals name="notes_services">
+        <item quantity="one">%1$d Mint</item>
+        <item quantity="other">%1$d Mints</item>
+    </plurals>
+    <string name="notes_move_title">Zu einer anderen Mint verschieben</string>
+    <string name="notes_move_target">Mint, z. B. example.com</string>
+    <string name="notes_problem_different_services">Wähle Scheine bei einer einzigen Mint aus.</string>
 
     <string name="notes_title">Scheine</string>
     <string name="notes_settings">Schein-Einstellungen</string>
@@ -8,16 +16,12 @@
         <item quantity="one">%1$d Schein</item>
         <item quantity="other">%1$d Scheine</item>
     </plurals>
-    <plurals name="notes_services">
-        <item quantity="one">%1$d Dienst</item>
-        <item quantity="other">%1$d Dienste</item>
-    </plurals>
     <string name="notes_waiting_total">%1$s verschickt, noch nicht eingelöst</string>
     <string name="notes_sort">Scheine sortieren</string>
     <string name="notes_sort_largest">Größte zuerst</string>
     <string name="notes_sort_newest">Neueste zuerst</string>
     <string name="notes_select">Auswählen</string>
-    <string name="notes_select_hint">Tippe auf Scheine bei einem Dienst, um sie auszuwählen.</string>
+    <string name="notes_select_hint">Tippe auf Scheine, um sie auszuwählen.</string>
     <string name="notes_group_not_moved">Nicht nach Hause verschoben: Die Gebühr von %1$s ist höher als %2$d %%.</string>
     <string name="notes_move_anyway">Trotzdem verschieben</string>
     <string name="notes_shared_title">Verschickt, noch nicht eingelöst</string>
@@ -69,25 +73,21 @@
     <string name="notes_split_range">Zwischen %1$s und %2$s</string>
     <string name="notes_split_preview">Du bekommst einen Schein über %1$s und einen über %2$s.</string>
     <string name="notes_split_switches_manual">„%1$s“ würde das rückgängig machen, daher wird auf manuelle Verwaltung umgestellt.</string>
-    <string name="notes_move_title">Zu einem anderen Dienst verschieben</string>
-    <string name="notes_move_hint">Die Scheine werden über Lightning ausgezahlt und kommen beim anderen Dienst als neuer Schein an. Beide Dienste berechnen ihre Gebühren.</string>
-    <string name="notes_move_target">Dienst, z. B. example.com</string>
-    <string name="notes_move_quote">Verlässt diesen Dienst: %1$s. Kommt auf %3$s an: etwa %2$s.</string>
+    <string name="notes_move_hint">Die Scheine werden über Lightning ausgezahlt und kommen dort als neuer Schein an. Beide Seiten berechnen ihre Gebühren.</string>
+    <string name="notes_move_quote">Geht von hier: %1$s. Kommt auf %3$s an: etwa %2$s.</string>
     <string name="notes_problem_not_found">Diese Scheine haben sich inzwischen geändert. Wähle sie erneut aus.</string>
-    <string name="notes_problem_different_services">Wähle Scheine bei einem einzigen Dienst aus.</string>
     <string name="notes_problem_too_few">Wähle mindestens zwei Scheine zum Zusammenlegen aus.</string>
     <string name="notes_problem_invalid_amount">Dieser Schein ist zu klein zum Teilen, oder der Betrag passt nicht.</string>
-    <string name="notes_problem_same_service">Die Scheine sind schon bei diesem Dienst.</string>
-    <string name="notes_problem_service_invalid">Das ist kein Dienst, der Scheine verwahren kann.</string>
+    <string name="notes_problem_same_service">Die Scheine sind schon dort.</string>
+    <string name="notes_problem_service_invalid">Diese Adresse kann keine Scheine verwahren.</string>
     <string name="notes_problem_unreachable">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts geändert.</string>
-    <string name="notes_problem_below_minimum">Dieser Dienst nimmt so wenig nicht an.</string>
-    <string name="notes_problem_above_maximum">Dieser Dienst nimmt so viel nicht auf einmal an.</string>
-    <string name="notes_problem_below_minimum_amount">Dieser Dienst nimmt mindestens %1$s an.</string>
-    <string name="notes_problem_above_maximum_amount">Dieser Dienst nimmt höchstens %1$s auf einmal an.</string>
-    <string name="notes_problem_invoice_mismatch">Der andere Dienst hat mit einer Rechnung geantwortet, die nicht passt. Es wurde nichts verschoben.</string>
-    <string name="notes_problem_refused">Der Dienst hat abgelehnt. Es wurde nichts verschoben.</string>
-    <string name="notes_problem_payment_failed">Die Zahlung an den anderen Dienst ist nicht durchgegangen. Dein Geld ist zurück.</string>
+    <string name="notes_problem_below_minimum">Das ist zu wenig, um es dorthin zu verschieben.</string>
+    <string name="notes_problem_above_maximum">Das ist zu viel, um es auf einmal dorthin zu verschieben.</string>
+    <string name="notes_problem_below_minimum_amount">Das Minimum dort ist %1$s.</string>
+    <string name="notes_problem_above_maximum_amount">Das Maximum dort ist %1$s auf einmal.</string>
+    <string name="notes_problem_invoice_mismatch">Die Antwort kam mit einer Rechnung, die nicht passt. Es wurde nichts verschoben.</string>
+    <string name="notes_problem_refused">Abgelehnt. Es wurde nichts verschoben.</string>
+    <string name="notes_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Dein Geld ist zurück.</string>
     <string name="notes_problem_declined">Nicht verschoben: Die Gebühr ist höher als dein Limit.</string>
     <string name="notes_trusted">Vertraut</string>
-    <string name="notes_trusted_service">Von einem Dienst, dem du vertraust</string>
 </resources>

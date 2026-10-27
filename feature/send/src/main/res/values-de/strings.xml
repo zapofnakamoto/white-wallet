@@ -10,7 +10,7 @@
     <string name="send_scan_cancel">Abbrechen</string>
 
     <string name="send_to_invoice">Lightning-Rechnung</string>
-    <string name="send_internal">Gleicher Dienst: kommt sofort an, ohne Lightning.</string>
+    <string name="send_internal">Kommt sofort an, ohne Lightning.</string>
     <string name="send_amount_range">Zwischen %1$s und %2$s</string>
     <string name="send_comment">Nachricht (optional)</string>
     <string name="send_comment_count">%1$d / %2$d</string>
@@ -40,8 +40,8 @@
     <string name="send_problem_no_amount">Diese Rechnung hat keinen Betrag. Bitte den Empfänger um eine mit Betrag oder um seine Lightning-Adresse.</string>
     <string name="send_problem_expired">Diese Rechnung ist abgelaufen. Bitte den Empfänger um eine neue.</string>
     <string name="send_problem_unreachable">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts bezahlt.</string>
-    <string name="send_problem_payee_refused">Der Dienst des Empfängers hat das nicht angenommen. Prüfe die Adresse.</string>
-    <string name="send_problem_mismatch">Der Dienst des Empfängers hat eine Rechnung geschickt, die nicht passt. Es wurde nichts bezahlt.</string>
+    <string name="send_problem_payee_refused">Die Wallet des Empfängers hat das nicht angenommen. Prüfe die Adresse.</string>
+    <string name="send_problem_mismatch">Die Wallet des Empfängers hat eine Rechnung geschickt, die nicht passt. Es wurde nichts bezahlt.</string>
     <string name="send_problem_own_address">Das ist die eigene Adresse dieses Kontos.</string>
     <string name="send_problem_no_funds">Es gibt noch nichts zu senden.</string>
     <string name="send_problem_too_much">Das ist mehr, als du senden kannst.</string>

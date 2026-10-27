@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+      Brand term: the strings in this block name the party that holds users' funds ("mint" by default). A brand that
+      uses another word overrides exactly these, per language, in brand/res/values*/strings.xml. All other strings
+      are written without that word. See docs/WHITE_LABEL.md.
+    -->
+    <string name="activity_moved_service_other">Moved to another mint</string>
+
     <string name="home_receive">Receive</string>
     <string name="home_send">Send</string>
     <string name="home_send_soon">Sending is coming soon</string>
@@ -34,7 +41,6 @@
     <string name="activity_note_redeemed">Redeemed</string>
     <string name="activity_note_taken_back">Taken back</string>
     <string name="activity_moved_service">Moved to %1$s</string>
-    <string name="activity_moved_service_other">Moved to another service</string>
     <string name="activity_amount_in">+%1$s</string>
     <string name="activity_amount_out">−%1$s</string>
     <string name="activity_pending">Confirming…</string>

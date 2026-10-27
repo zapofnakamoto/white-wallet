@@ -28,6 +28,6 @@
     <string name="claim_network">Couldn\'t connect: %1$s</string>
     <string name="claim_failed">The claim was refused: %1$s</string>
     <string name="claim_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>
-    <string name="claim_trusted">✓ A service you trust</string>
-    <string name="claim_not_trusted">Not one of the services you trust (see Settings).</string>
+    <string name="claim_trusted">✓ Trusted</string>
+    <string name="claim_not_trusted">Not trusted (see Settings).</string>
 </resources>

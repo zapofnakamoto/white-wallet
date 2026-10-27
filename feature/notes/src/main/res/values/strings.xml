@@ -6,6 +6,13 @@
       are written without that word. See docs/WHITE_LABEL.md.
     -->
     <string name="notes_home_mint">Home mint</string>
+    <plurals name="notes_services">
+        <item quantity="one">%1$d mint</item>
+        <item quantity="other">%1$d mints</item>
+    </plurals>
+    <string name="notes_move_title">Move to another mint</string>
+    <string name="notes_move_target">Mint, e.g. example.com</string>
+    <string name="notes_problem_different_services">Select notes on one mint.</string>
 
     <string name="notes_title">Notes</string>
     <string name="notes_settings">Note settings</string>
@@ -13,16 +20,12 @@
         <item quantity="one">%1$d note</item>
         <item quantity="other">%1$d notes</item>
     </plurals>
-    <plurals name="notes_services">
-        <item quantity="one">%1$d service</item>
-        <item quantity="other">%1$d services</item>
-    </plurals>
     <string name="notes_waiting_total">%1$s shared, not redeemed yet</string>
     <string name="notes_sort">Sort notes</string>
     <string name="notes_sort_largest">Largest first</string>
     <string name="notes_sort_newest">Newest first</string>
     <string name="notes_select">Select</string>
-    <string name="notes_select_hint">Tap notes on one service to select them.</string>
+    <string name="notes_select_hint">Tap notes to select them.</string>
     <string name="notes_group_not_moved">Not moved home: the fee of %1$s is more than %2$d%%.</string>
     <string name="notes_move_anyway">Move anyway</string>
     <string name="notes_shared_title">Shared, not redeemed yet</string>
@@ -45,7 +48,7 @@
         <item quantity="one">%1$d note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone.</item>
         <item quantity="other">%1$d notes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone.</item>
     </plurals>
-    <!-- %1$s: one or more service names, joined for the language ("a.com and b.com"). -->
+    <!-- %1$s: one or more mint hosts, joined for the language ("a.com and b.com"). -->
     <string name="notes_checked_unreachable">No answer from %1$s. Try again later.</string>
     <string name="notes_key_changed">%1$s now signs with a different key. Nothing more is done with it until you check its details.</string>
     <string name="notes_already_spent">This note was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
@@ -76,25 +79,21 @@
     <string name="notes_split_range">Between %1$s and %2$s</string>
     <string name="notes_split_preview">You get one note of %1$s and one of %2$s.</string>
     <string name="notes_split_switches_manual">\"%1$s\" would undo this, so this switches to managing notes yourself.</string>
-    <string name="notes_move_title">Move to another service</string>
-    <string name="notes_move_hint">The notes are paid out over Lightning and arrive as a new note on the other service. Both services charge their fees.</string>
-    <string name="notes_move_target">Service, e.g. example.com</string>
-    <string name="notes_move_quote">Leaving this service: %1$s. Arriving on %3$s: about %2$s.</string>
+    <string name="notes_move_hint">The notes are paid out over Lightning and arrive there as a new note. Both sides charge their fees.</string>
+    <string name="notes_move_quote">Leaving here: %1$s. Arriving on %3$s: about %2$s.</string>
     <string name="notes_problem_not_found">These notes changed in the meantime. Select them again.</string>
-    <string name="notes_problem_different_services">Select notes on one service.</string>
     <string name="notes_problem_too_few">Select at least two notes to combine.</string>
     <string name="notes_problem_invalid_amount">This note is too small to split, or the amount doesn\'t fit.</string>
-    <string name="notes_problem_same_service">The notes are already on that service.</string>
-    <string name="notes_problem_service_invalid">That isn\'t a service that can hold notes.</string>
+    <string name="notes_problem_same_service">The notes are already there.</string>
+    <string name="notes_problem_service_invalid">That address can\'t hold notes.</string>
     <string name="notes_problem_unreachable">Couldn\'t connect. Check your connection and try again. Nothing changed.</string>
-    <string name="notes_problem_below_minimum">That service doesn\'t accept so little.</string>
-    <string name="notes_problem_above_maximum">That service doesn\'t accept so much at once.</string>
-    <string name="notes_problem_below_minimum_amount">That service accepts at least %1$s.</string>
-    <string name="notes_problem_above_maximum_amount">That service accepts at most %1$s at once.</string>
-    <string name="notes_problem_invoice_mismatch">The other service answered with an invoice that doesn\'t match. Nothing was moved.</string>
-    <string name="notes_problem_refused">The service refused. Nothing was moved.</string>
-    <string name="notes_problem_payment_failed">The payment to the other service didn\'t go through. Your money is back.</string>
+    <string name="notes_problem_below_minimum">That\'s too little to move there.</string>
+    <string name="notes_problem_above_maximum">That\'s too much to move there at once.</string>
+    <string name="notes_problem_below_minimum_amount">The minimum there is %1$s.</string>
+    <string name="notes_problem_above_maximum_amount">The maximum there is %1$s at once.</string>
+    <string name="notes_problem_invoice_mismatch">The answer came with an invoice that doesn\'t match. Nothing was moved.</string>
+    <string name="notes_problem_refused">Refused. Nothing was moved.</string>
+    <string name="notes_problem_payment_failed">The payment didn\'t go through. Your money is back.</string>
     <string name="notes_problem_declined">Not moved: the fee is more than your limit.</string>
     <string name="notes_trusted">Trusted</string>
-    <string name="notes_trusted_service">From a service you trust</string>
 </resources>

@@ -4,6 +4,9 @@
     <string name="onboarding_service">Mint</string>
     <string name="onboarding_service_custom_host">Adresse der Mint</string>
     <string name="onboarding_custody">Dein Guthaben verwahrt die Mint, die du wählst. Halte die Beträge klein.</string>
+    <string name="onboarding_add_elsewhere_title">Adresse bei einer anderen Mint</string>
+    <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einer anderen Mint, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei dieser Mint an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
+    <string name="restore_error_service">Diese Mint geht für eine Wiederherstellung nicht. Prüfe, ob es die ist, die du vorher benutzt hast.</string>
 
     <string name="onboarding_tagline">Inhaberscheine auf Lightning. Mit einem Tipp startklar.</string>
     <string name="onboarding_username">Dein Name</string>
@@ -38,11 +41,9 @@
     <string name="onboarding_service_custom">Andere …</string>
     <string name="onboarding_service_local">Lokale Regtest-Mint (Entwicklermodus)</string>
     <string name="onboarding_add_body">Ein weiterer Name für dieses Konto auf %1$s. Zahlungen an jede seiner Adressen landen im selben Guthaben.</string>
-    <string name="onboarding_add_elsewhere_title">Adresse bei einem anderen Dienst</string>
-    <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einem anderen Dienst, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei diesem Dienst an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
     <string name="onboarding_change_body">Wähle den Namen, unter dem man dir auf %1$s zahlt.</string>
     <string name="onboarding_error_registration">Die Adresse wurde nicht registriert: %1$s</string>
-    <string name="onboarding_error_service">Dieser Host geht nicht: %1$s</string>
+    <string name="onboarding_error_service">Geht nicht: %1$s</string>
     <plurals name="onboarding_error_limit">
         <item quantity="one">Dieses Konto hat hier schon %1$d Adresse, mehr erlaubt diese App nicht.</item>
         <item quantity="other">Dieses Konto hat hier schon %1$d Adressen, mehr erlaubt diese App nicht.</item>
@@ -73,8 +74,7 @@
     <string name="restore_start">Wiederherstellen</string>
     <string name="restore_searching">Dein Geld wird gesucht. Das kann eine Minute dauern.</string>
     <string name="restore_what">Dein Guthaben kommt zurück, ebenso die Adresse, die die App bei der Einrichtung vorgeschlagen hat. Der bisherige Verlauf und andere Adressen sind nicht Teil der Wiederherstellungsphrase.</string>
-    <string name="restore_error_already">Diese Wiederherstellungsphrase ist schon in dieser Wallet, als Konto „%1$s“. Für eine Adresse bei einem anderen Dienst füge eine unter Einstellungen → Konto → Lightning-Adressen hinzu.</string>
-    <string name="restore_error_service">Dieser Host geht für eine Wiederherstellung nicht. Prüfe, ob es der ist, den du vorher benutzt hast.</string>
+    <string name="restore_error_already">Diese Wiederherstellungsphrase ist schon in dieser Wallet, als Konto „%1$s“. Für eine weitere Adresse füge eine unter Einstellungen → Konto → Lightning-Adressen hinzu.</string>
     <string name="restore_error_network">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts geändert.</string>
 
     <string name="restore_address_title">Deine Adresse</string>

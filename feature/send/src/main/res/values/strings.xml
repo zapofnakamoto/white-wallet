@@ -10,7 +10,7 @@
     <string name="send_scan_cancel">Cancel</string>
 
     <string name="send_to_invoice">Lightning invoice</string>
-    <string name="send_internal">Same service: arrives instantly, no Lightning needed.</string>
+    <string name="send_internal">Arrives instantly, no Lightning needed.</string>
     <string name="send_amount_range">Between %1$s and %2$s</string>
     <string name="send_comment">Message (optional)</string>
     <string name="send_comment_count">%1$d / %2$d</string>
@@ -40,8 +40,8 @@
     <string name="send_problem_no_amount">This invoice has no amount. Ask the recipient for one with an amount, or for their Lightning address.</string>
     <string name="send_problem_expired">This invoice has expired. Ask the recipient for a new one.</string>
     <string name="send_problem_unreachable">Couldn\'t connect. Check your connection and try again. Nothing was paid.</string>
-    <string name="send_problem_payee_refused">The recipient\'s service didn\'t accept this. Check the address.</string>
-    <string name="send_problem_mismatch">The recipient\'s service sent an invoice that doesn\'t match. Nothing was paid.</string>
+    <string name="send_problem_payee_refused">The recipient\'s wallet didn\'t accept this. Check the address.</string>
+    <string name="send_problem_mismatch">The recipient\'s wallet sent an invoice that doesn\'t match. Nothing was paid.</string>
     <string name="send_problem_own_address">That\'s this account\'s own address.</string>
     <string name="send_problem_no_funds">There\'s nothing to send yet.</string>
     <string name="send_problem_too_much">That\'s more than you can send.</string>

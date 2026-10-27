@@ -13,6 +13,13 @@
     <string name="settings_account_mints">Your mints</string>
     <string name="mints_home_of">Home mint of %1$s</string>
     <string name="mints_remove">Remove mint</string>
+    <string name="addresses_add_elsewhere">Add an address on another mint</string>
+    <string name="settings_strategy_single_hint">Combine all notes into one per mint. Free.</string>
+    <string name="service_title">Mint</string>
+    <string name="about_body">A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device.</string>
+    <string name="notes_collect_search">Move everything to the home mint</string>
+    <string name="mints_intro">Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted.</string>
+    <string name="mints_add_field">Mint, e.g. example.com</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_recovery_phrase">Recovery phrase</string>
@@ -39,8 +46,7 @@
     <string name="addresses_status_free">Not registered anymore: payments to it fail</string>
     <string name="addresses_status_failed">Couldn\'t check: %1$s</string>
     <string name="addresses_add">Add address</string>
-    <string name="addresses_add_elsewhere">Add an address on another service</string>
-    <string name="addresses_add_elsewhere_hint">Same recovery phrase. Payments to it arrive as notes on that service; your primary address stays here.</string>
+    <string name="addresses_add_elsewhere_hint">Same recovery phrase. Payments to it arrive in this account; your primary address stays here.</string>
     <string name="addresses_over_limit">More addresses than the current limit (%1$d). They keep working; unregister ones you don\'t use.</string>
     <string name="addresses_change_primary">Change primary address</string>
     <string name="addresses_change_primary_hint">Registers a new name and makes it primary. The current one stays registered until you unregister it.</string>
@@ -65,7 +71,7 @@
     <string name="settings_unit_sats">Sats</string>
     <string name="settings_amounts_hide_hint">Tip: tap your balance on the home screen to hide it.</string>
     <string name="search_kw_amounts">unit, units, sats, satoshi, bitcoin, btc, ₿, bip-177, bip177, symbol, display, format, hide balance, privacy</string>
-    <string name="settings_notes_with_rotate">%1$s · auto-rotate on</string>
+    <string name="settings_notes_with_rotate">%1$s · auto-renew on</string>
     <string name="settings_search">Search settings</string>
     <string name="settings_search_clear">Clear search</string>
     <string name="developer_max_addresses_fewer">Fewer</string>
@@ -76,9 +82,9 @@
     <string name="search_kw_primary">default address, main address</string>
     <string name="search_kw_change_primary">rename, new name, replace address</string>
     <string name="search_kw_unregister">remove address, release, free name, delete address</string>
-    <string name="search_kw_notes">notes, combine, merge, rotate, coins</string>
+    <string name="search_kw_notes">notes, combine, merge, renew, rotate, coins</string>
     <string name="search_kw_single_note">merge, combine, one note, consolidate</string>
-    <string name="search_kw_auto_rotate">rotate, privacy, fresh key, incoming</string>
+    <string name="search_kw_auto_rotate">renew, rotate, privacy, fresh key, incoming</string>
     <string name="search_kw_delete">remove, wipe, reset, erase, account</string>
     <string name="search_kw_developer">debug, advanced, logs, testing</string>
     <string name="search_kw_max_addresses">limit, multiple addresses, how many</string>
@@ -203,24 +209,24 @@
     <string name="regtest_other">Mine a block, show status, start over:</string>
     <string name="regtest_make_note">Make a note here, to claim under Receive → Claim a note:</string>
     <string name="regtest_multi_hint">To get notes on several of these: claim a note made on another one (it stays where it was made), or move notes under Settings → Notes.</string>
-    <string name="keys_rotate">Rotate</string>
-    <string name="keys_rotate_all">Rotate all (%1$d)</string>
-    <string name="keys_rotate_title">Rotate this note?</string>
-    <string name="keys_rotate_body">Moves %1$s from #%2$d (%3$s) to the next wallet key (#%4$d) under a new spend. Rotating is free; the balance does not change.</string>
-    <string name="keys_rotate_all_title">Rotate %1$d notes?</string>
-    <string name="keys_rotate_all_body">Moves %1$s on this tab to new wallet keys (from #%2$d), one note at a time. Rotating is free; the balance does not change.</string>
-    <string name="keys_rotated">Rotated %1$s: #%2$d → wallet #%3$d</string>
-    <string name="keys_rotated_all">Rotated %1$d notes (%2$s), %3$d failed, %4$d pending</string>
-    <string name="keys_rotate_failed">Rotate failed: %1$s</string>
-    <string name="keys_rotate_not_possible">Nothing to rotate: %1$s</string>
+    <string name="keys_rotate">Renew</string>
+    <string name="keys_rotate_all">Renew all (%1$d)</string>
+    <string name="keys_rotate_title">Renew this note?</string>
+    <string name="keys_rotate_body">Moves %1$s from #%2$d (%3$s) to the next wallet key (#%4$d) under a new spend. Renewing is free; the balance does not change.</string>
+    <string name="keys_rotate_all_title">Renew %1$d notes?</string>
+    <string name="keys_rotate_all_body">Moves %1$s on this tab to new wallet keys (from #%2$d), one note at a time. Renewing is free; the balance does not change.</string>
+    <string name="keys_rotated">Renewed %1$s: #%2$d → wallet #%3$d</string>
+    <string name="keys_rotated_all">Renewed %1$d notes (%2$s), %3$d failed, %4$d pending</string>
+    <string name="keys_rotate_failed">Renew failed: %1$s</string>
+    <string name="keys_rotate_not_possible">Nothing to renew: %1$s</string>
     <string name="settings_note_strategy">Note strategy</string>
     <string name="settings_strategy_manual">Manual</string>
     <string name="settings_strategy_manual_hint">Keep notes as they arrive.</string>
     <string name="settings_strategy_single">Keep only one note</string>
-    <string name="settings_auto_rotate">Auto-rotate incoming notes</string>
+    <string name="settings_auto_rotate">Auto-renew incoming notes</string>
     <string name="settings_auto_rotate_hint">Moves each received note to a fresh key of this wallet.</string>
     <string name="settings_auto_rotate_included">Included in \"%1$s\".</string>
-    <string name="settings_policy_run">Last automatic run: %1$d combined, %2$d split, %3$d rotated, %4$d failed</string>
+    <string name="settings_policy_run">Last automatic run: %1$d combined, %2$d split, %3$d renewed, %4$d failed</string>
     <string name="settings_policy_stopped">Stopped: %1$s</string>
     <string name="keys_find_index">Find index</string>
     <string name="keys_set_index">Set index…</string>
@@ -258,14 +264,12 @@
     <string name="keys_lookup_none">Never looked up</string>
     <string name="keys_no_service">This account has no address yet.</string>
     <string name="keys_rotate_pending">Not confirmed yet. The wallet checks again on the next refresh.</string>
-    <string name="settings_strategy_single_hint">Combine all notes into one per host. Free.</string>
     <string name="keys_set_body">Lowest allowed: #%1$d. Used keys are never reissued, so the index can\'t go below keys this wallet has used.</string>
 
 
-    <string name="service_title">Service</string>
     <string name="service_reachable">Reachable</string>
     <string name="service_unreachable">Not reachable right now</string>
-    <string name="service_invalid">Answers, but isn\'t a usable service</string>
+    <string name="service_invalid">Answers, but can\'t hold notes</string>
     <string name="service_key_changed_short">Signing key changed</string>
     <string name="service_check_again">Check again</string>
     <string name="service_key_remembered">Remembered key</string>
@@ -295,7 +299,7 @@
     <string name="service_show">Show</string>
     <string name="service_hide">Hide</string>
     <string name="service_copy">Copy</string>
-    <string name="search_kw_service">service, server, fees, limits, signing key, website, reachable</string>
+    <string name="search_kw_service">mint, service, server, fees, limits, signing key, website, reachable</string>
     <string name="search_kw_watch_only">watch only, xpub, cx1, export, public key, view</string>
 
     <string name="security_title">Security</string>
@@ -308,7 +312,6 @@
 
     <string name="about_title">About</string>
     <string name="about_version">Version %1$s</string>
-    <string name="about_body">A Lightning wallet that keeps your money as notes on a service you choose. Your recovery phrase stays on this device.</string>
     <string name="about_support">Help and support</string>
     <string name="about_app_license">License</string>
     <!-- The license's name; usually kept untranslated. -->
@@ -319,7 +322,7 @@
     <string name="addresses_get">Get a Lightning address</string>
     <string name="settings_no_address">None yet: you receive by invoice</string>
     <string name="notes_collect_title">Move everything to %1$s</string>
-    <string name="notes_collect_hint">Notes you get on other services are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too.</string>
+    <string name="notes_collect_hint">Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too.</string>
     <string name="notes_collect_fee_cap">Only when the fees are at most</string>
     <string name="notes_collect_fee_cap_option">%1$d%%</string>
     <string name="notes_collect_moved">Moved %1$s from %2$s (fee %3$s)</string>
@@ -327,21 +330,18 @@
     <string name="notes_collect_fee_too_high">Not moved: %1$s on %2$s. The fee of %3$s is more than %4$d%%.</string>
     <string name="notes_collect_too_small">Not moved: %1$s on %2$s is too little to move.</string>
     <string name="notes_collect_failed">Not moved: %1$s on %2$s. Trying again later.</string>
-    <string name="notes_collect_search">Move everything to one service</string>
     <string name="search_kw_collect">collect, home, consolidate, move, fee</string>
     <string name="settings_notes_with_collect">%1$s · moves everything to %2$s</string>
-    <string name="mints_intro">Trust a service by its signing key: notes from trusted services are marked with a check. If a service ever signs with a different key, it is no longer trusted.</string>
-    <!-- %1$s: the start and end of the service's signing key. -->
+    <!-- %1$s: the start and end of the mint's signing key. -->
     <string name="mints_key">Key %1$s</string>
     <string name="mints_no_key">No signing key known yet</string>
     <string name="mints_default_home">Trusted by default: your account\'s home</string>
     <string name="mints_default_brand">Trusted by default in this app</string>
     <string name="mints_untrusted_default">Trusted by default, but you switched it off</string>
-    <string name="mints_add_hint">Add a service by its address to trust it before you receive anything from it.</string>
-    <string name="mints_add_field">Service, e.g. example.com</string>
+    <string name="mints_add_hint">Add one by its address to trust it before you receive anything from there.</string>
     <string name="mints_add">Add</string>
     <string name="mints_add_unreachable">Couldn\'t connect. Check the address and your connection.</string>
-    <string name="mints_add_invalid">That isn\'t a service that can hold notes.</string>
+    <string name="mints_add_invalid">That address can\'t hold notes.</string>
     <plurals name="settings_mints_summary">
         <item quantity="one">%1$d known, %2$d trusted</item>
         <item quantity="other">%1$d known, %2$d trusted</item>
@@ -399,7 +399,7 @@
     <string name="money_try_again">Try again</string>
     <string name="money_done">Done</string>
     <string name="service_move_all_here">Move all money here</string>
-    <string name="money_move_all_body">All of this account\'s money on other services comes here, combined into one payment from each.</string>
+    <string name="money_move_all_body">All of this account\'s money held elsewhere comes here, in one payment from each place.</string>
     <string name="account_mints_intro">Where this account\'s money and addresses are. Open one to move money or to change where new payments arrive.</string>
     <plurals name="account_mints_addresses">
         <item quantity="one">%1$d address</item>

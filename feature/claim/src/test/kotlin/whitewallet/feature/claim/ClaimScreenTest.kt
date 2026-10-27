@@ -38,7 +38,7 @@ class ClaimScreenTest {
     fun aCheckedNoteSaysWhereItIsAndWhetherItsMintIsTrusted() {
         show(ClaimState(input = "x", preview = ready))
         compose.onNodeWithText("On other.example").assertExists()
-        compose.onNodeWithText("✓ A service you trust").assertExists()
+        compose.onNodeWithText("✓ Trusted").assertExists()
         compose.onNodeWithText("This note is held by other.example and stays there.").assertExists()
     }
 
@@ -46,7 +46,7 @@ class ClaimScreenTest {
     fun withoutMintsOnlyWhatNeedsTheUserIsShown() {
         show(ClaimState(input = "x", preview = ready.copy(certified = false), showMints = false))
         compose.onNodeWithText("On other.example").assertDoesNotExist()
-        compose.onNodeWithText("✓ A service you trust").assertDoesNotExist()
+        compose.onNodeWithText("✓ Trusted").assertDoesNotExist()
         compose.onNodeWithText("This note is held by other.example and stays there.").assertDoesNotExist()
         compose.onNodeWithText("Not certified: the amount can't be verified.").assertExists()
     }

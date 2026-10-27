@@ -24,6 +24,6 @@
     <string name="claim_network">Keine Verbindung: %1$s</string>
     <string name="claim_failed">Das Einlösen wurde abgelehnt: %1$s</string>
     <string name="claim_pending">Noch nicht bestätigt. Deine Wallet prüft beim nächsten Aktualisieren erneut.</string>
-    <string name="claim_trusted">✓ Ein Dienst, dem du vertraust</string>
-    <string name="claim_not_trusted">Kein Dienst, dem du vertraust (siehe Einstellungen).</string>
+    <string name="claim_trusted">✓ Vertraut</string>
+    <string name="claim_not_trusted">Nicht vertraut (siehe Einstellungen).</string>
 </resources>

@@ -9,6 +9,13 @@
     <string name="settings_account_mints">Deine Mints</string>
     <string name="mints_home_of">Haupt-Mint von %1$s</string>
     <string name="mints_remove">Mint entfernen</string>
+    <string name="addresses_add_elsewhere">Adresse bei einer anderen Mint hinzufügen</string>
+    <string name="settings_strategy_single_hint">Alle Scheine zu einem pro Mint zusammenlegen. Kostenlos.</string>
+    <string name="service_title">Mint</string>
+    <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einer Mint deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
+    <string name="notes_collect_search">Alles zur Haupt-Mint verschieben</string>
+    <string name="mints_intro">Vertraue einer Mint anhand ihres Signaturschlüssels: Scheine von vertrauten Mints sind mit einem Haken markiert. Signiert eine Mint einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut.</string>
+    <string name="mints_add_field">Mint, z. B. example.com</string>
 
     <string name="settings_title">Einstellungen</string>
     <string name="settings_recovery_phrase">Wiederherstellungsphrase</string>
@@ -35,8 +42,7 @@
     <string name="addresses_status_free">Nicht mehr registriert: Zahlungen daran schlagen fehl</string>
     <string name="addresses_status_failed">Prüfen nicht möglich: %1$s</string>
     <string name="addresses_add">Adresse hinzufügen</string>
-    <string name="addresses_add_elsewhere">Adresse bei einem anderen Dienst hinzufügen</string>
-    <string name="addresses_add_elsewhere_hint">Dieselbe Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei diesem Dienst an; deine Hauptadresse bleibt hier.</string>
+    <string name="addresses_add_elsewhere_hint">Dieselbe Wiederherstellungsphrase. Zahlungen daran kommen in diesem Konto an; deine Hauptadresse bleibt hier.</string>
     <string name="addresses_over_limit">Mehr Adressen als das aktuelle Limit (%1$d). Sie funktionieren weiter; melde die ab, die du nicht nutzt.</string>
     <string name="addresses_change_primary">Hauptadresse ändern</string>
     <string name="addresses_change_primary_hint">Registriert einen neuen Namen und macht ihn zur Hauptadresse. Die bisherige bleibt registriert, bis du sie abmeldest.</string>
@@ -61,7 +67,7 @@
     <string name="settings_unit_sats">Sats</string>
     <string name="settings_amounts_hide_hint">Tipp: Tippe auf dein Guthaben auf dem Startbildschirm, um es auszublenden.</string>
     <string name="search_kw_amounts">Einheit, Einheiten, Sats, Satoshi, Bitcoin, BTC, ₿, BIP-177, BIP177, Symbol, Anzeige, Format, Guthaben ausblenden, Privatsphäre</string>
-    <string name="settings_notes_with_rotate">%1$s · automatisch rotieren an</string>
+    <string name="settings_notes_with_rotate">%1$s · automatisch erneuern an</string>
     <string name="settings_search">Einstellungen durchsuchen</string>
     <string name="settings_search_clear">Suche löschen</string>
     <string name="developer_max_addresses_fewer">Weniger</string>
@@ -72,9 +78,9 @@
     <string name="search_kw_primary">Standardadresse, Hauptadresse</string>
     <string name="search_kw_change_primary">umbenennen, neuer Name, Adresse ersetzen, Benutzername</string>
     <string name="search_kw_unregister">Adresse entfernen, freigeben, Name freigeben, Adresse löschen</string>
-    <string name="search_kw_notes">Scheine, zusammenlegen, zusammenführen, rotieren, Münzen</string>
+    <string name="search_kw_notes">Scheine, zusammenlegen, zusammenführen, erneuern, rotieren, Münzen</string>
     <string name="search_kw_single_note">zusammenführen, zusammenlegen, ein Schein, bündeln</string>
-    <string name="search_kw_auto_rotate">rotieren, Privatsphäre, neuer Schlüssel, eingehend</string>
+    <string name="search_kw_auto_rotate">erneuern, rotieren, Privatsphäre, neuer Schlüssel, eingehend</string>
     <string name="search_kw_delete">entfernen, löschen, zurücksetzen, Konto</string>
     <string name="search_kw_developer">Debug, erweitert, Protokolle, Logs, Testen</string>
     <string name="search_kw_max_addresses">Limit, mehrere Adressen, wie viele</string>
@@ -199,24 +205,24 @@
     <string name="regtest_other">Block erzeugen, Status zeigen, neu anfangen:</string>
     <string name="regtest_make_note">Hier einen Schein erzeugen, einzulösen unter Empfangen → Schein einlösen:</string>
     <string name="regtest_multi_hint">Für Scheine auf mehreren davon: Löse einen Schein ein, der auf einer anderen erzeugt wurde (er bleibt, wo er erzeugt wurde), oder verschiebe Scheine unter Einstellungen → Scheine.</string>
-    <string name="keys_rotate">Rotieren</string>
-    <string name="keys_rotate_all">Alle rotieren (%1$d)</string>
-    <string name="keys_rotate_title">Diesen Schein rotieren?</string>
-    <string name="keys_rotate_body">Verschiebt %1$s von #%2$d (%3$s) auf den nächsten Wallet-Schlüssel (#%4$d) mit neuer Ausgabe. Rotieren ist kostenlos; das Guthaben ändert sich nicht.</string>
-    <string name="keys_rotate_all_title">%1$d Scheine rotieren?</string>
-    <string name="keys_rotate_all_body">Verschiebt %1$s auf diesem Tab auf neue Wallet-Schlüssel (ab #%2$d), einen Schein nach dem anderen. Rotieren ist kostenlos; das Guthaben ändert sich nicht.</string>
-    <string name="keys_rotated">%1$s rotiert: #%2$d → Wallet #%3$d</string>
-    <string name="keys_rotated_all">%1$d Scheine rotiert (%2$s), %3$d fehlgeschlagen, %4$d ausstehend</string>
-    <string name="keys_rotate_failed">Rotieren fehlgeschlagen: %1$s</string>
-    <string name="keys_rotate_not_possible">Nichts zu rotieren: %1$s</string>
+    <string name="keys_rotate">Erneuern</string>
+    <string name="keys_rotate_all">Alle erneuern (%1$d)</string>
+    <string name="keys_rotate_title">Diesen Schein erneuern?</string>
+    <string name="keys_rotate_body">Verschiebt %1$s von #%2$d (%3$s) auf den nächsten Wallet-Schlüssel (#%4$d) mit neuer Ausgabe. Erneuern ist kostenlos; das Guthaben ändert sich nicht.</string>
+    <string name="keys_rotate_all_title">%1$d Scheine erneuern?</string>
+    <string name="keys_rotate_all_body">Verschiebt %1$s auf diesem Tab auf neue Wallet-Schlüssel (ab #%2$d), einen Schein nach dem anderen. Erneuern ist kostenlos; das Guthaben ändert sich nicht.</string>
+    <string name="keys_rotated">%1$s erneuert: #%2$d → Wallet #%3$d</string>
+    <string name="keys_rotated_all">%1$d Scheine erneuert (%2$s), %3$d fehlgeschlagen, %4$d ausstehend</string>
+    <string name="keys_rotate_failed">Erneuern fehlgeschlagen: %1$s</string>
+    <string name="keys_rotate_not_possible">Nichts zu erneuern: %1$s</string>
     <string name="settings_note_strategy">Umgang mit Scheinen</string>
     <string name="settings_strategy_manual">Manuell</string>
     <string name="settings_strategy_manual_hint">Scheine so behalten, wie sie ankommen.</string>
     <string name="settings_strategy_single">Nur einen Schein behalten</string>
-    <string name="settings_auto_rotate">Eingehende Scheine automatisch rotieren</string>
+    <string name="settings_auto_rotate">Eingehende Scheine automatisch erneuern</string>
     <string name="settings_auto_rotate_hint">Verschiebt jeden empfangenen Schein auf einen neuen Schlüssel dieser Wallet.</string>
     <string name="settings_auto_rotate_included">In „%1$s“ enthalten.</string>
-    <string name="settings_policy_run">Letzter automatischer Lauf: %1$d zusammengelegt, %2$d geteilt, %3$d rotiert, %4$d fehlgeschlagen</string>
+    <string name="settings_policy_run">Letzter automatischer Lauf: %1$d zusammengelegt, %2$d geteilt, %3$d erneuert, %4$d fehlgeschlagen</string>
     <string name="settings_policy_stopped">Angehalten: %1$s</string>
     <string name="keys_find_index">Index finden</string>
     <string name="keys_set_index">Index setzen …</string>
@@ -254,14 +260,12 @@
     <string name="keys_lookup_none">Nie abgefragt</string>
     <string name="keys_no_service">Dieses Konto hat noch keine Adresse.</string>
     <string name="keys_rotate_pending">Noch nicht bestätigt. Die Wallet prüft beim nächsten Aktualisieren erneut.</string>
-    <string name="settings_strategy_single_hint">Alle Scheine zu einem pro Host zusammenlegen. Kostenlos.</string>
     <string name="keys_set_body">Niedrigster erlaubter Wert: #%1$d. Benutzte Schlüssel werden nie neu vergeben, daher kann der Index nicht unter Schlüssel fallen, die diese Wallet benutzt hat.</string>
 
 
-    <string name="service_title">Dienst</string>
     <string name="service_reachable">Erreichbar</string>
     <string name="service_unreachable">Gerade nicht erreichbar</string>
-    <string name="service_invalid">Antwortet, ist aber kein nutzbarer Dienst</string>
+    <string name="service_invalid">Antwortet, kann aber keine Scheine verwahren</string>
     <string name="service_key_changed_short">Signaturschlüssel geändert</string>
     <string name="service_check_again">Erneut prüfen</string>
     <string name="service_key_remembered">Gemerkter Schlüssel</string>
@@ -290,7 +294,7 @@
     <string name="service_show">Zeigen</string>
     <string name="service_hide">Ausblenden</string>
     <string name="service_copy">Kopieren</string>
-    <string name="search_kw_service">Dienst, Server, Gebühren, Limits, Signaturschlüssel, Website, erreichbar</string>
+    <string name="search_kw_service">Mint, Dienst, Server, Gebühren, Limits, Signaturschlüssel, Website, erreichbar</string>
     <string name="search_kw_watch_only">nur beobachten, Watch-only, xpub, cx1, exportieren, öffentlicher Schlüssel, ansehen</string>
 
     <string name="security_title">Sicherheit</string>
@@ -303,7 +307,6 @@
 
     <string name="about_title">Über</string>
     <string name="about_version">Version %1$s</string>
-    <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einem Dienst deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
     <string name="about_support">Hilfe und Support</string>
     <string name="about_app_license">Lizenz</string>
     <string name="about_app_license_value">MIT-Lizenz</string>
@@ -313,7 +316,7 @@
     <string name="addresses_get">Lightning-Adresse holen</string>
     <string name="settings_no_address">Noch keine: du empfängst per Rechnung</string>
     <string name="notes_collect_title">Alles zu %1$s verschieben</string>
-    <string name="notes_collect_hint">Scheine, die du bei anderen Diensten bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Scheinen“ oben.</string>
+    <string name="notes_collect_hint">Scheine, die du anderswo bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Scheinen“ oben.</string>
     <string name="notes_collect_fee_cap">Nur wenn die Gebühren höchstens</string>
     <string name="notes_collect_fee_cap_option">%1$d %%</string>
     <string name="notes_collect_moved">%1$s von %2$s verschoben (Gebühr %3$s)</string>
@@ -321,25 +324,22 @@
     <string name="notes_collect_fee_too_high">Nicht verschoben: %1$s bei %2$s. Die Gebühr von %3$s ist höher als %4$d %%.</string>
     <string name="notes_collect_too_small">Nicht verschoben: %1$s bei %2$s ist zu wenig zum Verschieben.</string>
     <string name="notes_collect_failed">Nicht verschoben: %1$s bei %2$s. Wird später erneut versucht.</string>
-    <string name="notes_collect_search">Alles zu einem Dienst verschieben</string>
     <string name="search_kw_collect">sammeln, zuhause, zusammenführen, verschieben, gebühr</string>
     <string name="settings_notes_with_collect">%1$s · verschiebt alles zu %2$s</string>
-    <string name="mints_intro">Vertraue einem Dienst anhand seines Signaturschlüssels: Scheine von vertrauten Diensten sind mit einem Haken markiert. Signiert ein Dienst einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut.</string>
     <string name="mints_key">Schlüssel %1$s</string>
     <string name="mints_no_key">Noch kein Signaturschlüssel bekannt</string>
     <string name="mints_default_home">Standardmäßig vertraut: das Zuhause deines Kontos</string>
     <string name="mints_default_brand">Standardmäßig vertraut in dieser App</string>
     <string name="mints_untrusted_default">Standardmäßig vertraut, aber von dir ausgeschaltet</string>
-    <string name="mints_add_hint">Füge einen Dienst über seine Adresse hinzu, um ihm zu vertrauen, bevor du etwas von ihm empfängst.</string>
-    <string name="mints_add_field">Dienst, z. B. example.com</string>
+    <string name="mints_add_hint">Füge eine Adresse hinzu, um ihr zu vertrauen, bevor du von dort etwas empfängst.</string>
     <string name="mints_add">Hinzufügen</string>
     <string name="mints_add_unreachable">Keine Verbindung. Prüfe die Adresse und deine Verbindung.</string>
-    <string name="mints_add_invalid">Das ist kein Dienst, der Scheine verwahren kann.</string>
+    <string name="mints_add_invalid">Diese Adresse kann keine Scheine verwahren.</string>
     <plurals name="settings_mints_summary">
         <item quantity="one">%1$d bekannt, %2$d vertraut</item>
         <item quantity="other">%1$d bekannt, %2$d vertraut</item>
     </plurals>
-    <string name="search_kw_mints">vertrauen, vertraut, schlüssel, signaturschlüssel, dienst, verwahrer</string>
+    <string name="search_kw_mints">vertrauen, vertraut, schlüssel, signaturschlüssel, mint, dienst, verwahrer</string>
     <string name="about_developer_unlocked">Die Entwickleroptionen sind jetzt in den Einstellungen.</string>
     <plurals name="about_developer_taps">
         <item quantity="one">Noch %1$d-mal tippen bis zu den Entwickleroptionen</item>
@@ -392,7 +392,7 @@
     <string name="money_try_again">Nochmal versuchen</string>
     <string name="money_done">Fertig</string>
     <string name="service_move_all_here">Alles Geld hierher verschieben</string>
-    <string name="money_move_all_body">Das ganze Geld dieses Kontos bei anderen Diensten kommt hierher, von jedem in einer Zahlung.</string>
+    <string name="money_move_all_body">Das ganze Geld dieses Kontos, das anderswo liegt, kommt hierher, von jedem Ort in einer Zahlung.</string>
     <string name="account_mints_intro">Wo das Geld und die Adressen dieses Kontos liegen. Öffne einen, um Geld zu verschieben oder zu ändern, wo neue Zahlungen ankommen.</string>
     <plurals name="account_mints_addresses">
         <item quantity="one">%1$d Adresse</item>

@@ -14,5 +14,23 @@
     <string name="settings_account_mints">Deine Anbieter</string>
     <string name="mints_home_of">Anbieter von %1$s</string>
     <string name="mints_remove">Anbieter entfernen</string>
+    <string name="activity_moved_service_other">Zu einem anderen Anbieter verschoben</string>
+    <string name="onboarding_add_elsewhere_title">Adresse bei einem anderen Anbieter</string>
+    <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einem anderen Anbieter, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei diesem Anbieter an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
+    <string name="restore_error_service">Dieser Anbieter geht für eine Wiederherstellung nicht. Prüfe, ob es der ist, den du vorher benutzt hast.</string>
+    <plurals name="notes_services">
+        <item quantity="one">%1$d Anbieter</item>
+        <item quantity="other">%1$d Anbieter</item>
+    </plurals>
+    <string name="notes_move_title">Zu einem anderen Anbieter verschieben</string>
+    <string name="notes_move_target">Anbieter, z. B. example.com</string>
+    <string name="notes_problem_different_services">Wähle Scheine bei einem einzigen Anbieter aus.</string>
+    <string name="addresses_add_elsewhere">Adresse bei einem anderen Anbieter hinzufügen</string>
+    <string name="settings_strategy_single_hint">Alle Scheine zu einem pro Anbieter zusammenlegen. Kostenlos.</string>
+    <string name="service_title">Anbieter</string>
+    <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einem Anbieter deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
+    <string name="notes_collect_search">Alles zu deinem Anbieter verschieben</string>
+    <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Scheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut.</string>
+    <string name="mints_add_field">Anbieter, z. B. example.com</string>
     <string name="onboarding_tagline">Taschengeld auf Lightning.</string>
 </resources>
