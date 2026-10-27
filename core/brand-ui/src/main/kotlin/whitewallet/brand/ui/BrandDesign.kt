@@ -6,6 +6,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import whitewallet.brand.ReleaseStage
 import whitewallet.brand.WalletEvent
 import whitewallet.brand.WalletStatus
 
@@ -49,6 +50,8 @@ class DecorationContext(
     val reduceMotion: Boolean,
     /** The app's name, for a wordmark. */
     val appName: String,
+    /** How finished the app is: a wordmark may carry the stage, if the brand draws its own [ReleaseBadge][BrandComponents.ReleaseBadge] there. */
+    val releaseStage: ReleaseStage = ReleaseStage.Stable,
 )
 
 /** The design without any brand code. */

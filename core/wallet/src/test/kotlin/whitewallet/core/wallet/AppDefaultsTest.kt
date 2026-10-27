@@ -2,6 +2,8 @@ package whitewallet.core.wallet
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import whitewallet.brand.ReleaseStage
 import whitewallet.core.model.AmountUnit
 
 class AppDefaultsTest {
@@ -36,5 +38,21 @@ class AppDefaultsTest {
         assertEquals(DeveloperOptions.Unlock, DeveloperOptions.fromConfig("hidden", debug = true))
         assertEquals(DeveloperOptions.Hidden, DeveloperOptions.fromConfig("hidden", debug = false))
         assertEquals(DeveloperOptions.Shown, DeveloperOptions.fromConfig(" Shown ", debug = false))
+    }
+
+    @Test
+    fun `auto is beta below 1_0_0 and stable from it on`() {
+        assertEquals(ReleaseStage.Beta, releaseStageFromConfig("auto", "0.2.0"))
+        assertEquals(ReleaseStage.Beta, releaseStageFromConfig("auto", "0.9.9.1"))
+        assertEquals(ReleaseStage.Stable, releaseStageFromConfig("auto", "1.0.0"))
+        assertEquals(ReleaseStage.Stable, releaseStageFromConfig("auto", "12.3"))
+    }
+
+    @Test
+    fun `a brand can set the stage itself`() {
+        assertEquals(ReleaseStage.Alpha, releaseStageFromConfig("alpha", "1.4.0"))
+        assertEquals(ReleaseStage.Stable, releaseStageFromConfig(" Stable ", "0.2.0"))
+        assertFailsWith<IllegalStateException> { releaseStageFromConfig("gamma", "0.2.0") }
+        assertFailsWith<IllegalStateException> { releaseStageFromConfig("auto", "dev") }
     }
 }

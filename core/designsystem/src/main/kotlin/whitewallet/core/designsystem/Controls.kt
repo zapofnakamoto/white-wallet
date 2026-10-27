@@ -7,8 +7,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
+import whitewallet.brand.ReleaseStage
 import whitewallet.brand.ui.ActivityIconParams
 import whitewallet.brand.ui.ActivityType
 import whitewallet.brand.ui.ButtonKind
@@ -24,6 +26,7 @@ import whitewallet.brand.ui.NavigationBarParams
 import whitewallet.brand.ui.NavigationItem
 import whitewallet.brand.ui.ProgressKind
 import whitewallet.brand.ui.ProgressParams
+import whitewallet.brand.ui.ReleaseBadgeParams
 import whitewallet.brand.ui.SheetParams
 import whitewallet.brand.ui.TextFieldParams
 import whitewallet.brand.ui.ToggleKind
@@ -112,6 +115,26 @@ fun WalletActivityIcon(type: ActivityType, direction: MoneyDirection, automatic:
         ActivityIconParams(type, direction, automatic, settled, painterResource(icon), painterResource(R.drawable.ic_activity_automatic)),
         modifier,
     )
+}
+
+/** The release stage's badge ([whitewallet.brand.ui.BrandComponents.ReleaseBadge]); nothing for a stable release. */
+@Composable
+fun WalletReleaseBadge(modifier: Modifier = Modifier) {
+    val stage = LocalReleaseStage.current
+    val label = when (stage) {
+        ReleaseStage.Alpha -> stringResource(R.string.release_stage_alpha)
+        ReleaseStage.Beta -> stringResource(R.string.release_stage_beta)
+        ReleaseStage.Stable -> return
+    }
+    LocalBrandDesign.current.components.ReleaseBadge(ReleaseBadgeParams(stage, label), modifier)
+}
+
+/** What the release stage means for the user, as a sentence; null for a stable release. */
+@Composable
+fun releaseNotice(): String? = when (LocalReleaseStage.current) {
+    ReleaseStage.Alpha -> stringResource(R.string.release_notice_alpha)
+    ReleaseStage.Beta -> stringResource(R.string.release_notice_beta)
+    ReleaseStage.Stable -> null
 }
 
 @Composable

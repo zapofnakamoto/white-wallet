@@ -482,6 +482,9 @@ showMints={"false" if o.hide_mints else "true"}
 # Developer options in Settings: shown = always, unlock = hidden until the version in About is tapped seven times,
 # hidden = never in release builds (debug builds treat hidden as unlock).
 developerOptions={o.developer_options}
+# How finished the app is, shown at setup and in About: auto = beta while versionName is below 1.0.0, then stable;
+# or alpha, beta, stable as set.
+releaseStage=auto
 # Mints shown as trusted from the start, each as host:pubkey (the mint's signing key), comma-separated. Users can
 # untrust them; each account's home mint is trusted by default anyway.
 trustedMints={",".join(o.trusted_mint)}

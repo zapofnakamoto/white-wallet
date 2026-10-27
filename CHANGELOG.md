@@ -5,6 +5,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Added
+
+- An alpha or beta release says so: a badge by the version in About and under the name at setup, with a sentence on
+  what it means. The brand's `releaseStage` decides (`auto`, the default, is beta below 1.0.0); brands can reword it
+  through strings and restyle the badge (`ReleaseBadge`).
+
 ## [0.2.0]
 
 ### Added

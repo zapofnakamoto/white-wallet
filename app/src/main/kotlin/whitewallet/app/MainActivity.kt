@@ -1,5 +1,6 @@
 package whitewallet.app
 
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.NotesView
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -43,6 +44,7 @@ import whitewallet.brand.ui.BrandScreenEntry
 import whitewallet.brand.ui.DefaultBrandDesign
 import whitewallet.brand.ui.LocalWalletEvents
 import whitewallet.core.designsystem.LocalAppName
+import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletTheme
 import whitewallet.feature.home.HomeMenuItem
@@ -93,6 +95,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var design: Optional<BrandDesign>
     @Inject lateinit var brandScreens: Set<@JvmSuppressWildcards BrandScreen>
     @Inject lateinit var events: WalletEventHub
+    @Inject lateinit var defaults: AppDefaults
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,7 +106,7 @@ class MainActivity : FragmentActivity() {
             val unit by display.amountUnit.collectAsStateWithLifecycle()
             val appName = stringResource(R.string.app_name)
             WalletTheme(design.orElse(DefaultBrandDesign)) {
-                CompositionLocalProvider(LocalAmountUnit provides unit, LocalAppName provides appName, LocalWalletEvents provides events.events) {
+                CompositionLocalProvider(LocalAmountUnit provides unit, LocalAppName provides appName, LocalReleaseStage provides defaults.releaseStage, LocalWalletEvents provides events.events) {
                     Surface(Modifier.fillMaxSize()) {
                         AppLockGate(appName) { WalletApp(incoming, BrandScreens(brandScreens), onIncomingHandled = { incoming.value = null }) }
                     }

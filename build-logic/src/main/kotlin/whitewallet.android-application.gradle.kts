@@ -48,6 +48,9 @@ android {
         val appearance = brand.getProperty("appearance", "system").trim()
         check(appearance in setOf("system", "light", "dark")) { "brand.properties: appearance must be system, light or dark, not '$appearance'" }
         buildConfigField("String", "APPEARANCE", "\"$appearance\"")
+        val releaseStage = brand.getProperty("releaseStage", "auto").trim()
+        check(releaseStage in setOf("auto", "alpha", "beta", "stable")) { "brand.properties: releaseStage must be auto, alpha, beta or stable, not '$releaseStage'" }
+        buildConfigField("String", "RELEASE_STAGE", "\"$releaseStage\"")
     }
     if (releaseStoreFile != null) {
         signingConfigs.create("release") {

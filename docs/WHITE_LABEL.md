@@ -43,6 +43,7 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 | `showMints` | `false` hides everything about mints from users: Settings → Mints, the home mint's page, and on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged). Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`) and `collectAtHomeMint` `hidden` or `always` |
 | `appearance` | `system` (default) follows the phone's light or dark setting; `light` or `dark` always uses that scheme, for a brand with a single look. See "Design" |
 | `developerOptions` | Developer options in Settings (developer mode, request log, derived keys): `shown` (default) = always; `unlock` = hidden until the user taps the version in Settings → About seven times, as on Android itself; `hidden` = never in release builds. A debug build treats `hidden` as `unlock`, and starts with developer mode on, so the options show there anyway |
+| `releaseStage` | How finished the app is: `auto` (default) = beta while `versionName` is below 1.0.0, stable from then on; or `alpha`, `beta`, `stable` as set. Alpha and beta show a badge by the version in About and under the name at setup, each with a sentence on what it means (`release_notice_alpha`, `release_notice_beta`; the badge says `release_stage_alpha`, `release_stage_beta`). Stable shows nothing |
 | `trustedMints` | Mints shown as trusted from the start (Settings → Mints; a check mark on their notes, a hint when claiming), comma-separated `host:pubkey` with the mint's signing key (66 hex characters). Trust names the key: a mint presenting another key isn't trusted. Users can untrust them. Each account's home mint is trusted by default anyway. Default empty |
 | `defaultAmountUnit` | How amounts are shown (until the user picks another unit under Settings → Amounts, if allowed): `bitcoin` (default, [BIP-177](https://github.com/bitcoin/bips/blob/master/bip-0177.mediawiki): the smallest unit as a whole number with the sign, `₿1,000`) or `sats` (`1,000 sats`). The numbers are the same either way |
 | `allowUnitChange` | Whether users may switch the unit under Settings → Amounts (default `true`). With `false` the page is gone and every amount shows in `defaultAmountUnit` |
@@ -103,8 +104,8 @@ brand chooses every value, under names of its own.
 |---|---|---|
 | 1. Tokens | `res/` | colour roles, fonts, text sizes, corners, spacing |
 | 2. Theme | `code/`: `BrandDesign.Theme` | change any token, or add CompositionLocals of the brand's own |
-| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the icons of History entries (`ActivityIcon`: type, direction, automatic) look |
-| 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark) |
+| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes, the icons of History entries (`ActivityIcon`: type, direction, automatic) and the release stage's badge (`ReleaseBadge`) look |
+| 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark), knowing the app's name and release stage |
 | 5. Status and events | `code/`: `WalletStatus`, `WalletEvent` | what a screen is about and what just happened, to show or react to |
 | 6. Screens | `code/`: `BrandScreen` | pages of the brand's own, reached from Settings, the wallet's menu or right after setup |
 

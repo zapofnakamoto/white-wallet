@@ -16,6 +16,7 @@ import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.wallet.MintTrustStore
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.TrustedMints
+import whitewallet.core.wallet.releaseStageFromConfig
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.NotePolicies
 import whitewallet.core.wallet.NoteStrategies
@@ -93,5 +94,6 @@ object WalletModule {
         historyFilter = HistoryFilterOption.fromConfig(BuildConfig.HISTORY_FILTER),
         showMints = BuildConfig.SHOW_MINTS,
         developerOptions = DeveloperOptions.fromConfig(BuildConfig.DEVELOPER_OPTIONS, debug = BuildConfig.DEBUG),
+        releaseStage = releaseStageFromConfig(BuildConfig.RELEASE_STAGE, BuildConfig.VERSION_NAME),
     )
 }

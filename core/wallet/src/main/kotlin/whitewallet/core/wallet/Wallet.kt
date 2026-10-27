@@ -29,6 +29,7 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.brand.NoteStrategy
+import whitewallet.brand.ReleaseStage
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
@@ -773,6 +774,20 @@ enum class DeveloperOptions {
     }
 }
 
+/**
+ * The brand's `releaseStage`: `alpha`, `beta` or `stable` as set, or `auto` (the default) for beta while [versionName]
+ * is below 1.0.0 and stable from then on.
+ */
+fun releaseStageFromConfig(value: String, versionName: String): ReleaseStage = when (val v = value.trim().lowercase()) {
+    "auto" -> {
+        val major = versionName.substringBefore('.').toIntOrNull()
+            ?: error("releaseStage=auto needs a versionName that starts with a number, not '$versionName'")
+        if (major < 1) ReleaseStage.Beta else ReleaseStage.Stable
+    }
+    else -> ReleaseStage.entries.firstOrNull { it.name.lowercase() == v }
+        ?: error("releaseStage must be auto, alpha, beta or stable, not '$value'")
+}
+
 /** Where the notes view lives (brand `notesView`). */
 enum class NotesView {
     /** A Notes tab next to Wallet and History. */
@@ -835,6 +850,8 @@ data class AppDefaults(
     val showMints: Boolean = true,
     /** Whether Settings shows Developer options (brand `developerOptions`); see [developerOptionsVisible]. */
     val developerOptions: DeveloperOptions = DeveloperOptions.Shown,
+    /** How finished the app is (brand `releaseStage`), shown at setup and in About unless [ReleaseStage.Stable]. */
+    val releaseStage: ReleaseStage = ReleaseStage.Stable,
 ) {
     /** The address limit in effect: the developer setting while developer mode is on (if set), else the brand's. */
     fun addressLimit(developerMode: Boolean, developerLimit: Int?): Int = developerLimit?.takeIf { developerMode } ?: maxAddresses

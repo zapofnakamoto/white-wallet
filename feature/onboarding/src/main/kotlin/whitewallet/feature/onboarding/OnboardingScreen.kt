@@ -58,10 +58,12 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.releaseNotice
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletReleaseBadge
 import whitewallet.core.designsystem.WalletSuggestionChip
 import whitewallet.core.designsystem.WalletTextField
 
@@ -184,6 +186,7 @@ fun OnboardingScreen(
             }
             BrandDecoration(Anchor.OnboardingHeader) { logo() }
             BrandTitle(Anchor.OnboardingTitle, appName) { Text(appName, style = MaterialTheme.typography.headlineMedium) }
+            WalletReleaseBadge()
             Text(
                 stringResource(R.string.onboarding_tagline),
                 style = MaterialTheme.typography.bodyMedium,
@@ -203,6 +206,9 @@ fun OnboardingScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+            releaseNotice()?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            }
         }
     }
 }

@@ -1,7 +1,9 @@
 package whitewallet.feature.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,12 +31,15 @@ import kotlinx.coroutines.launch
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.DeveloperOptions
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletReleaseBadge
+import whitewallet.core.designsystem.releaseNotice
 
 /** A library shipped in the app, with its license. Names are proper nouns and stay untranslated. */
 data class License(val library: String, val license: String, val url: String)
@@ -89,7 +94,10 @@ fun AboutScreen(appName: String, versionName: String, supportUrl: String, onBack
                 headlineContent = { Text(appName, style = MaterialTheme.typography.titleLarge) },
                 supportingContent = {
                     Column {
-                        Text(stringResource(R.string.about_version, versionName))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(stringResource(R.string.about_version, versionName))
+                            WalletReleaseBadge()
+                        }
                         when {
                             taps >= UNLOCK_TAPS -> Text(stringResource(R.string.about_developer_unlocked), color = MaterialTheme.colorScheme.primary)
                             onUnlock != null && taps > 2 -> Text(pluralStringResource(R.plurals.about_developer_taps, left, left))
@@ -108,6 +116,9 @@ fun AboutScreen(appName: String, versionName: String, supportUrl: String, onBack
                 },
             )
             Text(stringResource(R.string.about_body), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 16.dp))
+            releaseNotice()?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp))
+            }
             WalletListItem(
                 headlineContent = { Text(stringResource(R.string.about_support)) },
                 supportingContent = { Text(supportUrl) },

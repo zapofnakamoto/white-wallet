@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DefaultBrandDesign
+import whitewallet.brand.ReleaseStage
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.LocalReduceMotion
 import whitewallet.brand.ui.ThemeTokens
@@ -35,6 +36,9 @@ import whitewallet.brand.ui.WalletSpacing
 
 /** The app's name, for decorations (a wordmark) and anything else that shows it. */
 val LocalAppName = staticCompositionLocalOf { "" }
+
+/** How finished the app is (brand `releaseStage`): alpha and beta are shown at setup and in About. */
+val LocalReleaseStage = staticCompositionLocalOf { ReleaseStage.Stable }
 
 /**
  * The app theme: the brand's tokens from its resources (brand_defaults.xml lists them; night variants come from

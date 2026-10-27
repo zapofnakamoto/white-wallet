@@ -44,4 +44,5 @@ fun WalletStatusScope(status: WalletStatus, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun decorationContext() = DecorationContext(LocalWalletStatus.current, LocalReduceMotion.current, LocalAppName.current)
+private fun decorationContext() =
+    DecorationContext(LocalWalletStatus.current, LocalReduceMotion.current, LocalAppName.current, LocalReleaseStage.current)

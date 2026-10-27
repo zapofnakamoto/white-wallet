@@ -5,8 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -47,6 +49,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import whitewallet.brand.ReleaseStage
 
 /**
  * The building blocks every screen is made of. Each takes one parameter object (new options are added there with a
@@ -95,6 +98,9 @@ interface BrandComponents {
 
     /** The leading mark of a history entry: what kind it is, and whether the wallet did it by itself. */
     @Composable fun ActivityIcon(params: ActivityIconParams, modifier: Modifier) = DefaultComponents.activityIcon(params, modifier)
+
+    /** The app's release stage (alpha, beta) by its name, at setup and in About; never shown for a stable release. */
+    @Composable fun ReleaseBadge(params: ReleaseBadgeParams, modifier: Modifier) = DefaultComponents.releaseBadge(params, modifier)
 }
 
 /** How prominent a button is: one [Primary] action per screen, [Secondary] and [Text] for the rest. */
@@ -210,6 +216,13 @@ enum class ActivityType { Received, Claimed, Sent, SentNote, MovedAccounts, Move
 
 /** Which way the entry moved the account's money: [Within] keeps it in the account (a move between mints, maintenance). */
 enum class MoneyDirection { In, Out, Within }
+
+class ReleaseBadgeParams(
+    /** [ReleaseStage.Alpha] or [ReleaseStage.Beta]. */
+    val stage: ReleaseStage,
+    /** The stage's name in the user's language ("Beta"). */
+    val label: String,
+)
 
 class ActivityIconParams(
     val type: ActivityType,
@@ -375,6 +388,17 @@ object DefaultComponents : BrandComponents {
     @Composable
     fun qrCode(params: QrCodeParams, modifier: Modifier) {
         Image(params.bitmap, contentDescription = null, modifier = modifier.size(params.size), filterQuality = FilterQuality.None)
+    }
+
+    /** The stage's name, small, on the warning container colour. */
+    @Composable
+    fun releaseBadge(params: ReleaseBadgeParams, modifier: Modifier) {
+        Text(
+            params.label,
+            modifier.background(MaterialTheme.walletColors.warningContainer, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 2.dp),
+            color = MaterialTheme.walletColors.onWarningContainer,
+            style = MaterialTheme.typography.labelMedium,
+        )
     }
 
     /** The type's icon on a circle tinted by where the money went; a small badge when the wallet did it by itself. */

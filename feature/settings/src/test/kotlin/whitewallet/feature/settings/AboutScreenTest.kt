@@ -1,5 +1,6 @@
 package whitewallet.feature.settings
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -8,6 +9,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
+import whitewallet.brand.ReleaseStage
+import whitewallet.core.designsystem.LocalReleaseStage
 
 @RunWith(RobolectricTestRunner::class)
 class AboutScreenTest {
@@ -34,5 +37,21 @@ class AboutScreenTest {
         compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}) }
         repeat(7) { compose.onNodeWithText("Version 1.0").performClick() }
         compose.onNodeWithText("Developer options are now in Settings.").assertDoesNotExist()
+    }
+
+    @Test
+    fun aBetaNamesItsStageAndWhatItMeans() {
+        compose.setContent {
+            CompositionLocalProvider(LocalReleaseStage provides ReleaseStage.Beta) { AboutScreen("Wallet", "0.2.0", "https://example.com", onBack = {}) }
+        }
+        compose.onNodeWithText("Beta").assertExists()
+        compose.onNodeWithText("This app is a beta version: it is still being tested and may have bugs.").assertExists()
+    }
+
+    @Test
+    fun aStableReleaseShowsNoStage() {
+        compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}) }
+        compose.onNodeWithText("Beta").assertDoesNotExist()
+        compose.onNodeWithText("This app is a beta version: it is still being tested and may have bugs.").assertDoesNotExist()
     }
 }

@@ -22,7 +22,9 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.brand.ReleaseStage
 import whitewallet.core.designsystem.LocalAppName
+import whitewallet.core.designsystem.LocalReleaseStage
 
 @RunWith(RobolectricTestRunner::class)
 class OnboardingScreenTest {
@@ -136,5 +138,41 @@ class OnboardingScreenTest {
         // Whatever the brand draws, screen readers still get the name as a heading.
         compose.onNode(hasContentDescription("Wallet") and isHeading()).assertExists()
         assertTrue(Anchor.OnboardingHeader in anchors && Anchor.OnboardingTitle in anchors)
+    }
+
+    @Test
+    fun anAlphaSaysSoBeforeTheUserStarts() {
+        var stage: ReleaseStage? = null
+        val design = object : BrandDesign {
+            @Composable
+            override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                stage = context.releaseStage
+                default()
+            }
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design, LocalReleaseStage provides ReleaseStage.Alpha) {
+                OnboardingScreen(
+                    "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
+                    onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Alpha").assertExists()
+        compose.onNodeWithText("This app is an alpha version: it is still being built and may have bugs.").performScrollTo().assertExists()
+        // A brand drawing its own title knows the stage too.
+        assertEquals(ReleaseStage.Alpha, stage)
+    }
+
+    @Test
+    fun aStableReleaseShowsNoStageAtSetup() {
+        compose.setContent {
+            OnboardingScreen(
+                "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
+                onBack = null, onUsernameChange = {}, service = ServiceActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+            )
+        }
+        compose.onNodeWithText("Beta").assertDoesNotExist()
+        compose.onNodeWithText("Alpha").assertDoesNotExist()
     }
 }
