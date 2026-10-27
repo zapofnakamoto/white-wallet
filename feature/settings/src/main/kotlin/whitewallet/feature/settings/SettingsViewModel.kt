@@ -52,7 +52,7 @@ data class SettingsState(
 internal fun hiddenPages(defaults: AppDefaults, wallet: Wallet, strategy: NoteStrategy?, developer: Boolean, unlocked: Boolean): Set<SettingsTarget> = buildSet {
     if (!defaults.developerOptionsVisible(developer, unlocked)) add(SettingsTarget.Developer)
     if (defaults.notesView != NotesView.Settings) add(SettingsTarget.NoteList)
-    if (!defaults.showMints) addAll(listOf(SettingsTarget.Mints, SettingsTarget.Service))
+    if (!defaults.showMints) addAll(listOf(SettingsTarget.Mints, SettingsTarget.AccountMints))
     if (!defaults.allowUnitChange) add(SettingsTarget.Display)
     val nothingToChoose = wallet.noteStrategies.size <= 1 && strategy?.rotatesAddressNotes == true && !wallet.collectDefaults.offered
     if (nothingToChoose) add(SettingsTarget.Notes)

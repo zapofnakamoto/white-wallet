@@ -177,8 +177,8 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
             } else if (state.accountName != null) {
                 SummaryRow(stringResource(R.string.addresses_title), stringResource(R.string.settings_no_address)) { open(SettingsTarget.Addresses) }
             }
-            state.homeHost?.takeIf { SettingsTarget.Service !in state.hidden }?.let { host ->
-                SummaryRow(stringResource(R.string.settings_home_mint), stringResource(R.string.settings_home_mint_hint, host)) { open(SettingsTarget.Service) }
+            state.homeHost?.takeIf { SettingsTarget.AccountMints !in state.hidden }?.let { host ->
+                SummaryRow(stringResource(R.string.settings_account_mints), stringResource(R.string.addresses_home_mint, host)) { open(SettingsTarget.AccountMints) }
             }
             if (SettingsTarget.NoteList !in state.hidden) {
                 SummaryRow(stringResource(R.string.settings_note_list), stringResource(R.string.settings_note_list_hint)) { open(SettingsTarget.NoteList) }
@@ -250,7 +250,7 @@ private fun locationOf(destination: SearchDestination): Int = when (destination)
         SettingsTarget.Mints -> R.string.settings_mints
         SettingsTarget.Delete -> R.string.settings_delete
         SettingsTarget.Display -> R.string.settings_amounts
-        SettingsTarget.Service -> R.string.settings_home_mint
+        SettingsTarget.AccountMints -> R.string.settings_account_mints
         SettingsTarget.Security -> R.string.security_title
         SettingsTarget.About -> R.string.about_title
         SettingsTarget.Developer -> R.string.developer_title

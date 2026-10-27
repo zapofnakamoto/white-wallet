@@ -11,5 +11,8 @@
     <string name="settings_mints">Anbieter</string>
     <string name="service_change_home">Anbieter wechseln</string>
     <string name="service_make_home">Zu meinem Anbieter machen</string>
+    <string name="settings_account_mints">Deine Anbieter</string>
+    <string name="mints_home_of">Anbieter von %1$s</string>
+    <string name="mints_remove">Anbieter entfernen</string>
     <string name="onboarding_tagline">Taschengeld auf Lightning.</string>
 </resources>

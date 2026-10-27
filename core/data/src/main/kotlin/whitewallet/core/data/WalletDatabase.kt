@@ -103,6 +103,9 @@ internal interface WalletDao {
     @Upsert
     suspend fun saveService(service: ServiceEntity)
 
+    @Query("DELETE FROM services WHERE host = :host")
+    suspend fun removeService(host: String)
+
     @Query("SELECT next FROM address_scan WHERE accountId = :accountId AND host = :host")
     suspend fun addressScanFrom(accountId: String, host: String): Long?
 

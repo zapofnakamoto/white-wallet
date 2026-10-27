@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,9 @@ import whitewallet.core.designsystem.SensitiveClipboard
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.MintInfo
+import whitewallet.core.wallet.MintUse
+import whitewallet.core.wallet.RemoveMintResult
 import whitewallet.core.wallet.ServiceDetails
 import whitewallet.core.wallet.Wallet
 import whitewallet.brand.ui.ButtonKind
@@ -60,13 +64,22 @@ data class ServiceDetailsState(
     val canChangeHome: Boolean = false,
     /** The account collects at its home mint: money only moves home, so the home's page offers no move. */
     val collects: Boolean = false,
+    /** Opened from Settings → Mints: only the mint itself (whose home it is, removing it), nothing of an account. */
+    val device: Boolean = false,
+    /** The mint as the device knows it ([device] mode): whose home it is, whether it can be removed. */
+    val mint: MintInfo? = null,
+    /** Why the last removal was refused. */
+    val removeRefused: MintUse? = null,
+    val removed: Boolean = false,
+    /** The account has money on other mints (on the home's page: "Move all money here"). */
+    val moneyElsewhere: Boolean = false,
 )
 
 @HiltViewModel
 class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) : ViewModel() {
     /** The service to show: the route's `host`, else the account's home service. */
     private val requestedHost: String? = savedState.get<String>("host")
-    private val _state = MutableStateFlow(ServiceDetailsState(canChangeHome = defaults.allowServiceChange))
+    private val _state = MutableStateFlow(ServiceDetailsState(canChangeHome = defaults.allowServiceChange, device = savedState.get<Boolean>("device") ?: false))
     val state: StateFlow<ServiceDetailsState> = _state
 
     init {
@@ -74,6 +87,12 @@ class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, sa
         // After a change of the home mint (see onChangeHome), back here: this page may be the old or the new home.
         viewModelScope.launch { wallet.homeHost.drop(1).collect { refresh() } }
         viewModelScope.launch { wallet.collectAtHome.collect { c -> _state.update { it.copy(collects = c) } } }
+        viewModelScope.launch {
+            wallet.accountMints.collect { mints -> _state.update { it.copy(moneyElsewhere = mints.any { m -> !m.isHome && m.balanceMsat > 0 }) } }
+        }
+        viewModelScope.launch {
+            wallet.mints.collect { mints -> _state.update { s -> s.copy(mint = mints.firstOrNull { it.host == (s.details?.host ?: requestedHost) }) } }
+        }
     }
 
     fun refresh() {
@@ -81,11 +100,23 @@ class ServiceDetailsViewModel @Inject constructor(private val wallet: Wallet, sa
         viewModelScope.launch {
             val host = requestedHost ?: wallet.homeHost.first() ?: return@launch _state.update { it.copy(loading = false) }
             val details = wallet.serviceDetails(host)
-            _state.update { it.copy(details = details, loading = false, watchOnlyKey = wallet.watchOnlyKey(details.host)) }
+            val mint = wallet.mints.first().firstOrNull { it.host == details.host }
+            _state.update { it.copy(details = details, loading = false, watchOnlyKey = wallet.watchOnlyKey(details.host), mint = mint) }
         }
     }
 
     fun toggleWatchOnly() = _state.update { it.copy(showWatchOnly = !it.showWatchOnly) }
+
+    /** Forgets this mint (see [Wallet.removeMint]); the page closes once it's gone. */
+    fun remove() {
+        val host = _state.value.details?.host ?: return
+        viewModelScope.launch {
+            when (val r = wallet.removeMint(host)) {
+                RemoveMintResult.Removed -> _state.update { it.copy(removed = true) }
+                is RemoveMintResult.InUse -> _state.update { it.copy(removeRefused = r.reason) }
+            }
+        }
+    }
 
     /** Keeps using the service with the [key] it now presents; if it presents yet another, the refresh shows that. */
     fun acceptKey(key: String) {
@@ -105,16 +136,21 @@ fun ServiceDetailsRoute(
     onChangeHome: (host: String?) -> Unit = {},
     /** Opens moving the account's money on [host] to another known mint. */
     onMoveMoney: (host: String) -> Unit = {},
+    /** Opens moving all of the account's money on other mints to its home mint. */
+    onMoveAllHere: () -> Unit = {},
     viewModel: ServiceDetailsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    LaunchedEffect(state.removed) { if (state.removed) onBack() }
     ServiceDetailsScreen(
         state, onBack, viewModel::refresh, viewModel::toggleWatchOnly,
         onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key) },
         onAcceptKey = viewModel::acceptKey,
         onChangeHome = onChangeHome,
         onMoveMoney = onMoveMoney,
+        onMoveAllHere = onMoveAllHere,
+        onRemove = viewModel::remove,
     )
 }
 
@@ -133,6 +169,8 @@ fun ServiceDetailsScreen(
     onAcceptKey: (String) -> Unit = {},
     onChangeHome: (host: String?) -> Unit = {},
     onMoveMoney: (host: String) -> Unit = {},
+    onMoveAllHere: () -> Unit = {},
+    onRemove: () -> Unit = {},
 ) {
     val details = state.details
     Scaffold(topBar = { WalletTopBar(details?.host ?: stringResource(R.string.service_title), onBack) }) { padding ->
@@ -151,26 +189,13 @@ fun ServiceDetailsScreen(
                     if (state.loading) WalletCircularProgress() else WalletButton(kind = ButtonKind.Text, onClick = onRefresh) { Text(stringResource(R.string.service_check_again)) }
                 },
             )
-            if (details.isHome) {
-                WalletListItem(
-                    headlineContent = { Text(stringResource(R.string.settings_home_mint)) },
-                    supportingContent = { Text(stringResource(R.string.service_home_hint)) },
-                    trailingContent = state.canChangeHome.takeIf { it }?.let {
-                        { WalletButton(kind = ButtonKind.Text, onClick = { onChangeHome(null) }) { Text(stringResource(R.string.service_change_home)) } }
-                    },
-                )
-            } else if (state.canChangeHome) {
-                WalletButton(kind = ButtonKind.Secondary, onClick = { onChangeHome(details.host) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Text(stringResource(R.string.service_make_home))
+            if (state.device) {
+                state.mint?.homeOf?.takeIf { it.isNotEmpty() }?.let { homes ->
+                    WalletListItem(headlineContent = { Text(stringResource(R.string.mints_home_of, homes.joinToString(", "))) })
                 }
+            } else {
+                AccountSection(details, state, onChangeHome, onMoveMoney, onMoveAllHere)
             }
-            WalletListItem(
-                headlineContent = { Text(stringResource(R.string.service_your_money)) },
-                supportingContent = { Text(pluralStringResource(R.plurals.service_balance, details.noteCount, formatAmount(details.balanceMsat), details.noteCount)) },
-                trailingContent = (details.balanceMsat > 0 && !(details.isHome && state.collects)).takeIf { it }?.let {
-                    { WalletButton(kind = ButtonKind.Text, onClick = { onMoveMoney(details.host) }) { Text(stringResource(R.string.service_move_money)) } }
-                },
-            )
             details.service?.let { service ->
                 val base = service.feeBaseMsat
                 val ppm = service.feePpm
@@ -202,7 +227,8 @@ fun ServiceDetailsScreen(
                 supportingContent = { Text(website) },
                 trailingContent = { WalletButton(kind = ButtonKind.Text, onClick = { runCatching { uri.openUri(website) } }) { Text(stringResource(R.string.service_open)) } },
             )
-            state.watchOnlyKey?.let { key ->
+            if (state.device) state.mint?.let { RemoveSection(it, state.removeRefused, onRemove) }
+            state.watchOnlyKey?.takeUnless { state.device }?.let { key ->
                 HorizontalDivider()
                 WalletListItem(
                     headlineContent = { Text(stringResource(R.string.service_watch_only)) },
@@ -220,6 +246,71 @@ fun ServiceDetailsScreen(
                 }
             }
         }
+    }
+}
+
+/** What the active account has and can do on this mint: change or make home, its money there, moving it. */
+@Composable
+private fun AccountSection(
+    details: ServiceDetails,
+    state: ServiceDetailsState,
+    onChangeHome: (host: String?) -> Unit,
+    onMoveMoney: (host: String) -> Unit,
+    onMoveAllHere: () -> Unit,
+) {
+    if (details.isHome) {
+        WalletListItem(
+            headlineContent = { Text(stringResource(R.string.settings_home_mint)) },
+            supportingContent = { Text(stringResource(R.string.service_home_hint)) },
+            trailingContent = state.canChangeHome.takeIf { it }?.let {
+                { WalletButton(kind = ButtonKind.Text, onClick = { onChangeHome(null) }) { Text(stringResource(R.string.service_change_home)) } }
+            },
+        )
+    } else if (state.canChangeHome) {
+        WalletButton(kind = ButtonKind.Secondary, onClick = { onChangeHome(details.host) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text(stringResource(R.string.service_make_home))
+        }
+    }
+    WalletListItem(
+        headlineContent = { Text(stringResource(R.string.service_your_money)) },
+        supportingContent = { Text(pluralStringResource(R.plurals.service_balance, details.noteCount, formatAmount(details.balanceMsat), details.noteCount)) },
+        trailingContent = (details.balanceMsat > 0 && !(details.isHome && state.collects)).takeIf { it }?.let {
+            { WalletButton(kind = ButtonKind.Text, onClick = { onMoveMoney(details.host) }) { Text(stringResource(R.string.service_move_money)) } }
+        },
+    )
+    if (details.isHome && state.moneyElsewhere) {
+        WalletButton(kind = ButtonKind.Secondary, onClick = onMoveAllHere, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text(stringResource(R.string.service_move_all_here))
+        }
+    }
+}
+
+/** Removing the mint from this device: only when nothing ties an account to it, after a confirmation. */
+@Composable
+private fun RemoveSection(mint: MintInfo, refused: MintUse?, onRemove: () -> Unit) {
+    var confirming by remember { mutableStateOf(false) }
+    HorizontalDivider()
+    if (mint.removable) {
+        WalletButton(kind = ButtonKind.Text, onClick = { confirming = true }, modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
+            Text(stringResource(R.string.mints_remove), color = MaterialTheme.colorScheme.error)
+        }
+    } else {
+        WalletListItem(
+            headlineContent = { Text(stringResource(R.string.mints_remove)) },
+            supportingContent = { Text(stringResource(R.string.mints_remove_in_use)) },
+        )
+    }
+    refused?.let { Text(stringResource(R.string.mints_remove_in_use), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp)) }
+    if (confirming) {
+        WalletDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text(stringResource(R.string.mints_remove_title, mint.host)) },
+            text = { Text(stringResource(R.string.mints_remove_body)) },
+            confirmButton = {
+                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false; onRemove() }) { Text(stringResource(R.string.mints_remove_confirm)) }
+            },
+            dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) } },
+        )
     }
 }
 

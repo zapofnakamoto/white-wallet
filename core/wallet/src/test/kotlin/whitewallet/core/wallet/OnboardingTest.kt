@@ -23,6 +23,12 @@ import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
+import whitewallet.core.model.Note
+import whitewallet.core.model.NoteKind
+import whitewallet.core.model.NoteState
+import whitewallet.core.model.JournalEntry
+import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.AddressProof
 import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.NotePurpose
@@ -283,6 +289,55 @@ class OnboardingTest {
         assertEquals(homeHost, wallet.homeHost.first())
         assertEquals("alice@$homeHost", wallet.profile.first()?.address)
         assertEquals(posts, home.posts)
+    }
+
+    @Test
+    fun `the mints are the device's, each account's mints its own, and only an unused one can be removed`() = withTwoServices { _, homeHost, _, otherHost ->
+        val store = InMemoryWalletStore()
+        val wallet = wallet(store)
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+        val main = checkNotNull(store.currentAccountId())
+        assertIs<OnboardResult.Ready>(wallet.onboard("bob", otherHost, newAccountName = "Savings"))
+        val savings = checkNotNull(store.currentAccountId())
+
+        // Device-wide: both homes, with whose home they are; nothing about money.
+        assertEquals(listOf(homeHost to listOf("Main"), otherHost to listOf("Savings")).sortedBy { it.first }, wallet.mints.first().map { it.host to it.homeOf }.sortedBy { it.first })
+        // The active account's: only its own home.
+        assertEquals(listOf(otherHost), wallet.accountMints.first().map { it.host })
+        assertEquals(RemoveMintResult.InUse(MintUse.Home), wallet.removeMint(otherHost))
+
+        // Savings moves home to the first mint; its address on the other one still ties it.
+        assertIs<OnboardResult.Ready>(wallet.changeHome(homeHost, "bob"))
+        assertEquals(listOf(homeHost, otherHost), wallet.accountMints.first().map { it.host }, "home first, then the old address")
+        assertEquals(RemoveMintResult.InUse(MintUse.Address), wallet.removeMint(otherHost))
+        store.deleteAddress(savings, "bob", otherHost)
+
+        // A note of another account there, unspent, ties it; spent, it doesn't.
+        val note = Note("q1", main, otherHost, NoteKind.KeyPath, 0, 1, 5_000, null, NoteState.Outstanding, 0)
+        store.upsertNotes(listOf(note))
+        assertEquals(RemoveMintResult.InUse(MintUse.Notes), wallet.removeMint(otherHost))
+        assertFalse(wallet.mints.first().single { it.host == otherHost }.removable)
+        store.upsertNotes(listOf(note.copy(state = NoteState.Spent)))
+
+        // An operation there that hasn't settled ties it too.
+        val open = JournalEntry("j1", main, OperationType.Mint, otherHost, "https://$otherHost/w", emptyList(), emptyList(), emptyList(), "", JournalStatus.Prepared, null, 0, 0)
+        store.putJournal(open)
+        assertEquals(RemoveMintResult.InUse(MintUse.OpenOperation), wallet.removeMint(otherHost))
+        store.putJournal(open.copy(status = JournalStatus.Confirmed))
+
+        assertTrue(wallet.mints.first().single { it.host == otherHost }.removable)
+        val key = checkNotNull(store.service(otherHost)?.mintPubkey)
+        wallet.setMintTrusted(otherHost, true)
+        assertEquals(RemoveMintResult.Removed, wallet.removeMint(otherHost))
+        assertNull(store.service(otherHost))
+        assertEquals(listOf(homeHost), wallet.mints.first().map { it.host })
+        assertEquals(NoteState.Spent, store.note("q1")?.state, "notes stay")
+
+        // Added again: a first contact, untrusted until the user says otherwise.
+        assertIs<ConnectResult.Connected>(wallet.addMint(otherHost))
+        val again = wallet.mints.first().single { it.host == otherHost }
+        assertEquals(key, again.pubkey)
+        assertFalse(again.trusted)
     }
 
     @Test

@@ -17,7 +17,15 @@ interface MintTrustStore {
     val untrusted: Flow<Set<MintKey>>
     suspend fun setTrusted(mint: MintKey, trusted: Boolean)
 
+    /** Drops the user's choice for [mint] either way, as if it was never made. */
+    suspend fun forget(mint: MintKey)
+
     class InMemory : MintTrustStore {
+        override suspend fun forget(mint: MintKey) {
+            trusted.update { it - mint }
+            untrusted.update { it - mint }
+        }
+
         override val trusted = MutableStateFlow(emptySet<MintKey>())
         override val untrusted = MutableStateFlow(emptySet<MintKey>())
 
@@ -42,7 +50,7 @@ enum class TrustDefault {
     Brand,
 }
 
-/** One mint as the Mints page shows it. */
+/** One mint as the device-wide Mints page shows it: nothing about any one account's money. */
 data class MintInfo(
     val host: String,
     /** The pinned signing key; null if the wallet never got one (then it can't be trusted). */
@@ -50,12 +58,34 @@ data class MintInfo(
     val trusted: Boolean,
     /** Trusted unless the user says otherwise, and why; null if only the user's choice counts. */
     val trustedByDefault: TrustDefault?,
-    /** The active account's home mint. */
+    /** The names of the accounts whose home mint it is. */
+    val homeOf: List<String> = emptyList(),
+    /** Nothing ties an account to it (see [Wallet.removeMint]), so it can be removed. */
+    val removable: Boolean = false,
+)
+
+/** One of the active account's mints, as Account → Mints shows it: its home, or where it has money or addresses. */
+data class AccountMint(
+    val host: String,
     val isHome: Boolean,
-    /** The active account's money there, and in how many notes. */
+    /** The account's money there, and in how many notes. */
     val balanceMsat: Long,
     val noteCount: Int,
+    /** The account's Lightning Addresses there. */
+    val addresses: Int,
+    val trusted: Boolean,
 )
+
+/** What [Wallet.removeMint] did. */
+sealed interface RemoveMintResult {
+    data object Removed : RemoveMintResult
+
+    /** Still in use, by at least one account: nothing was removed. */
+    data class InUse(val reason: MintUse) : RemoveMintResult
+}
+
+/** Why a mint can't be removed, checked in this order. */
+enum class MintUse { Home, Notes, Address, OpenOperation }
 
 /** The trust rule: the user's choice for this exact key, else the default (home mint, brand list) for it. */
 internal fun isTrusted(mint: MintKey, default: TrustDefault?, trusted: Set<MintKey>, untrusted: Set<MintKey>): Boolean =

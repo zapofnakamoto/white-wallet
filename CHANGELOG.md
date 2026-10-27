@@ -21,8 +21,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   mint, only to the home (and not from it).
   Afterwards a result says per mint what arrived or why it didn't move, with "Try again". `Wallet.previewMove`,
   `Wallet.moveMoney`.
-- Two new brand-term strings for it: `service_change_home`, `service_make_home`. Brands with their own word for the
-  mint override them too.
+- Mints for the device and for the account: Settings → Mints lists every mint this device has used, for all
+  accounts, with its trust, its key and whose home it is, and nothing about one account's money; an unused mint can
+  be removed there (its key and trust are forgotten, notes and history stay). Account → Your mints lists the active
+  account's mints with its money there, and its pages have the account's actions, including "Move all money here"
+  on the home. `Wallet.mints` (device-wide now), `Wallet.accountMints`, `Wallet.removeMint`.
+- Five new brand-term strings for it: `service_change_home`, `service_make_home`, `settings_account_mints`,
+  `mints_home_of`, `mints_remove`. Brands with their own word for the mint override them too.
 
 ## [0.3.0]
 

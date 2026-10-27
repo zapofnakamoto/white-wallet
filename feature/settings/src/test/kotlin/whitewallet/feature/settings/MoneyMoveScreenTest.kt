@@ -91,4 +91,15 @@ class MoneyMoveScreenTest {
         compose.setContent { MoneyMoveScreen(MoneyMoveState(mode = MoneyMoveMode.Move, from = "old.example"), {}, MoneyMoveActions()) }
         compose.onNodeWithText("There is nowhere else to move it. Add one under Settings first.").assertExists()
     }
+
+    @Test
+    fun movingAllMoneyHomeLetsTheUserChooseUnlessCollecting() {
+        val state = MoneyMoveState(mode = MoneyMoveMode.MoveHome, targets = listOf("new.example"), target = "new.example", preview = preview)
+        assertEquals(true, state.canChoose)
+        assertEquals(110_000L, state.chosenMsat)
+        assertEquals(false, state.copy(collects = true).canChoose)
+        assertEquals("asked for, so nothing is left out for the cap", 110_000L, state.copy(collects = true).chosenMsat)
+        compose.setContent { MoneyMoveScreen(state, {}, MoneyMoveActions()) }
+        compose.onNodeWithText("Move ₿110").assertExists()
+    }
 }

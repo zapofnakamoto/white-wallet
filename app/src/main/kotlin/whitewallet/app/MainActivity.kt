@@ -78,6 +78,7 @@ import whitewallet.feature.settings.DisplaySettingsRoute
 import whitewallet.feature.settings.DerivedKeysRoute
 import whitewallet.feature.settings.DeveloperSettingsRoute
 import whitewallet.feature.settings.LocalRegtestRoute
+import whitewallet.feature.settings.AccountMintsRoute
 import whitewallet.feature.settings.MintsRoute
 import whitewallet.feature.settings.MoneyMoveMode
 import whitewallet.feature.settings.MoneyMoveRoute
@@ -176,17 +177,18 @@ internal object Routes {
     const val NOTE_LIST = "notes"
     const val MINTS = "settings/mints"
     const val DISPLAY = "settings/display"
-    const val SERVICE = "settings/service?host={host}"
-    const val HOME_SERVICE = "settings/service"
+    const val SERVICE = "settings/service?host={host}&device={device}"
+    const val ACCOUNT_MINTS = "settings/account/mints"
     const val SECURITY = "settings/security"
     const val ABOUT = "settings/about"
-    fun service(host: String) = "settings/service?host=${Uri.encode(host)}"
+    fun service(host: String, device: Boolean = false) = "settings/service?host=${Uri.encode(host)}&device=$device"
     const val ADD_ADDRESS = "addresses/add"
     const val ADD_ADDRESS_ELSEWHERE = "addresses/add-elsewhere"
     const val CHANGE_SERVICE = "settings/service/change?host={host}"
     fun changeService(host: String?) = if (host == null) "settings/service/change" else "settings/service/change?host=${Uri.encode(host)}"
     const val MOVE_MONEY = "settings/service/move?from={from}"
     fun moveMoney(from: String) = "settings/service/move?from=${Uri.encode(from)}"
+    const val MOVE_HOME = "settings/service/move-home"
     const val DELETE = "delete"
     const val NEW_ACCOUNT = "account/new"
     const val NEW_ACCOUNT_ON = "account/new?host={host}"
@@ -333,11 +335,18 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, onIncom
                 },
             )
         }
-        composable(Routes.SERVICE, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) {
+        composable(
+            Routes.SERVICE,
+            arguments = listOf(
+                navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("device") { type = NavType.BoolType; defaultValue = false },
+            ),
+        ) {
             ServiceDetailsRoute(
                 onBack = { nav.popBackStack() },
                 onChangeHome = { host -> nav.navigate(Routes.changeService(host)) },
                 onMoveMoney = { host -> nav.navigate(Routes.moveMoney(host)) },
+                onMoveAllHere = { nav.navigate(Routes.MOVE_HOME) },
             )
         }
         composable(Routes.CHANGE_SERVICE, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
@@ -346,8 +355,14 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, onIncom
         composable(Routes.MOVE_MONEY, arguments = listOf(navArgument("from") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
             MoneyMoveRoute(MoneyMoveMode.Move, entry.arguments?.getString("from"), onClose = { nav.popBackStack() })
         }
+        composable(Routes.MOVE_HOME) {
+            MoneyMoveRoute(MoneyMoveMode.MoveHome, null, onClose = { nav.popBackStack() })
+        }
+        composable(Routes.ACCOUNT_MINTS) {
+            AccountMintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.service(host)) })
+        }
         composable(Routes.MINTS) {
-            MintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.service(host)) })
+            MintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.service(host, device = true)) })
         }
         composable(Routes.SECURITY) {
             SecuritySettingsRoute(onBack = { nav.popBackStack() })
@@ -431,7 +446,7 @@ private fun settingsRoute(target: SettingsTarget): String = when (target) {
     SettingsTarget.NoteList -> Routes.NOTE_LIST
     SettingsTarget.Mints -> Routes.MINTS
     SettingsTarget.Display -> Routes.DISPLAY
-    SettingsTarget.Service -> Routes.HOME_SERVICE
+    SettingsTarget.AccountMints -> Routes.ACCOUNT_MINTS
     SettingsTarget.Security -> Routes.SECURITY
     SettingsTarget.About -> Routes.ABOUT
     SettingsTarget.Delete -> Routes.DELETE

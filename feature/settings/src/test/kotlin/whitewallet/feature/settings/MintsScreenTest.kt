@@ -22,9 +22,9 @@ class MintsScreenTest {
     val compose = createComposeRule()
 
     private val key = "02" + "ab".repeat(32)
-    private val home = MintInfo("home.example", key, trusted = true, trustedByDefault = TrustDefault.Home, isHome = true, balanceMsat = 21_000, noteCount = 2)
-    private val other = MintInfo("other.example", "03" + "cd".repeat(32), trusted = false, trustedByDefault = null, isHome = false, balanceMsat = 0, noteCount = 0)
-    private val unknown = MintInfo("old.example", null, trusted = false, trustedByDefault = null, isHome = false, balanceMsat = 5_000, noteCount = 1)
+    private val home = MintInfo("home.example", key, trusted = true, trustedByDefault = TrustDefault.Home, homeOf = listOf("Main", "Savings"))
+    private val other = MintInfo("other.example", "03" + "cd".repeat(32), trusted = false, trustedByDefault = null, removable = true)
+    private val unknown = MintInfo("old.example", null, trusted = false, trustedByDefault = null)
 
     private fun show(state: MintsState, onTrusted: (MintInfo, Boolean) -> Unit = { _, _ -> }) = compose.setContent {
         MintsScreen(state, onBack = {}, onOpen = {}, onTrusted = onTrusted, onHost = {}, onAdd = {})
@@ -35,7 +35,8 @@ class MintsScreenTest {
         var changed: Pair<String, Boolean>? = null
         show(MintsState(listOf(home, other, unknown))) { m, t -> changed = m.host to t }
         compose.onNodeWithText("Trusted by default: your account's home").assertExists()
-        compose.onNodeWithText("₿21 in 2 notes").assertExists()
+        compose.onNodeWithText("Home mint of Main, Savings").assertExists()
+        compose.onNodeWithText("₿", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Key 02ababab…abababab").assertExists()
         val switches = compose.onAllNodes(isToggleable())
         switches[0].assertIsOn()

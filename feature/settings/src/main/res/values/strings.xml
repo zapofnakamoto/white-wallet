@@ -10,6 +10,9 @@
     <string name="addresses_home_mint">Home mint: %1$s</string>
     <string name="service_change_home">Change home mint</string>
     <string name="service_make_home">Make this my home mint</string>
+    <string name="settings_account_mints">Your mints</string>
+    <string name="mints_home_of">Home mint of %1$s</string>
+    <string name="mints_remove">Remove mint</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_recovery_phrase">Recovery phrase</string>
@@ -269,7 +272,7 @@
     <string name="service_key_new">New key</string>
     <string name="service_key_accept">Use the new key</string>
     <string name="service_key_accept_title">Use the new key?</string>
-    <string name="service_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send there can be lost.</string>
+    <string name="service_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost.</string>
     <string name="service_key_accept_confirm">Use it</string>
     <string name="service_your_money">Your money here</string>
     <plurals name="service_balance">
@@ -395,4 +398,15 @@
     <string name="money_reason_refused">refused</string>
     <string name="money_try_again">Try again</string>
     <string name="money_done">Done</string>
+    <string name="service_move_all_here">Move all money here</string>
+    <string name="money_move_all_body">All of this account\'s money on other services comes here, combined into one payment from each.</string>
+    <string name="account_mints_intro">Where this account\'s money and addresses are. Open one to move money or to change where new payments arrive.</string>
+    <plurals name="account_mints_addresses">
+        <item quantity="one">%1$d address</item>
+        <item quantity="other">%1$d addresses</item>
+    </plurals>
+    <string name="mints_remove_title">Remove %1$s?</string>
+    <string name="mints_remove_body">The app forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the app remembers.</string>
+    <string name="mints_remove_confirm">Remove</string>
+    <string name="mints_remove_in_use">Can\'t be removed while an account uses it: as its home, or with money, an address or an unfinished payment there.</string>
 </resources>

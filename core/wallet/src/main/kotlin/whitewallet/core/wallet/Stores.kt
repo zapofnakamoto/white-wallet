@@ -47,6 +47,9 @@ interface WalletStore {
     suspend fun service(host: String): Service?
     suspend fun saveService(service: Service)
 
+    /** Forgets the mint at [host] and its pinned key (see [Wallet.removeMint]); notes and history stay. */
+    suspend fun removeService(host: String)
+
     /** Every mint the wallet has connected to (all accounts share them), by host. */
     val services: Flow<List<Service>>
 

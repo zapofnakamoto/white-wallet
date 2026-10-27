@@ -65,8 +65,11 @@ import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.ServiceMoveResult
 import whitewallet.core.wallet.Wallet
 
-/** What the screen is for: a new home mint (and maybe its money with it), or only moving one mint's money. */
-enum class MoneyMoveMode { ChangeHome, Move }
+/**
+ * What the screen is for: a new home mint (and maybe its money with it), moving one mint's money, or moving the money
+ * on every other mint to the home mint ([MoveHome]).
+ */
+enum class MoneyMoveMode { ChangeHome, Move, MoveHome }
 
 /** The live check of the name on the new home mint. */
 enum class NameCheck { Idle, Checking, Available, Yours, Taken, Unknown }
@@ -118,8 +121,8 @@ data class MoneyMoveState(
     val chosenMsat: Long get() = chosen.sumOf { it.amountMsat }
     val chosenFeeMsat: Long get() = chosen.sumOf { (it.quote as MovePreview.Quote.Ok).feeMsat }
 
-    /** Per-mint checkboxes: only where the user decides what moves. */
-    val canChoose: Boolean get() = changingHome && !collects && movable.isNotEmpty()
+    /** Per-mint checkboxes: only where the user decides what moves (collecting decides otherwise), and for several mints. */
+    val canChoose: Boolean get() = (changingHome || mode == MoneyMoveMode.MoveHome) && !collects && movable.isNotEmpty()
 
     val canContinue: Boolean
         get() = !busy && target != null && (!changingHome || !withAddress || username.isNotBlank() && nameCheck != NameCheck.Taken)
@@ -142,7 +145,8 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
             val collects = wallet.collectAtHome.first()
             // Known mints only, home first (as Settings → Mints lists them); never the one the money or account leaves.
             // While the account collects, money only moves home: collecting would bring it back from anywhere else.
-            val targets = wallet.mints.first().map { it.host }.filter { it != (if (mode == MoneyMoveMode.Move) from else home) }
+            val targets = if (mode == MoneyMoveMode.MoveHome) listOfNotNull(home)
+            else wallet.mints.first().map { it.host }.filter { it != (if (mode == MoneyMoveMode.Move) from else home) }
                 .filter { mode == MoneyMoveMode.ChangeHome || !collects || it == home }
             val preset = host.takeIf { mode == MoneyMoveMode.ChangeHome && it in targets } ?: targets.firstOrNull()
             val profile = wallet.profile.first()
@@ -287,7 +291,13 @@ fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, view
  */
 @Composable
 fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMoveActions) {
-    val title = stringResource(if (state.mode == MoneyMoveMode.ChangeHome) R.string.service_change_home else R.string.money_move_title)
+    val title = stringResource(
+        when (state.mode) {
+            MoneyMoveMode.ChangeHome -> R.string.service_change_home
+            MoneyMoveMode.Move -> R.string.money_move_title
+            MoneyMoveMode.MoveHome -> R.string.service_move_all_here
+        },
+    )
     Scaffold(topBar = { WalletTopBar(title, onClose.takeIf { state.outcome == null && !state.busy }) }) { padding ->
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             val outcome = state.outcome
@@ -308,7 +318,8 @@ private fun PickContent(state: MoneyMoveState, actions: MoneyMoveActions) {
         Text(stringResource(R.string.money_move_no_mints), textAlign = TextAlign.Center)
         return
     }
-    if (state.mode == MoneyMoveMode.Move) state.from?.let { Text(stringResource(R.string.money_move_from, it), textAlign = TextAlign.Center) }
+    if (state.mode == MoneyMoveMode.MoveHome) Text(stringResource(R.string.money_move_all_body), textAlign = TextAlign.Center)
+    else if (state.mode == MoneyMoveMode.Move) state.from?.let { Text(stringResource(R.string.money_move_from, it), textAlign = TextAlign.Center) }
     else Text(stringResource(if (state.withAddress) R.string.money_change_body else R.string.money_change_body_no_address), textAlign = TextAlign.Center)
     MintPicker(state.targets, state.target, state.busy, actions.onTarget)
     if (state.changingHome && state.withAddress) {

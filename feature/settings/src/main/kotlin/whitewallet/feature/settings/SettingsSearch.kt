@@ -4,7 +4,7 @@ import androidx.annotation.StringRes
 import java.text.Normalizer
 
 /** A settings page the hub can open. The app maps each to its route. */
-enum class SettingsTarget { Account, Backup, Addresses, Service, Notes, NoteList, Mints, Delete, Display, Security, About, Developer }
+enum class SettingsTarget { Account, Backup, Addresses, AccountMints, Notes, NoteList, Mints, Delete, Display, Security, About, Developer }
 
 /** Where a search result leads: a settings page, or a developer page by route. */
 sealed interface SearchDestination {
@@ -40,8 +40,8 @@ object SettingsSearch {
         SearchEntry(R.string.settings_account, R.string.search_kw_account, page(SettingsTarget.Account)),
         SearchEntry(R.string.settings_recovery_phrase, R.string.search_kw_backup, page(SettingsTarget.Backup)),
         SearchEntry(R.string.addresses_title, R.string.search_kw_addresses, page(SettingsTarget.Addresses)),
-        SearchEntry(R.string.settings_home_mint, R.string.search_kw_service, page(SettingsTarget.Service)),
-        SearchEntry(R.string.service_watch_only, R.string.search_kw_watch_only, page(SettingsTarget.Service)),
+        SearchEntry(R.string.settings_home_mint, R.string.search_kw_service, page(SettingsTarget.AccountMints)),
+        SearchEntry(R.string.service_watch_only, R.string.search_kw_watch_only, page(SettingsTarget.AccountMints)),
         SearchEntry(R.string.addresses_add, R.string.search_kw_add_address, page(SettingsTarget.Addresses)),
         SearchEntry(R.string.addresses_make_primary, R.string.search_kw_primary, page(SettingsTarget.Addresses)),
         SearchEntry(R.string.addresses_change_primary, R.string.search_kw_change_primary, page(SettingsTarget.Addresses)),

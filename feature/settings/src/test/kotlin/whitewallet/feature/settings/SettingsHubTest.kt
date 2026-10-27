@@ -47,11 +47,11 @@ class SettingsHubTest {
 
     @Test
     fun hiddenPagesHaveNoRowAndNoSearchResult() {
-        val hidden = setOf(SettingsTarget.Mints, SettingsTarget.Service, SettingsTarget.Notes, SettingsTarget.NoteList)
+        val hidden = setOf(SettingsTarget.Mints, SettingsTarget.AccountMints, SettingsTarget.Notes, SettingsTarget.NoteList)
         val state = SettingsState(accountName = "Main", profile = profile, backupVerified = true, homeHost = "mint.example", hidden = hidden)
         compose.setContent { AccountSettingsScreen(state, {}, {}) }
         compose.onNodeWithText("alice@mint.example").assertExists()
-        compose.onNodeWithText("Home mint").assertDoesNotExist()
+        compose.onNodeWithText("Your mints").assertDoesNotExist()
         compose.onNodeWithText("Note settings").assertDoesNotExist()
         compose.onNodeWithText("Notes").assertDoesNotExist()
     }

@@ -64,6 +64,7 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
 
     override suspend fun service(host: String) = dao.service(host)?.toModel()
     override suspend fun saveService(service: Service) = dao.saveService(ServiceEntity.from(service))
+    override suspend fun removeService(host: String) = dao.removeService(host)
     override val services: Flow<List<Service>> = dao.services().map { list -> list.map { it.toModel() } }
 
     override suspend fun note(id: String) = dao.note(id)?.toModel()

@@ -78,6 +78,10 @@ class InMemoryWalletStore : WalletStore {
         serviceMap[service.host] = service
         servicesFlow.value = serviceMap.values.sortedBy { it.host }
     }
+    override suspend fun removeService(host: String) {
+        serviceMap.remove(host)
+        servicesFlow.value = serviceMap.values.sortedBy { it.host }
+    }
     private val servicesFlow = MutableStateFlow<List<Service>>(emptyList())
     override val services get() = servicesFlow
     override suspend fun note(id: String) = noteMap.value[id]

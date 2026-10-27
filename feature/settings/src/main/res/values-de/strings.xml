@@ -6,6 +6,9 @@
     <string name="addresses_home_mint">Haupt-Mint: %1$s</string>
     <string name="service_change_home">Haupt-Mint wechseln</string>
     <string name="service_make_home">Zu meiner Haupt-Mint machen</string>
+    <string name="settings_account_mints">Deine Mints</string>
+    <string name="mints_home_of">Haupt-Mint von %1$s</string>
+    <string name="mints_remove">Mint entfernen</string>
 
     <string name="settings_title">Einstellungen</string>
     <string name="settings_recovery_phrase">Wiederherstellungsphrase</string>
@@ -388,4 +391,15 @@
     <string name="money_reason_refused">abgelehnt</string>
     <string name="money_try_again">Nochmal versuchen</string>
     <string name="money_done">Fertig</string>
+    <string name="service_move_all_here">Alles Geld hierher verschieben</string>
+    <string name="money_move_all_body">Das ganze Geld dieses Kontos bei anderen Diensten kommt hierher, von jedem in einer Zahlung.</string>
+    <string name="account_mints_intro">Wo das Geld und die Adressen dieses Kontos liegen. Öffne einen, um Geld zu verschieben oder zu ändern, wo neue Zahlungen ankommen.</string>
+    <plurals name="account_mints_addresses">
+        <item quantity="one">%1$d Adresse</item>
+        <item quantity="other">%1$d Adressen</item>
+    </plurals>
+    <string name="mints_remove_title">%1$s entfernen?</string>
+    <string name="mints_remove_body">Die App vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die App merkt.</string>
+    <string name="mints_remove_confirm">Entfernen</string>
+    <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto ihn nutzt: als Zuhause, oder mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
 </resources>

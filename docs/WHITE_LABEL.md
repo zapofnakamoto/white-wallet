@@ -40,7 +40,7 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 | `collectFeeCap` | The default fee cap for those moves, in percent of what is moved (default `2`). Users pick 1, 2, 5 or 10 % |
 | `notesView` | Where users see and manage their notes (share one as a QR code, split, combine, move, recheck, renew): `tab` (default) = a **Notes** tab next to Wallet and History, `settings` = a page under Settings → Account, `hidden` = nowhere; the note strategy keeps the notes by itself and users only see their balance and history |
 | `historyFilter` | Filters on the History tab: `types` (default) = chips for received, sent, moved and note maintenance; `maintenance` = one chip that shows or hides note maintenance; `none` = no filters, and note maintenance stays hidden |
-| `showMints` | `false` hides everything about mints from users: Settings → Mints, the home mint's page, and on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged). Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`) and `collectAtHomeMint` `hidden` or `always` |
+| `showMints` | `false` hides everything about mints from users: Settings → Mints (the device's mints), Account → Your mints (the account's, with its actions) and the mint pages, and on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged). Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`) and `collectAtHomeMint` `hidden` or `always` |
 | `appearance` | `system` (default) follows the phone's light or dark setting; `light` or `dark` always uses that scheme, for a brand with a single look. See "Design" |
 | `developerOptions` | Developer options in Settings (developer mode, request log, derived keys): `shown` (default) = always; `unlock` = hidden until the user taps the version in Settings → About seven times, as on Android itself; `hidden` = never in release builds. A debug build treats `hidden` as `unlock`, and starts with developer mode on, so the options show there anyway |
 | `releaseStage` | How finished the app is: `auto` (default) = beta while `versionName` is below 1.0.0, stable from then on; or `alpha`, `beta`, `stable` as set. Alpha and beta show a badge beside the app's name (or the brand's wordmark) at setup and on the wallet tab, and by the version in About; setup and About add a sentence on what it means (`release_notice_alpha`, `release_notice_beta`; the badge says `release_stage_alpha`, `release_stage_beta`). Stable shows nothing |
@@ -64,6 +64,9 @@ The app calls the party that holds users' funds a **mint**. Nearly all text is w
 | `settings_mints` | Mints |
 | `service_change_home` | Change home mint |
 | `service_make_home` | Make this my home mint |
+| `settings_account_mints` | Your mints |
+| `mints_home_of` | Home mint of %1$s |
+| `mints_remove` | Remove mint |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 

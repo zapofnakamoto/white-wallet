@@ -65,6 +65,14 @@ internal class DataStorePreferences(
         }
     }
 
+    override suspend fun forget(mint: MintKey) {
+        val entry = "${mint.host} ${mint.pubkey}"
+        prefs.edit {
+            it[TRUSTED] = it[TRUSTED].orEmpty() - entry
+            it[UNTRUSTED] = it[UNTRUSTED].orEmpty() - entry
+        }
+    }
+
     /** Stored as "host pubkey" (a host never contains a space). */
     private fun mintKey(entry: String): MintKey? = entry.split(' ').takeIf { it.size == 2 }?.let { MintKey(it[0], it[1]) }
 

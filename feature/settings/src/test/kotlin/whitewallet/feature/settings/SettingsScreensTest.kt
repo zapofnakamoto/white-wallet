@@ -17,6 +17,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import whitewallet.core.model.Service
+import whitewallet.core.wallet.AccountMint
+import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.ServiceDetails
 
 @RunWith(RobolectricTestRunner::class)
@@ -143,5 +145,53 @@ class SettingsScreensTest {
         compose.onNodeWithText("Move…").assertExists()
         state = state.copy(collects = true, details = state.details!!.copy(host = "other.example", isHome = false))
         compose.onNodeWithText("Move…").assertExists()
+    }
+
+    @Test
+    fun fromTheDevicesListAMintPageShowsNoAccountButWhoseHomeItIsAndRemoving() {
+        var removed = false
+        val removable = MintInfo("other.example", service.mintPubkey, trusted = false, trustedByDefault = null, removable = true)
+        var state by mutableStateOf(
+            ServiceDetailsState(
+                details(ServiceDetails.Reachability.Reachable).copy(host = "other.example", isHome = false),
+                loading = false, watchOnlyKey = "cx1test", canChangeHome = true, device = true, mint = removable,
+            ),
+        )
+        compose.setContent { ServiceDetailsScreen(state, {}, {}, {}, {}, onRemove = { removed = true }) }
+        compose.onNodeWithText("Your money").assertDoesNotExist()
+        compose.onNodeWithText("Make this my home mint").assertDoesNotExist()
+        compose.onNodeWithText("Watch-only key", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Remove mint").performScrollTo().performClick()
+        compose.onNodeWithText("Remove").performClick()
+        assertEquals(true, removed)
+
+        state = state.copy(mint = removable.copy(removable = false, homeOf = listOf("Main")))
+        compose.onNodeWithText("Home mint of Main").assertExists()
+        compose.onNodeWithText("Can't be removed", substring = true).performScrollTo().assertExists()
+    }
+
+    @Test
+    fun theHomePageOffersToMoveAllMoneyHereWhenThereIsSomeElsewhere() {
+        var moved = false
+        var state by mutableStateOf(ServiceDetailsState(details(ServiceDetails.Reachability.Reachable), loading = false, moneyElsewhere = true))
+        compose.setContent { ServiceDetailsScreen(state, {}, {}, {}, {}, onMoveAllHere = { moved = true }) }
+        compose.onNodeWithText("Move all money here").performClick()
+        assertEquals(true, moved)
+        state = state.copy(moneyElsewhere = false)
+        compose.onNodeWithText("Move all money here").assertDoesNotExist()
+    }
+
+    @Test
+    fun anAccountsMintsShowItsMoneyHomeFirst() {
+        var opened: String? = null
+        val mints = listOf(
+            AccountMint("home.example", isHome = true, balanceMsat = 21_000, noteCount = 2, addresses = 1, trusted = true),
+            AccountMint("other.example", isHome = false, balanceMsat = 5_000, noteCount = 1, addresses = 0, trusted = false),
+        )
+        compose.setContent { AccountMintsScreen(mints, {}, { opened = it }) }
+        compose.onNodeWithText("₿21 in 2 notes").assertExists()
+        compose.onNodeWithText("1 address").assertExists()
+        compose.onNodeWithText("other.example").performClick()
+        assertEquals("other.example", opened)
     }
 }

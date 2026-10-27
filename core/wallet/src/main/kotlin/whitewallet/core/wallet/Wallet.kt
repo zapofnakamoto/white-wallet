@@ -406,26 +406,76 @@ class Wallet(
     /** Takes back a sent note nobody has redeemed yet. */
     suspend fun reclaimNote(id: String): ReclaimResult = lock.withLock { NoteSender(this).reclaim(id) }
 
+    /** Every account's notes (spent ones too), for what concerns the whole device. */
+    private val allNotes: Flow<List<Note>> = store.accounts.flatMapLatest { accounts ->
+        if (accounts.isEmpty()) flowOf(emptyList()) else combine(accounts.map { store.notes(it.account.id) }) { lists -> lists.flatMap { it.toList() } }
+    }
+
+    /** Every account's Lightning Addresses. */
+    private val allAddresses: Flow<List<RegisteredAddress>> = store.accounts.flatMapLatest { accounts ->
+        if (accounts.isEmpty()) flowOf(emptyList()) else combine(accounts.map { store.addresses(it.account.id) }) { lists -> lists.flatMap { it.toList() } }
+    }
+
     /**
-     * Every mint the wallet knows (connected to, or holding notes of the active account), home mint first: its key,
-     * whether it's trusted and why, and the active account's money there. Trust follows [isTrusted].
+     * Every mint the wallet has used (connected to, or holding any account's notes), on this device and for all
+     * accounts, until removed ([removeMint]): its key, whether it's trusted and why, whose home it is, and whether it can
+     * be removed. Homes first, then by host. Trust follows [isTrusted]. Nothing about one account's money: see
+     * [accountMints].
      */
-    val mints: Flow<List<MintInfo>> = combine(store.services, store.accounts, homeHost, notes, combine(trust.trusted, trust.untrusted, ::Pair)) { services, accounts, home, notes, (trusted, untrusted) ->
+    val mints: Flow<List<MintInfo>> = combine(store.services, store.accounts, allNotes, allAddresses, combine(trust.trusted, trust.untrusted, ::Pair)) { services, accounts, notes, addresses, (trusted, untrusted) ->
         val homes = accounts.map { it.account.host }.toSet()
         val keys = services.associate { it.host to it.mintPubkey }
-        val live = notes.filter { it.state == NoteState.Outstanding }
-        (keys.keys + live.map { it.host }).distinct().map { host ->
+        val held = notes.filter { it.state != NoteState.Spent }
+        (keys.keys + held.map { it.host }).distinct().map { host ->
             val key = keys[host]
             val default = key?.let { trustDefault(MintKey(host, it), homes) }
+            val homeOf = accounts.filter { it.account.host == host }.map { it.account.name }
             MintInfo(
                 host, key, trusted = key != null && isTrusted(MintKey(host, key), default, trusted, untrusted), trustedByDefault = default,
-                isHome = host == home, balanceMsat = live.filter { it.host == host }.sumOf { it.amountMsat }, noteCount = live.count { it.host == host },
+                homeOf = homeOf, removable = homeOf.isEmpty() && held.none { it.host == host } && addresses.none { it.host == host },
+            )
+        }.sortedWith(compareBy({ it.homeOf.isEmpty() }, { it.host }))
+    }
+
+    /**
+     * The active account's mints: its home, then every mint where it has money or a Lightning Address, by host; with its
+     * money there. What the account can do there (change home, move money) starts from here.
+     */
+    val accountMints: Flow<List<AccountMint>> = combine(homeHost, notes, store.activeAccountId.flatMapLatest { id -> id?.let(store::addresses) ?: flowOf(emptyList()) }, trustedHosts()) { home, notes, addresses, trusted ->
+        val live = notes.filter { it.state == NoteState.Outstanding }
+        (listOfNotNull(home) + live.map { it.host } + addresses.map { it.host }).distinct().map { host ->
+            AccountMint(
+                host, isHome = host == home, balanceMsat = live.filter { it.host == host }.sumOf { it.amountMsat },
+                noteCount = live.count { it.host == host }, addresses = addresses.count { it.host == host }, trusted = host in trusted,
             )
         }.sortedWith(compareBy({ !it.isHome }, { it.host }))
     }
 
+    /**
+     * Forgets the mint at [host]: its pinned signing key and the user's trust choice for it, so adding it again is a
+     * first contact (as after a restore). Only if no account has its home, a note that isn't spent, an address or an
+     * unsettled operation there ([RemoveMintResult.InUse] says which); notes and history are never touched.
+     */
+    suspend fun removeMint(host: String): RemoveMintResult = lock.withLock {
+        val h = Onboarding.normalizeHost(host) ?: host
+        val accounts = store.accounts.first()
+        val use = when {
+            accounts.any { it.account.host == h } -> MintUse.Home
+            accounts.any { a -> store.notes(a.account.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
+            accounts.any { a -> store.addresses(a.account.id).first().any { it.host == h } } -> MintUse.Address
+            store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).any { it.host == h } -> MintUse.OpenOperation
+            else -> null
+        }
+        if (use != null) return@withLock RemoveMintResult.InUse(use)
+        store.service(h)?.mintPubkey?.let { trust.forget(MintKey(h, it)) }
+        store.removeService(h)
+        RemoveMintResult.Removed
+    }
+
     /** Hosts of trusted mints, for highlighting notes. */
-    val trustedHosts: Flow<Set<String>> = mints.map { list -> list.filter { it.trusted }.map { it.host }.toSet() }.distinctUntilChanged()
+    val trustedHosts: Flow<Set<String>> get() = trustedHosts()
+
+    private fun trustedHosts(): Flow<Set<String>> = mints.map { list -> list.filter { it.trusted }.map { it.host }.toSet() }.distinctUntilChanged()
 
     /** Trusts or untrusts [host] with the key the wallet pinned for it. A mint without a pinned key can't be trusted. */
     suspend fun setMintTrusted(host: String, trusted: Boolean) {

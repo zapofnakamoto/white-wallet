@@ -65,7 +65,10 @@ sealed interface MintsProblem {
 
 private data class MintsUi(val newHost: String = "", val adding: Boolean = false, val problem: MintsProblem? = null)
 
-/** The mints this wallet knows, which of them the user trusts (by signing key), and adding one by its address. */
+/**
+ * The mints this device knows, for all accounts: which of them the user trusts (by signing key), whose home each is,
+ * and adding one by its address (removing one is on its page). Nothing about one account's money: see Account → Mints.
+ */
 @HiltViewModel
 class MintsViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
     private val ui = MutableStateFlow(MintsUi())
@@ -131,8 +134,7 @@ private fun MintRow(mint: MintInfo, onOpen: (String) -> Unit, onTrusted: (MintIn
         headlineContent = { Text(mint.host) },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (mint.isHome) Text(stringResource(R.string.settings_home_mint), style = hint, color = MaterialTheme.colorScheme.primary)
-                if (mint.noteCount > 0) Text(pluralStringResource(R.plurals.service_balance, mint.noteCount, formatAmount(mint.balanceMsat), mint.noteCount), style = hint)
+                if (mint.homeOf.isNotEmpty()) Text(stringResource(R.string.mints_home_of, mint.homeOf.joinToString(", ")), style = hint, color = MaterialTheme.colorScheme.primary)
                 Text(
                     mint.pubkey?.let { stringResource(R.string.mints_key, it.take(8) + "…" + it.takeLast(8)) } ?: stringResource(R.string.mints_no_key),
                     style = hint,
