@@ -5,7 +5,25 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.2.0]
+
 ### Added
+
+- Brands can design the app through tokens and code: colour roles, fonts, text styles, corners and spacing from
+  brand resources, appearance in `brand.properties`, their own components and decorations at anchors, wallet events,
+  and brand pages in Settings, the wallet menu or after setup (`core/brand-ui`, design levels in
+  `docs/WHITE_LABEL.md`; `brand-examples/acme` uses every level). Without a brand design the app looks as before.
+
+- Sending ends on a success screen like receiving does: the brand's picture, the amount, who was paid and the fee.
+  By default both show a check mark that draws itself; brands replace it at the anchors `SendSuccess` and
+  `ReceiveSuccess`.
+
+- Setup spells out the whole Lightning Address below the name field.
+
+- History shows the fees a mint pays back when notes are combined.
+
+- In developer mode, debug builds with an account on a local mint can receive from the regtest faucet and fill in a
+  regtest invoice on Send, to try both flows without a terminal.
 
 - History shows an icon for each kind of entry, marks what the wallet did by itself ("Automatic") and what the user
   did, and can be narrowed to received, sent, moved and note maintenance. Brands choose the filters
@@ -17,6 +35,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- A note handed out as a link shows as taken in History once it is claimed, and claiming one's own link takes it
+  back instead of counting as received.
+- A payment to a user on the same mint that was dropped is no longer shown as paid.
 - Nothing is paid, split, combined or renewed through a mint that presents a different signing key than the one
   pinned on first contact; before, only claims and lookups stopped.
 - Lightning Addresses whose invoices carry no or another description hash are paid, as LUD-06 now has the wallet
