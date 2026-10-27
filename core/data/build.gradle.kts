@@ -21,6 +21,27 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 }
 
+// On the JVM: the Room store under Robolectric (without SQLCipher), on its own and on regtest (LNURLCASH_REGTEST=1),
+// where the app restarts over the same database.
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
+    sourceSets.getByName("test").resources.directories.add(rootProject.file("build-logic/test-resources").path)
+}
+
+dependencies {
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(kotlin("test-junit"))
+    testRuntimeOnly(libs.secp256k1.jni.jvm)
+}
+
+tasks.withType<Test>().configureEach {
+    val regtest = providers.environmentVariable("LNURLCASH_REGTEST")
+    inputs.property("LNURLCASH_REGTEST", regtest.orElse(""))
+    regtest.orNull?.let { environment("LNURLCASH_REGTEST", it) }
+    // Robolectric reaches into JDK internals for file descriptors.
+    jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED")
+}
+
 // On a device (./gradlew :core:data:connectedDebugAndroidTest): the Keystore and SQLCipher can't run on the JVM.
 dependencies {
     androidTestImplementation(libs.androidx.test.runner)

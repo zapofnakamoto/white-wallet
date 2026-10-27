@@ -163,4 +163,30 @@ class RegtestMultiAddressTest {
         assertEquals(listOf(alice), wallet.addresses.first().map { it.address.username })
         assertEquals(1_999_000, wallet.balanceMsat.first(), "money already received stays")
     }
+
+    @Test
+    fun `the mint confirms every address is ours, and another one can become the primary`() = runBlocking<Unit> {
+        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), client, policies = NotePolicies.InMemory(ManualStrategy.ID))
+        val alice = name()
+        val bob = name()
+        assertIs<OnboardResult.Ready>(wallet.onboard(alice, host))
+        assertIs<OnboardResult.Ready>(wallet.addAddress(bob, limit = 2))
+
+        wallet.checkAddresses()
+        assertEquals(listOf(AddressStatus.Ours, AddressStatus.Ours), wallet.addresses.first().map { it.status })
+        assertEquals(AddressStatus.Ours, wallet.addressStatus.first())
+
+        val second = wallet.addresses.first().single { it.address.username == bob }.address
+        wallet.setPrimaryAddress(second)
+        assertEquals(bob, wallet.profile.first()?.username)
+        assertEquals(listOf(alice to false, bob to true), wallet.addresses.first().map { it.address.username to it.primary })
+
+        // The old primary is now an extra address the mint lets go; payments to the new one keep arriving.
+        val first = wallet.addresses.first().single { it.address.username == alice }.address
+        assertEquals(UnregisterResult.IsPrimary, wallet.unregisterAddress(second))
+        assertEquals(UnregisterResult.Unregistered, wallet.unregisterAddress(first))
+        pay(bob, 2_000)
+        assertEquals(1, wallet.refresh().newNotes)
+        assertEquals(AddressStatus.Ours, wallet.addressStatus.first())
+    }
 }

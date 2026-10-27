@@ -62,6 +62,48 @@ jobs:
             **/build/reports/
             **/build/test-results/
 
+  regtest:
+    # The wallet against the real reference mints on regtest Lightning (dev/regtest): the proof for every change that
+    # talks to a mint (CONTRIBUTING.md). With LNURLCASH_REGTEST=1 a regtest test fails, rather than skips, when the
+    # stack is down; the last step makes sure none was skipped.
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Start the regtest stack
+        run: dev/regtest/regtest.sh up
+
+      - name: Regtest tests, with coverage
+        env:
+          LNURLCASH_REGTEST: "1"
+        run: ./gradlew :core:wallet:test --tests '*Regtest*' :core:wallet:jacocoTestReport :core:data:testDebugUnitTest --tests '*Regtest*'
+
+      - name: Every regtest test ran
+        run: |
+          results=(core/wallet/build/test-results/test/TEST-*Regtest*.xml core/data/build/test-results/testDebugUnitTest/TEST-*Regtest*.xml)
+          [[ -e "${results[0]}" ]] || { echo "No regtest test results." >&2; exit 1; }
+          if grep -l 'skipped="[1-9]' "${results[@]}"; then echo "Regtest tests were skipped (above)." >&2; exit 1; fi
+
+      - name: Stack logs
+        if: failure()
+        run: docker compose -f dev/regtest/docker-compose.yml logs --no-color > regtest-logs.txt 2>&1 || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regtest-reports
+          path: |
+            core/wallet/build/reports/
+            core/wallet/build/test-results/
+            core/data/build/test-results/
+            regtest-logs.txt
+
   brands:
     # Proves that a fork only edits its brand directory: each sample brand builds as its own app.
     runs-on: ubuntu-latest
@@ -96,7 +138,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [check, brands]
+    needs: [check, regtest, brands]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

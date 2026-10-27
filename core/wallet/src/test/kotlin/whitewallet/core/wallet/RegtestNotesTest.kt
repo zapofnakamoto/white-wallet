@@ -81,6 +81,41 @@ class RegtestNotesTest {
     }
 
     @Test
+    fun `a note to send is quoted with the mint's split fee, and one bigger than any service holds is refused`() = runBlocking<Unit> {
+        val alice = Regtest.phone()
+        alice.fund(2000, 3000)
+        val sendable = alice.wallet.sendableNoteMsat()
+        assertTrue(sendable >= 4_998_000, "both notes merged, less at most the merge fee: $sendable")
+        assertIs<PayQuote.Ok>(alice.wallet.quoteNote(sendable))
+        assertEquals(PayQuote.Ok(1_000_000, 1_000), alice.wallet.quoteNote(1_000_000))
+        assertEquals(PayQuote.Ok(2_999_000, 0), alice.wallet.quoteNote(2_999_000), "a whole note, as it is")
+        assertIs<PayQuote.Invalid>(alice.wallet.quoteNote(5_000_000))
+        assertEquals(CreateNoteResult.Failed(PayProblem.TooMuch), alice.wallet.createNote(5_000_000))
+
+        val made = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000))
+        assertEquals(1_000, made.feeMsat, "charged what the quote said")
+        assertEquals(1_000_000, made.note.amountMsat)
+        assertEquals(4_998_000 - 1_000_000 - 1_000, alice.balance(), "split from one note: the other is untouched")
+    }
+
+    @Test
+    fun `a sent note redeemed before it is taken back stays redeemed, and nothing comes back`() = runBlocking<Unit> {
+        val alice = Regtest.phone()
+        alice.fund(3000)
+        val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note
+        val bob = Regtest.phone()
+        assertIs<ClaimResult.Claimed>(bob.wallet.claim(assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(assertNotNull(sent.link)))))
+
+        // Alice hasn't refreshed: she still sees it waiting, and only the mint can tell her.
+        val before = alice.balance()
+        assertEquals(ReclaimResult.AlreadyRedeemed, alice.wallet.reclaimNote(sent.id))
+        assertEquals(before, alice.balance())
+        assertEquals(SharedNoteState.Redeemed, alice.wallet.sharedNote(sent.id)?.state)
+        assertEquals(ReclaimResult.AlreadyRedeemed, alice.wallet.reclaimNote(sent.id), "and again, from what it knows now")
+        assertEquals(1_000_000, bob.balance(), "claiming is free")
+    }
+
+    @Test
     fun `notes spent with the same phrase on another phone are noticed, and not handed out`() = runBlocking<Unit> {
         val phone1 = Regtest.phone()
         phone1.fund(1000, 2000, 3000)
@@ -144,6 +179,19 @@ class RegtestNotesTest {
         val home = alice.notes().single()
         assertEquals(home.amountMsat, alice.balance())
         assertTrue(home.amountMsat > 4_999_000 + 2_000_000, "the claimed note arrived, less the move's fees: ${home.amountMsat}")
+        assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedService }.automatic)
+    }
+
+    @Test
+    fun `turning collect at home on moves a note waiting on another mint home`() = runBlocking<Unit> {
+        val alice = Regtest.phone(collectDefaults = CollectDefaults(offered = true, enabled = false))
+        assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(3000, second = true)))))
+        assertEquals(1, alice.notes(Regtest.HOST2).size, "off: the note stays where it was claimed")
+
+        alice.wallet.setCollectAtHome(true)
+        assertEquals(true, alice.wallet.collectAtHome.first())
+        assertEquals(emptyList(), alice.notes(Regtest.HOST2))
+        assertTrue(alice.notes().single().amountMsat > 2_990_000, "home, less the move's fees: ${alice.notes()}")
         assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedService }.automatic)
     }
 }

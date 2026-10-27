@@ -101,6 +101,13 @@ test-regtest *gradle_args:
     dev/regtest/regtest.sh up >/dev/null
     LNURLCASH_REGTEST=1 just test {{ gradle_args }}
 
+# Line and branch coverage of the protocol and wallet modules, regtest tests included (<module>/build/reports/jacoco/test/html)
+[group('checks')]
+coverage *gradle_args:
+    dev/regtest/regtest.sh up >/dev/null
+    LNURLCASH_REGTEST=1 just test jacocoTestReport {{ gradle_args }}
+    @echo "core/wallet: file://{{ justfile_directory() }}/core/wallet/build/reports/jacoco/test/html/index.html"
+
 # Android lint (fails on new issues)
 [group('checks')]
 lint:

@@ -48,7 +48,11 @@ The **regtest tests** (`Regtest*` in `core/wallet`) run the wallet against the r
 just test-regtest     # regtest.sh up, then LNURLCASH_REGTEST=1 just test
 ```
 
+`core/data` has its own `Regtest*` tests, for the store the app uses rather than the tests' in-memory one: the wallet runs on Room (under Robolectric, without SQLCipher) and is closed and opened again over the same database, as when the app is killed and restarted mid-payment. `RoomWalletStoreTest` checks the same store without a stack, in every `test` run.
+
 They are the proof for everything the wallet does with a mint: **a change that touches the LNURLcash protocol is finished only when a regtest test verifies it** (see CONTRIBUTING.md). A bug fix starts with a regtest test that reproduces the bug. Failures the real mint won't produce on request are made on the wire instead, with an OkHttp interceptor on the wallet's client (`LnurlcashClient(http = …)`, see `Regtest.client`): a request dropped before it reaches the mint, an answer lost after it landed, a tampered response. Payments that fail or stay pending use hold invoices on `user-lnd` (`Regtest.holdInvoice`), cancelled or settled when the test says so. A mint that changes its signing key is the third mint, moved to the other node with its notes (`Regtest.rotateMint3`). The mock-mint tests stay as extra coverage, not as the only proof.
+
+**Coverage**: `just coverage` runs the tests with the regtest stack and writes a JaCoCo report (lines and branches) for each protocol and wallet module, `core/wallet/build/reports/jacoco/test/html/index.html` for the wallet. A path that talks to a mint and shows up uncovered there needs a regtest test.
 
 `test` also runs the **screen tests** of every feature module: Compose UI tests under Robolectric on the JVM (`*ScreenTest`, `SettingsScreensTest`), in English and German (`@Config(qualifiers = "de")`). Robolectric emulates the SDK set in `build-logic/test-resources/robolectric.properties`, which can lag `compileSdk`.
 
@@ -66,7 +70,7 @@ adb shell am instrument -w com.example.whitewallet.debug.test/androidx.test.runn
 
 The brand scaffolder (`dev/new-brand.sh`, see docs/WHITE_LABEL.md) has Python tests: `python3 -m unittest discover -s dev -p 'test_*.py'`.
 
-CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests, lint, the brand check (`dev/check-brand.sh`), builds both sample brands and generates and builds a brand with the scaffolder; on a `v*` tag it creates the GitHub release with that version's `CHANGELOG.md` section. It builds no release APK: brands sign and publish their own.
+CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the regtest tests of `core/wallet` and `core/data` against the stack (`regtest.sh up` on the runner), failing if any of them was skipped, with the wallet's coverage report and the stack's logs as artifacts; lint, the brand check (`dev/check-brand.sh`), builds both sample brands and generates and builds a brand with the scaffolder; on a `v*` tag it creates the GitHub release with that version's `CHANGELOG.md` section. It builds no release APK: brands sign and publish their own.
 
 ## Local regtest
 

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.JournalStatus
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.client.LnurlcashClient
 
@@ -43,6 +44,50 @@ class RegtestReceiveTest {
         wallet.refresh()
         wallet.refresh()
         assertEquals(listOf(ActivityKind.Received to 1_999_000L), wallet.activity.first().map { it.kind to it.amountMsat })
+    }
+
+    @Test
+    fun `an invoice paid while the app was away is picked up by the next refresh`() = runBlocking<Unit> {
+        val store = InMemoryWalletStore()
+        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID), requireAddress = false)
+        assertIs<CreateAccountResult.Created>(wallet.createAccount(HOST, "Main"))
+        val request = assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(3_000_000))
+        Regtest.pay(request.invoice, 3000)
+
+        // No one asks for the invoice's status: the refresh on the next start settles the journaled mint.
+        var balance = 0L
+        repeat(20) {
+            if (balance > 0) return@repeat
+            wallet.refresh()
+            balance = wallet.balanceMsat.first()
+            if (balance == 0L) delay(500)
+        }
+        assertEquals(2_999_000, balance)
+        assertEquals(0, wallet.unresolvedOperations())
+        assertEquals(listOf(ActivityKind.Received to 2_999_000L), wallet.activity.first().map { it.kind to it.amountMsat })
+        assertEquals(InvoiceStatus.Paid(2_999_000), wallet.invoiceStatus(request.id))
+    }
+
+    @Test
+    fun `an invoice nobody paid expires, and leaves nothing open`() = runBlocking<Unit> {
+        var clock = System.currentTimeMillis()
+        val store = InMemoryWalletStore()
+        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), now = { clock },
+            policies = NotePolicies.InMemory(ManualStrategy.ID), requireAddress = false)
+        assertIs<CreateAccountResult.Created>(wallet.createAccount(HOST, "Main"))
+        suspend fun open() = store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).size
+        val request = assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(1_000_000))
+        wallet.refresh()
+        assertEquals(InvoiceStatus.Waiting, wallet.invoiceStatus(request.id))
+        assertEquals(1, open(), "still waiting for its payment")
+
+        // Past its expiry, and the margin for a payment still on its way.
+        clock = request.expiresAtMillis + 11 * 60_000
+        wallet.refresh()
+        assertEquals(0, open())
+        assertEquals(InvoiceStatus.Expired, wallet.invoiceStatus(request.id))
+        assertEquals(emptyList(), wallet.activity.first())
+        assertEquals(0, wallet.balanceMsat.first())
     }
 
     @Test

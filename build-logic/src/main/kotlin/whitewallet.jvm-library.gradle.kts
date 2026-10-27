@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
+    // Line and branch coverage of the tests that ran: `just coverage` (build/reports/jacoco/test/html).
+    jacoco
 }
 
 val libs = versionCatalogs.named("libs")
@@ -40,5 +42,12 @@ tasks.withType<Test>().configureEach {
         val value = providers.environmentVariable(name)
         inputs.property(name, value.orElse(""))
         value.orNull?.let { environment(name, it) }
+    }
+}
+
+tasks.named<JacocoReport>("jacocoTestReport") {
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
     }
 }

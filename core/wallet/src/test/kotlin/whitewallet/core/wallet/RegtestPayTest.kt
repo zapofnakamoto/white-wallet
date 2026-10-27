@@ -168,4 +168,14 @@ class RegtestPayTest {
         assertEquals(4_999_000 - 1_000_000 - paid.feeMsat, alice.balance())
         assertEquals(1_000_000 - 2_000, carol.wallet.refresh().receivedMsat, "less the second mint's 2 sat fee")
     }
+
+    @Test
+    fun `the account's own address, and a name nobody registered, are refused before anything is spent`() = runBlocking<Unit> {
+        val alice = Regtest.phone()
+        alice.fund(2000)
+        assertEquals(PayPreview.Invalid(PayProblem.OwnAddress), alice.wallet.previewPayment(alice.address))
+        assertEquals(PayPreview.Invalid(PayProblem.PayeeRefused), alice.wallet.previewPayment("${Regtest.name("nobody")}@${Regtest.HOST}"))
+        assertEquals(listOf(1_999_000L), alice.notes().map { it.amountMsat })
+        assertEquals(emptyList(), alice.sent())
+    }
 }
