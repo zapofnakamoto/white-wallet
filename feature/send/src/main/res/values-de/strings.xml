@@ -26,8 +26,9 @@
     <string name="send_paying">Wird bezahlt … Das kann ein paar Sekunden dauern.</string>
 
     <string name="send_paid_title">Bezahlt</string>
-    <string name="send_paid_body">%1$s an %2$s gesendet.</string>
-    <string name="send_paid_body_invoice">%1$s gesendet.</string>
+    <!-- Unter dem Betrag auf dem Erfolgsbildschirm. %1$s: wer bezahlt wurde (eine Adresse oder die Domain eines Zahlungslinks) -->
+    <string name="send_success_to">An %1$s</string>
+    <string name="send_more">Mehr senden</string>
     <string name="send_pending_body_invoice">%1$s wird noch bezahlt. Der Verlauf zeigt, wann es erledigt ist; schlägt es fehl, kommt das Geld zurück.</string>
     <string name="send_pending_title">Unterwegs</string>
     <string name="send_pending_body">%1$s an %2$s wird noch bezahlt. Der Verlauf zeigt, wann es erledigt ist; schlägt es fehl, kommt das Geld zurück.</string>

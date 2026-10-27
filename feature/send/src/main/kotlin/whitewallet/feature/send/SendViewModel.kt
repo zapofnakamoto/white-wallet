@@ -116,6 +116,12 @@ class SendViewModel @Inject constructor(
         _state.update { it.copy(comment = value.take(max)) }
     }
 
+    /** Leaves the success screen for an empty form, to pay someone else. */
+    fun sendMore() {
+        quoteJob?.cancel()
+        _state.update { SendState(faucet = it.faucet?.copy(error = null)) }
+    }
+
     /** Back from the review to the input. */
     fun edit() {
         quoteJob?.cancel()

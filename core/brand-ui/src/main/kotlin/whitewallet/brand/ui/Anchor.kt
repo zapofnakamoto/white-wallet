@@ -28,8 +28,14 @@ value class Anchor(val id: String) {
          */
         val ReceiveSuccess = Anchor("receive.success")
 
-        /** Above a payment once it is understood: its review, while it is paid, and its result. Default: nothing. */
+        /** Above a payment once it is understood: its review, while it is paid, and an unfinished result. Default: nothing. */
         val SendHeader = Anchor("send.header")
+
+        /**
+         * The picture on the screen that says a payment went out (status [whitewallet.brand.WalletStatus.Sent]).
+         * Default: a check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val SendSuccess = Anchor("send.success")
 
         /** Above the result of claiming a note. Default: nothing. */
         val ClaimResult = Anchor("claim.result")

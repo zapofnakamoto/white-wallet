@@ -169,7 +169,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   | `HomeTitle` | the wallet tab's top bar | the app's name |
   | `ReceiveHeader` | above the address or invoice | nothing |
   | `ReceiveSuccess` | the screen after a payment arrived (status `PaymentReceived`) | a check mark that draws itself |
-  | `SendHeader` | above a payment's review, progress and result | nothing |
+  | `SendHeader` | above a payment's review, its progress and a result that isn't a success | nothing |
+  | `SendSuccess` | the screen after a payment went out (status `Sent`) | a check mark that draws itself |
   | `ClaimResult` | above a claimed note's result | nothing |
   | `AppLock` | the app lock screen | `ic_brand_logo` |
   | `EmptyHistory` | above the text of an empty history | nothing |

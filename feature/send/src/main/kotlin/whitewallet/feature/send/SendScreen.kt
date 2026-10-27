@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,7 +20,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -35,12 +32,12 @@ import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ProblemKind
-import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.AmountText
 import whitewallet.core.scanner.QrScanner
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.FaucetState
@@ -49,7 +46,6 @@ import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
-import whitewallet.core.designsystem.R as DesignR
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
@@ -74,7 +70,7 @@ fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, viewModel: SendViewM
         actions = SendActions(
             viewModel::onInputChange, viewModel::startScan, viewModel::stopScan, viewModel::onScanned, viewModel::check,
             viewModel::onAmountChange, viewModel::onCommentChange, viewModel::pay, viewModel::edit, onCreateNote,
-            viewModel::invoiceFromFaucet,
+            viewModel::invoiceFromFaucet, viewModel::sendMore,
         ),
     )
 }
@@ -92,12 +88,27 @@ class SendActions(
     val onCreateNote: () -> Unit,
     /** Developer: have the regtest faucet make an invoice to pay. */
     val onFaucet: () -> Unit = {},
+    /** From the success screen back to an empty form, for another payment. */
+    val onSendMore: () -> Unit = {},
 )
 
 @Composable
 fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions: SendActions) {
     BackHandler(enabled = state.scanning || state.preview != null) { onBack() }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.send_title), onBack.takeIf { !state.paying }) }) { padding ->
+        val paid = state.result as? PayResult.Paid
+        if (paid != null) {
+            val to = state.preview?.payee
+            SuccessScreen(
+                Anchor.SendSuccess, WalletStatus.Sent(paid.amountMsat), stringResource(R.string.send_paid_title), paid.amountMsat,
+                stringResource(R.string.send_done), onDone, stringResource(R.string.send_more), actions.onSendMore, Modifier.padding(padding),
+                details = listOfNotNull(
+                    to?.let { stringResource(R.string.send_success_to, it) },
+                    paid.feeMsat.takeIf { it > 0 }?.let { stringResource(R.string.send_fee, formatAmount(it)) },
+                ),
+            )
+            return@Scaffold
+        }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             val preview = state.preview
             val result = state.result
@@ -280,13 +291,8 @@ private fun QuoteText(quote: PayQuote?) {
 private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: () -> Unit, onTryAgain: () -> Unit) {
     val to = preview.payee
     when (result) {
-        is PayResult.Paid -> {
-            Icon(painterResource(DesignR.drawable.ic_check_circle), contentDescription = null, tint = MaterialTheme.walletColors.success, modifier = Modifier.size(72.dp))
-            Text(stringResource(R.string.send_paid_title), style = MaterialTheme.typography.headlineSmall)
-            val sats = formatAmount(result.amountMsat)
-            Text(if (to != null) stringResource(R.string.send_paid_body, sats, to) else stringResource(R.string.send_paid_body_invoice, sats), textAlign = TextAlign.Center)
-            if (result.feeMsat > 0) Text(stringResource(R.string.send_fee, formatAmount(result.feeMsat)), style = MaterialTheme.typography.bodySmall)
-        }
+        // Shown by SuccessScreen instead.
+        is PayResult.Paid -> Unit
         is PayResult.Pending -> {
             Text(stringResource(R.string.send_pending_title), style = MaterialTheme.typography.headlineSmall)
             val sats = formatAmount(result.amountMsat)

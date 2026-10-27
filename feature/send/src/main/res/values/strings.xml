@@ -26,8 +26,9 @@
     <string name="send_paying">Paying… This can take a few seconds.</string>
 
     <string name="send_paid_title">Paid</string>
-    <string name="send_paid_body">%1$s sent to %2$s.</string>
-    <string name="send_paid_body_invoice">%1$s sent.</string>
+    <!-- Under the amount on the success screen. %1$s: who was paid (an address or a pay link's domain) -->
+    <string name="send_success_to">To %1$s</string>
+    <string name="send_more">Send more</string>
     <string name="send_pending_body_invoice">%1$s is still being paid. History shows when it\'s done; if it fails, the money comes back.</string>
     <string name="send_pending_title">On its way</string>
     <string name="send_pending_body">%1$s to %2$s is still being paid. History shows when it\'s done; if it fails, the money comes back.</string>

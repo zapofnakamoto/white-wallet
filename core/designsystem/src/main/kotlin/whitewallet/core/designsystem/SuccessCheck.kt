@@ -24,7 +24,8 @@ import whitewallet.brand.ui.walletColors
 
 /**
  * Something went well, drawn: a disc in the success colour pops in, a ring goes out from it and a check mark draws
- * itself. With reduced motion it is simply there. The default at [whitewallet.brand.ui.Anchor.ReceiveSuccess].
+ * itself. With reduced motion it is simply there. The default at [whitewallet.brand.ui.Anchor.ReceiveSuccess] and
+ * [whitewallet.brand.ui.Anchor.SendSuccess].
  */
 @Composable
 fun SuccessCheck(modifier: Modifier = Modifier, size: Dp = 112.dp) {
