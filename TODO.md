@@ -32,3 +32,22 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    there ("₿5,000 here", plus "₿2,000 in 2 other accounts" when there is some), "Home mint" where it is. Order: home,
    then trusted, then the rest, each by the account's money there. Untrusted mints stay pickable but marked, and the
    move summary says so before money goes to one. One shared picker component for all these places.
+6. **One recovery phrase for several accounts.** Each account's seed would be a BIP-85 child of one master phrase
+   (`m/83696968'/39'/0'/12'/i'`, account `i`), so one backup restores every account. LUD-26 stays unchanged inside
+   each child (own `m/139'/0`, branch, `cx1` and Lightning address per mint), and an account's child phrase still
+   works on its own in any LUD-26 wallet, e.g. exported to a second device, without revealing the master or the
+   other accounts. Account 0 is child 0, not the master, so the master never touches a mint. Language and word
+   count are part of the path and fixed for good. Only the master is stored; children are derived when needed.
+   Open questions:
+   - Separation gets weaker: a leaked master loses every account, not one. DESIGN.md ("Accounts") argues the
+     opposite today and would change.
+   - Restore has to find accounts: walk `i` with a gap limit, probing purposes 0/1/2 of each child on known mints
+     (rate limits make it slow). Empty accounts, names and home mints don't come back (names and home mints don't
+     today either).
+   - The master phrase in another LUD-26 wallet that doesn't know BIP-85 shows nothing; the backup screens have to
+     say the master phrase is for this app and account phrases work anywhere.
+   - Installed users (since v0.3.0) keep accounts with their own seeds, and imported phrases are the same kind, so
+     there are derived and standalone accounts side by side. Backup has to show which accounts the master phrase
+     doesn't cover.
+   - `maxAccounts=1` brands: the user sees the master phrase, the single account is child 0. Check Zap's
+     onboarding and backup first.
