@@ -104,6 +104,16 @@ android {
     sourceSets.getByName("main").res.directories.add(brandDir.resolve("res").path)
 }
 
+// Installs the debug build and opens it, like `just run`: what the shared Android Studio run configurations in .run/
+// call, since Studio's own app configuration can't pass -PbrandDir.
+tasks.register<Exec>("openDebug") {
+    group = "install"
+    description = "Installs the debug build and opens it on the connected device."
+    dependsOn("installDebug")
+    executable(androidComponents.sdkComponents.adb.get().asFile)
+    args("shell", "monkey", "-p", "${brand("applicationId")}.debug", "-c", "android.intent.category.LAUNCHER", "1")
+}
+
 // The brand's own code, if its directory has a code/ module (included by settings.gradle.kts as :brand-code).
 rootProject.findProject(":brand-code")?.let { brandCode ->
     dependencies { "implementation"(brandCode) }

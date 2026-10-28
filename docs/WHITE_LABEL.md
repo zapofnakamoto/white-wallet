@@ -112,7 +112,7 @@ You can also add `values/strings.xml` here to override any user-facing string fr
 dev/check-brand.sh            # fails if your name, application ID, default mint or colors appear outside brand/
 ```
 
-Install it next to the original: a different `applicationId` installs as a separate app with your name, icon and colors. To build another brand directory without touching `brand/`, pass `-PbrandDir=path`, e.g. `./gradlew :app:assembleDebug -PbrandDir=brand-examples/acme` (and `dev/check-brand.sh brand-examples/acme`).
+Install it next to the original: a different `applicationId` installs as a separate app with your name, icon and colors. To build another brand directory without touching `brand/`, pass `-PbrandDir=path`, e.g. `./gradlew :app:assembleDebug -PbrandDir=brand-examples/acme` (and `dev/check-brand.sh brand-examples/acme`). In Android Studio, the shared run configuration "Acme Cash" (`.run/`) installs and opens it (`:app:openDebug -PbrandDir=brand-examples/acme`); copy it for another brand.
 
 ## Design
 
