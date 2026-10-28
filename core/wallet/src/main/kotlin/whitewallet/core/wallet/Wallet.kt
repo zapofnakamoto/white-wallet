@@ -59,7 +59,7 @@ class Wallet(
     /** How many accounts this wallet may hold (brand `maxAccounts`); [AppDefaults.UNLIMITED] for no limit. */
     val maxAccounts: Int = AppDefaults.UNLIMITED,
     /**
-     * Whether every account needs a Lightning address (brand `requireAddress`). Without, an account is set up with
+     * Whether every account needs a Lightning address (brand `lightningAddress=required`). Without, an account is set up with
      * just its mint ([createAccount]) and receives by invoice ([requestInvoice]) until it registers one.
      */
     val requireAddress: Boolean = true,

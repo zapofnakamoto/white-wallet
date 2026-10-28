@@ -55,4 +55,12 @@ class AppDefaultsTest {
         assertFailsWith<IllegalStateException> { releaseStageFromConfig("gamma", "0.2.0") }
         assertFailsWith<IllegalStateException> { releaseStageFromConfig("auto", "dev") }
     }
+
+    @Test
+    fun `a brand requires an address, lets users skip it, or leaves it out of setup`() {
+        assertEquals(AddressPolicy.Optional, defaults.address)
+        assertEquals(AddressPolicy.Required, AddressPolicy.fromConfig("required"))
+        assertEquals(AddressPolicy.None, AddressPolicy.fromConfig(" None "))
+        assertFailsWith<IllegalStateException> { AddressPolicy.fromConfig("true") }
+    }
 }

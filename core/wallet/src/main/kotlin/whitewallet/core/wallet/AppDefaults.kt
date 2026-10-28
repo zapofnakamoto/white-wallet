@@ -70,6 +70,22 @@ enum class HistoryFilterOption {
     }
 }
 
+/** Whether accounts have a Lightning address (brand `lightningAddress`). */
+enum class AddressPolicy {
+    /** Setup asks for a name and can't continue without one. */
+    Required,
+
+    /** Setup asks for a name, and the user may continue without one (receiving by invoice until they add one). */
+    Optional,
+
+    /** Setup only asks for the mint; users can still get an address later in Settings. */
+    None;
+
+    companion object {
+        fun fromConfig(value: String): AddressPolicy = configEnum("lightningAddress", value)
+    }
+}
+
 data class AppDefaults(
     val defaultMintHost: String,
     val allowMintChange: Boolean,
@@ -85,8 +101,8 @@ data class AppDefaults(
     val maxAccounts: Int = UNLIMITED,
     /** Lightning addresses an account may hold per mint (brand `maxAddresses`); [UNLIMITED] for no limit. */
     val maxAddresses: Int = 1,
-    /** Whether setup asks for a Lightning address (brand `requireAddress`); see [Wallet.requireAddress]. */
-    val requireAddress: Boolean = true,
+    /** Whether setup asks for a Lightning address and may go on without one (brand `lightningAddress`); see [Wallet.requireAddress]. */
+    val address: AddressPolicy = AddressPolicy.Optional,
     /** Where users see and manage their notes (brand `notesView`). */
     val notesView: NotesView = NotesView.Tab,
     /** Which filters the History tab offers (brand `historyFilter`). */

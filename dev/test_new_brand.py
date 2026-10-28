@@ -132,7 +132,7 @@ class BrandDirectoryTest(unittest.TestCase):
             self.assertEqual(expected, {str(p.relative_to(out)) for p in out.rglob("*") if p.is_file()})
             props = (out / "brand.properties").read_text()
             for line in ("appName=Acme Cash", "applicationId=com.acme.cash", "allowMintChange=false", "defaultAmountUnit=sats", "allowUnitChange=false", "supportUrl=https://mint.acme.com",
-                         "requireAddress=false", "maxAccounts=1", "maxAddresses=0", "noteStrategies=manual\n", "defaultNoteStrategy=manual",
+                         "lightningAddress=none", "maxAccounts=1", "maxAddresses=0", "noteStrategies=manual\n", "defaultNoteStrategy=manual",
                          "collectAtHomeMint=always", "collectFeeCap=5", "notesView=hidden", "historyFilter=maintenance", "showMints=false", "developerOptions=unlock",
                          "releaseStage=auto", "trustedMints=mint.example:02" + "ab" * 32):
                 self.assertIn(line, props)

@@ -8,6 +8,7 @@ import dagger.multibindings.IntoSet
 import javax.inject.Singleton
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.AmountUnit
+import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.CollectDefaults
@@ -50,7 +51,7 @@ object WalletModule {
             store, seeds, client, policies = policies, strategies = strategies, trust = trust,
             brandTrusted = TrustedMints.parse(BuildConfig.TRUSTED_MINTS),
             maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
-            requireAddress = BuildConfig.REQUIRE_ADDRESS,
+            requireAddress = AddressPolicy.fromConfig(BuildConfig.LIGHTNING_ADDRESS) == AddressPolicy.Required,
             collectDefaults = CollectDefaults.fromConfig(BuildConfig.COLLECT_AT_HOME_MINT, BuildConfig.COLLECT_FEE_CAP),
         )
 
@@ -89,7 +90,7 @@ object WalletModule {
         allowUnitChange = BuildConfig.ALLOW_UNIT_CHANGE,
         maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
         maxAddresses = AppDefaults.limit(BuildConfig.MAX_ADDRESSES),
-        requireAddress = BuildConfig.REQUIRE_ADDRESS,
+        address = AddressPolicy.fromConfig(BuildConfig.LIGHTNING_ADDRESS),
         notesView = NotesView.fromConfig(BuildConfig.NOTES_VIEW),
         historyFilter = HistoryFilterOption.fromConfig(BuildConfig.HISTORY_FILTER),
         showMints = BuildConfig.SHOW_MINTS,

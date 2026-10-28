@@ -1,5 +1,6 @@
 package whitewallet.app
 
+import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.NotesView
@@ -112,7 +113,7 @@ class MainActivity : FragmentActivity() {
             WalletTheme(design.orElse(DefaultBrandDesign)) {
                 CompositionLocalProvider(LocalAmountUnit provides unit, LocalAppName provides appName, LocalReleaseStage provides defaults.releaseStage, LocalBuildLabel provides BuildConfig.BUILD_LABEL.ifEmpty { null }, LocalWalletEvents provides events.events) {
                     Surface(Modifier.fillMaxSize()) {
-                        AppLockGate(appName) { WalletApp(incoming, BrandScreens(brandScreens), showNotesTab = defaults.notesView == NotesView.Tab, onIncomingHandled = { incoming.value = null }) }
+                        AppLockGate(appName) { WalletApp(incoming, BrandScreens(brandScreens), showNotesTab = defaults.notesView == NotesView.Tab, addressAfterRestore = defaults.address != AddressPolicy.None, onIncomingHandled = { incoming.value = null }) }
                     }
                 }
             }
@@ -200,7 +201,7 @@ internal object Routes {
 }
 
 @Composable
-private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNotesTab: Boolean, onIncomingHandled: () -> Unit, start: StartViewModel = hiltViewModel()) {
+private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNotesTab: Boolean, addressAfterRestore: Boolean, onIncomingHandled: () -> Unit, start: StartViewModel = hiltViewModel()) {
     val startRoute by start.start.collectAsStateWithLifecycle()
     val first = startRoute ?: run {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { WalletCircularProgress() }
@@ -208,10 +209,10 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
     }
     val appName = stringResource(R.string.app_name)
     val nav = rememberNavController()
-    // A restored account has no address yet; picking one (if this app requires one) replaces everything before it, so
+    // A restored account has no address yet; picking one (unless this app has none) replaces everything before it, so
     // back can't return there.
     val afterRestore = { host: String ->
-        nav.navigate(if (BuildConfig.REQUIRE_ADDRESS) "restore/address?host=$host" else Routes.HOME) { popUpTo(0) { inclusive = true } }
+        nav.navigate(if (addressAfterRestore) "restore/address?host=$host" else Routes.HOME) { popUpTo(0) { inclusive = true } }
     }
     // Links from outside open once the wallet is set up (Home is on the back stack): a note in Claim, anything else
     // in Send. Nothing is claimed or paid until the user confirms there.

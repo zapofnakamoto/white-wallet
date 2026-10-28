@@ -17,6 +17,8 @@
     <!-- %1$s: the whole Lightning address, name@host -->
     <string name="onboarding_address_preview">Your address: %1$s</string>
     <string name="onboarding_start">Get started</string>
+    <string name="onboarding_skip_address">Continue without an address</string>
+    <string name="onboarding_skip_address_hint">You can receive with an invoice and get an address later in Settings.</string>
     <string name="onboarding_claim">Claim this address</string>
     <string name="onboarding_change_title">Choose a new address</string>
     <string name="default_account_name">Main</string>

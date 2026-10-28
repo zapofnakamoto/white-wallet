@@ -40,7 +40,8 @@ android {
         buildConfigField("String", "MINT_SUGGESTIONS", "\"${brand.getProperty("mintSuggestions", "").trim()}\"")
         buildConfigField("String", "SUPPORT_URL", "\"${brand("supportUrl")}\"")
         buildConfigField("String", "DEFAULT_AMOUNT_UNIT", "\"${brand.getProperty("defaultAmountUnit", "bitcoin").trim()}\"")
-        buildConfigField("boolean", "REQUIRE_ADDRESS", brand.getProperty("requireAddress", "true").trim().toBooleanStrict().toString())
+        check(brand.getProperty("requireAddress") == null) { "brand.properties: requireAddress was renamed to lightningAddress=required|optional|none" }
+        buildConfigField("String", "LIGHTNING_ADDRESS", "\"${brand.getProperty("lightningAddress", "optional").trim()}\"")
         buildConfigField("String", "COLLECT_AT_HOME_MINT", "\"${brand.getProperty("collectAtHomeMint", "off").trim()}\"")
         buildConfigField("int", "COLLECT_FEE_CAP", brand.getProperty("collectFeeCap", "2").trim())
         buildConfigField("String", "TRUSTED_MINTS", "\"" + brand.getProperty("trustedMints", "").trim() + "\"")

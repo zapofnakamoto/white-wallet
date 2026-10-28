@@ -19,7 +19,7 @@ import whitewallet.lnurl.Bolt11
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 
-/** A brand without required addresses (`requireAddress=false`): accounts with just a mint, receiving by invoice. */
+/** A brand without required addresses (`lightningAddress=optional` or `none`): accounts with just a mint, receiving by invoice. */
 class NoAddressTest {
     private var clock = 1_800_000_000_000L
 

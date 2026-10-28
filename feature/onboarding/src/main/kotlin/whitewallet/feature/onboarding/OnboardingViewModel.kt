@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
@@ -96,8 +97,10 @@ data class OnboardingState(
     val restoredMsat: Long = 0,
     /** Set once a restore was cancelled: whether another account remains on this device. */
     val restoreCancelled: Boolean? = null,
-    /** False when a new account starts without a Lightning address (brand `requireAddress=false`): only its mint is asked for. */
+    /** False when a new account starts without a Lightning address (brand `lightningAddress=none`): only its mint is asked for. */
     val withAddress: Boolean = true,
+    /** The user may go on without an address (brand `lightningAddress=optional`): first run, new account, after a restore. */
+    val canSkipAddress: Boolean = false,
 ) {
     val changingAddress: Boolean get() = mode == OnboardingMode.ChangeAddress
     val addingAddress: Boolean get() = mode == OnboardingMode.AddAddress
@@ -108,6 +111,7 @@ data class OnboardingState(
     val forExistingAccount: Boolean get() = changingAddress || addingAddress || addingElsewhere || restoringAddress
     val canSubmit: Boolean get() = !busy && (if (withAddress) addressOk else host.isNotBlank()) &&
         (mode != OnboardingMode.NewAccount || accountName.isNotBlank()) && (mode != OnboardingMode.AddAddressElsewhere || host.isNotBlank())
+    val canSkip: Boolean get() = canSkipAddress && !busy && host.isNotBlank() && (mode != OnboardingMode.NewAccount || accountName.isNotBlank())
     private val addressOk: Boolean get() = username.isNotBlank() && availability !is Availability.Taken && availability !is Availability.Invalid
 }
 
@@ -134,7 +138,10 @@ class OnboardingViewModel @Inject constructor(
     private val preferences: AppPreferences,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
-        OnboardingState(UsernameSuggestions.random(), defaults.defaultMintHost, defaults.allowMintChange, withAddress = defaults.requireAddress),
+        OnboardingState(
+            UsernameSuggestions.random(), defaults.defaultMintHost, defaults.allowMintChange,
+            withAddress = defaults.address != AddressPolicy.None, canSkipAddress = defaults.address == AddressPolicy.Optional,
+        ),
     )
     val state: StateFlow<OnboardingState> = _state
     private var checkJob: Job? = null
@@ -161,14 +168,14 @@ class OnboardingViewModel @Inject constructor(
                 }
                 OnboardingMode.ChangeAddress, OnboardingMode.AddAddress -> {
                     val host = wallet.homeHost.first() ?: _state.value.host
-                    _state.update { it.copy(mode = mode, host = host, canChangeHost = false, withAddress = true) }
+                    _state.update { it.copy(mode = mode, host = host, canChangeHost = false, withAddress = true, canSkipAddress = false) }
                 }
                 OnboardingMode.AddAddressElsewhere -> {
                     homeHost = wallet.homeHost.first()
                     val other = mintOptions(defaults, preferences.developerMode.first()).firstNotNullOfOrNull { o -> o.host?.takeIf { it != homeHost } }
                     // The same name as at home is the natural first try.
                     val name = wallet.profile.first()?.username.orEmpty()
-                    _state.update { it.copy(mode = mode, host = other.orEmpty(), canChangeHost = true, withAddress = true, username = name) }
+                    _state.update { it.copy(mode = mode, host = other.orEmpty(), canChangeHost = true, withAddress = true, canSkipAddress = false, username = name) }
                 }
                 OnboardingMode.RestoreAddress -> {
                     // The mint the account was restored from (also after an app restart half way through).
@@ -242,10 +249,14 @@ class OnboardingViewModel @Inject constructor(
         val s = _state.value
         if (!s.canSubmit) return
         checkJob?.cancel()
+        busy { submit(s) }
+    }
+
+    private fun busy(work: suspend () -> Unit) {
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                submit(s)
+                work()
             } catch (e: IOException) {
                 fail(OnboardingError.Network(e.message.orEmpty()))
             } catch (e: MintKeyChangedException) {
@@ -292,6 +303,17 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun onContinue() = _state.update { it.copy(done = true) }
+
+    /**
+     * Goes on without an address: a new account is set up with just its mint; a restored one already exists and opens
+     * as it is. Either can get an address later in Settings.
+     */
+    fun skipAddress() {
+        val s = _state.value
+        if (!s.canSkip) return
+        checkJob?.cancel()
+        if (s.restoringAddress) onContinue() else busy { createAccount(s) }
+    }
 
     /** Removes the just-restored account again, before it has an address (see [Wallet.abortRestore]). */
     fun cancelRestore() {

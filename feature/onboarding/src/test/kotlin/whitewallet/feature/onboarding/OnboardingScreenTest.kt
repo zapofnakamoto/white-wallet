@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -100,6 +101,61 @@ class OnboardingScreenTest {
         }
         compose.onNodeWithText("Your address").assertDoesNotExist()
         compose.onNodeWithText("Mint").assertExists()
+    }
+
+    @Test
+    fun anOptionalAddressCanBeSkippedAtSetup() {
+        var skipped = false
+        val state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false, canSkipAddress = true)
+        compose.setContent {
+            OnboardingScreen(
+                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
+                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {}, onSkipAddress = { skipped = true },
+            )
+        }
+        compose.onNodeWithText("Get started").assertExists()
+        compose.onNodeWithText("You can receive with an invoice and get an address later in Settings.").performScrollTo().assertExists()
+        compose.onNodeWithText("Continue without an address").performScrollTo().performClick()
+        assertTrue(skipped)
+    }
+
+    @Test
+    fun aRequiredAddressCantBeSkipped() {
+        val state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false)
+        compose.setContent {
+            OnboardingScreen(
+                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
+                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+            )
+        }
+        compose.onNodeWithText("Continue without an address").assertDoesNotExist()
+    }
+
+    @Test
+    fun aNewAccountWithoutAddressStillNeedsItsName() {
+        val state = OnboardingState(username = "", host = "mint.example", canChangeHost = false, mode = OnboardingMode.NewAccount, canSkipAddress = true)
+        compose.setContent {
+            OnboardingScreen(
+                "Wallet", logo = {}, state = state, onBack = {}, onUsernameChange = {}, mint = MintActions({}, {}),
+                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+            )
+        }
+        compose.onNodeWithText("Continue without an address").performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun aRestoredAccountCanGoOnWithoutItsAddress() {
+        var skipped = false
+        val state = OnboardingState(username = "", host = "mint.example", canChangeHost = false, mode = OnboardingMode.RestoreAddress, canSkipAddress = true)
+        compose.setContent {
+            OnboardingScreen(
+                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
+                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {}, onSkipAddress = { skipped = true },
+            )
+        }
+        compose.onNodeWithText("Use this address").assertExists()
+        compose.onNodeWithText("Continue without an address").performScrollTo().performClick()
+        assertTrue(skipped)
     }
 
     @Test

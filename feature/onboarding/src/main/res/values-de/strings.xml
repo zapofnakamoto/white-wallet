@@ -13,6 +13,8 @@
     <!-- %1$s: die ganze Lightning-Adresse, name@dienst -->
     <string name="onboarding_address_preview">Deine Adresse: %1$s</string>
     <string name="onboarding_start">Los geht\'s</string>
+    <string name="onboarding_skip_address">Ohne Adresse weiter</string>
+    <string name="onboarding_skip_address_hint">Du kannst mit einer Rechnung empfangen und dir später in den Einstellungen eine Adresse holen.</string>
     <string name="onboarding_claim">Diese Adresse sichern</string>
     <string name="onboarding_change_title">Neue Adresse wählen</string>
     <string name="default_account_name">Haupt</string>

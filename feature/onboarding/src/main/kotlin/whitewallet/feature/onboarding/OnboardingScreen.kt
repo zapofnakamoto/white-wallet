@@ -95,7 +95,7 @@ fun OnboardingRoute(
     LaunchedEffect(state.restoreCancelled) { state.restoreCancelled?.let(onRestoreCancelled) }
     OnboardingScreen(
         appName, logo, state, onBack, viewModel::onUsernameChange, MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange), viewModel::onSuggestion,
-        viewModel::start, viewModel::onContinue, viewModel::onAccountNameChange, onRestore, viewModel::cancelRestore,
+        viewModel::start, viewModel::onContinue, viewModel::onAccountNameChange, onRestore, viewModel::cancelRestore, viewModel::skipAddress,
     )
 }
 
@@ -113,6 +113,7 @@ fun OnboardingScreen(
     onAccountNameChange: (String) -> Unit,
     onRestore: (() -> Unit)? = null,
     onCancelRestore: () -> Unit = {},
+    onSkipAddress: () -> Unit = {},
 ) {
     val claimed = state.claimed
     var confirmCancel by rememberSaveable { mutableStateOf(false) }
@@ -146,6 +147,7 @@ fun OnboardingScreen(
                     )
                     Text(stringResource(R.string.restore_address_body, state.host), textAlign = TextAlign.Center)
                     AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.restore_address_submit))
+                    SkipAddress(state, onSkipAddress)
                     WalletButton(kind = ButtonKind.Text, onClick = { confirmCancel = true }, enabled = !state.busy) { Text(stringResource(R.string.restore_cancel)) }
                 } else if (state.addingAddress) {
                     Text(stringResource(R.string.onboarding_add_body, state.host), textAlign = TextAlign.Center)
@@ -168,6 +170,7 @@ fun OnboardingScreen(
                     )
                     if (state.withAddress) {
                         AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_create_account))
+                        SkipAddress(state, onSkipAddress)
                     } else {
                         MintForm(state, mint, onStart, stringResource(R.string.onboarding_create_account))
                     }
@@ -194,6 +197,7 @@ fun OnboardingScreen(
             )
             if (state.withAddress) {
                 AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_start))
+                SkipAddress(state, onSkipAddress)
             } else {
                 // Without an address and with a single mint, this is just the button.
                 MintForm(state, mint, onStart, stringResource(R.string.onboarding_start))
@@ -255,6 +259,19 @@ private fun AddressForm(
     if (state.canChangeHost) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
     ErrorText(state)
     PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
+}
+
+/** Where the brand lets users go on without a Lightning address: the way past the name, and what they can do instead. */
+@Composable
+private fun SkipAddress(state: OnboardingState, onSkip: () -> Unit) {
+    if (!state.canSkipAddress) return
+    WalletButton(kind = ButtonKind.Text, onClick = onSkip, enabled = state.canSkip) { Text(stringResource(R.string.onboarding_skip_address)) }
+    Text(
+        stringResource(R.string.onboarding_skip_address_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }
 
 /** A new account without a Lightning address: the mint (when there is a choice) and the button. */

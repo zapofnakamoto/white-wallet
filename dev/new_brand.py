@@ -455,9 +455,10 @@ allowMintChange={"false" if o.lock else "true"}
 defaultAmountUnit={o.unit}
 # Whether users may switch the unit under Settings → Amounts. With false, amounts always show in defaultAmountUnit.
 allowUnitChange={"false" if o.lock_unit else "true"}
-# Whether every account needs a Lightning address. With false, setup only creates the account (a single button when
-# allowMintChange=false); users receive by invoice and can still get an address later in Settings.
-requireAddress={"false" if o.no_address else "true"}
+# Lightning addresses at setup: required = setup asks for a name, optional = it asks but users may continue without
+# one, none = setup only creates the account (a single button when allowMintChange=false). Without an address, users
+# receive by invoice and can still get one later in Settings.
+lightningAddress={"none" if o.no_address else "optional"}
 # Accounts the app holds (1 hides everything about accounts) and Lightning addresses an account may register per
 # mint. 0 means no limit.
 maxAccounts={o.max_accounts}
