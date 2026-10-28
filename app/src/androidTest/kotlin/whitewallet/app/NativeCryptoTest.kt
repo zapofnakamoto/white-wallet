@@ -2,11 +2,13 @@ package whitewallet.app
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import fr.acinq.bitcoin.MnemonicCode
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import whitewallet.core.wallet.RecoveryPhrase
 import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cx1
 import whitewallet.lnurlcash.NotePurpose
@@ -15,6 +17,13 @@ import whitewallet.lnurlcash.NotePurpose
 @RunWith(AndroidJUnit4::class)
 class NativeCryptoTest {
     private val seed = MnemonicCode.toSeed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", "")
+
+    /** The platform's PBKDF2-HMAC-SHA512 gives the seed bitcoin-kmp does, so restores find the same keys. */
+    @Test
+    fun recoveryPhraseSeedMatchesBip39() {
+        val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
+        assertArrayEquals(seed, RecoveryPhrase.seed(words))
+    }
 
     @Test
     fun spendsAreSignedAndVerifiedPerDomain() {

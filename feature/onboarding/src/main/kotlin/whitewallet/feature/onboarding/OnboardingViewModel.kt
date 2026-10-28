@@ -367,6 +367,12 @@ class OnboardingViewModel @Inject constructor(
         return listOf("$base${10 + random.nextInt(90)}", "$base${1000 + random.nextInt(9000)}", UsernameSuggestions.random(random)).distinct()
     }
 
+    /** A new account's recovery phrase, made ahead for the suggested name, isn't kept once this screen is gone. */
+    override fun onCleared() {
+        val mode = _state.value.mode
+        if (mode == OnboardingMode.FirstRun || mode == OnboardingMode.NewAccount) wallet.forgetPreparedPhrase()
+    }
+
     private companion object {
         const val DEBOUNCE_MILLIS = 500L
     }

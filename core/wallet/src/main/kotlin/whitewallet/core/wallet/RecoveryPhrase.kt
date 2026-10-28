@@ -1,6 +1,8 @@
 package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.MnemonicCode
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 
 /** What is wrong with a typed or pasted recovery phrase, if anything. */
 sealed interface PhraseCheck {
@@ -46,6 +48,65 @@ object RecoveryPhrase {
         val typing = !input.last().isWhitespace() && WORDS_LIST.any { it.startsWith(last) }
         return if (typing && check is PhraseCheck.UnknownWords && check.words == listOf(last)) PhraseCheck.WrongCount(words(input).size - 1) else check
     }
+
+    /**
+     * [words] as space-separated ASCII bytes, for encrypting. Made without an intermediate string, so the caller can
+     * zero the result once it is used.
+     */
+    fun toBytes(words: List<String>): ByteArray {
+        val bytes = ByteArray(words.sumOf { it.length } + (words.size - 1).coerceAtLeast(0))
+        var i = 0
+        words.forEachIndexed { n, word ->
+            if (n > 0) bytes[i++] = SPACE
+            for (c in word) bytes[i++] = c.code.toByte()
+        }
+        return bytes
+    }
+
+    /**
+     * The words of [toBytes]'s output. Each is the wordlist's own string, so reading a phrase leaves no copies of
+     * its words behind, only their order in the returned list. [bytes] is left as is; the caller zeroes it.
+     */
+    fun fromBytes(bytes: ByteArray): List<String> {
+        val words = ArrayList<String>(24)
+        var start = 0
+        for (end in 0..bytes.size) {
+            if (end < bytes.size && bytes[end] != SPACE) continue
+            words += WORDS_LIST.firstOrNull { it.matches(bytes, start, end) } ?: bytes.decodeToString(start, end)
+            start = end + 1
+        }
+        return words
+    }
+
+    /**
+     * The BIP-39 seed of [words] with no passphrase: PBKDF2-HMAC-SHA512 over the space-joined words, salt "mnemonic",
+     * 2048 rounds. Unlike `MnemonicCode.toSeed`, the phrase is never joined into a string; it goes in as characters
+     * that are zeroed afterwards. (The English words are ASCII, so BIP-39's NFKD step changes nothing.) The caller
+     * zeroes the returned seed.
+     */
+    fun seed(words: List<String>): ByteArray {
+        val chars = CharArray(words.sumOf { it.length } + (words.size - 1).coerceAtLeast(0))
+        var i = 0
+        words.forEachIndexed { n, word ->
+            if (n > 0) chars[i++] = ' '
+            word.toCharArray(chars, i)
+            i += word.length
+        }
+        val spec = PBEKeySpec(chars, SALT, 2048, 512)
+        return try {
+            SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512").generateSecret(spec).encoded
+        } finally {
+            spec.clearPassword()
+            chars.fill('\u0000')
+        }
+    }
+
+    private val SALT = "mnemonic".encodeToByteArray()
+
+    private fun String.matches(bytes: ByteArray, start: Int, end: Int): Boolean =
+        length == end - start && indices.all { this[it].code.toByte() == bytes[start + it] }
+
+    private const val SPACE = ' '.code.toByte()
 
     private val WORDS_LIST = MnemonicCode.englishWordlist
 

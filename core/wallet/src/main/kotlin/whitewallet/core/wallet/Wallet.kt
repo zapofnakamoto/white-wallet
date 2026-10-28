@@ -73,7 +73,6 @@ class Wallet(
     /** How long [pay] waits for a melt's payment to settle before reporting it as pending. */
     internal var payWaitMillis = 30_000L
     private val branches = ConcurrentHashMap<Pair<String, String>, CashBranch>()
-    private val seedCache = ConcurrentHashMap<String, ByteArray>()
     /** The last check of each address, by (account id, address). In memory; see [refresh] and [checkAddresses]. */
     private val addressStatuses = MutableStateFlow<Map<Pair<String, String>, AddressStatus>>(emptyMap())
 
@@ -356,8 +355,13 @@ class Wallet(
      */
     suspend fun defaultUsername(host: String): String? {
         val h = Onboarding.normalizeHost(host) ?: return null
-        val words = preparedWords()
-        return withContext(Dispatchers.Default) { DefaultAddress.names(CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), h)).first() }
+        val prepared = prepared()
+        prepared.names[h]?.let { return it }
+        val words = prepared.words.toList()
+        return withContext(Dispatchers.Default) {
+            val seed = RecoveryPhrase.seed(words)
+            try { DefaultAddress.names(CashBranch.fromSeed(seed, h)).first() } finally { seed.fill(0) }
+        }.also { prepared.names[h] = it }
     }
 
     /**
@@ -687,7 +691,6 @@ class Wallet(
         policies.clear(id)
         _lastPolicyRun.update { it - id }
         collectBlocks.update { blocks -> blocks.filterKeys { it.first != id } }
-        seedCache.remove(id)?.fill(0)
         branches.keys.removeAll { it.first == id }
         addressStatuses.update { statuses -> statuses.filterKeys { it.first != id } }
         failedProbes.update { probes -> probes.filterKeys { it.accountId != id } }
@@ -800,12 +803,20 @@ class Wallet(
 
     internal suspend fun activeId(): String = checkNotNull(store.currentAccountId()) { "no active account" }
 
-    internal suspend fun branch(accountId: String, host: String): CashBranch =
-        branches.getOrPut(accountId to host) { CashBranch.fromSeed(seedBytes(accountId), host) }
+    /**
+     * The account's branch on [host], kept for the life of the process. The seed it comes from is not: it can derive
+     * the keys of every mint, so it is made again for each new branch and zeroed straight after.
+     */
+    internal suspend fun branch(accountId: String, host: String): CashBranch {
+        branches[accountId to host]?.let { return it }
+        val words = checkNotNull(seeds.load(accountId)) { "account has no seed" }
+        val seed = RecoveryPhrase.seed(words)
+        return try { branches.getOrPut(accountId to host) { CashBranch.fromSeed(seed, host) } } finally { seed.fill(0) }
+    }
 
     /** The branch, or null if the account has no seed (so nothing can be ours). */
     internal suspend fun branchIfSeeded(accountId: String?, host: String): CashBranch? =
-        if (accountId == null || (seedCache[accountId] == null && seeds.load(accountId) == null)) null else branch(accountId, host)
+        if (accountId == null || (branches[accountId to host] == null && seeds.load(accountId) == null)) null else branch(accountId, host)
 
     internal fun setAddressStatus(accountId: String, address: String, status: AddressStatus?) = addressStatuses.update {
         if (status == null) it - (accountId to address) else it + ((accountId to address) to status)
@@ -813,31 +824,46 @@ class Wallet(
 
     /**
      * The recovery phrase the next new account gets, made ahead so onboarding can suggest its seed-derived name
-     * ([DefaultAddress]). Held in memory only until an account is created with it.
+     * ([DefaultAddress]). Held in memory only until an account is created with it or [forgetPreparedPhrase] is called.
+     * Its entries are the wordlist's own strings, so emptying the list leaves nothing of the phrase behind.
      */
-    private var preparedWords: List<String>? = null
+    @Volatile
+    private var prepared: PreparedPhrase? = null
 
-    private fun preparedWords(): List<String> =
-        preparedWords ?: MnemonicCode.toMnemonics(ByteArray(16).also(random::nextBytes)).also { preparedWords = it }
+    /**
+     * A phrase made ahead and the names already derived from it, by host: deriving one runs PBKDF2 and BIP-32, which
+     * leave copies behind that can't be zeroed, so each mint's name is derived once. The names are public.
+     */
+    private class PreparedPhrase(val words: MutableList<String>) {
+        val names = ConcurrentHashMap<String, String>()
+    }
+
+    private fun prepared(): PreparedPhrase = prepared ?: run {
+        val entropy = ByteArray(16).also(random::nextBytes)
+        try { PreparedPhrase(MnemonicCode.toMnemonics(entropy).toMutableList()).also { prepared = it } } finally { entropy.fill(0) }
+    }
+
+    /**
+     * Drops the phrase made ahead for the next new account. Call it when onboarding is left: a later one gets a new
+     * phrase (and so other suggested names).
+     */
+    fun forgetPreparedPhrase() {
+        prepared?.words?.clear()
+        prepared = null
+    }
 
     /** Stores the prepared recovery phrase (or a fresh one) for [accountId]. */
     internal suspend fun createSeed(accountId: String) {
-        seeds.save(accountId, preparedWords())
-        preparedWords = null
+        // A copy: the store may keep the list it is given, and the prepared one is emptied next.
+        seeds.save(accountId, prepared().words.toList())
+        forgetPreparedPhrase()
     }
 
     /** Drops [accountId]'s phrase; with [keepForRetry] it becomes the prepared one again, so its names stay the same. */
     internal suspend fun discardSeed(accountId: String, keepForRetry: Boolean = false) {
-        if (keepForRetry) seeds.load(accountId)?.let { preparedWords = it }
+        if (keepForRetry) seeds.load(accountId)?.let { prepared = PreparedPhrase(it.toMutableList()) }
         seeds.clear(accountId)
-        seedCache.remove(accountId)?.fill(0)
         branches.keys.removeAll { it.first == accountId }
-    }
-
-    private suspend fun seedBytes(accountId: String): ByteArray {
-        seedCache[accountId]?.let { return it }
-        val words = checkNotNull(seeds.load(accountId)) { "account has no seed" }
-        return MnemonicCode.toSeed(words, "").also { seedCache[accountId] = it }
     }
 
     private companion object {

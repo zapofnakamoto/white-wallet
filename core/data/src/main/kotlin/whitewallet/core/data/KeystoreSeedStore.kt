@@ -16,6 +16,7 @@ import javax.crypto.spec.GCMParameterSpec
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import whitewallet.core.wallet.RecoveryPhrase
 import whitewallet.core.wallet.SeedStore
 
 /** Stores each account's BIP-39 words encrypted with a non-exportable AES-GCM key in the Android Keystore. */
@@ -25,13 +26,15 @@ internal class KeystoreSeedStore(private val prefs: DataStore<Preferences>) : Se
         val bytes = Base64.decode(stored, Base64.NO_WRAP)
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes, 0, IV_SIZE))
-        return cipher.doFinal(bytes, IV_SIZE, bytes.size - IV_SIZE).decodeToString().split(' ')
+        val plain = cipher.doFinal(bytes, IV_SIZE, bytes.size - IV_SIZE)
+        return try { RecoveryPhrase.fromBytes(plain) } finally { plain.fill(0) }
     }
 
     override suspend fun save(accountId: String, words: List<String>) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, key())
-        val encrypted = cipher.iv + cipher.doFinal(words.joinToString(" ").encodeToByteArray())
+        val plain = RecoveryPhrase.toBytes(words)
+        val encrypted = try { cipher.iv + cipher.doFinal(plain) } finally { plain.fill(0) }
         prefs.edit { it[seedKey(accountId)] = Base64.encodeToString(encrypted, Base64.NO_WRAP) }
     }
 
