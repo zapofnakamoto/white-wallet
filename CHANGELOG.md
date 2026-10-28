@@ -20,6 +20,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   was taken back. A brand's `when` over the status picks the new case up in its `else` branch.
 - Brands choose what users can do with their notes (`noteActions`: `share`, `split`, `combine`, `move`, `recheck`,
   `renew`; all by default). Without an action that works on several notes, the notes view has no selecting.
+- "Note" is a brand term, like "mint": the 80 strings that name the note (German "Schein") now sit in each feature
+  module's block of brand terms, renamed *Brand terms*, and docs/WHITE_LABEL.md lists them all, with those a brand
+  never shows under `notesView=hidden` or `historyFilter=none`. A brand that calls notes something else overrides
+  these, per language, as whole sentences. No key changed. `dev/new-brand.sh` writes them into a new brand's
+  commented-out strings, and a test fails on a new string outside the blocks that names the mint or the note.
 
 ### Fixed
 

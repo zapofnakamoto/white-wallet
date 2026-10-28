@@ -515,11 +515,11 @@ LAUNCHER_ICON = """<?xml version="1.0" encoding="utf-8"?>
 def brand_terms(qualifier: str) -> list[tuple[str, str]]:
     """
     The brand-term strings (and plurals) of every feature module in one language, in module order, each as its whole
-    element. The block marked "Brand term" in the English strings names them; the elements come from that language's file.
+    element. The block marked "Brand terms" in the English strings names them; the elements come from that language's file.
     """
     terms = []
     for english in sorted(ROOT.glob("feature/*/src/main/res/values/strings.xml")):
-        block = re.search(r"Brand term:.*?-->(.*?)(?:\n\s*\n|</resources>)", english.read_text(encoding="utf-8"), re.S)
+        block = re.search(r"Brand terms?:.*?-->(.*?)(?:\n\s*\n|</resources>)", english.read_text(encoding="utf-8"), re.S)
         if not block:
             continue
         translated = english.parent.parent / qualifier / "strings.xml"
@@ -542,9 +542,10 @@ def strings_template(qualifier: str) -> str:
     return f"""<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      Brand term ({language}). The app calls the party that holds users' funds a "mint". To use another word, move
-      these strings out of this comment and rewrite each as a whole sentence in this language (keep the %1$s
-      placeholders). Do it for every language the app ships. See docs/WHITE_LABEL.md.
+      Brand terms ({language}). The app calls the party that holds users' funds a "mint" and what it issues a "note".
+      To use another word for either, move that word's strings out of this comment and rewrite each as a whole
+      sentence in this language (keep the %1$s placeholders). Do it for every language the app ships. See
+      docs/WHITE_LABEL.md.
 
 {lines}
     -->

@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Brand terms (see values/strings.xml). -->
+    <string name="send_create_note">Schein erstellen</string>
+    <string name="note_create_title">Als Schein senden</string>
+    <string name="note_create_body">Erstelle einen Schein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
+    <string name="note_available">Du kannst einen Schein über bis zu %1$s erstellen.</string>
+    <string name="note_create">Schein erstellen</string>
+    <string name="note_create_pending">Der Schein ließ sich noch nicht bestätigen, deshalb wurde nichts weitergegeben. Versuche es gleich noch einmal.</string>
+    <string name="note_title">Schein</string>
+    <string name="note_qr_description">QR-Code des Scheins</string>
+    <string name="note_uncertified">Der Betrag dieses Scheins ist nicht zertifiziert.</string>
+    <string name="note_share_title">Schein teilen</string>
+    <string name="note_reclaim_title">Diesen Schein zurückholen?</string>
+    <string name="note_already_redeemed">Zu spät: Jemand hat diesen Schein schon eingelöst.</string>
+    <string name="note_not_found">Dieser Schein ist nicht in diesem Konto.</string>
+
     <string name="send_title">Senden</string>
     <string name="send_input">Rechnung, Lightning-Adresse oder Link</string>
     <string name="send_input_hint">lnbc… oder name@example.com</string>
@@ -52,29 +67,16 @@
     <string name="send_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Dein Geld ist wieder in deinem Guthaben.</string>
 
     <string name="send_or">oder</string>
-    <string name="send_create_note">Schein erstellen</string>
-    <string name="note_create_title">Als Schein senden</string>
-    <string name="note_create_body">Erstelle einen Schein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
-    <string name="note_available">Du kannst einen Schein über bis zu %1$s erstellen.</string>
-    <string name="note_create">Schein erstellen</string>
-    <string name="note_create_pending">Der Schein ließ sich noch nicht bestätigen, deshalb wurde nichts weitergegeben. Versuche es gleich noch einmal.</string>
-    <string name="note_title">Schein</string>
-    <string name="note_qr_description">QR-Code des Scheins</string>
     <string name="note_bearer_warning">Jeder mit diesem Code kann ihn ausgeben. Teile ihn nur mit der Person, für die er gedacht ist.</string>
     <string name="note_waiting">Noch nicht eingelöst. Bis dahin kannst du ihn zurückholen.</string>
-    <string name="note_uncertified">Der Betrag dieses Scheins ist nicht zertifiziert.</string>
     <string name="note_share">Teilen</string>
-    <string name="note_share_title">Schein teilen</string>
     <string name="note_copy">Kopieren</string>
     <string name="note_reclaim">Zurückholen</string>
     <string name="note_cancel">Abbrechen</string>
-    <string name="note_reclaim_title">Diesen Schein zurückholen?</string>
     <string name="note_reclaim_body">Das Geld kommt zurück in dein Guthaben und dieser Code funktioniert nicht mehr. Hat ihn schon jemand eingelöst, ändert sich nichts.</string>
     <string name="note_redeemed">Eingelöst. Der Empfänger hat das Geld.</string>
-    <string name="note_already_redeemed">Zu spät: Jemand hat diesen Schein schon eingelöst.</string>
     <string name="note_reclaimed">Zurückgeholt. Das Geld ist wieder in deinem Guthaben.</string>
     <string name="note_reclaim_pending">Wird zurückgeholt … Der Verlauf zeigt, wann es bestätigt ist.</string>
-    <string name="note_not_found">Dieser Schein ist nicht in diesem Konto.</string>
     <!-- Entwicklermodus auf einer lokalen Regtest-Mint (Debug-Builds): der Faucet von dev/regtest erstellt eine Rechnung zum Bezahlen. %1$s: ein Betrag -->
     <string name="send_faucet">Entwickler: eine Regtest-Rechnung über %1$s bezahlen</string>
     <!-- %1$s: der Fehler des Faucets oder der Verbindung, wie er kam -->

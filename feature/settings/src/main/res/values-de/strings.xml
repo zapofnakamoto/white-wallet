@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand term (see values/strings.xml). -->
+    <!-- Brand terms (see values/strings.xml). -->
     <string name="settings_home_mint">Haupt-Mint</string>
     <string name="settings_mints">Mints</string>
     <string name="addresses_home_mint">Haupt-Mint: %1$s</string>
@@ -16,6 +16,28 @@
     <string name="notes_collect_search">Alles zur Haupt-Mint verschieben</string>
     <string name="mints_intro">Vertraue einer Mint anhand ihres Signaturschlüssels: Scheine von vertrauten Mints sind mit einem Haken markiert. Signiert eine Mint einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut.</string>
     <string name="mints_add_field">Mint, z. B. example.com</string>
+    <string name="mint_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Scheine dort sind unverändert.</string>
+    <string name="settings_notes">Schein-Einstellungen</string>
+    <string name="settings_note_list">Scheine</string>
+    <string name="settings_note_list_hint">Deine Scheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>
+    <string name="settings_account_contents">Wiederherstellungsphrase, Adressen, Scheine</string>
+    <string name="delete_what">Das entfernt dieses Konto von diesem Handy: seine Wiederherstellungsphrase, seine Scheine und seine Einstellungen. Andere Konten sind nicht betroffen.</string>
+    <string name="settings_note_strategy">Umgang mit Scheinen</string>
+    <string name="settings_strategy_manual_hint">Scheine so behalten, wie sie ankommen.</string>
+    <string name="settings_strategy_single">Nur einen Schein behalten</string>
+    <string name="settings_auto_renew">Eingehende Scheine automatisch erneuern</string>
+    <string name="settings_auto_renew_hint">Verschiebt jeden empfangenen Schein auf einen neuen Schlüssel dieser Wallet.</string>
+    <string name="mint_invalid">Antwortet, kann aber keine Scheine verwahren</string>
+    <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
+    <plurals name="mint_balance">
+        <item quantity="one">%1$s in %2$d Schein</item>
+        <item quantity="other">%1$s in %2$d Scheinen</item>
+    </plurals>
+    <string name="mint_watch_only_hint">Damit kann eine andere App die Scheine dieses Kontos hier sehen und an es zahlen, aber nie ausgeben.</string>
+    <string name="notes_collect_hint">Scheine, die du anderswo bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Scheinen“ oben.</string>
+    <string name="notes_collect_pending">Die Scheine von %1$s werden verschoben; sie kommen gleich an.</string>
+    <string name="mints_add_invalid">Diese Adresse kann keine Scheine verwahren.</string>
+    <string name="mints_remove_body">Die App vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die App merkt.</string>
 
     <string name="settings_title">Einstellungen</string>
     <string name="settings_recovery_phrase">Wiederherstellungsphrase</string>
@@ -55,12 +77,8 @@
     <string name="addresses_unregister_unknown">Es ließ sich nicht bestätigen, dass %1$s abgemeldet wurde (%2$s). Prüfe es gleich noch einmal.</string>
     <string name="addresses_primary_changed">%1$s ist jetzt deine Hauptadresse.</string>
     <string name="mint_home_hint">Neue Adressen dieses Kontos entstehen hier.</string>
-    <string name="mint_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Scheine dort sind unverändert.</string>
     <string name="settings_home_mint_hint">%1$s · hier liegen deine Hauptadresse und neue Adressen</string>
     <string name="keys_home_mint">%1$s (Haupt)</string>
-    <string name="settings_notes">Schein-Einstellungen</string>
-    <string name="settings_note_list">Scheine</string>
-    <string name="settings_note_list_hint">Deine Scheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>
     <string name="settings_amounts">Beträge</string>
     <string name="settings_amounts_hint">So werden Beträge angezeigt. Die Zahlen bleiben gleich: 1 ₿ ist die kleinste Einheit, also 1 Sat, und 100.000.000 davon ergeben ein BTC.</string>
     <string name="settings_unit_bitcoin">Bitcoin (₿)</string>
@@ -121,7 +139,6 @@
 
     <string name="settings_account_section">Konto: %1$s</string>
     <string name="settings_account">Konto</string>
-    <string name="settings_account_contents">Wiederherstellungsphrase, Adressen, Scheine</string>
     <string name="settings_backup_now">Sichere deine Wiederherstellungsphrase</string>
     <string name="settings_backup_now_hint">Ohne sie ist dein Geld weg, wenn du dieses Handy verlierst.</string>
     <string name="settings_app_lock_on">App-Sperre an</string>
@@ -131,7 +148,6 @@
     <string name="settings_delete_hint">Entfernt das Konto und seine Wiederherstellungsphrase von diesem Handy</string>
 
     <string name="delete_title">Konto löschen</string>
-    <string name="delete_what">Das entfernt dieses Konto von diesem Handy: seine Wiederherstellungsphrase, seine Scheine und seine Einstellungen. Andere Konten sind nicht betroffen.</string>
     <string name="delete_funds">Dein Geld wird nicht gelöscht. Es bleibt bei %1$s, und zurück bekommst du es nur mit deiner Wiederherstellungsphrase.</string>
     <string name="delete_address">Deine Adresse %1$s bleibt mit dieser Wiederherstellungsphrase verknüpft.</string>
     <string name="delete_balance">Guthaben in diesem Konto: %1$s</string>
@@ -215,12 +231,7 @@
     <string name="keys_renewed_all">%1$d Scheine erneuert (%2$s), %3$d fehlgeschlagen, %4$d ausstehend</string>
     <string name="keys_renew_failed">Erneuern fehlgeschlagen: %1$s</string>
     <string name="keys_renew_not_possible">Nichts zu erneuern: %1$s</string>
-    <string name="settings_note_strategy">Umgang mit Scheinen</string>
     <string name="settings_strategy_manual">Manuell</string>
-    <string name="settings_strategy_manual_hint">Scheine so behalten, wie sie ankommen.</string>
-    <string name="settings_strategy_single">Nur einen Schein behalten</string>
-    <string name="settings_auto_renew">Eingehende Scheine automatisch erneuern</string>
-    <string name="settings_auto_renew_hint">Verschiebt jeden empfangenen Schein auf einen neuen Schlüssel dieser Wallet.</string>
     <string name="settings_auto_renew_included">In „%1$s“ enthalten.</string>
     <string name="settings_policy_run">Letzter automatischer Lauf: %1$d zusammengelegt, %2$d geteilt, %3$d erneuert, %4$d fehlgeschlagen</string>
     <string name="settings_policy_stopped">Angehalten: %1$s</string>
@@ -262,23 +273,16 @@
     <string name="keys_renew_pending">Noch nicht bestätigt. Die Wallet prüft beim nächsten Aktualisieren erneut.</string>
     <string name="keys_set_body">Niedrigster erlaubter Wert: #%1$d. Benutzte Schlüssel werden nie neu vergeben, daher kann der Index nicht unter Schlüssel fallen, die diese Wallet benutzt hat.</string>
 
-
     <string name="mint_reachable">Erreichbar</string>
     <string name="mint_unreachable">Gerade nicht erreichbar</string>
-    <string name="mint_invalid">Antwortet, kann aber keine Scheine verwahren</string>
     <string name="mint_key_changed_short">Signaturschlüssel geändert</string>
     <string name="mint_check_again">Erneut prüfen</string>
     <string name="mint_key_remembered">Gemerkter Schlüssel</string>
     <string name="mint_key_new">Neuer Schlüssel</string>
     <string name="mint_key_accept">Neuen Schlüssel verwenden</string>
     <string name="mint_key_accept_title">Neuen Schlüssel verwenden?</string>
-    <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
     <string name="mint_key_accept_confirm">Verwenden</string>
     <string name="mint_your_money">Dein Geld hier</string>
-    <plurals name="mint_balance">
-        <item quantity="one">%1$s in %2$d Schein</item>
-        <item quantity="other">%1$s in %2$d Scheinen</item>
-    </plurals>
     <string name="mint_fees">Gebühren</string>
     <string name="mint_fees_value">%1$s pro Vorgang, dazu %2$s von Zahlungen</string>
     <string name="mint_limits">Limits</string>
@@ -289,7 +293,6 @@
     <string name="mint_website">Website</string>
     <string name="mint_open">Öffnen</string>
     <string name="mint_watch_only">Beobachtungsschlüssel</string>
-    <string name="mint_watch_only_hint">Damit kann eine andere App die Scheine dieses Kontos hier sehen und an es zahlen, aber nie ausgeben.</string>
     <string name="mint_watch_only_qr">QR-Code des Beobachtungsschlüssels</string>
     <string name="mint_show">Zeigen</string>
     <string name="mint_hide">Ausblenden</string>
@@ -316,11 +319,9 @@
     <string name="addresses_get">Lightning-Adresse holen</string>
     <string name="settings_no_address">Noch keine: du empfängst per Rechnung</string>
     <string name="notes_collect_title">Alles zu %1$s verschieben</string>
-    <string name="notes_collect_hint">Scheine, die du anderswo bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Scheinen“ oben.</string>
     <string name="notes_collect_fee_cap">Nur wenn die Gebühren höchstens</string>
     <string name="notes_collect_fee_cap_option">%1$d %%</string>
     <string name="notes_collect_moved">%1$s von %2$s verschoben (Gebühr %3$s)</string>
-    <string name="notes_collect_pending">Die Scheine von %1$s werden verschoben; sie kommen gleich an.</string>
     <string name="notes_collect_fee_too_high">Nicht verschoben: %1$s bei %2$s. Die Gebühr von %3$s ist höher als %4$d %%.</string>
     <string name="notes_collect_too_small">Nicht verschoben: %1$s bei %2$s ist zu wenig zum Verschieben.</string>
     <string name="notes_collect_failed">Nicht verschoben: %1$s bei %2$s. Wird später erneut versucht.</string>
@@ -334,7 +335,6 @@
     <string name="mints_add_hint">Füge eine Adresse hinzu, um ihr zu vertrauen, bevor du von dort etwas empfängst.</string>
     <string name="mints_add">Hinzufügen</string>
     <string name="mints_add_unreachable">Keine Verbindung. Prüfe die Adresse und deine Verbindung.</string>
-    <string name="mints_add_invalid">Diese Adresse kann keine Scheine verwahren.</string>
     <plurals name="settings_mints_summary">
         <item quantity="one">%1$d bekannt, %2$d vertraut</item>
         <item quantity="other">%1$d bekannt, %2$d vertraut</item>
@@ -399,7 +399,6 @@
         <item quantity="other">%1$d Adressen</item>
     </plurals>
     <string name="mints_remove_title">%1$s entfernen?</string>
-    <string name="mints_remove_body">Die App vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die App merkt.</string>
     <string name="mints_remove_confirm">Entfernen</string>
     <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto ihn nutzt: als Zuhause, oder mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
 </resources>

@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand term (see values/strings.xml). -->
+    <!-- Brand terms (see values/strings.xml). -->
     <string name="claim_home_mint">Auf %1$s, deiner Haupt-Mint</string>
-
     <string name="claim_title">Schein einlösen</string>
     <string name="claim_input">Link eines Scheins einfügen</string>
-    <string name="claim_paste">Einfügen</string>
-    <string name="claim_scan">QR-Code scannen</string>
     <string name="claim_scan_hint">Richte die Kamera auf den QR-Code des Scheins.</string>
-    <string name="claim_scan_cancel">Abbrechen</string>
     <string name="claim_check">Schein prüfen</string>
-    <string name="claim_action">%1$s einlösen</string>
-    <string name="claim_mint">Auf %1$s</string>
-    <string name="claim_bearer_warning">Bis du ihn einlöst, kann jeder, der dir diesen Link gegeben hat, ihn noch ausgeben.</string>
     <string name="claim_invalid">Kein gültiger Schein: %1$s</string>
     <string name="claim_spent">Dieser Schein wurde bereits ausgegeben.</string>
     <string name="claim_in_wallet">Dieser Schein ist bereits in deiner Wallet.</string>
+    <string name="claim_other_mint">Dieser Schein liegt bei %1$s und bleibt dort.</string>
+
+    <string name="claim_paste">Einfügen</string>
+    <string name="claim_scan">QR-Code scannen</string>
+    <string name="claim_scan_cancel">Abbrechen</string>
+    <string name="claim_action">%1$s einlösen</string>
+    <string name="claim_mint">Auf %1$s</string>
+    <string name="claim_bearer_warning">Bis du ihn einlöst, kann jeder, der dir diesen Link gegeben hat, ihn noch ausgeben.</string>
     <string name="claim_done">%1$s eingelöst</string>
     <string name="claim_finish">Fertig</string>
     <string name="claim_certified">Zertifiziert: Der Betrag ist signiert</string>
     <string name="claim_not_certified">Nicht zertifiziert: Der Betrag lässt sich nicht prüfen.</string>
-    <string name="claim_other_mint">Dieser Schein liegt bei %1$s und bleibt dort.</string>
     <string name="claim_network">Keine Verbindung: %1$s</string>
     <string name="claim_failed">Das Einlösen wurde abgelehnt: %1$s</string>
     <string name="claim_pending">Noch nicht bestätigt. Deine Wallet prüft beim nächsten Aktualisieren erneut.</string>

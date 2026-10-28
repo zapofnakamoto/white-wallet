@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+      Brand terms: the strings in this block name the party that holds users' funds ("mint" by default) or the notes
+      it issues ("note"). A brand that uses other words overrides exactly these, per language, in
+      brand/res/values*/strings.xml. All other strings are written without either word (developer options and search
+      keywords aside). See docs/WHITE_LABEL.md.
+    -->
+    <string name="send_create_note">Create a note</string>
+    <string name="note_create_title">Send as a note</string>
+    <string name="note_create_body">Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
+    <string name="note_available">You can make a note of up to %1$s.</string>
+    <string name="note_create">Create note</string>
+    <string name="note_create_pending">The note couldn\'t be confirmed yet, so nothing was handed out. Try again in a moment.</string>
+    <string name="note_title">Note</string>
+    <string name="note_qr_description">QR code of the note</string>
+    <string name="note_uncertified">The amount of this note isn\'t certified.</string>
+    <string name="note_share_title">Share note</string>
+    <string name="note_reclaim_title">Take this note back?</string>
+    <string name="note_already_redeemed">Too late: someone already redeemed this note.</string>
+    <string name="note_not_found">This note isn\'t in this account.</string>
+
     <string name="send_title">Send</string>
     <string name="send_input">Invoice, Lightning address or link</string>
     <string name="send_input_hint">lnbc… or name@example.com</string>
@@ -53,29 +73,16 @@
 
     <!-- Sending a note: a link or QR code that holds the money itself. -->
     <string name="send_or">or</string>
-    <string name="send_create_note">Create a note</string>
-    <string name="note_create_title">Send as a note</string>
-    <string name="note_create_body">Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
-    <string name="note_available">You can make a note of up to %1$s.</string>
-    <string name="note_create">Create note</string>
-    <string name="note_create_pending">The note couldn\'t be confirmed yet, so nothing was handed out. Try again in a moment.</string>
-    <string name="note_title">Note</string>
-    <string name="note_qr_description">QR code of the note</string>
     <string name="note_bearer_warning">Anyone with this code can spend it. Share it only with the person it\'s for.</string>
     <string name="note_waiting">Not redeemed yet. You can take it back until it is.</string>
-    <string name="note_uncertified">The amount of this note isn\'t certified.</string>
     <string name="note_share">Share</string>
-    <string name="note_share_title">Share note</string>
     <string name="note_copy">Copy</string>
     <string name="note_reclaim">Take back</string>
     <string name="note_cancel">Cancel</string>
-    <string name="note_reclaim_title">Take this note back?</string>
     <string name="note_reclaim_body">The money returns to your balance and this code stops working. If someone has redeemed it already, nothing changes.</string>
     <string name="note_redeemed">Redeemed. The recipient has the money.</string>
-    <string name="note_already_redeemed">Too late: someone already redeemed this note.</string>
     <string name="note_reclaimed">Taken back. The money is in your balance again.</string>
     <string name="note_reclaim_pending">Taking it back… History shows when it\'s confirmed.</string>
-    <string name="note_not_found">This note isn\'t in this account.</string>
     <!-- Developer mode on a local regtest mint (debug builds): dev/regtest's faucet makes an invoice to pay. %1$s: an amount -->
     <string name="send_faucet">Developer: pay a regtest invoice of %1$s</string>
     <!-- %1$s: the faucet's or the connection's error, as it came -->

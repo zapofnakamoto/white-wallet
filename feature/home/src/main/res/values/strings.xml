@@ -1,42 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      Brand term: the strings in this block name the party that holds users' funds ("mint" by default). A brand that
-      uses another word overrides exactly these, per language, in brand/res/values*/strings.xml. All other strings
-      are written without that word. See docs/WHITE_LABEL.md.
+      Brand terms: the strings in this block name the party that holds users' funds ("mint" by default) or the notes
+      it issues ("note"). A brand that uses other words overrides exactly these, per language, in
+      brand/res/values*/strings.xml. All other strings are written without either word (developer options and search
+      keywords aside). See docs/WHITE_LABEL.md.
     -->
     <string name="activity_moved_mint_other">Moved to another mint</string>
+    <string name="home_tab_notes">Notes</string>
+    <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
+    <string name="home_wallet_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
+    <string name="history_filter_maintenance">Note maintenance</string>
+    <string name="history_only_maintenance">So far only note maintenance, which doesn\'t change your balance.</string>
+    <string name="history_show_maintenance">Show note maintenance</string>
+    <string name="activity_claimed">Claimed a note</string>
+    <plurals name="activity_combined">
+        <item quantity="one">Combined %1$d note</item>
+        <item quantity="other">Combined %1$d notes</item>
+    </plurals>
+    <string name="activity_split">Split a note in two</string>
+    <string name="activity_sent_note">Sent a note</string>
+    <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a note may cost a split fee.</string>
+    <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it.</string>
 
     <string name="home_receive">Receive</string>
     <string name="home_send">Send</string>
     <string name="home_send_soon">Sending is coming soon</string>
     <string name="home_tab_wallet">Wallet</string>
     <string name="home_tab_history">History</string>
-    <string name="home_tab_notes">Notes</string>
     <string name="home_switch_account">Switch account</string>
-    <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
-    <string name="home_wallet_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
-    <string name="history_filter_maintenance">Note maintenance</string>
     <string name="history_filter_received">Received</string>
     <string name="history_filter_sent">Sent</string>
     <string name="history_filter_moved">Moved</string>
-    <string name="history_only_maintenance">So far only note maintenance, which doesn\'t change your balance.</string>
-    <string name="history_show_maintenance">Show note maintenance</string>
     <string name="activity_received">Received</string>
-    <string name="activity_claimed">Claimed a note</string>
     <string name="activity_moved_out">Moved to %1$s</string>
     <string name="activity_sent">Sent</string>
     <string name="activity_sent_to">Sent to %1$s</string>
     <string name="activity_moved_out_other">Moved to another account</string>
     <string name="activity_moved_in">Moved from %1$s</string>
     <string name="activity_moved_in_other">Moved from another account</string>
-    <plurals name="activity_combined">
-        <item quantity="one">Combined %1$d note</item>
-        <item quantity="other">Combined %1$d notes</item>
-    </plurals>
     <string name="activity_renewed">Moved onto a new key</string>
-    <string name="activity_split">Split a note in two</string>
-    <string name="activity_sent_note">Sent a note</string>
     <string name="activity_note_waiting">Not redeemed yet</string>
     <string name="activity_note_redeemed">Redeemed</string>
     <string name="activity_note_taken_back">Taken back</string>
@@ -78,12 +81,10 @@
         <item quantity="one">%1$d operation is still being confirmed.</item>
         <item quantity="other">%1$d operations are still being confirmed.</item>
     </plurals>
-    <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a note may cost a split fee.</string>
     <string name="move_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>
     <string name="move_insufficient">Not enough funds for this amount, including fees.</string>
     <string name="move_split_mints">Your funds are held in different places. Move a smaller amount, or everything.</string>
     <string name="move_failed">Refused: %1$s</string>
     <string name="home_key_changed_title">%1$s changed its signing key</string>
-    <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it.</string>
     <string name="home_key_changed_action">Details</string>
 </resources>

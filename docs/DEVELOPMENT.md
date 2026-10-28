@@ -106,7 +106,7 @@ All user-facing text must work in any language:
 - Never build sentences by concatenation or fill a word into a sentence; a sentence is one resource with `%1$s`-style placeholders.
 - Symbols that carry meaning (✓) belong inside the resource; direction-dependent icons are `autoMirrored` (e.g. `ChevronIcon`); icon-only buttons get a content description.
 - Times use the locale's pattern (`localTime(millis, "jm")`), not a fixed `HH:mm`.
-- The word for the custodian appears only in the strings marked *Brand term* (see docs/WHITE_LABEL.md).
+- The words for the custodian ("mint") and its notes ("note") appear only in the strings marked *Brand terms*, at the top of each feature module's strings (see docs/WHITE_LABEL.md); a new string that needs either word goes there, in every language. Developer options and search keywords are the exception.
 
 English is the source; **German** (`values-de`) is complete in every module and proves the rules above (plurals, word order, `1.049 ₿` with the sign after the number). Lint fails on a missing translation, so a new string needs its German too. Debug builds include the pseudo-locales **en-XA** (long, accented text) and **ar-XB** (right to left); pick one per app under Android's App languages, or `adb shell cmd locale set-app-locales <package> --locales ar-XB` (and `--locales ""` to go back). ar-XB also flips the digits inside placeholders; real right-to-left languages don't. Screen titles and settings section headers are headings for screen readers.
 

@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="receive_title">Receive</string>
+    <!--
+      Brand terms: the strings in this block name the party that holds users' funds ("mint" by default) or the notes
+      it issues ("note"). A brand that uses other words overrides exactly these, per language, in
+      brand/res/values*/strings.xml. All other strings are written without either word (developer options and search
+      keywords aside). See docs/WHITE_LABEL.md.
+    -->
     <string name="receive_hint">Anyone can pay this address from any Lightning wallet. Payments arrive as notes in this wallet.</string>
+    <string name="receive_claim">Claim a note instead</string>
+
+    <string name="receive_title">Receive</string>
     <string name="receive_copy">Copy</string>
     <string name="receive_share">Share</string>
     <string name="receive_copied">Address copied</string>
-    <string name="receive_claim">Claim a note instead</string>
     <string name="receive_request_amount">Request a specific amount</string>
     <string name="receive_invoice_intro">Create a Lightning invoice for the amount you want. It can be paid from any Lightning wallet, once.</string>
     <string name="receive_invoice_create">Create invoice</string>

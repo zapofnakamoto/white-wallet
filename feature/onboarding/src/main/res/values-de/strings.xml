@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand term (see values/strings.xml). -->
+    <!-- Brand terms (see values/strings.xml). -->
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Adresse der Mint</string>
     <string name="onboarding_mint_custody">Dein Guthaben verwahrt die Mint, die du wählst. Halte die Beträge klein.</string>
     <string name="onboarding_add_elsewhere_title">Adresse bei einer anderen Mint</string>
     <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einer anderen Mint, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei dieser Mint an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
     <string name="restore_error_mint">Diese Mint geht für eine Wiederherstellung nicht. Prüfe, ob es die ist, die du vorher benutzt hast.</string>
-
     <string name="onboarding_tagline">Inhaberscheine auf Lightning. Mit einem Tipp startklar.</string>
+
     <string name="onboarding_username">Dein Name</string>
     <!-- %1$s: die ganze Lightning-Adresse, name@dienst -->
     <string name="onboarding_address_preview">Deine Adresse: %1$s</string>

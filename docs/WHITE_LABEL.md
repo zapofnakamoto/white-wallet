@@ -49,9 +49,13 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 | `defaultAmountUnit` | How amounts are shown (until the user picks another unit under Settings → Amounts, if allowed): `bitcoin` (default, [BIP-177](https://github.com/bitcoin/bips/blob/master/bip-0177.mediawiki): the smallest unit as a whole number with the sign, `₿1,000`) or `sats` (`1,000 sats`). The numbers are the same either way |
 | `allowUnitChange` | Whether users may switch the unit under Settings → Amounts (default `true`). With `false` the page is gone and every amount shows in `defaultAmountUnit` |
 
-### Naming the custodian, in any language
+### Naming the custodian and its notes, in any language
 
-The app calls the party that holds users' funds a **mint**. Most text is written without that word ("Couldn't connect", "The notes are already there."), so translations stay natural. Only the strings that can't do without it name it, 28 per language; they sit in a block marked *Brand term* at the top of each feature module's `res/values/strings.xml`, and their keys say `mint` where the text does (`<screen>_<what it says>`):
+The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them, 108 per language: 28 name the mint (5 of those the note as well) and 80 more the note. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. Developer options and search keywords are not brand terms.
+
+#### The mint
+
+Keys say `mint` where the text does (`<screen>_<what it says>`):
 
 | String | Default (en) |
 |---|---|
@@ -86,7 +90,96 @@ The app calls the party that holds users' funds a **mint**. Most text is written
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 
-To use another word ("custodian", "provider", …), override exactly these in `brand/res/values/strings.xml`, and once per language in `brand/res/values-<lang>/strings.xml`, as whole translated sentences. Word substitution is deliberately not offered: articles, gender and case change with the word in many languages. Keep the `%1$s` placeholders. `dev/check-brand.sh` fails on an override whose string no longer exists (a key renamed in a White Wallet release), so a brand notices before its word quietly falls back to "mint".
+#### The note
+
+German calls it "Schein". Some screens only exist with some settings: with `notesView=hidden` the notes view's strings (every `notes_*` string of `feature/notes`), `home_tab_notes`, `settings_note_list` and `settings_note_list_hint` never show, and with `historyFilter=none` neither do `history_filter_maintenance`, `history_show_maintenance` and `history_only_maintenance`. The rest can.
+
+| String | Default (en) |
+|---|---|
+| `claim_title` | Claim a note |
+| `claim_input` | Paste a note link |
+| `claim_scan_hint` | Point the camera at the note's QR code. |
+| `claim_check` | Check note |
+| `claim_invalid` | Not a valid note: %1$s |
+| `claim_spent` | This note has already been spent. |
+| `claim_in_wallet` | This note is already in your wallet. |
+| `claim_other_mint` | This note is held by %1$s and stays there. |
+| `home_tab_notes` | Notes |
+| `home_empty` | Nothing here yet. Share your address to get paid, or claim a note. |
+| `home_wallet_empty` | Nothing here yet. Share your address to get paid, or claim a note. |
+| `history_filter_maintenance` | Note maintenance |
+| `history_only_maintenance` | So far only note maintenance, which doesn't change your balance. |
+| `history_show_maintenance` | Show note maintenance |
+| `activity_claimed` | Claimed a note |
+| `activity_combined` | Combined %1$d note / Combined %1$d notes (plural) |
+| `activity_split` | Split a note in two |
+| `activity_sent_note` | Sent a note |
+| `move_hint` | Funds stay where they are held and move into the other account's keys. Moving part of a note may cost a split fee. |
+| `home_key_changed_body` | Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it. |
+| `notes_title` | Notes |
+| `notes_settings` | Note settings |
+| `notes_count` | %1$d note / %1$d notes (plural) |
+| `notes_sort` | Sort notes |
+| `notes_select_hint` | Tap notes to select them. |
+| `notes_share_hint` | Share as QR hands over the whole note. To give part of it, split it first. |
+| `notes_renew_hint` | Renew gives the note a fresh key, for example after you showed its QR code to someone by mistake. |
+| `notes_checked_ok` | Checked %1$d note: still there. / Checked %1$d notes: all still there. (plural) |
+| `notes_checked_gone` | %1$d note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone. / %1$d notes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone. (plural) |
+| `notes_already_spent` | This note was already spent, so it wasn't shared. It's no longer in your balance. |
+| `notes_empty` | No notes yet. Notes appear here once you receive money. |
+| `notes_strategy_warning` | "%1$s" is on: it rearranges your notes again on every refresh. |
+| `notes_selected` | %1$d note selected · %2$s / %1$d notes selected · %2$s (plural) |
+| `notes_combined` | Combined into one note of %1$s. |
+| `notes_split_title` | Split note |
+| `notes_split_amount_bitcoin` | First note, in ₿ |
+| `notes_split_amount_sats` | First note, in sats |
+| `notes_split_preview` | You get one note of %1$s and one of %2$s. |
+| `notes_split_switches_manual` | "%1$s" would undo this, so this switches to managing notes yourself. |
+| `notes_move_hint` | The notes are paid out over Lightning and arrive there as a new note. Both sides charge their fees. |
+| `notes_problem_not_found` | These notes changed in the meantime. Select them again. |
+| `notes_problem_too_few` | Select at least two notes to combine. |
+| `notes_problem_invalid_amount` | This note is too small to split, or the amount doesn't fit. |
+| `notes_problem_same_mint` | The notes are already there. |
+| `notes_problem_mint_invalid` | That address can't hold notes. |
+| `onboarding_tagline` | Bearer notes on Lightning. Ready in one tap. |
+| `receive_hint` | Anyone can pay this address from any Lightning wallet. Payments arrive as notes in this wallet. |
+| `receive_claim` | Claim a note instead |
+| `send_create_note` | Create a note |
+| `note_create_title` | Send as a note |
+| `note_create_body` | Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet. |
+| `note_available` | You can make a note of up to %1$s. |
+| `note_create` | Create note |
+| `note_create_pending` | The note couldn't be confirmed yet, so nothing was handed out. Try again in a moment. |
+| `note_title` | Note |
+| `note_qr_description` | QR code of the note |
+| `note_uncertified` | The amount of this note isn't certified. |
+| `note_share_title` | Share note |
+| `note_reclaim_title` | Take this note back? |
+| `note_already_redeemed` | Too late: someone already redeemed this note. |
+| `note_not_found` | This note isn't in this account. |
+| `mint_key_changed` | %1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn't send or receive there. Your notes there are unchanged. |
+| `settings_notes` | Note settings |
+| `settings_note_list` | Notes |
+| `settings_note_list_hint` | See your notes one by one, share, split or combine them |
+| `settings_account_contents` | Recovery phrase, addresses, notes |
+| `delete_what` | This removes this account from this phone: its recovery phrase, its notes and its settings. Other accounts are not affected. |
+| `settings_note_strategy` | Note strategy |
+| `settings_strategy_manual_hint` | Keep notes as they arrive. |
+| `settings_strategy_single` | Keep only one note |
+| `settings_auto_renew` | Auto-renew incoming notes |
+| `settings_auto_renew_hint` | Moves each received note to a fresh key of this wallet. |
+| `mint_invalid` | Answers, but can't hold notes |
+| `mint_key_accept_body` | Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost. |
+| `mint_balance` | %1$s in %2$d note / %1$s in %2$d notes (plural) |
+| `mint_watch_only_hint` | Lets another app see this account's notes here and receive to it, but never spend. |
+| `notes_collect_hint` | Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too. |
+| `notes_collect_pending` | Moving the notes from %1$s; they arrive shortly. |
+| `mints_add_invalid` | That address can't hold notes. |
+| `mints_remove_body` | The app forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it's like the first time: the key it shows then is the one the app remembers. |
+
+#### Using your own words
+
+To use another word ("custodian", "provider", "voucher", …), override exactly that term's strings in `brand/res/values/strings.xml`, and once per language in `brand/res/values-<lang>/strings.xml`, as whole translated sentences. Word substitution is deliberately not offered: articles, gender and case change with the word in many languages. Keep the `%1$s` placeholders. `dev/check-brand.sh` fails on an override whose string no longer exists (a key renamed in a White Wallet release), so a brand notices before its word quietly falls back to "mint" or "note". New strings that need either word go into the block, so this list stays complete.
 
 ## 2. `brand/res/`
 

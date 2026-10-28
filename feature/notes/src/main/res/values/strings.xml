@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      Brand term: the strings in this block name the party that holds users' funds ("mint" by default). A brand that
-      uses another word overrides exactly these, per language, in brand/res/values*/strings.xml. All other strings
-      are written without that word. See docs/WHITE_LABEL.md.
+      Brand terms: the strings in this block name the party that holds users' funds ("mint" by default) or the notes
+      it issues ("note"). A brand that uses other words overrides exactly these, per language, in
+      brand/res/values*/strings.xml. All other strings are written without either word (developer options and search
+      keywords aside). See docs/WHITE_LABEL.md.
     -->
     <string name="notes_home_mint">Home mint</string>
     <plurals name="notes_mints">
@@ -13,19 +14,48 @@
     <string name="notes_move_title">Move to another mint</string>
     <string name="notes_move_target">Mint, e.g. example.com</string>
     <string name="notes_problem_different_mints">Select notes on one mint.</string>
-
     <string name="notes_title">Notes</string>
     <string name="notes_settings">Note settings</string>
     <plurals name="notes_count">
         <item quantity="one">%1$d note</item>
         <item quantity="other">%1$d notes</item>
     </plurals>
-    <string name="notes_waiting_total">%1$s shared, not redeemed yet</string>
     <string name="notes_sort">Sort notes</string>
+    <string name="notes_select_hint">Tap notes to select them.</string>
+    <string name="notes_share_hint">Share as QR hands over the whole note. To give part of it, split it first.</string>
+    <string name="notes_renew_hint">Renew gives the note a fresh key, for example after you showed its QR code to someone by mistake.</string>
+    <plurals name="notes_checked_ok">
+        <item quantity="one">Checked %1$d note: still there.</item>
+        <item quantity="other">Checked %1$d notes: all still there.</item>
+    </plurals>
+    <plurals name="notes_checked_gone">
+        <item quantity="one">%1$d note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone.</item>
+        <item quantity="other">%1$d notes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone.</item>
+    </plurals>
+    <string name="notes_already_spent">This note was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
+    <string name="notes_empty">No notes yet. Notes appear here once you receive money.</string>
+    <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your notes again on every refresh.</string>
+    <plurals name="notes_selected">
+        <item quantity="one">%1$d note selected · %2$s</item>
+        <item quantity="other">%1$d notes selected · %2$s</item>
+    </plurals>
+    <string name="notes_combined">Combined into one note of %1$s.</string>
+    <string name="notes_split_title">Split note</string>
+    <string name="notes_split_amount_bitcoin">First note, in ₿</string>
+    <string name="notes_split_amount_sats">First note, in sats</string>
+    <string name="notes_split_preview">You get one note of %1$s and one of %2$s.</string>
+    <string name="notes_split_switches_manual">\"%1$s\" would undo this, so this switches to managing notes yourself.</string>
+    <string name="notes_move_hint">The notes are paid out over Lightning and arrive there as a new note. Both sides charge their fees.</string>
+    <string name="notes_problem_not_found">These notes changed in the meantime. Select them again.</string>
+    <string name="notes_problem_too_few">Select at least two notes to combine.</string>
+    <string name="notes_problem_invalid_amount">This note is too small to split, or the amount doesn\'t fit.</string>
+    <string name="notes_problem_same_mint">The notes are already there.</string>
+    <string name="notes_problem_mint_invalid">That address can\'t hold notes.</string>
+
+    <string name="notes_waiting_total">%1$s shared, not redeemed yet</string>
     <string name="notes_sort_largest">Largest first</string>
     <string name="notes_sort_newest">Newest first</string>
     <string name="notes_select">Select</string>
-    <string name="notes_select_hint">Tap notes to select them.</string>
     <string name="notes_group_not_moved">Not moved home: the fee of %1$s is more than %2$d%%.</string>
     <string name="notes_move_anyway">Move anyway</string>
     <string name="notes_shared_title">Shared, not redeemed yet</string>
@@ -35,35 +65,18 @@
     <string name="notes_share">Share as QR</string>
     <string name="notes_recheck">Recheck</string>
     <string name="notes_renew">Renew</string>
-    <string name="notes_share_hint">Share as QR hands over the whole note. To give part of it, split it first.</string>
-    <string name="notes_renew_hint">Renew gives the note a fresh key, for example after you showed its QR code to someone by mistake.</string>
     <!-- Developer mode only. %1$d: key purpose, %2$d: key index, %3$s: the note's public key, shortened. -->
     <string name="notes_dev_key">Key %1$d/%2$d · %3$s</string>
     <string name="notes_renewed">Renewed: %1$s, now under a fresh key.</string>
-    <plurals name="notes_checked_ok">
-        <item quantity="one">Checked %1$d note: still there.</item>
-        <item quantity="other">Checked %1$d notes: all still there.</item>
-    </plurals>
-    <plurals name="notes_checked_gone">
-        <item quantity="one">%1$d note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone.</item>
-        <item quantity="other">%1$d notes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone.</item>
-    </plurals>
     <!-- %1$s: one or more mint hosts, joined for the language ("a.com and b.com"). -->
     <string name="notes_checked_unreachable">No answer from %1$s. Try again later.</string>
     <!-- The same, where mints aren't named (brand showMints=false). -->
     <string name="notes_checked_no_answer">No answer. Try again later.</string>
     <string name="notes_key_changed">%1$s now signs with a different key. Nothing more is done with it until you check its details.</string>
-    <string name="notes_already_spent">This note was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
-    <string name="notes_empty">No notes yet. Notes appear here once you receive money.</string>
-    <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your notes again on every refresh.</string>
     <string name="notes_state_paying">Paying…</string>
     <string name="notes_state_ambiguous">Confirming…</string>
     <string name="notes_uncertified">Amount not certified</string>
     <string name="notes_detail_separator">" · "</string>
-    <plurals name="notes_selected">
-        <item quantity="one">%1$d note selected · %2$s</item>
-        <item quantity="other">%1$d notes selected · %2$s</item>
-    </plurals>
     <string name="notes_combine">Combine</string>
     <string name="notes_split">Split</string>
     <string name="notes_move">Move</string>
@@ -71,23 +84,11 @@
     <string name="notes_ok">OK</string>
     <string name="notes_fee">Fee: %1$s</string>
     <string name="notes_no_fee">No fee</string>
-    <string name="notes_combined">Combined into one note of %1$s.</string>
     <string name="notes_split_done">Split into %1$s and %2$s.</string>
     <string name="notes_moved">%1$s arrived on %2$s.</string>
     <string name="notes_pending">Sent, but not confirmed yet. History shows the outcome after the next refresh.</string>
-    <string name="notes_split_title">Split note</string>
-    <string name="notes_split_amount_bitcoin">First note, in ₿</string>
-    <string name="notes_split_amount_sats">First note, in sats</string>
     <string name="notes_split_range">Between %1$s and %2$s</string>
-    <string name="notes_split_preview">You get one note of %1$s and one of %2$s.</string>
-    <string name="notes_split_switches_manual">\"%1$s\" would undo this, so this switches to managing notes yourself.</string>
-    <string name="notes_move_hint">The notes are paid out over Lightning and arrive there as a new note. Both sides charge their fees.</string>
     <string name="notes_move_quote">Leaving here: %1$s. Arriving on %3$s: about %2$s.</string>
-    <string name="notes_problem_not_found">These notes changed in the meantime. Select them again.</string>
-    <string name="notes_problem_too_few">Select at least two notes to combine.</string>
-    <string name="notes_problem_invalid_amount">This note is too small to split, or the amount doesn\'t fit.</string>
-    <string name="notes_problem_same_mint">The notes are already there.</string>
-    <string name="notes_problem_mint_invalid">That address can\'t hold notes.</string>
     <string name="notes_problem_unreachable">Couldn\'t connect. Check your connection and try again. Nothing changed.</string>
     <string name="notes_problem_below_minimum">That\'s too little to move there.</string>
     <string name="notes_problem_above_maximum">That\'s too much to move there at once.</string>

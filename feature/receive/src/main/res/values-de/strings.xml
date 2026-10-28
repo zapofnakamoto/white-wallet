@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="receive_title">Empfangen</string>
+    <!-- Brand terms (see values/strings.xml). -->
     <string name="receive_hint">Jeder kann an diese Adresse aus jeder Lightning-Wallet zahlen. Zahlungen kommen als Scheine in dieser Wallet an.</string>
+    <string name="receive_claim">Stattdessen einen Schein einlösen</string>
+
+    <string name="receive_title">Empfangen</string>
     <string name="receive_copy">Kopieren</string>
     <string name="receive_share">Teilen</string>
     <string name="receive_copied">Adresse kopiert</string>
-    <string name="receive_claim">Stattdessen einen Schein einlösen</string>
     <string name="receive_request_amount">Einen bestimmten Betrag anfordern</string>
     <string name="receive_invoice_intro">Erstelle eine Lightning-Rechnung über den gewünschten Betrag. Sie kann aus jeder Lightning-Wallet bezahlt werden, einmal.</string>
     <string name="receive_invoice_create">Rechnung erstellen</string>

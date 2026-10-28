@@ -35,7 +35,7 @@ that section to the version and tags `v<version>`; CI turns the section into the
 
 - **Every text works in other languages.** Use plural resources, whole sentences with placeholders, and no English
   built in Kotlin. A new string needs its German translation too; lint fails without one.
-- **The word for the custodian** ("mint") appears only in the strings marked *Brand term*.
+- **The words for the custodian and its notes** ("mint", "note") appear only in the strings marked *Brand terms*.
 - **No brand values outside `brand/`**: no app name, application ID, mint host or brand color in the code
   (`dev/check-brand.sh`).
 - **Brand-specific behavior** is a brand option or goes through `core/brand-api` / `core/brand-ui`, not a fork of the wallet. Screens use the designsystem's components, not Material's (`dev/check-design.sh`).

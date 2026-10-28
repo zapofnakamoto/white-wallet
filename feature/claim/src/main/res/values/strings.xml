@@ -1,30 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      Brand term: the strings in this block name the party that holds users' funds ("mint" by default). A brand that
-      uses another word overrides exactly these, per language, in brand/res/values*/strings.xml. All other strings
-      are written without that word. See docs/WHITE_LABEL.md.
+      Brand terms: the strings in this block name the party that holds users' funds ("mint" by default) or the notes
+      it issues ("note"). A brand that uses other words overrides exactly these, per language, in
+      brand/res/values*/strings.xml. All other strings are written without either word (developer options and search
+      keywords aside). See docs/WHITE_LABEL.md.
     -->
     <string name="claim_home_mint">On %1$s, your home mint</string>
-
     <string name="claim_title">Claim a note</string>
     <string name="claim_input">Paste a note link</string>
-    <string name="claim_paste">Paste</string>
-    <string name="claim_scan">Scan QR code</string>
     <string name="claim_scan_hint">Point the camera at the note\'s QR code.</string>
-    <string name="claim_scan_cancel">Cancel</string>
     <string name="claim_check">Check note</string>
-    <string name="claim_action">Claim %1$s</string>
-    <string name="claim_mint">On %1$s</string>
-    <string name="claim_bearer_warning">Until you claim it, whoever gave you this link can still spend it.</string>
     <string name="claim_invalid">Not a valid note: %1$s</string>
     <string name="claim_spent">This note has already been spent.</string>
     <string name="claim_in_wallet">This note is already in your wallet.</string>
+    <string name="claim_other_mint">This note is held by %1$s and stays there.</string>
+
+    <string name="claim_paste">Paste</string>
+    <string name="claim_scan">Scan QR code</string>
+    <string name="claim_scan_cancel">Cancel</string>
+    <string name="claim_action">Claim %1$s</string>
+    <string name="claim_mint">On %1$s</string>
+    <string name="claim_bearer_warning">Until you claim it, whoever gave you this link can still spend it.</string>
     <string name="claim_done">Claimed %1$s</string>
     <string name="claim_finish">Done</string>
     <string name="claim_certified">Certified: the amount is signed</string>
     <string name="claim_not_certified">Not certified: the amount can\'t be verified.</string>
-    <string name="claim_other_mint">This note is held by %1$s and stays there.</string>
     <string name="claim_network">Couldn\'t connect: %1$s</string>
     <string name="claim_failed">The claim was refused: %1$s</string>
     <string name="claim_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>

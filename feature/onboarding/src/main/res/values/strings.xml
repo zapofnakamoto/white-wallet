@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      Brand term: the strings in this block name the party that holds users' funds ("mint" by default). A brand that
-      uses another word overrides exactly these, per language, in brand/res/values*/strings.xml. All other strings
-      are written without that word. See docs/WHITE_LABEL.md.
+      Brand terms: the strings in this block name the party that holds users' funds ("mint" by default) or the notes
+      it issues ("note"). A brand that uses other words overrides exactly these, per language, in
+      brand/res/values*/strings.xml. All other strings are written without either word (developer options and search
+      keywords aside). See docs/WHITE_LABEL.md.
     -->
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Mint address</string>
@@ -11,8 +12,8 @@
     <string name="onboarding_add_elsewhere_title">Address on another mint</string>
     <string name="onboarding_add_elsewhere_body">A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is.</string>
     <string name="restore_error_mint">This mint can\'t be used for a restore. Check that it\'s the one you used before.</string>
-
     <string name="onboarding_tagline">Bearer notes on Lightning. Ready in one tap.</string>
+
     <string name="onboarding_username">Your name</string>
     <!-- %1$s: the whole Lightning address, name@host -->
     <string name="onboarding_address_preview">Your address: %1$s</string>

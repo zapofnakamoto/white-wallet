@@ -2,6 +2,7 @@
 
 import argparse
 import random
+import re
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
@@ -115,6 +116,21 @@ class BrandDirectoryTest(unittest.TestCase):
         for qualifier in nb.languages():
             with self.subTest(qualifier):
                 self.assertEqual(english, [name for name, _ in nb.brand_terms(qualifier)])
+
+    def test_only_brand_terms_name_the_mint_or_the_note(self):
+        # A new string that needs either word goes into its module's brand-term block, so a brand's list stays complete.
+        # Developer options and search keywords may name them anyway.
+        words = {"values": r"\b(mints?|notes?)\b", "values-de": r"\b(Mint|Mints|Schein\w*)\b"}
+        allowed = re.compile(r"^(keys_|regtest_|search_kw_|logs_hint$|onboarding_mint_local$)")
+        terms = {name for name, _ in nb.brand_terms("values")}
+        for qualifier, word in words.items():
+            for strings in sorted(nb.ROOT.glob(f"feature/*/src/main/res/{qualifier}/strings.xml")):
+                for element in ET.parse(strings).getroot():
+                    name = element.get("name")
+                    text = "".join(element.itertext())
+                    if name and name not in terms and not allowed.match(name):
+                        with self.subTest(f"{strings.relative_to(nb.ROOT)}: {name}"):
+                            self.assertIsNone(re.search(word, text, re.I if qualifier == "values" else 0), text)
 
     def test_writes_a_complete_brand(self):
         with tempfile.TemporaryDirectory() as tmp:
