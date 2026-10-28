@@ -40,6 +40,13 @@ value class Anchor(val id: String) {
         /** Above the result of claiming a note. Default: nothing. */
         val ClaimResult = Anchor("claim.result")
 
+        /**
+         * Above a handed-out note's amount: while it waits for its recipient (status
+         * [whitewallet.brand.WalletStatus.WaitingForRecipient]), once redeemed ([whitewallet.brand.WalletStatus.Sent])
+         * and once taken back ([whitewallet.brand.WalletStatus.Idle]). Default: nothing.
+         */
+        val NoteShared = Anchor("note.shared")
+
         /** On the app lock screen. Default: the brand logo. */
         val AppLock = Anchor("app.lock")
 

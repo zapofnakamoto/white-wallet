@@ -15,6 +15,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   (oldest first), so neighbouring accounts differ, the same on every screen. In the account switcher, where the
   active account's mark has a check instead of a radio button, on the wallet tab's account chip, on Settings' account
   row, and on Move funds (from, and each account to move to). Brands restyle it (`AccountMark`).
+- Brands can decorate a handed-out note's page: the `NoteShared` anchor, above its amount. Its status is the new
+  `WalletStatus.WaitingForRecipient` while nobody has redeemed the note, `Sent` once someone did, and `Idle` once it
+  was taken back. A brand's `when` over the status picks the new case up in its `else` branch.
 
 ## [0.4.0]
 

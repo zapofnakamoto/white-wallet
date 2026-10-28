@@ -50,8 +50,12 @@ import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
 import whitewallet.core.wallet.Wallet
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletTextField
@@ -258,6 +262,7 @@ fun SharedNoteScreen(
                 if (state.loading) WalletCircularProgress() else Text(stringResource(R.string.note_not_found))
                 return@ScreenColumn
             }
+            WalletStatusScope(sharedNoteStatus(state, note)) { BrandDecoration(Anchor.NoteShared) }
             AmountText(note.amountMsat)
             val link = note.link
             when (note.state) {
@@ -294,5 +299,15 @@ fun SharedNoteScreen(
             confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = onReclaim) { Text(stringResource(R.string.note_reclaim)) } },
             dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismissReclaim) { Text(stringResource(R.string.note_cancel)) } },
         )
+    }
+}
+
+/** Waiting for its recipient, redeemed like a payment that went out, or back in the wallet once taken back. */
+private fun sharedNoteStatus(state: SharedNoteUiState, note: SharedNote): WalletStatus {
+    state.problem?.let { return WalletStatus.Problem(problemKind(it)) }
+    return when (note.state) {
+        SharedNoteState.Waiting -> WalletStatus.WaitingForRecipient
+        SharedNoteState.Redeemed -> WalletStatus.Sent(note.amountMsat)
+        SharedNoteState.Reclaimed -> if (state.reclaimPending) WalletStatus.None else WalletStatus.Idle
     }
 }

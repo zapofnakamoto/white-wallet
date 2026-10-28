@@ -139,7 +139,7 @@ private fun sendStatus(state: SendState): WalletStatus {
     }
 }
 
-private fun problemKind(problem: PayProblem): ProblemKind = when (problem) {
+internal fun problemKind(problem: PayProblem): ProblemKind = when (problem) {
     PayProblem.NoFunds, PayProblem.TooMuch -> ProblemKind.NotEnoughFunds
     PayProblem.Unreachable -> ProblemKind.Offline
     else -> ProblemKind.Other

@@ -196,11 +196,13 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   | `SendHeader` | above a payment's review, its progress and a result that isn't a success | nothing |
   | `SendSuccess` | the screen after a payment went out (status `Sent`) | a check mark that draws itself |
   | `ClaimResult` | above a claimed note's result | nothing |
+  | `NoteShared` | above a handed-out note's amount (status `WaitingForRecipient`, `Sent` once redeemed, `Idle` once taken back) | nothing |
   | `AppLock` | the app lock screen | `ic_brand_logo` |
   | `EmptyHistory` | above the text of an empty history | nothing |
 
 - **Status and events:** `context.status` (also `LocalWalletStatus`) is what the screen is about: `None`, `Idle`
-  (money, nothing happening), `Empty`, `AwaitingPayment`, `PaymentReceived`, `Sending`, `Sent`, `Problem`
+  (money, nothing happening), `Empty`, `AwaitingPayment`, `WaitingForRecipient` (a handed-out note nobody has
+  redeemed yet), `PaymentReceived`, `Sending`, `Sent`, `Problem`
   (`NotEnoughFunds`, `Offline`, `Other`). `WalletEvent`s (`PaymentReceived`, `PaymentSent`, `Problem`,
   `BackupDone`, `AccountCreated`) say what just happened anywhere in the app: collect `LocalWalletEvents` in a
   composable, or register a `WalletEventListener` (called on the main thread). Both carry amounts and kinds only.
