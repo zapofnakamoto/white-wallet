@@ -23,6 +23,7 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.MintKeyChangedException
+import whitewallet.core.wallet.NoteAction
 import whitewallet.core.wallet.NoteActionResult
 import whitewallet.core.wallet.NoteCheck
 import whitewallet.core.wallet.NoteProblem
@@ -73,6 +74,10 @@ data class NotesState(
     /** Mints the notes could move to: the home mint and those notes are held on (plus local ones in developer mode). */
     val knownHosts: List<String> = emptyList(),
     val developerMode: Boolean = false,
+    /** What the brand lets users do with notes (brand `noteActions`). */
+    val noteActions: Set<NoteAction> = NoteAction.entries.toSet(),
+    /** Whether mints are named (brand `showMints`); without, one mint's notes are a plain list. */
+    val showMints: Boolean = true,
 ) {
     private val all: List<Note> get() = mints.flatMap { it.notes }
     val totalMsat: Long get() = mints.sumOf { it.totalMsat }
@@ -83,6 +88,12 @@ data class NotesState(
     val selectedMsat: Long get() = all.filter { it.id in selected }.sumOf { it.amountMsat }
     val canCombine: Boolean get() = !busy && selected.size >= 2
     val canAct: Boolean get() = !busy && selected.isNotEmpty()
+
+    /** Selecting several notes only makes sense with an action that works on several. */
+    val canSelect: Boolean get() = noteActions.any { it.bulk }
+
+    /** A header per mint, unless mints aren't named and there is only one. */
+    val groupHeaders: Boolean get() = showMints || mints.size > 1
 
     /** A split by hand would be undone by the account's strategy, so it switches to manual first (if offered). */
     val switchesToManual: Boolean get() = noteStrategy?.reshapesNotes == true && strategies.any { it.id == ManualStrategy.ID }
@@ -124,7 +135,7 @@ class NotesViewModel @Inject constructor(
     private val preferences: AppPreferences,
     defaults: AppDefaults,
 ) : ViewModel() {
-    private val ui = MutableStateFlow(NotesState())
+    private val ui = MutableStateFlow(NotesState(noteActions = defaults.noteActions, showMints = defaults.showMints))
     private var quoteJob: Job? = null
 
     /** In developer mode, the local regtest mints are offered as move targets too. */
@@ -176,11 +187,14 @@ class NotesViewModel @Inject constructor(
 
     /** Long-press: starts selecting with this note. */
     fun select(note: Note) {
+        if (!state.value.canSelect) return
         ui.update { it.copy(selecting = true, open = null) }
         toggle(note)
     }
 
-    fun startSelecting() = ui.update { it.copy(selecting = true, open = null, outcome = null) }
+    fun startSelecting() {
+        if (state.value.canSelect) ui.update { it.copy(selecting = true, open = null, outcome = null) }
+    }
 
     fun stopSelecting() = ui.update { it.copy(selecting = false, selected = emptySet()) }
 
@@ -220,9 +234,9 @@ class NotesViewModel @Inject constructor(
         }
     }
 
-    fun recheck(id: String) = act(setOf(id)) { recheckAll(it) }
+    fun recheck(id: String) = act(NoteAction.Recheck, setOf(id)) { recheckAll(it) }
 
-    fun recheckSelected() = act { recheckAll(it) }
+    fun recheckSelected() = act(NoteAction.Recheck) { recheckAll(it) }
 
     private suspend fun recheckAll(ids: Set<String>): NotesOutcome {
         var ok = 0
@@ -241,7 +255,7 @@ class NotesViewModel @Inject constructor(
     }
 
     /** Renews a note: a fresh key, so any copy of the old one (a QR code shown by mistake) is worthless. */
-    fun renew(id: String) = act(setOf(id)) {
+    fun renew(id: String) = act(NoteAction.Renew, setOf(id)) {
         when (val r = wallet.rotateNote(id)) {
             is RotateResult.Rotated -> NotesOutcome.Renewed(r.amountMsat)
             RotateResult.Pending -> NotesOutcome.Pending
@@ -251,7 +265,7 @@ class NotesViewModel @Inject constructor(
     }
 
     /** Hands the whole note out: once the mint confirms it, the screen moves on to its QR code ([NotesState.sharedId]). */
-    fun share(id: String) = act(setOf(id)) {
+    fun share(id: String) = act(NoteAction.Share, setOf(id)) {
         when (val r = wallet.shareNote(id)) {
             is ShareNoteResult.Shared -> {
                 ui.update { s -> s.copy(sharedId = r.note.id) }
@@ -263,7 +277,7 @@ class NotesViewModel @Inject constructor(
         }
     }
 
-    fun combine() = act { ids ->
+    fun combine() = act(NoteAction.Combine) { ids ->
         when (val r = wallet.combineNotes(ids)) {
             is NoteActionResult.Done -> NotesOutcome.Combined(r.notes.sumOf { it.amountMsat })
             else -> r.toOutcome()
@@ -271,6 +285,7 @@ class NotesViewModel @Inject constructor(
     }
 
     fun openSplit(id: String) {
+        if (NoteAction.Split !in state.value.noteActions) return
         viewModelScope.launch {
             val limits = wallet.splitLimits(id)
             ui.update {
@@ -289,7 +304,7 @@ class NotesViewModel @Inject constructor(
         val d = state.value.dialog as? NotesDialog.Split ?: return
         val amount = d.amountMsat ?: return
         val switchToManual = state.value.switchesToManual
-        act(setOf(d.id)) { ids ->
+        act(NoteAction.Split, setOf(d.id)) { ids ->
             if (switchToManual) wallet.setNoteStrategy(ManualStrategy.ID)
             when (val r = wallet.splitNote(ids.single(), amount)) {
                 is NoteActionResult.Done -> r.notes.map { it.amountMsat }.let { NotesOutcome.Split(it.first(), it.getOrElse(1) { 0 }) }
@@ -299,6 +314,7 @@ class NotesViewModel @Inject constructor(
     }
 
     fun openMove() {
+        if (NoteAction.Move !in state.value.noteActions) return
         val s = state.value
         val from = s.mints.firstOrNull { m -> m.notes.any { it.id in s.selected } }?.host
         val suggested = s.knownHosts.firstOrNull { it != from }.orEmpty()
@@ -323,7 +339,7 @@ class NotesViewModel @Inject constructor(
         moveTo(state.value.mints.firstOrNull { it.host == host }?.notes.orEmpty().filter(::selectable).map { it.id }.toSet(), home)
     }
 
-    private fun moveTo(ids: Set<String>, host: String) = act(ids) {
+    private fun moveTo(ids: Set<String>, host: String) = act(NoteAction.Move, ids) {
         when (val r = wallet.moveToMint(it, host)) {
             is MintMoveResult.Moved -> NotesOutcome.Moved(r.arrivedMsat, host)
             MintMoveResult.Pending -> NotesOutcome.Pending
@@ -352,9 +368,12 @@ class NotesViewModel @Inject constructor(
         }
     }
 
-    /** Runs one action on [ids] (the selection by default); a null outcome reports nothing. Selection ends unless it failed. */
-    private fun act(ids: Set<String> = state.value.selected, block: suspend (Set<String>) -> NotesOutcome?) {
-        if (ids.isEmpty() || ui.value.busy || ui.value.refreshing) return
+    /**
+     * Runs [action] on [ids] (the selection by default), if the brand offers it; a null outcome reports nothing.
+     * Selection ends unless it failed.
+     */
+    private fun act(action: NoteAction, ids: Set<String> = state.value.selected, block: suspend (Set<String>) -> NotesOutcome?) {
+        if (action !in ui.value.noteActions || ids.isEmpty() || ui.value.busy || ui.value.refreshing) return
         quoteJob?.cancel()
         ui.update { it.copy(busy = true, dialog = null, outcome = null) }
         viewModelScope.launch {

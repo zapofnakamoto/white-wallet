@@ -201,4 +201,15 @@ class CollectTest {
         assertEquals(HistoryFilterOption.Maintenance, HistoryFilterOption.fromConfig("maintenance"))
         assertFailsWith<IllegalStateException> { HistoryFilterOption.fromConfig("all") }
     }
+
+    @Test
+    fun `which note actions there are is a brand choice`() {
+        assertEquals(NoteAction.entries.toSet(), NoteAction.fromConfig(null, showMints = true))
+        // Unset, a brand without mints gets everything that doesn't name one.
+        assertEquals(NoteAction.entries.toSet() - NoteAction.Move, NoteAction.fromConfig(null, showMints = false))
+        assertEquals(setOf(NoteAction.Share, NoteAction.Recheck), NoteAction.fromConfig(" share, Recheck ", showMints = false))
+        assertEquals(emptySet<NoteAction>(), NoteAction.fromConfig("", showMints = true))
+        assertFailsWith<IllegalStateException> { NoteAction.fromConfig("share,print", showMints = true) }
+        assertFailsWith<IllegalStateException> { NoteAction.fromConfig("move", showMints = false) }
+    }
 }

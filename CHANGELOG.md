@@ -18,6 +18,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Brands can decorate a handed-out note's page: the `NoteShared` anchor, above its amount. Its status is the new
   `WalletStatus.WaitingForRecipient` while nobody has redeemed the note, `Sent` once someone did, and `Idle` once it
   was taken back. A brand's `when` over the status picks the new case up in its `else` branch.
+- Brands choose what users can do with their notes (`noteActions`: `share`, `split`, `combine`, `move`, `recheck`,
+  `renew`; all by default). Without an action that works on several notes, the notes view has no selecting.
+
+### Fixed
+
+- With `showMints=false`, the notes view no longer names mints: no mint headers, labels or totals (one mint's notes
+  are a plain list, several mints' are separated by a line), no mint on a note or a shared note, no mint count, and an
+  unanswered recheck says "No answer" without the mint.
 
 ## [0.4.0]
 

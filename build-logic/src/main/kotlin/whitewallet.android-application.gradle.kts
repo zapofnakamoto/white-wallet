@@ -49,7 +49,9 @@ android {
         buildConfigField("String", "HISTORY_FILTER", "\"${brand.getProperty("historyFilter", "types").trim()}\"")
         buildConfigField("boolean", "ALLOW_UNIT_CHANGE", brand.getProperty("allowUnitChange", "true").trim().toBooleanStrict().toString())
         buildConfigField("String", "DEVELOPER_OPTIONS", "\"${brand.getProperty("developerOptions", "shown").trim()}\"")
-        buildConfigField("boolean", "SHOW_MINTS", brand.getProperty("showMints", "true").trim().toBooleanStrict().toString())
+        // null when unset: the app then offers every action that fits showMints.
+        buildConfigField("String", "NOTE_ACTIONS", brand.getProperty("noteActions")?.let { "\"${it.trim()}\"" } ?: "null")
+        buildConfigField("boolean", "SHOW_MINTS",brand.getProperty("showMints", "true").trim().toBooleanStrict().toString())
         buildConfigField("int", "MAX_ACCOUNTS", brand.getProperty("maxAccounts", "0").trim())
         buildConfigField("int", "MAX_ADDRESSES", brand.getProperty("maxAddresses", "1").trim())
         buildConfigField("String", "NOTE_STRATEGIES", "\"${brand.getProperty("noteStrategies", "single,manual").trim()}\"")

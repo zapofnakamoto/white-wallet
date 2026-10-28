@@ -44,6 +44,7 @@
         <item quantity="other">%1$d Scheine sind nicht mehr da: Sie wurden woanders ausgegeben, zum Beispiel mit dieser Wiederherstellungsphrase auf einem anderen Handy.</item>
     </plurals>
     <string name="notes_checked_unreachable">Keine Antwort von %1$s. Versuche es später erneut.</string>
+    <string name="notes_checked_no_answer">Keine Antwort. Versuche es später erneut.</string>
     <string name="notes_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel. Damit passiert nichts mehr, bis du seine Details prüfst.</string>
     <string name="notes_already_spent">Dieser Schein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
     <string name="notes_empty">Noch keine Scheine. Scheine erscheinen hier, sobald du Geld empfängst.</string>

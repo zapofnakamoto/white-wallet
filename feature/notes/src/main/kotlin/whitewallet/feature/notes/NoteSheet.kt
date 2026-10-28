@@ -28,6 +28,7 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.MintMoveQuote
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.wallet.NoteAction
 import whitewallet.core.designsystem.WalletAssistChip
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
@@ -35,15 +36,18 @@ import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletSheet
 import whitewallet.core.designsystem.WalletTextField
 
-/** One note's details and what can be done with it: share it whole, split, recheck, renew. */
+/** One note's details and what the brand lets users do with it: share it whole, split, recheck, renew. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
     WalletSheet(onDismissRequest = actions.close) {
         Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(formatAmount(note.amountMsat), style = MaterialTheme.typography.headlineMedium)
-            Text(stringResource(R.string.notes_sheet_where, note.host, recentTime(note.updatedAtMillis)), style = MaterialTheme.typography.bodyMedium)
-            if (state.openTrusted) {
+            Text(
+                if (state.showMints) stringResource(R.string.notes_sheet_where, note.host, recentTime(note.updatedAtMillis)) else recentTime(note.updatedAtMillis),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (state.showMints && state.openTrusted) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TrustedIcon()
                     Text(stringResource(R.string.notes_trusted), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
@@ -62,16 +66,24 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             val enabled = NotesViewModel.selectable(note) && !state.busy
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                WalletButton(kind = ButtonKind.Tonal, onClick = { actions.share(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_share)) }
-                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.openSplit(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_split)) }
-                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.recheck(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_recheck)) }
-                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.renew(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_renew)) }
+            val offered = state.noteActions
+            if (offered.any { !it.bulk } || NoteAction.Recheck in offered) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (NoteAction.Share in offered) WalletButton(kind = ButtonKind.Tonal, onClick = { actions.share(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_share)) }
+                    if (NoteAction.Split in offered) WalletButton(kind = ButtonKind.Secondary, onClick = { actions.openSplit(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_split)) }
+                    if (NoteAction.Recheck in offered) WalletButton(kind = ButtonKind.Secondary, onClick = { actions.recheck(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_recheck)) }
+                    if (NoteAction.Renew in offered) WalletButton(kind = ButtonKind.Secondary, onClick = { actions.renew(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_renew)) }
+                }
             }
             if (state.busy) WalletLinearProgress(Modifier.fillMaxWidth())
-            state.outcome?.let { Outcome(it, actions.dismissOutcome) }
-            Text(stringResource(R.string.notes_share_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(stringResource(R.string.notes_renew_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            state.outcome?.let { Outcome(it, state.showMints, actions.dismissOutcome) }
+            // The share hint mentions splitting, so it needs both.
+            if (NoteAction.Share in offered && NoteAction.Split in offered) {
+                Text(stringResource(R.string.notes_share_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (NoteAction.Renew in offered) {
+                Text(stringResource(R.string.notes_renew_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             if (state.developerMode && note.purpose != null && note.index != null) {
                 Text(
                     stringResource(R.string.notes_dev_key, note.purpose!!, note.index!!, note.id.take(8) + "…" + note.id.takeLast(8)),

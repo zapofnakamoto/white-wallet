@@ -22,6 +22,7 @@ import org.robolectric.annotation.Config
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
+import whitewallet.core.wallet.NoteAction
 import whitewallet.core.wallet.NotCollected
 
 @RunWith(RobolectricTestRunner::class)
@@ -159,5 +160,60 @@ class NotesScreenTest {
         compose.onNodeWithText("Haupt-Mint").assertExists()
         compose.onNodeWithText("2 Scheine ausgewählt · 45.000 ₿").assertExists()
         compose.onNodeWithText("Zusammenlegen").assertExists()
+    }
+
+    @Test
+    fun aNoteOffersOnlyTheActionsTheBrandAllows() {
+        compose.setContent { NotesContent(state({ it.copy(open = "h2", noteActions = setOf(NoteAction.Share, NoteAction.Renew)) }), NotesActions()) }
+        compose.onNodeWithText("Share as QR").assertExists()
+        compose.onNodeWithText("Renew").assertExists()
+        compose.onNodeWithText("Split").assertDoesNotExist()
+        compose.onNodeWithText("Recheck").assertDoesNotExist()
+        // The share hint tells users to split first, which they can't here.
+        compose.onNodeWithText("To give part of it, split it first.", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutAnActionOnSeveralNotesThereIsNoSelecting() {
+        var pressed: Note? = null
+        compose.setContent { NotesContent(state({ it.copy(noteActions = setOf(NoteAction.Share, NoteAction.Split)) }), NotesActions(longPress = { pressed = it })) }
+        compose.onNodeWithText("Select").assertDoesNotExist()
+        compose.onNodeWithText("₿30,000").performTouchInput { longClick() }
+        assertEquals(null, pressed)
+    }
+
+    @Test
+    fun theSelectionBarOffersOnlyTheAllowedBulkActions() {
+        compose.setContent {
+            NotesContent(state({ it.copy(selecting = true, selected = setOf("h1"), noteActions = setOf(NoteAction.Recheck)) }), NotesActions())
+        }
+        compose.onNodeWithText("Recheck").assertIsEnabled()
+        compose.onNodeWithText("Combine").assertDoesNotExist()
+        compose.onNodeWithText("Move").assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutMintsOneMintsNotesAreAPlainList() {
+        compose.setContent {
+            NotesContent(state({ it.copy(mints = listOf(MintNotes("home.example", true, home, trusted = true)), showMints = false, open = "h2") }), NotesActions())
+        }
+        compose.onNodeWithText("2 notes").assertExists()
+        compose.onNodeWithText("home.example", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Home mint", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Trusted").assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutMintsSeveralMintsAreSeparatedButNotNamed() {
+        compose.setContent {
+            NotesContent(
+                state({ it.copy(showMints = false, outcome = NotesOutcome.Checked(ok = 3, gone = 0, unreachable = listOf("other.example"))) }),
+                NotesActions(),
+            )
+        }
+        compose.onNodeWithText("4 notes").assertExists()
+        compose.onNodeWithText("₿2,000").assertExists()
+        compose.onNodeWithText("other.example", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("No answer. Try again later.").assertExists()
     }
 }

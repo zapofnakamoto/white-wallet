@@ -134,7 +134,7 @@ class BrandDirectoryTest(unittest.TestCase):
             for line in ("appName=Acme Cash", "applicationId=com.acme.cash", "allowMintChange=false", "defaultAmountUnit=sats", "allowUnitChange=false", "supportUrl=https://mint.acme.com",
                          "lightningAddress=none", "maxAccounts=1", "maxAddresses=0", "noteStrategies=manual\n", "defaultNoteStrategy=manual",
                          "collectAtHomeMint=always", "collectFeeCap=5", "notesView=hidden", "historyFilter=maintenance", "showMints=false", "developerOptions=unlock",
-                         "releaseStage=auto", "trustedMints=mint.example:02" + "ab" * 32):
+                         "noteActions=share,split,combine,recheck,renew\n", "releaseStage=auto", "trustedMints=mint.example:02" + "ab" * 32):
                 self.assertIn(line, props)
             for xml in out.rglob("*.xml"):
                 ET.parse(xml)  # well-formed

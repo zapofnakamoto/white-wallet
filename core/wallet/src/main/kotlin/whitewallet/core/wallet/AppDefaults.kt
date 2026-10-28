@@ -70,6 +70,39 @@ enum class HistoryFilterOption {
     }
 }
 
+/** What users can do with their notes in the notes view (brand `noteActions`). */
+enum class NoteAction(
+    /** Done on several selected notes at once; without any such action there is no selection. */
+    val bulk: Boolean,
+) {
+    /** Hand the whole note out as a QR code. */
+    Share(bulk = false),
+    Split(bulk = false),
+    Combine(bulk = true),
+
+    /** To another mint; needs `showMints`, as it names the mint. */
+    Move(bulk = true),
+
+    /** Ask the mint about a note, or about the selected ones. */
+    Recheck(bulk = true),
+
+    /** A fresh key for a note. */
+    Renew(bulk = false);
+
+    companion object {
+        /**
+         * The brand's comma-separated list ([value] null when unset: all, without [Move] when mints are hidden). An
+         * empty list leaves the notes to look at. Fails on an unknown action, and on `move` with [showMints] false.
+         */
+        fun fromConfig(value: String?, showMints: Boolean): Set<NoteAction> {
+            if (value == null) return entries.filter { showMints || it != Move }.toSet()
+            val actions = value.split(',').map(String::trim).filter(String::isNotEmpty).map { configEnum<NoteAction>("noteActions", it) }.toSet()
+            check(showMints || Move !in actions) { "noteActions can't include move with showMints=false: it names the mint" }
+            return actions
+        }
+    }
+}
+
 /** Whether accounts have a Lightning address (brand `lightningAddress`). */
 enum class AddressPolicy {
     /** Setup asks for a name and can't continue without one. */
@@ -112,6 +145,8 @@ data class AppDefaults(
      * note is on and whether it's trusted. Without, the app is just a wallet; the mints work the same underneath.
      */
     val showMints: Boolean = true,
+    /** What users can do with their notes in the notes view (brand `noteActions`). */
+    val noteActions: Set<NoteAction> = NoteAction.entries.toSet(),
     /** Whether Settings shows Developer options (brand `developerOptions`); see [developerOptionsVisible]. */
     val developerOptions: DeveloperOptions = DeveloperOptions.Shown,
     /** How finished the app is (brand `releaseStage`), shown at setup and in About unless [ReleaseStage.Stable]. */
