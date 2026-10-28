@@ -1,5 +1,7 @@
 package whitewallet.feature.send
 
+import android.graphics.Bitmap
+import android.graphics.Color
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -8,9 +10,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
@@ -19,14 +25,18 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandComponents
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.DefaultComponents
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.NoteFaceParams
+import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
@@ -123,5 +133,58 @@ class SharedNoteScreenTest {
         assertEquals("https://mint.example/note#secret", shared)
         compose.onNodeWithText("Take back").performScrollTo().performClick()
         assertTrue(askedBack)
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers = "night")
+    fun printingDrawsTheBrandsNoteOnWhitePaperEvenInDarkMode() {
+        val pages = mutableListOf<Bitmap>()
+        val faces = mutableListOf<NoteStatus>()
+        val bill = object : BrandDesign {
+            override val components = object : BrandComponents {
+                @Composable
+                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                    faces += params.status
+                    DefaultComponents.noteFace(params, modifier)
+                }
+            }
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides bill) {
+                SharedNoteScreen(
+                    SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false, canPrint = true),
+                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {}, onPrint = { pages += it },
+                )
+            }
+        }
+        faces.clear()
+        compose.onNodeWithText("Print").performScrollTo().performClick()
+        // Robolectric draws only when asked; a phone draws the next frame by itself.
+        compose.onRoot().captureToImage()
+        compose.waitUntil(5_000) { pages.isNotEmpty() }
+        compose.waitForIdle()
+        assertEquals(1, pages.size)
+        val page = pages.single()
+        // Laid out 360 dp wide at the print density, white around, the QR code's black inside.
+        assertEquals(1440, page.width)
+        assertEquals(Color.WHITE, page.getPixel(2, 2))
+        assertEquals(Color.WHITE, page.getPixel(page.width - 3, page.height - 3))
+        assertTrue((0 until page.height step 8).any { y -> page.getPixel(page.width / 2, y) == Color.BLACK })
+        assertTrue(NoteStatus.Waiting in faces)
+        // The page was only drawn for paper: it is gone, and the QR code is on screen once.
+        compose.onAllNodesWithContentDescription("QR code of the note").assertCountEquals(1)
+    }
+
+    @Test
+    fun withoutPrintAmongTheNoteActionsThereIsNoPrinting() {
+        compose.setContent {
+            SharedNoteScreen(
+                SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false, canPrint = false),
+                onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+            )
+        }
+        compose.onNodeWithText("Share").assertExists()
+        compose.onNodeWithText("Print").assertDoesNotExist()
     }
 }

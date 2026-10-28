@@ -31,6 +31,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   taps, selection, actions and the bearer warning. The defaults look as before, except that a note's details show
   its amount as large as the claim preview does. `brand-examples/acme/` shows it as digital cash: it says "banknote"
   ("Geldschein") and draws notes as banknotes.
+- A handed-out note can be printed: "Print" on its page draws the brand's `NoteFace` with the QR code and a warning
+  that whoever holds the paper can spend it, on white in the brand's light theme whatever the phone's, and opens
+  Android's print dialog. Brands turn it off by leaving `print` out of `noteActions`. Designsystem: `PrintPage`,
+  `printBitmap`, `LightWalletTheme`.
 
 ### Fixed
 

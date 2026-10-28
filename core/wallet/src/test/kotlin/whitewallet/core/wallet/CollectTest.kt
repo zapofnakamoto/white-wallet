@@ -208,8 +208,9 @@ class CollectTest {
         // Unset, a brand without mints gets everything that doesn't name one.
         assertEquals(NoteAction.entries.toSet() - NoteAction.Move, NoteAction.fromConfig(null, showMints = false))
         assertEquals(setOf(NoteAction.Share, NoteAction.Recheck), NoteAction.fromConfig(" share, Recheck ", showMints = false))
+        assertEquals(setOf(NoteAction.Print), NoteAction.fromConfig("print", showMints = false))
         assertEquals(emptySet<NoteAction>(), NoteAction.fromConfig("", showMints = true))
-        assertFailsWith<IllegalStateException> { NoteAction.fromConfig("share,print", showMints = true) }
+        assertFailsWith<IllegalStateException> { NoteAction.fromConfig("share,burn", showMints = true) }
         assertFailsWith<IllegalStateException> { NoteAction.fromConfig("move", showMints = false) }
     }
 }

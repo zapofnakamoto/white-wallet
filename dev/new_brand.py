@@ -482,9 +482,10 @@ historyFilter={o.history_filter}
 # the mints in the notes view.
 showMints={"false" if o.hide_mints else "true"}
 # What users can do with their notes in the notes view, comma-separated: share (as a QR code), split, combine, move
-# (to another mint; needs showMints=true), recheck, renew. Without combine, move and recheck there is no selecting.
+# (to another mint; needs showMints=true), recheck, renew, print (a handed-out note, on paper). Without combine, move
+# and recheck there is no selecting.
 # Unset = all of them (without move when showMints=false); empty = notes are only shown.
-noteActions={"share,split,combine,recheck,renew" if o.hide_mints else "share,split,combine,move,recheck,renew"}
+noteActions={"share,split,combine,recheck,renew,print" if o.hide_mints else "share,split,combine,move,recheck,renew,print"}
 # Developer options in Settings: shown = always, unlock = hidden until the version in About is tapped seven times,
 # hidden = never in release builds (debug builds treat hidden as unlock).
 developerOptions={o.developer_options}

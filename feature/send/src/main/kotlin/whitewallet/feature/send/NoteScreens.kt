@@ -1,6 +1,7 @@
 package whitewallet.feature.send
 
 import android.content.Intent
+import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -34,33 +38,37 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import whitewallet.core.designsystem.amountInputLabel
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.NoteFaceSize
+import whitewallet.brand.ui.NoteStatus
+import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.PrintPage
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.SensitiveClipboard
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCircularProgress
+import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletNoteFace
+import whitewallet.core.designsystem.WalletStatusScope
+import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.printBitmap
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.CreateNoteResult
+import whitewallet.core.wallet.NoteAction
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
 import whitewallet.core.wallet.Wallet
-import whitewallet.brand.WalletStatus
-import whitewallet.brand.ui.Anchor
-import whitewallet.brand.ui.ButtonKind
-import whitewallet.core.designsystem.BrandDecoration
-import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletStatusScope
-import whitewallet.core.designsystem.WalletNoteFace
-import whitewallet.brand.ui.NoteFaceSize
-import whitewallet.brand.ui.NoteStatus
-import whitewallet.core.designsystem.WalletCircularProgress
-import whitewallet.core.designsystem.WalletDialog
-import whitewallet.core.designsystem.WalletTextField
 
 data class CreateNoteState(
     val availableMsat: Long? = null,
@@ -179,12 +187,14 @@ data class SharedNoteUiState(
     val reclaimPending: Boolean = false,
     val alreadyRedeemed: Boolean = false,
     val problem: PayProblem? = null,
+    /** Whether the brand lets users print it (`noteActions`). */
+    val canPrint: Boolean = false,
 )
 
 @HiltViewModel
-class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle) : ViewModel() {
+class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) : ViewModel() {
     private val id: String = checkNotNull(savedState["id"])
-    private val _state = MutableStateFlow(SharedNoteUiState())
+    private val _state = MutableStateFlow(SharedNoteUiState(canPrint = NoteAction.Print in defaults.noteActions))
     val state: StateFlow<SharedNoteUiState> = _state
 
     init {
@@ -231,6 +241,7 @@ fun SharedNoteRoute(onBack: () -> Unit, viewModel: SharedNoteViewModel = hiltVie
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val shareTitle = stringResource(R.string.note_share_title)
+    val printJob = stringResource(R.string.note_title)
     SecureScreen {
         SharedNoteScreen(
             state,
@@ -240,6 +251,7 @@ fun SharedNoteRoute(onBack: () -> Unit, viewModel: SharedNoteViewModel = hiltVie
                 context.startActivity(Intent.createChooser(send, shareTitle))
             },
             onCopy = { link -> SensitiveClipboard.copy(context, "note", link) },
+            onPrint = { page -> printBitmap(context, printJob, page) },
             onAskReclaim = viewModel::askReclaim,
             onDismissReclaim = viewModel::dismissReclaim,
             onReclaim = viewModel::reclaim,
@@ -256,7 +268,9 @@ fun SharedNoteScreen(
     onAskReclaim: () -> Unit,
     onDismissReclaim: () -> Unit,
     onReclaim: () -> Unit,
+    onPrint: (Bitmap) -> Unit = {},
 ) {
+    var printing by remember { mutableStateOf(false) }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_title), onBack) }) { padding ->
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             val note = state.note
@@ -287,6 +301,11 @@ fun SharedNoteScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         WalletButton(kind = ButtonKind.Secondary, onClick = { onShare(link) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.note_share)) }
                         WalletButton(kind = ButtonKind.Secondary, onClick = { onCopy(link) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.note_copy)) }
+                        if (state.canPrint) {
+                            WalletButton(kind = ButtonKind.Secondary, onClick = { printing = true }, enabled = !printing, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.note_print))
+                            }
+                        }
                     }
                     WalletButton(kind = ButtonKind.Text, onClick = onAskReclaim, enabled = !state.reclaiming) { Text(stringResource(R.string.note_reclaim)) }
                     if (state.reclaiming) WalletCircularProgress()
@@ -302,6 +321,21 @@ fun SharedNoteScreen(
             }
             state.problem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
             if (note.state != SharedNoteState.Waiting) PrimaryButton(stringResource(R.string.send_done), onBack)
+        }
+    }
+    // On paper what the screen shows, so that whoever finds the paper knows it is money: the note and the warning.
+    val printed = state.note?.takeIf { it.state == SharedNoteState.Waiting && it.link != null }
+    PrintPage(printing && printed != null, onPrinted = { printing = false; onPrint(it) }) {
+        printed?.let { note ->
+            val qrDescription = stringResource(R.string.note_qr_description)
+            WalletNoteFace(
+                NoteFaceSize.Large,
+                note.amountMsat,
+                status = NoteStatus.Waiting,
+                statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
+                qrCode = { QrCode(checkNotNull(note.link), description = qrDescription) },
+            )
+            Text(stringResource(R.string.note_print_warning), textAlign = TextAlign.Center)
         }
     }
     if (state.confirmReclaim) {

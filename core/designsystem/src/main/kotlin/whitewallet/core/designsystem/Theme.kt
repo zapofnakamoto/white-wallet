@@ -1,5 +1,6 @@
 package whitewallet.core.designsystem
 
+import android.content.res.Configuration
 import android.content.res.Resources
 import android.provider.Settings
 import android.util.TypedValue
@@ -56,6 +57,24 @@ fun WalletTheme(design: BrandDesign = DefaultBrandDesign, content: @Composable (
     val reduceMotion = Settings.Global.getFloat(LocalContext.current.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     CompositionLocalProvider(LocalBrandDesign provides design, LocalReduceMotion provides reduceMotion) {
         design.Theme(tokens, content)
+    }
+}
+
+/**
+ * [content] in the brand's light theme whatever the phone's, for what goes on white paper: the light resources, so
+ * also the light values a brand set in values-night only for dark.
+ */
+@Composable
+fun LightWalletTheme(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    val light = remember(context) {
+        val configuration = Configuration(context.resources.configuration)
+        configuration.uiMode = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_NO
+        context.createConfigurationContext(configuration)
+    }
+    val tokens = remember(light) { BrandTokens.read(light.resources, dark = false) }
+    CompositionLocalProvider(LocalContext provides light) {
+        LocalBrandDesign.current.Theme(tokens, content)
     }
 }
 

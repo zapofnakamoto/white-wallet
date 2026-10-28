@@ -70,7 +70,7 @@ enum class HistoryFilterOption {
     }
 }
 
-/** What users can do with their notes in the notes view (brand `noteActions`). */
+/** What users can do with their notes in the notes view, and with a handed-out one (brand `noteActions`). */
 enum class NoteAction(
     /** Done on several selected notes at once; without any such action there is no selection. */
     val bulk: Boolean,
@@ -87,7 +87,10 @@ enum class NoteAction(
     Recheck(bulk = true),
 
     /** A fresh key for a note. */
-    Renew(bulk = false);
+    Renew(bulk = false),
+
+    /** Print a handed-out note on its page: its face, QR code and bearer warning, on paper. */
+    Print(bulk = false);
 
     companion object {
         /**
