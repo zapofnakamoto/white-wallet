@@ -92,7 +92,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 
 #### The note
 
-German calls it "Schein". Some screens only exist with some settings: with `notesView=hidden` the notes view's strings (every `notes_*` string of `feature/notes`), `home_tab_notes`, `settings_note_list` and `settings_note_list_hint` never show, and with `historyFilter=none` neither do `history_filter_maintenance`, `history_show_maintenance` and `history_only_maintenance`. The rest can.
+German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein" (masculine like "Schein", so every German sentence keeps its grammar) and draws notes as banknotes (`NoteFace`, see "Design"). Some screens only exist with some settings: with `notesView=hidden` the notes view's strings (every `notes_*` string of `feature/notes`), `home_tab_notes`, `settings_note_list` and `settings_note_list_hint` never show, and with `historyFilter=none` neither do `history_filter_maintenance`, `history_show_maintenance` and `history_only_maintenance`. The rest can.
 
 | String | Default (en) |
 |---|---|
@@ -284,7 +284,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   them. The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
   confirmations and the bearer warning, and on a large face the status, age and mint in words below it. Draw the
   texts you are given with `Text`, so screen readers read them. The defaults draw through your `ListRow`, `Toggle`,
-  `ListIcon` and `Amount`.
+  `ListIcon` and `Amount`. `brand-examples/acme/` draws them as banknotes: a small bill in the list, the whole bill
+  on a note's page, with the provider as issuer and the QR code on a white margin of its own.
 - **Decorations:** `Decoration(anchor, context, default)`: call `default()` to keep what the app shows there, or
   draw something else. Decorations are decorative; screen readers read the text next to them (for a title anchor,
   the app's name as a heading). `context.reduceMotion` is set when the user turned animations off: change states

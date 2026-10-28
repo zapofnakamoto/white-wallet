@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Acme's brand term in German: "Anbieter", as whole sentences. -->
+<!-- Acme's brand terms in German: "Anbieter" and "Geldschein" (masculine, like "Schein"), as whole sentences. -->
 <resources>
     <string name="onboarding_mint">Anbieter</string>
     <string name="onboarding_mint_address">Adresse des Anbieters</string>
@@ -16,7 +16,7 @@
     <string name="mints_remove_mint">Anbieter entfernen</string>
     <string name="activity_moved_mint_other">Zu einem anderen Anbieter verschoben</string>
     <string name="onboarding_add_elsewhere_title">Adresse bei einem anderen Anbieter</string>
-    <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einem anderen Anbieter, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei diesem Anbieter an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
+    <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einem anderen Anbieter, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Geldscheine bei diesem Anbieter an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
     <string name="restore_error_mint">Dieser Anbieter geht für eine Wiederherstellung nicht. Prüfe, ob es der ist, den du vorher benutzt hast.</string>
     <plurals name="notes_mints">
         <item quantity="one">%1$d Anbieter</item>
@@ -24,13 +24,109 @@
     </plurals>
     <string name="notes_move_title">Zu einem anderen Anbieter verschieben</string>
     <string name="notes_move_target">Anbieter, z. B. example.com</string>
-    <string name="notes_problem_different_mints">Wähle Scheine bei einem einzigen Anbieter aus.</string>
+    <string name="notes_problem_different_mints">Wähle Geldscheine bei einem einzigen Anbieter aus.</string>
     <string name="addresses_add_elsewhere">Adresse bei einem anderen Anbieter hinzufügen</string>
-    <string name="settings_strategy_single_hint">Alle Scheine zu einem pro Anbieter zusammenlegen. Kostenlos.</string>
+    <string name="settings_strategy_single_hint">Alle Geldscheine zu einem pro Anbieter zusammenlegen. Kostenlos.</string>
     <string name="mint_title">Anbieter</string>
-    <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einem Anbieter deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
+    <string name="about_body">Eine Lightning-Wallet, die dein Geld als Geldscheine bei einem Anbieter deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
     <string name="notes_collect_search">Alles zu deinem Anbieter verschieben</string>
-    <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Scheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut.</string>
+    <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Geldscheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut.</string>
     <string name="mints_add_field">Anbieter, z. B. example.com</string>
     <string name="onboarding_tagline">Taschengeld auf Lightning.</string>
+    <string name="claim_title">Geldschein einlösen</string>
+    <string name="claim_input">Link eines Geldscheins einfügen</string>
+    <string name="claim_scan_hint">Richte die Kamera auf den QR-Code des Geldscheins.</string>
+    <string name="claim_check">Geldschein prüfen</string>
+    <string name="claim_invalid">Kein gültiger Geldschein: %1$s</string>
+    <string name="claim_spent">Dieser Geldschein wurde bereits ausgegeben.</string>
+    <string name="claim_in_wallet">Dieser Geldschein ist bereits in deiner Wallet.</string>
+    <string name="claim_other_mint">Dieser Geldschein liegt bei %1$s und bleibt dort.</string>
+    <string name="home_tab_notes">Geldscheine</string>
+    <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Geldschein ein.</string>
+    <string name="home_wallet_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Geldschein ein.</string>
+    <string name="history_filter_maintenance">Pflege der Geldscheine</string>
+    <string name="history_only_maintenance">Bisher nur Pflege der Geldscheine, die dein Guthaben nicht verändert.</string>
+    <string name="history_show_maintenance">Pflege der Geldscheine anzeigen</string>
+    <string name="activity_claimed">Geldschein eingelöst</string>
+    <plurals name="activity_combined">
+        <item quantity="one">%1$d Geldschein zusammengelegt</item>
+        <item quantity="other">%1$d Geldscheine zusammengelegt</item>
+    </plurals>
+    <string name="activity_split">Einen Geldschein in zwei geteilt</string>
+    <string name="activity_sent_note">Geldschein verschickt</string>
+    <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Geldscheins zu verschieben kann eine Teilungsgebühr kosten.</string>
+    <string name="home_key_changed_body">Deine Wallet arbeitet nicht mehr damit, es wird also nichts dorthin gesendet. Deine Geldscheine dort sind unverändert. Öffne die Details, um den neuen Schlüssel zu sehen und zu entscheiden, ob du ihn verwendest.</string>
+    <string name="notes_title">Geldscheine</string>
+    <string name="notes_settings">Geldschein-Einstellungen</string>
+    <plurals name="notes_count">
+        <item quantity="one">%1$d Geldschein</item>
+        <item quantity="other">%1$d Geldscheine</item>
+    </plurals>
+    <string name="notes_sort">Geldscheine sortieren</string>
+    <string name="notes_select_hint">Tippe auf Geldscheine, um sie auszuwählen.</string>
+    <string name="notes_share_hint">„Als QR teilen“ gibt den ganzen Geldschein weiter. Um nur einen Teil zu geben, teile ihn zuerst.</string>
+    <string name="notes_renew_hint">Erneuern gibt dem Geldschein einen neuen Schlüssel, zum Beispiel wenn du seinen QR-Code versehentlich jemandem gezeigt hast.</string>
+    <plurals name="notes_checked_ok">
+        <item quantity="one">%1$d Geldschein geprüft: noch da.</item>
+        <item quantity="other">%1$d Geldscheine geprüft: alle noch da.</item>
+    </plurals>
+    <plurals name="notes_checked_gone">
+        <item quantity="one">%1$d Geldschein ist nicht mehr da: Er wurde woanders ausgegeben, zum Beispiel mit dieser Wiederherstellungsphrase auf einem anderen Handy.</item>
+        <item quantity="other">%1$d Geldscheine sind nicht mehr da: Sie wurden woanders ausgegeben, zum Beispiel mit dieser Wiederherstellungsphrase auf einem anderen Handy.</item>
+    </plurals>
+    <string name="notes_already_spent">Dieser Geldschein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
+    <string name="notes_empty">Noch keine Geldscheine. Geldscheine erscheinen hier, sobald du Geld empfängst.</string>
+    <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Geldscheine bei jedem Aktualisieren neu.</string>
+    <plurals name="notes_selected">
+        <item quantity="one">%1$d Geldschein ausgewählt · %2$s</item>
+        <item quantity="other">%1$d Geldscheine ausgewählt · %2$s</item>
+    </plurals>
+    <string name="notes_combined">Zu einem Geldschein über %1$s zusammengelegt.</string>
+    <string name="notes_split_title">Geldschein teilen</string>
+    <string name="notes_split_amount_bitcoin">Erster Geldschein, in ₿</string>
+    <string name="notes_split_amount_sats">Erster Geldschein, in Sats</string>
+    <string name="notes_split_preview">Du bekommst einen Geldschein über %1$s und einen über %2$s.</string>
+    <string name="notes_move_hint">Die Geldscheine werden über Lightning ausgezahlt und kommen dort als neuer Geldschein an. Beide Seiten berechnen ihre Gebühren.</string>
+    <string name="notes_problem_not_found">Diese Geldscheine haben sich inzwischen geändert. Wähle sie erneut aus.</string>
+    <string name="notes_problem_too_few">Wähle mindestens zwei Geldscheine zum Zusammenlegen aus.</string>
+    <string name="notes_problem_invalid_amount">Dieser Geldschein ist zu klein zum Teilen, oder der Betrag passt nicht.</string>
+    <string name="notes_problem_same_mint">Die Geldscheine sind schon dort.</string>
+    <string name="notes_problem_mint_invalid">Diese Adresse kann keine Geldscheine verwahren.</string>
+    <string name="receive_hint">Jeder kann an diese Adresse aus jeder Lightning-Wallet zahlen. Zahlungen kommen als Geldscheine in dieser Wallet an.</string>
+    <string name="receive_claim">Stattdessen einen Geldschein einlösen</string>
+    <string name="send_create_note">Geldschein erstellen</string>
+    <string name="note_create_title">Als Geldschein senden</string>
+    <string name="note_create_body">Erstelle einen Geldschein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
+    <string name="note_available">Du kannst einen Geldschein über bis zu %1$s erstellen.</string>
+    <string name="note_create">Geldschein erstellen</string>
+    <string name="note_create_pending">Der Geldschein ließ sich noch nicht bestätigen, deshalb wurde nichts weitergegeben. Versuche es gleich noch einmal.</string>
+    <string name="note_title">Geldschein</string>
+    <string name="note_qr_description">QR-Code des Geldscheins</string>
+    <string name="note_uncertified">Der Betrag dieses Geldscheins ist nicht zertifiziert.</string>
+    <string name="note_share_title">Geldschein teilen</string>
+    <string name="note_reclaim_title">Diesen Geldschein zurückholen?</string>
+    <string name="note_already_redeemed">Zu spät: Jemand hat diesen Geldschein schon eingelöst.</string>
+    <string name="note_not_found">Dieser Geldschein ist nicht in diesem Konto.</string>
+    <string name="mint_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Geldscheine dort sind unverändert.</string>
+    <string name="settings_notes">Geldschein-Einstellungen</string>
+    <string name="settings_note_list">Geldscheine</string>
+    <string name="settings_note_list_hint">Deine Geldscheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>
+    <string name="settings_account_contents">Wiederherstellungsphrase, Adressen, Geldscheine</string>
+    <string name="delete_what">Das entfernt dieses Konto von diesem Handy: seine Wiederherstellungsphrase, seine Geldscheine und seine Einstellungen. Andere Konten sind nicht betroffen.</string>
+    <string name="settings_note_strategy">Umgang mit Geldscheinen</string>
+    <string name="settings_strategy_manual_hint">Geldscheine so behalten, wie sie ankommen.</string>
+    <string name="settings_strategy_single">Nur einen Geldschein behalten</string>
+    <string name="settings_auto_renew">Eingehende Geldscheine automatisch erneuern</string>
+    <string name="settings_auto_renew_hint">Verschiebt jeden empfangenen Geldschein auf einen neuen Schlüssel dieser Wallet.</string>
+    <string name="mint_invalid">Antwortet, kann aber keine Geldscheine verwahren</string>
+    <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Geldscheine dort und alles, was du dorthin sendest, verloren gehen.</string>
+    <plurals name="mint_balance">
+        <item quantity="one">%1$s in %2$d Geldschein</item>
+        <item quantity="other">%1$s in %2$d Geldscheinen</item>
+    </plurals>
+    <string name="mint_watch_only_hint">Damit kann eine andere App die Geldscheine dieses Kontos hier sehen und an es zahlen, aber nie ausgeben.</string>
+    <string name="notes_collect_hint">Geldscheine, die du anderswo bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Geldscheinen“ oben.</string>
+    <string name="notes_collect_pending">Die Geldscheine von %1$s werden verschoben; sie kommen gleich an.</string>
+    <string name="mints_add_invalid">Diese Adresse kann keine Geldscheine verwahren.</string>
+    <string name="mints_remove_body">Die App vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Geldscheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die App merkt.</string>
 </resources>

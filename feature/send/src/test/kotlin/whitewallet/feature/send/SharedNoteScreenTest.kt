@@ -1,14 +1,20 @@
 package whitewallet.feature.send
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -16,9 +22,11 @@ import org.robolectric.RobolectricTestRunner
 import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandComponents
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.brand.ui.NoteFaceParams
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
@@ -81,5 +89,39 @@ class SharedNoteScreenTest {
         }
         compose.onNodeWithText("₿1,000").assertExists()
         compose.onNodeWithText("brand mark").assertDoesNotExist()
+    }
+
+    @Test
+    fun aBrandFramesTheNoteAndTheAppKeepsTheQrCodeTheWarningAndTheActions() {
+        var shared: String? = null
+        var askedBack = false
+        val bill = object : BrandDesign {
+            override val components = object : BrandComponents {
+                @Composable
+                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                    Column(modifier) {
+                        Text("bill ${params.amount} ${params.status}")
+                        params.qrCode?.invoke()
+                    }
+                }
+            }
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides bill) {
+                SharedNoteScreen(
+                    SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false),
+                    onBack = {}, onShare = { shared = it }, onCopy = {}, onAskReclaim = { askedBack = true }, onDismissReclaim = {}, onReclaim = {},
+                )
+            }
+        }
+        compose.onNodeWithText("bill ₿1,000 Waiting").assertExists()
+        // The QR code is the app's, and never reads the secret link out.
+        compose.onNodeWithContentDescription("QR code of the note").assertExists()
+        compose.onNodeWithText("https://mint.example/note#secret", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Anyone with this code can spend it.", substring = true).assertExists()
+        compose.onNodeWithText("Share").performScrollTo().performClick()
+        assertEquals("https://mint.example/note#secret", shared)
+        compose.onNodeWithText("Take back").performScrollTo().performClick()
+        assertTrue(askedBack)
     }
 }

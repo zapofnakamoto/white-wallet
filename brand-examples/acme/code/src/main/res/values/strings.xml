@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="strategy_tidy_small">Tidy up small notes</string>
-    <string name="strategy_tidy_small_hint">Combines small notes once a few have piled up and leaves large ones as they are. Free.</string>
+    <string name="strategy_tidy_small">Tidy up small banknotes</string>
+    <string name="strategy_tidy_small_hint">Combines small banknotes once a few have piled up and leaves large ones as they are. Free.</string>
     <string name="about_acme_title">About Acme</string>
     <string name="about_acme_body">Acme Cash is pocket money on Lightning, kept by Acme for you. Keep amounts small.</string>
     <string name="about_acme_back">Back</string>

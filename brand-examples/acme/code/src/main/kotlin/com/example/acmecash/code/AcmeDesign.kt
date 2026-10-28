@@ -4,18 +4,32 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.ActivityIconParams
 import whitewallet.brand.ui.Anchor
@@ -26,12 +40,15 @@ import whitewallet.brand.ui.ButtonParams
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.DefaultComponents
 import whitewallet.brand.ui.MoneyDirection
+import whitewallet.brand.ui.NoteFaceParams
+import whitewallet.brand.ui.NoteFaceSize
+import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
 
 /**
- * Acme's design in code, on top of its resources (palette, corners): squarer primary buttons, square History icons
- * and a status light above the balance. Everything else is the app's default.
+ * Acme's design in code, on top of its resources (palette, corners): squarer primary buttons, square History icons,
+ * a status light above the balance, and notes as banknotes (digital cash). Everything else is the app's default.
  */
 object AcmeDesign : BrandDesign {
     override val components: BrandComponents = AcmeComponents
@@ -67,6 +84,61 @@ private object AcmeComponents : BrandComponents {
         val frame = if (params.automatic) Modifier.border(1.5.dp, color, shape) else Modifier.background(color.copy(alpha = 0.12f), shape)
         Box(modifier.size(40.dp).then(frame), contentAlignment = Alignment.Center) {
             Icon(params.icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+        }
+    }
+
+    /**
+     * A banknote: in the list a small bill beside the amount, on a note's own page the whole bill, with the provider as
+     * its issuer, the amount as its denomination and the QR code (drawn by the app) in its middle. A bill that is out
+     * of use (being paid, unclear, redeemed or taken back) is printed faded. The app's texts are drawn as `Text`.
+     */
+    @Composable
+    override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+        when (params.size) {
+            NoteFaceSize.Row -> Row(
+                modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                params.selected?.let { Checkbox(it, onCheckedChange = null, enabled = params.enabled) }
+                Bill(params.status, Modifier.size(width = 44.dp, height = 28.dp), corner = 4.dp, seal = 5.dp)
+                Column(Modifier.weight(1f)) {
+                    Text(params.amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    params.statusText?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+                params.age?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+            NoteFaceSize.Large -> Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Bill(params.status, Modifier.matchParentSize(), corner = 12.dp, seal = 14.dp, faded = params.qrCode == null && params.status.outOfUse)
+                Column(
+                    Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    params.mint?.let { Text(it.uppercase(), style = MaterialTheme.typography.labelMedium, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.primary) }
+                    Text(params.amount, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    // The QR code stays exactly as the app draws it: white and unfaded, on a plain margin of its own.
+                    params.qrCode?.let { qr -> Box(Modifier.background(Color.White, RoundedCornerShape(8.dp)).padding(8.dp)) { qr() } }
+                }
+            }
+        }
+    }
+}
+
+private val NoteStatus.outOfUse: Boolean
+    get() = this == NoteStatus.Paying || this == NoteStatus.Unclear || this == NoteStatus.Redeemed || this == NoteStatus.TakenBack
+
+/** The paper of a bill: tinted, a double border and a round seal in each corner. Decorative. */
+@Composable
+private fun Bill(status: NoteStatus, modifier: Modifier, corner: Dp, seal: Dp, faded: Boolean = status.outOfUse) {
+    val ink = MaterialTheme.colorScheme.primary.copy(alpha = if (faded) 0.35f else 1f)
+    val paper = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (faded) 0.25f else 0.6f)
+    val shape = RoundedCornerShape(corner)
+    Canvas(modifier.background(paper, shape).border(1.5.dp, ink, shape).padding(3.dp).border(0.75.dp, ink.copy(alpha = ink.alpha * 0.6f), RoundedCornerShape(corner - 1.dp))) {
+        val r = seal.toPx() / 2
+        val inset = r + 4.dp.toPx()
+        for (x in listOf(inset, size.width - inset)) for (y in listOf(inset, size.height - inset)) {
+            drawCircle(ink, r, Offset(x, y), style = Stroke(1.dp.toPx()))
         }
     }
 }

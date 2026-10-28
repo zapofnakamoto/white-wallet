@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Acme says "provider" where the app says "mint": exactly the brand-term strings, as whole sentences. -->
+<!-- Acme says "provider" where the app says "mint", and "banknote" where it says "note": exactly the brand-term strings, as whole sentences. -->
 <resources>
     <string name="onboarding_mint">Provider</string>
     <string name="onboarding_mint_address">Provider address</string>
@@ -16,7 +16,7 @@
     <string name="mints_remove_mint">Remove provider</string>
     <string name="activity_moved_mint_other">Moved to another provider</string>
     <string name="onboarding_add_elsewhere_title">Address with another provider</string>
-    <string name="onboarding_add_elsewhere_body">A name for this account with another provider, with the same recovery phrase. Payments to it arrive as notes with that provider, in this account. Your primary address stays where it is.</string>
+    <string name="onboarding_add_elsewhere_body">A name for this account with another provider, with the same recovery phrase. Payments to it arrive as banknotes with that provider, in this account. Your primary address stays where it is.</string>
     <string name="restore_error_mint">This provider can\'t be used for a restore. Check that it\'s the one you used before.</string>
     <plurals name="notes_mints">
         <item quantity="one">%1$d provider</item>
@@ -24,13 +24,110 @@
     </plurals>
     <string name="notes_move_title">Move to another provider</string>
     <string name="notes_move_target">Provider, e.g. example.com</string>
-    <string name="notes_problem_different_mints">Select notes with one provider.</string>
+    <string name="notes_problem_different_mints">Select banknotes with one provider.</string>
     <string name="addresses_add_elsewhere">Add an address with another provider</string>
-    <string name="settings_strategy_single_hint">Combine all notes into one per provider. Free.</string>
+    <string name="settings_strategy_single_hint">Combine all banknotes into one per provider. Free.</string>
     <string name="mint_title">Provider</string>
-    <string name="about_body">A Lightning wallet that keeps your money as notes with a provider you choose. Your recovery phrase stays on this device.</string>
+    <string name="about_body">A Lightning wallet that keeps your money as banknotes with a provider you choose. Your recovery phrase stays on this device.</string>
     <string name="notes_collect_search">Move everything to your provider</string>
-    <string name="mints_intro">Trust a provider by its signing key: notes from trusted providers are marked with a check. If a provider ever signs with a different key, it is no longer trusted.</string>
+    <string name="mints_intro">Trust a provider by its signing key: banknotes from trusted providers are marked with a check. If a provider ever signs with a different key, it is no longer trusted.</string>
     <string name="mints_add_field">Provider, e.g. example.com</string>
     <string name="onboarding_tagline">Pocket money on Lightning.</string>
+    <string name="claim_title">Claim a banknote</string>
+    <string name="claim_input">Paste a banknote link</string>
+    <string name="claim_scan_hint">Point the camera at the banknote\'s QR code.</string>
+    <string name="claim_check">Check banknote</string>
+    <string name="claim_invalid">Not a valid banknote: %1$s</string>
+    <string name="claim_spent">This banknote has already been spent.</string>
+    <string name="claim_in_wallet">This banknote is already in your wallet.</string>
+    <string name="claim_other_mint">This banknote is held by %1$s and stays there.</string>
+    <string name="home_tab_notes">Banknotes</string>
+    <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a banknote.</string>
+    <string name="home_wallet_empty">Nothing here yet. Share your address to get paid, or claim a banknote.</string>
+    <string name="history_filter_maintenance">Banknote maintenance</string>
+    <string name="history_only_maintenance">So far only banknote maintenance, which doesn\'t change your balance.</string>
+    <string name="history_show_maintenance">Show banknote maintenance</string>
+    <string name="activity_claimed">Claimed a banknote</string>
+    <plurals name="activity_combined">
+        <item quantity="one">Combined %1$d banknote</item>
+        <item quantity="other">Combined %1$d banknotes</item>
+    </plurals>
+    <string name="activity_split">Split a banknote in two</string>
+    <string name="activity_sent_note">Sent a banknote</string>
+    <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a banknote may cost a split fee.</string>
+    <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your banknotes there are unchanged. Open the details to see the new key and decide whether to use it.</string>
+    <string name="notes_title">Banknotes</string>
+    <string name="notes_settings">Banknote settings</string>
+    <plurals name="notes_count">
+        <item quantity="one">%1$d banknote</item>
+        <item quantity="other">%1$d banknotes</item>
+    </plurals>
+    <string name="notes_sort">Sort banknotes</string>
+    <string name="notes_select_hint">Tap banknotes to select them.</string>
+    <string name="notes_share_hint">Share as QR hands over the whole banknote. To give part of it, split it first.</string>
+    <string name="notes_renew_hint">Renew gives the banknote a fresh key, for example after you showed its QR code to someone by mistake.</string>
+    <plurals name="notes_checked_ok">
+        <item quantity="one">Checked %1$d banknote: still there.</item>
+        <item quantity="other">Checked %1$d banknotes: all still there.</item>
+    </plurals>
+    <plurals name="notes_checked_gone">
+        <item quantity="one">%1$d banknote is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone.</item>
+        <item quantity="other">%1$d banknotes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone.</item>
+    </plurals>
+    <string name="notes_already_spent">This banknote was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
+    <string name="notes_empty">No banknotes yet. Banknotes appear here once you receive money.</string>
+    <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your banknotes again on every refresh.</string>
+    <plurals name="notes_selected">
+        <item quantity="one">%1$d banknote selected · %2$s</item>
+        <item quantity="other">%1$d banknotes selected · %2$s</item>
+    </plurals>
+    <string name="notes_combined">Combined into one banknote of %1$s.</string>
+    <string name="notes_split_title">Split banknote</string>
+    <string name="notes_split_amount_bitcoin">First banknote, in ₿</string>
+    <string name="notes_split_amount_sats">First banknote, in sats</string>
+    <string name="notes_split_preview">You get one banknote of %1$s and one of %2$s.</string>
+    <string name="notes_split_switches_manual">\"%1$s\" would undo this, so this switches to managing banknotes yourself.</string>
+    <string name="notes_move_hint">The banknotes are paid out over Lightning and arrive there as a new banknote. Both sides charge their fees.</string>
+    <string name="notes_problem_not_found">These banknotes changed in the meantime. Select them again.</string>
+    <string name="notes_problem_too_few">Select at least two banknotes to combine.</string>
+    <string name="notes_problem_invalid_amount">This banknote is too small to split, or the amount doesn\'t fit.</string>
+    <string name="notes_problem_same_mint">The banknotes are already there.</string>
+    <string name="notes_problem_mint_invalid">That address can\'t hold banknotes.</string>
+    <string name="receive_hint">Anyone can pay this address from any Lightning wallet. Payments arrive as banknotes in this wallet.</string>
+    <string name="receive_claim">Claim a banknote instead</string>
+    <string name="send_create_note">Create a banknote</string>
+    <string name="note_create_title">Send as a banknote</string>
+    <string name="note_create_body">Make a banknote worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
+    <string name="note_available">You can make a banknote of up to %1$s.</string>
+    <string name="note_create">Create banknote</string>
+    <string name="note_create_pending">The banknote couldn\'t be confirmed yet, so nothing was handed out. Try again in a moment.</string>
+    <string name="note_title">Banknote</string>
+    <string name="note_qr_description">QR code of the banknote</string>
+    <string name="note_uncertified">The amount of this banknote isn\'t certified.</string>
+    <string name="note_share_title">Share banknote</string>
+    <string name="note_reclaim_title">Take this banknote back?</string>
+    <string name="note_already_redeemed">Too late: someone already redeemed this banknote.</string>
+    <string name="note_not_found">This banknote isn\'t in this account.</string>
+    <string name="mint_key_changed">%1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn\'t send or receive there. Your banknotes there are unchanged.</string>
+    <string name="settings_notes">Banknote settings</string>
+    <string name="settings_note_list">Banknotes</string>
+    <string name="settings_note_list_hint">See your banknotes one by one, share, split or combine them</string>
+    <string name="settings_account_contents">Recovery phrase, addresses, banknotes</string>
+    <string name="delete_what">This removes this account from this phone: its recovery phrase, its banknotes and its settings. Other accounts are not affected.</string>
+    <string name="settings_note_strategy">Banknote strategy</string>
+    <string name="settings_strategy_manual_hint">Keep banknotes as they arrive.</string>
+    <string name="settings_strategy_single">Keep only one banknote</string>
+    <string name="settings_auto_renew">Auto-renew incoming banknotes</string>
+    <string name="settings_auto_renew_hint">Moves each received banknote to a fresh key of this wallet.</string>
+    <string name="mint_invalid">Answers, but can\'t hold banknotes</string>
+    <string name="mint_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your banknotes there and anything you send can be lost.</string>
+    <plurals name="mint_balance">
+        <item quantity="one">%1$s in %2$d banknote</item>
+        <item quantity="other">%1$s in %2$d banknotes</item>
+    </plurals>
+    <string name="mint_watch_only_hint">Lets another app see this account\'s banknotes here and receive to it, but never spend.</string>
+    <string name="notes_collect_hint">Banknotes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the banknote strategy above applies to them too.</string>
+    <string name="notes_collect_pending">Moving the banknotes from %1$s; they arrive shortly.</string>
+    <string name="mints_add_invalid">That address can\'t hold banknotes.</string>
+    <string name="mints_remove_body">The app forgets it, its signing key and whether you trust it. Banknotes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the app remembers.</string>
 </resources>

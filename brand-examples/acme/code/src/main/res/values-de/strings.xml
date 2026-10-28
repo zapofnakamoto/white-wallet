@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="strategy_tidy_small">Kleine Scheine aufräumen</string>
-    <string name="strategy_tidy_small_hint">Legt kleine Scheine zusammen, sobald sich ein paar angesammelt haben, und lässt große, wie sie sind. Kostenlos.</string>
+    <string name="strategy_tidy_small">Kleine Geldscheine aufräumen</string>
+    <string name="strategy_tidy_small_hint">Legt kleine Geldscheine zusammen, sobald sich ein paar angesammelt haben, und lässt große, wie sie sind. Kostenlos.</string>
     <string name="about_acme_title">Über Acme</string>
     <string name="about_acme_body">Acme Cash ist Taschengeld auf Lightning, verwahrt von Acme für dich. Halte die Beträge klein.</string>
     <string name="about_acme_back">Zurück</string>

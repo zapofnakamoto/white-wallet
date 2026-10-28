@@ -29,7 +29,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   preview and a handed-out note's page, around its QR code; `NoteGroupHeader` heads one mint's notes. They get the
   amount, a `NoteStatus`, the age, the mint (none with `showMints=false`) and whether it is trusted; the app keeps
   taps, selection, actions and the bearer warning. The defaults look as before, except that a note's details show
-  its amount as large as the claim preview does.
+  its amount as large as the claim preview does. `brand-examples/acme/` shows it as digital cash: it says "banknote"
+  ("Geldschein") and draws notes as banknotes.
 
 ### Fixed
 
