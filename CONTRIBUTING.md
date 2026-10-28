@@ -46,7 +46,11 @@ that section to the version and tags `v<version>`; CI turns the section into the
   [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#tests).
 - **Updates keep users' data.** Since v0.3.0, a schema change comes with a Room migration and a test that
   upgrades a database of the previous version (`MigrationTest`); a renamed preference key, a stored enum value or
-  format keeps being read. Brands and other projects get no such promise: renames there go into CHANGELOG.md.
+  format keeps being read.
+- **Developers may get breaking changes, users never.** Only what is on an installed app's phone is kept working
+  across updates. Everything developers work with may break in any release: `brand.properties` options, string keys,
+  `core/brand-api` and `core/brand-ui`, design components, the `dev/` scripts, `just` recipes and the build. Such a
+  change needs no alias or deprecation, only a line in CHANGELOG.md that says what to change, and `!` in its commit.
 
 ## Brands
 
