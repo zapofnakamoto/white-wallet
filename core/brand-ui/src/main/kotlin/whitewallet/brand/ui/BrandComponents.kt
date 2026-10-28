@@ -3,6 +3,7 @@ package whitewallet.brand.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
@@ -44,7 +45,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -104,6 +107,9 @@ interface BrandComponents {
      * still being paid). Always decorative: the row says the same in words.
      */
     @Composable fun ListIcon(params: ListIconParams, modifier: Modifier) = DefaultComponents.listIcon(params, modifier)
+
+    /** An account's mark: the first letter of its name on a colour of its own, so accounts tell apart at a glance. */
+    @Composable fun AccountMark(params: AccountMarkParams, modifier: Modifier) = DefaultComponents.accountMark(params, modifier)
 
     /** The app's release stage (alpha, beta) by its name, at setup and in About; never shown for a stable release. */
     @Composable fun ReleaseBadge(params: ReleaseBadgeParams, modifier: Modifier) = DefaultComponents.releaseBadge(params, modifier)
@@ -239,6 +245,21 @@ class ListIconParams(
     /** [Tone.Danger] and [Tone.Warning] for rows that need the user; [Tone.Neutral] otherwise. */
     val tone: Tone = Tone.Neutral,
     val size: ListIconSize = ListIconSize.Row,
+)
+
+class AccountMarkParams(
+    /** The first character of the account's name (one grapheme, upper case where the script has case); null when the name is blank. */
+    val letter: String?,
+    /** The account's place among the wallet's accounts, oldest first: give neighbours different colours. */
+    val index: Int,
+    /** The account in use (in the account switcher); the row says so to screen readers. */
+    val active: Boolean,
+    /** The mark's diameter; the letter scales with it, not with the font size, so it always fits. */
+    val size: Dp,
+    /** For a [letter] of null. */
+    val fallback: Painter,
+    /** The mark of the [active] account. */
+    val activeBadge: Painter,
 )
 
 class ActivityIconParams(
@@ -432,6 +453,38 @@ object DefaultComponents : BrandComponents {
             ListIconSize.Inline -> 16.dp
         }
         Icon(params.icon, contentDescription = null, modifier = modifier.size(size), tint = tint)
+    }
+
+    /** The letter on a primary, tertiary or secondary container by [AccountMarkParams.index]; a check badge when active. */
+    @Composable
+    fun accountMark(params: AccountMarkParams, modifier: Modifier) {
+        // Tertiary second: secondary is often a shade of primary, and the first two accounts should differ most.
+        val (container, content) = when (params.index.mod(3)) {
+            0 -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+            1 -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+            else -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        }
+        Box(modifier.size(params.size)) {
+            Box(Modifier.size(params.size).background(container, CircleShape), contentAlignment = Alignment.Center) {
+                val letter = params.letter
+                if (letter != null) {
+                    val fontSize = with(LocalDensity.current) { (params.size * 0.45f).toSp() }
+                    Text(letter, color = content, fontSize = fontSize, lineHeight = fontSize, fontWeight = FontWeight.Medium, maxLines = 1)
+                } else {
+                    Icon(params.fallback, contentDescription = null, tint = content, modifier = Modifier.size(params.size * 0.6f))
+                }
+            }
+            if (params.active) {
+                // Half outside the circle, clear of the letter.
+                val badge = params.size * 0.45f
+                Box(
+                    Modifier.align(Alignment.BottomEnd).offset(badge * 0.3f, badge * 0.3f).size(badge).background(MaterialTheme.colorScheme.surface, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(params.activeBadge, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(badge * 0.85f))
+                }
+            }
+        }
     }
 
     /** The type's icon on a circle tinted by where the money went; a small badge when the wallet did it by itself. */

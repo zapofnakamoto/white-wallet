@@ -1,10 +1,13 @@
 package whitewallet.feature.home
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -15,11 +18,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
@@ -53,15 +59,23 @@ fun MoveFundsScreen(
                 return@ScreenColumn
             }
             val from = state.from ?: return@ScreenColumn
-            Text(stringResource(R.string.move_from, from.account.name, formatAmount(from.balanceMsat)), modifier = Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                WalletAccountMark(from.account.name, state.places[from.account.id] ?: 0, size = 24.dp)
+                Text(stringResource(R.string.move_from, from.account.name, formatAmount(from.balanceMsat)), modifier = Modifier.weight(1f))
+            }
             Text(stringResource(R.string.move_to), style = MaterialTheme.typography.titleSmall, modifier = Modifier.fillMaxWidth())
-            state.targets.forEach { target ->
-                WalletListItem(
-                    leadingContent = { WalletRadioButton(selected = target.account.id == state.targetId, onClick = { onTarget(target.account.id) }) },
-                    headlineContent = { Text(target.account.name) },
-                    supportingContent = { Text(target.profile?.address ?: target.account.host) },
-                    modifier = Modifier.clickable { onTarget(target.account.id) },
-                )
+            // Where the money goes stays an explicit radio choice; the mark only says which account it is.
+            Column(Modifier.selectableGroup()) {
+                state.targets.forEach { target ->
+                    val selected = target.account.id == state.targetId
+                    WalletListItem(
+                        leadingContent = { WalletAccountMark(target.account.name, state.places[target.account.id] ?: 0) },
+                        headlineContent = { Text(target.account.name) },
+                        supportingContent = { Text(target.profile?.address ?: target.account.host) },
+                        trailingContent = { WalletRadioButton(selected = selected, onClick = null) },
+                        modifier = Modifier.selectable(selected = selected, role = Role.RadioButton) { onTarget(target.account.id) },
+                    )
+                }
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.move_everything), modifier = Modifier.weight(1f))

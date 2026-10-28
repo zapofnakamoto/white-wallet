@@ -5,13 +5,20 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import android.icu.text.BreakIterator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import java.util.Locale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import whitewallet.brand.ReleaseStage
+import whitewallet.brand.ui.AccountMarkParams
 import whitewallet.brand.ui.ActivityIconParams
 import whitewallet.brand.ui.ActivityType
 import whitewallet.brand.ui.ButtonKind
@@ -118,6 +125,27 @@ fun WalletActivityIcon(type: ActivityType, direction: MoneyDirection, automatic:
         ActivityIconParams(type, direction, automatic, settled, painterResource(icon), painterResource(R.drawable.ic_activity_automatic)),
         modifier,
     )
+}
+
+/**
+ * An account's mark ([whitewallet.brand.ui.BrandComponents.AccountMark]): the first letter of [name] on the colour
+ * of its [index] among the accounts (oldest first). Decorative: the name is always shown beside it.
+ */
+@Composable
+fun WalletAccountMark(name: String, index: Int, modifier: Modifier = Modifier, active: Boolean = false, size: Dp = 40.dp) {
+    val locale = LocalConfiguration.current.locales[0]
+    val letter = remember(name, locale) { firstLetter(name, locale) }
+    LocalBrandDesign.current.components.AccountMark(
+        AccountMarkParams(letter, index, active, size, painterResource(R.drawable.ic_account), painterResource(R.drawable.ic_check_circle)),
+        modifier,
+    )
+}
+
+/** The first grapheme of [name] (a letter with its accents, a whole emoji), upper case where its script has case. */
+internal fun firstLetter(name: String, locale: Locale): String? {
+    val trimmed = name.trim().ifEmpty { return null }
+    val breaks = BreakIterator.getCharacterInstance(locale).apply { setText(trimmed) }
+    return trimmed.substring(0, breaks.next()).uppercase(locale)
 }
 
 /** A list row's leading mark ([whitewallet.brand.ui.BrandComponents.ListIcon]); decorative, the row says it in words. */

@@ -69,6 +69,7 @@ import whitewallet.core.designsystem.R as DesignR
 import whitewallet.brand.ui.ActivityType
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.MoneyDirection
+import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletActivityIcon
 import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.designsystem.WalletAssistChip
@@ -254,10 +255,12 @@ private fun WalletTab(
             if (state.status == WalletStatus.Empty && !state.balanceHidden) {
                 Text(stringResource(R.string.home_wallet_empty), textAlign = TextAlign.Center)
             }
-            state.accounts.firstOrNull { it.account.id == state.activeAccountId }?.takeIf { state.showAccounts }?.let { active ->
+            val activeIndex = state.accounts.indexOfFirst { it.account.id == state.activeAccountId }
+            state.accounts.getOrNull(activeIndex)?.takeIf { state.showAccounts }?.let { active ->
                 WalletAssistChip(
                     onClick = onAccounts,
                     label = { Text(active.account.name) },
+                    leadingIcon = { WalletAccountMark(active.account.name, activeIndex, size = 24.dp) },
                     trailingIcon = { Icon(painterResource(DesignR.drawable.ic_arrow_drop_down), stringResource(R.string.home_switch_account)) },
                 )
             }

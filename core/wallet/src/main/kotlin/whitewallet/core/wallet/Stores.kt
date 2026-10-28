@@ -21,6 +21,7 @@ import whitewallet.core.model.Mint
  * Mints (a host's withdraw URL and pinned key) are shared; everything else is per account.
  */
 interface WalletStore {
+    /** Oldest first: an account's place here is its mark's colour, so the order must stay stable. */
     val accounts: Flow<List<AccountSummary>>
     val activeAccountId: Flow<String?>
     suspend fun currentAccountId(): String?

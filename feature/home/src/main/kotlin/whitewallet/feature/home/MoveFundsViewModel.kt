@@ -21,6 +21,8 @@ import whitewallet.core.wallet.MoveFailure
 data class MoveFundsState(
     val from: AccountSummary? = null,
     val targets: List<AccountSummary> = emptyList(),
+    /** Each account's place among all accounts, oldest first: its mark's colour. */
+    val places: Map<String, Int> = emptyMap(),
     val targetId: String? = null,
     /** Whole sats as typed; ignored when [everything] is set. */
     val amountSats: String = "",
@@ -41,7 +43,8 @@ class MoveFundsViewModel @Inject constructor(private val wallet: Wallet) : ViewM
 
     val state: StateFlow<MoveFundsState> = combine(wallet.accounts, wallet.activeAccount, input) { accounts, active, i ->
         val targets = accounts.filter { it.account.id != active?.account?.id }
-        MoveFundsState(active, targets, i.targetId ?: targets.singleOrNull()?.account?.id, i.amountSats, i.everything, i.busy, i.result)
+        val places = accounts.withIndex().associate { (place, it) -> it.account.id to place }
+        MoveFundsState(active, targets, places, i.targetId ?: targets.singleOrNull()?.account?.id, i.amountSats, i.everything, i.busy, i.result)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MoveFundsState())
 
     fun onTarget(id: String) = input.update { it.copy(targetId = id) }

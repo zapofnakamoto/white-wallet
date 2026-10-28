@@ -21,6 +21,8 @@ import whitewallet.core.wallet.Wallet
 /** What the settings hub summarizes; each part is edited on its own page. */
 data class SettingsState(
     val accountName: String? = null,
+    /** The account's place among the accounts, oldest first: its mark's colour. */
+    val accountPlace: Int = 0,
     val profile: Profile? = null,
     val backupVerified: Boolean = false,
     val addressStatus: AddressStatus? = null,
@@ -62,15 +64,17 @@ internal fun hiddenPages(defaults: AppDefaults, wallet: Wallet, strategy: NoteSt
 class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
     private val notes = combine(wallet.noteStrategy, wallet.autoRotate, wallet.lastPolicyRun, ::Triple)
     private val address = combine(wallet.profile, wallet.addressStatus, wallet.addresses, ::Triple)
-    private val account = combine(wallet.activeAccount, wallet.backupVerified, ::Pair)
+    private val account = combine(wallet.activeAccount, wallet.backupVerified, wallet.accounts) { active, backedUp, accounts ->
+        Triple(active, backedUp, accounts.indexOfFirst { it.account.id == active?.account?.id }.coerceAtLeast(0))
+    }
     private val developer = combine(preferences.developerMode, preferences.developerOptionsUnlocked, ::Pair)
     private val app = combine(developer, preferences.appLock, wallet.collectAtHome, ::Triple)
 
     val state: StateFlow<SettingsState> = combine(account, address, notes, app, wallet.mints) {
-            (account, backedUp), (profile, status, addresses), (strategy, rotate, run), (developerState, appLock, collect), mints ->
+            (account, backedUp, place), (profile, status, addresses), (strategy, rotate, run), (developerState, appLock, collect), mints ->
         val (developer, unlocked) = developerState
         SettingsState(
-            account?.account?.name, profile, backedUp, status, (addresses.size - 1).coerceAtLeast(0), developer, strategy, rotate, run, appLock,
+            account?.account?.name, place, profile, backedUp, status, (addresses.size - 1).coerceAtLeast(0), developer, strategy, rotate, run, appLock,
             account?.account?.host, collect, hidden = hiddenPages(defaults, wallet, strategy, developer, unlocked), mintCount = mints.size, trustedCount = mints.count { it.trusted },
         )
     }

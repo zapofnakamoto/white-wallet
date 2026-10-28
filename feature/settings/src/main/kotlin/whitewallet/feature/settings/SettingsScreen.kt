@@ -35,6 +35,7 @@ import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.brand.ui.Tone
 import whitewallet.core.wallet.AddressStatus
+import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletListIcon
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTextField
@@ -103,7 +104,7 @@ private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget
     state.accountName?.let { name ->
         val (status, color) = addressSummary(state.addressStatus)
         SummaryRow(
-            DesignR.drawable.ic_account,
+            { WalletAccountMark(name, state.accountPlace) },
             stringResource(R.string.settings_account_section, name),
             state.profile?.address ?: stringResource(R.string.settings_account_contents),
             extra = state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) }
@@ -114,22 +115,22 @@ private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget
     }
     if (SettingsTarget.Mints !in state.hidden) {
         SummaryRow(
-            iconOf(SettingsTarget.Mints),
+            pageIcon(SettingsTarget.Mints),
             stringResource(R.string.settings_mints),
             pluralStringResource(R.plurals.settings_mints_summary, state.mintCount, state.mintCount, state.trustedCount),
         ) { open(SettingsTarget.Mints) }
     }
     SummaryRow(
-        iconOf(SettingsTarget.Security),
+        pageIcon(SettingsTarget.Security),
         stringResource(R.string.security_title),
         stringResource(if (state.appLock) R.string.settings_app_lock_on else R.string.settings_app_lock_off),
     ) { open(SettingsTarget.Security) }
     if (SettingsTarget.Display !in state.hidden) {
-        SummaryRow(iconOf(SettingsTarget.Display), stringResource(R.string.settings_amounts), unitExample(LocalAmountUnit.current)) { open(SettingsTarget.Display) }
+        SummaryRow(pageIcon(SettingsTarget.Display), stringResource(R.string.settings_amounts), unitExample(LocalAmountUnit.current)) { open(SettingsTarget.Display) }
     }
     if (SettingsTarget.Developer !in state.hidden) {
         SummaryRow(
-            iconOf(SettingsTarget.Developer),
+            pageIcon(SettingsTarget.Developer),
             stringResource(R.string.settings_developer),
             stringResource(if (state.developerMode) R.string.settings_on else R.string.settings_off),
         ) { open(SettingsTarget.Developer) }
@@ -142,18 +143,17 @@ private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget
             modifier = Modifier.clickable { openRoute(page.route) },
         )
     }
-    SummaryRow(iconOf(SettingsTarget.About), stringResource(R.string.about_title), stringResource(R.string.about_version, versionName)) { open(SettingsTarget.About) }
+    SummaryRow(pageIcon(SettingsTarget.About), stringResource(R.string.about_title), stringResource(R.string.about_version, versionName)) { open(SettingsTarget.About) }
 }
 
 /** Shown above everything while the account's recovery phrase isn't backed up: one level down, it would be missed. */
 @Composable
 private fun BackupWarning(onClick: () -> Unit) {
     SummaryRow(
-        DesignR.drawable.ic_warning,
+        pageIcon(DesignR.drawable.ic_warning, Tone.Danger),
         stringResource(R.string.settings_backup_now),
         stringResource(R.string.settings_backup_now_hint),
         titleColor = MaterialTheme.colorScheme.error,
-        iconTone = Tone.Danger,
         onClick = onClick,
     )
 }
@@ -171,11 +171,10 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
     Scaffold(topBar = { WalletTopBar(title, onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             SummaryRow(
-                iconOf(SettingsTarget.Backup),
+                pageIcon(SettingsTarget.Backup, if (state.backupVerified) Tone.Neutral else Tone.Danger),
                 stringResource(R.string.settings_recovery_phrase),
                 stringResource(if (state.backupVerified) R.string.settings_backed_up else R.string.settings_not_backed_up),
                 if (state.backupVerified) Color.Unspecified else MaterialTheme.colorScheme.error,
-                iconTone = if (state.backupVerified) Tone.Neutral else Tone.Danger,
             ) { open(SettingsTarget.Backup) }
             val profile = state.profile
             if (profile != null) {
@@ -185,19 +184,19 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
                 } else {
                     profile.address
                 }
-                SummaryRow(iconOf(SettingsTarget.Addresses), stringResource(R.string.addresses_title), summary, extra = status, extraColor = color) { open(SettingsTarget.Addresses) }
+                SummaryRow(pageIcon(SettingsTarget.Addresses), stringResource(R.string.addresses_title), summary, extra = status, extraColor = color) { open(SettingsTarget.Addresses) }
             } else if (state.accountName != null) {
-                SummaryRow(iconOf(SettingsTarget.Addresses), stringResource(R.string.addresses_title), stringResource(R.string.settings_no_address)) { open(SettingsTarget.Addresses) }
+                SummaryRow(pageIcon(SettingsTarget.Addresses), stringResource(R.string.addresses_title), stringResource(R.string.settings_no_address)) { open(SettingsTarget.Addresses) }
             }
             state.homeHost?.takeIf { SettingsTarget.AccountMints !in state.hidden }?.let { host ->
-                SummaryRow(iconOf(SettingsTarget.AccountMints), stringResource(R.string.settings_account_mints), stringResource(R.string.addresses_home_mint, host)) { open(SettingsTarget.AccountMints) }
+                SummaryRow(pageIcon(SettingsTarget.AccountMints), stringResource(R.string.settings_account_mints), stringResource(R.string.addresses_home_mint, host)) { open(SettingsTarget.AccountMints) }
             }
             if (SettingsTarget.NoteList !in state.hidden) {
-                SummaryRow(iconOf(SettingsTarget.NoteList), stringResource(R.string.settings_note_list), stringResource(R.string.settings_note_list_hint)) { open(SettingsTarget.NoteList) }
+                SummaryRow(pageIcon(SettingsTarget.NoteList), stringResource(R.string.settings_note_list), stringResource(R.string.settings_note_list_hint)) { open(SettingsTarget.NoteList) }
             }
             if (SettingsTarget.Notes !in state.hidden) {
                 SummaryRow(
-                    iconOf(SettingsTarget.Notes),
+                    pageIcon(SettingsTarget.Notes),
                     stringResource(R.string.settings_notes),
                     notesSummary(state),
                     extra = state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) },
@@ -206,11 +205,10 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
             }
             HorizontalDivider()
             SummaryRow(
-                iconOf(SettingsTarget.Delete),
+                pageIcon(SettingsTarget.Delete, Tone.Danger),
                 stringResource(R.string.settings_delete),
                 stringResource(R.string.settings_delete_hint),
                 titleColor = MaterialTheme.colorScheme.error,
-                iconTone = Tone.Danger,
             ) { open(SettingsTarget.Delete) }
         }
     }
@@ -299,21 +297,25 @@ private fun iconOf(destination: SearchDestination, brandPages: List<BrandPage>):
     }
 }
 
-/** One hub row: the page's mark, a one-line summary of it (plus an optional status line), and a chevron. */
+/** A page's icon as a [SummaryRow]'s leading mark. */
+private fun pageIcon(@DrawableRes icon: Int, tone: Tone = Tone.Neutral): @Composable () -> Unit = { WalletListIcon(icon, tone = tone) }
+
+private fun pageIcon(target: SettingsTarget, tone: Tone = Tone.Neutral) = pageIcon(iconOf(target), tone)
+
+/** One hub row: a leading mark, the page, a one-line summary of it (plus an optional status line), and a chevron. */
 @Composable
 private fun SummaryRow(
-    @DrawableRes icon: Int,
+    leading: @Composable () -> Unit,
     title: String,
     summary: String,
     summaryColor: Color = Color.Unspecified,
     titleColor: Color = Color.Unspecified,
     extra: String? = null,
     extraColor: Color = Color.Unspecified,
-    iconTone: Tone = Tone.Neutral,
     onClick: () -> Unit,
 ) {
     WalletListItem(
-        leadingContent = { WalletListIcon(icon, tone = iconTone) },
+        leadingContent = leading,
         headlineContent = { Text(title, color = titleColor) },
         supportingContent = {
             Column {

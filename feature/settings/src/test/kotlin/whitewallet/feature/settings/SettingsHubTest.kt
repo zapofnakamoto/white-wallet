@@ -31,6 +31,7 @@ class SettingsHubTest {
         compose.onNodeWithText("Back up your recovery phrase").assertDoesNotExist()
         compose.onNodeWithText("Delete this account from this device").assertDoesNotExist()
         compose.onNodeWithText("App lock off").assertExists()
+        compose.onNodeWithText("M").assertExists() // the account's mark
         compose.onNodeWithText("Account: Main").performClick()
         assertEquals(listOf(SettingsTarget.Account), opened)
     }

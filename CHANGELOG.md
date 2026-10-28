@@ -11,6 +11,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   page is found at a glance. "Back up now", an unverified recovery phrase and "Delete" are marked in the error colour.
   A note that is still being paid, unclear or not yet certified shows a small icon before its status. Brands can
   replace the drawables, restyle the marks (`ListIcon`) and give their own Settings pages one (`BrandScreen.icon`).
+- Accounts have a mark: the first letter of their name on a colour of their own, by their place among the accounts
+  (oldest first), so neighbouring accounts differ, the same on every screen. In the account switcher, where the
+  active account's mark has a check instead of a radio button, on the wallet tab's account chip, on Settings' account
+  row, and on Move funds (from, and each account to move to). Brands restyle it (`AccountMark`).
 
 ## [0.4.0]
 
