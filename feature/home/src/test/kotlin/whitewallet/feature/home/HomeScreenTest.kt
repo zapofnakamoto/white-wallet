@@ -17,6 +17,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import whitewallet.brand.ReleaseStage
+import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
@@ -81,6 +82,34 @@ class HomeScreenTest {
             }
         }
         compose.onNodeWithText("Beta").assertExists()
+    }
+
+    @Test
+    fun aDebugBuildNamesItselfInTheTitleBesideTheBadge() {
+        compose.setContent {
+            CompositionLocalProvider(LocalReleaseStage provides ReleaseStage.Beta, LocalBuildLabel provides "v0.3.0-21-gb1593f9-dirty") {
+                HomeScreen(
+                    "Wallet", HomeState(), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
+                    onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Beta").assertExists()
+        compose.onNodeWithText("v0.3.0-21-gb1593f9-dirty").assertExists()
+    }
+
+    @Test
+    fun aStableDebugBuildStillNamesItself() {
+        compose.setContent {
+            CompositionLocalProvider(LocalBuildLabel provides "v1.0.0") {
+                HomeScreen(
+                    "Wallet", HomeState(), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
+                    onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Beta").assertDoesNotExist()
+        compose.onNodeWithText("v1.0.0").assertExists()
     }
 
     @Test

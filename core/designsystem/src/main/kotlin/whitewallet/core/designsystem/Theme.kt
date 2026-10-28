@@ -40,6 +40,9 @@ val LocalAppName = staticCompositionLocalOf { "" }
 /** How finished the app is (brand `releaseStage`): alpha and beta are shown at setup and in About. */
 val LocalReleaseStage = staticCompositionLocalOf { ReleaseStage.Stable }
 
+/** Which build is running (`git describe`, e.g. v0.3.0-21-gb1593f9), beside the release badge; debug builds only, else null. */
+val LocalBuildLabel = staticCompositionLocalOf<String?> { null }
+
 /**
  * The app theme: the brand's tokens from its resources (brand_defaults.xml lists them; night variants come from
  * values-night), handed to the brand's [design], which may change them before they apply.

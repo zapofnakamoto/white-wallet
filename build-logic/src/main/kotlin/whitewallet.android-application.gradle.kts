@@ -19,6 +19,14 @@ val keystoreProperties = Properties().apply {
 fun signing(env: String, key: String): String? = System.getenv(env)?.takeIf { it.isNotBlank() } ?: keystoreProperties.getProperty(key)
 val releaseStoreFile = signing("WW_KEYSTORE", "storeFile")
 
+// Which checkout a debug build came from, shown beside the title: v0.3.0 on the tag, v0.3.0-21-gb1593f9 after it,
+// with -dirty for uncommitted changes. Empty outside a git checkout.
+val buildLabel = providers.exec {
+    commandLine("git", "describe", "--tags", "--always", "--dirty")
+    workingDir = rootDir
+    isIgnoreExitValue = true
+}.standardOutput.asText.get().trim()
+
 android {
     configureAndroid()
     defaultConfig {
@@ -79,10 +87,13 @@ android {
             buildConfigField("String", "LOCAL_DEV_MINTS", "\"localhost:8111,localhost:8112,localhost:8113\"")
             // dev/regtest's faucet, which pays the app's own address or invoice from Receive in developer mode.
             buildConfigField("String", "LOCAL_DEV_FAUCET", "\"localhost:8114\"")
+            buildConfigField("String", "BUILD_LABEL", "\"$buildLabel\"")
         }
         getByName("release") {
             buildConfigField("String", "LOCAL_DEV_MINTS", "\"\"")
             buildConfigField("String", "LOCAL_DEV_FAUCET", "\"\"")
+            // Reproducible: nothing about the checkout in a release.
+            buildConfigField("String", "BUILD_LABEL", "\"\"")
             isMinifyEnabled = true
             vcsInfo.include = false
             signingConfigs.findByName("release")?.let { signingConfig = it }

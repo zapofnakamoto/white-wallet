@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -42,39 +43,53 @@ fun BrandTitle(anchor: Anchor, title: String, modifier: Modifier = Modifier, def
 
 /**
  * [title] with the release stage's badge beside it, vertically centred, whatever the brand draws as the title. [centered]: the title stays in the middle, and where the badge doesn't fit beside it, it goes below; otherwise
- * (a top bar) the badge follows the title, which gets the rest of the width. A stable release shows only [title].
+ * (a top bar) the badge follows the title, which gets the rest of the width. A debug build adds its [WalletBuildLabel]:
+ * after the badge when centred, on a line of its own below the title and badge in a top bar; it is shortened only
+ * where it is wider than the space. A stable release build shows only [title].
  */
 @Composable
 fun WithReleaseBadge(modifier: Modifier = Modifier, centered: Boolean = true, title: @Composable () -> Unit) {
-    if (LocalReleaseStage.current == ReleaseStage.Stable) return Box(modifier) { title() }
-    Layout({ title(); WalletReleaseBadge() }, modifier) { (titleMeasurable, badgeMeasurable), constraints ->
+    if (LocalReleaseStage.current == ReleaseStage.Stable && LocalBuildLabel.current == null) return Box(modifier) { title() }
+    // Boxes, so both slots are there to measure when one of them draws nothing (a stable debug build has no badge).
+    Layout({ title(); Box { WalletReleaseBadge() }; Box { WalletBuildLabel() } }, modifier) { (titleMeasurable, badgeMeasurable, labelMeasurable), constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
-        val badge = badgeMeasurable.measure(loose)
         val gap = 4.dp.roundToPx()
-        val side = badge.width + gap
+        fun side(width: Int) = if (width > 0) width + gap else 0
+        val badge = badgeMeasurable.measure(loose)
         if (!centered) {
-            val text = titleMeasurable.measure(loose.copy(maxWidth = (constraints.maxWidth - side).coerceAtLeast(0)))
-            val height = maxOf(text.height, badge.height)
-            return@Layout layout(maxOf(constraints.minWidth, text.width + side), height) {
-                text.place(0, (height - text.height) / 2)
-                badge.place(text.width + gap, (height - badge.height) / 2)
+            // The badge beside the title; the label on a line of its own below them, with the whole width.
+            val text = titleMeasurable.measure(loose.copy(maxWidth = (constraints.maxWidth - side(badge.width)).coerceAtLeast(0)))
+            val label = labelMeasurable.measure(loose)
+            val line = maxOf(text.height, badge.height)
+            return@Layout layout(maxOf(constraints.minWidth, text.width + side(badge.width), label.width), line + label.height) {
+                text.place(0, (line - text.height) / 2)
+                badge.place(text.width + gap, (line - badge.height) / 2)
+                label.place(0, line)
             }
         }
         val text = titleMeasurable.measure(loose)
-        // Beside the title, with the same room on the other side so the title stays in the middle.
-        if (text.width + 2 * side <= constraints.maxWidth) {
-            val width = maxOf(constraints.minWidth, text.width + 2 * side)
+        val label = labelMeasurable.measure(loose.copy(maxWidth = (constraints.maxWidth - side(badge.width)).coerceAtLeast(0)))
+        // The badge and the label as one group: beside the title, with the same room on the other side so the title
+        // stays in the middle, or centred below it.
+        val group = side(badge.width) + side(label.width) - gap
+        val groupHeight = maxOf(badge.height, label.height)
+        fun Placeable.PlacementScope.placeGroup(x: Int, y: Int, height: Int) {
+            badge.place(x, y + (height - badge.height) / 2)
+            label.place(x + side(badge.width), y + (height - label.height) / 2)
+        }
+        if (text.width + 2 * (group + gap) <= constraints.maxWidth) {
+            val width = maxOf(constraints.minWidth, text.width + 2 * (group + gap))
             val left = (width - text.width) / 2
-            val height = maxOf(text.height, badge.height)
+            val height = maxOf(text.height, groupHeight)
             layout(width, height) {
                 text.place(left, (height - text.height) / 2)
-                badge.place(left + text.width + gap, (height - badge.height) / 2)
+                placeGroup(left + text.width + gap, 0, height)
             }
         } else {
-            val width = maxOf(constraints.minWidth, text.width, badge.width)
-            layout(width, text.height + 2 * gap + badge.height) {
+            val width = maxOf(constraints.minWidth, text.width, group)
+            layout(width, text.height + 2 * gap + groupHeight) {
                 text.place((width - text.width) / 2, 0)
-                badge.place((width - badge.width) / 2, text.height + 2 * gap)
+                placeGroup((width - group) / 2, text.height + 2 * gap, groupHeight)
             }
         }
     }

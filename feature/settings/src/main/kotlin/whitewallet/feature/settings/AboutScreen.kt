@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletBuildLabel
 import whitewallet.core.designsystem.WalletReleaseBadge
 import whitewallet.core.designsystem.releaseNotice
 
@@ -97,6 +98,7 @@ fun AboutScreen(appName: String, versionName: String, supportUrl: String, onBack
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(stringResource(R.string.about_version, versionName))
                             WalletReleaseBadge()
+                            WalletBuildLabel()
                         }
                         when {
                             taps >= UNLOCK_TAPS -> Text(stringResource(R.string.about_developer_unlocked), color = MaterialTheme.colorScheme.primary)

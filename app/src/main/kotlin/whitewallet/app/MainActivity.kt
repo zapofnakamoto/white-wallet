@@ -44,6 +44,7 @@ import whitewallet.brand.ui.BrandScreenEntry
 import whitewallet.brand.ui.DefaultBrandDesign
 import whitewallet.brand.ui.LocalWalletEvents
 import whitewallet.core.designsystem.LocalAppName
+import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletTheme
@@ -109,7 +110,7 @@ class MainActivity : FragmentActivity() {
             val unit by display.amountUnit.collectAsStateWithLifecycle()
             val appName = stringResource(R.string.app_name)
             WalletTheme(design.orElse(DefaultBrandDesign)) {
-                CompositionLocalProvider(LocalAmountUnit provides unit, LocalAppName provides appName, LocalReleaseStage provides defaults.releaseStage, LocalWalletEvents provides events.events) {
+                CompositionLocalProvider(LocalAmountUnit provides unit, LocalAppName provides appName, LocalReleaseStage provides defaults.releaseStage, LocalBuildLabel provides BuildConfig.BUILD_LABEL.ifEmpty { null }, LocalWalletEvents provides events.events) {
                     Surface(Modifier.fillMaxSize()) {
                         AppLockGate(appName) { WalletApp(incoming, BrandScreens(brandScreens), showNotesTab = defaults.notesView == NotesView.Tab, onIncomingHandled = { incoming.value = null }) }
                     }

@@ -7,6 +7,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- Debug builds say which build is running: `git describe` (`v0.3.0`, or `v0.3.0-21-gb1593f9-dirty` after the tag)
+  beside the release badge at setup and in About; on the wallet tab on a line below the title and badge. Also for a
+  stable release. Shortened from the start only where it is wider than the screen. Release builds show nothing and
+  stay reproducible. `LocalBuildLabel`, `WalletBuildLabel`.
 - An empty wallet says how money gets in: a line under the ₿0 balance (not while the balance is hidden). Brands can
   reword it (`home_wallet_empty`).
 - With `allowMintChange=true`, users can change their home mint from the mint pages (with `showMints=true`):

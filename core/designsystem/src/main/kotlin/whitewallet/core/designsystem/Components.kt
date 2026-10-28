@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -52,6 +53,16 @@ fun AmountText(msat: Long, modifier: Modifier = Modifier, hidden: Boolean = fals
             .then(if (onToggleHidden != null) Modifier.clickable(onClickLabel = toggleLabel, onClick = onToggleHidden) else Modifier)
             .semantics { contentDescription = spoken },
     )
+}
+
+/**
+ * Which build is running ([LocalBuildLabel]), for developers; nothing in a release build. Plain text, not a brand
+ * component. Where it doesn't fit, shortened from the start, so the commit and `-dirty` stay.
+ */
+@Composable
+fun WalletBuildLabel(modifier: Modifier = Modifier) {
+    val label = LocalBuildLabel.current ?: return
+    Text(label, modifier, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false, overflow = TextOverflow.StartEllipsis)
 }
 
 /** A full-width primary action that shows a spinner while [busy]. */
