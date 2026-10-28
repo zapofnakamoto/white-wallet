@@ -18,7 +18,7 @@ import whitewallet.core.wallet.SeedStore
 import whitewallet.core.wallet.WalletStore
 
 private val Context.secretsDataStore by preferencesDataStore(name = "secrets")
-private val Context.settingsDataStore by preferencesDataStore(name = "settings")
+private val Context.settingsDataStore by preferencesDataStore(name = "settings", produceMigrations = { DataStorePreferences.MIGRATIONS })
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -33,11 +33,12 @@ object DataModule {
     @Provides
     @Singleton
     internal fun database(@ApplicationContext context: Context): WalletDatabase =
-        // Pre-release: no migrations. A schema change bumps the version and the database starts empty (seeds are kept);
-        // the downgrade case covers installs from before the reset to version 1.
+        // Since v0.3.0 (version 2) every schema change has a migration. Older development installs (version 1, or
+        // before the reset to it) start empty; seeds are kept.
         Room.databaseBuilder(context, WalletDatabase::class.java, DATABASE)
             .openHelperFactory(encrypted(context))
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addMigrations(*WalletDatabase.MIGRATIONS)
+            .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1)
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
             .build()
 

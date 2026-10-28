@@ -1,5 +1,6 @@
 package whitewallet.core.data
 
+import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -121,19 +122,34 @@ internal class DataStorePreferences(
         }
     }
 
-    private companion object {
-        val DEVELOPER_MODE = booleanPreferencesKey("developer_mode")
-        val DEVELOPER_UNLOCKED = booleanPreferencesKey("developer_options_unlocked")
-        val MAX_ADDRESSES = intPreferencesKey("max_addresses_per_mint")
-        val AMOUNT_UNIT = stringPreferencesKey("amount_unit")
-        val BALANCE_HIDDEN = booleanPreferencesKey("balance_hidden")
-        val APP_LOCK = booleanPreferencesKey("app_lock")
-        val NOTES_SORT = stringPreferencesKey("notes_sort")
-        val TRUSTED = stringSetPreferencesKey("trusted_mints")
-        val UNTRUSTED = stringSetPreferencesKey("untrusted_mints")
-        fun autoRotateKey(accountId: String) = booleanPreferencesKey("auto_rotate_$accountId")
-        fun strategyKey(accountId: String) = stringPreferencesKey("note_strategy_$accountId")
-        fun collectKey(accountId: String) = booleanPreferencesKey("collect_at_home_$accountId")
-        fun feeCapKey(accountId: String) = intPreferencesKey("collect_fee_cap_$accountId")
+    internal companion object {
+        private val DEVELOPER_MODE = booleanPreferencesKey("developer_mode")
+        private val DEVELOPER_UNLOCKED = booleanPreferencesKey("developer_options_unlocked")
+        private val MAX_ADDRESSES = intPreferencesKey("max_addresses_per_mint")
+        private val AMOUNT_UNIT = stringPreferencesKey("amount_unit")
+        private val BALANCE_HIDDEN = booleanPreferencesKey("balance_hidden")
+        private val APP_LOCK = booleanPreferencesKey("app_lock")
+        private val NOTES_SORT = stringPreferencesKey("notes_sort")
+        private val TRUSTED = stringSetPreferencesKey("trusted_mints")
+        private val UNTRUSTED = stringSetPreferencesKey("untrusted_mints")
+        private fun autoRotateKey(accountId: String) = booleanPreferencesKey("auto_rotate_$accountId")
+        private fun strategyKey(accountId: String) = stringPreferencesKey("note_strategy_$accountId")
+        private fun collectKey(accountId: String) = booleanPreferencesKey("collect_at_home_$accountId")
+        private fun feeCapKey(accountId: String) = intPreferencesKey("collect_fee_cap_$accountId")
+
+        /** Keys renamed since v0.3.0: an installed app keeps the value under the new name. */
+        val MIGRATIONS: List<DataMigration<Preferences>> = listOf(RenamedKey(intPreferencesKey("max_addresses_per_service"), MAX_ADDRESSES))
     }
+}
+
+/** Moves a value from [old] to [new] once; a value already under [new] wins. */
+private class RenamedKey<T>(private val old: Preferences.Key<T>, private val new: Preferences.Key<T>) : DataMigration<Preferences> {
+    override suspend fun shouldMigrate(currentData: Preferences) = old in currentData
+
+    override suspend fun migrate(currentData: Preferences): Preferences = currentData.toMutablePreferences().apply {
+        val value = remove(old)
+        if (new !in this && value != null) this[new] = value
+    }.toPreferences()
+
+    override suspend fun cleanUp() = Unit
 }

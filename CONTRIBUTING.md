@@ -44,8 +44,9 @@ that section to the version and tags `v<version>`; CI turns the section into the
   the local regtest stack verifies it: a `Regtest*` test, run with `just test-regtest`. For a bug, that test
   reproduces it first and fails without the fix. Mock-mint and unit tests are welcome on top, never instead. See
   [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#tests).
-- **No migrations yet.** Before the first release, schema changes start the database empty; there is no
-  backward compatibility to keep.
+- **Updates keep users' data.** Since v0.3.0, a schema change comes with a Room migration and a test that
+  upgrades a database of the previous version (`MigrationTest`); a renamed preference key, a stored enum value or
+  format keeps being read. Brands and other projects get no such promise: renames there go into CHANGELOG.md.
 
 ## Brands
 

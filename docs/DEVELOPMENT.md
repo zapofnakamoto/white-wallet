@@ -91,7 +91,7 @@ CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the
 | `core/brand-api` | JVM | What a brand's own code may plug into: `NoteStrategy`, `WalletStatus`, `WalletEvent` (see docs/WHITE_LABEL.md, "Custom code") |
 | `core/brand-ui` | Android | What a brand's own code may plug into for its look: `BrandDesign` (theme, components, decorations), `BrandScreen` (see docs/WHITE_LABEL.md, "Design") |
 | `core/wallet` | JVM | Wallet logic: accounts, onboarding, address checks and scanning, claiming, moving funds, rotating, note policies (`NotePolicyEngine`), reconciliation |
-| `core/data` | Android | Room store and Keystore-encrypted seeds. Pre-release there are no migrations: a schema change bumps `WalletDatabase`'s version and the database starts empty (seeds are kept) |
+| `core/data` | Android | Room store and Keystore-encrypted seeds. Since v0.3.0 an update keeps the wallet: every schema change bumps `WalletDatabase`'s version and adds a migration to `WalletDatabase.MIGRATIONS`, its schema is exported to `core/data/schemas` (committed), and `MigrationTest` opens a database built from the previous schema. A renamed preference key goes into `DataStorePreferences.MIGRATIONS` |
 | `core/designsystem` | Android | Theme from the brand's tokens, and the components every screen uses (they draw through the brand's `BrandDesign`) |
 | `core/scanner` | Android | The QR scanner (CameraX + ZXing, no Play Services), shared by Send and Claim |
 | `feature/*` | Android | Onboarding, home, receive, claim, send and settings screens |
@@ -122,7 +122,7 @@ English is the source; **German** (`values-de`) is complete in every module and 
 
 Settings → Account → Home mint opens the **mint details** (`Wallet.mintDetails`, `MintInspector`): reachable or not, its description, fees and limits (refreshed), the signing key pinned on first contact, the account's money there, its website, and the account's **watch-only key** (`cx1`, `Wallet.watchOnlyKey`), which lets another app see and pay to the account's notes there but never spend. A mint presenting another signing key than the pinned one stops all operations with it (`MintKeyChangedException`); Home shows a card that leads to the details.
 
-The Room database is encrypted with **SQLCipher**; its random 32-byte passphrase is stored encrypted with a Keystore key in no-backup storage (`DatabaseKey`). Pre-release, a database found without its passphrase starts empty (seeds are kept). The optional **app lock** (Settings → App lock, `AppLockGate`) asks for the phone's lock when the app starts and after 30 seconds in the background; switching it on or off asks too. The wallet stays composed underneath but hidden, also from accessibility mints. Note links and the recovery phrase are on `FLAG_SECURE` screens and copied with a clipboard that clears itself.
+The Room database is encrypted with **SQLCipher**; its random 32-byte passphrase is stored encrypted with a Keystore key in no-backup storage (`DatabaseKey`). Pre-release, a database found without its passphrase starts empty (seeds are kept). The optional **app lock** (Settings → App lock, `AppLockGate`) asks for the phone's lock when the app starts and after 30 seconds in the background; switching it on or off asks too. The wallet stays composed underneath but hidden, also from accessibility services. Note links and the recovery phrase are on `FLAG_SECURE` screens and copied with a clipboard that clears itself.
 
 ## Amounts
 

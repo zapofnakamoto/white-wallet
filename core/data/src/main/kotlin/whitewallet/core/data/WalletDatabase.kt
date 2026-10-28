@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Query
 import androidx.room.RoomDatabase
 import androidx.room.Upsert
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -154,8 +156,22 @@ internal interface WalletDao {
         AddressEntity::class, ActivityEntity::class,
     ],
     version = 3,
-    exportSchema = false,
+    exportSchema = true,
 )
 internal abstract class WalletDatabase : RoomDatabase() {
     abstract fun dao(): WalletDao
+
+    companion object {
+        /** Every schema change from v0.3.0 (version 2) on; installed wallets keep their data. Schemas: core/data/schemas. */
+        val MIGRATIONS = arrayOf(Migration2To3)
+    }
+}
+
+/** A service is a mint: the table, the history kind of a move between mints and the id of its history row. */
+internal object Migration2To3 : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE services RENAME TO mints")
+        db.execSQL("UPDATE activity SET kind = 'MovedMint' WHERE kind = 'MovedService'")
+        db.execSQL("UPDATE activity SET id = 'mint:' || substr(id, 9) WHERE id LIKE 'service:%'")
+    }
 }

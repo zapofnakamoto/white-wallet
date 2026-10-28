@@ -48,8 +48,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - The app says "Renew" wherever it said "Rotate" (Settings: "Auto-renew incoming notes"; the developer keys page);
   keys `keys_rotate*` are `keys_renew*`, `settings_auto_rotate*` `settings_auto_renew*`.
 - In code, `Service` is `Mint`: `Wallet.connectMint`, `Wallet.mintDetails`, `Wallet.moveToMint`,
-  `Wallet.quoteMintMove`, `ActivityKind.MovedMint`, and `MintNotes` for a brand's `NoteStrategy.plan`. The database
-  starts empty once (version 3).
+  `Wallet.quoteMintMove`, `ActivityKind.MovedMint`, and `MintNotes` for a brand's `NoteStrategy.plan`. Installed
+  wallets keep their data: the database is migrated (version 3) and the developer address limit moves to its new key.
 
 ## [0.3.0]
 

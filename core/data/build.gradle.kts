@@ -9,6 +9,8 @@ android {
 
 ksp {
     arg("room.generateKotlin", "true")
+    // One file per database version, kept in git: the migration tests build old databases from them.
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
