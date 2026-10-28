@@ -35,6 +35,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   that whoever holds the paper can spend it, on white in the brand's light theme whatever the phone's, and opens
   Android's print dialog. Brands turn it off by leaving `print` out of `noteActions`. Designsystem: `PrintPage`,
   `printBitmap`, `LightWalletTheme`.
+- Brands can decorate the notes view: `NotesHeader` above its total (status `Empty`, `WaitingForRecipient` while
+  handed-out notes wait, or `Idle`) and `NotesEmpty` above the text of an empty one. Three new `WalletEvent`s:
+  `NoteRedeemed` and `NoteTakenBack` when a handed-out note is redeemed or taken back, and `NotesTidied` when a note
+  strategy or auto-renew looked after the notes by itself. A brand's `when` over events picks them up in its `else`.
 
 ### Fixed
 

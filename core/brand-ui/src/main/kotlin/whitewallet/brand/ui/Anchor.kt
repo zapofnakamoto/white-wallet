@@ -47,6 +47,16 @@ value class Anchor(val id: String) {
          */
         val NoteShared = Anchor("note.shared")
 
+        /**
+         * Above the total of the notes view: status [whitewallet.brand.WalletStatus.Empty] without notes,
+         * [whitewallet.brand.WalletStatus.WaitingForRecipient] while handed-out notes wait, else
+         * [whitewallet.brand.WalletStatus.Idle]. Default: nothing.
+         */
+        val NotesHeader = Anchor("notes.header")
+
+        /** Above the text of an empty notes view. Default: nothing. */
+        val NotesEmpty = Anchor("notes.empty")
+
         /** On the app lock screen. Default: the brand logo. */
         val AppLock = Anchor("app.lock")
 

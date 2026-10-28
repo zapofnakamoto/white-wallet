@@ -1,43 +1,46 @@
 package whitewallet.feature.notes
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.longClick
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
-import whitewallet.brand.ui.BrandComponents
-import whitewallet.brand.ui.BrandDesign
-import whitewallet.brand.ui.LocalBrandDesign
-import whitewallet.brand.ui.NoteFaceParams
-import whitewallet.brand.ui.NoteGroupParams
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandComponents
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.brand.ui.NoteFaceParams
+import whitewallet.brand.ui.NoteGroupParams
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.core.wallet.NoteAction
 import whitewallet.core.wallet.NotCollected
+import whitewallet.core.wallet.NoteAction
 
 @RunWith(RobolectricTestRunner::class)
 class NotesScreenTest {
@@ -262,5 +265,31 @@ class NotesScreenTest {
         s = state({ it.copy(selecting = true, selected = setOf("h1")) })
         compose.onNodeWithText("bill ₿30,000 Ready ✓").assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
         compose.onNodeWithText("bill ₿15,000 Ready").assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.Off))
+    }
+
+    @Test
+    fun aBrandDecoratesTheTopOfTheNotesAndAnEmptyView() {
+        val seen = mutableListOf<Pair<Anchor, WalletStatus>>()
+        val design = object : BrandDesign {
+            @Composable
+            override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                if (anchor == Anchor.NotesHeader || anchor == Anchor.NotesEmpty) seen += anchor to context.status
+            }
+        }
+        val mint = MintNotes("mint.example", true, listOf(note("a", "mint.example", 1_000)), trusted = true)
+        var state by mutableStateOf(NotesState(loaded = true))
+        compose.setContent { CompositionLocalProvider(LocalBrandDesign provides design) { NotesContent(state, NotesActions()) } }
+        compose.waitForIdle()
+        assertEquals(setOf(Anchor.NotesHeader to WalletStatus.Empty, Anchor.NotesEmpty to WalletStatus.Empty), seen.toSet())
+
+        seen.clear()
+        state = NotesState(loaded = true, mints = listOf(mint), shared = listOf(note("s", "mint.example", 500, NoteState.Shared)))
+        compose.waitForIdle()
+        assertEquals(setOf(Anchor.NotesHeader to WalletStatus.WaitingForRecipient), seen.toSet())
+
+        seen.clear()
+        state = NotesState(loaded = true, mints = listOf(mint))
+        compose.waitForIdle()
+        assertEquals(setOf(Anchor.NotesHeader to WalletStatus.Idle), seen.toSet())
     }
 }

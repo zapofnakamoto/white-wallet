@@ -40,6 +40,12 @@ class WalletEvents(private val wallet: Wallet, private val clock: () -> Long = S
                 val old = before.activity[row.id]
                 if (old != null || row.createdAtMillis >= now.since) event(old, row)?.let(::add)
             }
+            // A strategy's tidying is often several rows at once: one event for them.
+            if (count { it == WalletEvent.NotesTidied } > 1) {
+                val first = indexOf(WalletEvent.NotesTidied)
+                removeAll { it == WalletEvent.NotesTidied }
+                add(first, WalletEvent.NotesTidied)
+            }
         }
 
         /** What changing [old] (null: a new row) to [new] means to the user, if anything. */
@@ -54,7 +60,15 @@ class WalletEvents(private val wallet: Wallet, private val clock: () -> Long = S
                     else -> null
                 }
                 // A note handed out has left the wallet's hands once it is shared, whether redeemed yet or not.
-                ActivityKind.SentNote -> WalletEvent.PaymentSent(new.amountMsat).takeIf { old == null }
+                ActivityKind.SentNote -> when {
+                    old == null -> WalletEvent.PaymentSent(new.amountMsat)
+                    new.status == ActivityStatus.Done -> WalletEvent.NoteRedeemed(new.amountMsat)
+                    new.status == ActivityStatus.Cancelled -> WalletEvent.NoteTakenBack(new.amountMsat)
+                    else -> null
+                }
+                // What the user does to their notes they see on screen; only what the wallet did by itself is news.
+                ActivityKind.Combined, ActivityKind.Split, ActivityKind.Rotated ->
+                    WalletEvent.NotesTidied.takeIf { new.automatic && new.status == ActivityStatus.Done }
                 else -> null
             }
         }

@@ -10,8 +10,8 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.wallet.WalletEvents.Snapshot
 
 class WalletEventsTest {
-    private fun row(id: String, kind: ActivityKind, status: ActivityStatus = ActivityStatus.Done, at: Long = 100, account: String = "a") =
-        Activity(id, account, kind, 1_000, null, "mint", null, null, null, false, status, null, at)
+    private fun row(id: String, kind: ActivityKind, status: ActivityStatus = ActivityStatus.Done, at: Long = 100, account: String = "a", automatic: Boolean = false) =
+        Activity(id, account, kind, 1_000, null, "mint", null, null, null, automatic, status, null, at)
 
     private fun snapshot(vararg rows: Activity, account: String? = "a", since: Long = 50, accounts: Int = 1, backedUp: Boolean = false) =
         Snapshot(account, since, rows.associateBy { it.id }, accounts, backedUp)
@@ -41,12 +41,28 @@ class WalletEventsTest {
     fun `a shared note is sent once, when it is handed out`() {
         val shared = snapshot(row("n", ActivityKind.SentNote, ActivityStatus.Pending))
         assertEquals(listOf<WalletEvent>(WalletEvent.PaymentSent(1_000)), WalletEvents.changes(snapshot(), shared))
-        assertEquals(emptyList(), WalletEvents.changes(shared, snapshot(row("n", ActivityKind.SentNote))))
+        // Redeemed later, it is no second payment.
+        assertEquals(listOf<WalletEvent>(WalletEvent.NoteRedeemed(1_000)), WalletEvents.changes(shared, snapshot(row("n", ActivityKind.SentNote))))
     }
 
     @Test
-    fun `maintenance is no event`() {
+    fun `a handed-out note is redeemed or taken back later`() {
+        val shared = snapshot(row("r", ActivityKind.SentNote, ActivityStatus.Pending), row("t", ActivityKind.SentNote, ActivityStatus.Pending))
+        val now = snapshot(row("r", ActivityKind.SentNote), row("t", ActivityKind.SentNote, ActivityStatus.Cancelled))
+        assertEquals(listOf(WalletEvent.NoteRedeemed(1_000), WalletEvent.NoteTakenBack(1_000)), WalletEvents.changes(shared, now))
+    }
+
+    @Test
+    fun `maintenance by the user is no event, by the wallet itself one, however many rows`() {
         assertEquals(emptyList(), WalletEvents.changes(snapshot(), snapshot(row("m", ActivityKind.Combined))))
+        val tidied = snapshot(
+            row("c", ActivityKind.Combined, automatic = true),
+            row("s", ActivityKind.Split, automatic = true),
+            row("n", ActivityKind.Rotated, automatic = true),
+            row("p", ActivityKind.Received),
+        )
+        assertEquals(listOf(WalletEvent.NotesTidied, WalletEvent.PaymentReceived(1_000)), WalletEvents.changes(snapshot(), tidied))
+        assertEquals(emptyList(), WalletEvents.changes(snapshot(), snapshot(row("x", ActivityKind.Combined, ActivityStatus.Pending, automatic = true))))
     }
 
     @Test

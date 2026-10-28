@@ -40,30 +40,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import whitewallet.core.wallet.NoteAction
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.NoteFaceSize
+import whitewallet.brand.ui.NoteStatus
+import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletNoteFace
+import whitewallet.core.designsystem.WalletNoteGroupHeader
+import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
-import whitewallet.core.designsystem.R as DesignR
-import whitewallet.brand.ui.ButtonKind
-import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletLinearProgress
-import whitewallet.core.designsystem.WalletListItem
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.toggleableState
-import androidx.compose.ui.state.ToggleableState
-import whitewallet.brand.ui.NoteFaceSize
-import whitewallet.brand.ui.NoteStatus
-import whitewallet.core.designsystem.WalletNoteFace
-import whitewallet.core.designsystem.WalletNoteGroupHeader
+import whitewallet.core.wallet.NoteAction
 
 /** Everything the notes view can ask for. Navigation ([openShared], [openSettings]) is the caller's. */
 class NotesActions(
@@ -153,7 +157,12 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
             if (state.busy) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
             state.outcome?.takeIf { state.open == null }?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
             if (state.loaded && state.mints.isEmpty() && state.shared.isEmpty()) {
-                item { Text(stringResource(R.string.notes_empty), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp)) }
+                item {
+                    Column(Modifier.padding(16.dp)) {
+                        WalletStatusScope(WalletStatus.Empty) { BrandDecoration(Anchor.NotesEmpty) }
+                        Text(stringResource(R.string.notes_empty), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
             if (state.mints.isNotEmpty()) item { Toolbar(state, actions) }
             state.mints.forEach { mint ->
@@ -180,6 +189,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
 @Composable
 private fun Summary(state: NotesState) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        WalletStatusScope(notesStatus(state)) { BrandDecoration(Anchor.NotesHeader) }
         Text(formatAmount(state.totalMsat), style = MaterialTheme.typography.headlineMedium)
         if (state.noteCount > 0) {
             val parts = buildList {
@@ -192,6 +202,13 @@ private fun Summary(state: NotesState) {
             Text(stringResource(R.string.notes_waiting_total, formatAmount(state.sharedMsat)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+/** Empty without notes, waiting while handed-out notes are out, else idle. */
+internal fun notesStatus(state: NotesState): WalletStatus = when {
+    state.noteCount == 0 && state.shared.isEmpty() -> WalletStatus.Empty
+    state.sharedMsat > 0 -> WalletStatus.WaitingForRecipient
+    else -> WalletStatus.Idle
 }
 
 /** Sorting, and starting a selection. */

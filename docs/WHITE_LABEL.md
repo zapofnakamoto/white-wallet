@@ -303,6 +303,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   | `SendSuccess` | the screen after a payment went out (status `Sent`) | a check mark that draws itself |
   | `ClaimResult` | above a claimed note's result | nothing |
   | `NoteShared` | above a handed-out note's amount (status `WaitingForRecipient`, `Sent` once redeemed, `Idle` once taken back) | nothing |
+  | `NotesHeader` | above the notes view's total (status `Empty` without notes, `WaitingForRecipient` while handed-out notes wait, else `Idle`) | nothing |
+  | `NotesEmpty` | above the text of an empty notes view | nothing |
   | `AppLock` | the app lock screen | `ic_brand_logo` |
   | `EmptyHistory` | above the text of an empty history | nothing |
 
@@ -310,7 +312,9 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   (money, nothing happening), `Empty`, `AwaitingPayment`, `WaitingForRecipient` (a handed-out note nobody has
   redeemed yet), `PaymentReceived`, `Sending`, `Sent`, `Problem`
   (`NotEnoughFunds`, `Offline`, `Other`). `WalletEvent`s (`PaymentReceived`, `PaymentSent`, `Problem`,
-  `BackupDone`, `AccountCreated`) say what just happened anywhere in the app: collect `LocalWalletEvents` in a
+  `BackupDone`, `AccountCreated`, `NoteRedeemed` and `NoteTakenBack` for a handed-out note, whose `PaymentSent` came
+  when it was handed out, and `NotesTidied` when a note strategy or auto-renew looked after the notes by itself, once
+  however many notes) say what just happened anywhere in the app: collect `LocalWalletEvents` in a
   composable, or register a `WalletEventListener` (called on the main thread). Both carry amounts and kinds only.
   Both may gain cases: give every `when` an `else`.
 - **Screens:** a `BrandScreen` has an `id` (lowercase letters, digits, `-`), a `title` string resource, an `entry`
