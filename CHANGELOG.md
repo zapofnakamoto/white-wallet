@@ -25,6 +25,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   never shows under `notesView=hidden` or `historyFilter=none`. A brand that calls notes something else overrides
   these, per language, as whole sentences. No key changed. `dev/new-brand.sh` writes them into a new brand's
   commented-out strings, and a test fails on a new string outside the blocks that names the mint or the note.
+- Brands design the note once: `NoteFace` draws it as a row of the notes list and large on its details, the claim
+  preview and a handed-out note's page, around its QR code; `NoteGroupHeader` heads one mint's notes. They get the
+  amount, a `NoteStatus`, the age, the mint (none with `showMints=false`) and whether it is trusted; the app keeps
+  taps, selection, actions and the bearer warning. The defaults look as before, except that a note's details show
+  its amount as large as the claim preview does.
 
 ### Fixed
 

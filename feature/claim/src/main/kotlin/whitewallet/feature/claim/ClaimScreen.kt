@@ -31,7 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import whitewallet.core.designsystem.AmountText
+import whitewallet.core.designsystem.WalletNoteFace
+import whitewallet.brand.ui.NoteFaceSize
+import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletTopBar
@@ -126,7 +128,14 @@ fun ClaimScreen(
 private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            AmountText(preview.amountMsat, Modifier.fillMaxWidth())
+            WalletNoteFace(
+                NoteFaceSize.Large,
+                preview.amountMsat,
+                Modifier.fillMaxWidth(),
+                status = if (preview.certified) NoteStatus.Ready else NoteStatus.Uncertified,
+                mint = preview.link.host.takeIf { showMints },
+                trusted = preview.trusted,
+            )
             // Without showMints, only what needs the user: an amount that can't be verified, and the bearer warning.
             if (showMints) {
                 Text(stringResource(if (preview.isOwnMint) R.string.claim_home_mint else R.string.claim_mint, preview.link.host), style = MaterialTheme.typography.bodyMedium)

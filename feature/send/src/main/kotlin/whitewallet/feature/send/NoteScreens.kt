@@ -35,7 +35,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.core.designsystem.amountInputLabel
-import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.ScreenColumn
@@ -56,6 +55,9 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletStatusScope
+import whitewallet.core.designsystem.WalletNoteFace
+import whitewallet.brand.ui.NoteFaceSize
+import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletTextField
@@ -263,11 +265,22 @@ fun SharedNoteScreen(
                 return@ScreenColumn
             }
             WalletStatusScope(sharedNoteStatus(state, note)) { BrandDecoration(Anchor.NoteShared) }
-            AmountText(note.amountMsat)
             val link = note.link
+            val qrDescription = stringResource(R.string.note_qr_description)
+            WalletNoteFace(
+                NoteFaceSize.Large,
+                note.amountMsat,
+                status = when (note.state) {
+                    SharedNoteState.Waiting -> NoteStatus.Waiting
+                    SharedNoteState.Redeemed -> NoteStatus.Redeemed
+                    SharedNoteState.Reclaimed -> NoteStatus.TakenBack
+                },
+                statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
+                // The QR code only while it waits for its recipient; the app draws it, the brand may frame it.
+                qrCode = link?.takeIf { note.state == SharedNoteState.Waiting }?.let { l -> { QrCode(l, description = qrDescription) } },
+            )
             when (note.state) {
                 SharedNoteState.Waiting -> if (link != null) {
-                    QrCode(link, description = stringResource(R.string.note_qr_description))
                     Text(stringResource(R.string.note_bearer_warning), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
                     Text(stringResource(R.string.note_waiting), style = MaterialTheme.typography.bodyMedium)
                     if (!note.certified) Text(stringResource(R.string.note_uncertified), style = MaterialTheme.typography.bodySmall)

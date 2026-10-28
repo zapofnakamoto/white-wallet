@@ -53,12 +53,17 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.brand.ui.ButtonKind
-import whitewallet.brand.ui.ListIconSize
 import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletLinearProgress
-import whitewallet.core.designsystem.WalletListIcon
 import whitewallet.core.designsystem.WalletListItem
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
+import whitewallet.brand.ui.NoteFaceSize
+import whitewallet.brand.ui.NoteStatus
+import whitewallet.core.designsystem.WalletNoteFace
+import whitewallet.core.designsystem.WalletNoteGroupHeader
 
 /** Everything the notes view can ask for. Navigation ([openShared], [openSettings]) is the caller's. */
 class NotesActions(
@@ -222,20 +227,19 @@ private fun sortLabel(sort: NoteSort) = when (sort) {
     NoteSort.Newest -> R.string.notes_sort_newest
 }
 
-/** A mint's name, labels and total; without `showMints` only the line between two mints' notes. */
+/** A mint's name, labels and total, drawn by the brand; without `showMints` only the line between two mints' notes. */
 @Composable
 private fun MintHeader(mint: MintNotes, state: NotesState, onMoveAnyway: (String) -> Unit) {
-    HorizontalDivider()
-    if (!state.showMints) return
     val labels = listOfNotNull(
         stringResource(R.string.notes_home_mint).takeIf { mint.isHome },
         stringResource(R.string.notes_trusted).takeIf { mint.trusted },
     )
-    WalletListItem(
-        leadingContent = if (mint.trusted) ({ TrustedIcon() }) else null,
-        headlineContent = { Text(mint.host, style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() }) },
-        supportingContent = if (labels.isEmpty()) null else ({ Text(labels.joinToString(stringResource(R.string.notes_detail_separator))) }),
-        trailingContent = { Text(formatAmount(mint.totalMsat), style = MaterialTheme.typography.titleSmall) },
+    WalletNoteGroupHeader(
+        mint = mint.host.takeIf { state.showMints },
+        totalMsat = mint.totalMsat,
+        home = mint.isHome,
+        trusted = mint.trusted,
+        labels = labels.takeIf { it.isNotEmpty() }?.joinToString(stringResource(R.string.notes_detail_separator)),
     )
     mint.skipped?.takeIf { NoteAction.Move in state.noteActions }?.let { skipped ->
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -256,40 +260,63 @@ internal fun TrustedIcon() {
     Icon(painterResource(DesignR.drawable.ic_check_circle), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
 }
 
-/** One note: the amount and its age; a status line only when it isn't simply in the balance. */
+/**
+ * One note, drawn by the brand: the amount and its age; a status line only when it isn't simply in the balance. The
+ * row's tap, long-press and, while selecting, its checkbox state stay the app's.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
     val selectable = NotesViewModel.selectable(note)
     val status = noteStatus(note)
-    WalletListItem(
-        leadingContent = if (state.selecting) ({
-            WalletCheckbox(checked = note.id in state.selected, onCheckedChange = { actions.tap(note) }, enabled = selectable && !state.busy)
-        }) else null,
-        headlineContent = { Text(formatAmount(note.amountMsat), style = MaterialTheme.typography.bodyLarge) },
-        supportingContent = status?.let { (icon, text) ->
-            {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    WalletListIcon(icon, size = ListIconSize.Inline)
-                    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val selected = (note.id in state.selected).takeIf { state.selecting }
+    WalletNoteFace(
+        NoteFaceSize.Row,
+        note.amountMsat,
+        status = status,
+        statusText = noteStatusText(status),
+        statusIcon = noteStatusIcon(status),
+        age = recentTime(note.updatedAtMillis),
+        mint = note.host.takeIf { state.showMints },
+        trusted = state.mints.any { it.host == note.host && it.trusted },
+        selected = selected,
+        enabled = selectable && !state.busy,
+        modifier = Modifier
+            .combinedClickable(
+                enabled = !state.busy && (selectable || !state.selecting),
+                onClick = { actions.tap(note) },
+                onLongClick = { if (selectable && state.canSelect) actions.longPress(note) },
+            )
+            .semantics {
+                if (selected != null) {
+                    role = Role.Checkbox
+                    toggleableState = ToggleableState(selected)
                 }
-            }
-        },
-        trailingContent = { Text(recentTime(note.updatedAtMillis), style = MaterialTheme.typography.bodySmall) },
-        modifier = Modifier.combinedClickable(
-            enabled = !state.busy && (selectable || !state.selecting),
-            onClick = { actions.tap(note) },
-            onLongClick = { if (selectable && state.canSelect) actions.longPress(note) },
-        ),
+            },
     )
 }
 
-/** What's unusual about a note, if anything: its mark and its words. */
+/** How a note in the wallet stands. */
+internal fun noteStatus(note: Note): NoteStatus = when {
+    note.state == NoteState.Paying -> NoteStatus.Paying
+    note.state == NoteState.Ambiguous -> NoteStatus.Unclear
+    note.certificate == null -> NoteStatus.Uncertified
+    else -> NoteStatus.Ready
+}
+
+/** What's unusual about a note, in words; null when it is simply ready. */
 @Composable
-private fun noteStatus(note: Note): Pair<Int, String>? = when {
-    note.state == NoteState.Paying -> DesignR.drawable.ic_pending to stringResource(R.string.notes_state_paying)
-    note.state == NoteState.Ambiguous -> DesignR.drawable.ic_unknown to stringResource(R.string.notes_state_ambiguous)
-    note.certificate == null -> DesignR.drawable.ic_uncertified to stringResource(R.string.notes_uncertified)
+internal fun noteStatusText(status: NoteStatus): String? = when (status) {
+    NoteStatus.Paying -> stringResource(R.string.notes_state_paying)
+    NoteStatus.Unclear -> stringResource(R.string.notes_state_ambiguous)
+    NoteStatus.Uncertified -> stringResource(R.string.notes_uncertified)
+    else -> null
+}
+
+private fun noteStatusIcon(status: NoteStatus): Int? = when (status) {
+    NoteStatus.Paying -> DesignR.drawable.ic_pending
+    NoteStatus.Unclear -> DesignR.drawable.ic_unknown
+    NoteStatus.Uncertified -> DesignR.drawable.ic_uncertified
     else -> null
 }
 

@@ -219,7 +219,7 @@ brand chooses every value, under names of its own.
 |---|---|---|
 | 1. Tokens | `res/` | colour roles, fonts, text sizes, corners, spacing |
 | 2. Theme | `code/`: `BrandDesign.Theme` | change any token, or add CompositionLocals of the brand's own |
-| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes, the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place) and the release stage's badge (`ReleaseBadge`) look |
+| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes, the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`) and the release stage's badge (`ReleaseBadge`) look |
 | 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark), knowing the app's name and release stage |
 | 5. Status and events | `code/`: `WalletStatus`, `WalletEvent` | what a screen is about and what just happened, to show or react to |
 | 6. Screens | `code/`: `BrandScreen` | pages of the brand's own, reached from Settings, the wallet's menu or right after setup |
@@ -274,6 +274,17 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
 - **Components:** `object MyComponents : BrandComponents { override fun Button(params, modifier) { â€¦ } }`. Apply
   the modifier to the root; the texts arrive translated and the semantics are set by the app. `DefaultComponents`
   has the Material versions to fall back on. Screens only use these (`dev/check-design.sh` keeps it that way).
+- **Notes:** a note is one object the brand designs once. `NoteFace(params, modifier)` draws it as a row of the notes
+  list (`NoteFaceSize.Row`) and large (`NoteFaceSize.Large`) on its details, the claim preview and a handed-out note's
+  page, where `params.qrCode` is the QR code: place and frame it, never alter or cover it. `params` has the amount
+  (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
+  `Redeemed`, `TakenBack`; give a `when` an `else`), its words and mark, the age, the mint (null with
+  `showMints=false`), whether it is trusted, and `selected` while the user selects (null otherwise).
+  `NoteGroupHeader` heads one mint's notes; its `mint` is null with `showMints=false`, and then it only separates
+  them. The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
+  confirmations and the bearer warning, and on a large face the status, age and mint in words below it. Draw the
+  texts you are given with `Text`, so screen readers read them. The defaults draw through your `ListRow`, `Toggle`,
+  `ListIcon` and `Amount`.
 - **Decorations:** `Decoration(anchor, context, default)`: call `default()` to keep what the app shows there, or
   draw something else. Decorations are decorative; screen readers read the text next to them (for a title anchor,
   the app's name as a heading). `context.reduceMotion` is set when the user turned animations off: change states

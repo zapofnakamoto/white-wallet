@@ -35,6 +35,8 @@ import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletSheet
 import whitewallet.core.designsystem.WalletTextField
+import whitewallet.brand.ui.NoteFaceSize
+import whitewallet.core.designsystem.WalletNoteFace
 
 /** One note's details and what the brand lets users do with it: share it whole, split, recheck, renew. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -42,7 +44,17 @@ import whitewallet.core.designsystem.WalletTextField
 internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
     WalletSheet(onDismissRequest = actions.close) {
         Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(formatAmount(note.amountMsat), style = MaterialTheme.typography.headlineMedium)
+            WalletNoteFace(
+                NoteFaceSize.Large,
+                note.amountMsat,
+                Modifier.fillMaxWidth(),
+                status = noteStatus(note),
+                statusText = noteStatusText(noteStatus(note)),
+                age = recentTime(note.updatedAtMillis),
+                mint = note.host.takeIf { state.showMints },
+                trusted = state.openTrusted,
+                enabled = NotesViewModel.selectable(note) && !state.busy,
+            )
             Text(
                 if (state.showMints) stringResource(R.string.notes_sheet_where, note.host, recentTime(note.updatedAtMillis)) else recentTime(note.updatedAtMillis),
                 style = MaterialTheme.typography.bodyMedium,

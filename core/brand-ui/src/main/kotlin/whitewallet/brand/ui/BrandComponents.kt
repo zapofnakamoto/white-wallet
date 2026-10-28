@@ -2,10 +2,14 @@ package whitewallet.brand.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -23,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
@@ -113,6 +118,17 @@ interface BrandComponents {
 
     /** The app's release stage (alpha, beta) by its name, at setup and in About; never shown for a stable release. */
     @Composable fun ReleaseBadge(params: ReleaseBadgeParams, modifier: Modifier) = DefaultComponents.releaseBadge(params, modifier)
+
+    /**
+     * A note, the one object a brand designs once: a row in the notes list ([NoteFaceSize.Row]), and large on the
+     * note's details, the claim preview and a handed-out note's page, around its QR code ([NoteFaceSize.Large]). The app
+     * keeps what can be done with it (taps, selection, its actions and their confirmations) and the bearer warning;
+     * the face only shows the note. Draw the texts it's given with `Text`: they are what screen readers read.
+     */
+    @Composable fun NoteFace(params: NoteFaceParams, modifier: Modifier) = DefaultComponents.noteFace(params, modifier)
+
+    /** The heading of one mint's notes in the notes list: its name, labels and total, or only a separator. */
+    @Composable fun NoteGroupHeader(params: NoteGroupParams, modifier: Modifier) = DefaultComponents.noteGroupHeader(params, modifier)
 }
 
 /** How prominent a button is: one [Primary] action per screen, [Secondary] and [Text] for the rest. */
@@ -260,6 +276,58 @@ class AccountMarkParams(
     val fallback: Painter,
     /** The mark of the [active] account. */
     val activeBadge: Painter,
+)
+
+/** [Row]: one line of the notes list; [Large]: the note on a page of its own. */
+enum class NoteFaceSize { Row, Large }
+
+/**
+ * How a note stands. In the wallet: [Ready] to use, [Paying] (being spent), [Unclear] (a payment whose outcome isn't
+ * known yet), [Uncertified] (its amount isn't certified). Handed out: [Waiting] for its recipient, [Redeemed] by them,
+ * [TakenBack]. New statuses may be added in later releases: a brand's `when` needs an `else` branch.
+ */
+enum class NoteStatus { Ready, Paying, Unclear, Uncertified, Waiting, Redeemed, TakenBack }
+
+class NoteFaceParams(
+    val size: NoteFaceSize,
+    /** The amount, formatted in the user's unit. */
+    val amount: String,
+    val amountMsat: Long,
+    val status: NoteStatus = NoteStatus.Ready,
+    /** What is unusual about the note, in words; null when it is simply [NoteStatus.Ready]. */
+    val statusText: String? = null,
+    /** The mark beside [statusText] (a brand may replace the drawable, or draw its own). */
+    val statusIcon: Painter? = null,
+    /** How long ago it last changed, in words; null where it isn't shown. */
+    val age: String? = null,
+    /** The mint it is held on; null where mints aren't named (brand `showMints=false`). */
+    val mint: String? = null,
+    /** The user trusts its mint (by its signing key). */
+    val trusted: Boolean = false,
+    /** While the user selects notes: whether this one is selected; null otherwise. The app handles the tap. */
+    val selected: Boolean? = null,
+    /** False when it can't be selected or acted on right now (it is being paid, or the wallet is busy). */
+    val enabled: Boolean = true,
+    /**
+     * The note's QR code, on a handed-out note's page only, drawn by the app: place and frame it, never alter or cover
+     * it. On [NoteFaceSize.Large] the app writes the status, age and mint below the face; use them for its look, not to
+     * repeat them.
+     */
+    val qrCode: (@Composable () -> Unit)? = null,
+)
+
+class NoteGroupParams(
+    /** The mint's host; null where mints aren't named: then the header only separates two mints' notes. */
+    val mint: String?,
+    /** What the group's notes count in the balance, formatted. */
+    val total: String,
+    val totalMsat: Long,
+    val home: Boolean,
+    val trusted: Boolean,
+    /** [home] and [trusted] in words ("Home mint · Trusted"); null when neither. */
+    val labels: String?,
+    /** The mark of a trusted mint. */
+    val trustedIcon: Painter,
 )
 
 class ActivityIconParams(
@@ -437,6 +505,62 @@ object DefaultComponents : BrandComponents {
             color = MaterialTheme.walletColors.onWarningContainer,
             style = MaterialTheme.typography.labelMedium,
         )
+    }
+
+    /**
+     * [NoteFaceSize.Row]: a list row with the amount, the status beside its mark, the age, and a checkbox while
+     * selecting. [NoteFaceSize.Large]: the amount as on the wallet tab, and the QR code below it. Drawn through the
+     * brand's own [ListRow], [Toggle], [ListIcon] and [Amount], so restyling those restyles notes too.
+     */
+    @Composable
+    fun noteFace(params: NoteFaceParams, modifier: Modifier) {
+        val components = LocalBrandDesign.current.components
+        when (params.size) {
+            NoteFaceSize.Row -> components.ListRow(
+                ListRowParams(
+                    headline = { Text(params.amount, style = MaterialTheme.typography.bodyLarge) },
+                    supporting = params.statusText?.let { text ->
+                        {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                params.statusIcon?.let { components.ListIcon(ListIconParams(it, size = ListIconSize.Inline), Modifier) }
+                                Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    },
+                    leading = params.selected?.let { selected ->
+                        { components.Toggle(ToggleParams(ToggleKind.Checkbox, selected, onCheckedChange = null, enabled = params.enabled), Modifier) }
+                    },
+                    trailing = params.age?.let { age -> { Text(age, style = MaterialTheme.typography.bodySmall) } },
+                ),
+                modifier,
+            )
+            NoteFaceSize.Large -> Column(
+                modifier,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(MaterialTheme.walletSpacing.gap),
+            ) {
+                components.Amount(AmountParams(params.amount), Modifier.fillMaxWidth())
+                params.qrCode?.invoke()
+            }
+        }
+    }
+
+    /** A line above the group; with a [NoteGroupParams.mint], a row with its name, labels and total below it. */
+    @Composable
+    fun noteGroupHeader(params: NoteGroupParams, modifier: Modifier) {
+        Column(modifier) {
+            HorizontalDivider()
+            val mint = params.mint ?: return@Column
+            LocalBrandDesign.current.components.ListRow(
+                ListRowParams(
+                    headline = { Text(mint, style = MaterialTheme.typography.titleSmall) },
+                    supporting = params.labels?.let { labels -> { Text(labels) } },
+                    leading = if (params.trusted) ({ Icon(params.trustedIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }) else null,
+                    trailing = { Text(params.total, style = MaterialTheme.typography.titleSmall) },
+                ),
+                Modifier,
+            )
+        }
     }
 
     /** The icon in the secondary text colour, or the tone's colour. */

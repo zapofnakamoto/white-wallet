@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import java.util.Locale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import whitewallet.brand.ReleaseStage
@@ -34,6 +37,10 @@ import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.MoneyDirection
 import whitewallet.brand.ui.NavigationBarParams
 import whitewallet.brand.ui.NavigationItem
+import whitewallet.brand.ui.NoteFaceParams
+import whitewallet.brand.ui.NoteFaceSize
+import whitewallet.brand.ui.NoteGroupParams
+import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.ProgressKind
 import whitewallet.brand.ui.ProgressParams
 import whitewallet.brand.ui.ReleaseBadgeParams
@@ -146,6 +153,47 @@ internal fun firstLetter(name: String, locale: Locale): String? {
     val trimmed = name.trim().ifEmpty { return null }
     val breaks = BreakIterator.getCharacterInstance(locale).apply { setText(trimmed) }
     return trimmed.substring(0, breaks.next()).uppercase(locale)
+}
+
+/**
+ * A note as the brand draws it ([whitewallet.brand.ui.BrandComponents.NoteFace]). [modifier] carries what the app does
+ * with it (taps, selection); [NoteFaceSize.Large] is read out by its amount, like [AmountText].
+ */
+@Composable
+fun WalletNoteFace(
+    size: NoteFaceSize,
+    amountMsat: Long,
+    modifier: Modifier = Modifier,
+    status: NoteStatus = NoteStatus.Ready,
+    statusText: String? = null,
+    @DrawableRes statusIcon: Int? = null,
+    age: String? = null,
+    mint: String? = null,
+    trusted: Boolean = false,
+    selected: Boolean? = null,
+    enabled: Boolean = true,
+    qrCode: (@Composable () -> Unit)? = null,
+) {
+    val spoken = if (size == NoteFaceSize.Large) spokenAmount(amountMsat) else null
+    LocalBrandDesign.current.components.NoteFace(
+        NoteFaceParams(
+            size, formatAmount(amountMsat), amountMsat, status, statusText, statusIcon?.let { painterResource(it) }, age, mint, trusted,
+            selected, enabled, qrCode,
+        ),
+        if (spoken != null) modifier.semantics { contentDescription = spoken } else modifier,
+    )
+}
+
+/**
+ * The heading of one mint's notes ([whitewallet.brand.ui.BrandComponents.NoteGroupHeader]); a heading for screen
+ * readers when it names the [mint], else only a separator.
+ */
+@Composable
+fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted: Boolean, labels: String?, modifier: Modifier = Modifier) {
+    LocalBrandDesign.current.components.NoteGroupHeader(
+        NoteGroupParams(mint, formatAmount(totalMsat), totalMsat, home, trusted, labels, painterResource(R.drawable.ic_check_circle)),
+        if (mint != null) modifier.semantics(mergeDescendants = true) { heading() } else modifier,
+    )
 }
 
 /** A list row's leading mark ([whitewallet.brand.ui.BrandComponents.ListIcon]); decorative, the row says it in words. */

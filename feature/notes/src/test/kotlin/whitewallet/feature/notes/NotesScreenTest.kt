@@ -13,6 +13,20 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.isHeading
+import whitewallet.brand.ui.BrandComponents
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.brand.ui.NoteFaceParams
+import whitewallet.brand.ui.NoteGroupParams
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -215,5 +229,38 @@ class NotesScreenTest {
         compose.onNodeWithText("₿2,000").assertExists()
         compose.onNodeWithText("other.example", substring = true).assertDoesNotExist()
         compose.onNodeWithText("No answer. Try again later.").assertExists()
+    }
+
+    /** A brand that draws notes and their headers its own way: only the texts it's given, in its own layout. */
+    private val bills = object : BrandDesign {
+        override val components = object : BrandComponents {
+            @Composable
+            override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                Text("bill ${params.amount} ${params.status}${if (params.selected == true) " ✓" else ""}", modifier)
+            }
+
+            @Composable
+            override fun NoteGroupHeader(params: NoteGroupParams, modifier: Modifier) {
+                Text("bank ${params.mint} ${params.total}", modifier)
+            }
+        }
+    }
+
+    @Test
+    fun aBrandDrawsTheNotesAndTheAppKeepsWhatTheyDo() {
+        var tapped: Note? = null
+        var s by mutableStateOf(state())
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides bills) { NotesContent(s, NotesActions(tap = { tapped = it })) }
+        }
+        compose.onNodeWithText("bank home.example ₿45,000").assert(isHeading())
+        compose.onNodeWithText("bill ₿430 Uncertified").assertExists()
+        compose.onNodeWithText("bill ₿30,000 Ready").performClick()
+        assertEquals("h1", tapped?.id)
+
+        // Selecting: the app says which are selected, whatever the brand draws.
+        s = state({ it.copy(selecting = true, selected = setOf("h1")) })
+        compose.onNodeWithText("bill ₿30,000 Ready ✓").assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
+        compose.onNodeWithText("bill ₿15,000 Ready").assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.Off))
     }
 }
