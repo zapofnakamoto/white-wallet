@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.4.0]
+
 ### Added
 
 - Debug builds say which build is running: `git describe` (`v0.3.0`, or `v0.3.0-21-gb1593f9-dirty` after the tag)
