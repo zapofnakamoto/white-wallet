@@ -299,7 +299,7 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
             SettingsRoute(
                 BuildConfig.VERSION_NAME,
                 DeveloperPages.all,
-                brandPages = brand.on(BrandScreenEntry.Settings).map { BrandPage(it.title, Routes.brand(it.id)) },
+                brandPages = brand.on(BrandScreenEntry.Settings).map { BrandPage(it.title, Routes.brand(it.id), it.icon) },
                 onBack = { nav.popBackStack() },
                 onNavigate = { destination ->
                     nav.navigate(

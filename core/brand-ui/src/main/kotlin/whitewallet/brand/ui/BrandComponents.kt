@@ -99,6 +99,12 @@ interface BrandComponents {
     /** The leading mark of a history entry: what kind it is, and whether the wallet did it by itself. */
     @Composable fun ActivityIcon(params: ActivityIconParams, modifier: Modifier) = DefaultComponents.activityIcon(params, modifier)
 
+    /**
+     * The leading mark of a list row that says what the row is (a settings page) or how it stands (a note that's
+     * still being paid). Always decorative: the row says the same in words.
+     */
+    @Composable fun ListIcon(params: ListIconParams, modifier: Modifier) = DefaultComponents.listIcon(params, modifier)
+
     /** The app's release stage (alpha, beta) by its name, at setup and in About; never shown for a stable release. */
     @Composable fun ReleaseBadge(params: ReleaseBadgeParams, modifier: Modifier) = DefaultComponents.releaseBadge(params, modifier)
 }
@@ -222,6 +228,17 @@ class ReleaseBadgeParams(
     val stage: ReleaseStage,
     /** The stage's name in the user's language ("Beta"). */
     val label: String,
+)
+
+/** [Row]: a row's leading mark; [Inline]: beside a line of text, at its size. */
+enum class ListIconSize { Row, Inline }
+
+class ListIconParams(
+    /** The icon (a brand may replace the drawable, or draw its own). */
+    val icon: Painter,
+    /** [Tone.Danger] and [Tone.Warning] for rows that need the user; [Tone.Neutral] otherwise. */
+    val tone: Tone = Tone.Neutral,
+    val size: ListIconSize = ListIconSize.Row,
 )
 
 class ActivityIconParams(
@@ -399,6 +416,22 @@ object DefaultComponents : BrandComponents {
             color = MaterialTheme.walletColors.onWarningContainer,
             style = MaterialTheme.typography.labelMedium,
         )
+    }
+
+    /** The icon in the secondary text colour, or the tone's colour. */
+    @Composable
+    fun listIcon(params: ListIconParams, modifier: Modifier) {
+        val tint = when (params.tone) {
+            Tone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
+            Tone.Positive -> MaterialTheme.colorScheme.primary
+            Tone.Warning -> MaterialTheme.walletColors.warning
+            Tone.Danger -> MaterialTheme.colorScheme.error
+        }
+        val size = when (params.size) {
+            ListIconSize.Row -> 24.dp
+            ListIconSize.Inline -> 16.dp
+        }
+        Icon(params.icon, contentDescription = null, modifier = modifier.size(size), tint = tint)
     }
 
     /** The type's icon on a circle tinted by where the money went; a small badge when the wallet did it by itself. */

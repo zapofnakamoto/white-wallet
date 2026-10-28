@@ -5,6 +5,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Added
+
+- Settings pages have an icon on their row: on the settings page, on the account's page and in search results, so a
+  page is found at a glance. "Back up now", an unverified recovery phrase and "Delete" are marked in the error colour.
+  A note that is still being paid, unclear or not yet certified shows a small icon before its status. Brands can
+  replace the drawables, restyle the marks (`ListIcon`) and give their own Settings pages one (`BrandScreen.icon`).
+
 ## [0.4.0]
 
 ### Added

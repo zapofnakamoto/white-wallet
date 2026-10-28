@@ -1,5 +1,6 @@
 package whitewallet.core.designsystem
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.text.KeyboardActions
@@ -19,6 +20,8 @@ import whitewallet.brand.ui.CardParams
 import whitewallet.brand.ui.ChipKind
 import whitewallet.brand.ui.ChipParams
 import whitewallet.brand.ui.DialogParams
+import whitewallet.brand.ui.ListIconParams
+import whitewallet.brand.ui.ListIconSize
 import whitewallet.brand.ui.ListRowParams
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.MoneyDirection
@@ -115,6 +118,12 @@ fun WalletActivityIcon(type: ActivityType, direction: MoneyDirection, automatic:
         ActivityIconParams(type, direction, automatic, settled, painterResource(icon), painterResource(R.drawable.ic_activity_automatic)),
         modifier,
     )
+}
+
+/** A list row's leading mark ([whitewallet.brand.ui.BrandComponents.ListIcon]); decorative, the row says it in words. */
+@Composable
+fun WalletListIcon(@DrawableRes icon: Int, modifier: Modifier = Modifier, tone: Tone = Tone.Neutral, size: ListIconSize = ListIconSize.Row) {
+    LocalBrandDesign.current.components.ListIcon(ListIconParams(painterResource(icon), tone, size), modifier)
 }
 
 /** The release stage's badge ([whitewallet.brand.ui.BrandComponents.ReleaseBadge]); nothing for a stable release. */

@@ -1,5 +1,6 @@
 package whitewallet.feature.settings
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -32,7 +33,9 @@ import whitewallet.core.designsystem.ChevronIcon
 import whitewallet.core.designsystem.LocalAmountUnit
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.brand.ui.Tone
 import whitewallet.core.wallet.AddressStatus
+import whitewallet.core.designsystem.WalletListIcon
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTextField
 
@@ -49,8 +52,8 @@ fun SettingsRoute(
     SettingsScreen(state, versionName, developerPages, onBack, brandPages, onNavigate)
 }
 
-/** A page of the brand's own, listed in Settings above About (see docs/WHITE_LABEL.md, "Design"). */
-data class BrandPage(@StringRes val title: Int, val route: String)
+/** A page of the brand's own, listed in Settings above About (see docs/WHITE_LABEL.md, "Design"). Null [icon]: a generic one. */
+data class BrandPage(@StringRes val title: Int, val route: String, @DrawableRes val icon: Int? = null)
 
 /**
  * The settings hub: a short list of pages, each with a live one-line summary, and a search over every setting
@@ -100,6 +103,7 @@ private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget
     state.accountName?.let { name ->
         val (status, color) = addressSummary(state.addressStatus)
         SummaryRow(
+            DesignR.drawable.ic_account,
             stringResource(R.string.settings_account_section, name),
             state.profile?.address ?: stringResource(R.string.settings_account_contents),
             extra = state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) }
@@ -110,40 +114,46 @@ private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget
     }
     if (SettingsTarget.Mints !in state.hidden) {
         SummaryRow(
+            iconOf(SettingsTarget.Mints),
             stringResource(R.string.settings_mints),
             pluralStringResource(R.plurals.settings_mints_summary, state.mintCount, state.mintCount, state.trustedCount),
         ) { open(SettingsTarget.Mints) }
     }
     SummaryRow(
+        iconOf(SettingsTarget.Security),
         stringResource(R.string.security_title),
         stringResource(if (state.appLock) R.string.settings_app_lock_on else R.string.settings_app_lock_off),
     ) { open(SettingsTarget.Security) }
     if (SettingsTarget.Display !in state.hidden) {
-        SummaryRow(stringResource(R.string.settings_amounts), unitExample(LocalAmountUnit.current)) { open(SettingsTarget.Display) }
+        SummaryRow(iconOf(SettingsTarget.Display), stringResource(R.string.settings_amounts), unitExample(LocalAmountUnit.current)) { open(SettingsTarget.Display) }
     }
     if (SettingsTarget.Developer !in state.hidden) {
         SummaryRow(
+            iconOf(SettingsTarget.Developer),
             stringResource(R.string.settings_developer),
             stringResource(if (state.developerMode) R.string.settings_on else R.string.settings_off),
         ) { open(SettingsTarget.Developer) }
     }
     brandPages.forEach { page ->
         WalletListItem(
+            leadingContent = { WalletListIcon(page.icon ?: DesignR.drawable.ic_page) },
             headlineContent = { Text(stringResource(page.title)) },
             trailingContent = { ChevronIcon() },
             modifier = Modifier.clickable { openRoute(page.route) },
         )
     }
-    SummaryRow(stringResource(R.string.about_title), stringResource(R.string.about_version, versionName)) { open(SettingsTarget.About) }
+    SummaryRow(iconOf(SettingsTarget.About), stringResource(R.string.about_title), stringResource(R.string.about_version, versionName)) { open(SettingsTarget.About) }
 }
 
 /** Shown above everything while the account's recovery phrase isn't backed up: one level down, it would be missed. */
 @Composable
 private fun BackupWarning(onClick: () -> Unit) {
     SummaryRow(
+        DesignR.drawable.ic_warning,
         stringResource(R.string.settings_backup_now),
         stringResource(R.string.settings_backup_now_hint),
         titleColor = MaterialTheme.colorScheme.error,
+        iconTone = Tone.Danger,
         onClick = onClick,
     )
 }
@@ -161,9 +171,11 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
     Scaffold(topBar = { WalletTopBar(title, onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             SummaryRow(
+                iconOf(SettingsTarget.Backup),
                 stringResource(R.string.settings_recovery_phrase),
                 stringResource(if (state.backupVerified) R.string.settings_backed_up else R.string.settings_not_backed_up),
                 if (state.backupVerified) Color.Unspecified else MaterialTheme.colorScheme.error,
+                iconTone = if (state.backupVerified) Tone.Neutral else Tone.Danger,
             ) { open(SettingsTarget.Backup) }
             val profile = state.profile
             if (profile != null) {
@@ -173,18 +185,19 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
                 } else {
                     profile.address
                 }
-                SummaryRow(stringResource(R.string.addresses_title), summary, extra = status, extraColor = color) { open(SettingsTarget.Addresses) }
+                SummaryRow(iconOf(SettingsTarget.Addresses), stringResource(R.string.addresses_title), summary, extra = status, extraColor = color) { open(SettingsTarget.Addresses) }
             } else if (state.accountName != null) {
-                SummaryRow(stringResource(R.string.addresses_title), stringResource(R.string.settings_no_address)) { open(SettingsTarget.Addresses) }
+                SummaryRow(iconOf(SettingsTarget.Addresses), stringResource(R.string.addresses_title), stringResource(R.string.settings_no_address)) { open(SettingsTarget.Addresses) }
             }
             state.homeHost?.takeIf { SettingsTarget.AccountMints !in state.hidden }?.let { host ->
-                SummaryRow(stringResource(R.string.settings_account_mints), stringResource(R.string.addresses_home_mint, host)) { open(SettingsTarget.AccountMints) }
+                SummaryRow(iconOf(SettingsTarget.AccountMints), stringResource(R.string.settings_account_mints), stringResource(R.string.addresses_home_mint, host)) { open(SettingsTarget.AccountMints) }
             }
             if (SettingsTarget.NoteList !in state.hidden) {
-                SummaryRow(stringResource(R.string.settings_note_list), stringResource(R.string.settings_note_list_hint)) { open(SettingsTarget.NoteList) }
+                SummaryRow(iconOf(SettingsTarget.NoteList), stringResource(R.string.settings_note_list), stringResource(R.string.settings_note_list_hint)) { open(SettingsTarget.NoteList) }
             }
             if (SettingsTarget.Notes !in state.hidden) {
                 SummaryRow(
+                    iconOf(SettingsTarget.Notes),
                     stringResource(R.string.settings_notes),
                     notesSummary(state),
                     extra = state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) },
@@ -193,9 +206,11 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
             }
             HorizontalDivider()
             SummaryRow(
+                iconOf(SettingsTarget.Delete),
                 stringResource(R.string.settings_delete),
                 stringResource(R.string.settings_delete_hint),
                 titleColor = MaterialTheme.colorScheme.error,
+                iconTone = Tone.Danger,
             ) { open(SettingsTarget.Delete) }
         }
     }
@@ -230,6 +245,7 @@ private fun SearchResults(
     }
     results.forEach { item ->
         WalletListItem(
+            leadingContent = { WalletListIcon(iconOf(item.destination, brandPages)) },
             headlineContent = { Text(item.title) },
             supportingContent = { Text(item.location) },
             trailingContent = { ChevronIcon() },
@@ -257,18 +273,47 @@ private fun locationOf(destination: SearchDestination): Int = when (destination)
     }
 }
 
-/** One hub row: a page, a one-line summary of it (plus an optional status line), and a chevron. */
+/** The mark of a page, the same in the hub, on the account's page and in search results. */
+@DrawableRes
+private fun iconOf(target: SettingsTarget): Int = when (target) {
+    SettingsTarget.Account -> DesignR.drawable.ic_account
+    SettingsTarget.Backup -> DesignR.drawable.ic_key
+    SettingsTarget.Addresses -> DesignR.drawable.ic_address
+    SettingsTarget.Notes -> DesignR.drawable.ic_tune
+    SettingsTarget.NoteList -> DesignR.drawable.ic_notes
+    SettingsTarget.Mints, SettingsTarget.AccountMints -> DesignR.drawable.ic_mint
+    SettingsTarget.Delete -> DesignR.drawable.ic_delete
+    SettingsTarget.Display -> DesignR.drawable.ic_amounts
+    SettingsTarget.Security -> DesignR.drawable.ic_lock
+    SettingsTarget.About -> DesignR.drawable.ic_info
+    SettingsTarget.Developer -> DesignR.drawable.ic_developer
+}
+
+@DrawableRes
+private fun iconOf(destination: SearchDestination, brandPages: List<BrandPage>): Int = when (destination) {
+    is SearchDestination.Page -> iconOf(destination.target)
+    is SearchDestination.Route -> if (destination.route.startsWith("developer/")) {
+        DesignR.drawable.ic_developer
+    } else {
+        brandPages.firstOrNull { it.route == destination.route }?.icon ?: DesignR.drawable.ic_page
+    }
+}
+
+/** One hub row: the page's mark, a one-line summary of it (plus an optional status line), and a chevron. */
 @Composable
 private fun SummaryRow(
+    @DrawableRes icon: Int,
     title: String,
     summary: String,
     summaryColor: Color = Color.Unspecified,
     titleColor: Color = Color.Unspecified,
     extra: String? = null,
     extraColor: Color = Color.Unspecified,
+    iconTone: Tone = Tone.Neutral,
     onClick: () -> Unit,
 ) {
     WalletListItem(
+        leadingContent = { WalletListIcon(icon, tone = iconTone) },
         headlineContent = { Text(title, color = titleColor) },
         supportingContent = {
             Column {

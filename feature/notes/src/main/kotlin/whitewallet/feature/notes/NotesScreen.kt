@@ -52,9 +52,11 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.ListIconSize
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletListIcon
 import whitewallet.core.designsystem.WalletListItem
 
 /** Everything the notes view can ask for. Navigation ([openShared], [openSettings]) is the caller's. */
@@ -262,8 +264,13 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
             WalletCheckbox(checked = note.id in state.selected, onCheckedChange = { actions.tap(note) }, enabled = selectable && !state.busy)
         }) else null,
         headlineContent = { Text(formatAmount(note.amountMsat), style = MaterialTheme.typography.bodyLarge) },
-        supportingContent = status?.let { (text, problem) ->
-            { Text(text, style = MaterialTheme.typography.bodySmall, color = if (problem) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) }
+        supportingContent = status?.let { (icon, text) ->
+            {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    WalletListIcon(icon, size = ListIconSize.Inline)
+                    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         },
         trailingContent = { Text(recentTime(note.updatedAtMillis), style = MaterialTheme.typography.bodySmall) },
         modifier = Modifier.combinedClickable(
@@ -274,12 +281,12 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
     )
 }
 
-/** What's unusual about a note, if anything, and whether it's a problem. */
+/** What's unusual about a note, if anything: its mark and its words. */
 @Composable
-private fun noteStatus(note: Note): Pair<String, Boolean>? = when {
-    note.state == NoteState.Paying -> stringResource(R.string.notes_state_paying) to false
-    note.state == NoteState.Ambiguous -> stringResource(R.string.notes_state_ambiguous) to false
-    note.certificate == null -> stringResource(R.string.notes_uncertified) to false
+private fun noteStatus(note: Note): Pair<Int, String>? = when {
+    note.state == NoteState.Paying -> DesignR.drawable.ic_pending to stringResource(R.string.notes_state_paying)
+    note.state == NoteState.Ambiguous -> DesignR.drawable.ic_unknown to stringResource(R.string.notes_state_ambiguous)
+    note.certificate == null -> DesignR.drawable.ic_uncertified to stringResource(R.string.notes_uncertified)
     else -> null
 }
 

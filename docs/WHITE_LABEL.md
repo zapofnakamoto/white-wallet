@@ -97,6 +97,7 @@ To use another word ("custodian", "provider", …), override exactly these in `b
 | `drawable/ic_launcher_foreground.xml` | Launcher icon foreground (adaptive icon, 108dp canvas, keep the mark inside the central 66dp) |
 | `drawable/ic_brand_logo.xml` | Logo on the onboarding and app lock screens |
 | `drawable/ic_activity_*.xml` | Optional: the History icons (`received`, `claimed`, `sent`, `sent_note`, `moved`, `moved_mint`, `split`, `combined`, `rotated`, and `automatic`, the badge on entries the wallet made by itself). To change how they are framed, see `ActivityIcon` under "Design" |
+| `drawable/ic_*.xml` | Optional: the marks of the settings pages (`account`, `mint`, `lock`, `amounts`, `developer`, `info`, `key`, `address`, `tune`, `notes`, `delete`, `warning`, and `page` for a brand page without its own `BrandScreen.icon`) and of notes that are still being paid, unclear or uncertified (`pending`, `unknown`, `uncertified`). To change how they are drawn, see `ListIcon` under "Design" |
 | `mipmap-anydpi/ic_launcher.xml` | Usually unchanged; combines background color and foreground |
 
 You can also add `values/strings.xml` here to override any user-facing string from the feature modules, using the same names (for example `onboarding_tagline`). App resources take precedence over library resources. The app ships in English and German; for each language you support, put its brand-term strings in `values-<lang>/strings.xml`.
@@ -124,7 +125,7 @@ brand chooses every value, under names of its own.
 |---|---|---|
 | 1. Tokens | `res/` | colour roles, fonts, text sizes, corners, spacing |
 | 2. Theme | `code/`: `BrandDesign.Theme` | change any token, or add CompositionLocals of the brand's own |
-| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes, the icons of History entries (`ActivityIcon`: type, direction, automatic) and the release stage's badge (`ReleaseBadge`) look |
+| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes, the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status) and the release stage's badge (`ReleaseBadge`) look |
 | 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark), knowing the app's name and release stage |
 | 5. Status and events | `code/`: `WalletStatus`, `WalletEvent` | what a screen is about and what just happened, to show or react to |
 | 6. Screens | `code/`: `BrandScreen` | pages of the brand's own, reached from Settings, the wallet's menu or right after setup |
