@@ -1,6 +1,8 @@
 package whitewallet.core.wallet
 
+import java.io.IOException
 import kotlinx.coroutines.runBlocking
+import okhttp3.Interceptor
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.SimulatedFailure.Kind
 import kotlin.test.Test
@@ -47,14 +49,49 @@ class RegtestSimulatedFailureTest {
     }
 
     @Test
-    fun `a recheck can go unanswered too`() = runBlocking<Unit> {
+    fun `a recheck goes unanswered whatever failure is armed`() = runBlocking<Unit> {
         val alice = Regtest.phone()
         alice.fund(2000)
         val note = alice.notes().single()
-        assertEquals(NoteCheck.Unreachable, SimulatedFailure.during(Kind.Unreachable) { alice.wallet.recheckNote(note.id) })
+        for (kind in Kind.entries) assertEquals(NoteCheck.Unreachable, SimulatedFailure.during(kind) { alice.wallet.recheckNote(note.id) }, "$kind")
         assertIs<NoteCheck.Ok>(alice.wallet.recheckNote(note.id))
-        // Refused means nothing for a lookup: it asks the mint as usual.
-        assertIs<NoteCheck.Ok>(SimulatedFailure.during(Kind.Refused) { alice.wallet.recheckNote(note.id) })
+    }
+
+    @Test
+    fun `a recheck settles a confirming note whose change landed`() = runBlocking<Unit> {
+        val alice = Regtest.phone()
+        alice.fund(5000)
+        val note = alice.notes().single()
+        assertEquals(NoteActionResult.Pending, SimulatedFailure.during(Kind.AnswerLost) { alice.wallet.splitNote(note.id, 1_500_000) })
+        // No answer yet either: it stays open.
+        assertEquals(NoteCheck.Unreachable, SimulatedFailure.during(Kind.Unreachable) { alice.wallet.recheckNote(note.id) })
+        assertEquals(NoteState.Ambiguous, alice.store.note(note.id)?.state)
+
+        assertEquals(NoteCheck.Landed, alice.wallet.recheckNote(note.id))
+        assertEquals(NoteState.Spent, alice.store.note(note.id)?.state)
+        assertEquals(listOf(1_500_000L, 3_498_000L).sorted(), alice.notes().map { it.amountMsat }.sorted())
+        assertEquals(4_998_000L, alice.balance(), "the split's fee off, nothing else")
+    }
+
+    @Test
+    fun `a recheck gives a confirming note back when its change never landed`() = runBlocking<Unit> {
+        // The split never reaches the mint, and nothing after it does either until the connection is back: the
+        // wallet can't tell whether it landed.
+        var cut = false
+        var down = false
+        val alice = Regtest.phone(client = Regtest.client(Interceptor { chain ->
+            if (cut && chain.request().url.isMutation) down = true
+            if (down) throw IOException("connection dropped") else chain.proceed(chain.request())
+        }))
+        alice.fund(5000)
+        val note = alice.notes().single()
+        cut = true
+        assertEquals(NoteActionResult.Pending, alice.wallet.splitNote(note.id, 1_500_000))
+        assertEquals(NoteState.Ambiguous, alice.store.note(note.id)?.state)
+        cut = false
+        down = false
+        assertEquals(NoteCheck.NotLanded, alice.wallet.recheckNote(note.id))
+        assertEquals(listOf(note.id), alice.notes().map { it.id }, "spendable again")
     }
 
     @Test

@@ -419,6 +419,7 @@ private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String = whe
     }.joinToString(" ")
     is NotesOutcome.KeyChanged -> stringResource(R.string.notes_key_changed, outcome.host)
     NotesOutcome.AlreadySpent -> stringResource(R.string.notes_already_spent)
+    is NotesOutcome.Settled -> stringResource(if (outcome.landed) R.string.notes_settled_landed else R.string.notes_settled_back)
     NotesOutcome.Pending -> stringResource(R.string.notes_pending)
     is NotesOutcome.Failed -> problemText(outcome.problem)
 }

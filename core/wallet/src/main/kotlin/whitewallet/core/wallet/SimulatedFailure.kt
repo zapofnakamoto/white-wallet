@@ -8,13 +8,13 @@ import kotlinx.coroutines.withContext
 
 /**
  * For developers, in debug builds: makes the first note change (rotate, merge, split) of one action fail as [kind]
- * says, or with [Kind.Unreachable] a recheck of one note too, so its failure screens can be seen without a broken mint. It travels with the action's coroutine
+ * says, or a recheck of one note (which only asks, so it goes unanswered whatever the kind), so its failure screens can be seen without a broken mint. It travels with the action's coroutine
  * ([during]), so nothing else the wallet does meanwhile (a refresh, the note strategy) can use it up, and it is gone
  * when the action ends. The wallet takes the same path as for a real failure: journal, outcome, reconciliation.
  */
 class SimulatedFailure(val kind: Kind) : AbstractCoroutineContextElement(Key) {
     enum class Kind {
-        /** The mint doesn't answer the note lookup before the change, or a recheck: nothing is sent. */
+        /** The mint doesn't answer the note lookup before the change: nothing is sent. */
         Unreachable,
 
         /** The mint refuses the change: nothing changes. */
@@ -32,6 +32,9 @@ class SimulatedFailure(val kind: Kind) : AbstractCoroutineContextElement(Key) {
     /** Whether this failure is [kind] and still unused; it is used up by a true answer. */
     internal fun take(kind: Kind): Boolean = this.kind == kind && used.compareAndSet(false, true)
 
+    /** Whether this failure is still unused, of whatever kind; it is used up by a true answer. */
+    internal fun takeAny(): Boolean = used.compareAndSet(false, true)
+
     companion object Key : CoroutineContext.Key<SimulatedFailure> {
         /** Runs [action] with [failure] (none: as it is). */
         suspend fun <T> during(failure: Kind?, action: suspend () -> T): T =
@@ -39,5 +42,8 @@ class SimulatedFailure(val kind: Kind) : AbstractCoroutineContextElement(Key) {
 
         /** Whether the running action should fail as [kind] here (see [SimulatedFailure]). */
         internal suspend fun take(kind: Kind): Boolean = currentCoroutineContext()[Key]?.take(kind) == true
+
+        /** Whether the running action should fail here, of whatever kind it was armed as. */
+        internal suspend fun takeAny(): Boolean = currentCoroutineContext()[Key]?.takeAny() == true
     }
 }

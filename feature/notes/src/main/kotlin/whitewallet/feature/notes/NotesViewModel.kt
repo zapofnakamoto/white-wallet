@@ -138,6 +138,9 @@ sealed interface NotesOutcome {
 
     /** The note to share turned out to be spent already. */
     data object AlreadySpent : NotesOutcome
+
+    /** A recheck settled the change a confirming note was in: [landed], or it never did and the note is back. */
+    data class Settled(val landed: Boolean) : NotesOutcome
     data object Pending : NotesOutcome
     data class Failed(val problem: NoteProblem) : NotesOutcome
 }
@@ -267,6 +270,9 @@ class NotesViewModel @Inject constructor(
                 NoteCheck.Unreachable -> state.value.mints.firstOrNull { m -> m.notes.any { it.id == id } }?.let { unreachable += it.host }
                 is NoteCheck.KeyChanged -> return NotesOutcome.KeyChanged(check.host)
                 NoteCheck.NotFound -> Unit
+                // Only a confirming note settles, and it is only rechecked on its own.
+                NoteCheck.Landed -> return NotesOutcome.Settled(landed = true)
+                NoteCheck.NotLanded -> return NotesOutcome.Settled(landed = false)
             }
         }
         return NotesOutcome.Checked(ok, gone, unreachable.distinct())
@@ -393,10 +399,9 @@ class NotesViewModel @Inject constructor(
     private fun act(action: NoteAction, ids: Set<String> = state.value.selected, block: suspend (Set<String>) -> NotesOutcome?) {
         if (action !in ui.value.noteActions || ids.isEmpty() || ui.value.busy || ui.value.refreshing) return
         quoteJob?.cancel()
-        // A failure armed for developers goes with the next action it applies to only, and is used up by it: a recheck
-        // only asks the mint, so it can only go unanswered; refused or lost stay armed for the next change.
-        val failure = state.value.simulatedFailure.takeIf { action != NoteAction.Recheck || it == SimulatedFailure.Kind.Unreachable }
-        ui.update { it.copy(busy = true, dialog = null, outcome = null, simulatedFailure = if (failure != null) null else it.simulatedFailure) }
+        // A failure armed for developers goes with the next action only, and is used up by it.
+        val failure = state.value.simulatedFailure
+        ui.update { it.copy(busy = true, dialog = null, outcome = null, simulatedFailure = null) }
         viewModelScope.launch {
             val outcome = try {
                 SimulatedFailure.during(failure) { block(ids) }
@@ -428,5 +433,8 @@ class NotesViewModel @Inject constructor(
 
         /** Notes that can be combined, split, moved, rechecked, renewed or shared. */
         fun selectable(note: Note) = note.state == NoteState.Outstanding && note.kind == NoteKind.KeyPath && note.index != null
+
+        /** Notes that can be rechecked: those, and a confirming one, whose change a recheck settles. */
+        fun recheckable(note: Note) = selectable(note) || (note.state == NoteState.Ambiguous && note.kind == NoteKind.KeyPath)
     }
 }

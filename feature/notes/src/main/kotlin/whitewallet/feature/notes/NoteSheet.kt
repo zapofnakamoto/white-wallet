@@ -91,7 +91,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (NoteAction.Share in offered) WalletButton(kind = ButtonKind.Tonal, onClick = { actions.share(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_share)) }
                     if (NoteAction.Split in offered) WalletButton(kind = ButtonKind.Secondary, onClick = { actions.openSplit(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_split)) }
-                    if (NoteAction.Recheck in offered) WalletButton(kind = ButtonKind.Secondary, onClick = { actions.recheck(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_recheck)) }
+                    if (NoteAction.Recheck in offered) WalletButton(kind = ButtonKind.Secondary, onClick = { actions.recheck(note.id) }, enabled = NotesViewModel.recheckable(note) && !state.busy) { Text(stringResource(R.string.notes_recheck)) }
                     if (NoteAction.Renew in offered) WalletButton(kind = ButtonKind.Secondary, onClick = { actions.renew(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_renew)) }
                 }
             }

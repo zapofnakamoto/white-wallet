@@ -62,7 +62,7 @@
     <string name="notes_renew">Erneuern</string>
     <string name="notes_dev_key">Schlüssel %1$d/%2$d · %3$s</string>
     <string name="notes_dev_section">Entwicklung · nur in Debug-Builds</string>
-    <string name="notes_dev_fail">Das nächste Teilen als QR, Teilen, Erneuern, Zusammenlegen oder Verschieben scheitert, einmal. Mit „Keine Antwort“ auch Prüfen.</string>
+    <string name="notes_dev_fail">Die nächste Aktion scheitert, einmal.</string>
     <string name="notes_dev_fail_unreachable">Keine Antwort</string>
     <string name="notes_dev_fail_refused">Abgelehnt</string>
     <string name="notes_dev_fail_lost">Antwort verloren</string>
@@ -83,7 +83,9 @@
     <string name="notes_no_fee">Keine Gebühr</string>
     <string name="notes_split_done">In %1$s und %2$s geteilt.</string>
     <string name="notes_moved">%1$s ist auf %2$s angekommen.</string>
-    <string name="notes_pending">Gesendet, aber noch nicht bestätigt. Der Verlauf zeigt das Ergebnis nach dem nächsten Aktualisieren.</string>
+    <string name="notes_pending">Gesendet, aber noch nicht bestätigt. Später prüfen oder aktualisieren, um es zu erfahren.</string>
+    <string name="notes_settled_landed">Bestätigt: Die Änderung ist durchgegangen.</string>
+    <string name="notes_settled_back">Die Änderung ist nicht durchgegangen, es hat sich nichts geändert.</string>
     <string name="notes_split_range">Zwischen %1$s und %2$s</string>
     <string name="notes_move_quote">Geht von hier: %1$s. Kommt auf %3$s an: etwa %2$s.</string>
     <string name="notes_problem_unreachable">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts geändert.</string>

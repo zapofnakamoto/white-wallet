@@ -69,7 +69,7 @@
     <string name="notes_dev_key">Key %1$d/%2$d · %3$s</string>
     <!-- Developer mode in debug builds: the next action on notes fails once, as chosen, to see its failure screens. -->
     <string name="notes_dev_section">Developer · debug builds only</string>
-    <string name="notes_dev_fail">The next share, split, renew, combine or move fails, once. With No answer, a recheck too.</string>
+    <string name="notes_dev_fail">The next action fails, once.</string>
     <string name="notes_dev_fail_unreachable">No answer</string>
     <string name="notes_dev_fail_refused">Refused</string>
     <string name="notes_dev_fail_lost">Answer lost</string>
@@ -92,7 +92,9 @@
     <string name="notes_no_fee">No fee</string>
     <string name="notes_split_done">Split into %1$s and %2$s.</string>
     <string name="notes_moved">%1$s arrived on %2$s.</string>
-    <string name="notes_pending">Sent, but not confirmed yet. History shows the outcome after the next refresh.</string>
+    <string name="notes_pending">Sent, but not confirmed yet. Recheck later, or refresh, to find out.</string>
+    <string name="notes_settled_landed">Confirmed: the change went through.</string>
+    <string name="notes_settled_back">The change didn\'t go through, so nothing changed.</string>
     <string name="notes_split_range">Between %1$s and %2$s</string>
     <string name="notes_move_quote">Leaving here: %1$s. Arriving on %3$s: about %2$s.</string>
     <string name="notes_problem_unreachable">Couldn\'t connect. Check your connection and try again. Nothing changed.</string>

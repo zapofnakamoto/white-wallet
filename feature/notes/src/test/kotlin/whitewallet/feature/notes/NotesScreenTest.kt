@@ -141,6 +141,26 @@ class NotesScreenTest {
             NotesContent(state({ it.copy(mints = listOf(MintNotes("home.example", true, listOf(paying))), open = "p") }), NotesActions())
         }
         compose.onNodeWithText("Share as QR").assertIsNotEnabled()
+        compose.onNodeWithText("Recheck").assertIsNotEnabled()
+    }
+
+    @Test
+    fun aConfirmingNoteCanOnlyBeRechecked() {
+        val confirming = note("c", "home.example", 1_000, NoteState.Ambiguous)
+        var rechecked: String? = null
+        compose.setContent {
+            NotesContent(state({ it.copy(mints = listOf(MintNotes("home.example", true, listOf(confirming))), open = "c") }), NotesActions(recheck = { rechecked = it }))
+        }
+        compose.onNodeWithText("Share as QR").assertIsNotEnabled()
+        compose.onNodeWithText("Renew").assertIsNotEnabled()
+        compose.onNodeWithText("Recheck").assertIsEnabled().performClick()
+        assertEquals("c", rechecked)
+    }
+
+    @Test
+    fun aSettledChangeSaysHowItEnded() {
+        compose.setContent { NotesContent(state({ it.copy(outcome = NotesOutcome.Settled(landed = false)) }), NotesActions()) }
+        compose.onNodeWithText("The change didn't go through, so nothing changed.").assertExists()
     }
 
     @Test

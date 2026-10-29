@@ -9,7 +9,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - Developers can make a note action fail on purpose to see its failure screens: in debug builds with developer mode
   on, a note's sheet offers, marked as for developers, to make the next change fail (no answer, refused, answer
-  lost), used up by the next share, split, renew, combine or move, and with no answer by a recheck too. The wallet takes its real path, a lost answer included: the note stays open until a
+  lost), used up by the next share, split, renew, combine, move or recheck. The wallet takes its real path, a lost answer included: the note stays open until a
   refresh settles it.
 - The wallet says what it did to the notes by itself: a short message on the home screen when its note strategy
   combined or split them, auto-renew renewed them or collecting moved them home, with what that did to the balance
@@ -63,6 +63,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- A note stuck at "Confirming…" (a change whose answer never came) can be rechecked: the wallet asks the mint
+  right away whether the change went through, instead of waiting for the next refresh, and says how it ended.
 - Splitting a note starts at half of what is left after the fee. A note too small for two notes of whole sats
   (2 sats with a 1-sat fee) says so right away instead of opening a split that can't be done.
 - Acme's example strategy is now "Combine small banknotes" (`combine-small`, `CombineSmallNotes`).

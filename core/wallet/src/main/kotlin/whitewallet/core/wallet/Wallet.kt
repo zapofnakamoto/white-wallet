@@ -569,7 +569,8 @@ class Wallet(
                     is NoteCheck.Ok -> checked++
                     NoteCheck.Spent, NoteCheck.Unknown -> { checked++; gone++ }
                     NoteCheck.Unreachable, is NoteCheck.KeyChanged -> unreachable += note.host
-                    NoteCheck.NotFound -> Unit
+                    // Only outstanding notes are checked here; the refresh above settled the confirming ones.
+                    NoteCheck.NotFound, NoteCheck.Landed, NoteCheck.NotLanded -> Unit
                 }
             }
             NotesCheck(checked, gone, unreachable)
@@ -577,9 +578,11 @@ class Wallet(
     }
 
     private suspend fun recheck(id: String): NoteCheck {
-        val note = store.note(id)?.takeIf { it.accountId == activeId() && it.isRecheckable() } ?: return NoteCheck.NotFound
+        val note = store.note(id)?.takeIf { it.accountId == activeId() && (it.isRecheckable() || it.isConfirming()) } ?: return NoteCheck.NotFound
         if (store.mint(note.host) == null) return NoteCheck.Unreachable
-        if (SimulatedFailure.take(SimulatedFailure.Kind.Unreachable)) return NoteCheck.Unreachable
+        // A recheck only asks: whatever failure a developer armed, it goes unanswered.
+        if (SimulatedFailure.takeAny()) return NoteCheck.Unreachable
+        if (note.isConfirming()) return settle(note)
         val probe = try {
             inspector.recheck(KeyId(note.accountId, note.host, note.purpose!!, note.index!!))
         } catch (e: MintKeyChangedException) {
@@ -590,6 +593,20 @@ class Wallet(
             is KeyProbe.Spent -> NoteCheck.Spent
             is KeyProbe.Unused -> NoteCheck.Unknown
             is KeyProbe.Refused, is KeyProbe.Failed -> NoteCheck.Unreachable
+        }
+    }
+
+    /**
+     * Settles the change [note] went into whose answer never came (see [NoteState.Ambiguous]), now rather than on the
+     * next refresh: the mint is asked whether it landed.
+     */
+    private suspend fun settle(note: Note): NoteCheck {
+        val entry = store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).firstOrNull { note.id in it.inputIds }
+            ?: return NoteCheck.NotFound
+        return when (Reconciler(this).reconcile(entry)) {
+            JournalStatus.Confirmed -> NoteCheck.Landed
+            JournalStatus.Rejected -> NoteCheck.NotLanded
+            else -> NoteCheck.Unreachable
         }
     }
 
@@ -902,6 +919,12 @@ sealed interface NoteCheck {
     /** No usable answer; nothing changed. */
     data object Unreachable : NoteCheck
 
+    /** The change a confirming note went into landed: the note is spent, its outputs are recorded. */
+    data object Landed : NoteCheck
+
+    /** The change a confirming note went into never landed: the note is spendable again. */
+    data object NotLanded : NoteCheck
+
     /** The mint signs with a different key than before; operations on it are stopped. */
     data class KeyChanged(val host: String) : NoteCheck
 
@@ -914,3 +937,6 @@ data class NotesCheck(val checked: Int, val gone: Int, val unreachable: List<Str
 
 /** Notes a lookup can confirm and a rotate can renew: outstanding, at a key derived from the seed. */
 internal fun Note.isRecheckable(): Boolean = state == NoteState.Outstanding && kind == NoteKind.KeyPath && purpose != null && index != null
+
+/** In a change whose answer never came ([NoteState.Ambiguous]); a recheck settles it. */
+internal fun Note.isConfirming(): Boolean = state == NoteState.Ambiguous && kind == NoteKind.KeyPath
