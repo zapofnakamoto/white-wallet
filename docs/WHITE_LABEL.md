@@ -55,7 +55,7 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 
 ### Naming the custodian and its notes, in any language
 
-The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them, 120 per language: 30 name the mint (5 of those the note as well) and 90 more the note. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. Developer options and search keywords are not brand terms.
+The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. A brand made with `just new-brand` gets all of them, in every language, as a commented-out override in its own strings. Developer options and search keywords are not brand terms.
 
 #### The mint
 
