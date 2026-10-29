@@ -129,6 +129,8 @@ data class AppDefaults(
     val mintSuggestions: List<String> = listOf(defaultMintHost),
     /** The local regtest mints, offered in developer mode in debug builds; empty in release builds. */
     val localDevMints: List<String> = emptyList(),
+    /** Debug builds: developer mode offers making a note action fail on purpose ([SimulatedFailure]); never in release builds. */
+    val simulatedFailures: Boolean = false,
     /** How amounts are shown until the user picks a unit (brand `amounts.unit.default`). */
     val defaultAmountUnit: AmountUnit = AmountUnit.Bitcoin,
     /** Whether users may pick another unit under Settings → Amounts (brand `amounts.unit.changeable`); else always [defaultAmountUnit]. */

@@ -69,6 +69,7 @@ import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.NoteAction
+import whitewallet.core.wallet.SimulatedFailure
 
 /** Everything the notes view can ask for. Navigation ([openShared], [openSettings]) is the caller's. */
 class NotesActions(
@@ -93,6 +94,7 @@ class NotesActions(
     val move: () -> Unit = {},
     val dismissDialog: () -> Unit = {},
     val openShared: (String) -> Unit = {},
+    val simulateFailure: (SimulatedFailure.Kind?) -> Unit = {},
 )
 
 /** Wires [NotesViewModel] to [NotesContent]; [onOpenShared] shows a shared note (its QR code, or taking it back). */
@@ -101,6 +103,7 @@ fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Un
     NotesActions(
         tap = viewModel::tap, longPress = viewModel::select, startSelecting = viewModel::startSelecting, stopSelecting = viewModel::stopSelecting,
         close = viewModel::close, dismissOutcome = viewModel::dismissOutcome, setSort = viewModel::setSort, share = viewModel::share,
+        simulateFailure = viewModel::setSimulatedFailure,
         openSplit = viewModel::openSplit, recheck = viewModel::recheck, renew = viewModel::renew, combine = viewModel::combine,
         openMove = viewModel::openMove, recheckSelected = viewModel::recheckSelected, moveAnyway = viewModel::moveAnyway,
         splitAmount = viewModel::onSplitAmount, split = viewModel::split, moveTarget = viewModel::onMoveTarget, move = viewModel::move,

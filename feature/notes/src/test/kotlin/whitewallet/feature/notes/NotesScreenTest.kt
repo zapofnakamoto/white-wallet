@@ -45,6 +45,7 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.NoteAction
+import whitewallet.core.wallet.SimulatedFailure
 
 @RunWith(RobolectricTestRunner::class)
 class NotesScreenTest {
@@ -109,6 +110,28 @@ class NotesScreenTest {
     fun developerModeShowsTheKey() {
         compose.setContent { NotesContent(state({ it.copy(open = "h2", developerMode = true) }), NotesActions()) }
         compose.onNodeWithText("Key 0/", substring = true).assertExists()
+    }
+
+    @Test
+    fun aDebugBuildInDeveloperModeMakesTheNextActionFailOnRequest() {
+        var chosen: SimulatedFailure.Kind? = null
+        var armed by mutableStateOf<SimulatedFailure.Kind?>(null)
+        compose.setContent {
+            NotesContent(state({ it.copy(open = "h2", developerMode = true, failuresOffered = true, simulatedFailure = armed) }),
+                NotesActions(simulateFailure = { chosen = it; armed = it }))
+        }
+        compose.onNodeWithText("Make the next action fail").assertExists()
+        compose.onNodeWithText("Answer lost").performClick()
+        assertEquals(SimulatedFailure.Kind.AnswerLost, chosen)
+        // Tapped again, it is taken back.
+        compose.onNodeWithText("Answer lost").performClick()
+        assertEquals(null, chosen)
+    }
+
+    @Test
+    fun developerModeAloneOffersNoFailures() {
+        compose.setContent { NotesContent(state({ it.copy(open = "h2", developerMode = true) }), NotesActions()) }
+        compose.onNodeWithText("Make the next action fail").assertDoesNotExist()
     }
 
     @Test

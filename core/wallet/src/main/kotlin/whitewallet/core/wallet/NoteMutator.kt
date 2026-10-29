@@ -74,6 +74,7 @@ internal class NoteMutator(private val wallet: Wallet) {
         val domain = spendDomain(host)
         val branch = wallet.branch(fromId, host)
         val spends = inputs.map { note -> branch.spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, domain) }
+        if (SimulatedFailure.take(SimulatedFailure.Kind.Unreachable)) return MutationResult.Unreachable("simulated: no answer")
         val info = runCatching { wallet.client.noteInfo(mint.withdrawUrl, spends.first().k1) }.getOrElse {
             return MutationResult.Unreachable(it.message)
         }
@@ -149,7 +150,17 @@ internal class NoteMutator(private val wallet: Wallet) {
             OperationType.Split -> MutationType.Split
             OperationType.Melt, OperationType.Mint -> error("${type} is not sent through NoteMutator")
         }
-        return when (val outcome = wallet.client.mutate(mutation, url)) {
+        var lost = false
+        val outcome = when {
+            SimulatedFailure.take(SimulatedFailure.Kind.Refused) -> MutationOutcome.Rejected(RejectionKind.Other, "simulated: refused")
+            SimulatedFailure.take(SimulatedFailure.Kind.AnswerLost) -> {
+                wallet.client.mutate(mutation, url)
+                lost = true
+                MutationOutcome.Ambiguous("simulated: answer lost")
+            }
+            else -> wallet.client.mutate(mutation, url)
+        }
+        return when (outcome) {
             is MutationOutcome.Confirmed, is MutationOutcome.Unverifiable -> {
                 val (c, c2) = when (outcome) {
                     is MutationOutcome.Confirmed -> outcome.certificate to outcome.changeCertificate
@@ -174,7 +185,8 @@ internal class NoteMutator(private val wallet: Wallet) {
             is MutationOutcome.Ambiguous -> {
                 val unknown = entry.copy(status = JournalStatus.Unknown, detail = outcome.cause, updatedAtMillis = wallet.now())
                 wallet.store.putJournal(unknown)
-                when (Reconciler(wallet).reconcile(unknown)) {
+                // A simulated lost answer can't be asked about right away either: it stays open until a refresh.
+                when (if (lost) JournalStatus.Unknown else Reconciler(wallet).reconcile(unknown)) {
                     JournalStatus.Confirmed -> MutationResult.Done(outputs.map { out ->
                         wallet.store.note(out.ref.q) ?: Note(out.ref.q, "", host, NoteKind.KeyPath, out.ref.purpose, null, 0, null, NoteState.Outstanding, wallet.now())
                     }, entry.id)

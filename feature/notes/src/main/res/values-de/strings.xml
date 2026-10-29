@@ -61,6 +61,10 @@
     <string name="notes_recheck">Prüfen</string>
     <string name="notes_renew">Erneuern</string>
     <string name="notes_dev_key">Schlüssel %1$d/%2$d · %3$s</string>
+    <string name="notes_dev_fail">Nächste Aktion scheitern lassen</string>
+    <string name="notes_dev_fail_unreachable">Keine Antwort</string>
+    <string name="notes_dev_fail_refused">Abgelehnt</string>
+    <string name="notes_dev_fail_lost">Antwort verloren</string>
     <string name="notes_renewed">Erneuert: %1$s, jetzt mit einem neuen Schlüssel.</string>
     <string name="notes_checked_unreachable">Keine Antwort von %1$s. Versuche es später erneut.</string>
     <string name="notes_checked_no_answer">Keine Antwort. Versuche es später erneut.</string>

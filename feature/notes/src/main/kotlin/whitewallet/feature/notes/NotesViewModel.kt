@@ -32,6 +32,7 @@ import whitewallet.core.wallet.RotateResult
 import whitewallet.core.wallet.MintMoveQuote
 import whitewallet.core.wallet.MintMoveResult
 import whitewallet.core.wallet.ShareNoteResult
+import whitewallet.core.wallet.SimulatedFailure
 import whitewallet.core.wallet.SplitLimits
 import whitewallet.core.wallet.Wallet
 
@@ -84,6 +85,10 @@ data class NotesState(
     val noteActions: Set<NoteAction> = NoteAction.entries.toSet(),
     /** Whether mints are named (brand `mints.visible`); without, one mint's notes are a plain list. */
     val showMints: Boolean = true,
+    /** Debug builds in developer mode: a note's sheet offers making the next action fail ([SimulatedFailure]). */
+    val failuresOffered: Boolean = false,
+    /** How the next action fails, once; null: it runs as it is. */
+    val simulatedFailure: SimulatedFailure.Kind? = null,
 ) {
     private val all: List<Note> get() = mints.flatMap { it.notes }
     val totalMsat: Long get() = mints.sumOf { it.totalMsat }
@@ -142,6 +147,7 @@ class NotesViewModel @Inject constructor(
     defaults: AppDefaults,
 ) : ViewModel() {
     private val ui = MutableStateFlow(NotesState(noteActions = defaults.noteActions, showMints = defaults.showMints))
+    private val failuresBuilt = defaults.simulatedFailures
     private var quoteJob: Job? = null
 
     /** In developer mode, the local regtest mints are offered as move targets too. */
@@ -174,6 +180,7 @@ class NotesViewModel @Inject constructor(
             loaded = true, mints = mints, shared = sharedNotes(notes, c.sort),
             sort = c.sort, selected = u.selected intersect selectable, open = u.open?.takeIf { id -> live.any { it.id == id } },
             noteStrategy = c.strategy, strategies = wallet.noteStrategies, developerMode = c.developer,
+            failuresOffered = c.developer && failuresBuilt, simulatedFailure = u.simulatedFailure.takeIf { c.developer && failuresBuilt },
             knownHosts = (listOfNotNull(c.home) + mints.map { it.host } + c.devHosts).distinct(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesState())
@@ -203,6 +210,9 @@ class NotesViewModel @Inject constructor(
     fun close() = ui.update { it.copy(open = null) }
 
     fun dismissOutcome() = ui.update { it.copy(outcome = null) }
+
+    /** For developers: the next action fails as [kind] says (null: it doesn't); see [NotesState.failuresOffered]. */
+    fun setSimulatedFailure(kind: SimulatedFailure.Kind?) = ui.update { it.copy(simulatedFailure = kind) }
 
     fun sharedShown() = ui.update { it.copy(sharedId = null) }
 
@@ -377,10 +387,12 @@ class NotesViewModel @Inject constructor(
     private fun act(action: NoteAction, ids: Set<String> = state.value.selected, block: suspend (Set<String>) -> NotesOutcome?) {
         if (action !in ui.value.noteActions || ids.isEmpty() || ui.value.busy || ui.value.refreshing) return
         quoteJob?.cancel()
-        ui.update { it.copy(busy = true, dialog = null, outcome = null) }
+        // A failure armed for developers goes with this action only, and is used up by it.
+        val failure = state.value.simulatedFailure
+        ui.update { it.copy(busy = true, dialog = null, outcome = null, simulatedFailure = null) }
         viewModelScope.launch {
             val outcome = try {
-                block(ids)
+                SimulatedFailure.during(failure) { block(ids) }
             } catch (e: MintKeyChangedException) {
                 NotesOutcome.KeyChanged(e.host)
             } finally {

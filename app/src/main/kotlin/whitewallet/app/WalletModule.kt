@@ -88,6 +88,7 @@ object WalletModule {
         mintSuggestions = (listOf(BuildConfig.DEFAULT_MINT_HOST) + BuildConfig.MINT_SUGGESTIONS.split(','))
             .map(String::trim).filter(String::isNotEmpty).distinct(),
         localDevMints = BuildConfig.LOCAL_DEV_MINTS.split(',').map(String::trim).filter(String::isNotEmpty),
+        simulatedFailures = BuildConfig.DEBUG,
         defaultAmountUnit = AmountUnit.fromConfig(BuildConfig.DEFAULT_AMOUNT_UNIT),
         allowUnitChange = BuildConfig.ALLOW_UNIT_CHANGE,
         maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),

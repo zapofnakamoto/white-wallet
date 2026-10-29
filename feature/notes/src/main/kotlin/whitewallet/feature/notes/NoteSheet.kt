@@ -29,9 +29,11 @@ import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.MintMoveQuote
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.wallet.NoteAction
+import whitewallet.core.wallet.SimulatedFailure
 import whitewallet.core.designsystem.WalletAssistChip
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletSheet
 import whitewallet.core.designsystem.WalletTextField
@@ -87,6 +89,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                     if (NoteAction.Renew in offered) WalletButton(kind = ButtonKind.Secondary, onClick = { actions.renew(note.id) }, enabled = enabled) { Text(stringResource(R.string.notes_renew)) }
                 }
             }
+            if (state.failuresOffered) SimulatedFailureChips(state.simulatedFailure, actions.simulateFailure)
             if (state.busy) WalletLinearProgress(Modifier.fillMaxWidth())
             state.outcome?.let { Outcome(it, state.showMints, actions.dismissOutcome) }
             // The share hint mentions splitting, so it needs both.
@@ -103,6 +106,31 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                     fontFamily = FontFamily.Monospace,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Debug builds in developer mode: makes the next action on notes fail once, as chosen (see [SimulatedFailure]), to
+ * see its failure screens. Tapping the chosen one again takes it back.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SimulatedFailureChips(chosen: SimulatedFailure.Kind?, onChoose: (SimulatedFailure.Kind?) -> Unit) {
+    Text(stringResource(R.string.notes_dev_fail), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        SimulatedFailure.Kind.entries.forEach { kind ->
+            WalletFilterChip(
+                selected = kind == chosen,
+                onClick = { onChoose(kind.takeIf { it != chosen }) },
+                label = {
+                    Text(stringResource(when (kind) {
+                        SimulatedFailure.Kind.Unreachable -> R.string.notes_dev_fail_unreachable
+                        SimulatedFailure.Kind.Refused -> R.string.notes_dev_fail_refused
+                        SimulatedFailure.Kind.AnswerLost -> R.string.notes_dev_fail_lost
+                    }))
+                },
+            )
         }
     }
 }
