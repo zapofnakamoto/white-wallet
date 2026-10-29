@@ -281,7 +281,7 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   `surfaceVariant`, and the brand may draw its own, the app's modifier keeping the tap), until the user taps it and
   again whenever the app leaves the screen (`params.qrCovered`). `params.place` says where the note is: `Wallet`
   (the notes list and a note's details), `Claim` (someone's note before the user claims it), `Shared` (a
-  handed-out note's page) or `Paper` (printed). `params` has the amount
+  handed-out note: its page, and its row in the notes view, under the handed-out heading) or `Paper` (printed). `params` has the amount
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
   `Redeemed`, `TakenBack`; give a `when` an `else`), its words and mark, the age, the mint (null with
   `showMints=false`), whether it is trusted, and `selected` while the user selects (null otherwise).

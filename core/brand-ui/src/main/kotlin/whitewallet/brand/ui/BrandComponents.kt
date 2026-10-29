@@ -292,8 +292,9 @@ enum class NoteFaceSize { Row, Large }
 
 /**
  * Where a note is drawn: in the user's own [Wallet] (the notes list, a note's details), on the claim preview before
- * the user takes someone's note ([Claim]), on a handed-out note's page ([Shared]), or on the page printed from there
- * ([Paper]: white, the brand's light theme, the QR code never covered).
+ * the user takes someone's note ([Claim]), handed out ([Shared]: its page, and its row in the notes view, under the
+ * handed-out heading), or on the page printed from there ([Paper]: white, the brand's light theme, the QR code never
+ * covered).
  */
 enum class NoteFacePlace { Wallet, Claim, Shared, Paper }
 
@@ -564,7 +565,9 @@ object DefaultComponents : BrandComponents {
                                 Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                    },
+                    }
+                        // A handed-out note has no mint header above it, so its row names the mint.
+                        ?: params.mint?.takeIf { params.place == NoteFacePlace.Shared }?.let { mint -> { Text(mint) } },
                     leading = params.selected?.let { selected ->
                         { components.Toggle(ToggleParams(ToggleKind.Checkbox, selected, onCheckedChange = null, enabled = params.enabled), Modifier) }
                     },

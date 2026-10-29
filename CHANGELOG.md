@@ -45,6 +45,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   (`QrCodeCover`).
 - A brand's `NoteFace` knows where the note is (`place`: in the wallet, on the claim preview, on a handed-out note's
   page, on paper), so a note can say "ready to claim" only to the one about to claim it, or print in less ink.
+- Handed-out notes in the notes view are the brand's `NoteFace` rows too (status `Waiting`, place `Shared`); before,
+  they were plain list rows a brand couldn't style. The default row looks as before, with the mint below the amount.
 
 ### Fixed
 

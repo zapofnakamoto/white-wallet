@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,7 +36,10 @@ import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.NoteFaceParams
+import whitewallet.brand.ui.NoteFacePlace
+import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteGroupParams
+import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -158,6 +162,32 @@ class NotesScreenTest {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Tap one to show its QR code again or take it back."))
         compose.onNodeWithText("Shared, not redeemed yet").assertExists()
         compose.onNodeWithText("₿3,333").performClick()
+        assertEquals("s", opened)
+    }
+
+    @Test
+    fun aBrandDrawsHandedOutNotesLikeTheOthers() {
+        val faces = mutableListOf<Triple<NoteFaceSize, NoteStatus, NoteFacePlace>>()
+        val design = object : BrandDesign {
+            override val components = object : BrandComponents {
+                @Composable
+                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                    faces += Triple(params.size, params.status, params.place)
+                    Text("zap ${params.amount} ${params.mint}", modifier)
+                }
+            }
+        }
+        var opened: String? = null
+        val shared = note("s", "home.example", 3_333, NoteState.Shared)
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design) {
+                NotesContent(state({ it.copy(shared = listOf(shared)) }), NotesActions(openShared = { opened = it }))
+            }
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("zap ₿3,333 home.example"))
+        assertTrue(Triple(NoteFaceSize.Row, NoteStatus.Waiting, NoteFacePlace.Shared) in faces)
+        // The tap stays the app's.
+        compose.onNodeWithText("zap ₿3,333 home.example").performClick()
         assertEquals("s", opened)
     }
 

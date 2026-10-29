@@ -52,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.BrandDecoration
@@ -346,13 +347,17 @@ private fun SharedHeader() {
     )
 }
 
+/** A handed-out note, drawn by the brand like the others; it waits for its recipient. */
 @Composable
 private fun SharedRow(note: Note, showMints: Boolean, onOpen: (String) -> Unit) {
-    WalletListItem(
-        headlineContent = { Text(formatAmount(note.amountMsat)) },
-        supportingContent = if (showMints) ({ Text(note.host) }) else null,
-        trailingContent = { Text(recentTime(note.updatedAtMillis), style = MaterialTheme.typography.bodySmall) },
-        modifier = Modifier.clickable { onOpen(note.id) },
+    WalletNoteFace(
+        NoteFaceSize.Row,
+        note.amountMsat,
+        Modifier.clickable { onOpen(note.id) },
+        status = NoteStatus.Waiting,
+        age = recentTime(note.updatedAtMillis),
+        mint = note.host.takeIf { showMints },
+        place = NoteFacePlace.Shared,
     )
 }
 
