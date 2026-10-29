@@ -79,3 +79,13 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    which codes (a handed-out note, receive invoices and addresses, the printed page, where paper and ink matter
    too); a test that decodes every brand's code with the logo on (zxing reads back what the app encoded) so a brand
    can't ship an unscannable one; and dark mode (the code stays black on white). Asked for on 2026-10-29.
+10. **A failed note maintenance on the Wallet tab.** When a run of the note strategy fails partway (the mint doesn't
+    answer, a combine or a move home is rejected), the user only learns it under Settings → Account → Note settings,
+    in small text below the strategy ("Stopped: …", `PolicyRun.stoppedEarly`, `failed`, `NotCollected.Reason.Failed`).
+    Nobody looks there unless something already seems wrong, while a success is now told on Home. Idea: a card on the
+    Wallet tab, like the offline problem card, saying the wallet couldn't keep the notes as set and will try again,
+    with a way to Note settings or a retry. Open: what counts as worth a card (one failed step that the next refresh
+    repairs, or only a run that keeps failing); its texts in every language, without the mint's English reason
+    (`stoppedEarly` is a message string today); a new `WalletStatus.Problem` kind for brands; whether it follows
+    `notes.maintenance.notices` or always shows; with `notes.view=hidden`, what it says to users who don't know about
+    notes; when it goes away (the next run that succeeds, or dismissed). Asked for on 2026-10-29.
