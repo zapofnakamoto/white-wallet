@@ -34,6 +34,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
@@ -214,7 +215,11 @@ class DialogParams(
     val text: (@Composable () -> Unit)? = null,
 )
 
-class SheetParams(val onDismissRequest: () -> Unit, val content: @Composable ColumnScope.() -> Unit)
+/**
+ * [openFully]: the sheet opens at its full height (as far as its content and the screen go) rather than at half the
+ * screen first, because what comes up at its bottom, such as an action's outcome, has to be seen without dragging.
+ */
+class SheetParams(val onDismissRequest: () -> Unit, val content: @Composable ColumnScope.() -> Unit, val openFully: Boolean = false)
 
 /** [actionLabel] and [onAction] come together: the message has a button, or none. */
 class SnackbarParams(val message: String, val actionLabel: String? = null, val onAction: () -> Unit = {})
@@ -487,7 +492,11 @@ object DefaultComponents : BrandComponents {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun sheet(params: SheetParams) {
-        ModalBottomSheet(onDismissRequest = params.onDismissRequest, content = params.content)
+        ModalBottomSheet(
+            onDismissRequest = params.onDismissRequest,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = params.openFully),
+            content = params.content,
+        )
     }
 
     @Composable

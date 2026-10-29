@@ -47,6 +47,7 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.NoteAction
+import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.SimulatedFailure
 
 @RunWith(RobolectricTestRunner::class)
@@ -128,6 +129,14 @@ class NotesScreenTest {
         // Tapped again, it is taken back.
         compose.onNodeWithText("Answer lost").performClick()
         assertEquals(null, chosen)
+    }
+
+    @Test
+    fun aFailureInTheSheetIsShownWithoutScrolling() {
+        var s by mutableStateOf(state({ it.copy(open = "h2", developerMode = true, failuresOffered = true) }))
+        compose.setContent { NotesContent(s, NotesActions()) }
+        s = s.copy(outcome = NotesOutcome.Failed(NoteProblem.Unreachable))
+        compose.onNodeWithText("OK").assertIsDisplayed()
     }
 
     @Test

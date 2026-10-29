@@ -1,6 +1,11 @@
 package whitewallet.feature.notes
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
@@ -52,7 +57,11 @@ import whitewallet.core.designsystem.WalletNoteFace
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
-    WalletSheet(onDismissRequest = actions.close) {
+    // Opens fully, and an action's outcome scrolls into view: it comes up below the buttons, where a half-open sheet
+    // or a small phone would hide it.
+    val outcomeView = remember { BringIntoViewRequester() }
+    LaunchedEffect(state.outcome) { if (state.outcome != null) outcomeView.bringIntoView() }
+    WalletSheet(onDismissRequest = actions.close, openFully = true) {
         // Scrolls: a large note face, the hints and, for developers, more below don't fit a small phone.
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
@@ -103,7 +112,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             }
             if (state.failuresOffered) SimulatedFailureChips(state.simulatedFailure, actions.simulateFailure)
             if (state.busy) WalletLinearProgress(Modifier.fillMaxWidth())
-            state.outcome?.let { Outcome(it, state.showMints, actions.dismissOutcome) }
+            state.outcome?.let { Box(Modifier.bringIntoViewRequester(outcomeView)) { Outcome(it, state.showMints, actions.dismissOutcome) } }
             // The share hint mentions splitting, so it needs both.
             if (NoteAction.Share in offered && NoteAction.Split in offered) {
                 Text(stringResource(R.string.notes_share_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -85,6 +85,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - A note's details and the account switcher scroll: on a small phone, or with many accounts, their lower part
   (hints, buttons) was cut off.
+- A note's details open at full height, and an action's outcome scrolls into view: a failed split or recheck said
+  so below the half-open sheet's edge, out of sight. Brands' `SheetParams` gain `openFully` for this.
 - The notes view's sort ("Largest first", "Newest first") orders the handed-out notes too; they were always newest
   first.
 - A handed-out note taken back is combined with the others straight away under "Keep only one note" (or the brand's

@@ -246,8 +246,8 @@ fun WalletDialog(
 }
 
 @Composable
-fun WalletSheet(onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    LocalBrandDesign.current.components.Sheet(SheetParams(onDismissRequest, content))
+fun WalletSheet(onDismissRequest: () -> Unit, openFully: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    LocalBrandDesign.current.components.Sheet(SheetParams(onDismissRequest, content, openFully))
 }
 
 /**

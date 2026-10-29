@@ -285,6 +285,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
 - **Components:** `object MyComponents : BrandComponents { override fun Button(params, modifier) { â€¦ } }`. Apply
   the modifier to the root; the texts arrive translated and the semantics are set by the app. `DefaultComponents`
   has the Material versions to fall back on. Screens only use these (`dev/check-design.sh` keeps it that way).
+  A `Sheet` with `params.openFully` opens at its full height rather than at half the screen first (a note's
+  details, where an action's outcome comes up at the bottom): honour it in a sheet of your own.
 - **Notes:** a note is one object the brand designs once. `NoteFace(params, modifier)` draws it as a row of the notes
   list (`NoteFaceSize.Row`) and large (`NoteFaceSize.Large`) on its details, the claim preview and a handed-out note's
   page, where `params.qrCode` is the QR code: place and frame it, never alter or cover it. On a handed-out note's
