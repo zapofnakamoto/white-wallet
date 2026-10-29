@@ -3,6 +3,7 @@ package whitewallet.core.wallet
 import java.io.IOException
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
+import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.SimulatedFailure.Kind
 import kotlin.test.Test
@@ -12,6 +13,9 @@ import kotlin.test.assertNotEquals
 
 /** A failure a developer arms on a note's sheet takes the wallet's real path, against the real mint. */
 class RegtestSimulatedFailureTest {
+    @BeforeEach
+    fun requireStack() = Regtest.requireStack()
+
     @Test
     fun `with no answer nothing is sent and the note stays as it was`() = runBlocking<Unit> {
         val alice = Regtest.phone()
