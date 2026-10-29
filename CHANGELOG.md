@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.5.0]
+
 ### Added
 
 - Brands can let users bring their own mint: an empty `mints.suggestions` offers no mint at setup, only the field to
