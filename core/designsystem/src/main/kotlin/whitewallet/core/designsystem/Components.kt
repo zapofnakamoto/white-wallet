@@ -118,7 +118,7 @@ fun QrCode(content: String, modifier: Modifier = Modifier, size: Dp = 260.dp, de
 fun QrCodeCover(label: String, onReveal: () -> Unit, modifier: Modifier = Modifier, size: Dp = 260.dp) {
     LocalBrandDesign.current.components.QrCodeCover(
         QrCodeCoverParams(label, size),
-        modifier.clickable(role = Role.Button, onClick = onReveal).semantics(mergeDescendants = true) {},
+        modifier.clickable(role = Role.Button, onClick = onReveal),
     )
 }
 

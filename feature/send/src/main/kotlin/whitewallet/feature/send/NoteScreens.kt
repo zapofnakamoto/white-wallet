@@ -18,7 +18,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -277,7 +276,7 @@ fun SharedNoteScreen(
 ) {
     var printing by remember { mutableStateOf(false) }
     // The QR code is money: covered until the user taps, and covered again whenever the app leaves the screen.
-    var qrShown by rememberSaveable { mutableStateOf(false) }
+    var qrShown by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { qrShown = false }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_title), onBack) }) { padding ->
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
