@@ -9,7 +9,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - Developers can make a note action fail on purpose to see its failure screens: in debug builds with developer mode
   on, a note's sheet offers, marked as for developers, to make the next change fail (no answer, refused, answer
-  lost), used up by the next share, split, renew, combine or move. The wallet takes its real path, a lost answer included: the note stays open until a
+  lost), used up by the next share, split, renew, combine or move, and with no answer by a recheck too. The wallet takes its real path, a lost answer included: the note stays open until a
   refresh settles it.
 - The wallet says what it did to the notes by itself: a short message on the home screen when its note strategy
   combined or split them, auto-renew renewed them or collecting moved them home, with what that did to the balance

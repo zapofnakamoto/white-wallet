@@ -8,13 +8,13 @@ import kotlinx.coroutines.withContext
 
 /**
  * For developers, in debug builds: makes the first note change (rotate, merge, split) of one action fail as [kind]
- * says, so its failure screens can be seen without a broken mint. It travels with the action's coroutine
+ * says, or with [Kind.Unreachable] a recheck of one note too, so its failure screens can be seen without a broken mint. It travels with the action's coroutine
  * ([during]), so nothing else the wallet does meanwhile (a refresh, the note strategy) can use it up, and it is gone
  * when the action ends. The wallet takes the same path as for a real failure: journal, outcome, reconciliation.
  */
 class SimulatedFailure(val kind: Kind) : AbstractCoroutineContextElement(Key) {
     enum class Kind {
-        /** The mint doesn't answer the note lookup before the change: nothing is sent. */
+        /** The mint doesn't answer the note lookup before the change, or a recheck: nothing is sent. */
         Unreachable,
 
         /** The mint refuses the change: nothing changes. */

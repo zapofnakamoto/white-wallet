@@ -47,6 +47,17 @@ class RegtestSimulatedFailureTest {
     }
 
     @Test
+    fun `a recheck can go unanswered too`() = runBlocking<Unit> {
+        val alice = Regtest.phone()
+        alice.fund(2000)
+        val note = alice.notes().single()
+        assertEquals(NoteCheck.Unreachable, SimulatedFailure.during(Kind.Unreachable) { alice.wallet.recheckNote(note.id) })
+        assertIs<NoteCheck.Ok>(alice.wallet.recheckNote(note.id))
+        // Refused means nothing for a lookup: it asks the mint as usual.
+        assertIs<NoteCheck.Ok>(SimulatedFailure.during(Kind.Refused) { alice.wallet.recheckNote(note.id) })
+    }
+
+    @Test
     fun `combine and renew fail as armed too`() = runBlocking<Unit> {
         val alice = Regtest.phone()
         alice.fund(2000, 3000)

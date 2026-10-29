@@ -69,7 +69,7 @@
     <string name="notes_dev_key">Key %1$d/%2$d · %3$s</string>
     <!-- Developer mode in debug builds: the next action on notes fails once, as chosen, to see its failure screens. -->
     <string name="notes_dev_section">Developer · debug builds only</string>
-    <string name="notes_dev_fail">The next share, split, renew, combine or move fails, once. Recheck leaves it armed.</string>
+    <string name="notes_dev_fail">The next share, split, renew, combine or move fails, once. With No answer, a recheck too.</string>
     <string name="notes_dev_fail_unreachable">No answer</string>
     <string name="notes_dev_fail_refused">Refused</string>
     <string name="notes_dev_fail_lost">Answer lost</string>

@@ -393,9 +393,9 @@ class NotesViewModel @Inject constructor(
     private fun act(action: NoteAction, ids: Set<String> = state.value.selected, block: suspend (Set<String>) -> NotesOutcome?) {
         if (action !in ui.value.noteActions || ids.isEmpty() || ui.value.busy || ui.value.refreshing) return
         quoteJob?.cancel()
-        // A failure armed for developers goes with the next change to notes only, and is used up by it; a recheck
-        // changes nothing, so it stays armed.
-        val failure = state.value.simulatedFailure.takeIf { action != NoteAction.Recheck }
+        // A failure armed for developers goes with the next action it applies to only, and is used up by it: a recheck
+        // only asks the mint, so it can only go unanswered; refused or lost stay armed for the next change.
+        val failure = state.value.simulatedFailure.takeIf { action != NoteAction.Recheck || it == SimulatedFailure.Kind.Unreachable }
         ui.update { it.copy(busy = true, dialog = null, outcome = null, simulatedFailure = if (failure != null) null else it.simulatedFailure) }
         viewModelScope.launch {
             val outcome = try {

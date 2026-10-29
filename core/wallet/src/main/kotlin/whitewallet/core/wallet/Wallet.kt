@@ -579,6 +579,7 @@ class Wallet(
     private suspend fun recheck(id: String): NoteCheck {
         val note = store.note(id)?.takeIf { it.accountId == activeId() && it.isRecheckable() } ?: return NoteCheck.NotFound
         if (store.mint(note.host) == null) return NoteCheck.Unreachable
+        if (SimulatedFailure.take(SimulatedFailure.Kind.Unreachable)) return NoteCheck.Unreachable
         val probe = try {
             inspector.recheck(KeyId(note.accountId, note.host, note.purpose!!, note.index!!))
         } catch (e: MintKeyChangedException) {
