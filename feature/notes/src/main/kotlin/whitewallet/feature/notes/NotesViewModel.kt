@@ -36,7 +36,13 @@ import whitewallet.core.wallet.SplitLimits
 import whitewallet.core.wallet.Wallet
 
 /** How notes are ordered within a mint. The grouping by mint always stays: combining and moving work per mint. */
-enum class NoteSort { Largest, Newest }
+enum class NoteSort(internal val order: Comparator<Note>) {
+    Largest(compareByDescending<Note> { it.amountMsat }.thenByDescending { it.updatedAtMillis }),
+    Newest(compareByDescending<Note> { it.updatedAtMillis }.thenByDescending { it.amountMsat }),
+}
+
+/** The handed-out notes, waiting for their recipients, in the order the user chose for all notes. */
+internal fun sharedNotes(notes: List<Note>, sort: NoteSort): List<Note> = notes.filter { it.state == NoteState.Shared }.sortedWith(sort.order)
 
 /** One mint's notes in the list. [skipped] is set when collecting at the home mint left them there (fee too high). */
 data class MintNotes(
@@ -157,19 +163,15 @@ class NotesViewModel @Inject constructor(
 
     val state: StateFlow<NotesState> = combine(wallet.notes, context, ui) { notes, c, u ->
         val live = notes.filter { it.state == NoteState.Outstanding || it.state == NoteState.Paying || it.state == NoteState.Ambiguous }
-        val order = when (c.sort) {
-            NoteSort.Largest -> compareByDescending<Note> { it.amountMsat }.thenByDescending { it.updatedAtMillis }
-            NoteSort.Newest -> compareByDescending<Note> { it.updatedAtMillis }.thenByDescending { it.amountMsat }
-        }
         val mints = live.groupBy { it.host }.toList()
             .sortedWith(compareBy({ it.first != c.home }, { it.first }))
             .map { (host, list) ->
                 val skipped = c.notCollected.firstOrNull { it.host == host }?.reason as? NotCollected.Reason.FeeTooHigh
-                MintNotes(host, host == c.home, list.sortedWith(order), skipped, trusted = host in c.trusted)
+                MintNotes(host, host == c.home, list.sortedWith(c.sort.order), skipped, trusted = host in c.trusted)
             }
         val selectable = live.filter(::selectable).map { it.id }.toSet()
         u.copy(
-            loaded = true, mints = mints, shared = notes.filter { it.state == NoteState.Shared }.sortedByDescending { it.updatedAtMillis },
+            loaded = true, mints = mints, shared = sharedNotes(notes, c.sort),
             sort = c.sort, selected = u.selected intersect selectable, open = u.open?.takeIf { id -> live.any { it.id == id } },
             noteStrategy = c.strategy, strategies = wallet.noteStrategies, developerMode = c.developer,
             knownHosts = (listOfNotNull(c.home) + mints.map { it.host } + c.devHosts).distinct(),

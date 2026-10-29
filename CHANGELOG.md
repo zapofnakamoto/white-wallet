@@ -50,6 +50,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- The notes view's sort ("Largest first", "Newest first") orders the handed-out notes too; they were always newest
+  first.
 - With `showMints=false`, the notes view no longer names mints: no mint headers, labels or totals (one mint's notes
   are a plain list, several mints' are separated by a line), no mint on a note or a shared note, no mint count, and an
   unanswered recheck says "No answer" without the mint.
