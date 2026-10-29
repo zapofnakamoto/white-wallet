@@ -1,12 +1,8 @@
 package whitewallet.core.wallet
 
-import java.io.File
-import java.security.SecureRandom
 import java.util.Collections
-import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
@@ -14,27 +10,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.brand.MaintenanceStep
 import whitewallet.brand.WalletTask
-import whitewallet.lnurlcash.client.LnurlcashClient
 
 /** What the wallet says it works on ([Wallet.task]) against the real reference mint (dev/regtest, LNURLCASH_REGTEST=1). */
 class RegtestWalletTaskTest {
-    private val host = "localhost:8111"
-    private val random = SecureRandom()
-
     @BeforeEach
-    fun requireStack() = assumeTrue(System.getenv("LNURLCASH_REGTEST") == "1", "LNURLCASH_REGTEST not set")
-
-    private fun pay(target: String, sats: Int) {
-        val process = ProcessBuilder(File("../../dev/regtest/regtest.sh").canonicalPath, "pay", target, sats.toString()).redirectErrorStream(true).start()
-        val output = process.inputStream.bufferedReader().readText()
-        check(process.waitFor(120, TimeUnit.SECONDS) && process.exitValue() == 0) { output }
-    }
-
-    private fun name() = "task" + (1..6).map { "0123456789abcdef"[random.nextInt(16)] }.joinToString("")
+    fun requireStack() = Regtest.requireStack()
 
     /** Every task [wallet] reports while [block] runs, in order, repeats dropped. */
     private suspend fun tasks(wallet: Wallet, block: suspend () -> Unit): List<WalletTask?> {
@@ -51,12 +34,10 @@ class RegtestWalletTaskTest {
 
     @Test
     fun `a refresh says it updates, and which maintenance step runs`() = runBlocking<Unit> {
-        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
-        val alice = name()
-        assertIs<OnboardResult.Ready>(wallet.onboard(alice, host))
-        wallet.setNoteStrategy(SingleNoteStrategy.ID)
-        pay("$alice@$host", 1000)
-        pay("$alice@$host", 1000)
+        val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
+        val wallet = alice.wallet
+        Regtest.pay(alice.address, 1000)
+        Regtest.pay(alice.address, 1000)
 
         val combining = WalletTask.Maintaining(MaintenanceStep.Combining, SingleNoteStrategy.ID)
         val seen = tasks(wallet) { wallet.refresh() }
@@ -72,12 +53,10 @@ class RegtestWalletTaskTest {
 
     @Test
     fun `auto-renew is maintenance of no strategy`() = runBlocking<Unit> {
-        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
-        val bob = name()
-        assertIs<OnboardResult.Ready>(wallet.onboard(bob, host))
-        wallet.setNoteStrategy(ManualStrategy.ID)
+        val bob = Regtest.phone(strategy = ManualStrategy.ID)
+        val wallet = bob.wallet
         wallet.setAutoRotate(true)
-        pay("$bob@$host", 1500)
+        Regtest.pay(bob.address, 1500)
 
         val seen = tasks(wallet) { wallet.refresh() }
         assertTrue(WalletTask.Maintaining(MaintenanceStep.Renewing) in seen, "renewing: $seen")

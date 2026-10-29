@@ -1,9 +1,6 @@
 package whitewallet.core.wallet
 
-import java.io.File
 import java.net.URI
-import java.security.SecureRandom
-import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -11,7 +8,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.AddressProof
@@ -36,22 +32,13 @@ import whitewallet.lnurlcash.spendDomain
  * Needs the stack from dev/regtest and LNURLCASH_REGTEST=1; skipped otherwise.
  */
 class RegtestMultiAddressTest {
-    private val host = "localhost:8111"
-    private val script = File("../../dev/regtest/regtest.sh").canonicalFile
-    private val random = SecureRandom()
+    private val host = Regtest.HOST
     private val client = LnurlcashClient()
 
     @BeforeEach
-    fun requireStack() = assumeTrue(System.getenv("LNURLCASH_REGTEST") == "1", "LNURLCASH_REGTEST not set")
+    fun requireStack() = Regtest.requireStack()
 
-    private fun regtest(vararg args: String): String {
-        val process = ProcessBuilder(listOf(script.path) + args).redirectErrorStream(true).start()
-        val output = process.inputStream.bufferedReader().readText()
-        check(process.waitFor(120, TimeUnit.SECONDS) && process.exitValue() == 0) { "regtest.sh ${args.joinToString(" ")} failed:\n$output" }
-        return output
-    }
-
-    private fun name() = "multi" + (1..6).map { "0123456789abcdef"[random.nextInt(16)] }.joinToString("")
+    private fun name() = Regtest.name("multi")
 
     private fun payRequest(name: String) = URI("http://$host/.well-known/lnurlp/$name").toURL().readText()
 
@@ -72,7 +59,7 @@ class RegtestMultiAddressTest {
         return URI("$callback${sep}amount=${sats * 1000}").toURL().readText().substringAfter("\"pr\":\"").substringBefore('"')
     }
 
-    private fun pay(name: String, sats: Long) = regtest("pay", "$name@$host", sats.toString())
+    private fun pay(name: String, sats: Long) = Regtest.pay("$name@$host", sats)
 
     @Test
     fun `several addresses on one cx1 share one sequence of address keys, and the wallet finds every payment`() = runBlocking<Unit> {
