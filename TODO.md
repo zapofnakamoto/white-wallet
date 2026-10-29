@@ -58,3 +58,13 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    hides. Open: what such a user should see and can decide (wording without the mint; whether Details opens a page
    of its own or the mint page anyway, since deciding about the new key is the user's), and whether other outcomes
    and cards name a mint the same way. Found while fixing the notes view for `showMints=false`.
+8. **A note that was never handed over counts as handed out.** Creating one ("Send as a note", or "Share as QR" in
+   the notes view) marks it shared at once (`NoteSender`): it leaves the balance, History says "Sent a note", and its
+   page offers "Take back". Yet nothing has left the phone until the user shows the QR code (it is covered until a
+   tap now), copies or shares the link, or prints it. A user who taps back right away still finds a note "Shared,
+   not redeemed yet" they never gave anyone, and must take it back to get the money back. Confusing; to adapt.
+   Open: remember whether a note was handed over (shown, copied, shared, printed); until then, what back does (take
+   it back by itself, ask, or keep it as a draft that doesn't count as sent), how the notes view, History, the
+   balance and `WalletEvent`s treat it, and what a brand sees (`NoteStatus`, `WalletStatus.WaitingForRecipient`).
+   The link is never stored, so a draft can only be shown again while its secret can be derived (`NoteSender`).
+   Installed users' shared notes stay as they are. Noticed on the Zap preview, 2026-10-29.
