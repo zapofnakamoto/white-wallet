@@ -1,5 +1,7 @@
 package whitewallet.feature.home
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,7 +43,8 @@ fun AccountSwitcher(
     onDismiss: () -> Unit,
 ) {
     WalletSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.navigationBarsPadding().padding(bottom = 16.dp)) {
+        // Scrolls: with many accounts, the buttons and the backup hint below them would be cut off.
+        Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 16.dp)) {
             Text(stringResource(R.string.accounts_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp))
             // One choice among the accounts: each row is a radio button to screen readers; the active one's mark has a check.
             Column(Modifier.selectableGroup()) {

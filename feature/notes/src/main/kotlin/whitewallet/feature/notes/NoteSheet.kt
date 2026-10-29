@@ -1,6 +1,8 @@
 package whitewallet.feature.notes
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -51,7 +53,11 @@ import whitewallet.core.designsystem.WalletNoteFace
 @Composable
 internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
     WalletSheet(onDismissRequest = actions.close) {
-        Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Scrolls: a large note face, the hints and, for developers, more below don't fit a small phone.
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             WalletNoteFace(
                 NoteFaceSize.Large,
                 note.amountMsat,

@@ -6,6 +6,8 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.assertIsDisplayed
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -42,5 +44,11 @@ class AccountSwitcherTest {
         compose.onNode(hasText("Daily"), useUnmergedTree = false).assertIsNotSelected()
         compose.onNodeWithText("Daily").performClick()
         assertEquals("b", selected)
+    }
+
+    @Test
+    fun manyAccountsScrollToTheButtonsAndTheHint() {
+        show((1..30).map { summary("$it", "Account $it") }, activeId = "1")
+        compose.onNodeWithText("Each account has its own recovery phrase. Back up every account.").performScrollTo().assertIsDisplayed()
     }
 }

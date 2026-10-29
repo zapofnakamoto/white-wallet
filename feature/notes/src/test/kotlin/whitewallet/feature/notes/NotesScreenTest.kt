@@ -20,6 +20,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertEquals
@@ -126,6 +128,12 @@ class NotesScreenTest {
         // Tapped again, it is taken back.
         compose.onNodeWithText("Answer lost").performClick()
         assertEquals(null, chosen)
+    }
+
+    @Test
+    fun theSheetScrollsToItsLastLine() {
+        compose.setContent { NotesContent(state({ it.copy(open = "h2", developerMode = true, failuresOffered = true) }), NotesActions()) }
+        compose.onNodeWithText("Key 0/", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test

@@ -83,6 +83,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- A note's details and the account switcher scroll: on a small phone, or with many accounts, their lower part
+  (hints, buttons) was cut off.
 - The notes view's sort ("Largest first", "Newest first") orders the handed-out notes too; they were always newest
   first.
 - A handed-out note taken back is combined with the others straight away under "Keep only one note" (or the brand's
