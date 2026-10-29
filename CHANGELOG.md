@@ -41,7 +41,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   strategy or auto-renew looked after the notes by itself. A brand's `when` over events picks them up in its `else`.
 - A handed-out note's QR code is covered until the user taps "Tap to show the QR code", so nobody nearby can scan it
   by chance, and covered again whenever the app leaves the screen. Share, Copy and Print work as before; the printed
-  page has the code. Brands see the cover in `NoteFace`'s `qrCode` slot and can draw their own (`QrCodeCover`).
+  page has the code. Brands see the cover in `NoteFace`'s `qrCode` slot (`qrCovered`) and can draw their own
+  (`QrCodeCover`).
+- A brand's `NoteFace` knows where the note is (`place`: in the wallet, on the claim preview, on a handed-out note's
+  page, on paper), so a note can say "ready to claim" only to the one about to claim it, or print in less ink.
 
 ### Fixed
 

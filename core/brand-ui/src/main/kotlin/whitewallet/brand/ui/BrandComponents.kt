@@ -291,6 +291,13 @@ class AccountMarkParams(
 enum class NoteFaceSize { Row, Large }
 
 /**
+ * Where a note is drawn: in the user's own [Wallet] (the notes list, a note's details), on the claim preview before
+ * the user takes someone's note ([Claim]), on a handed-out note's page ([Shared]), or on the page printed from there
+ * ([Paper]: white, the brand's light theme, the QR code never covered).
+ */
+enum class NoteFacePlace { Wallet, Claim, Shared, Paper }
+
+/**
  * How a note stands. In the wallet: [Ready] to use, [Paying] (being spent), [Unclear] (a payment whose outcome isn't
  * known yet), [Uncertified] (its amount isn't certified). Handed out: [Waiting] for its recipient, [Redeemed] by them,
  * [TakenBack]. New statuses may be added in later releases: a brand's `when` needs an `else` branch.
@@ -323,6 +330,9 @@ class NoteFaceParams(
      * repeat them.
      */
     val qrCode: (@Composable () -> Unit)? = null,
+    val place: NoteFacePlace = NoteFacePlace.Wallet,
+    /** [qrCode] holds the cover over the code (`QrCodeCover`) until the user taps it; nothing to scan yet. */
+    val qrCovered: Boolean = false,
 )
 
 class NoteGroupParams(

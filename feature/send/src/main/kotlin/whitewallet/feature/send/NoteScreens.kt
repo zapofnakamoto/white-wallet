@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.BrandDecoration
@@ -304,6 +305,8 @@ fun SharedNoteScreen(
                         else QrCodeCover(stringResource(R.string.note_qr_show), onReveal = { qrShown = true })
                     }
                 },
+                place = NoteFacePlace.Shared,
+                qrCovered = !qrShown,
             )
             when (note.state) {
                 SharedNoteState.Waiting -> if (link != null) {
@@ -346,6 +349,7 @@ fun SharedNoteScreen(
                 status = NoteStatus.Waiting,
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
                 qrCode = { QrCode(checkNotNull(note.link), description = qrDescription) },
+                place = NoteFacePlace.Paper,
             )
             Text(stringResource(R.string.note_print_warning), textAlign = TextAlign.Center)
         }

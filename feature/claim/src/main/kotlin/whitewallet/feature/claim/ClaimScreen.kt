@@ -32,6 +32,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import whitewallet.core.designsystem.WalletNoteFace
+import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.PrimaryButton
@@ -135,6 +136,7 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
                 status = if (preview.certified) NoteStatus.Ready else NoteStatus.Uncertified,
                 mint = preview.link.host.takeIf { showMints },
                 trusted = preview.trusted,
+                place = NoteFacePlace.Claim,
             )
             // Without showMints, only what needs the user: an amount that can't be verified, and the bearer warning.
             if (showMints) {

@@ -38,6 +38,7 @@ import whitewallet.brand.ui.MoneyDirection
 import whitewallet.brand.ui.NavigationBarParams
 import whitewallet.brand.ui.NavigationItem
 import whitewallet.brand.ui.NoteFaceParams
+import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteGroupParams
 import whitewallet.brand.ui.NoteStatus
@@ -173,12 +174,14 @@ fun WalletNoteFace(
     selected: Boolean? = null,
     enabled: Boolean = true,
     qrCode: (@Composable () -> Unit)? = null,
+    place: NoteFacePlace = NoteFacePlace.Wallet,
+    qrCovered: Boolean = false,
 ) {
     val spoken = if (size == NoteFaceSize.Large) spokenAmount(amountMsat) else null
     LocalBrandDesign.current.components.NoteFace(
         NoteFaceParams(
             size, formatAmount(amountMsat), amountMsat, status, statusText, statusIcon?.let { painterResource(it) }, age, mint, trusted,
-            selected, enabled, qrCode,
+            selected, enabled, qrCode, place, qrCovered,
         ),
         if (spoken != null) modifier.semantics { contentDescription = spoken } else modifier,
     )

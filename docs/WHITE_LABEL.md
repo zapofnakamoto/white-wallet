@@ -279,7 +279,9 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   page, where `params.qrCode` is the QR code: place and frame it, never alter or cover it. On a handed-out note's
   page that slot first holds the cover (`QrCodeCover`, as large as the code; by default in the theme's
   `surfaceVariant`, and the brand may draw its own, the app's modifier keeping the tap), until the user taps it and
-  again whenever the app leaves the screen. `params` has the amount
+  again whenever the app leaves the screen (`params.qrCovered`). `params.place` says where the note is: `Wallet`
+  (the notes list and a note's details), `Claim` (someone's note before the user claims it), `Shared` (a
+  handed-out note's page) or `Paper` (printed). `params` has the amount
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
   `Redeemed`, `TakenBack`; give a `when` an `else`), its words and mark, the age, the mint (null with
   `showMints=false`), whether it is trusted, and `selected` while the user selects (null otherwise).

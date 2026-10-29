@@ -41,6 +41,7 @@ import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.DefaultComponents
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.NoteFaceParams
+import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.QrCodeCoverParams
 import whitewallet.core.wallet.PayProblem
@@ -152,7 +153,7 @@ class SharedNoteScreenTest {
             override val components = object : BrandComponents {
                 @Composable
                 override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
-                    faces += params.status
+                    if (params.place == NoteFacePlace.Paper) faces += params.status
                     DefaultComponents.noteFace(params, modifier)
                 }
             }
@@ -241,5 +242,31 @@ class SharedNoteScreenTest {
         }
         compose.onNodeWithText("spark cover: Tap to show the QR code").assertHasClickAction().performClick()
         compose.onNodeWithContentDescription("QR code of the note").assertExists()
+    }
+
+    @Test
+    fun theBrandKnowsTheNoteIsOnItsPageOrOnPaperAndWhetherTheCodeIsCovered() {
+        val seen = mutableListOf<Pair<NoteFacePlace, Boolean>>()
+        val card = object : BrandDesign {
+            override val components = object : BrandComponents {
+                @Composable
+                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                    seen += params.place to params.qrCovered
+                    DefaultComponents.noteFace(params, modifier)
+                }
+            }
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides card) {
+                SharedNoteScreen(
+                    SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false),
+                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+                )
+            }
+        }
+        assertEquals(NoteFacePlace.Shared to true, seen.last())
+        compose.onNodeWithText("Tap to show the QR code").performClick()
+        compose.waitForIdle()
+        assertEquals(NoteFacePlace.Shared to false, seen.last())
     }
 }
