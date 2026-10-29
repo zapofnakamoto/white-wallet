@@ -9,6 +9,24 @@ plugins {
 
 val brandDir = brandDir()
 val brand = brandProperties()
+
+// Keys from before they were grouped, and what they are now. A brand still setting one fails.
+val renamedKeys = mapOf(
+    "appName" to "app.name", "applicationId" to "app.id", "versionCode" to "app.version.code", "versionName" to "app.version.name",
+    "releaseStage" to "app.releaseStage", "appearance" to "app.appearance", "supportUrl" to "app.supportUrl",
+    "developerOptions" to "developer.options",
+    "defaultMintHost" to "mints.default", "mintSuggestions" to "mints.suggestions", "allowMintChange" to "mints.changeable",
+    "showMints" to "mints.visible", "trustedMints" to "mints.trusted",
+    "maxAccounts" to "accounts.max", "maxAddresses" to "addresses.max", "lightningAddress" to "addresses.lightning",
+    "requireAddress" to "addresses.lightning=required|optional|none",
+    "defaultAmountUnit" to "amounts.unit.default", "allowUnitChange" to "amounts.unit.changeable",
+    "noteStrategies" to "notes.strategies", "defaultNoteStrategy" to "notes.strategy.default", "notesView" to "notes.view",
+    "noteActions" to "notes.actions", "collectAtHomeMint" to "notes.collect.atHomeMint", "collectFeeCap" to "notes.collect.feeCap",
+    "historyFilter" to "history.filter",
+)
+renamedKeys.filterKeys(brand::containsKey).takeIf { it.isNotEmpty() }?.let { old ->
+    error("brand.properties uses keys that were renamed (see docs/WHITE_LABEL.md): " + old.entries.joinToString { (from, to) -> "$from → $to" })
+}
 fun brand(key: String): String = checkNotNull(brand.getProperty(key)) { "brand/brand.properties is missing '$key'" }.trim()
 
 // Release signing, never committed: environment variables (CI) or keystore.properties in the project root
@@ -30,37 +48,36 @@ val buildLabel = providers.exec {
 android {
     configureAndroid()
     defaultConfig {
-        applicationId = brand("applicationId")
+        applicationId = brand("app.id")
         targetSdk = COMPILE_SDK
-        versionCode = brand("versionCode").toInt()
-        versionName = brand("versionName")
-        resValue("string", "app_name", brand("appName"))
-        buildConfigField("String", "DEFAULT_MINT_HOST", "\"${brand("defaultMintHost")}\"")
-        buildConfigField("boolean", "ALLOW_MINT_CHANGE", brand("allowMintChange"))
-        buildConfigField("String", "MINT_SUGGESTIONS", "\"${brand.getProperty("mintSuggestions", "").trim()}\"")
-        buildConfigField("String", "SUPPORT_URL", "\"${brand("supportUrl")}\"")
-        buildConfigField("String", "DEFAULT_AMOUNT_UNIT", "\"${brand.getProperty("defaultAmountUnit", "bitcoin").trim()}\"")
-        check(brand.getProperty("requireAddress") == null) { "brand.properties: requireAddress was renamed to lightningAddress=required|optional|none" }
-        buildConfigField("String", "LIGHTNING_ADDRESS", "\"${brand.getProperty("lightningAddress", "optional").trim()}\"")
-        buildConfigField("String", "COLLECT_AT_HOME_MINT", "\"${brand.getProperty("collectAtHomeMint", "off").trim()}\"")
-        buildConfigField("int", "COLLECT_FEE_CAP", brand.getProperty("collectFeeCap", "2").trim())
-        buildConfigField("String", "TRUSTED_MINTS", "\"" + brand.getProperty("trustedMints", "").trim() + "\"")
-        buildConfigField("String", "NOTES_VIEW", "\"${brand.getProperty("notesView", "tab").trim()}\"")
-        buildConfigField("String", "HISTORY_FILTER", "\"${brand.getProperty("historyFilter", "types").trim()}\"")
-        buildConfigField("boolean", "ALLOW_UNIT_CHANGE", brand.getProperty("allowUnitChange", "true").trim().toBooleanStrict().toString())
-        buildConfigField("String", "DEVELOPER_OPTIONS", "\"${brand.getProperty("developerOptions", "shown").trim()}\"")
-        // null when unset: the app then offers every action that fits showMints.
-        buildConfigField("String", "NOTE_ACTIONS", brand.getProperty("noteActions")?.let { "\"${it.trim()}\"" } ?: "null")
-        buildConfigField("boolean", "SHOW_MINTS",brand.getProperty("showMints", "true").trim().toBooleanStrict().toString())
-        buildConfigField("int", "MAX_ACCOUNTS", brand.getProperty("maxAccounts", "0").trim())
-        buildConfigField("int", "MAX_ADDRESSES", brand.getProperty("maxAddresses", "1").trim())
-        buildConfigField("String", "NOTE_STRATEGIES", "\"${brand.getProperty("noteStrategies", "single,manual").trim()}\"")
-        buildConfigField("String", "DEFAULT_NOTE_STRATEGY", "\"${brand.getProperty("defaultNoteStrategy", "single").trim()}\"")
-        val appearance = brand.getProperty("appearance", "system").trim()
-        check(appearance in setOf("system", "light", "dark")) { "brand.properties: appearance must be system, light or dark, not '$appearance'" }
+        versionCode = brand("app.version.code").toInt()
+        versionName = brand("app.version.name")
+        resValue("string", "app_name", brand("app.name"))
+        buildConfigField("String", "DEFAULT_MINT_HOST", "\"${brand("mints.default")}\"")
+        buildConfigField("boolean", "ALLOW_MINT_CHANGE", brand("mints.changeable"))
+        buildConfigField("String", "MINT_SUGGESTIONS", "\"${brand.getProperty("mints.suggestions", "").trim()}\"")
+        buildConfigField("String", "SUPPORT_URL", "\"${brand("app.supportUrl")}\"")
+        buildConfigField("String", "DEFAULT_AMOUNT_UNIT", "\"${brand.getProperty("amounts.unit.default", "bitcoin").trim()}\"")
+        buildConfigField("String", "LIGHTNING_ADDRESS", "\"${brand.getProperty("addresses.lightning", "optional").trim()}\"")
+        buildConfigField("String", "COLLECT_AT_HOME_MINT", "\"${brand.getProperty("notes.collect.atHomeMint", "off").trim()}\"")
+        buildConfigField("int", "COLLECT_FEE_CAP", brand.getProperty("notes.collect.feeCap", "2").trim())
+        buildConfigField("String", "TRUSTED_MINTS", "\"" + brand.getProperty("mints.trusted", "").trim() + "\"")
+        buildConfigField("String", "NOTES_VIEW", "\"${brand.getProperty("notes.view", "tab").trim()}\"")
+        buildConfigField("String", "HISTORY_FILTER", "\"${brand.getProperty("history.filter", "types").trim()}\"")
+        buildConfigField("boolean", "ALLOW_UNIT_CHANGE", brand.getProperty("amounts.unit.changeable", "true").trim().toBooleanStrict().toString())
+        buildConfigField("String", "DEVELOPER_OPTIONS", "\"${brand.getProperty("developer.options", "shown").trim()}\"")
+        // null when unset: the app then offers every action that fits mints.visible.
+        buildConfigField("String", "NOTE_ACTIONS", brand.getProperty("notes.actions")?.let { "\"${it.trim()}\"" } ?: "null")
+        buildConfigField("boolean", "SHOW_MINTS",brand.getProperty("mints.visible", "true").trim().toBooleanStrict().toString())
+        buildConfigField("int", "MAX_ACCOUNTS", brand.getProperty("accounts.max", "0").trim())
+        buildConfigField("int", "MAX_ADDRESSES", brand.getProperty("addresses.max", "1").trim())
+        buildConfigField("String", "NOTE_STRATEGIES", "\"${brand.getProperty("notes.strategies", "single,manual").trim()}\"")
+        buildConfigField("String", "DEFAULT_NOTE_STRATEGY", "\"${brand.getProperty("notes.strategy.default", "single").trim()}\"")
+        val appearance = brand.getProperty("app.appearance", "system").trim()
+        check(appearance in setOf("system", "light", "dark")) { "brand.properties: app.appearance must be system, light or dark, not '$appearance'" }
         buildConfigField("String", "APPEARANCE", "\"$appearance\"")
-        val releaseStage = brand.getProperty("releaseStage", "auto").trim()
-        check(releaseStage in setOf("auto", "alpha", "beta", "stable")) { "brand.properties: releaseStage must be auto, alpha, beta or stable, not '$releaseStage'" }
+        val releaseStage = brand.getProperty("app.releaseStage", "auto").trim()
+        check(releaseStage in setOf("auto", "alpha", "beta", "stable")) { "brand.properties: app.releaseStage must be auto, alpha, beta or stable, not '$releaseStage'" }
         buildConfigField("String", "RELEASE_STAGE", "\"$releaseStage\"")
     }
     if (releaseStoreFile != null) {
@@ -113,7 +130,7 @@ tasks.register<Exec>("openDebug") {
     description = "Installs the debug build and opens it on the connected device."
     dependsOn("installDebug")
     executable(androidComponents.sdkComponents.adb.get().asFile)
-    args("shell", "monkey", "-p", "${brand("applicationId")}.debug", "-c", "android.intent.category.LAUNCHER", "1")
+    args("shell", "monkey", "-p", "${brand("app.id")}.debug", "-c", "android.intent.category.LAUNCHER", "1")
 }
 
 // The brand's own code, if its directory has a code/ module (included by settings.gradle.kts as :brand-code).

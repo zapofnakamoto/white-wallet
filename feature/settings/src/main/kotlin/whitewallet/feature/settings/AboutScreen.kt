@@ -58,7 +58,7 @@ val shippedLicenses = listOf(
     License("SQLCipher for Android", "BSD-3-Clause", "https://www.zetetic.net/sqlcipher/"),
 )
 
-/** Unlocks Developer options from About, for brands with `developerOptions=unlock`. */
+/** Unlocks Developer options from About, for brands with `developer.options=unlock`. */
 @HiltViewModel
 class AboutViewModel @Inject constructor(private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
     /** Tapping the version still has something to unlock. */

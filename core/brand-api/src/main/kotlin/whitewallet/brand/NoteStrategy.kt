@@ -8,7 +8,7 @@ package whitewallet.brand
  * (unknown notes, impossible amounts) and stops when a mint doesn't answer. Money never leaves the account: a
  * strategy can combine, split and rotate notes on one mint, nothing else.
  *
- * Register one in a brand's code module (Hilt `@IntoSet`) and name its [id] in brand.properties `noteStrategies`.
+ * Register one in a brand's code module (Hilt `@IntoSet`) and name its [id] in brand.properties `notes.strategies`.
  */
 interface NoteStrategy {
     /** Stable, stored per account: lowercase letters, digits and `-`, e.g. `keep-small-change`. Never change it. */

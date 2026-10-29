@@ -71,7 +71,7 @@ object WalletModule {
     @IntoSet
     fun manual(): NoteStrategy = ManualStrategy(SettingsR.string.settings_strategy_manual, SettingsR.string.settings_strategy_manual_hint)
 
-    /** Every registered strategy, narrowed to the brand's `noteStrategies` and its `defaultNoteStrategy`. */
+    /** Every registered strategy, narrowed to the brand's `notes.strategies` and its `notes.strategy.default`. */
     @Provides
     @Singleton
     fun noteStrategies(registered: Set<@JvmSuppressWildcards NoteStrategy>): NoteStrategies = NoteStrategies(

@@ -35,7 +35,7 @@ class SingleNoteStrategy(override val title: Int = 0, override val description: 
 
 /**
  * The strategies a build offers: every registered one (built-in and the brand's own), narrowed to the brand's
- * `noteStrategies` in that order, with its `defaultNoteStrategy`. Checked on construction, so a misconfigured brand
+ * `notes.strategies` in that order, with its `notes.strategy.default`. Checked on construction, so a misconfigured brand
  * fails on first start with a message naming the problem.
  */
 class NoteStrategies(registered: Collection<NoteStrategy>, offered: List<String>, defaultId: String) {
@@ -52,7 +52,7 @@ class NoteStrategies(registered: Collection<NoteStrategy>, offered: List<String>
             byId[id] ?: error("brand.properties offers the note strategy '$id', but none has that id (known: ${byId.keys.sorted().joinToString()})")
         }
         default = this.offered.firstOrNull { it.id == defaultId }
-            ?: error("brand.properties defaultNoteStrategy '$defaultId' is not one of noteStrategies (${ids.joinToString()})")
+            ?: error("brand.properties notes.strategy.default '$defaultId' is not one of notes.strategies (${ids.joinToString()})")
     }
 
     /** The account's choice if this build still offers it, else the default. */

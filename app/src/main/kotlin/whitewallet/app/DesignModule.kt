@@ -65,7 +65,7 @@ class WalletEventHub @Inject constructor(
     }
 }
 
-/** The brand's `appearance`: light or dark whatever the system says, or following it. */
+/** The brand's `app.appearance`: light or dark whatever the system says, or following it. */
 internal fun applyAppearance(context: Context) {
     val mode = when (BuildConfig.APPEARANCE) {
         "light" -> UiModeManager.MODE_NIGHT_NO

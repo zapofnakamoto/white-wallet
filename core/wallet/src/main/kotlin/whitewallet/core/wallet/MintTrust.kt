@@ -46,7 +46,7 @@ enum class TrustDefault {
     /** The home mint of one of this wallet's accounts. */
     Home,
 
-    /** Shipped as trusted by the brand (`trustedMints`), with this key. */
+    /** Shipped as trusted by the brand (`mints.trusted`), with this key. */
     Brand,
 }
 
@@ -93,13 +93,13 @@ internal fun isTrusted(mint: MintKey, default: TrustDefault?, trusted: Set<MintK
 
 object TrustedMints {
     /**
-     * Parses the brand's `trustedMints`: comma-separated `host:pubkey` (the key after the last colon, so a host may
+     * Parses the brand's `mints.trusted`: comma-separated `host:pubkey` (the key after the last colon, so a host may
      * carry a port). Empty means none. Throws on anything else, so a broken config fails the build's checks early.
      */
     fun parse(config: String): List<MintKey> = config.split(',').map(String::trim).filter(String::isNotEmpty).map { entry ->
         val host = entry.substringBeforeLast(':', "").trim().lowercase()
         val key = entry.substringAfterLast(':').trim().lowercase()
-        require(host.isNotEmpty() && KEY.matches(key)) { "trustedMints: '$entry' is not host:pubkey (66 hex characters, 02 or 03 first)" }
+        require(host.isNotEmpty() && KEY.matches(key)) { "mints.trusted: '$entry' is not host:pubkey (66 hex characters, 02 or 03 first)" }
         MintKey(host, key)
     }
 

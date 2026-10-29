@@ -41,7 +41,7 @@ class NoteStrategiesTest {
     @Test
     fun `a misconfigured brand fails with the problem named`() {
         assertTrue("keep-big" in assertFailsWith<IllegalStateException> { NoteStrategies(all, listOf("keep-big"), "keep-big") }.message!!)
-        assertTrue("defaultNoteStrategy" in assertFailsWith<IllegalStateException> { NoteStrategies(all, listOf("single"), "manual") }.message!!)
+        assertTrue("notes.strategy.default" in assertFailsWith<IllegalStateException> { NoteStrategies(all, listOf("single"), "manual") }.message!!)
         assertFailsWith<IllegalStateException> { NoteStrategies(all + Named("single"), listOf("single"), "single") }
         assertFailsWith<IllegalStateException> { NoteStrategies(all + Named("Keep Big"), listOf("single"), "single") }
     }

@@ -317,7 +317,7 @@ class NoteFaceParams(
     val statusIcon: Painter? = null,
     /** How long ago it last changed, in words; null where it isn't shown. */
     val age: String? = null,
-    /** The mint it is held on; null where mints aren't named (brand `showMints=false`). */
+    /** The mint it is held on; null where mints aren't named (brand `mints.visible=false`). */
     val mint: String? = null,
     /** The user trusts its mint (by its signing key). */
     val trusted: Boolean = false,

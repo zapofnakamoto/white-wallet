@@ -48,7 +48,7 @@ data class NotCollected(val host: String, val amountMsat: Long, val reason: Reas
     }
 }
 
-/** Collecting at the home mint as the brand configures it (brand `collectAtHomeMint`, `collectFeeCap`). */
+/** Collecting at the home mint as the brand configures it (brand `notes.collect.atHomeMint`, `notes.collect.feeCap`). */
 data class CollectDefaults(
     /** Users see the option at all. */
     val offered: Boolean = true,
@@ -60,7 +60,7 @@ data class CollectDefaults(
     val always: Boolean = false,
 ) {
     init {
-        require(feeCapPercent in 0..100) { "collectFeeCap must be 0 to 100 (percent), not $feeCapPercent" }
+        require(feeCapPercent in 0..100) { "notes.collect.feeCap must be 0 to 100 (percent), not $feeCapPercent" }
         require(!(always && offered)) { "collecting always leaves nothing to offer" }
     }
 
@@ -71,13 +71,13 @@ data class CollectDefaults(
         /** The fee caps a user can pick from, in percent. */
         val FEE_CAPS = listOf(1, 2, 5, 10)
 
-        /** `collectAtHomeMint` = `hidden`, `off`, `on` or `always`. */
+        /** `notes.collect.atHomeMint` = `hidden`, `off`, `on` or `always`. */
         fun fromConfig(value: String, feeCapPercent: Int): CollectDefaults = when (value.trim().lowercase()) {
             "hidden" -> CollectDefaults(offered = false, enabled = false, feeCapPercent = feeCapPercent)
             "off" -> CollectDefaults(offered = true, enabled = false, feeCapPercent = feeCapPercent)
             "on" -> CollectDefaults(offered = true, enabled = true, feeCapPercent = feeCapPercent)
             "always" -> CollectDefaults(offered = false, enabled = true, feeCapPercent = feeCapPercent, always = true)
-            else -> error("collectAtHomeMint must be hidden, off, on or always, not '$value'")
+            else -> error("notes.collect.atHomeMint must be hidden, off, on or always, not '$value'")
         }
     }
 }

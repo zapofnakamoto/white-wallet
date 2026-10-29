@@ -18,22 +18,22 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Brands can decorate a handed-out note's page: the `NoteShared` anchor, above its amount. Its status is the new
   `WalletStatus.WaitingForRecipient` while nobody has redeemed the note, `Sent` once someone did, and `Idle` once it
   was taken back. A brand's `when` over the status picks the new case up in its `else` branch.
-- Brands choose what users can do with their notes (`noteActions`: `share`, `split`, `combine`, `move`, `recheck`,
+- Brands choose what users can do with their notes (`notes.actions`: `share`, `split`, `combine`, `move`, `recheck`,
   `renew`; all by default). Without an action that works on several notes, the notes view has no selecting.
 - "Note" is a brand term, like "mint": the 80 strings that name the note (German "Schein") now sit in each feature
   module's block of brand terms, renamed *Brand terms*, and docs/WHITE_LABEL.md lists them all, with those a brand
-  never shows under `notesView=hidden` or `historyFilter=none`. A brand that calls notes something else overrides
+  never shows under `notes.view=hidden` or `history.filter=none`. A brand that calls notes something else overrides
   these, per language, as whole sentences. No key changed. `dev/new-brand.sh` writes them into a new brand's
   commented-out strings, and a test fails on a new string outside the blocks that names the mint or the note.
 - Brands design the note once: `NoteFace` draws it as a row of the notes list and large on its details, the claim
   preview and a handed-out note's page, around its QR code; `NoteGroupHeader` heads one mint's notes. They get the
-  amount, a `NoteStatus`, the age, the mint (none with `showMints=false`) and whether it is trusted; the app keeps
+  amount, a `NoteStatus`, the age, the mint (none with `mints.visible=false`) and whether it is trusted; the app keeps
   taps, selection, actions and the bearer warning. The defaults look as before, except that a note's details show
   its amount as large as the claim preview does. `brand-examples/acme/` shows it as digital cash: it says "banknote"
   ("Geldschein") and draws notes as banknotes.
 - A handed-out note can be printed: "Print" on its page draws the brand's `NoteFace` with the QR code and a warning
   that whoever holds the paper can spend it, on white in the brand's light theme whatever the phone's, and opens
-  Android's print dialog. Brands turn it off by leaving `print` out of `noteActions`. Designsystem: `PrintPage`,
+  Android's print dialog. Brands turn it off by leaving `print` out of `notes.actions`. Designsystem: `PrintPage`,
   `printBitmap`, `LightWalletTheme`.
 - Brands can decorate the notes view: `NotesHeader` above its total (status `Empty`, `WaitingForRecipient` while
   handed-out notes wait, or `Idle`) and `NotesEmpty` above the text of an empty one. Three new `WalletEvent`s:
@@ -48,6 +48,20 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Handed-out notes in the notes view are the brand's `NoteFace` rows too (status `Waiting`, place `Shared`); before,
   they were plain list rows a brand couldn't style. The default row looks as before, with the mint below the amount.
 
+### Changed
+
+- brand.properties keys are grouped by what they concern: `app.*`, `mints.*`, `accounts.*`, `addresses.*`,
+  `amounts.*`, `notes.*`, `history.*`, `developer.*`. A brand still using an old key fails the build with its new
+  name. `appName` → `app.name`, `applicationId` → `app.id`, `versionCode` / `versionName` → `app.version.code` /
+  `app.version.name`, `releaseStage` → `app.releaseStage`, `appearance` → `app.appearance`, `supportUrl` →
+  `app.supportUrl`; `defaultMintHost` → `mints.default`, `mintSuggestions` → `mints.suggestions`, `allowMintChange` →
+  `mints.changeable`, `showMints` → `mints.visible`, `trustedMints` → `mints.trusted`; `maxAccounts` → `accounts.max`,
+  `maxAddresses` → `addresses.max`, `lightningAddress` → `addresses.lightning`; `defaultAmountUnit` /
+  `allowUnitChange` → `amounts.unit.default` / `amounts.unit.changeable`; `notesView` → `notes.view`, `noteActions` →
+  `notes.actions`, `noteStrategies` → `notes.strategies`, `defaultNoteStrategy` → `notes.strategy.default`,
+  `collectAtHomeMint` / `collectFeeCap` → `notes.collect.atHomeMint` / `notes.collect.feeCap`; `historyFilter` →
+  `history.filter`; `developerOptions` → `developer.options`.
+
 ### Fixed
 
 - The notes view's sort ("Largest first", "Newest first") orders the handed-out notes too; they were always newest
@@ -55,7 +69,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A handed-out note taken back is combined with the others straight away under "Keep only one note" (or the brand's
   strategy), as when it is claimed back through its link; it stayed a note of its own until the next refresh, and the
   base fee the merge pays back only showed then.
-- With `showMints=false`, the notes view no longer names mints: no mint headers, labels or totals (one mint's notes
+- With `mints.visible=false`, the notes view no longer names mints: no mint headers, labels or totals (one mint's notes
   are a plain list, several mints' are separated by a line), no mint on a note or a shared note, no mint count, and an
   unanswered recheck says "No answer" without the mint.
 

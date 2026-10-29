@@ -43,11 +43,11 @@ data class HomeState(
     val backupPromptDismissed: Boolean = false,
     /** The balance shows as dots until tapped (kept across launches). */
     val balanceHidden: Boolean = false,
-    /** Another account may be created or restored (brand `maxAccounts`). */
+    /** Another account may be created or restored (brand `accounts.max`). */
     val canAddAccount: Boolean = true,
     /** Accounts are a thing in this app: hidden when the brand allows one and there is one. */
     val showAccounts: Boolean = true,
-    /** Which filters History offers (brand `historyFilter`). */
+    /** Which filters History offers (brand `history.filter`). */
     val historyFilter: HistoryFilterOption = HistoryFilterOption.Types,
 ) {
     /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */

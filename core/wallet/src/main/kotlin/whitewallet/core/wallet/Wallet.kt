@@ -56,16 +56,16 @@ class Wallet(
     private val strategies: NoteStrategies = NoteStrategies.builtIn(),
     /** Whether "collect at home mint" is offered, on by default, and its default fee cap (brand configuration). */
     val collectDefaults: CollectDefaults = CollectDefaults(),
-    /** How many accounts this wallet may hold (brand `maxAccounts`); [AppDefaults.UNLIMITED] for no limit. */
+    /** How many accounts this wallet may hold (brand `accounts.max`); [AppDefaults.UNLIMITED] for no limit. */
     val maxAccounts: Int = AppDefaults.UNLIMITED,
     /**
-     * Whether every account needs a Lightning address (brand `lightningAddress=required`). Without, an account is set up with
+     * Whether every account needs a Lightning address (brand `addresses.lightning=required`). Without, an account is set up with
      * just its mint ([createAccount]) and receives by invoice ([requestInvoice]) until it registers one.
      */
     val requireAddress: Boolean = true,
     /** The user's trust choices for mints (see [mints]). */
     private val trust: MintTrustStore = MintTrustStore.InMemory(),
-    /** Mints the brand ships as trusted, each with its key (brand `trustedMints`). */
+    /** Mints the brand ships as trusted, each with its key (brand `mints.trusted`). */
     private val brandTrusted: List<MintKey> = emptyList(),
 ) {
     private val lock = Mutex()

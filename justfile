@@ -57,7 +57,7 @@ logcat brand=brand:
 # The debug build's package name
 [group('build')]
 package brand=brand:
-    @echo "$(grep -E '^applicationId=' {{ brand }}/brand.properties | cut -d= -f2- | tr -d ' ').debug"
+    @echo "$(grep -E '^app.id=' {{ brand }}/brand.properties | cut -d= -f2- | tr -d ' ').debug"
 
 # List connected phones and emulators
 [group('devices')]

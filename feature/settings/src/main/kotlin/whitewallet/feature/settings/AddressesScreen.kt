@@ -67,7 +67,7 @@ data class AddressesState(
     val message: AddressesMessage? = null,
     /** The account's home mint, where new addresses are added. */
     val homeHost: String? = null,
-    /** The brand lets users pick other mints (`allowMintChange`), so addresses can be added on one too. */
+    /** The brand lets users pick other mints (`mints.changeable`), so addresses can be added on one too. */
     val otherMints: Boolean = false,
 ) {
     /** Addresses on the home mint (the primary address's), where new ones are added. */

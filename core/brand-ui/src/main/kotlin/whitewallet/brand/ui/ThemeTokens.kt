@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 /**
  * The app's theme as built from the brand's resources (docs/WHITE_LABEL.md, "Design"): Material's colour scheme,
  * typography and shapes, plus the wallet's own colour roles and spacing. [dark] is the scheme in use, after the
- * brand's `appearance` and the system setting.
+ * brand's `app.appearance` and the system setting.
  */
 @Immutable
 data class ThemeTokens(

@@ -1,7 +1,7 @@
 package whitewallet.brand
 
 /**
- * How finished the app is (brand `releaseStage`): [Alpha] and [Beta] are shown to users, in About and at setup, so
+ * How finished the app is (brand `app.releaseStage`): [Alpha] and [Beta] are shown to users, in About and at setup, so
  * they know the app may still have bugs; [Stable] shows nothing.
  */
 enum class ReleaseStage {

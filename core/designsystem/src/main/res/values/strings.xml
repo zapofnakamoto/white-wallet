@@ -20,7 +20,7 @@
     <string name="amount_hidden_description">Balance hidden</string>
     <string name="amount_hide">Hide balance</string>
     <string name="amount_show">Show balance</string>
-    <!-- The release stage, shown at setup and in About while the app isn't finished (brand releaseStage). -->
+    <!-- The release stage, shown at setup and in About while the app isn't finished (brand app.releaseStage). -->
     <string name="release_stage_alpha">Alpha</string>
     <string name="release_stage_beta">Beta</string>
     <string name="release_notice_alpha">This app is an alpha version: it is still being built and may have bugs.</string>

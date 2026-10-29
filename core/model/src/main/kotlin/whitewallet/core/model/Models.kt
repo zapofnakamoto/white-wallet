@@ -197,6 +197,6 @@ enum class AmountUnit {
     companion object {
         /** Parses a brand config value: `bitcoin` or `sats`, ignoring case. */
         fun fromConfig(value: String): AmountUnit = entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) }
-            ?: error("defaultAmountUnit must be bitcoin or sats, not '$value'")
+            ?: error("amounts.unit.default must be bitcoin or sats, not '$value'")
     }
 }

@@ -120,7 +120,7 @@ interface AppPreferences {
     val developerMode: Flow<Boolean>
     suspend fun setDeveloperMode(enabled: Boolean)
 
-    /** Whether the user unlocked Developer options in About (brand `developerOptions=unlock`). Off by default. */
+    /** Whether the user unlocked Developer options in About (brand `developer.options=unlock`). Off by default. */
     val developerOptionsUnlocked: Flow<Boolean>
     suspend fun setDeveloperOptionsUnlocked()
 

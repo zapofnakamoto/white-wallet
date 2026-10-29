@@ -8,9 +8,9 @@ brand="${1:-brand}"
 props="$brand/brand.properties"
 prop() { { grep -E "^$1=" "$props" || true; } | head -1 | cut -d= -f2- | sed 's/^ *//; s/ *$//'; }
 
-needles=("$(prop appName)" "$(prop applicationId)")
+needles=("$(prop app.name)" "$(prop app.id)")
 # A local regtest mint (dev/regtest) is nobody's brand, and debug builds name it on purpose.
-host="$(prop defaultMintHost)"
+host="$(prop mints.default)"
 [[ "${host%%:*}" =~ ^(localhost|127\.0\.0\.1|10\.0\.2\.2)$ ]] || needles+=("$host")
 # Brand colors, as written in the brand's resources (#RRGGBB); plain black and white are nobody's brand.
 while read -r color; do needles+=("$color"); done < <(grep -rhoIE '#[0-9A-Fa-f]{6,8}' "$brand/res" | grep -viE '^#(FF)?(FFFFFF|000000)$' | sort -u)

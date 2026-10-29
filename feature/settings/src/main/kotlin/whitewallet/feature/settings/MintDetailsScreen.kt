@@ -60,7 +60,7 @@ data class MintDetailsState(
     val loading: Boolean = true,
     val watchOnlyKey: String? = null,
     val showWatchOnly: Boolean = false,
-    /** The brand lets users change their home mint (`allowMintChange`): from its page, or to this one. */
+    /** The brand lets users change their home mint (`mints.changeable`): from its page, or to this one. */
     val canChangeHome: Boolean = false,
     /** The account collects at its home mint: money only moves home, so the home's page offers no move. */
     val collects: Boolean = false,

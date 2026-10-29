@@ -5,7 +5,7 @@ import whitewallet.core.model.AmountUnit
 
 /* Brand-level defaults, provided by the app module from brand/brand.properties. */
 
-/** Whether users see Developer options (brand `developerOptions`). */
+/** Whether users see Developer options (brand `developer.options`). */
 enum class DeveloperOptions {
     /** Always, in Settings. */
     Shown,
@@ -18,27 +18,27 @@ enum class DeveloperOptions {
 
     companion object {
         fun fromConfig(value: String, debug: Boolean): DeveloperOptions {
-            val configured = configEnum<DeveloperOptions>("developerOptions", value)
+            val configured = configEnum<DeveloperOptions>("developer.options", value)
             return if (debug && configured == Hidden) Unlock else configured
         }
     }
 }
 
 /**
- * The brand's `releaseStage`: `alpha`, `beta` or `stable` as set, or `auto` (the default) for beta while [versionName]
+ * The brand's `app.releaseStage`: `alpha`, `beta` or `stable` as set, or `auto` (the default) for beta while [versionName]
  * is below 1.0.0 and stable from then on.
  */
 fun releaseStageFromConfig(value: String, versionName: String): ReleaseStage = when (val v = value.trim().lowercase()) {
     "auto" -> {
         val major = versionName.substringBefore('.').toIntOrNull()
-            ?: error("releaseStage=auto needs a versionName that starts with a number, not '$versionName'")
+            ?: error("app.releaseStage=auto needs an app.version.name that starts with a number, not '$versionName'")
         if (major < 1) ReleaseStage.Beta else ReleaseStage.Stable
     }
     else -> ReleaseStage.entries.firstOrNull { it.name.lowercase() == v }
-        ?: error("releaseStage must be auto, alpha, beta or stable, not '$value'")
+        ?: error("app.releaseStage must be auto, alpha, beta or stable, not '$value'")
 }
 
-/** Where the notes view lives (brand `notesView`). */
+/** Where the notes view lives (brand `notes.view`). */
 enum class NotesView {
     /** A Notes tab next to Wallet and History. */
     Tab,
@@ -50,11 +50,11 @@ enum class NotesView {
     Hidden;
 
     companion object {
-        fun fromConfig(value: String): NotesView = configEnum("notesView", value)
+        fun fromConfig(value: String): NotesView = configEnum("notes.view", value)
     }
 }
 
-/** Which filters the History tab offers (brand `historyFilter`). */
+/** Which filters the History tab offers (brand `history.filter`). */
 enum class HistoryFilterOption {
     /** Received, sent, moved and note maintenance. */
     Types,
@@ -66,11 +66,11 @@ enum class HistoryFilterOption {
     None;
 
     companion object {
-        fun fromConfig(value: String): HistoryFilterOption = configEnum("historyFilter", value)
+        fun fromConfig(value: String): HistoryFilterOption = configEnum("history.filter", value)
     }
 }
 
-/** What users can do with their notes in the notes view, and with a handed-out one (brand `noteActions`). */
+/** What users can do with their notes in the notes view, and with a handed-out one (brand `notes.actions`). */
 enum class NoteAction(
     /** Done on several selected notes at once; without any such action there is no selection. */
     val bulk: Boolean,
@@ -80,7 +80,7 @@ enum class NoteAction(
     Split(bulk = false),
     Combine(bulk = true),
 
-    /** To another mint; needs `showMints`, as it names the mint. */
+    /** To another mint; needs `mints.visible`, as it names the mint. */
     Move(bulk = true),
 
     /** Ask the mint about a note, or about the selected ones. */
@@ -99,14 +99,14 @@ enum class NoteAction(
          */
         fun fromConfig(value: String?, showMints: Boolean): Set<NoteAction> {
             if (value == null) return entries.filter { showMints || it != Move }.toSet()
-            val actions = value.split(',').map(String::trim).filter(String::isNotEmpty).map { configEnum<NoteAction>("noteActions", it) }.toSet()
-            check(showMints || Move !in actions) { "noteActions can't include move with showMints=false: it names the mint" }
+            val actions = value.split(',').map(String::trim).filter(String::isNotEmpty).map { configEnum<NoteAction>("notes.actions", it) }.toSet()
+            check(showMints || Move !in actions) { "notes.actions can't include move with mints.visible=false: it names the mint" }
             return actions
         }
     }
 }
 
-/** Whether accounts have a Lightning address (brand `lightningAddress`). */
+/** Whether accounts have a Lightning address (brand `addresses.lightning`). */
 enum class AddressPolicy {
     /** Setup asks for a name and can't continue without one. */
     Required,
@@ -118,7 +118,7 @@ enum class AddressPolicy {
     None;
 
     companion object {
-        fun fromConfig(value: String): AddressPolicy = configEnum("lightningAddress", value)
+        fun fromConfig(value: String): AddressPolicy = configEnum("addresses.lightning", value)
     }
 }
 
@@ -129,30 +129,30 @@ data class AppDefaults(
     val mintSuggestions: List<String> = listOf(defaultMintHost),
     /** The local regtest mints, offered in developer mode in debug builds; empty in release builds. */
     val localDevMints: List<String> = emptyList(),
-    /** How amounts are shown until the user picks a unit (brand `defaultAmountUnit`). */
+    /** How amounts are shown until the user picks a unit (brand `amounts.unit.default`). */
     val defaultAmountUnit: AmountUnit = AmountUnit.Bitcoin,
-    /** Whether users may pick another unit under Settings → Amounts (brand `allowUnitChange`); else always [defaultAmountUnit]. */
+    /** Whether users may pick another unit under Settings → Amounts (brand `amounts.unit.changeable`); else always [defaultAmountUnit]. */
     val allowUnitChange: Boolean = true,
-    /** Accounts this wallet may hold (brand `maxAccounts`); [UNLIMITED] for no limit. Enforced by [Wallet.maxAccounts]. */
+    /** Accounts this wallet may hold (brand `accounts.max`); [UNLIMITED] for no limit. Enforced by [Wallet.maxAccounts]. */
     val maxAccounts: Int = UNLIMITED,
-    /** Lightning addresses an account may hold per mint (brand `maxAddresses`); [UNLIMITED] for no limit. */
+    /** Lightning addresses an account may hold per mint (brand `addresses.max`); [UNLIMITED] for no limit. */
     val maxAddresses: Int = 1,
-    /** Whether setup asks for a Lightning address and may go on without one (brand `lightningAddress`); see [Wallet.requireAddress]. */
+    /** Whether setup asks for a Lightning address and may go on without one (brand `addresses.lightning`); see [Wallet.requireAddress]. */
     val address: AddressPolicy = AddressPolicy.Optional,
-    /** Where users see and manage their notes (brand `notesView`). */
+    /** Where users see and manage their notes (brand `notes.view`). */
     val notesView: NotesView = NotesView.Tab,
-    /** Which filters the History tab offers (brand `historyFilter`). */
+    /** Which filters the History tab offers (brand `history.filter`). */
     val historyFilter: HistoryFilterOption = HistoryFilterOption.Types,
     /**
-     * Whether users see mints at all (brand `showMints`): Settings → Mints, the home mint's page, which mint a claimed
+     * Whether users see mints at all (brand `mints.visible`): Settings → Mints, the home mint's page, which mint a claimed
      * note is on and whether it's trusted. Without, the app is just a wallet; the mints work the same underneath.
      */
     val showMints: Boolean = true,
-    /** What users can do with their notes in the notes view (brand `noteActions`). */
+    /** What users can do with their notes in the notes view (brand `notes.actions`). */
     val noteActions: Set<NoteAction> = NoteAction.entries.toSet(),
-    /** Whether Settings shows Developer options (brand `developerOptions`); see [developerOptionsVisible]. */
+    /** Whether Settings shows Developer options (brand `developer.options`); see [developerOptionsVisible]. */
     val developerOptions: DeveloperOptions = DeveloperOptions.Shown,
-    /** How finished the app is (brand `releaseStage`), shown at setup and in About unless [ReleaseStage.Stable]. */
+    /** How finished the app is (brand `app.releaseStage`), shown at setup and in About unless [ReleaseStage.Stable]. */
     val releaseStage: ReleaseStage = ReleaseStage.Stable,
 ) {
     /** The address limit in effect: the developer setting while developer mode is on (if set), else the brand's. */

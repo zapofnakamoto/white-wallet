@@ -121,7 +121,7 @@ fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit) {
     NotesContent(state, rememberNotesActions(viewModel, onOpenShared))
 }
 
-/** The notes view on its own page, for brands with `notesView=settings`; reached from account settings. */
+/** The notes view on its own page, for brands with `notes.view=settings`; reached from account settings. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesRoute(onBack: () -> Unit, onSettings: () -> Unit, onOpenShared: (String) -> Unit, viewModel: NotesViewModel = hiltViewModel()) {
@@ -245,7 +245,7 @@ private fun sortLabel(sort: NoteSort) = when (sort) {
     NoteSort.Newest -> R.string.notes_sort_newest
 }
 
-/** A mint's name, labels and total, drawn by the brand; without `showMints` only the line between two mints' notes. */
+/** A mint's name, labels and total, drawn by the brand; without `mints.visible` only the line between two mints' notes. */
 @Composable
 private fun MintHeader(mint: MintNotes, state: NotesState, onMoveAnyway: (String) -> Unit) {
     val labels = listOfNotNull(

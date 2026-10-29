@@ -80,9 +80,9 @@ data class NotesState(
     /** Mints the notes could move to: the home mint and those notes are held on (plus local ones in developer mode). */
     val knownHosts: List<String> = emptyList(),
     val developerMode: Boolean = false,
-    /** What the brand lets users do with notes (brand `noteActions`). */
+    /** What the brand lets users do with notes (brand `notes.actions`). */
     val noteActions: Set<NoteAction> = NoteAction.entries.toSet(),
-    /** Whether mints are named (brand `showMints`); without, one mint's notes are a plain list. */
+    /** Whether mints are named (brand `mints.visible`); without, one mint's notes are a plain list. */
     val showMints: Boolean = true,
 ) {
     private val all: List<Note> get() = mints.flatMap { it.notes }

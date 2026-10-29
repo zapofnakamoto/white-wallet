@@ -191,7 +191,7 @@ data class SharedNoteUiState(
     val reclaimPending: Boolean = false,
     val alreadyRedeemed: Boolean = false,
     val problem: PayProblem? = null,
-    /** Whether the brand lets users print it (`noteActions`). */
+    /** Whether the brand lets users print it (`notes.actions`). */
     val canPrint: Boolean = false,
 )
 

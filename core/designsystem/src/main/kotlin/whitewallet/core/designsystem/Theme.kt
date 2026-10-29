@@ -38,7 +38,7 @@ import whitewallet.brand.ui.WalletSpacing
 /** The app's name, for decorations (a wordmark) and anything else that shows it. */
 val LocalAppName = staticCompositionLocalOf { "" }
 
-/** How finished the app is (brand `releaseStage`): alpha and beta are shown at setup and in About. */
+/** How finished the app is (brand `app.releaseStage`): alpha and beta are shown at setup and in About. */
 val LocalReleaseStage = staticCompositionLocalOf { ReleaseStage.Stable }
 
 /** Which build is running (`git describe`, e.g. v0.3.0-21-gb1593f9), beside the release badge; debug builds only, else null. */

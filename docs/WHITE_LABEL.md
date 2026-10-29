@@ -22,32 +22,34 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 
 ## 1. `brand/brand.properties`
 
+Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `accounts.*`, `addresses.*`, `amounts.*`, `notes.*`, `history.*`, `developer.*`. A key with two values reads as a statement (`mints.visible=true`); one with more lists them. A brand still using a key from before the grouping (`appName`, `showMints`, …) fails the build with its new name.
+
 | Key | Effect |
 |---|---|
-| `appName` | Launcher label and in-app title |
-| `applicationId` | Android package ID. Must be unique to your fork |
-| `versionCode`, `versionName` | Release version |
-| `defaultMintHost` | LNURLcash mint preselected during onboarding (`host` or `host:port`) |
-| `mintSuggestions` | Comma-separated mints offered in the onboarding dropdown (the default is always first; users can still pick "Custom…") |
-| `allowMintChange` | `false` hides the mint field, locking users to your mint. With `true`, users can also add a Lightning address on another mint (same recovery phrase), change their home mint from the mint pages and move money between the mints they know, which needs `showMints=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose) |
-| `supportUrl` | Exposed as `BuildConfig.SUPPORT_URL` |
-| `lightningAddress` | Whether accounts get a Lightning address at setup. `required`: setup asks for a name and can't go on without one. `optional` (default): setup asks for a name, and users may "Continue without an address", also on the address step after a restore. `none`: setup only creates the account on its mint, which is a single "Get started" button when `allowMintChange=false`, and restoring skips the address step. Without an address, users receive by invoice (Receive → amount → QR) and can still get one later in Settings → Account → Lightning addresses. Replaces `requireAddress` (`true` = `required`, `false` = `none`); a brand still setting it fails the build |
-| `maxAccounts` | How many accounts the app holds. `1` hides everything about accounts (no switcher, no "Add account"); at the limit, new accounts and restores are refused with a message. `0` = no limit (default) |
-| `maxAddresses` | Lightning addresses an account may register per mint. Default `1`; `0` = no limit. Developer mode can override it for testing |
-| `noteStrategies` | The note strategies users can choose from under Settings → Account → Note settings, in this order: `single` (keep only one note per mint), `manual` (keep notes as they arrive), and any your code module adds (see "Custom code"). One entry hides the choice. Default `single,manual` |
-| `defaultNoteStrategy` | The strategy a new account starts with; one of `noteStrategies`. Default `single` |
-| `collectAtHomeMint` | "Move everything to the home mint" in Settings → Account → Note settings: notes on other mints (claimed notes, or an old home mint) are moved to the account's home mint automatically, over Lightning, when the move costs at most the fee cap. `hidden` = not offered, `off` = offered and starts off (default), `on` = offered and starts on (users can switch it per account), `always` = every account collects and users have no switch. When users change their home mint, a summary shows what moves and its fee first; with `on` or `always` the cap decides, otherwise they choose per mint |
-| `collectFeeCap` | The default fee cap for those moves, in percent of what is moved (default `2`). Users pick 1, 2, 5 or 10 % |
-| `notesView` | Where users see and manage their notes (share one as a QR code, split, combine, move, recheck, renew): `tab` (default) = a **Notes** tab next to Wallet and History, `settings` = a page under Settings → Account, `hidden` = nowhere; the note strategy keeps the notes by itself and users only see their balance and history |
-| `noteActions` | What users can do with their notes in the notes view, and with a handed-out one, comma-separated: `share` (the whole note as a QR code), `split`, `combine`, `move` (to another mint, and "Move anyway" when collecting skipped one; needs `showMints=true`), `recheck`, `renew`, `print` (a handed-out note on its page: its face, QR code and bearer warning on white paper, in the brand's light theme). Without `combine`, `move` and `recheck`, which work on several notes, there is no selecting. Unset (the default) = all of them, without `move` when `showMints=false`; empty = the notes are only shown. An unknown action, or `move` with `showMints=false`, stops the app at its first start |
-| `historyFilter` | Filters on the History tab: `types` (default) = chips for received, sent, moved and note maintenance; `maintenance` = one chip that shows or hides note maintenance; `none` = no filters, and note maintenance stays hidden |
-| `showMints` | `false` hides everything about mints from users: Settings → Mints (the device's mints), Account → Your mints (the account's, with its actions) and the mint pages, on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged), and in the notes view the mints' names, labels and totals: one mint's notes are a plain list, several mints' are only separated by a line. Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`) and `collectAtHomeMint` `hidden` or `always` |
-| `appearance` | `system` (default) follows the phone's light or dark setting; `light` or `dark` always uses that scheme, for a brand with a single look. See "Design" |
-| `developerOptions` | Developer options in Settings (developer mode, request log, derived keys): `shown` (default) = always; `unlock` = hidden until the user taps the version in Settings → About seven times, as on Android itself; `hidden` = never in release builds. A debug build treats `hidden` as `unlock`, and starts with developer mode on, so the options show there anyway |
-| `releaseStage` | How finished the app is: `auto` (default) = beta while `versionName` is below 1.0.0, stable from then on; or `alpha`, `beta`, `stable` as set. Alpha and beta show a badge beside the app's name (or the brand's wordmark) at setup and on the wallet tab, and by the version in About; setup and About add a sentence on what it means (`release_notice_alpha`, `release_notice_beta`; the badge says `release_stage_alpha`, `release_stage_beta`). Stable shows nothing |
-| `trustedMints` | Mints shown as trusted from the start (Settings → Mints; a check mark on their notes, a hint when claiming), comma-separated `host:pubkey` with the mint's signing key (66 hex characters). Trust names the key: a mint presenting another key isn't trusted. Users can untrust them. Each account's home mint is trusted by default anyway. Default empty |
-| `defaultAmountUnit` | How amounts are shown (until the user picks another unit under Settings → Amounts, if allowed): `bitcoin` (default, [BIP-177](https://github.com/bitcoin/bips/blob/master/bip-0177.mediawiki): the smallest unit as a whole number with the sign, `₿1,000`) or `sats` (`1,000 sats`). The numbers are the same either way |
-| `allowUnitChange` | Whether users may switch the unit under Settings → Amounts (default `true`). With `false` the page is gone and every amount shows in `defaultAmountUnit` |
+| `app.name` | Launcher label and in-app title |
+| `app.id` | Android package ID. Must be unique to your fork |
+| `app.version.code`, `app.version.name` | Release version |
+| `app.releaseStage` | How finished the app is: `auto` (default) = beta while `app.version.name` is below 1.0.0, stable from then on; or `alpha`, `beta`, `stable` as set. Alpha and beta show a badge beside the app's name (or the brand's wordmark) at setup and on the wallet tab, and by the version in About; setup and About add a sentence on what it means (`release_notice_alpha`, `release_notice_beta`; the badge says `release_stage_alpha`, `release_stage_beta`). Stable shows nothing |
+| `app.appearance` | `system` (default) follows the phone's light or dark setting; `light` or `dark` always uses that scheme, for a brand with a single look. See "Design" |
+| `app.supportUrl` | Exposed as `BuildConfig.SUPPORT_URL` |
+| `mints.default` | LNURLcash mint preselected during onboarding (`host` or `host:port`) |
+| `mints.suggestions` | Comma-separated mints offered in the onboarding dropdown (the default is always first; users can still pick "Custom…") |
+| `mints.changeable` | `false` hides the mint field, locking users to your mint. With `true`, users can also add a Lightning address on another mint (same recovery phrase), change their home mint from the mint pages and move money between the mints they know, which needs `mints.visible=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose) |
+| `mints.visible` | `false` hides everything about mints from users: Settings → Mints (the device's mints), Account → Your mints (the account's, with its actions) and the mint pages, on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged), and in the notes view the mints' names, labels and totals: one mint's notes are a plain list, several mints' are only separated by a line. Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`) and `notes.collect.atHomeMint` `hidden` or `always` |
+| `mints.trusted` | Mints shown as trusted from the start (Settings → Mints; a check mark on their notes, a hint when claiming), comma-separated `host:pubkey` with the mint's signing key (66 hex characters). Trust names the key: a mint presenting another key isn't trusted. Users can untrust them. Each account's home mint is trusted by default anyway. Default empty |
+| `accounts.max` | How many accounts the app holds. `1` hides everything about accounts (no switcher, no "Add account"); at the limit, new accounts and restores are refused with a message. `0` = no limit (default) |
+| `addresses.lightning` | Whether accounts get a Lightning address at setup. `required`: setup asks for a name and can't go on without one. `optional` (default): setup asks for a name, and users may "Continue without an address", also on the address step after a restore. `none`: setup only creates the account on its mint, which is a single "Get started" button when `mints.changeable=false`, and restoring skips the address step. Without an address, users receive by invoice (Receive → amount → QR) and can still get one later in Settings → Account → Lightning addresses. |
+| `addresses.max` | Lightning addresses an account may register per mint. Default `1`; `0` = no limit. Developer mode can override it for testing |
+| `amounts.unit.default` | How amounts are shown (until the user picks another unit under Settings → Amounts, if allowed): `bitcoin` (default, [BIP-177](https://github.com/bitcoin/bips/blob/master/bip-0177.mediawiki): the smallest unit as a whole number with the sign, `₿1,000`) or `sats` (`1,000 sats`). The numbers are the same either way |
+| `amounts.unit.changeable` | Whether users may switch the unit under Settings → Amounts (default `true`). With `false` the page is gone and every amount shows in `amounts.unit.default` |
+| `notes.view` | Where users see and manage their notes (share one as a QR code, split, combine, move, recheck, renew): `tab` (default) = a **Notes** tab next to Wallet and History, `settings` = a page under Settings → Account, `hidden` = nowhere; the note strategy keeps the notes by itself and users only see their balance and history |
+| `notes.actions` | What users can do with their notes in the notes view, and with a handed-out one, comma-separated: `share` (the whole note as a QR code), `split`, `combine`, `move` (to another mint, and "Move anyway" when collecting skipped one; needs `mints.visible=true`), `recheck`, `renew`, `print` (a handed-out note on its page: its face, QR code and bearer warning on white paper, in the brand's light theme). Without `combine`, `move` and `recheck`, which work on several notes, there is no selecting. Unset (the default) = all of them, without `move` when `mints.visible=false`; empty = the notes are only shown. An unknown action, or `move` with `mints.visible=false`, stops the app at its first start |
+| `notes.strategies` | The note strategies users can choose from under Settings → Account → Note settings, in this order: `single` (keep only one note per mint), `manual` (keep notes as they arrive), and any your code module adds (see "Custom code"). One entry hides the choice. Default `single,manual` |
+| `notes.strategy.default` | The strategy a new account starts with; one of `notes.strategies`. Default `single` |
+| `notes.collect.atHomeMint` | "Move everything to the home mint" in Settings → Account → Note settings: notes on other mints (claimed notes, or an old home mint) are moved to the account's home mint automatically, over Lightning, when the move costs at most the fee cap. `hidden` = not offered, `off` = offered and starts off (default), `on` = offered and starts on (users can switch it per account), `always` = every account collects and users have no switch. When users change their home mint, a summary shows what moves and its fee first; with `on` or `always` the cap decides, otherwise they choose per mint |
+| `notes.collect.feeCap` | The default fee cap for those moves, in percent of what is moved (default `2`). Users pick 1, 2, 5 or 10 % |
+| `history.filter` | Filters on the History tab: `types` (default) = chips for received, sent, moved and note maintenance; `maintenance` = one chip that shows or hides note maintenance; `none` = no filters, and note maintenance stays hidden |
+| `developer.options` | Developer options in Settings (developer mode, request log, derived keys): `shown` (default) = always; `unlock` = hidden until the user taps the version in Settings → About seven times, as on Android itself; `hidden` = never in release builds. A debug build treats `hidden` as `unlock`, and starts with developer mode on, so the options show there anyway |
 
 ### Naming the custodian and its notes, in any language
 
@@ -92,7 +94,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 
 #### The note
 
-German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein" (masculine like "Schein", so every German sentence keeps its grammar) and draws notes as banknotes (`NoteFace`, see "Design"). Some screens only exist with some settings: with `notesView=hidden` the notes view's strings (every `notes_*` string of `feature/notes`), `home_tab_notes`, `settings_note_list` and `settings_note_list_hint` never show, and with `historyFilter=none` neither do `history_filter_maintenance`, `history_show_maintenance` and `history_only_maintenance`. The rest can.
+German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein" (masculine like "Schein", so every German sentence keeps its grammar) and draws notes as banknotes (`NoteFace`, see "Design"). Some screens only exist with some settings: with `notes.view=hidden` the notes view's strings (every `notes_*` string of `feature/notes`), `home_tab_notes`, `settings_note_list` and `settings_note_list_hint` never show, and with `history.filter=none` neither do `history_filter_maintenance`, `history_show_maintenance` and `history_only_maintenance`. The rest can.
 
 | String | Default (en) |
 |---|---|
@@ -207,7 +209,7 @@ You can also add `values/strings.xml` here to override any user-facing string fr
 dev/check-brand.sh            # fails if your name, application ID, default mint or colors appear outside brand/
 ```
 
-Install it next to the original: a different `applicationId` installs as a separate app with your name, icon and colors. To build another brand directory without touching `brand/`, pass `-PbrandDir=path`, e.g. `./gradlew :app:assembleDebug -PbrandDir=brand-examples/acme` (and `dev/check-brand.sh brand-examples/acme`). In Android Studio, the shared run configuration "Acme Cash" (`.run/`) installs and opens it (`:app:openDebug -PbrandDir=brand-examples/acme`); copy it for another brand.
+Install it next to the original: a different `app.id` installs as a separate app with your name, icon and colors. To build another brand directory without touching `brand/`, pass `-PbrandDir=path`, e.g. `./gradlew :app:assembleDebug -PbrandDir=brand-examples/acme` (and `dev/check-brand.sh brand-examples/acme`). In Android Studio, the shared run configuration "Acme Cash" (`.run/`) installs and opens it (`:app:openDebug -PbrandDir=brand-examples/acme`); copy it for another brand.
 
 ## Design
 
@@ -284,8 +286,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, �
   handed-out note: its page, and its row in the notes view, under the handed-out heading) or `Paper` (printed). `params` has the amount
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
   `Redeemed`, `TakenBack`; give a `when` an `else`), its words and mark, the age, the mint (null with
-  `showMints=false`), whether it is trusted, and `selected` while the user selects (null otherwise).
-  `NoteGroupHeader` heads one mint's notes; its `mint` is null with `showMints=false`, and then it only separates
+  `mints.visible=false`), whether it is trusted, and `selected` while the user selects (null otherwise).
+  `NoteGroupHeader` heads one mint's notes; its `mint` is null with `mints.visible=false`, and then it only separates
   them. The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
   confirmations and the bearer warning, and on a large face the status, age and mint in words below it. Draw the
   texts you are given with `Text`, so screen readers read them. The defaults draw through your `ListRow`, `Toggle`,
@@ -343,7 +345,7 @@ brand-examples/acme/code/
   src/main/res/values*/strings.xml    its name and description, in every language the app ships
 ```
 
-Then offer it in `brand.properties`: `noteStrategies=tidy-small,single,manual` and `defaultNoteStrategy=tidy-small`. A strategy's `id` is stored per account: never change it once released. A misconfigured brand (an unknown id, a default that isn't offered, two strategies with one id) fails on first start with a message naming the problem.
+Then offer it in `brand.properties`: `notes.strategies=tidy-small,single,manual` and `notes.strategy.default=tidy-small`. A strategy's `id` is stored per account: never change it once released. A misconfigured brand (an unknown id, a default that isn't offered, two strategies with one id) fails on first start with a message naming the problem.
 
 Anything beyond the API (a different flow, a new place to decorate) needs a new extension point in `core/brand-api` or `core/brand-ui`: open an issue upstream rather than forking.
 

@@ -46,9 +46,9 @@ data class SettingsState(
 )
 
 /**
- * The pages a brand's configuration leaves out: the note list unless it lives in settings (`notesView`), the mint pages
- * without `showMints`, Amounts when the unit is fixed (`allowUnitChange`), Developer options unless the brand shows them
- * (`developerOptions`), and Note settings when there is nothing to choose (one strategy that also renews the address's
+ * The pages a brand's configuration leaves out: the note list unless it lives in settings (`notes.view`), the mint pages
+ * without `mints.visible`, Amounts when the unit is fixed (`amounts.unit.changeable`), Developer options unless the brand shows them
+ * (`developer.options`), and Note settings when there is nothing to choose (one strategy that also renews the address's
  * notes, and no switch for collecting).
  */
 internal fun hiddenPages(defaults: AppDefaults, wallet: Wallet, strategy: NoteStrategy?, developer: Boolean, unlocked: Boolean): Set<SettingsTarget> = buildSet {

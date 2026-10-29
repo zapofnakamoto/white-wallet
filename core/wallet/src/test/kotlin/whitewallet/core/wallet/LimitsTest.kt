@@ -10,7 +10,7 @@ import kotlinx.coroutines.runBlocking
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.client.LnurlcashClient
 
-/** The brand's limits (brand.properties `maxAccounts`, `maxAddresses`). Checked before anything is sent. */
+/** The brand's limits (brand.properties `accounts.max`, `addresses.max`). Checked before anything is sent. */
 class LimitsTest {
     private val phrase = "legal winner thank year wave sausage worth useful legal winner thank yellow"
 

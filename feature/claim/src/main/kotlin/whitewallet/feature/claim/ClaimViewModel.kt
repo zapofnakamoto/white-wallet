@@ -23,7 +23,7 @@ data class ClaimState(
     val busy: Boolean = false,
     val preview: ClaimPreview? = null,
     val result: ClaimResult? = null,
-    /** Say which mint the note is on and whether it's trusted (brand `showMints`). */
+    /** Say which mint the note is on and whether it's trusted (brand `mints.visible`). */
     val showMints: Boolean = true,
 )
 
