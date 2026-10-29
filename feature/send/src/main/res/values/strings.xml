@@ -76,6 +76,7 @@
     <string name="note_bearer_warning">Anyone with this code can spend it. Share it only with the person it\'s for.</string>
     <string name="note_waiting">Not redeemed yet. You can take it back until it is.</string>
     <string name="note_share">Share</string>
+    <string name="note_qr_show">Tap to show the QR code</string>
     <string name="note_print">Print</string>
     <string name="note_print_warning">Whoever holds this paper can spend it. Keep it like cash.</string>
     <string name="note_copy">Copy</string>

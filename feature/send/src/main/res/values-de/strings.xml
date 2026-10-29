@@ -70,6 +70,7 @@
     <string name="note_bearer_warning">Jeder mit diesem Code kann ihn ausgeben. Teile ihn nur mit der Person, für die er gedacht ist.</string>
     <string name="note_waiting">Noch nicht eingelöst. Bis dahin kannst du ihn zurückholen.</string>
     <string name="note_share">Teilen</string>
+    <string name="note_qr_show">Tippen, um den QR-Code zu zeigen</string>
     <string name="note_print">Drucken</string>
     <string name="note_print_warning">Wer dieses Papier hat, kann es ausgeben. Bewahre es auf wie Bargeld.</string>
     <string name="note_copy">Kopieren</string>

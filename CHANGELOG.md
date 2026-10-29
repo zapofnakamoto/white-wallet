@@ -39,6 +39,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   handed-out notes wait, or `Idle`) and `NotesEmpty` above the text of an empty one. Three new `WalletEvent`s:
   `NoteRedeemed` and `NoteTakenBack` when a handed-out note is redeemed or taken back, and `NotesTidied` when a note
   strategy or auto-renew looked after the notes by itself. A brand's `when` over events picks them up in its `else`.
+- A handed-out note's QR code is covered until the user taps "Tap to show the QR code", so nobody nearby can scan it
+  by chance, and covered again whenever the app leaves the screen. Share, Copy and Print work as before; the printed
+  page has the code. Brands see the cover in `NoteFace`'s `qrCode` slot (designsystem `QrCodeCover`).
 
 ### Fixed
 

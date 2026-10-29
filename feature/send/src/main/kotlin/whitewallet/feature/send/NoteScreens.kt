@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,8 +27,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,6 +50,7 @@ import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.PrintPage
 import whitewallet.core.designsystem.QrCode
+import whitewallet.core.designsystem.QrCodeCover
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.SensitiveClipboard
@@ -271,6 +275,9 @@ fun SharedNoteScreen(
     onPrint: (Bitmap) -> Unit = {},
 ) {
     var printing by remember { mutableStateOf(false) }
+    // The QR code is money: covered until the user taps, and covered again whenever the app leaves the screen.
+    var qrShown by rememberSaveable { mutableStateOf(false) }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { qrShown = false }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_title), onBack) }) { padding ->
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             val note = state.note
@@ -291,7 +298,12 @@ fun SharedNoteScreen(
                 },
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
                 // The QR code only while it waits for its recipient; the app draws it, the brand may frame it.
-                qrCode = link?.takeIf { note.state == SharedNoteState.Waiting }?.let { l -> { QrCode(l, description = qrDescription) } },
+                qrCode = link?.takeIf { note.state == SharedNoteState.Waiting }?.let { l ->
+                    {
+                        if (qrShown) QrCode(l, description = qrDescription)
+                        else QrCodeCover(stringResource(R.string.note_qr_show), onReveal = { qrShown = true })
+                    }
+                },
             )
             when (note.state) {
                 SharedNoteState.Waiting -> if (link != null) {

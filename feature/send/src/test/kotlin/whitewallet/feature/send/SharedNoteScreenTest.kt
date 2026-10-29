@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -19,6 +20,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -125,7 +130,8 @@ class SharedNoteScreenTest {
             }
         }
         compose.onNodeWithText("bill ₿1,000 Waiting").assertExists()
-        // The QR code is the app's, and never reads the secret link out.
+        // The QR code is the app's, covered until a tap, and never reads the secret link out.
+        compose.onNodeWithText("Tap to show the QR code").performClick()
         compose.onNodeWithContentDescription("QR code of the note").assertExists()
         compose.onNodeWithText("https://mint.example/note#secret", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Anyone with this code can spend it.", substring = true).assertExists()
@@ -172,8 +178,9 @@ class SharedNoteScreenTest {
         assertEquals(Color.WHITE, page.getPixel(page.width - 3, page.height - 3))
         assertTrue((0 until page.height step 8).any { y -> page.getPixel(page.width / 2, y) == Color.BLACK })
         assertTrue(NoteStatus.Waiting in faces)
-        // The page was only drawn for paper: it is gone, and the QR code is on screen once.
-        compose.onAllNodesWithContentDescription("QR code of the note").assertCountEquals(1)
+        // The page was only drawn for paper, QR code included though the screen still covers it.
+        compose.onAllNodesWithContentDescription("QR code of the note").assertCountEquals(0)
+        compose.onNodeWithText("Tap to show the QR code").assertExists()
     }
 
     @Test
@@ -186,5 +193,30 @@ class SharedNoteScreenTest {
         }
         compose.onNodeWithText("Share").assertExists()
         compose.onNodeWithText("Print").assertDoesNotExist()
+    }
+
+    @Test
+    fun theQrCodeIsCoveredUntilATapAndAgainOnceTheAppLeaves() {
+        val owner = object : LifecycleOwner {
+            val registry = LifecycleRegistry(this)
+            override val lifecycle: Lifecycle get() = registry
+        }
+        compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
+        compose.setContent {
+            CompositionLocalProvider(LocalLifecycleOwner provides owner) {
+                SharedNoteScreen(
+                    SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false),
+                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("QR code of the note").assertDoesNotExist()
+        compose.onNodeWithText("Tap to show the QR code").assertHasClickAction().performClick()
+        compose.onNodeWithContentDescription("QR code of the note").assertExists()
+        compose.onNodeWithText("Tap to show the QR code").assertDoesNotExist()
+        // Leaving the app (another app, the home screen, the screen off) covers it again.
+        compose.runOnIdle { owner.registry.currentState = Lifecycle.State.CREATED }
+        compose.onNodeWithContentDescription("QR code of the note").assertDoesNotExist()
+        compose.onNodeWithText("Tap to show the QR code").assertExists()
     }
 }

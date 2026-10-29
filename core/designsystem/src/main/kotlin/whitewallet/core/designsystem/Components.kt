@@ -1,13 +1,15 @@
 package whitewallet.core.designsystem
 
-import androidx.compose.ui.semantics.heading
 import android.graphics.Bitmap
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -16,22 +18,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
 import whitewallet.brand.ui.AmountParams
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.QrCodeParams
 import whitewallet.brand.ui.TopBarParams
 import whitewallet.brand.ui.walletSpacing
-import com.google.zxing.EncodeHintType
-import com.google.zxing.qrcode.QRCodeWriter
 
 /** A trailing "opens a page" chevron; mirrored in right-to-left languages. */
 @Composable
@@ -106,6 +112,30 @@ fun WalletTopBar(title: @Composable () -> Unit, onBack: (() -> Unit)?, actions: 
 fun QrCode(content: String, modifier: Modifier = Modifier, size: Dp = 260.dp, description: String = content) {
     val bitmap = remember(content) { qrBitmap(content).asImageBitmap() }
     LocalBrandDesign.current.components.QrCode(QrCodeParams(bitmap, size), modifier.semantics { contentDescription = description })
+}
+
+/**
+ * Stands in for a secret QR code until the user taps it ([onReveal]), so nobody nearby can scan it by chance: as large
+ * as the code, so nothing moves when it shows. In the brand's colours; [label] says what a tap does.
+ */
+@Composable
+fun QrCodeCover(label: String, onReveal: () -> Unit, modifier: Modifier = Modifier, size: Dp = 260.dp) {
+    Box(
+        modifier
+            .size(size)
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(role = Role.Button, onClick = onReveal),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(24.dp),
+        )
+    }
 }
 
 private fun qrBitmap(content: String): Bitmap {

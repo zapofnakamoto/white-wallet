@@ -276,7 +276,9 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   has the Material versions to fall back on. Screens only use these (`dev/check-design.sh` keeps it that way).
 - **Notes:** a note is one object the brand designs once. `NoteFace(params, modifier)` draws it as a row of the notes
   list (`NoteFaceSize.Row`) and large (`NoteFaceSize.Large`) on its details, the claim preview and a handed-out note's
-  page, where `params.qrCode` is the QR code: place and frame it, never alter or cover it. `params` has the amount
+  page, where `params.qrCode` is the QR code: place and frame it, never alter or cover it. On a handed-out note's
+  page that slot first holds the app's cover (`QrCodeCover`, as large as the code, in the theme's `surfaceVariant`),
+  until the user taps it and again whenever the app leaves the screen. `params` has the amount
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
   `Redeemed`, `TakenBack`; give a `when` an `else`), its words and mark, the age, the mint (null with
   `showMints=false`), whether it is trusted, and `selected` while the user selects (null otherwise).
