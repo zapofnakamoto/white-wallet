@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.lnurlcash.client.NetworkConditions
 import whitewallet.core.wallet.MintKey
 import whitewallet.core.wallet.MintTrustStore
 import whitewallet.core.wallet.NotePolicies
@@ -40,6 +41,13 @@ internal class DataStorePreferences(
 
     override suspend fun setMaxAddressesPerMint(max: Int) {
         prefs.edit { it[MAX_ADDRESSES] = max.coerceAtLeast(1) }
+    }
+
+    override val networkProfile: Flow<NetworkConditions.Profile> =
+        prefs.data.map { p -> NetworkConditions.Profile.entries.firstOrNull { it.name == p[NETWORK_PROFILE] } ?: NetworkConditions.Profile.Normal }
+
+    override suspend fun setNetworkProfile(profile: NetworkConditions.Profile) {
+        prefs.edit { it[NETWORK_PROFILE] = profile.name }
     }
 
     override val amountUnit: Flow<AmountUnit?> = prefs.data.map { p -> p[AMOUNT_UNIT]?.let { name -> AmountUnit.entries.firstOrNull { it.name == name } } }
@@ -133,6 +141,7 @@ internal class DataStorePreferences(
         private val DEVELOPER_MODE = booleanPreferencesKey("developer_mode")
         private val DEVELOPER_UNLOCKED = booleanPreferencesKey("developer_options_unlocked")
         private val MAX_ADDRESSES = intPreferencesKey("max_addresses_per_mint")
+        private val NETWORK_PROFILE = stringPreferencesKey("network_profile")
         private val AMOUNT_UNIT = stringPreferencesKey("amount_unit")
         private val BALANCE_HIDDEN = booleanPreferencesKey("balance_hidden")
         private val APP_LOCK = booleanPreferencesKey("app_lock")

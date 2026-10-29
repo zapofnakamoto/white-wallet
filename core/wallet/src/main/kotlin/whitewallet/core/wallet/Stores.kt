@@ -15,6 +15,7 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.Mint
+import whitewallet.lnurlcash.client.NetworkConditions
 
 /**
  * Persistent wallet state for every account. Implemented by core:data on Android and in memory for tests.
@@ -130,6 +131,10 @@ interface AppPreferences {
      */
     val maxAddressesPerMint: Flow<Int?>
     suspend fun setMaxAddressesPerMint(max: Int)
+
+    /** How requests to mints behave while developer mode is on, to try the app on a bad connection. Normal until set. */
+    val networkProfile: Flow<NetworkConditions.Profile>
+    suspend fun setNetworkProfile(profile: NetworkConditions.Profile)
 
     /** The unit the user chose for amounts, or null to follow the brand's default ([AppDefaults.defaultAmountUnit]). */
     val amountUnit: Flow<AmountUnit?>

@@ -7,6 +7,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- Developers can try the app on a bad connection: in debug builds with developer mode on, Developer options →
+  Network makes every request to a mint slow (0.2 s), very slow (6 s) or flaky (up to 4 s, and one in five never
+  reaches the mint). It stays set across restarts, so a cold start can be tried too, and the request log shows the
+  delays and drops.
 - Home no longer shows a balance of nothing, or figures about to change, while the wallet works: a loading screen
   takes the place of the balance, notes and history once the work takes more than a moment, and says what the
   wallet does: updating the balance, checking note 3 of 5, or the note maintenance step (combining, splitting,

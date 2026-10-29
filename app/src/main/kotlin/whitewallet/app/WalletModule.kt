@@ -29,6 +29,7 @@ import whitewallet.core.wallet.SingleNoteStrategy
 import whitewallet.core.wallet.Wallet
 import whitewallet.core.wallet.WalletStore
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.client.NetworkConditions
 import whitewallet.feature.settings.R as SettingsR
 import whitewallet.lnurlcash.client.RequestLog
 
@@ -40,11 +41,17 @@ object WalletModule {
     @Singleton
     fun requestLog(): RequestLog = RequestLog()
 
+    /** A bad connection for developers to try the app on (Developer options); unknown until [NetworkSimulation] starts. */
     @Provides
     @Singleton
-    fun client(log: RequestLog): LnurlcashClient =
-        // newBuilder keeps the default client's settings, including retryOnConnectionFailure(false).
-        LnurlcashClient(LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor(log.interceptor()).build())
+    fun networkConditions(): NetworkConditions = NetworkConditions(initial = null)
+
+    @Provides
+    @Singleton
+    fun client(log: RequestLog, conditions: NetworkConditions): LnurlcashClient =
+        // newBuilder keeps the default client's settings, including retryOnConnectionFailure(false). The log comes
+        // first, so it shows a simulated delay or drop as the app saw it.
+        LnurlcashClient(LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor(log.interceptor()).addInterceptor(conditions.interceptor()).build())
 
     @Provides
     @Singleton

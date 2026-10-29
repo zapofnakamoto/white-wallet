@@ -403,4 +403,15 @@
     <string name="mints_remove_confirm">Entfernen</string>
     <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto ihn nutzt: als Zuhause, oder mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
     <string name="settings_notices">Melden, was die Wallet selbst erledigt hat</string>
+
+    <!-- Developer options: requests behave as on a bad connection. -->
+    <string name="developer_network">Netzwerk</string>
+    <string name="developer_network_normal">Normal</string>
+    <string name="developer_network_slow">Langsam</string>
+    <string name="developer_network_very_slow">Sehr langsam</string>
+    <string name="developer_network_flaky">Wackelig</string>
+    <string name="developer_network_normal_hint">Anfragen gehen so raus, wie sie sind.</string>
+    <string name="developer_network_slow_hint">Jede Anfrage dauert 0,2 Sekunden länger. Wieder normal, wenn der Entwicklermodus aus ist.</string>
+    <string name="developer_network_very_slow_hint">Jede Anfrage dauert 6 Sekunden länger. Wieder normal, wenn der Entwicklermodus aus ist.</string>
+    <string name="developer_network_flaky_hint">Anfragen dauern bis zu 4 Sekunden länger, und jede fünfte kommt nie an. Wieder normal, wenn der Entwicklermodus aus ist.</string>
 </resources>

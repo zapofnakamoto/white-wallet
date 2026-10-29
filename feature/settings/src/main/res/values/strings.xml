@@ -411,4 +411,15 @@
     <string name="mints_remove_confirm">Remove</string>
     <string name="mints_remove_in_use">Can\'t be removed while an account uses it: as its home, or with money, an address or an unfinished payment there.</string>
     <string name="settings_notices">Tell me what the wallet did by itself</string>
+
+    <!-- Developer options: requests behave as on a bad connection. -->
+    <string name="developer_network">Network</string>
+    <string name="developer_network_normal">Normal</string>
+    <string name="developer_network_slow">Slow</string>
+    <string name="developer_network_very_slow">Very slow</string>
+    <string name="developer_network_flaky">Flaky</string>
+    <string name="developer_network_normal_hint">Requests go out as they are.</string>
+    <string name="developer_network_slow_hint">Every request takes 0.2 seconds longer. Normal again when developer mode is off.</string>
+    <string name="developer_network_very_slow_hint">Every request takes 6 seconds longer. Normal again when developer mode is off.</string>
+    <string name="developer_network_flaky_hint">Requests take up to 4 seconds longer, and one in five never arrives. Normal again when developer mode is off.</string>
 </resources>
