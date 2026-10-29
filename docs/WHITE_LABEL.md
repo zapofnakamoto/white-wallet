@@ -35,7 +35,7 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 | `mints.default` | LNURLcash mint preselected during onboarding (`host` or `host:port`) |
 | `mints.suggestions` | Comma-separated mints offered in the onboarding dropdown (the default is always first; users can still pick "Custom…") |
 | `mints.changeable` | `false` hides the mint field, locking users to your mint. With `true`, users can also add a Lightning address on another mint (same recovery phrase), change their home mint from the mint pages and move money between the mints they know, which needs `mints.visible=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose) |
-| `mints.visible` | `false` hides everything about mints from users: Settings → Mints (the device's mints), Account → Your mints (the account's, with its actions) and the mint pages, on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged), and in the notes view the mints' names, labels and totals: one mint's notes are a plain list, several mints' are only separated by a line. Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`) and `notes.collect.atHomeMint` `hidden` or `always` |
+| `mints.visible` | `false` hides everything about mints from users: Settings → Mints (the device's mints), Account → Your mints (the account's, with its actions) and the mint pages, on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged), and in the notes view the mints' names, labels and totals: one mint's notes are a plain list, several mints' are only separated by a line. Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`), `notes.collect.atHomeMint` `hidden` or `always`, and `notes.maintenance.notices` `hidden` or `always` |
 | `mints.trusted` | Mints shown as trusted from the start (Settings → Mints; a check mark on their notes, a hint when claiming), comma-separated `host:pubkey` with the mint's signing key (66 hex characters). Trust names the key: a mint presenting another key isn't trusted. Users can untrust them. Each account's home mint is trusted by default anyway. Default empty |
 | `accounts.max` | How many accounts the app holds. `1` hides everything about accounts (no switcher, no "Add account"); at the limit, new accounts and restores are refused with a message. `0` = no limit (default) |
 | `addresses.lightning` | Whether accounts get a Lightning address at setup. `required`: setup asks for a name and can't go on without one. `optional` (default): setup asks for a name, and users may "Continue without an address", also on the address step after a restore. `none`: setup only creates the account on its mint, which is a single "Get started" button when `mints.changeable=false`, and restoring skips the address step. Without an address, users receive by invoice (Receive → amount → QR) and can still get one later in Settings → Account → Lightning addresses. |
@@ -48,12 +48,14 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 | `notes.strategy.default` | The strategy a new account starts with; one of `notes.strategies`. Default `single` |
 | `notes.collect.atHomeMint` | "Move everything to the home mint" in Settings → Account → Note settings: notes on other mints (claimed notes, or an old home mint) are moved to the account's home mint automatically, over Lightning, when the move costs at most the fee cap. `hidden` = not offered, `off` = offered and starts off (default), `on` = offered and starts on (users can switch it per account), `always` = every account collects and users have no switch. When users change their home mint, a summary shows what moves and its fee first; with `on` or `always` the cap decides, otherwise they choose per mint |
 | `notes.collect.feeCap` | The default fee cap for those moves, in percent of what is moved (default `2`). Users pick 1, 2, 5 or 10 % |
+| `notes.maintenance.notices` | A short message on the home screen when the wallet changed the notes by itself: combined, split or renewed them, or moved them to the home mint ("Combined 2 notes into one of ₿63. You got ₿1 in fees back."), with Details opening History's note maintenance. It shows while the home screen is up; after a claim or a payment, whose own screen says what happened, only if the balance changed. `hidden` = never, `off` = a switch under Note settings that starts off, `on` (default) = a switch that starts on, `always` = always, no switch |
+| `notes.maintenance.notices.whenNotesHidden` | With `notes.view=hidden`, users don't know about notes: `true` (default) tells them what the balance did ("You got ₿1 in fees back."), and about moves to the home mint while mints are visible; `false` tells them nothing |
 | `history.filter` | Filters on the History tab: `types` (default) = chips for received, sent, moved and note maintenance; `maintenance` = one chip that shows or hides note maintenance; `none` = no filters, and note maintenance stays hidden |
 | `developer.options` | Developer options in Settings (developer mode, request log, derived keys): `shown` (default) = always; `unlock` = hidden until the user taps the version in Settings → About seven times, as on Android itself; `hidden` = never in release builds. A debug build treats `hidden` as `unlock`, and starts with developer mode on, so the options show there anyway |
 
 ### Naming the custodian and its notes, in any language
 
-The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them, 108 per language: 28 name the mint (5 of those the note as well) and 80 more the note. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. Developer options and search keywords are not brand terms.
+The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them, 115 per language: 29 name the mint (5 of those the note as well) and 86 more the note. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. Developer options and search keywords are not brand terms.
 
 #### The mint
 
@@ -89,12 +91,13 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_collect_search` | Move everything to the home mint |
 | `mints_intro` | Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted. |
 | `mints_add_field` | Mint, e.g. example.com |
+| `notice_moved_home` | Moved %1$s to your home mint |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 
 #### The note
 
-German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein" (masculine like "Schein", so every German sentence keeps its grammar) and draws notes as banknotes (`NoteFace`, see "Design"). Some screens only exist with some settings: with `notes.view=hidden` the notes view's strings (every `notes_*` string of `feature/notes`), `home_tab_notes`, `settings_note_list` and `settings_note_list_hint` never show, and with `history.filter=none` neither do `history_filter_maintenance`, `history_show_maintenance` and `history_only_maintenance`. The rest can.
+German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein" (masculine like "Schein", so every German sentence keeps its grammar) and draws notes as banknotes (`NoteFace`, see "Design"). Some screens only exist with some settings: with `notes.view=hidden` the notes view's strings (every `notes_*` string of `feature/notes`), `home_tab_notes`, `settings_note_list`, `settings_note_list_hint` and the messages about notes (`notice_combined_into_one`, `notice_combined`, `notice_split`, `notice_rearranged`, `notice_renewed`) never show; with `notes.maintenance.notices=hidden` none of the `notice_*` strings do, nor `settings_notices_hint`. With `history.filter=none`, `history_filter_maintenance` shows only after a message's Details, and `history_show_maintenance` never. The rest can.
 
 | String | Default (en) |
 |---|---|
@@ -110,13 +113,18 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `home_empty` | Nothing here yet. Share your address to get paid, or claim a note. |
 | `home_wallet_empty` | Nothing here yet. Share your address to get paid, or claim a note. |
 | `history_filter_maintenance` | Note maintenance |
-| `history_only_maintenance` | So far only note maintenance, which doesn't change your balance. |
+| `history_only_maintenance` | So far only note maintenance. |
 | `history_show_maintenance` | Show note maintenance |
 | `activity_claimed` | Claimed a note |
 | `activity_combined` | Combined %1$d note / Combined %1$d notes (plural) |
 | `activity_split` | Split a note in two |
 | `activity_sent_note` | Sent a note |
 | `move_hint` | Funds stay where they are held and move into the other account's keys. Moving part of a note may cost a split fee. |
+| `notice_combined_into_one` | Combined %1$d note into one of %2$s / Combined %1$d notes into one of %2$s (plural) |
+| `notice_combined` | Combined %1$d note into %2$d / Combined %1$d notes into %2$d (plural) |
+| `notice_split` | Split %1$d note into %2$d / Split %1$d notes into %2$d (plural) |
+| `notice_rearranged` | Rearranged %1$d note into %2$d / Rearranged %1$d notes into %2$d (plural) |
+| `notice_renewed` | Renewed %1$d note / Renewed %1$d notes (plural) |
 | `home_key_changed_body` | Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it. |
 | `notes_title` | Notes |
 | `notes_settings` | Note settings |
@@ -175,6 +183,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `mint_balance` | %1$s in %2$d note / %1$s in %2$d notes (plural) |
 | `mint_watch_only_hint` | Lets another app see this account's notes here and receive to it, but never spend. |
 | `notes_collect_hint` | Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too. |
+| `settings_notices_hint` | A short message when the wallet combined, split, renewed or moved your notes by itself. |
 | `notes_collect_pending` | Moving the notes from %1$s; they arrive shortly. |
 | `mints_add_invalid` | That address can't hold notes. |
 | `mints_remove_body` | The app forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it's like the first time: the key it shows then is the one the app remembers. |
@@ -221,7 +230,7 @@ brand chooses every value, under names of its own.
 |---|---|---|
 | 1. Tokens | `res/` | colour roles, fonts, text sizes, corners, spacing |
 | 2. Theme | `code/`: `BrandDesign.Theme` | change any token, or add CompositionLocals of the brand's own |
-| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the cover over a secret one (`QrCodeCover`), the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`) and the release stage's badge (`ReleaseBadge`) look |
+| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, short messages (`Snackbar`), toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the cover over a secret one (`QrCodeCover`), the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`) and the release stage's badge (`ReleaseBadge`) look |
 | 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark), knowing the app's name and release stage |
 | 5. Status and events | `code/`: `WalletStatus`, `WalletEvent` | what a screen is about and what just happened, to show or react to |
 | 6. Screens | `code/`: `BrandScreen` | pages of the brand's own, reached from Settings, the wallet's menu or right after setup |
@@ -320,8 +329,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, �
   redeemed yet), `PaymentReceived`, `Sending`, `Sent`, `Problem`
   (`NotEnoughFunds`, `Offline`, `Other`). `WalletEvent`s (`PaymentReceived`, `PaymentSent`, `Problem`,
   `BackupDone`, `AccountCreated`, `NoteRedeemed` and `NoteTakenBack` for a handed-out note, whose `PaymentSent` came
-  when it was handed out, and `NotesTidied` when a note strategy or auto-renew looked after the notes by itself, once
-  however many notes) say what just happened anywhere in the app: collect `LocalWalletEvents` in a
+  when it was handed out, and `NoteMaintenance` when a note strategy, auto-renew or collecting at the home mint looked
+  after the notes by itself, once per run however many notes, with what it did and what that did to the balance) say what just happened anywhere in the app: collect `LocalWalletEvents` in a
   composable, or register a `WalletEventListener` (called on the main thread). Both carry amounts and kinds only.
   Both may gain cases: give every `when` an `else`.
 - **Screens:** a `BrandScreen` has an `id` (lowercase letters, digits, `-`), a `title` string resource, an `entry`
@@ -335,17 +344,17 @@ own, a status light above the balance and an "About Acme" page in Settings.
 
 A brand can ship its own code without forking: a `code/` Gradle module in its brand directory is built into the app (settings.gradle.kts includes it as `:brand-code`). It sees only `core/brand-api`, the small set of interfaces a brand may implement, never the wallet itself, so the wallet's safety rules (spend secrets never stored in logs, no melt retried, every step journaled) hold for every brand, and updating to a new White Wallet release doesn't break brand code that sticks to the API.
 
-Today's extension point is the **note strategy** (`whitewallet.brand.NoteStrategy`): how an account keeps its notes on a mint. A strategy sees one mint's notes and its fee, and proposes steps (combine, split, rotate); the wallet checks and runs them and asks again, until the strategy is satisfied. Money never leaves the account through a strategy. `brand-examples/acme/code/` is a complete example ("Tidy up small notes"):
+Today's extension point is the **note strategy** (`whitewallet.brand.NoteStrategy`): how an account keeps its notes on a mint. A strategy sees one mint's notes and its fee, and proposes steps (combine, split, rotate); the wallet checks and runs them and asks again, until the strategy is satisfied. Money never leaves the account through a strategy. `brand-examples/acme/code/` is a complete example ("Combine small notes"):
 
 ```
 brand-examples/acme/code/
   build.gradle.kts                    plugins { id("whitewallet.brand-code") }, android { namespace = "…" }
-  src/main/kotlin/…/TidySmallNotes.kt the strategy: id, title, description, plan()
-  src/main/kotlin/…/AcmeModule.kt     @Provides @IntoSet fun tidySmallNotes(): NoteStrategy = TidySmallNotes()
+  src/main/kotlin/…/CombineSmallNotes.kt the strategy: id, title, description, plan()
+  src/main/kotlin/…/AcmeModule.kt     @Provides @IntoSet fun combineSmallNotes(): NoteStrategy = CombineSmallNotes()
   src/main/res/values*/strings.xml    its name and description, in every language the app ships
 ```
 
-Then offer it in `brand.properties`: `notes.strategies=tidy-small,single,manual` and `notes.strategy.default=tidy-small`. A strategy's `id` is stored per account: never change it once released. A misconfigured brand (an unknown id, a default that isn't offered, two strategies with one id) fails on first start with a message naming the problem.
+Then offer it in `brand.properties`: `notes.strategies=combine-small,single,manual` and `notes.strategy.default=combine-small`. A strategy's `id` is stored per account: never change it once released. A misconfigured brand (an unknown id, a default that isn't offered, two strategies with one id) fails on first start with a message naming the problem.
 
 Anything beyond the API (a different flow, a new place to decorate) needs a new extension point in `core/brand-api` or `core/brand-ui`: open an issue upstream rather than forking.
 

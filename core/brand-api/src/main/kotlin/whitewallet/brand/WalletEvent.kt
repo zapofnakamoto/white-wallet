@@ -28,8 +28,21 @@ sealed interface WalletEvent {
     /** The user took a handed-out note back: the money is in the wallet again. */
     data class NoteTakenBack(val amountMsat: Long) : WalletEvent
 
-    /** The wallet looked after its notes by itself: a note strategy combined or split them, or auto-renew renewed one. */
-    data object NotesTidied : WalletEvent
+    /**
+     * The wallet looked after the notes by itself, in one run: its note strategy combined [combined] notes and made
+     * [split] splits, auto-renew renewed [renewed] notes, and collecting moved [movedHomeMsat] to the home mint. In all,
+     * [notesReplaced] notes were spent for [notesMade] new ones. [balanceChangeMsat] is positive when the mint paid fees
+     * back, negative for fees paid, and null while an outcome is still open.
+     */
+    data class NoteMaintenance(
+        val combined: Int,
+        val split: Int,
+        val renewed: Int,
+        val movedHomeMsat: Long,
+        val notesReplaced: Int,
+        val notesMade: Int,
+        val balanceChangeMsat: Long?,
+    ) : WalletEvent
 }
 
 /**

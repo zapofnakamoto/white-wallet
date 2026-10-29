@@ -113,12 +113,19 @@ internal class DataStorePreferences(
         prefs.edit { it[feeCapKey(accountId)] = percent }
     }
 
+    override fun maintenanceNotices(accountId: String): Flow<Boolean?> = prefs.data.map { it[noticesKey(accountId)] }
+
+    override suspend fun setMaintenanceNotices(accountId: String, enabled: Boolean) {
+        prefs.edit { it[noticesKey(accountId)] = enabled }
+    }
+
     override suspend fun clear(accountId: String) {
         prefs.edit {
             it.remove(autoRotateKey(accountId))
             it.remove(strategyKey(accountId))
             it.remove(collectKey(accountId))
             it.remove(feeCapKey(accountId))
+            it.remove(noticesKey(accountId))
         }
     }
 
@@ -136,6 +143,7 @@ internal class DataStorePreferences(
         private fun strategyKey(accountId: String) = stringPreferencesKey("note_strategy_$accountId")
         private fun collectKey(accountId: String) = booleanPreferencesKey("collect_at_home_$accountId")
         private fun feeCapKey(accountId: String) = intPreferencesKey("collect_fee_cap_$accountId")
+        private fun noticesKey(accountId: String) = booleanPreferencesKey("maintenance_notices_$accountId")
 
         /** Keys renamed since v0.3.0: an installed app keeps the value under the new name. */
         val MIGRATIONS: List<DataMigration<Preferences>> = listOf(RenamedKey(intPreferencesKey("max_addresses_per_service"), MAX_ADDRESSES))

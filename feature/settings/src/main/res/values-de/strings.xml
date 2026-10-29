@@ -38,6 +38,7 @@
     <string name="notes_collect_pending">Die Scheine von %1$s werden verschoben; sie kommen gleich an.</string>
     <string name="mints_add_invalid">Diese Adresse kann keine Scheine verwahren.</string>
     <string name="mints_remove_body">Die App vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die App merkt.</string>
+    <string name="settings_notices_hint">Eine kurze Nachricht, wenn die Wallet deine Scheine von selbst zusammengelegt, geteilt, erneuert oder verschoben hat.</string>
 
     <string name="settings_title">Einstellungen</string>
     <string name="settings_recovery_phrase">Wiederherstellungsphrase</string>
@@ -401,4 +402,5 @@
     <string name="mints_remove_title">%1$s entfernen?</string>
     <string name="mints_remove_confirm">Entfernen</string>
     <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto ihn nutzt: als Zuhause, oder mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
+    <string name="settings_notices">Melden, was die Wallet selbst erledigt hat</string>
 </resources>

@@ -63,6 +63,8 @@ android {
         buildConfigField("int", "COLLECT_FEE_CAP", brand.getProperty("notes.collect.feeCap", "2").trim())
         buildConfigField("String", "TRUSTED_MINTS", "\"" + brand.getProperty("mints.trusted", "").trim() + "\"")
         buildConfigField("String", "NOTES_VIEW", "\"${brand.getProperty("notes.view", "tab").trim()}\"")
+        buildConfigField("String", "MAINTENANCE_NOTICES", "\"${brand.getProperty("notes.maintenance.notices", "on").trim()}\"")
+        buildConfigField("boolean", "MAINTENANCE_NOTICES_WHEN_NOTES_HIDDEN", brand.getProperty("notes.maintenance.notices.whenNotesHidden", "true").trim().toBooleanStrict().toString())
         buildConfigField("String", "HISTORY_FILTER", "\"${brand.getProperty("history.filter", "types").trim()}\"")
         buildConfigField("boolean", "ALLOW_UNIT_CHANGE", brand.getProperty("amounts.unit.changeable", "true").trim().toBooleanStrict().toString())
         buildConfigField("String", "DEVELOPER_OPTIONS", "\"${brand.getProperty("developer.options", "shown").trim()}\"")

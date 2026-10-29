@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import android.icu.text.BreakIterator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -31,6 +33,7 @@ import whitewallet.brand.ui.ChipKind
 import whitewallet.brand.ui.ChipParams
 import whitewallet.brand.ui.DialogParams
 import whitewallet.brand.ui.ListIconParams
+import whitewallet.brand.ui.SnackbarParams
 import whitewallet.brand.ui.ListIconSize
 import whitewallet.brand.ui.ListRowParams
 import whitewallet.brand.ui.LocalBrandDesign
@@ -245,6 +248,17 @@ fun WalletDialog(
 @Composable
 fun WalletSheet(onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     LocalBrandDesign.current.components.Sheet(SheetParams(onDismissRequest, content))
+}
+
+/**
+ * Where [WalletSnackbarHost]'s messages appear: Material's [SnackbarHost] with each message drawn by the brand. A
+ * message's action label is its button; [SnackbarHostState.showSnackbar] says whether it was tapped.
+ */
+@Composable
+fun WalletSnackbarHost(state: SnackbarHostState, modifier: Modifier = Modifier) {
+    SnackbarHost(state, modifier) { data ->
+        LocalBrandDesign.current.components.Snackbar(SnackbarParams(data.visuals.message, data.visuals.actionLabel, data::performAction), Modifier)
+    }
 }
 
 @Composable

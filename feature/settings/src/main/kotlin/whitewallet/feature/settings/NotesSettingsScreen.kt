@@ -27,11 +27,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.PolicyRun
@@ -57,19 +59,24 @@ data class NotesSettingsState(
     val lastPolicyRun: PolicyRun? = null,
     /** A policy change is being applied (it may merge or rotate notes right away). */
     val applyingPolicy: Boolean = false,
+    /** The brand lets users choose whether they are told what the wallet did to their notes by itself. */
+    val noticesOffered: Boolean = false,
+    val notices: Boolean = false,
 )
 
 /** The account's rules for its notes. The notes themselves are managed in the notes view (feature/notes). */
 @HiltViewModel
-class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
+class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {
     private val applying = MutableStateFlow(false)
     private val collect = combine(wallet.collectAtHome, wallet.collectFeeCap, ::Pair)
+    private val home = combine(wallet.homeHost, wallet.maintenanceNoticesChoice.map(defaults.maintenanceNotices::active), ::Pair)
 
     val state: StateFlow<NotesSettingsState> =
-        combine(wallet.noteStrategy, wallet.autoRotate, wallet.lastPolicyRun, applying, combine(collect, wallet.homeHost, ::Pair)) { strategy, rotate, run, busy, (collect, home) ->
+        combine(wallet.noteStrategy, wallet.autoRotate, wallet.lastPolicyRun, applying, combine(collect, home, ::Pair)) { strategy, rotate, run, busy, (collect, home) ->
             NotesSettingsState(
                 noteStrategy = strategy, strategies = wallet.noteStrategies, autoRotate = rotate, lastPolicyRun = run, applyingPolicy = busy,
-                collectOffered = wallet.collectDefaults.offered, collectAtHome = collect.first, collectFeeCap = collect.second, homeHost = home,
+                collectOffered = wallet.collectDefaults.offered, collectAtHome = collect.first, collectFeeCap = collect.second, homeHost = home.first,
+                noticesOffered = defaults.maintenanceNotices.offered, notices = home.second,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesSettingsState())
 
@@ -80,6 +87,10 @@ class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet) : V
     fun setCollectAtHome(enabled: Boolean) = applyPolicy { wallet.setCollectAtHome(enabled) }
 
     fun setCollectFeeCap(percent: Int) = applyPolicy { wallet.setCollectFeeCap(percent) }
+
+    fun setNotices(enabled: Boolean) {
+        viewModelScope.launch { wallet.setMaintenanceNotices(enabled) }
+    }
 
     private fun applyPolicy(block: suspend () -> Unit) {
         if (applying.value) return
@@ -100,6 +111,7 @@ fun NotesSettingsRoute(onBack: () -> Unit, viewModel: NotesSettingsViewModel = h
     NotesSettingsScreen(
         state, onBack, viewModel::setNoteStrategy, viewModel::setAutoRotate,
         CollectActions(viewModel::setCollectAtHome, viewModel::setCollectFeeCap),
+        viewModel::setNotices,
     )
 }
 
@@ -108,7 +120,10 @@ class CollectActions(
     val onFeeCap: (Int) -> Unit = {},
 )
 
-/** Note settings: the note strategy, collecting at the home mint, auto-rotate, and what the last automatic run did. */
+/**
+ * Note settings: the note strategy, collecting at the home mint, auto-rotate, whether to be told what the wallet did by
+ * itself, and what the last automatic run did.
+ */
 @Composable
 fun NotesSettingsScreen(
     state: NotesSettingsState,
@@ -116,11 +131,20 @@ fun NotesSettingsScreen(
     onNoteStrategy: (NoteStrategy) -> Unit,
     onAutoRotate: (Boolean) -> Unit,
     collect: CollectActions = CollectActions(),
+    onNotices: (Boolean) -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_notes), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             NotePolicySettings(state, onNoteStrategy, onAutoRotate)
             CollectSettings(state, collect)
+            if (state.noticesOffered) {
+                WalletListItem(
+                    headlineContent = { Text(stringResource(R.string.settings_notices)) },
+                    supportingContent = { Text(stringResource(R.string.settings_notices_hint)) },
+                    trailingContent = { WalletSwitch(checked = state.notices, onCheckedChange = onNotices) },
+                    modifier = Modifier.clickable { onNotices(!state.notices) },
+                )
+            }
             LastRun(state)
         }
     }

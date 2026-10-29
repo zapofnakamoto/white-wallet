@@ -13,8 +13,8 @@ class WalletEventsTest {
     private fun row(id: String, kind: ActivityKind, status: ActivityStatus = ActivityStatus.Done, at: Long = 100, account: String = "a", automatic: Boolean = false) =
         Activity(id, account, kind, 1_000, null, "mint", null, null, null, automatic, status, null, at)
 
-    private fun snapshot(vararg rows: Activity, account: String? = "a", since: Long = 50, accounts: Int = 1, backedUp: Boolean = false) =
-        Snapshot(account, since, rows.associateBy { it.id }, accounts, backedUp)
+    private fun snapshot(vararg rows: Activity, account: String? = "a", since: Long = 50, accounts: Int = 1, backedUp: Boolean = false, run: PolicyRun? = null) =
+        Snapshot(account, since, rows.associateBy { it.id }, accounts, backedUp, run)
 
     @Test
     fun `a payment that arrives is an event, one already there is not`() {
@@ -53,16 +53,20 @@ class WalletEventsTest {
     }
 
     @Test
-    fun `maintenance by the user is no event, by the wallet itself one, however many rows`() {
-        assertEquals(emptyList(), WalletEvents.changes(snapshot(), snapshot(row("m", ActivityKind.Combined))))
-        val tidied = snapshot(
-            row("c", ActivityKind.Combined, automatic = true),
-            row("s", ActivityKind.Split, automatic = true),
-            row("n", ActivityKind.Rotated, automatic = true),
-            row("p", ActivityKind.Received),
-        )
-        assertEquals(listOf(WalletEvent.NotesTidied, WalletEvent.PaymentReceived(1_000)), WalletEvents.changes(snapshot(), tidied))
-        assertEquals(emptyList(), WalletEvents.changes(snapshot(), snapshot(row("x", ActivityKind.Combined, ActivityStatus.Pending, automatic = true))))
+    fun `note maintenance is one event per run of the note policies, with what it did`() {
+        // Maintenance rows, by the user or by the wallet, are no events of their own.
+        val rows = snapshot(row("c", ActivityKind.Combined, automatic = true), row("m", ActivityKind.Combined), row("p", ActivityKind.Received))
+        assertEquals(listOf<WalletEvent>(WalletEvent.PaymentReceived(1_000)), WalletEvents.changes(snapshot(), rows))
+
+        val run = PolicyRun(rotated = 1, merged = 11, failed = 0, stoppedEarly = null, atMillis = 200, split = 0,
+            collected = listOf(Collected("other", 5_000, 100), Collected("third", 7_000, 0, pending = true)),
+            notesReplaced = 12, notesMade = 1, notesMadeMsat = 40_000, balanceChangeMsat = 1_000)
+        val ran = snapshot(run = run)
+        assertEquals(listOf<WalletEvent>(WalletEvent.NoteMaintenance(combined = 11, split = 0, renewed = 1, movedHomeMsat = 5_000, notesReplaced = 12,
+            notesMade = 1, balanceChangeMsat = 1_000)), WalletEvents.changes(snapshot(), ran))
+        assertEquals(emptyList(), WalletEvents.changes(ran, ran), "the same run again")
+        val tried = PolicyRun(rotated = 0, merged = 0, failed = 1, stoppedEarly = "no answer", atMillis = 300)
+        assertEquals(emptyList(), WalletEvents.changes(ran, snapshot(run = tried)), "a run that changed nothing")
     }
 
     @Test

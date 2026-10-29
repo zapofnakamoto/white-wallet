@@ -502,6 +502,11 @@ notes.strategy.default={o.note_strategy}
 # starts on, always = every account collects and users have no switch.
 notes.collect.atHomeMint={o.collect_at_home}
 notes.collect.feeCap={o.collect_fee_cap}
+# A short message when the wallet changed the notes by itself (combined, split, renewed, moved home): hidden = never,
+# off / on = a switch under Note settings that starts off / on, always = always, no switch. With notes.view=hidden,
+# whenNotesHidden=true still tells what the balance did.
+notes.maintenance.notices=on
+notes.maintenance.notices.whenNotesHidden=true
 
 # History
 # Filters on the History tab: types = received, sent, moved and note maintenance, maintenance = only showing or

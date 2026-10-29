@@ -10,25 +10,32 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 
 /**
- * The [WalletEvent]s brands react to, read from what the wallet records anyway (the active account's history, its
- * accounts and its backup), so no money path has to report them. What is already there when collecting starts, or
- * when the user switches accounts, is no event.
+ * The [WalletEvent]s brands react to, read from what the wallet records anyway (the active account's history and last
+ * run of its note policies, its accounts and its backup), so no money path has to report them. What is already there
+ * when collecting starts, or when the user switches accounts, is no event.
  */
 class WalletEvents(private val wallet: Wallet, private val clock: () -> Long = System::currentTimeMillis) {
     val events: Flow<WalletEvent> = flow {
         var previous: Snapshot? = null
-        combine(wallet.activeAccount, wallet.activity, wallet.accounts, wallet.backupVerified) { active, activity, accounts, backedUp ->
+        combine(wallet.activeAccount, wallet.activity, wallet.accounts, wallet.backupVerified, wallet.lastPolicyRun) { active, activity, accounts, backedUp, run ->
             val id = active?.account?.id
             // An account's history loads after the switch to it: only rows recorded since then are new.
             val since = previous?.takeIf { it.accountId == id }?.since ?: clock()
-            Snapshot(id, since, activity.filter { it.accountId == id }.associateBy { it.id }, accounts.size, backedUp)
+            Snapshot(id, since, activity.filter { it.accountId == id }.associateBy { it.id }, accounts.size, backedUp, run)
         }.collect { now ->
             previous?.let { before -> changes(before, now).forEach { emit(it) } }
             previous = now
         }
     }
 
-    internal data class Snapshot(val accountId: String?, val since: Long, val activity: Map<String, Activity>, val accounts: Int, val backedUp: Boolean)
+    internal data class Snapshot(
+        val accountId: String?,
+        val since: Long,
+        val activity: Map<String, Activity>,
+        val accounts: Int,
+        val backedUp: Boolean,
+        val policyRun: PolicyRun? = null,
+    )
 
     internal companion object {
         fun changes(before: Snapshot, now: Snapshot): List<WalletEvent> = buildList {
@@ -40,11 +47,10 @@ class WalletEvents(private val wallet: Wallet, private val clock: () -> Long = S
                 val old = before.activity[row.id]
                 if (old != null || row.createdAtMillis >= now.since) event(old, row)?.let(::add)
             }
-            // A strategy's tidying is often several rows at once: one event for them.
-            if (count { it == WalletEvent.NotesTidied } > 1) {
-                val first = indexOf(WalletEvent.NotesTidied)
-                removeAll { it == WalletEvent.NotesTidied }
-                add(first, WalletEvent.NotesTidied)
+            // What the wallet did to the notes by itself, once per run of the note policies however many rows it wrote.
+            now.policyRun?.takeIf { it != before.policyRun && it.maintained }?.let { run ->
+                add(WalletEvent.NoteMaintenance(run.merged, run.split, run.rotated, run.collected.filterNot { it.pending }.sumOf { it.arrivedMsat },
+                    run.notesReplaced, run.notesMade, run.balanceChangeMsat))
             }
         }
 
@@ -66,9 +72,8 @@ class WalletEvents(private val wallet: Wallet, private val clock: () -> Long = S
                     new.status == ActivityStatus.Cancelled -> WalletEvent.NoteTakenBack(new.amountMsat)
                     else -> null
                 }
-                // What the user does to their notes they see on screen; only what the wallet did by itself is news.
-                ActivityKind.Combined, ActivityKind.Split, ActivityKind.Rotated ->
-                    WalletEvent.NotesTidied.takeIf { new.automatic && new.status == ActivityStatus.Done }
+                // Note maintenance is told once per run of the note policies (see changes); what the user does to
+                // their notes they see on screen.
                 else -> null
             }
         }

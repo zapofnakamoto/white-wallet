@@ -6,7 +6,7 @@
     <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Schein ein.</string>
     <string name="home_wallet_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Schein ein.</string>
     <string name="history_filter_maintenance">Pflege der Scheine</string>
-    <string name="history_only_maintenance">Bisher nur Pflege der Scheine, die dein Guthaben nicht verändert.</string>
+    <string name="history_only_maintenance">Bisher nur Pflege der Scheine.</string>
     <string name="history_show_maintenance">Pflege der Scheine anzeigen</string>
     <string name="activity_claimed">Schein eingelöst</string>
     <plurals name="activity_combined">
@@ -17,6 +17,27 @@
     <string name="activity_sent_note">Schein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Scheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="home_key_changed_body">Deine Wallet arbeitet nicht mehr damit, es wird also nichts dorthin gesendet. Deine Scheine dort sind unverändert. Öffne die Details, um den neuen Schlüssel zu sehen und zu entscheiden, ob du ihn verwendest.</string>
+    <plurals name="notice_combined_into_one">
+        <item quantity="one">%1$d Schein zu einem über %2$s zusammengelegt</item>
+        <item quantity="other">%1$d Scheine zu einem über %2$s zusammengelegt</item>
+    </plurals>
+    <plurals name="notice_combined">
+        <item quantity="one">%1$d Schein zu %2$d zusammengelegt</item>
+        <item quantity="other">%1$d Scheine zu %2$d zusammengelegt</item>
+    </plurals>
+    <plurals name="notice_split">
+        <item quantity="one">%1$d Schein in %2$d geteilt</item>
+        <item quantity="other">%1$d Scheine in %2$d geteilt</item>
+    </plurals>
+    <plurals name="notice_rearranged">
+        <item quantity="one">%1$d Schein zu %2$d neu aufgeteilt</item>
+        <item quantity="other">%1$d Scheine zu %2$d neu aufgeteilt</item>
+    </plurals>
+    <plurals name="notice_renewed">
+        <item quantity="one">%1$d Schein erneuert</item>
+        <item quantity="other">%1$d Scheine erneuert</item>
+    </plurals>
+    <string name="notice_moved_home">%1$s zu deiner Haupt-Mint verschoben</string>
 
     <string name="home_receive">Empfangen</string>
     <string name="home_send">Senden</string>
@@ -80,4 +101,8 @@
     <string name="move_failed">Abgelehnt: %1$s</string>
     <string name="home_key_changed_title">%1$s hat seinen Signaturschlüssel geändert</string>
     <string name="home_key_changed_action">Details</string>
+    <string name="notice_with_balance">%1$s. %2$s</string>
+    <string name="notice_fees_back">Du hast %1$s an Gebühren zurückbekommen.</string>
+    <string name="notice_fees_paid">Bezahlte Gebühren: %1$s.</string>
+    <string name="notice_details">Details</string>
 </resources>

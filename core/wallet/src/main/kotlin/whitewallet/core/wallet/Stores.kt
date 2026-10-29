@@ -165,6 +165,10 @@ interface NotePolicies {
     /** The most an automatic move may cost, in percent of what it moves; null until chosen (the brand's default). */
     fun collectFeeCap(accountId: String): Flow<Int?>
     suspend fun setCollectFeeCap(accountId: String, percent: Int)
+
+    /** Whether the user is told what the note policies did by themselves; null until chosen (the brand's default). */
+    fun maintenanceNotices(accountId: String): Flow<Boolean?>
+    suspend fun setMaintenanceNotices(accountId: String, enabled: Boolean)
     suspend fun clear(accountId: String)
 
     /** Keeps policies in memory only; the default when no persistent store is given. */
@@ -173,6 +177,7 @@ interface NotePolicies {
         private val strategies = MutableStateFlow<Map<String, String>>(emptyMap())
         private val collect = MutableStateFlow<Map<String, Boolean>>(emptyMap())
         private val feeCaps = MutableStateFlow<Map<String, Int>>(emptyMap())
+        private val notices = MutableStateFlow<Map<String, Boolean>>(emptyMap())
 
         override fun autoRotate(accountId: String): Flow<Boolean> = autoRotate.map { it[accountId] ?: false }
         override suspend fun setAutoRotate(accountId: String, enabled: Boolean) = autoRotate.update { it + (accountId to enabled) }
@@ -182,11 +187,14 @@ interface NotePolicies {
         override suspend fun setCollect(accountId: String, enabled: Boolean) = collect.update { it + (accountId to enabled) }
         override fun collectFeeCap(accountId: String): Flow<Int?> = feeCaps.map { it[accountId] }
         override suspend fun setCollectFeeCap(accountId: String, percent: Int) = feeCaps.update { it + (accountId to percent) }
+        override fun maintenanceNotices(accountId: String): Flow<Boolean?> = notices.map { it[accountId] }
+        override suspend fun setMaintenanceNotices(accountId: String, enabled: Boolean) = notices.update { it + (accountId to enabled) }
         override suspend fun clear(accountId: String) {
             autoRotate.update { it - accountId }
             strategies.update { it - accountId }
             collect.update { it - accountId }
             feeCaps.update { it - accountId }
+            notices.update { it - accountId }
         }
     }
 }

@@ -11,7 +11,7 @@
     <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
     <string name="home_wallet_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
     <string name="history_filter_maintenance">Note maintenance</string>
-    <string name="history_only_maintenance">So far only note maintenance, which doesn\'t change your balance.</string>
+    <string name="history_only_maintenance">So far only note maintenance.</string>
     <string name="history_show_maintenance">Show note maintenance</string>
     <string name="activity_claimed">Claimed a note</string>
     <plurals name="activity_combined">
@@ -22,6 +22,28 @@
     <string name="activity_sent_note">Sent a note</string>
     <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a note may cost a split fee.</string>
     <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it.</string>
+    <!-- What the wallet did to the notes by itself, in a short message on the home screen. -->
+    <plurals name="notice_combined_into_one">
+        <item quantity="one">Combined %1$d note into one of %2$s</item>
+        <item quantity="other">Combined %1$d notes into one of %2$s</item>
+    </plurals>
+    <plurals name="notice_combined">
+        <item quantity="one">Combined %1$d note into %2$d</item>
+        <item quantity="other">Combined %1$d notes into %2$d</item>
+    </plurals>
+    <plurals name="notice_split">
+        <item quantity="one">Split %1$d note into %2$d</item>
+        <item quantity="other">Split %1$d notes into %2$d</item>
+    </plurals>
+    <plurals name="notice_rearranged">
+        <item quantity="one">Rearranged %1$d note into %2$d</item>
+        <item quantity="other">Rearranged %1$d notes into %2$d</item>
+    </plurals>
+    <plurals name="notice_renewed">
+        <item quantity="one">Renewed %1$d note</item>
+        <item quantity="other">Renewed %1$d notes</item>
+    </plurals>
+    <string name="notice_moved_home">Moved %1$s to your home mint</string>
 
     <string name="home_receive">Receive</string>
     <string name="home_send">Send</string>
@@ -87,4 +109,10 @@
     <string name="move_failed">Refused: %1$s</string>
     <string name="home_key_changed_title">%1$s changed its signing key</string>
     <string name="home_key_changed_action">Details</string>
+    <!-- After a notice_* message: what it did to the balance, as a sentence of its own. -->
+    <string name="notice_with_balance">%1$s. %2$s</string>
+    <string name="notice_fees_back">You got %1$s in fees back.</string>
+    <string name="notice_fees_paid">Fees paid: %1$s.</string>
+    <!-- Opens History with note maintenance shown. -->
+    <string name="notice_details">Details</string>
 </resources>

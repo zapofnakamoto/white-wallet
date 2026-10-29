@@ -143,6 +143,8 @@ data class AppDefaults(
     val notesView: NotesView = NotesView.Tab,
     /** Which filters the History tab offers (brand `history.filter`). */
     val historyFilter: HistoryFilterOption = HistoryFilterOption.Types,
+    /** Whether users are told what the wallet did to their notes by itself (brand `notes.maintenance.notices`). */
+    val maintenanceNotices: MaintenanceNoticeDefaults = MaintenanceNoticeDefaults(),
     /**
      * Whether users see mints at all (brand `mints.visible`): Settings → Mints, the home mint's page, which mint a claimed
      * note is on and whether it's trusted. Without, the app is just a wallet; the mints work the same underneath.

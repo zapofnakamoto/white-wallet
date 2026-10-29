@@ -43,6 +43,7 @@
     <string name="notes_collect_pending">Moving the notes from %1$s; they arrive shortly.</string>
     <string name="mints_add_invalid">That address can\'t hold notes.</string>
     <string name="mints_remove_body">The app forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the app remembers.</string>
+    <string name="settings_notices_hint">A short message when the wallet combined, split, renewed or moved your notes by itself.</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_recovery_phrase">Recovery phrase</string>
@@ -409,4 +410,5 @@
     <string name="mints_remove_title">Remove %1$s?</string>
     <string name="mints_remove_confirm">Remove</string>
     <string name="mints_remove_in_use">Can\'t be removed while an account uses it: as its home, or with money, an address or an unfinished payment there.</string>
+    <string name="settings_notices">Tell me what the wallet did by itself</string>
 </resources>

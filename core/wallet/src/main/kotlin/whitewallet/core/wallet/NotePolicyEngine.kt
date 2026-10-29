@@ -27,8 +27,20 @@ data class PolicyRun(
     val collected: List<Collected> = emptyList(),
     /** Mints whose notes collecting left where they are, and why. */
     val notCollected: List<NotCollected> = emptyList(),
+    /** The notes the run spent and the notes it made in their place (all mints together), and what those are worth. */
+    val notesReplaced: Int = 0,
+    val notesMade: Int = 0,
+    val notesMadeMsat: Long = 0,
+    /**
+     * What the run did to the balance: positive when the mint paid fees back (a merge), negative for fees paid (a split,
+     * a move). Null while a step's outcome is still open, as that money is out of the balance until it settles.
+     */
+    val balanceChangeMsat: Long? = null,
 ) {
     val didSomething: Boolean get() = rotated > 0 || merged > 0 || split > 0 || failed > 0 || stoppedEarly != null || collected.isNotEmpty() || notCollected.isNotEmpty()
+
+    /** The run changed the account's notes (combined, split, renewed or moved them), not only tried. */
+    val maintained: Boolean get() = rotated > 0 || merged > 0 || split > 0 || collected.isNotEmpty()
 }
 
 /** A move to the home mint: [arrivedMsat] (expected, if still [pending]) for [feeMsat]. */
@@ -102,6 +114,8 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
 
     suspend fun apply(accountId: String, strategy: NoteStrategy, autoRotate: Boolean, collect: CollectPolicy? = null): PolicyRun {
+        val before = balance(accountId)
+        val unsettled = ambiguous(accountId)
         var run = PolicyRun(0, 0, 0, null, wallet.now())
         if (collect != null) run = collect(accountId, collect, run)
         for (host in outstanding(accountId).map { it.host }.distinct()) {
@@ -109,8 +123,19 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             if (run.stoppedEarly == null && autoRotate && !strategy.rotatesAddressNotes) run = rotateAddressNotes(accountId, host, run)
             if (run.stoppedEarly != null) break
         }
-        return run
+        val after = balance(accountId)
+        // A step whose outcome is open took its notes out of the balance until it settles: no change to tell yet.
+        val settled = ambiguous(accountId) == unsettled && run.collected.none { it.pending }
+        val made = after.filter { note -> before.none { it.id == note.id } }
+        return run.copy(notesReplaced = before.count { note -> after.none { it.id == note.id } }, notesMade = made.size, notesMadeMsat = made.sumOf { it.amountMsat },
+            balanceChangeMsat = (after.sumOf { it.amountMsat } - before.sumOf { it.amountMsat }).takeIf { settled })
     }
+
+    /** The notes the balance is made of. */
+    private suspend fun balance(accountId: String): List<Note> = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
+
+    private suspend fun ambiguous(accountId: String): Set<String> =
+        wallet.store.notes(accountId).first().filter { it.state == NoteState.Ambiguous }.map { it.id }.toSet()
 
     private suspend fun follow(accountId: String, host: String, strategy: NoteStrategy, start: PolicyRun): PolicyRun {
         var run = start

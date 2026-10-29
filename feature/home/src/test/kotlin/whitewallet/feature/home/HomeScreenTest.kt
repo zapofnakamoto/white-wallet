@@ -25,6 +25,7 @@ import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.wallet.HistoryFilterOption
+import whitewallet.core.wallet.MaintenanceNotice
 
 @RunWith(RobolectricTestRunner::class)
 class HomeScreenTest {
@@ -241,5 +242,45 @@ class HomeScreenTest {
         compose.onNodeWithText("Verschoben").performClick()
         compose.onNodeWithText("Automatisch").assertExists()
         compose.onNodeWithText("Gesendet").assertExists()
+    }
+
+    @Test
+    fun aMessageSaysWhatTheWalletDidAndWhatItDidToTheBalance() {
+        show(HomeState(notice = MaintenanceNotice.Combined(notes = 2, into = 1, amountMsat = 63_000, balanceChangeMsat = 1_000)))
+        compose.onNodeWithText("Combined 2 notes into one of ₿63. You got ₿1 in fees back.").assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun theMessagesInGerman() {
+        show(HomeState(notice = MaintenanceNotice.Renewed(notes = 3, balanceChangeMsat = null)))
+        compose.onNodeWithText("3 Scheine erneuert").assertExists()
+    }
+
+    @Test
+    fun withoutNotesOnlyTheBalanceIsTold() {
+        show(HomeState(notice = MaintenanceNotice.BalanceChanged(-1_000)))
+        compose.onNodeWithText("Fees paid: ₿1.").assertExists()
+    }
+
+    @Test
+    fun detailsShowNoteMaintenanceInTheHistoryEvenWithoutFilters() {
+        var shown = false
+        compose.setContent {
+            HomeScreen(
+                "Wallet", HomeState(activity = listOf(row("x", ActivityKind.Split), row("n", ActivityKind.SentNote)), historyFilter = HistoryFilterOption.None,
+                    notice = MaintenanceNotice.Split(1, 2, -1_000)),
+                onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {}, onChangeAddress = {},
+                accountActions = AccountActions({}, {}, {}), onNoticeShown = { shown = true },
+            )
+        }
+        compose.onNodeWithText("Details").performClick()
+        compose.onNodeWithText("Split a note in two").assertExists()
+        compose.onNodeWithText("Sent a note").assertExists()
+        assertEquals(true, shown)
+        // Turned off, maintenance is hidden again, and so is its switch.
+        compose.onNodeWithText("Note maintenance").performClick()
+        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
+        compose.onNodeWithText("Note maintenance").assertDoesNotExist()
     }
 }

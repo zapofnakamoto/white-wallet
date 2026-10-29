@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -21,7 +24,10 @@ import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.HistoryFilterOption
+import whitewallet.core.wallet.MaintenanceNotice
 import whitewallet.core.wallet.MintKeyChangedException
+import whitewallet.core.wallet.NotesView
+import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
 
 data class HomeState(
@@ -49,6 +55,8 @@ data class HomeState(
     val showAccounts: Boolean = true,
     /** Which filters History offers (brand `history.filter`). */
     val historyFilter: HistoryFilterOption = HistoryFilterOption.Types,
+    /** What the wallet did to the notes by itself, to tell the user in a short message; see [HomeViewModel.noticeShown]. */
+    val notice: MaintenanceNotice? = null,
 ) {
     /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */
     val status: WalletStatus
@@ -61,8 +69,18 @@ data class HomeState(
 }
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(private val wallet: Wallet, private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
+class HomeViewModel(
+    private val wallet: Wallet,
+    private val preferences: AppPreferences,
+    private val defaults: AppDefaults,
+    private val clock: () -> Long,
+) : ViewModel() {
+    @Inject constructor(wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults) : this(wallet, preferences, defaults, System::currentTimeMillis)
+
     private val status = MutableStateFlow(HomeState(historyFilter = defaults.historyFilter))
+
+    /** Whether Home is on screen, as the screen says ([setVisible]). */
+    private var visible = false
 
     private val walletFlags = combine(wallet.backupVerified, wallet.addressStatus, preferences.balanceHidden, ::Triple)
     private val accountInfo = combine(wallet.accounts, wallet.activeAccount, ::Pair)
@@ -101,7 +119,41 @@ class HomeViewModel @Inject constructor(private val wallet: Wallet, private val 
 
     init {
         refresh()
+        viewModelScope.launch { collectNotices() }
     }
+
+    /**
+     * Turns the note policies' runs into messages for the user, as the brand and the user want them. A run while
+     * Home is on screen is told; one while another screen is up (claiming a note, receiving a payment, which say what
+     * happened themselves) only if it changed the balance, then once Home is back. Runs from before this screen, or
+     * of another account than the one switched to, are no news.
+     */
+    private suspend fun collectNotices() {
+        val notesVisible = defaults.notesView != NotesView.Hidden
+        var account: String? = null
+        var since = 0L
+        var last: PolicyRun? = null
+        combine(wallet.activeAccount.map { it?.account?.id }.distinctUntilChanged(), wallet.lastPolicyRun, ::Pair).collect { (id, run) ->
+            if (id != account) {
+                account = id
+                since = clock()
+            }
+            if (run == null || run == last || run.atMillis < since) return@collect
+            last = run
+            if (!defaults.maintenanceNotices.active(wallet.maintenanceNoticesChoice.first())) return@collect
+            if (!notesVisible && !defaults.maintenanceNotices.whenNotesHidden) return@collect
+            val notice = MaintenanceNotice.of(run, notesVisible, defaults.showMints) ?: return@collect
+            if (visible || notice.balanceChangeMsat != null) status.update { it.copy(notice = notice) }
+        }
+    }
+
+    /** Home came on screen or left it. A message that waited while it was away shows now. */
+    fun setVisible(onScreen: Boolean) {
+        visible = onScreen
+    }
+
+    /** The message was shown (or the user dismissed it). */
+    fun noticeShown() = status.update { it.copy(notice = null) }
 
     fun refresh() {
         if (status.value.refreshing) return

@@ -7,6 +7,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- The wallet says what it did to the notes by itself: a short message on the home screen when its note strategy
+  combined or split them, auto-renew renewed them or collecting moved them home, with what that did to the balance
+  ("Combined 2 notes into one of ₿63. You got ₿1 in fees back."), and Details to see it in History, even where the
+  brand offers no History filters. It shows while the home screen is up, and after a claim or a payment only if the
+  balance changed. Users turn it off under Note settings. Brands decide with `notes.maintenance.notices`
+  (`hidden`, `off`, `on` by default, `always`) and `notes.maintenance.notices.whenNotesHidden`, and can restyle the
+  message (`Snackbar` in `BrandComponents`).
 - Settings pages have an icon on their row: on the settings page, on the account's page and in search results, so a
   page is found at a glance. "Back up now", an unverified recovery phrase and "Delete" are marked in the error colour.
   A note that is still being paid, unclear or not yet certified shows a small icon before its status. Brands can
@@ -37,8 +44,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `printBitmap`, `LightWalletTheme`.
 - Brands can decorate the notes view: `NotesHeader` above its total (status `Empty`, `WaitingForRecipient` while
   handed-out notes wait, or `Idle`) and `NotesEmpty` above the text of an empty one. Three new `WalletEvent`s:
-  `NoteRedeemed` and `NoteTakenBack` when a handed-out note is redeemed or taken back, and `NotesTidied` when a note
-  strategy or auto-renew looked after the notes by itself. A brand's `when` over events picks them up in its `else`.
+  `NoteRedeemed` and `NoteTakenBack` when a handed-out note is redeemed or taken back, and `NoteMaintenance` when a
+  note strategy, auto-renew or collecting at the home mint looked after the notes by itself, once per run, with what
+  it did (notes combined, split and renewed, the amount moved home, notes spent and made, the change to the balance).
+  A brand's `when` over events picks them up in its `else`.
 - A handed-out note's QR code is covered until the user taps "Tap to show the QR code", so nobody nearby can scan it
   by chance, and covered again whenever the app leaves the screen. Share, Copy and Print work as before; the printed
   page has the code. Brands see the cover in `NoteFace`'s `qrCode` slot (`qrCovered`) and can draw their own
@@ -50,6 +59,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- Acme's example strategy is now "Combine small banknotes" (`combine-small`, `CombineSmallNotes`).
+- History no longer says note maintenance doesn't change the balance: a merge's refund or a split's fee does.
 - brand.properties keys are grouped by what they concern: `app.*`, `mints.*`, `accounts.*`, `addresses.*`,
   `amounts.*`, `notes.*`, `history.*`, `developer.*`. A brand still using an old key fails the build with its new
   name. `appName` → `app.name`, `applicationId` → `app.id`, `versionCode` / `versionName` → `app.version.code` /

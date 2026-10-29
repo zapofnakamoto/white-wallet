@@ -155,6 +155,14 @@ class Wallet(
     /** [accountId]'s fee cap for collecting, in percent: its own setting, or the brand's default. */
     private fun collectFeeCap(accountId: String): Flow<Int> = policies.collectFeeCap(accountId).map { it ?: collectDefaults.feeCapPercent }
 
+    /**
+     * Whether the active account's user wants to be told what the note policies did by themselves; null until they
+     * choose (then [MaintenanceNoticeDefaults.active] decides).
+     */
+    val maintenanceNoticesChoice: Flow<Boolean?> = ofActive(null, policies::maintenanceNotices)
+
+    suspend fun setMaintenanceNotices(enabled: Boolean) = policies.setMaintenanceNotices(activeId(), enabled)
+
     /** Switches collecting at the home mint on or off for the active account and applies it right away. */
     suspend fun setCollectAtHome(enabled: Boolean) = lock.withLock {
         check(collectDefaults.offered) { "collecting at the home mint is not offered" }

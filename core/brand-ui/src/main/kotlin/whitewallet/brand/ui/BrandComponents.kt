@@ -41,6 +41,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -91,6 +92,12 @@ interface BrandComponents {
     @Composable fun Dialog(params: DialogParams) = DefaultComponents.dialog(params)
 
     @Composable fun Sheet(params: SheetParams) = DefaultComponents.sheet(params)
+
+    /**
+     * A short message at the bottom of the screen, gone after a few seconds: [SnackbarParams.message], and an action
+     * button if there is one. The app decides when it shows and for how long.
+     */
+    @Composable fun Snackbar(params: SnackbarParams, modifier: Modifier) = DefaultComponents.snackbar(params, modifier)
 
     /** A switch, checkbox or radio button. */
     @Composable fun Toggle(params: ToggleParams, modifier: Modifier) = DefaultComponents.toggle(params, modifier)
@@ -208,6 +215,9 @@ class DialogParams(
 )
 
 class SheetParams(val onDismissRequest: () -> Unit, val content: @Composable ColumnScope.() -> Unit)
+
+/** [actionLabel] and [onAction] come together: the message has a button, or none. */
+class SnackbarParams(val message: String, val actionLabel: String? = null, val onAction: () -> Unit = {})
 
 enum class ToggleKind { Switch, Checkbox, Radio }
 
@@ -464,6 +474,14 @@ object DefaultComponents : BrandComponents {
             title = params.title,
             text = params.text,
         )
+    }
+
+    @Composable
+    fun snackbar(params: SnackbarParams, modifier: Modifier) {
+        Snackbar(
+            modifier = modifier.padding(12.dp),
+            action = params.actionLabel?.let { label -> { TextButton(onClick = params.onAction) { Text(label) } } },
+        ) { Text(params.message) }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)

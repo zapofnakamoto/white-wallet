@@ -28,7 +28,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +49,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.BrandTitle
@@ -59,6 +64,7 @@ import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.Activity
@@ -72,6 +78,7 @@ import whitewallet.brand.ui.MoneyDirection
 import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletActivityIcon
 import whitewallet.core.wallet.HistoryFilterOption
+import whitewallet.core.wallet.MaintenanceNotice
 import whitewallet.core.designsystem.WalletAssistChip
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
@@ -100,9 +107,14 @@ fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LifecycleResumeEffect(viewModel) {
+        viewModel.setVisible(true)
+        onPauseOrDispose { viewModel.setVisible(false) }
+    }
     HomeScreen(
         appName, state, onSend, onReceive, viewModel::refresh, onSettings, onBackup, viewModel::dismissBackupPrompt, onChangeAddress,
         AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds), onOpenNote, viewModel::toggleBalanceHidden, onOpenMint, notesTab, menu,
+        viewModel::noticeShown,
     )
 }
 
@@ -141,14 +153,30 @@ fun HomeScreen(
     onOpenMint: (String) -> Unit = {},
     notesTab: NotesTabSlot? = null,
     menu: List<HomeMenuItem> = emptyList(),
+    onNoticeShown: () -> Unit = {},
 ) {
     var saved by rememberSaveable { mutableStateOf(HomeTab.Wallet) }
     val tab = saved.takeIf { it != HomeTab.Notes || notesTab != null } ?: HomeTab.Wallet
     var historyFilters by rememberSaveable { mutableStateOf(emptySet<HistoryFilter>()) }
     var showAccounts by remember { mutableStateOf(false) }
+    val snackbars = remember { SnackbarHostState() }
+    state.notice?.let { notice ->
+        val message = noticeMessage(notice)
+        val details = stringResource(R.string.notice_details)
+        LaunchedEffect(notice) {
+            val result = snackbars.showSnackbar(message, actionLabel = details, withDismissAction = false, duration = SnackbarDuration.Long)
+            onNoticeShown()
+            // Details: History, with note maintenance shown.
+            if (result == SnackbarResult.ActionPerformed) {
+                historyFilters = setOf(HistoryFilter.Maintenance)
+                saved = HomeTab.History
+            }
+        }
+    }
     // Back from History returns to the wallet before leaving the app.
     BackHandler(enabled = tab != HomeTab.Wallet) { saved = HomeTab.Wallet }
     Scaffold(
+        snackbarHost = { WalletSnackbarHost(snackbars) },
         topBar = {
             val title = when (tab) {
                 HomeTab.Wallet -> appName
@@ -282,6 +310,31 @@ private fun WalletTab(
     }
 }
 
+/** What [notice] says, in the user's language: what the wallet did, and what that did to the balance. */
+@Composable
+private fun noticeMessage(notice: MaintenanceNotice): String {
+    val what = when (notice) {
+        is MaintenanceNotice.MovedHome -> stringResource(R.string.notice_moved_home, formatAmount(notice.arrivedMsat))
+        is MaintenanceNotice.Combined -> if (notice.into == 1) {
+            pluralStringResource(R.plurals.notice_combined_into_one, notice.notes, notice.notes, formatAmount(notice.amountMsat))
+        } else {
+            pluralStringResource(R.plurals.notice_combined, notice.notes, notice.notes, notice.into)
+        }
+        is MaintenanceNotice.Split -> pluralStringResource(R.plurals.notice_split, notice.notes, notice.notes, notice.into)
+        is MaintenanceNotice.Rearranged -> pluralStringResource(R.plurals.notice_rearranged, notice.notes, notice.notes, notice.into)
+        is MaintenanceNotice.Renewed -> pluralStringResource(R.plurals.notice_renewed, notice.notes, notice.notes)
+        is MaintenanceNotice.BalanceChanged -> null
+    }
+    val balance = notice.balanceChangeMsat?.let { change ->
+        if (change > 0) stringResource(R.string.notice_fees_back, formatAmount(change)) else stringResource(R.string.notice_fees_paid, formatAmount(-change))
+    }
+    return when {
+        what == null -> balance.orEmpty()
+        balance == null -> what
+        else -> stringResource(R.string.notice_with_balance, what, balance)
+    }
+}
+
 /** The kinds of History entries a user can narrow the list to. */
 private enum class HistoryFilter(val label: Int, val icon: Int) {
     Received(R.string.history_filter_received, DesignR.drawable.ic_activity_received),
@@ -301,9 +354,9 @@ private enum class HistoryFilter(val label: Int, val icon: Int) {
 
 /**
  * What happened to the account's money, one row per event. Note maintenance (merges, rotations) is logged too but
- * hidden unless the user asks for it, since it doesn't change the balance. Depending on the brand ([option]), the
- * user narrows the list to kinds of entries ([selected]; none selected: everything but maintenance), only shows or
- * hides maintenance, or has no filter.
+ * hidden unless the user asks for it, since it changes the balance by fees at most. Depending on the brand ([option]),
+ * the user narrows the list to kinds of entries ([selected]; none selected: everything but maintenance), only shows or
+ * hides maintenance, or has no filter (but a message's Details shows maintenance until the user turns it off).
  */
 @Composable
 private fun HistoryTab(
@@ -316,14 +369,15 @@ private fun HistoryTab(
     val available = when (option) {
         HistoryFilterOption.Types -> HistoryFilter.entries.filter { f -> activity.any { HistoryFilter.of(it.kind) == f } }
         HistoryFilterOption.Maintenance -> listOf(HistoryFilter.Maintenance).filter { activity.any { it.kind.isMaintenance } }
-        HistoryFilterOption.None -> emptyList()
+        // No filters, but a message's Details shows note maintenance, until the user turns it off again.
+        HistoryFilterOption.None -> listOf(HistoryFilter.Maintenance).filter { it in selected && activity.any { a -> a.kind.isMaintenance } }
     }
     // A filter whose entries are gone (or that the brand doesn't offer) doesn't hide anything.
     val active = selected.filter { it in available }.toSet()
     // Kinds to choose from: more than one, or the one maintenance switch; and always once one is on, to turn it off.
     val chips = available.takeIf { it.size > 1 || option == HistoryFilterOption.Maintenance || active.isNotEmpty() }.orEmpty()
     val visible = when {
-        option == HistoryFilterOption.Maintenance && HistoryFilter.Maintenance in active -> activity
+        option != HistoryFilterOption.Types && HistoryFilter.Maintenance in active -> activity
         active.isNotEmpty() -> activity.filter { HistoryFilter.of(it.kind) in active }
         else -> activity.filterNot { it.kind.isMaintenance }
     }

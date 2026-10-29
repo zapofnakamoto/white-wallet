@@ -91,6 +91,9 @@ class RegtestNotesTest {
         assertEquals(ReclaimResult.Reclaimed(1_000_000), alice.wallet.reclaimNote(sent.note.id))
         assertEquals(before, alice.notes().single().amountMsat, "one note again, without a refresh; the merge refunds the split's base fee")
         assertEquals(before, alice.balance())
+        // What the user is told: the two notes combined, and the fee that came back.
+        val run = assertNotNull(alice.wallet.lastPolicyRun.first())
+        assertEquals(MaintenanceNotice.Combined(2, 1, before, 1_000), MaintenanceNotice.of(run, notesVisible = true, mintsVisible = true))
     }
 
     @Test
@@ -201,12 +204,20 @@ class RegtestNotesTest {
     fun `keeping one note and always collecting puts a note from another mint into the one note at home`() = runBlocking<Unit> {
         val alice = Regtest.phone(strategy = SingleNoteStrategy.ID, collectDefaults = CollectDefaults(offered = false, always = true))
         alice.fund(5000)
-        assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(3000, second = true)))))
+        val before = alice.balance()
+        val claimed = assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(3000, second = true)))))
         assertEquals(emptyList(), alice.notes(Regtest.HOST2), "nothing left on the other mint")
         val home = alice.notes().single()
         assertEquals(home.amountMsat, alice.balance())
         assertTrue(home.amountMsat > 4_999_000 + 2_000_000, "the claimed note arrived, less the move's fees: ${home.amountMsat}")
         assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedMint }.automatic)
+        // What the user is told: the move home, and what it did to the balance (its fee, less what the merge at home
+        // paid back; here they cancel out, which is no news).
+        val run = assertNotNull(alice.wallet.lastPolicyRun.first())
+        assertEquals(home.amountMsat - before - claimed.amountMsat, run.balanceChangeMsat)
+        val moved = assertIs<MaintenanceNotice.MovedHome>(MaintenanceNotice.of(run, notesVisible = true, mintsVisible = true))
+        assertEquals(run.collected.single().arrivedMsat, moved.arrivedMsat)
+        assertEquals(run.balanceChangeMsat?.takeIf { it != 0L }, moved.balanceChangeMsat)
     }
 
     @Test
