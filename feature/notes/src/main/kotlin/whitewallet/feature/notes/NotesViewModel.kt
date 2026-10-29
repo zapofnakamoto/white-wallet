@@ -114,6 +114,12 @@ sealed interface NotesDialog {
     data class Split(val id: String, val limits: SplitLimits, val amountText: String = "") : NotesDialog {
         /** Amounts are typed in whole sats, so the smallest is at least one sat. */
         val minMsat: Long get() = (limits.minMsat + 999) / 1000 * 1000
+
+        /** Whether two notes of whole sats can come out of it at all (a 2-sat note with a 1-sat fee can't). */
+        val possible: Boolean get() = minMsat <= limits.maxMsat
+
+        /** Where the amount starts: half of what is left after the fee, in whole sats. */
+        val halfSats: Long get() = ((limits.maxMsat + limits.minMsat) / 2 / 1000).coerceIn(minMsat / 1000, limits.maxMsat / 1000)
         val amountMsat: Long? get() = amountText.toLongOrNull()?.times(1000)?.takeIf { it in minMsat..limits.maxMsat }
     }
 
@@ -299,9 +305,9 @@ class NotesViewModel @Inject constructor(
     fun openSplit(id: String) {
         if (NoteAction.Split !in state.value.noteActions) return
         viewModelScope.launch {
-            val limits = wallet.splitLimits(id)
+            val dialog = wallet.splitLimits(id)?.let { NotesDialog.Split(id, it) }?.takeIf { it.possible }
             ui.update {
-                if (limits == null) it.copy(outcome = NotesOutcome.Failed(NoteProblem.InvalidAmount)) else it.copy(dialog = NotesDialog.Split(id, limits))
+                if (dialog == null) it.copy(outcome = NotesOutcome.Failed(NoteProblem.InvalidAmount)) else it.copy(dialog = dialog.copy(amountText = dialog.halfSats.toString()))
             }
         }
     }
@@ -387,9 +393,10 @@ class NotesViewModel @Inject constructor(
     private fun act(action: NoteAction, ids: Set<String> = state.value.selected, block: suspend (Set<String>) -> NotesOutcome?) {
         if (action !in ui.value.noteActions || ids.isEmpty() || ui.value.busy || ui.value.refreshing) return
         quoteJob?.cancel()
-        // A failure armed for developers goes with this action only, and is used up by it.
-        val failure = state.value.simulatedFailure
-        ui.update { it.copy(busy = true, dialog = null, outcome = null, simulatedFailure = null) }
+        // A failure armed for developers goes with the next change to notes only, and is used up by it; a recheck
+        // changes nothing, so it stays armed.
+        val failure = state.value.simulatedFailure.takeIf { action != NoteAction.Recheck }
+        ui.update { it.copy(busy = true, dialog = null, outcome = null, simulatedFailure = if (failure != null) null else it.simulatedFailure) }
         viewModelScope.launch {
             val outcome = try {
                 SimulatedFailure.during(failure) { block(ids) }

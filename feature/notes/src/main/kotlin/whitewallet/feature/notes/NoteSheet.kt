@@ -32,7 +32,13 @@ import whitewallet.core.wallet.NoteAction
 import whitewallet.core.wallet.SimulatedFailure
 import whitewallet.core.designsystem.WalletAssistChip
 import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.R as DesignR
+import whitewallet.brand.ui.Tone
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.res.painterResource
 import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletSheet
@@ -111,14 +117,19 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
 }
 
 /**
- * Debug builds in developer mode: makes the next action on notes fail once, as chosen (see [SimulatedFailure]), to
- * see its failure screens. Tapping the chosen one again takes it back.
+ * Debug builds in developer mode: makes the next change to notes fail once, as chosen (see [SimulatedFailure]), to
+ * see its failure screens. Tapping the chosen one again takes it back. Framed and marked as for developers, so it
+ * is never mistaken for part of the app.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SimulatedFailureChips(chosen: SimulatedFailure.Kind?, onChoose: (SimulatedFailure.Kind?) -> Unit) {
-    Text(stringResource(R.string.notes_dev_fail), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun SimulatedFailureChips(chosen: SimulatedFailure.Kind?, onChoose: (SimulatedFailure.Kind?) -> Unit) = WalletCard(tone = Tone.Warning) {
+    Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(painterResource(DesignR.drawable.ic_developer), contentDescription = null, Modifier.size(18.dp))
+        Text(stringResource(R.string.notes_dev_section), style = MaterialTheme.typography.labelLarge)
+    }
+    Text(stringResource(R.string.notes_dev_fail), Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.bodySmall)
+    FlowRow(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         SimulatedFailure.Kind.entries.forEach { kind ->
             WalletFilterChip(
                 selected = kind == chosen,

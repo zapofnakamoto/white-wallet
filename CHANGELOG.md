@@ -8,8 +8,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Added
 
 - Developers can make a note action fail on purpose to see its failure screens: in debug builds with developer mode
-  on, a note's sheet offers "Make the next action fail" (no answer, refused, answer lost), used up by the next share,
-  split, renew, combine or move. The wallet takes its real path, a lost answer included: the note stays open until a
+  on, a note's sheet offers, marked as for developers, to make the next change fail (no answer, refused, answer
+  lost), used up by the next share, split, renew, combine or move. The wallet takes its real path, a lost answer included: the note stays open until a
   refresh settles it.
 - The wallet says what it did to the notes by itself: a short message on the home screen when its note strategy
   combined or split them, auto-renew renewed them or collecting moved them home, with what that did to the balance
@@ -63,6 +63,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- Splitting a note starts at half of what is left after the fee. A note too small for two notes of whole sats
+  (2 sats with a 1-sat fee) says so right away instead of opening a split that can't be done.
 - Acme's example strategy is now "Combine small banknotes" (`combine-small`, `CombineSmallNotes`).
 - History no longer says note maintenance doesn't change the balance: a merge's refund or a split's fee does.
 - brand.properties keys are grouped by what they concern: `app.*`, `mints.*`, `accounts.*`, `addresses.*`,
