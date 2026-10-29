@@ -42,6 +42,7 @@ import whitewallet.brand.ui.DefaultComponents
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.NoteFaceParams
 import whitewallet.brand.ui.NoteStatus
+import whitewallet.brand.ui.QrCodeCoverParams
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
@@ -218,5 +219,27 @@ class SharedNoteScreenTest {
         compose.runOnIdle { owner.registry.currentState = Lifecycle.State.CREATED }
         compose.onNodeWithContentDescription("QR code of the note").assertDoesNotExist()
         compose.onNodeWithText("Tap to show the QR code").assertExists()
+    }
+
+    @Test
+    fun aBrandDrawsTheCoverAndTheAppKeepsTheTap() {
+        val spark = object : BrandDesign {
+            override val components = object : BrandComponents {
+                @Composable
+                override fun QrCodeCover(params: QrCodeCoverParams, modifier: Modifier) {
+                    Column(modifier) { Text("spark cover: ${params.label}") }
+                }
+            }
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides spark) {
+                SharedNoteScreen(
+                    SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false),
+                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+                )
+            }
+        }
+        compose.onNodeWithText("spark cover: Tap to show the QR code").assertHasClickAction().performClick()
+        compose.onNodeWithContentDescription("QR code of the note").assertExists()
     }
 }

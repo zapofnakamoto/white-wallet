@@ -47,6 +47,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
@@ -103,6 +104,12 @@ interface BrandComponents {
 
     /** A QR code to scan: the code itself is drawn by the app; a design may frame it, never alter it. */
     @Composable fun QrCode(params: QrCodeParams, modifier: Modifier) = DefaultComponents.qrCode(params, modifier)
+
+    /**
+     * What stands in for a secret QR code until the user taps it: as large as the code, with [QrCodeCoverParams.label]
+     * as its text. The app's [modifier] carries the tap and what screen readers say; draw it as given.
+     */
+    @Composable fun QrCodeCover(params: QrCodeCoverParams, modifier: Modifier) = DefaultComponents.qrCodeCover(params, modifier)
 
     /** The leading mark of a history entry: what kind it is, and whether the wallet did it by itself. */
     @Composable fun ActivityIcon(params: ActivityIconParams, modifier: Modifier) = DefaultComponents.activityIcon(params, modifier)
@@ -238,6 +245,8 @@ class NavigationItem(val selected: Boolean, val onClick: () -> Unit, val icon: @
 class NavigationBarParams(val items: List<NavigationItem>)
 
 class QrCodeParams(val bitmap: ImageBitmap, val size: Dp)
+
+class QrCodeCoverParams(val label: String, val size: Dp)
 
 /** What a history entry is. [Split], [Combined] and [Renewed] are note maintenance: the balance stays the same. */
 enum class ActivityType { Received, Claimed, Sent, SentNote, MovedAccounts, MovedMints, Split, Combined, Renewed }
@@ -494,6 +503,23 @@ object DefaultComponents : BrandComponents {
     @Composable
     fun qrCode(params: QrCodeParams, modifier: Modifier) {
         Image(params.bitmap, contentDescription = null, modifier = modifier.size(params.size), filterQuality = FilterQuality.None)
+    }
+
+    /** A box in the surface variant colour, as large as the code, with the label in its middle. */
+    @Composable
+    fun qrCodeCover(params: QrCodeCoverParams, modifier: Modifier) {
+        Box(
+            modifier.size(params.size).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                params.label,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(24.dp),
+            )
+        }
     }
 
     /** The stage's name, small, on the warning container colour. */

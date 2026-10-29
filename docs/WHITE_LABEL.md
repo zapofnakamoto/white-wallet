@@ -219,7 +219,7 @@ brand chooses every value, under names of its own.
 |---|---|---|
 | 1. Tokens | `res/` | colour roles, fonts, text sizes, corners, spacing |
 | 2. Theme | `code/`: `BrandDesign.Theme` | change any token, or add CompositionLocals of the brand's own |
-| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes, the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`) and the release stage's badge (`ReleaseBadge`) look |
+| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the cover over a secret one (`QrCodeCover`), the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`) and the release stage's badge (`ReleaseBadge`) look |
 | 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark), knowing the app's name and release stage |
 | 5. Status and events | `code/`: `WalletStatus`, `WalletEvent` | what a screen is about and what just happened, to show or react to |
 | 6. Screens | `code/`: `BrandScreen` | pages of the brand's own, reached from Settings, the wallet's menu or right after setup |
@@ -277,8 +277,9 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
 - **Notes:** a note is one object the brand designs once. `NoteFace(params, modifier)` draws it as a row of the notes
   list (`NoteFaceSize.Row`) and large (`NoteFaceSize.Large`) on its details, the claim preview and a handed-out note's
   page, where `params.qrCode` is the QR code: place and frame it, never alter or cover it. On a handed-out note's
-  page that slot first holds the app's cover (`QrCodeCover`, as large as the code, in the theme's `surfaceVariant`),
-  until the user taps it and again whenever the app leaves the screen. `params` has the amount
+  page that slot first holds the cover (`QrCodeCover`, as large as the code; by default in the theme's
+  `surfaceVariant`, and the brand may draw its own, the app's modifier keeping the tap), until the user taps it and
+  again whenever the app leaves the screen. `params` has the amount
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
   `Redeemed`, `TakenBack`; give a `when` an `else`), its words and mark, the age, the mint (null with
   `showMints=false`), whether it is trusted, and `selected` while the user selects (null otherwise).
