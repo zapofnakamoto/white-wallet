@@ -89,3 +89,10 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     (`stoppedEarly` is a message string today); a new `WalletStatus.Problem` kind for brands; whether it follows
     `notes.maintenance.notices` or always shows; with `notes.view=hidden`, what it says to users who don't know about
     notes; when it goes away (the next run that succeeds, or dismissed). Asked for on 2026-10-29.
+11. **A wallet without a home mint.** Every account has a home mint (`Account.host`), and setup can't create one
+    without it, so a brand that offers no mints (`mints.suggestions` empty, `mints.custom=false`) can't build. The
+    protocol doesn't need one to take notes: a note is redeemed at its own mint (`Note.host`), so such a wallet could
+    still claim notes other wallets hand over. Without a home mint there's no Lightning address and no receiving by
+    invoice. Open: whether paying an invoice can spend a note at its own mint or the send path assumes the home mint;
+    what becomes optional (onboarding, restore, the backup screen, collect at home mint, the mint and account
+    settings pages); what such a wallet's setup and Receive look like. Asked for on 2026-10-29.
