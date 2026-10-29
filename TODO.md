@@ -68,3 +68,14 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    balance and `WalletEvent`s treat it, and what a brand sees (`NoteStatus`, `WalletStatus.WaitingForRecipient`).
    The link is never stored, so a draft can only be shown again while its secret can be derived (`NoteSender`).
    Installed users' shared notes stay as they are. Noticed on the Zap preview, 2026-10-29.
+9. **Brand marks in QR codes.** A brand should be able to put its logo in the middle of a QR code (acme its mark,
+   Zap its bolt). Today `BrandComponents.QrCode` may frame the code but never alter it, and `qrBitmap` encodes at
+   zxing's default error correction, L (about 7 % of the code may be lost), so a logo breaks scanning. Possible if
+   the app keeps control of what is safe: a brand asks for it (an option, or a `centerMark` in `QrCodeParams`); the
+   app then encodes at Q or H (25 % / 30 %) and gives the brand a centred area it may cover (at most about a fifth of
+   the code's width, clear of the finder patterns and the quiet zone), with a plain margin around the logo; the
+   brand draws only there. Open: the cost of H, since codes get denser (a note link `lnurlw://…?k1=…&c=…` or a
+   Lightning invoice has many more modules at H, so smaller ones at 260 dp), so maybe Q, or only for short contents;
+   which codes (a handed-out note, receive invoices and addresses, the printed page, where paper and ink matter
+   too); a test that decodes every brand's code with the logo on (zxing reads back what the app encoded) so a brand
+   can't ship an unscannable one; and dark mode (the code stays black on white). Asked for on 2026-10-29.
