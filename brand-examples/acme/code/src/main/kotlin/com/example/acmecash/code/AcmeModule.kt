@@ -15,7 +15,7 @@ import whitewallet.brand.ui.BrandScreen
 object AcmeModule {
     @Provides
     @IntoSet
-    fun tidySmallNotes(): NoteStrategy = TidySmallNotes()
+    fun combineSmallNotes(): NoteStrategy = CombineSmallNotes()
 
     /** Acme's look in code (its colours and corners are in res/). */
     @Provides

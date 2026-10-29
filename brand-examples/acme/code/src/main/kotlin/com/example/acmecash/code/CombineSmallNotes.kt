@@ -8,10 +8,10 @@ import whitewallet.brand.NoteStrategy
  * Acme's note strategy: small notes are combined once a few have piled up (free), large ones are left alone, so paying
  * small amounts never needs a split of a big note first. Incoming notes are rotated off their address keys.
  */
-class TidySmallNotes : NoteStrategy {
-    override val id = "tidy-small"
-    override val title = R.string.strategy_tidy_small
-    override val description = R.string.strategy_tidy_small_hint
+class CombineSmallNotes : NoteStrategy {
+    override val id = "combine-small"
+    override val title = R.string.strategy_combine_small
+    override val description = R.string.strategy_combine_small_hint
     override val rotatesAddressNotes = true
 
     override fun plan(mint: MintNotes): List<NoteStep> {
