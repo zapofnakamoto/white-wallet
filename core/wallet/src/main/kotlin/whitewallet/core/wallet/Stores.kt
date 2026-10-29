@@ -151,6 +151,10 @@ interface AppPreferences {
     /** How the Notes tab orders notes (a name the screen defines), or null for its default. */
     val notesSort: Flow<String?>
     suspend fun setNotesSort(sort: String)
+
+    /** Ids of the release notes the user has seen ([ReleaseNoteTracker]), or null until the first are recorded. */
+    val seenReleaseNotes: Flow<Set<String>?>
+    suspend fun setSeenReleaseNotes(ids: Set<String>)
 }
 
 /**

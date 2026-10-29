@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.pluralStringResource
@@ -31,6 +32,8 @@ import kotlinx.coroutines.launch
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.DeveloperOptions
+import whitewallet.core.wallet.ReleaseNoteTracker
+import whitewallet.brand.ReleaseNote
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -41,6 +44,8 @@ import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletBuildLabel
 import whitewallet.core.designsystem.WalletReleaseBadge
 import whitewallet.core.designsystem.releaseNotice
+import whitewallet.core.designsystem.ReleaseNotesSheet
+import whitewallet.core.designsystem.R as DesignR
 
 /** A library shipped in the app, with its license. Names are proper nouns and stay untranslated. */
 data class License(val library: String, val license: String, val url: String)
@@ -58,9 +63,12 @@ val shippedLicenses = listOf(
     License("SQLCipher for Android", "BSD-3-Clause", "https://www.zetetic.net/sqlcipher/"),
 )
 
-/** Unlocks Developer options from About, for brands with `developer.options=unlock`. */
+/** Unlocks Developer options from About, for brands with `developer.options=unlock`, and lists the release notes. */
 @HiltViewModel
-class AboutViewModel @Inject constructor(private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
+class AboutViewModel @Inject constructor(private val preferences: AppPreferences, defaults: AppDefaults, releaseNotes: ReleaseNoteTracker) : ViewModel() {
+    /** Every release note, newest first, for "What's new". */
+    val releaseNotes: List<ReleaseNote> = releaseNotes.notes
+
     /** Tapping the version still has something to unlock. */
     val canUnlock: StateFlow<Boolean> = combine(preferences.developerMode, preferences.developerOptionsUnlocked) { mode, unlocked ->
         defaults.developerOptions == DeveloperOptions.Unlock && !defaults.developerOptionsVisible(mode, unlocked)
@@ -74,7 +82,7 @@ class AboutViewModel @Inject constructor(private val preferences: AppPreferences
 @Composable
 fun AboutRoute(appName: String, versionName: String, supportUrl: String, onBack: () -> Unit, viewModel: AboutViewModel = hiltViewModel()) {
     val canUnlock by viewModel.canUnlock.collectAsStateWithLifecycle()
-    AboutScreen(appName, versionName, supportUrl, onBack, onUnlock = viewModel::unlock.takeIf { canUnlock })
+    AboutScreen(appName, versionName, supportUrl, onBack, onUnlock = viewModel::unlock.takeIf { canUnlock }, releaseNotes = viewModel.releaseNotes)
 }
 
 /** Taps on the version that unlock Developer options, as on Android itself. */
@@ -85,9 +93,11 @@ const val UNLOCK_TAPS = 7
  * tapping the version [UNLOCK_TAPS] times unlocks Developer options; the last few taps count down.
  */
 @Composable
-fun AboutScreen(appName: String, versionName: String, supportUrl: String, onBack: () -> Unit, onUnlock: (() -> Unit)? = null) {
+fun AboutScreen(appName: String, versionName: String, supportUrl: String, onBack: () -> Unit, onUnlock: (() -> Unit)? = null, releaseNotes: List<ReleaseNote> = emptyList()) {
     val uri = LocalUriHandler.current
     var taps by rememberSaveable { mutableIntStateOf(0) }
+    var showReleaseNotes by rememberSaveable { mutableStateOf(false) }
+    if (showReleaseNotes) ReleaseNotesSheet(releaseNotes, onDone = { showReleaseNotes = false })
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.about_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             val left = UNLOCK_TAPS - taps
@@ -120,6 +130,12 @@ fun AboutScreen(appName: String, versionName: String, supportUrl: String, onBack
             Text(stringResource(R.string.about_body), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 16.dp))
             releaseNotice()?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp))
+            }
+            if (releaseNotes.isNotEmpty()) {
+                WalletListItem(
+                    headlineContent = { Text(stringResource(DesignR.string.release_notes_title)) },
+                    modifier = Modifier.clickable { showReleaseNotes = true },
+                )
             }
             WalletListItem(
                 headlineContent = { Text(stringResource(R.string.about_support)) },

@@ -6,4 +6,8 @@
     <string name="about_acme_title">Über Acme</string>
     <string name="about_acme_body">Acme Cash ist Taschengeld auf Lightning, verwahrt von Acme für dich. Halte die Beträge klein.</string>
     <string name="about_acme_back">Zurück</string>
+    <string name="release_note_backup_title">Schreib deine Wiederherstellungsphrase auf</string>
+    <string name="release_note_backup_body">Acme kann dein Geld nicht für dich wiederherstellen. Falls noch nicht geschehen, sichere deine Wiederherstellungsphrase in den Einstellungen: Ohne sie ist mit einem verlorenen Handy auch das Geld verloren.</string>
+    <string name="release_note_sorting_title">Geldscheine sortieren ist jetzt kostenlos</string>
+    <string name="release_note_sorting_body">„Kleine Geldscheine zusammenlegen“ wartet, bis sich ein paar angesammelt haben, und kostet so nichts.</string>
 </resources>

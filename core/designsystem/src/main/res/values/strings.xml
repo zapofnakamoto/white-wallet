@@ -25,4 +25,6 @@
     <string name="release_stage_beta">Beta</string>
     <string name="release_notice_alpha">This app is an alpha version: it is still being built and may have bugs.</string>
     <string name="release_notice_beta">This app is a beta version: it is still being tested and may have bugs.</string>
+    <string name="release_notes_title">What\'s new</string>
+    <string name="release_notes_done">Got it</string>
 </resources>

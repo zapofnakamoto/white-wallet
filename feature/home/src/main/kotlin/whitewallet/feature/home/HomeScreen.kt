@@ -69,6 +69,7 @@ import whitewallet.brand.ui.walletColors
 import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.ReleaseNotesSheet
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.formatAmount
@@ -112,8 +113,11 @@ fun HomeRoute(
     /** The brand's own pages, in the top bar's menu. */
     menu: List<HomeMenuItem> = emptyList(),
     viewModel: HomeViewModel = hiltViewModel(),
+    releaseNotes: ReleaseNotesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val unseenNotes by releaseNotes.unseen.collectAsStateWithLifecycle()
+    if (unseenNotes.isNotEmpty()) ReleaseNotesSheet(unseenNotes, onDone = releaseNotes::seen, onDismiss = releaseNotes::dismissed)
     LifecycleResumeEffect(viewModel) {
         viewModel.setVisible(true)
         onPauseOrDispose { viewModel.setVisible(false) }

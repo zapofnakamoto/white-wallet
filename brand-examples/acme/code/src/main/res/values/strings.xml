@@ -6,4 +6,8 @@
     <string name="about_acme_title">About Acme</string>
     <string name="about_acme_body">Acme Cash is pocket money on Lightning, kept by Acme for you. Keep amounts small.</string>
     <string name="about_acme_back">Back</string>
+    <string name="release_note_backup_title">Write down your recovery phrase</string>
+    <string name="release_note_backup_body">Acme can\'t restore your money for you. If you haven\'t yet, back up your recovery phrase in Settings: without it, a lost phone means lost money.</string>
+    <string name="release_note_sorting_title">Sorting banknotes is free now</string>
+    <string name="release_note_sorting_body">Combine small banknotes waits until a few have piled up, so sorting them costs nothing.</string>
 </resources>

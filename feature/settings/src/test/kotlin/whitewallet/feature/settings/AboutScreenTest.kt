@@ -9,8 +9,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
+import whitewallet.brand.ReleaseNote
 import whitewallet.brand.ReleaseStage
 import whitewallet.core.designsystem.LocalReleaseStage
+import whitewallet.core.designsystem.R as DesignR
 
 @RunWith(RobolectricTestRunner::class)
 class AboutScreenTest {
@@ -53,5 +55,23 @@ class AboutScreenTest {
         compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}) }
         compose.onNodeWithText("Beta").assertDoesNotExist()
         compose.onNodeWithText("This app is a beta version: it is still being tested and may have bugs.").assertDoesNotExist()
+    }
+
+    @Test
+    fun whatsNewListsEveryReleaseNote() {
+        // Any two strings stand in for a note's title and body.
+        val note = ReleaseNote("sample", DesignR.string.release_stage_alpha, DesignR.string.release_notice_alpha)
+        compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}, releaseNotes = listOf(note)) }
+        compose.onNodeWithText("This app is an alpha version: it is still being built and may have bugs.").assertDoesNotExist()
+        compose.onNodeWithText("What's new").performClick()
+        compose.onNodeWithText("This app is an alpha version: it is still being built and may have bugs.").assertExists()
+        compose.onNodeWithText("Got it").performClick()
+        compose.onNodeWithText("This app is an alpha version: it is still being built and may have bugs.").assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutReleaseNotesThereIsNoWhatsNew() {
+        compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}) }
+        compose.onNodeWithText("What's new").assertDoesNotExist()
     }
 }

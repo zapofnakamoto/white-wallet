@@ -5,6 +5,15 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Added
+
+- "What's new": release notes show once in a sheet on Home after the update that brings them, and stay listed under
+  About → What's new. Important notes (something to do, a coming change) show on a fresh install too, and come back at
+  every start until the user taps "Got it". White Wallet
+  has none yet. A brand binds its own list in its code module (`whitewallet.brand.ReleaseNotes`, see
+  docs/WHITE_LABEL.md, "Release notes"), which takes the place of White Wallet's. The sheet uses the brand's
+  `Sheet` and `Card`. New strings: `release_notes_title`, `release_notes_done`.
+
 ## [0.5.0]
 
 ### Added

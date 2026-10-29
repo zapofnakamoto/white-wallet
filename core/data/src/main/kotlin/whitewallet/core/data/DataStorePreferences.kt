@@ -91,6 +91,12 @@ internal class DataStorePreferences(
         prefs.edit { it[NOTES_SORT] = sort }
     }
 
+    override val seenReleaseNotes: Flow<Set<String>?> = prefs.data.map { it[SEEN_RELEASE_NOTES] }
+
+    override suspend fun setSeenReleaseNotes(ids: Set<String>) {
+        prefs.edit { it[SEEN_RELEASE_NOTES] = ids }
+    }
+
     override val appLock: Flow<Boolean> = prefs.data.map { it[APP_LOCK] ?: false }
 
     override suspend fun setAppLock(enabled: Boolean) {
@@ -148,6 +154,7 @@ internal class DataStorePreferences(
         private val NOTES_SORT = stringPreferencesKey("notes_sort")
         private val TRUSTED = stringSetPreferencesKey("trusted_mints")
         private val UNTRUSTED = stringSetPreferencesKey("untrusted_mints")
+        private val SEEN_RELEASE_NOTES = stringSetPreferencesKey("seen_release_notes")
         private fun autoRotateKey(accountId: String) = booleanPreferencesKey("auto_rotate_$accountId")
         private fun strategyKey(accountId: String) = stringPreferencesKey("note_strategy_$accountId")
         private fun collectKey(accountId: String) = booleanPreferencesKey("collect_at_home_$accountId")

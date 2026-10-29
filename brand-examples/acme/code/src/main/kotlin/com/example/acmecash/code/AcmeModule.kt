@@ -6,6 +6,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import whitewallet.brand.NoteStrategy
+import whitewallet.brand.ReleaseNote
+import whitewallet.brand.ReleaseNotes
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.BrandScreen
 
@@ -24,4 +26,13 @@ object AcmeModule {
     @Provides
     @IntoSet
     fun aboutAcme(): BrandScreen = AboutAcme()
+
+    /** Acme's own release notes, newest first, in place of White Wallet's. */
+    @Provides
+    fun releaseNotes(): ReleaseNotes = ReleaseNotes {
+        listOf(
+            ReleaseNote("backup-reminder", R.string.release_note_backup_title, R.string.release_note_backup_body, important = true),
+            ReleaseNote("free-sorting", R.string.release_note_sorting_title, R.string.release_note_sorting_body),
+        )
+    }
 }

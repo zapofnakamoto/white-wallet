@@ -360,7 +360,7 @@ own, a status light above the balance and an "About Acme" page in Settings.
 
 A brand can ship its own code without forking: a `code/` Gradle module in its brand directory is built into the app (settings.gradle.kts includes it as `:brand-code`). It sees only `core/brand-api`, the small set of interfaces a brand may implement, never the wallet itself, so the wallet's safety rules (spend secrets never stored in logs, no melt retried, every step journaled) hold for every brand, and updating to a new White Wallet release doesn't break brand code that sticks to the API.
 
-Today's extension point is the **note strategy** (`whitewallet.brand.NoteStrategy`): how an account keeps its notes on a mint. A strategy sees one mint's notes and its fee, and proposes steps (combine, split, rotate); the wallet checks and runs them and asks again, until the strategy is satisfied. Money never leaves the account through a strategy. `brand-examples/acme/code/` is a complete example ("Combine small notes"):
+One extension point is the **note strategy** (`whitewallet.brand.NoteStrategy`): how an account keeps its notes on a mint. A strategy sees one mint's notes and its fee, and proposes steps (combine, split, rotate); the wallet checks and runs them and asks again, until the strategy is satisfied. Money never leaves the account through a strategy. `brand-examples/acme/code/` is a complete example ("Combine small notes"):
 
 ```
 brand-examples/acme/code/
@@ -373,6 +373,20 @@ brand-examples/acme/code/
 A strategy may name its own steps for the home screen's loading screen (`workingText`, a string resource: "Sorting your banknotes…"); without, the screen says what each step does ("Combining your notes…").
 
 Then offer it in `brand.properties`: `notes.strategies=combine-small,single,manual` and `notes.strategy.default=combine-small`. A strategy's `id` is stored per account: never change it once released. A misconfigured brand (an unknown id, a default that isn't offered, two strategies with one id) fails on first start with a message naming the problem.
+
+### Release notes
+
+"What's new" (`whitewallet.brand.ReleaseNotes`) shows notes once, in a sheet on Home after the update that brings them, and lists them all under About → What's new. Each app has its own, since its releases and their numbers are its own: a brand that binds `ReleaseNotes` shows its list instead of White Wallet's, which it doesn't see. A `ReleaseNote` has an `id` (lowercase letters, digits, `-`; stored once seen, never reuse one), a `title` and `body` (string resources) and `important`. An important note is about what lies ahead, something to do or a coming change, so a fresh install shows it too, and it comes back at every start until the user taps "Got it"; an ordinary one only tells an updated user what changed, and swiping the sheet away is enough. The sheet and its cards are the brand's `Sheet` and `Card` (an important one with the `Warning` tone), so they take its design. Acme's example:
+
+```kotlin
+@Provides
+fun releaseNotes(): ReleaseNotes = ReleaseNotes {
+    listOf(  // newest first
+        ReleaseNote("backup-reminder", R.string.release_note_backup_title, R.string.release_note_backup_body, important = true),
+        ReleaseNote("free-sorting", R.string.release_note_sorting_title, R.string.release_note_sorting_body),
+    )
+}
+```
 
 Anything beyond the API (a different flow, a new place to decorate) needs a new extension point in `core/brand-api` or `core/brand-ui`: open an issue upstream rather than forking.
 
