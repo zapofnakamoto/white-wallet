@@ -55,7 +55,7 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 
 ### Naming the custodian and its notes, in any language
 
-The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them, 115 per language: 29 name the mint (5 of those the note as well) and 86 more the note. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. Developer options and search keywords are not brand terms.
+The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them, 120 per language: 30 name the mint (5 of those the note as well) and 90 more the note. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. Developer options and search keywords are not brand terms.
 
 #### The mint
 
@@ -314,6 +314,7 @@ releases don't break it; the parameter objects of components (`ButtonParams`, �
   | `OnboardingHeader` | above the setup form | `ic_brand_logo` |
   | `OnboardingTitle` | the app's name at setup | the name as a headline |
   | `HomeHeader` | above the balance | nothing |
+  | `Loading` | the home screen's loading screen, over the balance, notes and history while the wallet works for more than a moment (status `Working`) | a spinner, filling up while the notes are checked |
   | `HomeTitle` | the wallet tab's top bar | the app's name |
   | `ReceiveHeader` | above the address or invoice | nothing |
   | `ReceiveSuccess` | the screen after a payment arrived (status `PaymentReceived`) | a check mark that draws itself |
@@ -328,8 +329,10 @@ releases don't break it; the parameter objects of components (`ButtonParams`, �
 
 - **Status and events:** `context.status` (also `LocalWalletStatus`) is what the screen is about: `None`, `Idle`
   (money, nothing happening), `Empty`, `AwaitingPayment`, `WaitingForRecipient` (a handed-out note nobody has
-  redeemed yet), `PaymentReceived`, `Sending`, `Sent`, `Problem`
-  (`NotEnoughFunds`, `Offline`, `Other`). `WalletEvent`s (`PaymentReceived`, `PaymentSent`, `Problem`,
+  redeemed yet), `PaymentReceived`, `Sending`, `Sent`, `Working` (with a `WalletTask`: `Updating`, asking the mints
+  what changed; `CheckingNotes`, with how many are checked of how many; `Maintaining`, with its `MaintenanceStep`,
+  `Combining`, `Splitting`, `Renewing` or `MovingHome`, and the note strategy's id when the step is the strategy's),
+  `Problem` (`NotEnoughFunds`, `Offline`, `Other`). `WalletEvent`s (`PaymentReceived`, `PaymentSent`, `Problem`,
   `BackupDone`, `AccountCreated`, `NoteRedeemed` and `NoteTakenBack` for a handed-out note, whose `PaymentSent` came
   when it was handed out, and `NoteMaintenance` when a note strategy, auto-renew or collecting at the home mint looked
   after the notes by itself, once per run however many notes, with what it did and what that did to the balance) say what just happened anywhere in the app: collect `LocalWalletEvents` in a
@@ -351,10 +354,12 @@ Today's extension point is the **note strategy** (`whitewallet.brand.NoteStrateg
 ```
 brand-examples/acme/code/
   build.gradle.kts                    plugins { id("whitewallet.brand-code") }, android { namespace = "…" }
-  src/main/kotlin/…/CombineSmallNotes.kt the strategy: id, title, description, plan()
+  src/main/kotlin/…/CombineSmallNotes.kt the strategy: id, title, description, workingText, plan()
   src/main/kotlin/…/AcmeModule.kt     @Provides @IntoSet fun combineSmallNotes(): NoteStrategy = CombineSmallNotes()
   src/main/res/values*/strings.xml    its name and description, in every language the app ships
 ```
+
+A strategy may name its own steps for the home screen's loading screen (`workingText`, a string resource: "Sorting your banknotes…"); without, the screen says what each step does ("Combining your notes…").
 
 Then offer it in `brand.properties`: `notes.strategies=combine-small,single,manual` and `notes.strategy.default=combine-small`. A strategy's `id` is stored per account: never change it once released. A misconfigured brand (an unknown id, a default that isn't offered, two strategies with one id) fails on first start with a message naming the problem.
 

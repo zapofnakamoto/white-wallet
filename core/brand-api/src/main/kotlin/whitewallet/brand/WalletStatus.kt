@@ -31,6 +31,9 @@ sealed interface WalletStatus {
     /** A payment went out (or a note was handed out, or redeemed by its recipient). */
     data class Sent(val amountMsat: Long) : WalletStatus
 
+    /** The wallet works on [task] for a while; the screen shows that rather than figures about to change. */
+    data class Working(val task: WalletTask) : WalletStatus
+
     /** Something stopped the user: not enough money, no connection, or anything else. */
     data class Problem(val kind: ProblemKind) : WalletStatus
 }

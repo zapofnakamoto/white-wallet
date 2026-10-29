@@ -7,6 +7,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- Home no longer shows a balance of nothing, or figures about to change, while the wallet works: a loading screen
+  takes the place of the balance, notes and history once the work takes more than a moment, and says what the
+  wallet does: updating the balance, checking note 3 of 5, or the note maintenance step (combining, splitting,
+  renewing, moving money to the home mint). Quick work, and a refresh with nothing to ask a mint, leave the figures
+  on screen. Brands draw the loading screen at the new `Loading` anchor, with the new status
+  `WalletStatus.Working` and its `WalletTask`, and a note strategy can name its own steps (`NoteStrategy.workingText`).
 - Developers can make a note action fail on purpose to see its failure screens: in debug builds with developer mode
   on, a note's sheet offers, marked as for developers, to make the next change fail (no answer, refused, answer
   lost), used up by the next share, split, renew, combine, move or recheck. The wallet takes its real path, a lost answer included: the note stays open until a

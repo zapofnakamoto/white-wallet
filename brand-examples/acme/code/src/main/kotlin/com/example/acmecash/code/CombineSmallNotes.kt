@@ -12,6 +12,7 @@ class CombineSmallNotes : NoteStrategy {
     override val id = "combine-small"
     override val title = R.string.strategy_combine_small
     override val description = R.string.strategy_combine_small_hint
+    override val workingText = R.string.strategy_combine_small_working
     override val rotatesAddressNotes = true
 
     override fun plan(mint: MintNotes): List<NoteStep> {

@@ -1,10 +1,12 @@
 package whitewallet.core.wallet
 
 import kotlinx.coroutines.flow.first
+import whitewallet.brand.MaintenanceStep
 import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
 import whitewallet.brand.StrategyNote
+import whitewallet.brand.WalletTask
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalStatus
@@ -148,9 +150,15 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             // again with the notes as they are then. Refused notes are left out, so every round changes something.
             val outcome = steps.firstNotNullOfOrNull { step ->
                 when (step) {
-                    is NoteStep.Combine -> step.noteIds.distinct().mapNotNull { notes[it] }.takeIf { it.size >= 2 }?.let { combine(accountId, host, it.take(MAX_MERGE)) }
-                    is NoteStep.Split -> notes[step.noteId]?.takeIf { step.firstMsat in 1..it.amountMsat - fee - 1 }?.let { split(accountId, it, step.firstMsat, fee) }
-                    is NoteStep.Rotate -> notes[step.noteId]?.takeIf { it.purpose == NotePurpose.LightningAddress.value }?.let { rotate(accountId, it) }
+                    is NoteStep.Combine -> step.noteIds.distinct().mapNotNull { notes[it] }.takeIf { it.size >= 2 }?.let {
+                        wallet.working(WalletTask.Maintaining(MaintenanceStep.Combining, strategy.id)) { combine(accountId, host, it.take(MAX_MERGE)) }
+                    }
+                    is NoteStep.Split -> notes[step.noteId]?.takeIf { step.firstMsat in 1..it.amountMsat - fee - 1 }?.let {
+                        wallet.working(WalletTask.Maintaining(MaintenanceStep.Splitting, strategy.id)) { split(accountId, it, step.firstMsat, fee) }
+                    }
+                    is NoteStep.Rotate -> notes[step.noteId]?.takeIf { it.purpose == NotePurpose.LightningAddress.value }?.let {
+                        wallet.working(WalletTask.Maintaining(MaintenanceStep.Renewing, strategy.id)) { rotate(accountId, it) }
+                    }
                 }
             } ?: return run
             run = outcome.addTo(run)
@@ -228,7 +236,10 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         }
 
     private suspend fun rotateAddressNotes(accountId: String, host: String, run: PolicyRun): PolicyRun {
-        val r = rotator.rotateAll(accountId, host, NotePurpose.LightningAddress.value, automatic = true)
+        if (outstanding(accountId).none { it.host == host && it.purpose == NotePurpose.LightningAddress.value }) return run
+        val r = wallet.working(WalletTask.Maintaining(MaintenanceStep.Renewing)) {
+            rotator.rotateAll(accountId, host, NotePurpose.LightningAddress.value, automatic = true)
+        }
         return run.copy(rotated = run.rotated + r.rotated, failed = run.failed + r.failed, stoppedEarly = r.stoppedEarly)
     }
 
@@ -248,9 +259,11 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             if (open.any { it.type == OperationType.Melt && it.host == host }) continue
             if (wallet.collectBlockedUntil(accountId, host) > wallet.now()) continue
             var refused: NotCollected.Reason? = null
-            val result = NoteManager(wallet).move(accountId, notes.map { it.id }, policy.homeHost, automatic = true) { quote, notesMsat ->
-                val fee = notesMsat - quote.expectedMsat
-                (fee * 100 <= policy.feeCapPercent.toLong() * notesMsat).also { ok -> if (!ok) refused = NotCollected.Reason.FeeTooHigh(fee, policy.feeCapPercent) }
+            val result = wallet.working(WalletTask.Maintaining(MaintenanceStep.MovingHome)) {
+                NoteManager(wallet).move(accountId, notes.map { it.id }, policy.homeHost, automatic = true) { quote, notesMsat ->
+                    val fee = notesMsat - quote.expectedMsat
+                    (fee * 100 <= policy.feeCapPercent.toLong() * notesMsat).also { ok -> if (!ok) refused = NotCollected.Reason.FeeTooHigh(fee, policy.feeCapPercent) }
+                }
             }
             val total = notes.sumOf { it.amountMsat }
             run = when (result) {

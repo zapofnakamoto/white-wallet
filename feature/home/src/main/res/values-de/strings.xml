@@ -38,6 +38,16 @@
         <item quantity="other">%1$d Scheine erneuert</item>
     </plurals>
     <string name="notice_moved_home">%1$s zu deiner Haupt-Mint verschoben</string>
+    <!-- Home's loading screen, while the wallet works on the notes. -->
+    <!-- %1$d: the note being checked now, %2$d: how many notes there are. -->
+    <plurals name="home_working_checking_notes">
+        <item quantity="one">Dein Schein wird geprüft …</item>
+        <item quantity="other">Schein %1$d von %2$d wird geprüft …</item>
+    </plurals>
+    <string name="home_working_combining">Deine Scheine werden zusammengelegt …</string>
+    <string name="home_working_splitting">Deine Scheine werden geteilt …</string>
+    <string name="home_working_renewing">Deine Scheine werden erneuert …</string>
+    <string name="home_working_moving_home">Dein Geld wird zu deiner Haupt-Mint verschoben …</string>
 
     <string name="home_receive">Empfangen</string>
     <string name="home_send">Senden</string>
@@ -105,4 +115,7 @@
     <string name="notice_fees_back">Du hast %1$s an Gebühren zurückbekommen.</string>
     <string name="notice_fees_paid">Bezahlte Gebühren: %1$s.</string>
     <string name="notice_details">Details</string>
+
+    <!-- Home's loading screen: what the wallet is doing, shown instead of figures about to change. -->
+    <string name="home_working_updating">Dein Guthaben wird aktualisiert …</string>
 </resources>

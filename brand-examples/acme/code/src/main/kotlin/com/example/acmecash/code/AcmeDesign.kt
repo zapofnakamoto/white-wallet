@@ -48,7 +48,7 @@ import whitewallet.brand.ui.walletColors
 
 /**
  * Acme's design in code, on top of its resources (palette, corners): squarer primary buttons, square History icons,
- * a status light above the balance, and notes as banknotes (digital cash). Everything else is the app's default.
+ * a status light above the balance and in the loading screen's spinner, and notes as banknotes (digital cash). Everything else is the app's default.
  */
 object AcmeDesign : BrandDesign {
     override val components: BrandComponents = AcmeComponents
@@ -57,6 +57,10 @@ object AcmeDesign : BrandDesign {
     override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
         when (anchor) {
             Anchor.HomeHeader -> StatusLight(context.status)
+            Anchor.Loading -> Box(contentAlignment = Alignment.Center) {
+                default()
+                StatusLight(context.status)
+            }
             else -> default()
         }
     }
@@ -143,12 +147,13 @@ private fun Bill(status: NoteStatus, modifier: Modifier, corner: Dp, seal: Dp, f
     }
 }
 
-/** A small light: green with money, grey when empty, red when something is wrong. */
+/** A small light: green with money, amber while the wallet works, grey when empty, red when something is wrong. */
 @Composable
 private fun StatusLight(status: WalletStatus) {
     val target = when (status) {
         WalletStatus.Idle, is WalletStatus.PaymentReceived -> MaterialTheme.walletColors.success
         is WalletStatus.Problem -> MaterialTheme.colorScheme.error
+        is WalletStatus.Working -> MaterialTheme.walletColors.warning
         else -> MaterialTheme.colorScheme.outline
     }
     val color by animateColorAsState(target)

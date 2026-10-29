@@ -11,6 +11,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -30,6 +31,7 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.brand.NoteStrategy
 import whitewallet.brand.ReleaseStage
+import whitewallet.brand.WalletTask
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
@@ -183,6 +185,28 @@ class Wallet(
     private val collectBlocks = MutableStateFlow<Map<Pair<String, String>, Long>>(emptyMap())
     internal fun collectBlockedUntil(accountId: String, host: String): Long = collectBlocks.value[accountId to host] ?: 0
     internal fun blockCollect(accountId: String, host: String, untilMillis: Long) = collectBlocks.update { it + ((accountId to host) to untilMillis) }
+
+    private val _task = MutableStateFlow<WalletTask?>(null)
+
+    /**
+     * What the wallet works on right now that changes what the user sees (see [WalletTask]); null while it works on
+     * nothing that takes a mint's answer. Set by [refresh], [recheckNotes] and the note policies.
+     */
+    val task: StateFlow<WalletTask?> = _task.asStateFlow()
+
+    /**
+     * Runs [block] as [task], then goes back to what the wallet worked on before (a refresh around maintenance). Only
+     * under the lock, so tasks nest and never interleave.
+     */
+    internal suspend fun <T> working(task: WalletTask, block: suspend () -> T): T {
+        val before = _task.value
+        _task.value = task
+        try {
+            return block()
+        } finally {
+            _task.value = before
+        }
+    }
 
     /** The last time the active account's note policies changed something, if they have this session. */
     val lastPolicyRun: Flow<PolicyRun?> = combine(store.activeAccountId, _lastPolicyRun) { id, runs -> runs[id] }
@@ -554,23 +578,27 @@ class Wallet(
 
     /**
      * Refreshes (as on Home), then asks the mints about every outstanding note of the active account. A mint
-     * that doesn't answer is skipped for the rest of the run.
+     * that doesn't answer is skipped for the rest of the run. As [WalletTask.Updating] throughout, so the work never
+     * seems done between the two.
      */
-    suspend fun recheckNotes(): NotesCheck {
-        refresh()
-        return lock.withLock {
+    suspend fun recheckNotes(): NotesCheck = lock.withLock {
+        working(WalletTask.Updating) {
+            refreshUnderLock()
             var checked = 0
             var gone = 0
             val unreachable = mutableListOf<String>()
             val notes = store.notes(activeId()).first().filter(Note::isRecheckable)
-            for (note in notes) {
-                if (note.host in unreachable) continue
-                when (recheck(note.id)) {
-                    is NoteCheck.Ok -> checked++
-                    NoteCheck.Spent, NoteCheck.Unknown -> { checked++; gone++ }
-                    NoteCheck.Unreachable, is NoteCheck.KeyChanged -> unreachable += note.host
-                    // Only outstanding notes are checked here; the refresh above settled the confirming ones.
-                    NoteCheck.NotFound, NoteCheck.Landed, NoteCheck.NotLanded -> Unit
+            if (notes.isNotEmpty()) working(WalletTask.CheckingNotes(0, notes.size)) {
+                for ((i, note) in notes.withIndex()) {
+                    _task.value = WalletTask.CheckingNotes(i, notes.size)
+                    if (note.host in unreachable) continue
+                    when (recheck(note.id)) {
+                        is NoteCheck.Ok -> checked++
+                        NoteCheck.Spent, NoteCheck.Unknown -> { checked++; gone++ }
+                        NoteCheck.Unreachable, is NoteCheck.KeyChanged -> unreachable += note.host
+                        // Only outstanding notes are checked here; the refresh above settled the confirming ones.
+                        NoteCheck.NotFound, NoteCheck.Landed, NoteCheck.NotLanded -> Unit
+                    }
                 }
             }
             NotesCheck(checked, gone, unreachable)
@@ -638,8 +666,20 @@ class Wallet(
     /** Moves notes [ids] to the mint at [toHost]: melted here, minted there to a key of this account. */
     suspend fun moveToMint(ids: Collection<String>, toHost: String): MintMoveResult = lock.withLock { noteManager.move(ids, toHost) }
 
-    /** Settles unknown outcomes, then checks every account's address and scans for new notes. */
-    suspend fun refresh(): RefreshResult = lock.withLock {
+    /**
+     * Settles unknown outcomes, then checks every account's address and scans for new notes. As [WalletTask.Updating],
+     * unless no mint has anything to tell (no address, nothing open, no handed-out note).
+     */
+    suspend fun refresh(): RefreshResult = lock.withLock { refreshUnderLock() }
+
+    private suspend fun refreshUnderLock(): RefreshResult = if (asksMints()) working(WalletTask.Updating) { refreshLocked() } else refreshLocked()
+
+    private suspend fun asksMints(): Boolean = store.journal(UNSETTLED).isNotEmpty() || store.accounts.first().any { summary ->
+        val id = summary.account.id
+        summary.profile != null || store.addresses(id).first().isNotEmpty() || store.notes(id).first().any { it.state == NoteState.Shared }
+    }
+
+    private suspend fun refreshLocked(): RefreshResult {
         reconciler.reconcileAll()
         val active = store.currentAccountId()
         var result = RefreshResult(0, 0)
@@ -663,7 +703,7 @@ class Wallet(
             sender.reconcile(id)
             applyPolicies(id)
         }
-        result
+        return result
     }
 
     /**

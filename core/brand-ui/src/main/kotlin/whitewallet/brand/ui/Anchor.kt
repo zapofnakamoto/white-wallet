@@ -16,6 +16,14 @@ value class Anchor(val id: String) {
         /** Above the balance on the wallet tab. Default: nothing. */
         val HomeHeader = Anchor("home.header")
 
+        /**
+         * The picture on the home screen's loading screen, shown instead of the balance, notes and history while the
+         * wallet works on something that changes them for more than a moment (status
+         * [whitewallet.brand.WalletStatus.Working], with the task). The app says what it does below it. Default: a
+         * spinner, filling up while the notes are checked.
+         */
+        val Loading = Anchor("home.loading")
+
         /** The title of the wallet tab's top bar. Default: the app's name. */
         val HomeTitle = Anchor("home.title")
 

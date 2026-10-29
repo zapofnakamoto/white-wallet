@@ -33,6 +33,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
@@ -56,7 +59,10 @@ import whitewallet.core.designsystem.BrandTitle
 import whitewallet.core.designsystem.WithReleaseBadge
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.brand.ui.Anchor
+import whitewallet.brand.MaintenanceStep
 import whitewallet.brand.WalletStatus
+import whitewallet.brand.WalletTask
+import kotlinx.coroutines.delay
 import whitewallet.brand.ui.NavigationItem
 import whitewallet.core.designsystem.WalletNavigationBar
 import whitewallet.brand.ui.walletColors
@@ -82,6 +88,7 @@ import whitewallet.core.wallet.MaintenanceNotice
 import whitewallet.core.designsystem.WalletAssistChip
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletListItem
 
@@ -210,15 +217,20 @@ fun HomeScreen(
         },
     ) { padding ->
         val notes = notesTab?.takeIf { tab == HomeTab.Notes }
+        val cover = figuresCover(state.loaded, state.task)
         PullToRefreshBox(
-            isRefreshing = notes?.refreshing ?: state.refreshing,
+            isRefreshing = cover == null && (notes?.refreshing ?: state.refreshing),
             onRefresh = notes?.onRefresh ?: onRefresh,
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {
-            when (tab) {
-                HomeTab.Wallet -> WalletTab(state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenMint)
-                HomeTab.Notes -> notesTab?.content?.invoke()
-                HomeTab.History -> HistoryTab(state.activity, state.historyFilter, historyFilters, { historyFilters = it }, onOpenNote)
+            when {
+                cover is Cover.Working -> LoadingScreen(cover.task, state)
+                cover == Cover.Blank -> Box(Modifier.fillMaxSize())
+                else -> when (tab) {
+                    HomeTab.Wallet -> WalletTab(state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenMint)
+                    HomeTab.Notes -> notesTab?.content?.invoke()
+                    HomeTab.History -> HistoryTab(state.activity, state.historyFilter, historyFilters, { historyFilters = it }, onOpenNote)
+                }
             }
         }
     }
@@ -254,6 +266,88 @@ private fun tabItem(selected: Boolean, @DrawableRes icon: Int, @StringRes label:
     icon = { Icon(painterResource(icon), contentDescription = null) },
     label = { Text(stringResource(label)) },
 )
+
+/** What Home shows over its tabs instead of their figures; null: the figures. */
+private sealed interface Cover {
+    /** Not read yet, or about to change before they were ever shown: nothing, for a moment. */
+    data object Blank : Cover
+
+    /** The wallet has worked on [task] for a while: the loading screen. */
+    data class Working(val task: WalletTask) : Cover
+}
+
+/** How long work may run before the loading screen comes up: quick work only spins the pull-to-refresh indicator. */
+internal const val LOADING_GRACE_MILLIS = 400L
+
+/**
+ * Whether Home shows its figures. Work that takes a while ([task]) covers them with the loading screen, since they are
+ * about to change; quick work doesn't. Figures never shown yet aren't shown stale in the meantime.
+ */
+@Composable
+private fun figuresCover(loaded: Boolean, task: WalletTask?): Cover? {
+    var shown by remember { mutableStateOf(false) }
+    var late by remember { mutableStateOf(false) }
+    val busy = task != null
+    LaunchedEffect(busy) {
+        late = false
+        if (busy) {
+            delay(LOADING_GRACE_MILLIS)
+            late = true
+        }
+    }
+    val cover = when {
+        !loaded -> Cover.Blank
+        task != null && late -> Cover.Working(task)
+        task != null && !shown -> Cover.Blank
+        else -> null
+    }
+    if (cover == null) SideEffect { shown = true }
+    return cover
+}
+
+/** What the wallet works on, in the brand's picture ([Anchor.Loading]) and in words, instead of the figures. */
+@Composable
+private fun LoadingScreen(task: WalletTask, state: HomeState) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        Column(
+            // Scrollable, so the pull-to-refresh box around it gets the gestures it expects.
+            Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight).fillMaxWidth().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        ) {
+            WalletStatusScope(WalletStatus.Working(task)) {
+                BrandDecoration(Anchor.Loading) {
+                    val checking = task as? WalletTask.CheckingNotes
+                    WalletCircularProgress(Modifier.size(56.dp), progress = checking?.let { { it.checked.toFloat() / it.total.coerceAtLeast(1) } })
+                }
+            }
+            Text(
+                workingText(task, state),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+    }
+}
+
+/** What [task] is, in the user's language; maintenance the brand doesn't show (notes, mints) is updating the balance. */
+@Composable
+private fun workingText(task: WalletTask, state: HomeState): String {
+    val maintaining = task as? WalletTask.Maintaining
+    state.strategyText?.takeIf { maintaining != null && state.notesVisible }?.let { return stringResource(it) }
+    val words = when {
+        task is WalletTask.CheckingNotes -> return pluralStringResource(R.plurals.home_working_checking_notes, task.total, task.checked + 1, task.total)
+        maintaining == null || !state.notesVisible -> R.string.home_working_updating
+        else -> when (maintaining.step) {
+            MaintenanceStep.Combining -> R.string.home_working_combining
+            MaintenanceStep.Splitting -> R.string.home_working_splitting
+            MaintenanceStep.Renewing -> R.string.home_working_renewing
+            MaintenanceStep.MovingHome -> if (state.mintsVisible) R.string.home_working_moving_home else R.string.home_working_updating
+        }
+    }
+    return stringResource(words)
+}
 
 /** Balance, account and the two actions, centred; notices only when something needs the user. */
 @Composable

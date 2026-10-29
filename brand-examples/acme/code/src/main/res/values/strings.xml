@@ -2,6 +2,7 @@
 <resources>
     <string name="strategy_combine_small">Combine small banknotes</string>
     <string name="strategy_combine_small_hint">Combines small banknotes once a few have piled up and leaves large ones as they are. Free.</string>
+    <string name="strategy_combine_small_working">Sorting your banknotes…</string>
     <string name="about_acme_title">About Acme</string>
     <string name="about_acme_body">Acme Cash is pocket money on Lightning, kept by Acme for you. Keep amounts small.</string>
     <string name="about_acme_back">Back</string>

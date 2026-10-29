@@ -1,5 +1,7 @@
 package whitewallet.feature.home
 
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,7 +18,14 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.brand.MaintenanceStep
 import whitewallet.brand.ReleaseStage
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.WalletTask
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.model.Account
@@ -282,5 +291,110 @@ class HomeScreenTest {
         compose.onNodeWithText("Note maintenance").performClick()
         compose.onNodeWithText("Split a note in two").assertDoesNotExist()
         compose.onNodeWithText("Note maintenance").assertDoesNotExist()
+    }
+
+    /** Home with [state], changeable by the test while it is shown. */
+    private fun showLive(initial: HomeState): (HomeState) -> Unit {
+        var state by mutableStateOf(initial)
+        compose.setContent {
+            HomeScreen(
+                "Wallet", state, onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
+                onChangeAddress = {}, accountActions = AccountActions({}, {}, {}),
+            )
+        }
+        return { state = it }
+    }
+
+    @Test
+    fun aBalanceNotReadYetIsNotShownAsNothing() {
+        show(HomeState(loaded = false, activeAccountId = "a"))
+        compose.onNodeWithText("₿0").assertDoesNotExist()
+        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertDoesNotExist()
+    }
+
+    @Test
+    fun workThatTakesAWhileShowsTheLoadingScreenInsteadOfTheBalance() {
+        compose.mainClock.autoAdvance = false
+        val set = showLive(HomeState(activeAccountId = "a", balanceMsat = 845_000, task = WalletTask.Updating))
+        compose.mainClock.advanceTimeByFrame()
+        // Never shown yet: not shown stale either.
+        compose.onNodeWithText("₿845").assertDoesNotExist()
+        compose.onNodeWithText("Updating your balance…").assertDoesNotExist()
+        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.onNodeWithText("Updating your balance…").assertExists()
+        compose.onNodeWithText("₿845").assertDoesNotExist()
+
+        set(HomeState(activeAccountId = "a", balanceMsat = 900_000, task = WalletTask.Maintaining(MaintenanceStep.Combining, "single")))
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("Combining your notes…").assertExists()
+
+        set(HomeState(activeAccountId = "a", balanceMsat = 900_000))
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("Combining your notes…").assertDoesNotExist()
+        compose.onNodeWithText("₿900").assertExists()
+    }
+
+    @Test
+    fun quickWorkLeavesTheBalanceOnScreen() {
+        compose.mainClock.autoAdvance = false
+        val set = showLive(HomeState(activeAccountId = "a", balanceMsat = 845_000))
+        compose.mainClock.advanceTimeByFrame()
+        set(HomeState(activeAccountId = "a", balanceMsat = 845_000, task = WalletTask.Updating))
+        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS / 2)
+        compose.onNodeWithText("₿845").assertExists()
+        set(HomeState(activeAccountId = "a", balanceMsat = 845_000))
+        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS)
+        compose.onNodeWithText("Updating your balance…").assertDoesNotExist()
+        compose.onNodeWithText("₿845").assertExists()
+    }
+
+    @Test
+    fun checkingTheNotesCountsThemOff() {
+        compose.mainClock.autoAdvance = false
+        showLive(HomeState(task = WalletTask.CheckingNotes(2, 5)))
+        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.onNodeWithText("Checking note 3 of 5…").assertExists()
+    }
+
+    @Test
+    fun aStrategyNamesItsOwnSteps() {
+        compose.mainClock.autoAdvance = false
+        showLive(HomeState(task = WalletTask.Maintaining(MaintenanceStep.Splitting, "small"), strategyText = R.string.home_send))
+        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.onNodeWithText("Send").assertExists()
+        compose.onNodeWithText("Splitting your notes…").assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutNotesOrMintsMaintenanceIsUpdatingTheBalance() {
+        compose.mainClock.autoAdvance = false
+        val set = showLive(HomeState(task = WalletTask.Maintaining(MaintenanceStep.Combining, "single"), notesVisible = false))
+        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.onNodeWithText("Updating your balance…").assertExists()
+        set(HomeState(task = WalletTask.Maintaining(MaintenanceStep.MovingHome), mintsVisible = false))
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("Updating your balance…").assertExists()
+    }
+
+    @Test
+    fun aBrandDrawsTheLoadingScreenKnowingTheTask() {
+        val design = object : BrandDesign {
+            @Composable
+            override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                if (anchor == Anchor.Loading) Text("brand: ${context.status}") else default()
+            }
+        }
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design) {
+                HomeScreen(
+                    "Wallet", HomeState(task = WalletTask.Updating), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {},
+                    onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}),
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.onNodeWithText("brand: ${WalletStatus.Working(WalletTask.Updating)}", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Updating your balance…").assertExists()
     }
 }

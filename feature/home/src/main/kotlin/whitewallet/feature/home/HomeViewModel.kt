@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
+import whitewallet.brand.WalletTask
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.Profile
@@ -31,6 +32,15 @@ import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
 
 data class HomeState(
+    /** The wallet's figures have been read; until then Home shows none (rather than a balance of nothing). */
+    val loaded: Boolean = true,
+    /** What the wallet works on that changes the figures, if anything; Home shows it once it takes a while. */
+    val task: WalletTask? = null,
+    /** The note strategy's own words for its steps ([whitewallet.brand.NoteStrategy.workingText]), while they run. */
+    val strategyText: Int? = null,
+    /** The brand shows notes, and mints; without, maintenance that names them is told as updating the balance. */
+    val notesVisible: Boolean = true,
+    val mintsVisible: Boolean = true,
     val accounts: List<AccountSummary> = emptyList(),
     val activeAccountId: String? = null,
     val balanceMsat: Long = 0,
@@ -77,17 +87,22 @@ class HomeViewModel(
 ) : ViewModel() {
     @Inject constructor(wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults) : this(wallet, preferences, defaults, System::currentTimeMillis)
 
-    private val status = MutableStateFlow(HomeState(historyFilter = defaults.historyFilter))
+    private val status = MutableStateFlow(HomeState(historyFilter = defaults.historyFilter, notesVisible = defaults.notesView != NotesView.Hidden, mintsVisible = defaults.showMints))
 
     /** Whether Home is on screen, as the screen says ([setVisible]). */
     private var visible = false
 
     private val walletFlags = combine(wallet.backupVerified, wallet.addressStatus, preferences.balanceHidden, ::Triple)
-    private val accountInfo = combine(wallet.accounts, wallet.activeAccount, ::Pair)
+    private val work = combine(wallet.task, wallet.noteStrategy) { task, strategy ->
+        task to strategy.workingText?.takeIf { task is WalletTask.Maintaining && task.strategyId == strategy.id }
+    }
+    private val accountInfo = combine(wallet.accounts, wallet.activeAccount, work, ::Triple)
 
-    val state: StateFlow<HomeState> = combine(accountInfo, wallet.profile, wallet.activity, walletFlags, status) { (accounts, active), profile, activity, (backedUp, address, hidden), s ->
+    val state: StateFlow<HomeState> = combine(accountInfo, wallet.profile, wallet.activity, walletFlags, status) { (accounts, active, work), profile, activity, (backedUp, address, hidden), s ->
         val balance = active?.balanceMsat ?: 0
         s.copy(
+            task = work.first,
+            strategyText = work.second,
             accounts = accounts,
             activeAccountId = active?.account?.id,
             addressInactive = address == AddressStatus.Taken || address == AddressStatus.Available,
@@ -99,7 +114,7 @@ class HomeViewModel(
             canAddAccount = accounts.size < wallet.maxAccounts,
             showAccounts = wallet.maxAccounts > 1 || accounts.size > 1,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState(loaded = false))
 
     fun switchAccount(id: String) {
         viewModelScope.launch {

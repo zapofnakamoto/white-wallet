@@ -7,12 +7,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
+import whitewallet.brand.WalletTask
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.JournalStatus
 import whitewallet.lnurl.Bolt11
@@ -45,7 +49,17 @@ class NoAddressTest {
     }
 
     @Test
-    fun `a paid invoice mints a note to the account and shows in History`() = withMint(feeMsat = 1_000) { mint, store, wallet ->
+    fun `a refresh with nothing to ask a mint about isn't work to show`() = withMint { mint, _, wallet ->
+        wallet.createAccount(mint.host, "Main")
+        val seen = mutableListOf<WalletTask?>()
+        val watcher = CoroutineScope(Dispatchers.Unconfined).launch { wallet.task.collect { seen += it } }
+        wallet.refresh()
+        watcher.cancel()
+        assertEquals(listOf<WalletTask?>(null), seen)
+    }
+
+    @Test
+    fun `a paid invoice mints a note to the account and shows in History`()= withMint(feeMsat = 1_000) { mint, store, wallet ->
         wallet.createAccount(mint.host, "Main")
         val request = assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(21_000))
         assertEquals(21_000, Bolt11.decode(request.invoice)?.amountMsat)

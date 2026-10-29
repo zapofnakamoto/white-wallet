@@ -44,6 +44,16 @@
         <item quantity="other">Renewed %1$d notes</item>
     </plurals>
     <string name="notice_moved_home">Moved %1$s to your home mint</string>
+    <!-- Home's loading screen, while the wallet works on the notes. -->
+    <!-- %1$d: the note being checked now, %2$d: how many notes there are. -->
+    <plurals name="home_working_checking_notes">
+        <item quantity="one">Checking your note…</item>
+        <item quantity="other">Checking note %1$d of %2$d…</item>
+    </plurals>
+    <string name="home_working_combining">Combining your notes…</string>
+    <string name="home_working_splitting">Splitting your notes…</string>
+    <string name="home_working_renewing">Renewing your notes…</string>
+    <string name="home_working_moving_home">Moving your money to your home mint…</string>
 
     <string name="home_receive">Receive</string>
     <string name="home_send">Send</string>
@@ -115,4 +125,7 @@
     <string name="notice_fees_paid">Fees paid: %1$s.</string>
     <!-- Opens History with note maintenance shown. -->
     <string name="notice_details">Details</string>
+
+    <!-- Home's loading screen: what the wallet is doing, shown instead of figures about to change. -->
+    <string name="home_working_updating">Updating your balance…</string>
 </resources>

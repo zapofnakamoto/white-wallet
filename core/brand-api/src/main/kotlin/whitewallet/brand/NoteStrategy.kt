@@ -32,6 +32,12 @@ interface NoteStrategy {
      */
     val reshapesNotes: Boolean get() = true
 
+    /**
+     * String resource: what the home screen says while this strategy's steps run, e.g. "Getting small change
+     * ready…". Null: the step's own words ("Combining your notes…").
+     */
+    val workingText: Int? get() = null
+
     /** The next steps for one mint's notes; empty once they have the shape this strategy wants. */
     fun plan(mint: MintNotes): List<NoteStep>
 }
