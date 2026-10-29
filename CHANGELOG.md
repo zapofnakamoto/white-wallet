@@ -52,6 +52,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - The notes view's sort ("Largest first", "Newest first") orders the handed-out notes too; they were always newest
   first.
+- A handed-out note taken back is combined with the others straight away under "Keep only one note" (or the brand's
+  strategy), as when it is claimed back through its link; it stayed a note of its own until the next refresh, and the
+  base fee the merge pays back only showed then.
 - With `showMints=false`, the notes view no longer names mints: no mint headers, labels or totals (one mint's notes
   are a plain list, several mints' are separated by a line), no mint on a note or a shared note, no mint count, and an
   unanswered recheck says "No answer" without the mint.

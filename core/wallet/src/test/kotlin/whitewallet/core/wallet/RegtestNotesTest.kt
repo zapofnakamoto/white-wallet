@@ -81,6 +81,33 @@ class RegtestNotesTest {
     }
 
     @Test
+    fun `under keep only one note, a note taken back is combined again straight away, the split fee paid back`() = runBlocking<Unit> {
+        val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
+        alice.fund(3000)
+        val before = alice.balance()
+        val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000))
+        assertEquals(1_000, sent.feeMsat)
+
+        assertEquals(ReclaimResult.Reclaimed(1_000_000), alice.wallet.reclaimNote(sent.note.id))
+        assertEquals(before, alice.notes().single().amountMsat, "one note again, without a refresh; the merge refunds the split's base fee")
+        assertEquals(before, alice.balance())
+    }
+
+    @Test
+    fun `under keep only one note, a note claimed back through its own link is combined again straight away`() = runBlocking<Unit> {
+        val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
+        alice.fund(3000)
+        val before = alice.balance()
+        val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note
+
+        assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(assertNotNull(sent.link)))))
+        assertEquals(before, alice.notes().single().amountMsat)
+        assertEquals(SharedNoteState.Reclaimed, alice.wallet.sharedNote(sent.id)?.state)
+        assertEquals(emptyList(), alice.wallet.activity.first().filter { it.kind == ActivityKind.Claimed }, "taken back, not received")
+        assertEquals(0, alice.wallet.unresolvedOperations())
+    }
+
+    @Test
     fun `a note to send is quoted with the mint's split fee, and one bigger than any mint holds is refused`() = runBlocking<Unit> {
         val alice = Regtest.phone()
         alice.fund(2000, 3000)

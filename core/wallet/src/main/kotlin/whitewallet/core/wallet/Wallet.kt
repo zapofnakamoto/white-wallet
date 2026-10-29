@@ -406,7 +406,10 @@ class Wallet(
     suspend fun sharedNote(id: String): SharedNote? = sender.sharedNote(id)
 
     /** Takes back a sent note nobody has redeemed yet. */
-    suspend fun reclaimNote(id: String): ReclaimResult = lock.withLock { sender.reclaim(id) }
+    suspend fun reclaimNote(id: String): ReclaimResult = lock.withLock {
+        val accountId = activeId()
+        sender.reclaim(id).also { applyPolicies(accountId) }
+    }
 
     /** Every account's notes (spent ones too), for what concerns the whole device. */
     private val allNotes: Flow<List<Note>> = ofEveryAccount(store::notes)

@@ -17,6 +17,7 @@ import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.RejectionKind
+import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 
 /** An output key reserved for a mutation, with its journal reference. */
@@ -49,9 +50,9 @@ internal sealed interface MutationResult {
 }
 
 /**
- * The one safe path for spending the wallet's own key-path notes in a rotate, merge or split:
- * reserve outputs, journal before disclosing anything, send without transport retries, record the outcome, and
- * reconcile when the answer is lost.
+ * The one safe path for spending key-path notes in a rotate, merge or split: the wallet's own ([mutate]) or one
+ * handed over by a link ([rotateIn]). Reserve outputs, journal before disclosing anything, send without transport
+ * retries, record the outcome, and reconcile when the answer is lost.
  */
 internal class NoteMutator(private val wallet: Wallet) {
     private val guard = IndexGuard(wallet)
@@ -82,6 +83,31 @@ internal class NoteMutator(private val wallet: Wallet) {
         } catch (e: MintKeyChangedException) {
             return MutationResult.Unreachable(e.message)
         }
+        return run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputs.sumOf { it.amountMsat }, type, outputs, buildUrl)
+    }
+
+    /**
+     * Rotates a note handed over by a link ([spend], worth [amountMsat] as [info] says) into a fresh wallet key of
+     * [accountId]. The note may be one of this app's, sent as a link ([sent]): it is spent with it. The mint's key
+     * was checked against the pinned one when [info] was looked up.
+     */
+    suspend fun rotateIn(accountId: String, host: String, withdrawUrl: String, info: NoteInfo, spend: Spend, amountMsat: Long, sent: Note?): MutationResult =
+        run(accountId, host, withdrawUrl, info, listOf(spend), listOfNotNull(sent), amountMsat, OperationType.Rotate,
+            listOf(OutputSpec.Own(accountId, NotePurpose.Wallet))) { callback, k1s, outs -> Requests.rotate(callback, k1s.single(), outs.single().key) }
+
+    /** Sends the mutation, with fresh output keys while the mint says one is `already in use`. */
+    private suspend fun run(
+        fromId: String,
+        host: String,
+        withdrawUrl: String,
+        info: NoteInfo,
+        spends: List<Spend>,
+        inputs: List<Note>,
+        inputMsat: Long,
+        type: OperationType,
+        outputs: List<OutputSpec>,
+        buildUrl: (callback: String, k1s: List<String>, outputs: List<ReservedOutput>) -> String,
+    ): MutationResult {
         var attempt = 0
         while (true) {
             val reserved = outputs.map { spec ->
@@ -90,7 +116,7 @@ internal class NoteMutator(private val wallet: Wallet) {
                     is OutputSpec.External -> spec.keyAt(attempt).let { ReservedOutput(it, OutputRef.external(it.toHex())) }
                 }
             }
-            val result = send(fromId, host, mint.withdrawUrl, inputs, spends, type, reserved, info, buildUrl(info.callback, spends.map(Spend::k1), reserved))
+            val result = send(fromId, host, withdrawUrl, inputs, spends, inputMsat, type, reserved, info, buildUrl(info.callback, spends.map(Spend::k1), reserved))
             if (result is MutationResult.Refused && result.kind == RejectionKind.AlreadyInUse && attempt < IN_USE_RETRIES) {
                 attempt++
                 outputs.filterIsInstance<OutputSpec.Own>().distinct().forEach { guard.recover(it.accountId, host, it.purpose) }
@@ -105,14 +131,15 @@ internal class NoteMutator(private val wallet: Wallet) {
         host: String,
         withdrawUrl: String,
         inputs: List<Note>,
-        spends: List<Spend.KeyPath>,
+        spends: List<Spend>,
+        inputMsat: Long,
         type: OperationType,
         outputs: List<ReservedOutput>,
         info: NoteInfo,
         url: String,
     ): MutationResult {
         val created = wallet.now()
-        val entry = JournalEntry(UUID.randomUUID().toString(), fromId, type, host, withdrawUrl, inputs.map { it.id },
+        val entry = JournalEntry(UUID.randomUUID().toString(), fromId, type, host, withdrawUrl, spends.map { it.q.toHex() },
             spends.map(Spend::k1), outputs.map { it.ref }, url, JournalStatus.Prepared, null, created, created)
         wallet.store.putJournal(entry)
 
@@ -128,11 +155,10 @@ internal class NoteMutator(private val wallet: Wallet) {
                     is MutationOutcome.Confirmed -> outcome.certificate to outcome.changeCertificate
                     is MutationOutcome.Unverifiable -> outcome.certificate to outcome.changeCertificate
                 }
-                val total = inputs.sumOf { it.amountMsat }
                 val notes = outputs.mapIndexed { i, out ->
                     val cert = (if (i == 0) c else c2)?.let(Cs1::decode)?.takeIf { Certificates.verify(it, out.key, info.mintPubkey) }
                     // Without a certificate, fall back to what the inputs imply (fees may make this approximate).
-                    val amount = cert?.amountMsat ?: if (outputs.size == 1) total else 0L
+                    val amount = cert?.amountMsat ?: if (outputs.size == 1) inputMsat else 0L
                     Note(out.ref.q, out.ref.accountId, host, NoteKind.KeyPath, out.ref.purpose, out.ref.index, amount, cert?.encode(), NoteState.Outstanding, wallet.now())
                 }
                 // Someone else's outputs are reported to the caller but never stored as this wallet's notes.

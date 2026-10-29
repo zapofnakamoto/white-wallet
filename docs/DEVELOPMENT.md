@@ -165,7 +165,7 @@ Current developer pages:
 Output keys for the wallet's own purposes (0 wallet, 1 change) come from `IndexGuard.reserve`, which never hands out a key the wallet knows is used:
 - On an account's first use of a mint, the index is discovered first.
 - Keys the wallet already holds a note at are skipped.
-- If the mint still answers `already in use` (another device on the same seed), `NoteMutator` and the claim flow rediscover the index and retry with fresh keys.
+- If the mint still answers `already in use` (another device on the same seed), `NoteMutator` (which claims go through too) rediscovers the index and retries with fresh keys.
 
 ## Money-safety rules in the code
 
@@ -193,7 +193,7 @@ Tests: `Bolt11Test`, `PayPlannerTest`, `PayTest` (mock mint: exact, split, merge
 
 ## Note strategies
 
-How an account keeps its notes is a `NoteStrategy` (`core/brand-api`): given one mint's notes and its fee, it proposes steps (combine, split, rotate). `NotePolicyEngine` runs them after every refresh, claim, move and strategy change: one step per round, then it asks again with the notes as they are now, until the plan is empty (at most 50 rounds per mint and run). A step that doesn't apply (unknown note, impossible amount, rotating a wallet note) is skipped, notes the mint refused are left out of later rounds, and a mint that doesn't answer, or an outcome still pending, ends the run; the next refresh continues. Combines run in batches of 10. Auto-rotate is a separate switch, included in strategies that rotate themselves (`rotatesAddressNotes`).
+How an account keeps its notes is a `NoteStrategy` (`core/brand-api`): given one mint's notes and its fee, it proposes steps (combine, split, rotate). `NotePolicyEngine` runs them after every refresh, claim, take-back, move and strategy change: one step per round, then it asks again with the notes as they are now, until the plan is empty (at most 50 rounds per mint and run). A step that doesn't apply (unknown note, impossible amount, rotating a wallet note) is skipped, notes the mint refused are left out of later rounds, and a mint that doesn't answer, or an outcome still pending, ends the run; the next refresh continues. Combines run in batches of 10. Auto-rotate is a separate switch, included in strategies that rotate themselves (`rotatesAddressNotes`).
 
 Built in: `single` (`SingleNoteStrategy`, combine everything and rotate a lone incoming note) and `manual` (`ManualStrategy`). `NoteStrategies` holds what a build offers: every registered strategy (Hilt `Set<NoteStrategy>`: the built-ins from `WalletModule`, plus a brand's code module) narrowed to the brand's `noteStrategies` and `defaultNoteStrategy`, checked on start. Each account stores the id of its choice (`NotePolicies`); one the build no longer offers falls back to the default. Tests: `NoteStrategiesTest`, `CustomStrategyTest`, `NotePolicyTest`.
 
@@ -234,7 +234,7 @@ Send → "Create a note" (`feature/send/NoteScreens.kt`, `NoteSender` via `Walle
 - The note becomes `NoteState.Shared`: out of the balance, ignored by the note policies and the address scan. Its link, `lnurlw://<mint>/w?k1=<ck1>&amount=<msat>&c=<cs1>` (`NoteLink`), is never stored; it is re-derived from the seed whenever the note screen shows it.
 - The note screen (`note/{id}`) shows the QR code with the bearer warning, Share (system share sheet) and Copy (`SensitiveClipboard`: marked sensitive, cleared after 60 s). It is `SecureScreen` (no screenshots), and the QR code's accessibility description is a fixed text, never the link.
 - Redeemed: every refresh (and the open note screen, every 10 s) looks shared notes up by `p`; burned means redeemed (note spent, History row done).
-- Take back: lookup first (too late if burned), then a rotate to a fresh wallet key; the History row becomes `Cancelled` ("Taken back").
+- Take back: lookup first (too late if burned), then a rotate to a fresh wallet key; the History row becomes `Cancelled` ("Taken back"), and the note strategy runs, so under keep-one-note the note is merged back at once. Claiming the note through its own link does the same: a claim and a take-back are both a rotate in through `NoteMutator` (`mutate` for the wallet's own notes, `rotateIn` for a link's), and a shared note claimed into its own account counts as taken back.
 - History: one `SentNote` row per note, `note:<Q>` (`Activity.sentNoteId`); tapping it opens the note screen again (show the QR code again, or take it back).
 
 Tests: `SendNoteTest` (mock mint: split and share under keep-one-note, redeemed by a second wallet, exact note without fee, take back, impossible amounts) and `RegtestE2ETest` (redeemed by another wallet and taken back on the real mint).
