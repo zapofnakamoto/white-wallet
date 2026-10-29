@@ -256,17 +256,43 @@ class SharedNoteScreenTest {
                 }
             }
         }
+        var state by mutableStateOf(SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false))
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides card) {
-                SharedNoteScreen(
-                    SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false),
-                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
-                )
+                SharedNoteScreen(state, onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {})
             }
         }
         assertEquals(NoteFacePlace.Shared to true, seen.last())
         compose.onNodeWithText("Tap to show the QR code").performClick()
         compose.waitForIdle()
         assertEquals(NoteFacePlace.Shared to false, seen.last())
+        // Once redeemed there is no code, so nothing is covered either.
+        compose.onNodeWithText("Tap to show the QR code").assertDoesNotExist()
+        state = state.copy(note = note(SharedNoteState.Redeemed))
+        compose.waitForIdle()
+        assertEquals(NoteFacePlace.Shared to false, seen.last())
+    }
+
+    @Test
+    fun aClaimedNoteIsNeverCovered() {
+        val seen = mutableListOf<Boolean>()
+        val card = object : BrandDesign {
+            override val components = object : BrandComponents {
+                @Composable
+                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                    seen += params.qrCovered
+                    DefaultComponents.noteFace(params, modifier)
+                }
+            }
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides card) {
+                SharedNoteScreen(
+                    SharedNoteUiState(note = note(SharedNoteState.Redeemed), loading = false),
+                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+                )
+            }
+        }
+        assertEquals(listOf(false), seen.distinct())
     }
 }

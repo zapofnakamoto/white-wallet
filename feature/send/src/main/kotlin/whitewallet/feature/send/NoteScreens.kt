@@ -287,7 +287,8 @@ fun SharedNoteScreen(
                 return@ScreenColumn
             }
             WalletStatusScope(sharedNoteStatus(state, note)) { BrandDecoration(Anchor.NoteShared) }
-            val link = note.link
+            // The QR code only while it waits for its recipient; the app draws it, the brand may frame it.
+            val link = note.link?.takeIf { note.state == SharedNoteState.Waiting }
             val qrDescription = stringResource(R.string.note_qr_description)
             WalletNoteFace(
                 NoteFaceSize.Large,
@@ -298,15 +299,14 @@ fun SharedNoteScreen(
                     SharedNoteState.Reclaimed -> NoteStatus.TakenBack
                 },
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
-                // The QR code only while it waits for its recipient; the app draws it, the brand may frame it.
-                qrCode = link?.takeIf { note.state == SharedNoteState.Waiting }?.let { l ->
+                qrCode = link?.let { l ->
                     {
                         if (qrShown) QrCode(l, description = qrDescription)
                         else QrCodeCover(stringResource(R.string.note_qr_show), onReveal = { qrShown = true })
                     }
                 },
                 place = NoteFacePlace.Shared,
-                qrCovered = !qrShown,
+                qrCovered = link != null && !qrShown,
             )
             when (note.state) {
                 SharedNoteState.Waiting -> if (link != null) {

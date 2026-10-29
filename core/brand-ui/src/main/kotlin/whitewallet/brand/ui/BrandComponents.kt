@@ -325,13 +325,14 @@ class NoteFaceParams(
     /** False when it can't be selected or acted on right now (it is being paid, or the wallet is busy). */
     val enabled: Boolean = true,
     /**
-     * The note's QR code, on a handed-out note's page only, drawn by the app: place and frame it, never alter or cover
-     * it. On [NoteFaceSize.Large] the app writes the status, age and mint below the face; use them for its look, not to
-     * repeat them.
+     * The note's QR code while it waits for its recipient, on a handed-out note's page and on paper, drawn by the app:
+     * place and frame it, never alter or cover it. On the page it holds the app's cover until the user taps it
+     * ([qrCovered]). On [NoteFaceSize.Large] the app writes the status, age and mint below the face; use them for its
+     * look, not to repeat them.
      */
     val qrCode: (@Composable () -> Unit)? = null,
     val place: NoteFacePlace = NoteFacePlace.Wallet,
-    /** [qrCode] holds the cover over the code (`QrCodeCover`) until the user taps it; nothing to scan yet. */
+    /** [qrCode] holds the cover over the code (`QrCodeCover`) until the user taps it; nothing to scan yet. False without a [qrCode]. */
     val qrCovered: Boolean = false,
 )
 
@@ -518,8 +519,9 @@ object DefaultComponents : BrandComponents {
     /** A box in the surface variant colour, as large as the code, with the label in its middle. */
     @Composable
     fun qrCodeCover(params: QrCodeCoverParams, modifier: Modifier) {
+        // Clipped before the app's modifier, so the tap's ripple keeps the rounded corners.
         Box(
-            modifier.size(params.size).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceVariant),
+            Modifier.size(params.size).clip(MaterialTheme.shapes.medium).then(modifier).background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             Text(
