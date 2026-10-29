@@ -7,7 +7,31 @@ import whitewallet.brand.ReleaseStage
 import whitewallet.core.model.AmountUnit
 
 class AppDefaultsTest {
-    private val defaults = AppDefaults(defaultMintHost = "mint.example", allowMintChange = false)
+    private val defaults = AppDefaults(mintSuggestions = listOf("mint.example"), allowMintChange = false)
+
+    @Test
+    fun `without custom mints, only the suggested ones can be used`() {
+        val curated = defaults.copy(mintSuggestions = listOf("mint.example", "mint2.example:8443"), customMints = false)
+        assertEquals(true, curated.mintAllowed("https://Mint2.example:8443/"))
+        assertEquals(false, curated.mintAllowed("learned.example"))
+        assertEquals(true, defaults.mintAllowed("learned.example"))
+        assertEquals("mint.example", curated.defaultMintHost)
+    }
+
+    @Test
+    fun `another home is only possible with another allowed mint`() {
+        val single = defaults.copy(customMints = false)
+        assertEquals(false, single.otherMintsAllowed("mint.example"))
+        assertEquals(true, single.copy(mintSuggestions = listOf("mint.example", "mint2.example")).otherMintsAllowed("mint.example"))
+        assertEquals(true, defaults.otherMintsAllowed("mint.example"))
+    }
+
+    @Test
+    fun `users bring their own mint, but there must be one`() {
+        val own = AppDefaults(mintSuggestions = emptyList(), allowMintChange = true)
+        assertEquals("", own.defaultMintHost)
+        assertFailsWith<IllegalArgumentException> { AppDefaults(mintSuggestions = emptyList(), allowMintChange = true, customMints = false) }
+    }
 
     @Test
     fun `amounts show in bitcoin unless the user picks sats`() {

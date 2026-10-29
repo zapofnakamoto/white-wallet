@@ -15,7 +15,8 @@ val renamedKeys = mapOf(
     "appName" to "app.name", "applicationId" to "app.id", "versionCode" to "app.version.code", "versionName" to "app.version.name",
     "releaseStage" to "app.releaseStage", "appearance" to "app.appearance", "supportUrl" to "app.supportUrl",
     "developerOptions" to "developer.options",
-    "defaultMintHost" to "mints.default", "mintSuggestions" to "mints.suggestions", "allowMintChange" to "mints.changeable",
+    "defaultMintHost" to "mints.suggestions", "mints.default" to "mints.suggestions (its first entry)",
+    "mintSuggestions" to "mints.suggestions", "allowMintChange" to "mints.changeable",
     "showMints" to "mints.visible", "trustedMints" to "mints.trusted",
     "maxAccounts" to "accounts.max", "maxAddresses" to "addresses.max", "lightningAddress" to "addresses.lightning",
     "requireAddress" to "addresses.lightning=required|optional|none",
@@ -53,9 +54,13 @@ android {
         versionCode = brand("app.version.code").toInt()
         versionName = brand("app.version.name")
         resValue("string", "app_name", brand("app.name"))
-        buildConfigField("String", "DEFAULT_MINT_HOST", "\"${brand("mints.default")}\"")
+        // The mints offered at setup, the first preselected; without mints.custom, the only ones users can use.
+        val mintSuggestions = brand.getProperty("mints.suggestions", "").split(',').map(String::trim).filter(String::isNotEmpty)
+        val customMints = brand.getProperty("mints.custom", "true").trim().toBooleanStrict()
+        check(mintSuggestions.isNotEmpty() || customMints) { "brand.properties: mints.suggestions is empty and mints.custom=false, so there is no mint to set up with" }
+        buildConfigField("String", "MINT_SUGGESTIONS", "\"${mintSuggestions.joinToString(",")}\"")
+        buildConfigField("boolean", "CUSTOM_MINTS", customMints.toString())
         buildConfigField("boolean", "ALLOW_MINT_CHANGE", brand("mints.changeable"))
-        buildConfigField("String", "MINT_SUGGESTIONS", "\"${brand.getProperty("mints.suggestions", "").trim()}\"")
         buildConfigField("String", "SUPPORT_URL", "\"${brand("app.supportUrl")}\"")
         buildConfigField("String", "DEFAULT_AMOUNT_UNIT", "\"${brand.getProperty("amounts.unit.default", "bitcoin").trim()}\"")
         buildConfigField("String", "LIGHTNING_ADDRESS", "\"${brand.getProperty("addresses.lightning", "optional").trim()}\"")

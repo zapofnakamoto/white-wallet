@@ -28,7 +28,6 @@ sealed interface RestoreError {
 data class RestoreState(
     val phrase: String = "",
     val host: String,
-    val canChangeHost: Boolean,
     val mintOptions: List<MintOption> = emptyList(),
     val selectedMint: MintOption = MintOption.Custom,
     val customHost: String = "",
@@ -46,6 +45,8 @@ data class RestoreState(
 
     /** What to tell the user while they type (see [RecoveryPhrase.checkWhileTyping]). */
     val hint: PhraseCheck get() = RecoveryPhrase.checkWhileTyping(phrase)
+    /** The mint picker: when the brand offers more than one mint or lets users type one. */
+    val showMintPicker: Boolean get() = mintOptions.hasChoice()
     val canSubmit: Boolean get() = !busy && check is PhraseCheck.Valid && host.isNotBlank() && (!askAccountName || accountName.isNotBlank())
 }
 
@@ -55,7 +56,7 @@ class RestoreViewModel @Inject constructor(
     private val defaults: AppDefaults,
     private val preferences: AppPreferences,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(RestoreState(host = defaults.defaultMintHost, canChangeHost = defaults.allowMintChange))
+    private val _state = MutableStateFlow(RestoreState(host = defaults.defaultMintHost))
     val state: StateFlow<RestoreState> = _state
     private var initialized = false
     private var defaultAccountName = ""
@@ -72,7 +73,7 @@ class RestoreViewModel @Inject constructor(
                     val options = mintOptions(defaults, developerMode)
                     val selected = keepSelection(options, s.mintOptions, s.selectedMint, s.host)
                     s.copy(
-                        mintOptions = options, selectedMint = selected, developerMode = developerMode,
+                        mintOptions = options, selectedMint = selected, developerMode = developerMode, host = selected.host ?: s.host,
                         customHost = if (selected == MintOption.Custom) s.host else s.customHost,
                     )
                 }

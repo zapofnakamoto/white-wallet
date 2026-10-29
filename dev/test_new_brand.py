@@ -147,7 +147,7 @@ class BrandDirectoryTest(unittest.TestCase):
             expected |= {f"res/{q}/strings.xml" for q in nb.languages()}
             self.assertEqual(expected, {str(p.relative_to(out)) for p in out.rglob("*") if p.is_file()})
             props = (out / "brand.properties").read_text()
-            for line in ("app.name=Acme Cash", "app.id=com.acme.cash", "mints.changeable=false", "amounts.unit.default=sats", "amounts.unit.changeable=false", "app.supportUrl=https://mint.acme.com",
+            for line in ("app.name=Acme Cash", "app.id=com.acme.cash", "mints.custom=false", "mints.changeable=false", "mints.suggestions=mint.acme.com\n", "amounts.unit.default=sats", "amounts.unit.changeable=false", "app.supportUrl=https://mint.acme.com",
                          "addresses.lightning=none", "accounts.max=1", "addresses.max=0", "notes.strategies=manual\n", "notes.strategy.default=manual",
                          "notes.collect.atHomeMint=always", "notes.collect.feeCap=5", "notes.view=hidden", "history.filter=maintenance", "mints.visible=false", "developer.options=unlock",
                          "notes.actions=share,split,combine,recheck,renew,print\n", "app.releaseStage=auto", "mints.trusted=mint.example:02" + "ab" * 32):

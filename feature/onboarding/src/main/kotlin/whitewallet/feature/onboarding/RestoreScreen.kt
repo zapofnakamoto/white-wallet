@@ -91,7 +91,7 @@ fun RestoreScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            if (state.canChangeHost) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
+            if (state.showMintPicker) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
             state.error?.let { error ->
                 val message = when (error) {
                     is RestoreError.AlreadyInWallet -> stringResource(R.string.restore_error_already, error.accountName)

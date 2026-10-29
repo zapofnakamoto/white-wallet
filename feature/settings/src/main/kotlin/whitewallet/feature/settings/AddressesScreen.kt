@@ -67,7 +67,7 @@ data class AddressesState(
     val message: AddressesMessage? = null,
     /** The account's home mint, where new addresses are added. */
     val homeHost: String? = null,
-    /** The brand lets users pick other mints (`mints.changeable`), so addresses can be added on one too. */
+    /** The brand lets users pick other mints (`mints.changeable`) and allows one besides the home (`mints.custom`), so addresses can be added there too. */
     val otherMints: Boolean = false,
 ) {
     /** Addresses on the home mint (the primary address's), where new ones are added. */
@@ -99,7 +99,7 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
     private val limit = combine(preferences.developerMode, preferences.maxAddressesPerMint, defaults::addressLimit)
 
     val state: StateFlow<AddressesState> = combine(wallet.addresses, limit, ui, wallet.homeHost) { entries, limit, ui, home ->
-        AddressesState(entries, limit, ui.checking, ui.busy, ui.confirm, ui.message, home, defaults.allowMintChange)
+        AddressesState(entries, limit, ui.checking, ui.busy, ui.confirm, ui.message, home, defaults.allowMintChange && defaults.otherMintsAllowed(home))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState())
 
     init {

@@ -32,6 +32,7 @@
     <string name="notes_collect_search">Move everything to your provider</string>
     <string name="mints_intro">Trust a provider by its signing key: banknotes from trusted providers are marked with a check. If a provider ever signs with a different key, it is no longer trusted.</string>
     <string name="mints_add_field">Provider, e.g. example.com</string>
+    <string name="mints_add_offered_hint">Add one of these providers to trust it before you receive anything from there, or to make it your provider.</string>
     <string name="onboarding_tagline">Pocket money on Lightning.</string>
     <string name="claim_title">Claim a banknote</string>
     <string name="claim_input">Paste a banknote link</string>

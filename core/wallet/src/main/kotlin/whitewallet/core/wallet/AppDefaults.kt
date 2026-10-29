@@ -123,10 +123,15 @@ enum class AddressPolicy {
 }
 
 data class AppDefaults(
-    val defaultMintHost: String,
+    /**
+     * The mints offered at setup and restore (brand `mints.suggestions`), the first preselected; empty when users bring
+     * their own. Without [customMints], also the only mints that can be a home, hold an address or receive moved money.
+     */
+    val mintSuggestions: List<String>,
+    /** Whether users may change their mint after setup (brand `mints.changeable`): addresses elsewhere, a new home, moving money. */
     val allowMintChange: Boolean,
-    /** Mints offered in the onboarding dropdown, default first. */
-    val mintSuggestions: List<String> = listOf(defaultMintHost),
+    /** Whether users may use mints the brand doesn't suggest (brand `mints.custom`): type one at setup, add one, make it home. */
+    val customMints: Boolean = true,
     /** The local regtest mints, offered in developer mode in debug builds; empty in release builds. */
     val localDevMints: List<String> = emptyList(),
     /**
@@ -162,6 +167,27 @@ data class AppDefaults(
     /** How finished the app is (brand `app.releaseStage`), shown at setup and in About unless [ReleaseStage.Stable]. */
     val releaseStage: ReleaseStage = ReleaseStage.Stable,
 ) {
+    init {
+        require(mintSuggestions.isNotEmpty() || customMints) { "mints.suggestions is empty and mints.custom=false: no mint to set up with" }
+    }
+
+    /** The mint preselected at setup and restore; empty when users bring their own. */
+    val defaultMintHost: String get() = mintSuggestions.firstOrNull().orEmpty()
+
+    /**
+     * Whether [host] may be a home, hold an address or receive moved money: any mint with [customMints], else only the
+     * suggested ones (and the local regtest mints, which only debug builds have). Notes on any mint can still be claimed.
+     */
+    fun mintAllowed(host: String): Boolean {
+        if (customMints) return true
+        val h = Onboarding.normalizeHost(host) ?: return false
+        return (mintSuggestions + localDevMints).any { Onboarding.normalizeHost(it) == h }
+    }
+
+    /** Whether a mint other than [home] may become a home or hold an address: any with [customMints], else another suggested one. */
+    fun otherMintsAllowed(home: String?): Boolean =
+        customMints || (mintSuggestions + localDevMints).any { Onboarding.normalizeHost(it) != home?.let(Onboarding::normalizeHost) }
+
     /** The address limit in effect: the developer setting while developer mode is on (if set), else the brand's. */
     fun addressLimit(developerMode: Boolean, developerLimit: Int?): Int = developerLimit?.takeIf { developerMode } ?: maxAddresses
 

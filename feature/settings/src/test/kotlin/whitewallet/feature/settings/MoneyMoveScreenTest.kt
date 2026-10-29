@@ -93,6 +93,19 @@ class MoneyMoveScreenTest {
     }
 
     @Test
+    fun withoutCustomMintsMoneyOnlyGoesToSuggestedMints() {
+        val known = listOf("home.example", "mint2.example", "learned.example")
+        val allowed = { host: String -> host != "learned.example" }
+        assertEquals(listOf("mint2.example"), moveTargets(MoneyMoveMode.ChangeHome, known, "home.example", null, false, allowed))
+        assertEquals(
+            "away from a learned mint, home always counts",
+            listOf("home.example", "mint2.example"),
+            moveTargets(MoneyMoveMode.Move, known, "home.example", "learned.example", false, allowed),
+        )
+        assertEquals(listOf("mint2.example", "learned.example"), moveTargets(MoneyMoveMode.ChangeHome, known, "home.example", null, false) { true })
+    }
+
+    @Test
     fun movingAllMoneyHomeLetsTheUserChooseUnlessCollecting() {
         val state = MoneyMoveState(mode = MoneyMoveMode.MoveHome, targets = listOf("new.example"), target = "new.example", preview = preview)
         assertEquals(true, state.canChoose)

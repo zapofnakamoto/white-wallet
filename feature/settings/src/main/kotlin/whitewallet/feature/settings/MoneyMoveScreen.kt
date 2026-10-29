@@ -65,6 +65,7 @@ import whitewallet.core.wallet.MovePreview
 import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.MintMoveResult
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.Wallet
 
 /**
@@ -93,7 +94,7 @@ data class MoneyMoveState(
     val mode: MoneyMoveMode = MoneyMoveMode.ChangeHome,
     /** [MoneyMoveMode.Move]: the mint whose money moves. */
     val from: String? = null,
-    /** The mints the user knows (Settings → Mints) that can be picked; a new one is added there first. */
+    /** The mints the user knows (Settings → Mints) that can be picked (see [moveTargets]); a new one is added there first. */
     val targets: List<String> = emptyList(),
     val target: String? = null,
     /** [MoneyMoveMode.ChangeHome]: the account has a primary address, so it needs a name on the new home. */
@@ -131,7 +132,7 @@ data class MoneyMoveState(
 }
 
 @HiltViewModel
-class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
+class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {
     private val _state = MutableStateFlow(MoneyMoveState())
     val state: StateFlow<MoneyMoveState> = _state
     private var initialized = false
@@ -145,11 +146,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet) : ViewM
             val home = wallet.homeHost.first()
             val from = host.takeIf { mode == MoneyMoveMode.Move }
             val collects = wallet.collectAtHome.first()
-            // Known mints only, home first (as Settings → Mints lists them); never the one the money or account leaves.
-            // While the account collects, money only moves home: collecting would bring it back from anywhere else.
-            val targets = if (mode == MoneyMoveMode.MoveHome) listOfNotNull(home)
-            else wallet.mints.first().map { it.host }.filter { it != (if (mode == MoneyMoveMode.Move) from else home) }
-                .filter { mode == MoneyMoveMode.ChangeHome || !collects || it == home }
+            val targets = moveTargets(mode, wallet.mints.first().map { it.host }, home, from, collects, defaults::mintAllowed)
             val preset = host.takeIf { mode == MoneyMoveMode.ChangeHome && it in targets } ?: targets.firstOrNull()
             val profile = wallet.profile.first()
             _state.update {
@@ -520,3 +517,21 @@ private fun reason(problem: NoteProblem): String = stringResource(
         else -> R.string.money_reason_refused
     },
 )
+
+/**
+ * Where [mode] can take the money or the account: known mints only, home first (as Settings → Mints lists them), never
+ * the one the money or account leaves, and only mints the brand [allowed] (`mints.custom`). While the account collects,
+ * money only moves home: collecting would bring it back from anywhere else. Moving home is always to the home.
+ */
+internal fun moveTargets(
+    mode: MoneyMoveMode,
+    known: List<String>,
+    home: String?,
+    from: String?,
+    collects: Boolean,
+    allowed: (String) -> Boolean,
+): List<String> =
+    if (mode == MoneyMoveMode.MoveHome) listOfNotNull(home)
+    else known.filter { it != (if (mode == MoneyMoveMode.Move) from else home) }
+        .filter { mode == MoneyMoveMode.ChangeHome || !collects || it == home }
+        .filter { it == home || allowed(it) }

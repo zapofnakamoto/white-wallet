@@ -60,7 +60,10 @@ data class MintDetailsState(
     val loading: Boolean = true,
     val watchOnlyKey: String? = null,
     val showWatchOnly: Boolean = false,
-    /** The brand lets users change their home mint (`mints.changeable`): from its page, or to this one. */
+    /**
+     * This page offers changing the home mint (`mints.changeable`): on the home's, when there is another mint the brand
+     * allows (`mints.custom`); on another mint's, to it if the brand allows it.
+     */
     val canChangeHome: Boolean = false,
     /** The account collects at its home mint: money only moves home, so the home's page offers no move. */
     val collects: Boolean = false,
@@ -76,10 +79,10 @@ data class MintDetailsState(
 )
 
 @HiltViewModel
-class MintDetailsViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) : ViewModel() {
+class MintDetailsViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, private val defaults: AppDefaults) : ViewModel() {
     /** The mint to show: the route's `host`, else the account's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
-    private val _state = MutableStateFlow(MintDetailsState(canChangeHome = defaults.allowMintChange, device = savedState.get<Boolean>("device") ?: false))
+    private val _state = MutableStateFlow(MintDetailsState(device = savedState.get<Boolean>("device") ?: false))
     val state: StateFlow<MintDetailsState> = _state
 
     init {
@@ -101,7 +104,11 @@ class MintDetailsViewModel @Inject constructor(private val wallet: Wallet, saved
             val host = requestedHost ?: wallet.homeHost.first() ?: return@launch _state.update { it.copy(loading = false) }
             val details = wallet.mintDetails(host)
             val mint = wallet.mints.first().firstOrNull { it.host == details.host }
-            _state.update { it.copy(details = details, loading = false, watchOnlyKey = wallet.watchOnlyKey(details.host), mint = mint) }
+            val canChangeHome = defaults.allowMintChange &&
+                if (details.isHome) defaults.otherMintsAllowed(details.host) else defaults.mintAllowed(details.host)
+            _state.update {
+                it.copy(details = details, loading = false, watchOnlyKey = wallet.watchOnlyKey(details.host), mint = mint, canChangeHome = canChangeHome)
+            }
         }
     }
 

@@ -90,10 +90,9 @@ object WalletModule {
 
     @Provides
     fun defaults(): AppDefaults = AppDefaults(
-        defaultMintHost = BuildConfig.DEFAULT_MINT_HOST,
+        mintSuggestions = BuildConfig.MINT_SUGGESTIONS.split(',').map(String::trim).filter(String::isNotEmpty).distinct(),
         allowMintChange = BuildConfig.ALLOW_MINT_CHANGE,
-        mintSuggestions = (listOf(BuildConfig.DEFAULT_MINT_HOST) + BuildConfig.MINT_SUGGESTIONS.split(','))
-            .map(String::trim).filter(String::isNotEmpty).distinct(),
+        customMints = BuildConfig.CUSTOM_MINTS,
         localDevMints = BuildConfig.LOCAL_DEV_MINTS.split(',').map(String::trim).filter(String::isNotEmpty),
         simulatedFailures = BuildConfig.DEBUG,
         defaultAmountUnit = AmountUnit.fromConfig(BuildConfig.DEFAULT_AMOUNT_UNIT),

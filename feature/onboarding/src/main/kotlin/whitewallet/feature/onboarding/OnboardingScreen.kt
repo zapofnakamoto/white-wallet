@@ -256,7 +256,7 @@ private fun AddressForm(
             state.suggestions.forEach { name -> WalletSuggestionChip(onClick = { onSuggestion(name) }, label = { Text(name) }) }
         }
     }
-    if (state.canChangeHost) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
+    if (state.showMintPicker) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
     ErrorText(state)
     PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
 }
@@ -277,7 +277,7 @@ private fun SkipAddress(state: OnboardingState, onSkip: () -> Unit) {
 /** A new account without a Lightning address: the mint (when there is a choice) and the button. */
 @Composable
 private fun MintForm(state: OnboardingState, mint: MintActions, onStart: () -> Unit, submitLabel: String) {
-    if (state.canChangeHost) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
+    if (state.showMintPicker) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
     ErrorText(state)
     PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
 }

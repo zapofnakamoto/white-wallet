@@ -16,6 +16,7 @@
     <string name="notes_collect_search">Alles zur Haupt-Mint verschieben</string>
     <string name="mints_intro">Vertraue einer Mint anhand ihres Signaturschlüssels: Scheine von vertrauten Mints sind mit einem Haken markiert. Signiert eine Mint einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut.</string>
     <string name="mints_add_field">Mint, z. B. example.com</string>
+    <string name="mints_add_offered_hint">Füge eine dieser Mints hinzu, um ihr zu vertrauen, bevor du von dort etwas empfängst, oder um sie zu deiner Haupt-Mint zu machen.</string>
     <string name="mint_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Scheine dort sind unverändert.</string>
     <string name="settings_notes">Schein-Einstellungen</string>
     <string name="settings_note_list">Scheine</string>

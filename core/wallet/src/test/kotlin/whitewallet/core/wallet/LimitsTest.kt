@@ -49,7 +49,7 @@ class LimitsTest {
     fun `brand limits read 0 as no limit, and developer mode overrides addresses`() {
         assertEquals(AppDefaults.UNLIMITED, AppDefaults.limit(0))
         assertEquals(2, AppDefaults.limit(2))
-        val defaults = AppDefaults("mint.example", allowMintChange = true, maxAddresses = 3)
+        val defaults = AppDefaults(listOf("mint.example"), allowMintChange = true, maxAddresses = 3)
         assertEquals(3, defaults.addressLimit(developerMode = false, developerLimit = 10))
         assertEquals(10, defaults.addressLimit(developerMode = true, developerLimit = 10))
         assertEquals(3, defaults.addressLimit(developerMode = true, developerLimit = null), "not set: the brand's")

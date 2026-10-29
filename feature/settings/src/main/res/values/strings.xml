@@ -21,6 +21,7 @@
     <string name="notes_collect_search">Move everything to the home mint</string>
     <string name="mints_intro">Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted.</string>
     <string name="mints_add_field">Mint, e.g. example.com</string>
+    <string name="mints_add_offered_hint">Add one of these mints to trust it before you receive anything from there, or to make it your home mint.</string>
     <string name="mint_key_changed">%1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn\'t send or receive there. Your notes there are unchanged.</string>
     <string name="settings_notes">Note settings</string>
     <string name="settings_note_list">Notes</string>

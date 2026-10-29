@@ -7,6 +7,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- Brands can let users bring their own mint: an empty `mints.suggestions` offers no mint at setup, only the field to
+  type one. The new `mints.custom` (default `true`) decides whether users may use mints the brand doesn't suggest;
+  with `false`, only the suggested mints can be a home, hold an address or receive moved money (setup offers only
+  them, Settings → Mints adds one that's missing from them), while notes from any mint can still be claimed. One
+  suggestion without `mints.custom` is the brand's mint and nothing else. The mint picker at setup shows only when
+  there is a choice, and `mints.changeable` now only concerns what users may do after setup.
 - Developers can try the app on a bad connection: in debug builds with developer mode on, Developer options →
   Network makes every request to a mint slow (0.2 s), very slow (6 s) or flaky (up to 4 s, and one in five never
   reaches the mint). It stays set across restarts, so a cold start can be tried too, and the request log shows the
@@ -73,6 +79,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- Brands: `mints.default` is gone; the first of `mints.suggestions` is preselected instead, so a brand moves its
+  default there (a brand still setting `mints.default` fails the build with that hint). `mints.changeable=false` no
+  longer hides the mint picker at setup: one suggestion with `mints.custom=false` does.
 - A note stuck at "Confirming…" (a change whose answer never came) can be rechecked: the wallet asks the mint
   right away whether the change went through, instead of waiting for the next refresh, and says how it ended.
 - Splitting a note starts at half of what is left after the fee. A note too small for two notes of whole sats
@@ -93,6 +102,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- Setup can't go on without a mint: with an empty mint field, "Get started" stays off and the name isn't checked
+  against no mint.
 - A note's details and the account switcher scroll: on a small phone, or with many accounts, their lower part
   (hints, buttons) was cut off.
 - A note's details open at full height, and an action's outcome scrolls into view: a failed split or recheck said

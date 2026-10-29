@@ -81,6 +81,7 @@ data class OnboardingState(
     val username: String,
     /** The mint actually used: the selected option's host, or [customHost] for [MintOption.Custom]. */
     val host: String,
+    /** This step lets the user pick the mint; the picker shows when there is a choice (see [showMintPicker]). */
     val canChangeHost: Boolean,
     val mintOptions: List<MintOption> = emptyList(),
     val selectedMint: MintOption = MintOption.Custom,
@@ -109,8 +110,10 @@ data class OnboardingState(
 
     /** The address belongs to the active account (not to an account being created). */
     val forExistingAccount: Boolean get() = changingAddress || addingAddress || addingElsewhere || restoringAddress
-    val canSubmit: Boolean get() = !busy && (if (withAddress) addressOk else host.isNotBlank()) &&
-        (mode != OnboardingMode.NewAccount || accountName.isNotBlank()) && (mode != OnboardingMode.AddAddressElsewhere || host.isNotBlank())
+    /** The mint picker: when this step lets the user pick, and the brand offers more than one mint or lets them type one. */
+    val showMintPicker: Boolean get() = canChangeHost && mintOptions.hasChoice()
+    val canSubmit: Boolean get() = !busy && host.isNotBlank() && (!withAddress || addressOk) &&
+        (mode != OnboardingMode.NewAccount || accountName.isNotBlank())
     val canSkip: Boolean get() = canSkipAddress && !busy && host.isNotBlank() && (mode != OnboardingMode.NewAccount || accountName.isNotBlank())
     private val addressOk: Boolean get() = username.isNotBlank() && availability !is Availability.Taken && availability !is Availability.Invalid
 }
@@ -139,7 +142,7 @@ class OnboardingViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         OnboardingState(
-            UsernameSuggestions.random(), defaults.defaultMintHost, defaults.allowMintChange,
+            UsernameSuggestions.random(), defaults.defaultMintHost, canChangeHost = true,
             withAddress = defaults.address != AddressPolicy.None, canSkipAddress = defaults.address == AddressPolicy.Optional,
         ),
     )
@@ -162,7 +165,7 @@ class OnboardingViewModel @Inject constructor(
                 OnboardingMode.FirstRun -> suggestDefaultName()
                 OnboardingMode.NewAccount -> {
                     _state.update {
-                        it.copy(mode = mode, accountName = newAccountName, canChangeHost = defaults.allowMintChange, host = presetHost ?: it.host)
+                        it.copy(mode = mode, accountName = newAccountName, canChangeHost = true, host = presetHost ?: it.host)
                     }
                     suggestDefaultName()
                 }
@@ -172,7 +175,8 @@ class OnboardingViewModel @Inject constructor(
                 }
                 OnboardingMode.AddAddressElsewhere -> {
                     homeHost = wallet.homeHost.first()
-                    val other = mintOptions(defaults, preferences.developerMode.first()).firstNotNullOfOrNull { o -> o.host?.takeIf { it != homeHost } }
+                    known = wallet.mints.first().map { it.host }.filter(defaults::mintAllowed)
+                    val other = mintOptions(defaults, preferences.developerMode.first(), known).firstNotNullOfOrNull { o -> o.host?.takeIf { it != homeHost } }
                     // The same name as at home is the natural first try.
                     val name = wallet.profile.first()?.username.orEmpty()
                     _state.update { it.copy(mode = mode, host = other.orEmpty(), canChangeHost = true, withAddress = true, canSkipAddress = false, username = name) }
@@ -230,10 +234,21 @@ class OnboardingViewModel @Inject constructor(
     /** For [OnboardingMode.AddAddressElsewhere]: the home mint, left out of the choice. */
     private var homeHost: String? = null
 
-    private fun updateMintOptions(developerMode: Boolean) = _state.update { s ->
-        val options = mintOptions(defaults, developerMode).filter { it.host == null || it.host != homeHost }
-        val selected = keepSelection(options, s.mintOptions, s.selectedMint, s.host)
-        s.copy(mintOptions = options, selectedMint = selected, customHost = if (selected == MintOption.Custom) s.host else s.customHost)
+    /** For [OnboardingMode.AddAddressElsewhere]: the mints the user knows that the brand allows, offered first. */
+    private var known: List<String> = emptyList()
+
+    private fun updateMintOptions(developerMode: Boolean) {
+        val before = _state.value.host
+        _state.update { s ->
+            val options = mintOptions(defaults, developerMode, known).filter { it.host == null || it.host != homeHost }
+            val selected = keepSelection(options, s.mintOptions, s.selectedMint, s.host)
+            s.copy(
+                mintOptions = options, selectedMint = selected, host = selected.host ?: s.host,
+                customHost = if (selected == MintOption.Custom) s.host else s.customHost,
+            )
+        }
+        // A choice no longer offered (the custom mint, a local one) picks another mint: its name and availability follow.
+        if (_state.value.host != before) onHostChanged()
     }
 
     fun onAccountNameChange(value: String) = _state.update { it.copy(accountName = value) }
@@ -338,7 +353,7 @@ class OnboardingViewModel @Inject constructor(
             if (!immediately) delay(DEBOUNCE_MILLIS)
             val s = _state.value
             if (!s.withAddress) return@launch
-            if (s.username.isBlank()) {
+            if (s.username.isBlank() || s.host.isBlank()) {
                 _state.update { it.copy(availability = Availability.Idle, suggestions = emptyList()) }
                 return@launch
             }
@@ -378,14 +393,23 @@ class OnboardingViewModel @Inject constructor(
     }
 }
 
-/** The mint dropdown: the brand's suggestions, the local regtest mints in developer mode, and "Custom". */
-internal fun mintOptions(defaults: AppDefaults, developerMode: Boolean): List<MintOption> =
-    defaults.mintSuggestions.map(MintOption::Suggested) +
-        (if (developerMode) defaults.localDevMints.map(MintOption::LocalDev) else emptyList()) +
-        MintOption.Custom
+/**
+ * The mint dropdown: [known] mints first (adding an address elsewhere), then the brand's suggestions, the local regtest
+ * mints in developer mode, and "Custom" if the brand lets users type a mint (`mints.custom`). Each mint once.
+ */
+internal fun mintOptions(defaults: AppDefaults, developerMode: Boolean, known: List<String> = emptyList()): List<MintOption> {
+    val hosts = (known + defaults.mintSuggestions).distinct()
+    val local = if (developerMode) defaults.localDevMints.filter { it !in hosts }.map(MintOption::LocalDev) else emptyList()
+    return hosts.map(MintOption::Suggested) + local + listOfNotNull(MintOption.Custom.takeIf { defaults.customMints })
+}
 
-/** Keeps the current choice if it is still offered; otherwise picks the option for [host], or Custom. */
+/** Whether the dropdown is worth showing: more than one mint, or only "Custom" (users bring their own). */
+internal fun List<MintOption>.hasChoice(): Boolean = size > 1 || singleOrNull() == MintOption.Custom
+
+/** Keeps the current choice if it is still offered; otherwise picks the option for [host], Custom, or the first one. */
 internal fun keepSelection(options: List<MintOption>, before: List<MintOption>, selected: MintOption, host: String): MintOption =
     selected.takeIf { it in options && (it != MintOption.Custom || before.isNotEmpty()) }
         ?: options.firstOrNull { it.host == host }
+        ?: MintOption.Custom.takeIf { it in options }
+        ?: options.firstOrNull()
         ?: MintOption.Custom
