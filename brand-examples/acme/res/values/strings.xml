@@ -75,6 +75,28 @@
         <item quantity="one">%1$d banknote is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone.</item>
         <item quantity="other">%1$d banknotes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone.</item>
     </plurals>
+    <plurals name="notes_checked_unknown">
+        <item quantity="one">The provider doesn\'t know %1$d banknote. It\'s set aside, out of your balance, and your wallet asks again by itself.</item>
+        <item quantity="other">The provider doesn\'t know %1$d banknotes. They\'re set aside, out of your balance, and your wallet asks again by itself.</item>
+    </plurals>
+    <string name="notes_state_unknown">Unknown to the provider</string>
+    <string name="notes_state_unknown_detail">The provider says it doesn\'t know this banknote, so it isn\'t in your balance. Your wallet keeps it and asks the provider again by itself; once the provider knows it again, it\'s back in your balance.</string>
+    <plurals name="home_unknown_title">
+        <item quantity="one">%2$s doesn\'t know %1$d of your banknotes</item>
+        <item quantity="other">%2$s doesn\'t know %1$d of your banknotes</item>
+    </plurals>
+    <plurals name="home_unknown_title_unnamed">
+        <item quantity="one">Your provider doesn\'t know %1$d of your banknotes</item>
+        <item quantity="other">Your provider doesn\'t know %1$d of your banknotes</item>
+    </plurals>
+    <plurals name="home_unknown_body">
+        <item quantity="one">%1$s isn\'t in your balance for now. Your wallet keeps the banknote and asks the provider again by itself; once the provider knows it again, it\'s back.</item>
+        <item quantity="other">%1$s isn\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, they\'re back.</item>
+    </plurals>
+    <plurals name="home_unknown_body_hidden">
+        <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the banknote and asks the provider again by itself; once the provider knows it again, it\'s back.</item>
+        <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, they\'re back.</item>
+    </plurals>
     <string name="notes_already_spent">This banknote was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
     <string name="notes_empty">No banknotes yet. Banknotes appear here once you receive money.</string>
     <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your banknotes again on every refresh.</string>

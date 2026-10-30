@@ -103,6 +103,13 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `mints_intro` | Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted. |
 | `mints_add_field` | Mint, e.g. example.com |
 | `notice_moved_home` | Moved %1$s to your home mint |
+| `notes_checked_unknown` | The mint doesn't know %1$d note. It's set aside, out of your balance, and your wallet asks again by itself. / The mint doesn't know %1$d notes. They're set aside, out of your balance, and your wallet asks again by itself. (plural) |
+| `notes_state_unknown` | Unknown to the mint |
+| `notes_state_unknown_detail` | The mint says it doesn't know this note, so it isn't in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it's back in your balance. |
+| `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
+| `home_unknown_title_unnamed` | Your mint doesn't know %1$d of your notes / Your mint doesn't know %1$d of your notes (plural) |
+| `home_unknown_body` | %1$s isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it's back. / %1$s isn't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they're back. (plural) |
+| `home_unknown_body_hidden` | It isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it's back. / They aren't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they're back. (plural) |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 

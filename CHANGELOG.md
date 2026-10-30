@@ -16,7 +16,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   recheck reports such notes separately from spent ones. New `NoteState.Unknown` and `NoteStatus.Unknown` (a brand's
   note face may show it faded). New strings: `notes_state_unknown`, `notes_state_unknown_detail`,
   `notes_checked_unknown`, `home_unknown_title`, `home_unknown_title_unnamed`, `home_unknown_body`,
-  `home_unknown_body_hidden`, `home_unknown_action`. A brand that renames notes should override them.
+  `home_unknown_body_hidden`, `home_unknown_action`. All but `home_unknown_action` are brand terms, which a brand
+  that renames the mint or the note overrides.
 
 - "What's new": release notes show once in a sheet on Home after the update that brings them, and stay listed under
   About → What's new. Important notes (something to do, a coming change) show on a fresh install too, and come back at

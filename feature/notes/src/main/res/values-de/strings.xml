@@ -50,6 +50,8 @@
     <string name="notes_problem_invalid_amount">Dieser Schein ist zu klein zum Teilen, oder der Betrag passt nicht.</string>
     <string name="notes_problem_same_mint">Die Scheine sind schon dort.</string>
     <string name="notes_problem_mint_invalid">Diese Adresse kann keine Scheine verwahren.</string>
+    <string name="notes_state_unknown">Der Mint unbekannt</string>
+    <string name="notes_state_unknown_detail">Die Mint sagt, sie kennt diesen Schein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
 
     <string name="notes_waiting_total">%1$s verschickt, noch nicht eingelöst</string>
     <string name="notes_sort_largest">Größte zuerst</string>
@@ -77,8 +79,6 @@
     <string name="notes_state_paying">Wird bezahlt …</string>
     <string name="notes_state_ambiguous">Wird bestätigt …</string>
     <string name="notes_uncertified">Betrag nicht zertifiziert</string>
-    <string name="notes_state_unknown">Der Mint unbekannt</string>
-    <string name="notes_state_unknown_detail">Die Mint sagt, sie kennt diesen Schein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
     <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Zusammenlegen</string>
     <string name="notes_split">Teilen</string>

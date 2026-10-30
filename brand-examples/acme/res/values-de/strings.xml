@@ -75,6 +75,28 @@
         <item quantity="one">%1$d Geldschein ist nicht mehr da: Er wurde woanders ausgegeben, zum Beispiel mit dieser Wiederherstellungsphrase auf einem anderen Handy.</item>
         <item quantity="other">%1$d Geldscheine sind nicht mehr da: Sie wurden woanders ausgegeben, zum Beispiel mit dieser Wiederherstellungsphrase auf einem anderen Handy.</item>
     </plurals>
+    <plurals name="notes_checked_unknown">
+        <item quantity="one">Der Anbieter kennt %1$d Geldschein nicht. Er ist beiseitegelegt, nicht in deinem Guthaben, und deine Wallet fragt von selbst wieder.</item>
+        <item quantity="other">Der Anbieter kennt %1$d Geldscheine nicht. Sie sind beiseitegelegt, nicht in deinem Guthaben, und deine Wallet fragt von selbst wieder.</item>
+    </plurals>
+    <string name="notes_state_unknown">Dem Anbieter unbekannt</string>
+    <string name="notes_state_unknown_detail">Der Anbieter sagt, er kennt diesen Geldschein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <plurals name="home_unknown_title">
+        <item quantity="one">%2$s kennt %1$d deiner Geldscheine nicht</item>
+        <item quantity="other">%2$s kennt %1$d deiner Geldscheine nicht</item>
+    </plurals>
+    <plurals name="home_unknown_title_unnamed">
+        <item quantity="one">Dein Anbieter kennt %1$d deiner Geldscheine nicht</item>
+        <item quantity="other">Dein Anbieter kennt %1$d deiner Geldscheine nicht</item>
+    </plurals>
+    <plurals name="home_unknown_body">
+        <item quantity="one">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält den Geldschein und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück.</item>
+        <item quantity="other">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, sind sie zurück.</item>
+    </plurals>
+    <plurals name="home_unknown_body_hidden">
+        <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Geldschein und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück.</item>
+        <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, sind sie zurück.</item>
+    </plurals>
     <string name="notes_already_spent">Dieser Geldschein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
     <string name="notes_empty">Noch keine Geldscheine. Geldscheine erscheinen hier, sobald du Geld empfängst.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Geldscheine bei jedem Aktualisieren neu.</string>

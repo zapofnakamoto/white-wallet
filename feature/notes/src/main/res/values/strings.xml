@@ -55,6 +55,9 @@
     <string name="notes_problem_invalid_amount">This note is too small to split, or the amount doesn\'t fit.</string>
     <string name="notes_problem_same_mint">The notes are already there.</string>
     <string name="notes_problem_mint_invalid">That address can\'t hold notes.</string>
+    <!-- A note its mint says it doesn't know (the mint lost its records, or misbehaves). -->
+    <string name="notes_state_unknown">Unknown to the mint</string>
+    <string name="notes_state_unknown_detail">The mint says it doesn\'t know this note, so it isn\'t in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it\'s back in your balance.</string>
 
     <string name="notes_waiting_total">%1$s shared, not redeemed yet</string>
     <string name="notes_sort_largest">Largest first</string>
@@ -86,9 +89,6 @@
     <string name="notes_state_paying">Paying…</string>
     <string name="notes_state_ambiguous">Confirming…</string>
     <string name="notes_uncertified">Amount not certified</string>
-    <!-- A note its mint says it doesn't know (the mint lost its records, or misbehaves). -->
-    <string name="notes_state_unknown">Unknown to the mint</string>
-    <string name="notes_state_unknown_detail">The mint says it doesn\'t know this note, so it isn\'t in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it\'s back in your balance.</string>
     <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Combine</string>
     <string name="notes_split">Split</string>
