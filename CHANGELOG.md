@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.6.1]
+
 ### Fixed
 
 - A debug build of a brand in a repository of its own shows that repository's version beside the title, not White
