@@ -88,6 +88,23 @@
     <string name="home_address_inactive_title">Deine Adresse ist nicht aktiv</string>
     <string name="home_address_inactive_body">Zahlungen an %1$s erreichen diese Wallet nicht. Wähle eine neue Adresse, um weiter Zahlungen zu erhalten.</string>
     <string name="home_address_inactive_action">Neue Adresse wählen</string>
+    <plurals name="home_unknown_title">
+        <item quantity="one">%2$s kennt %1$d deiner Scheine nicht</item>
+        <item quantity="other">%2$s kennt %1$d deiner Scheine nicht</item>
+    </plurals>
+    <plurals name="home_unknown_title_unnamed">
+        <item quantity="one">Deine Mint kennt %1$d deiner Scheine nicht</item>
+        <item quantity="other">Deine Mint kennt %1$d deiner Scheine nicht</item>
+    </plurals>
+    <plurals name="home_unknown_body">
+        <item quantity="one">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält den Schein und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück.</item>
+        <item quantity="other">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, sind sie zurück.</item>
+    </plurals>
+    <plurals name="home_unknown_body_hidden">
+        <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Schein und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück.</item>
+        <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, sind sie zurück.</item>
+    </plurals>
+    <string name="home_unknown_action">Erneut prüfen</string>
     <string name="accounts_title">Konten</string>
     <string name="accounts_add">Konto hinzufügen</string>
     <string name="accounts_move">Guthaben verschieben</string>

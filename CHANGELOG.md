@@ -7,6 +7,17 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- A note the mint says it doesn't know (a mint that lost its records, or misbehaves) no longer stops the wallet. It
+  used to stay in the balance, so "keep only one note" stopped combining, and payments planned from it failed. Now,
+  when a mint refuses such a note, the wallet looks each note up and sets the unknown ones aside: out of the balance,
+  never spent, kept with their certificates. The other notes are combined and paid from as usual. Refreshes ask
+  the mint again (each refresh for a day, then once a day), and a note the mint knows again is back in the balance.
+  Home shows a warning per mint with "Check again", the notes view marks the note "Unknown to the mint", and a
+  recheck reports such notes separately from spent ones. New `NoteState.Unknown` and `NoteStatus.Unknown` (a brand's
+  note face may show it faded). New strings: `notes_state_unknown`, `notes_state_unknown_detail`,
+  `notes_checked_unknown`, `home_unknown_title`, `home_unknown_title_unnamed`, `home_unknown_body`,
+  `home_unknown_body_hidden`, `home_unknown_action`. A brand that renames notes should override them.
+
 - "What's new": release notes show once in a sheet on Home after the update that brings them, and stay listed under
   About → What's new. Important notes (something to do, a coming change) show on a fresh install too, and come back at
   every start until the user taps "Got it". White Wallet

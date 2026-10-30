@@ -15,6 +15,12 @@ enum class NoteState {
 
     /** Handed out as a link (sent as a note). Not in the balance; spent once someone redeems it, or once taken back. */
     Shared,
+
+    /**
+     * Held by this wallet, but its mint says it doesn't know the note (a mint that lost its records, or misbehaves).
+     * Not in the balance and never spent; kept with its certificate, and outstanding again once the mint knows it.
+     */
+    Unknown,
 }
 
 enum class NoteKind { KeyPath, Bearer }

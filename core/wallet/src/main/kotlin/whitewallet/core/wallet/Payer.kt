@@ -207,6 +207,13 @@ internal class Payer(private val wallet: Wallet) {
     }
 
     suspend fun pay(preview: PayPreview.Ready, amountMsat: Long, comment: String?): PayResult {
+        // A note the mint turned out not to know was set aside (see UnknownNotes): plan again without it.
+        repeat(MAX_PLANS - 1) { attempt(preview, amountMsat, comment)?.let { return it } }
+        return attempt(preview, amountMsat, comment) ?: PayResult.Failed(PayProblem.Refused)
+    }
+
+    /** One try at paying; null when a note was set aside before anything was paid. */
+    private suspend fun attempt(preview: PayPreview.Ready, amountMsat: Long, comment: String?): PayResult? {
         when (val quote = quote(preview, amountMsat)) {
             is PayQuote.Ok -> Unit
             is PayQuote.Unreachable -> return PayResult.Failed(PayProblem.NotExact)
@@ -232,7 +239,8 @@ internal class Payer(private val wallet: Wallet) {
                         counterparty = counterparty, journalId = made.journalId)
                     PayResult.Pending(amountMsat)
                 }
-                is MutationResult.Refused, is MutationResult.Unreachable -> made.toFailure()
+                is MutationResult.Refused -> if (made.setAside.isNotEmpty()) null else made.toFailure()
+                is MutationResult.Unreachable -> made.toFailure()
             }
         }
 
@@ -249,7 +257,8 @@ internal class Payer(private val wallet: Wallet) {
             is MutationResult.Done -> made.outputs.first()
             // Nothing is paid; the merge or split itself is settled by reconciliation on a later refresh.
             is MutationResult.Pending -> return PayResult.Failed(PayProblem.Unreachable)
-            is MutationResult.Refused, is MutationResult.Unreachable -> return made.toFailure()
+            is MutationResult.Refused -> return if (made.setAside.isNotEmpty()) null else made.toFailure()
+            is MutationResult.Unreachable -> return made.toFailure()
         }
         return melt(accountId, host, note, invoice, plan.feeMsat, counterparty)
     }
@@ -304,7 +313,7 @@ internal class Payer(private val wallet: Wallet) {
     }
 
     /** Melts [note] into [invoice] and records the payment in History (see [Melter]). */
-    private suspend fun melt(accountId: String, host: String, note: Note, invoice: Bolt11Invoice, feeMsat: Long, counterparty: String?): PayResult {
+    private suspend fun melt(accountId: String, host: String, note: Note, invoice: Bolt11Invoice, feeMsat: Long, counterparty: String?): PayResult? {
         val amount = note.amountMsat.takeIf { it > 0 } ?: invoice.amountMsat!!
         val outcome = Melter(wallet).melt(accountId, host, note, invoice.raw) { journalId ->
             log.record("pay:$journalId", accountId, ActivityKind.Sent, amount, host, ActivityStatus.Pending, feeMsat.takeIf { it > 0 }, counterparty, journalId = journalId)
@@ -315,6 +324,7 @@ internal class Payer(private val wallet: Wallet) {
             is MeltOutcome.PaymentFailed -> PayResult.Failed(PayProblem.PaymentFailed)
             is MeltOutcome.Refused -> PayResult.Failed(PayProblem.Refused)
             MeltOutcome.Unreachable -> PayResult.Failed(PayProblem.Unreachable)
+            MeltOutcome.NoteGone -> null
         }
     }
 
@@ -346,6 +356,8 @@ internal class Payer(private val wallet: Wallet) {
     }
 
     companion object {
+        /** Plans per payment: each one after the first follows notes set aside as unknown to their mint. */
+        private const val MAX_PLANS = 3
 
         /** `bitcoin:<address>?lightning=<invoice>` (BIP-21 with a Lightning fallback) to the invoice. */
         fun unwrapBip21(text: String): String {

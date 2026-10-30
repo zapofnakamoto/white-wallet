@@ -32,6 +32,9 @@ internal sealed interface MeltOutcome {
 
     /** Nothing was sent. */
     data object Unreachable : MeltOutcome
+
+    /** Nothing was sent: the mint doesn't know the note (or burned it), so it was set aside (see [UnknownNotes]). */
+    data object NoteGone : MeltOutcome
 }
 
 /**
@@ -45,6 +48,9 @@ internal class Melter(private val wallet: Wallet) {
         val spend = wallet.branch(accountId, host).spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, spendDomain(host))
         val info = try {
             wallet.client.noteInfo(mint.withdrawUrl, spend.k1).also { Pinning.check(wallet, mint, it.mintPubkey) }
+        } catch (e: NoteLookupError) {
+            if (e.kind in UnknownNotes.GONE && UnknownNotes(wallet).sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
+            return MeltOutcome.Unreachable
         } catch (e: Exception) {
             // Including a signing key other than the pinned one: nothing is paid through such a mint.
             return MeltOutcome.Unreachable

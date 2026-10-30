@@ -35,7 +35,8 @@ sealed interface KeyProbe {
 
 /**
  * Looks up one derived key and brings the wallet in line with the answer: an outstanding note the wallet does not
- * know is imported, and a note the wallet holds follows the mint's state (outstanding or spent).
+ * know is imported, and a note the wallet holds follows the mint's state (outstanding, spent, or unknown when the mint
+ * doesn't know it).
  */
 internal class KeyProber(private val wallet: Wallet) {
     suspend fun probe(id: KeyId, mint: Mint): KeyProbe {
@@ -48,7 +49,7 @@ internal class KeyProber(private val wallet: Wallet) {
             val pinned = Pinning.check(wallet, mint, info.mintPubkey)
             val certificate = info.certificate?.takeIf { Certificates.verify(it, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }
             val existing = wallet.store.note(noteId)
-            if (existing == null || existing.state == NoteState.Spent || existing.amountMsat != info.maxWithdrawableMsat) {
+            if (existing == null || existing.state == NoteState.Spent || existing.state == NoteState.Unknown || existing.amountMsat != info.maxWithdrawableMsat) {
                 wallet.store.upsertNotes(listOf(Note(noteId, id.accountId, id.host, NoteKind.KeyPath, id.purpose, id.index,
                     info.maxWithdrawableMsat, certificate?.encode() ?: existing?.certificate,
                     // A note handed out as a link stays out of the balance until it is redeemed or taken back.
@@ -59,13 +60,19 @@ internal class KeyProber(private val wallet: Wallet) {
         } catch (e: NoteLookupError) {
             when (e.kind) {
                 RejectionKind.Spent -> {
-                    wallet.store.note(noteId)?.takeIf { it.state == NoteState.Outstanding }?.let {
+                    wallet.store.note(noteId)?.takeIf { it.state == NoteState.Outstanding || it.state == NoteState.Unknown }?.let {
                         wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = now)))
                     }
                     ensureCounterPast(id)
                     KeyProbe.Spent(now)
                 }
-                RejectionKind.NoteUnknown -> KeyProbe.Unused(now)
+                RejectionKind.NoteUnknown -> {
+                    // A note the wallet holds that the mint doesn't know: out of the balance, kept until it knows it again.
+                    wallet.store.note(noteId)?.takeIf { it.state == NoteState.Outstanding }?.let {
+                        wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Unknown, updatedAtMillis = now)))
+                    }
+                    KeyProbe.Unused(now)
+                }
                 RejectionKind.RateLimited -> KeyProbe.Failed(e.reason ?: "rate limited", now)
                 else -> KeyProbe.Refused(e.reason, now)
             }

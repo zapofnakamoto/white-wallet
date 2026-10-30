@@ -96,6 +96,27 @@
     <string name="home_address_inactive_title">Your address isn\'t active</string>
     <string name="home_address_inactive_body">Payments to %1$s won\'t reach this wallet. Choose a new address to keep receiving.</string>
     <string name="home_address_inactive_action">Choose a new address</string>
+    <!-- A mint says it doesn't know some of the account's notes (it lost its records, or misbehaves). %1$d: how many, %2$s: the mint. -->
+    <plurals name="home_unknown_title">
+        <item quantity="one">%2$s doesn\'t know %1$d of your notes</item>
+        <item quantity="other">%2$s doesn\'t know %1$d of your notes</item>
+    </plurals>
+    <!-- The same, where mints aren't named (brand mints.visible=false). -->
+    <plurals name="home_unknown_title_unnamed">
+        <item quantity="one">Your mint doesn\'t know %1$d of your notes</item>
+        <item quantity="other">Your mint doesn\'t know %1$d of your notes</item>
+    </plurals>
+    <!-- %1$s: what the notes are worth. Plural by how many notes there are. -->
+    <plurals name="home_unknown_body">
+        <item quantity="one">%1$s isn\'t in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it\'s back.</item>
+        <item quantity="other">%1$s isn\'t in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they\'re back.</item>
+    </plurals>
+    <!-- The same while the balance is hidden: no amount. -->
+    <plurals name="home_unknown_body_hidden">
+        <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it\'s back.</item>
+        <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they\'re back.</item>
+    </plurals>
+    <string name="home_unknown_action">Check again</string>
     <string name="accounts_title">Accounts</string>
     <string name="accounts_add">Add account</string>
     <string name="accounts_move">Move funds</string>

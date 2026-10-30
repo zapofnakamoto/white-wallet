@@ -116,7 +116,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
 
     suspend fun apply(accountId: String, strategy: NoteStrategy, autoRotate: Boolean, collect: CollectPolicy? = null): PolicyRun {
-        val before = balance(accountId)
+        val start = balance(accountId)
         val unsettled = ambiguous(accountId)
         var run = PolicyRun(0, 0, 0, null, wallet.now())
         if (collect != null) run = collect(accountId, collect, run)
@@ -126,6 +126,9 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             if (run.stoppedEarly != null) break
         }
         val after = balance(accountId)
+        // A note set aside as unknown left the balance, but no step spent it: not a fee, nor a note replaced.
+        val unknown = wallet.store.notes(accountId).first().filter { it.state == NoteState.Unknown }.map { it.id }.toSet()
+        val before = start.filter { it.id !in unknown }
         // A step whose outcome is open took its notes out of the balance until it settles: no change to tell yet.
         val settled = ambiguous(accountId) == unsettled && run.collected.none { it.pending }
         val made = after.filter { note -> before.none { it.id == note.id } }
@@ -197,7 +200,8 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
                     feeMsat = ActivityLog.fee(inputs, r.outputs), noteCount = batch.size, automatic = true, journalId = r.journalId)
                 Outcome.Done(merged = batch.size)
             }
-            is MutationResult.Refused -> Outcome.Refused(batch.map { it.id })
+            // Notes the mint doesn't know are set aside; the others are combined in the next round.
+            is MutationResult.Refused -> Outcome.Refused(r.setAside.ifEmpty { batch.map { it.id } })
             is MutationResult.Unreachable -> Outcome.Stop(r.reason ?: "no answer", failed = true)
             is MutationResult.Pending -> {
                 log.record("op:${r.journalId}", accountId, ActivityKind.Combined, inputs, host, ActivityStatus.Pending,
@@ -273,8 +277,10 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
                     val reason = refused ?: when (result.problem) {
                         NoteProblem.BelowMinimum -> NotCollected.Reason.TooSmall(result.limitMsat)
                         else -> NotCollected.Reason.Failed(result.problem).also {
-                            // A payment attempt that failed (or a refusal) waits; an unreachable mint is just asked again.
-                            if (result.problem != NoteProblem.Unreachable) wallet.blockCollect(accountId, host, wallet.now() + COLLECT_COOLDOWN_MILLIS)
+                            // A payment attempt that failed (or a refusal) waits; an unreachable mint is just asked again,
+                            // and so is one that refused a note it doesn't know (set aside now: the others can go).
+                            val setAside = notes.any { wallet.store.note(it.id)?.state == NoteState.Unknown }
+                            if (result.problem != NoteProblem.Unreachable && !setAside) wallet.blockCollect(accountId, host, wallet.now() + COLLECT_COOLDOWN_MILLIS)
                         }
                     }
                     run.copy(notCollected = run.notCollected + NotCollected(host, total, reason))

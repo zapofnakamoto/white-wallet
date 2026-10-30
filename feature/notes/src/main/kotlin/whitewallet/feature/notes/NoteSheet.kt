@@ -93,6 +93,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                     when {
                         note.state == NoteState.Paying -> R.string.notes_state_paying
                         note.state == NoteState.Ambiguous -> R.string.notes_state_ambiguous
+                        note.state == NoteState.Unknown -> R.string.notes_state_unknown_detail
                         note.certificate != null -> R.string.notes_certified
                         else -> R.string.notes_uncertified
                     },

@@ -27,6 +27,10 @@
         <item quantity="one">%1$d Schein ist nicht mehr da: Er wurde woanders ausgegeben, zum Beispiel mit dieser Wiederherstellungsphrase auf einem anderen Handy.</item>
         <item quantity="other">%1$d Scheine sind nicht mehr da: Sie wurden woanders ausgegeben, zum Beispiel mit dieser Wiederherstellungsphrase auf einem anderen Handy.</item>
     </plurals>
+    <plurals name="notes_checked_unknown">
+        <item quantity="one">Die Mint kennt %1$d Schein nicht. Er ist beiseitegelegt, nicht in deinem Guthaben, und deine Wallet fragt von selbst wieder.</item>
+        <item quantity="other">Die Mint kennt %1$d Scheine nicht. Sie sind beiseitegelegt, nicht in deinem Guthaben, und deine Wallet fragt von selbst wieder.</item>
+    </plurals>
     <string name="notes_already_spent">Dieser Schein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
     <string name="notes_empty">Noch keine Scheine. Scheine erscheinen hier, sobald du Geld empfängst.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Scheine bei jedem Aktualisieren neu.</string>
@@ -73,6 +77,8 @@
     <string name="notes_state_paying">Wird bezahlt …</string>
     <string name="notes_state_ambiguous">Wird bestätigt …</string>
     <string name="notes_uncertified">Betrag nicht zertifiziert</string>
+    <string name="notes_state_unknown">Der Mint unbekannt</string>
+    <string name="notes_state_unknown_detail">Die Mint sagt, sie kennt diesen Schein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
     <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Zusammenlegen</string>
     <string name="notes_split">Teilen</string>

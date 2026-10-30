@@ -97,6 +97,10 @@ class Wallet(
     private val invoices = InvoiceReceiver(this)
     private val mintInspector = MintInspector(this)
     private val _lastPolicyRun = MutableStateFlow<Map<String, PolicyRun>>(emptyMap())
+    private val unknownNotes = UnknownNotes(this)
+
+    /** When each unknown note was last asked about, since the app started (see [UnknownNotes.recheckDue]). */
+    internal val unknownCheckedAt = mutableMapOf<String, Long>()
 
     /**
      * Lookups that got no answer this session. Not saved: they say nothing about the key, so the last real answer
@@ -471,15 +475,17 @@ class Wallet(
     }
 
     /**
-     * The active account's mints: its home, then every mint where it has money or a Lightning address, by host; with its
-     * money there. What the account can do there (change home, move money) starts from here.
+     * The active account's mints: its home, then every mint where it has money (or notes it doesn't know) or a Lightning
+     * address, by host; with its money there. What the account can do there (change home, move money) starts from here.
      */
     val accountMints: Flow<List<AccountMint>> = combine(homeHost, notes, ofActive(emptyList(), store::addresses), trustedHosts()) { home, notes, addresses, trusted ->
         val live = notes.filter { it.state == NoteState.Outstanding }
-        (listOfNotNull(home) + live.map { it.host } + addresses.map { it.host }).distinct().map { host ->
+        val unknown = notes.filter { it.state == NoteState.Unknown }
+        (listOfNotNull(home) + live.map { it.host } + unknown.map { it.host } + addresses.map { it.host }).distinct().map { host ->
             AccountMint(
                 host, isHome = host == home, balanceMsat = live.filter { it.host == host }.sumOf { it.amountMsat },
                 noteCount = live.count { it.host == host }, addresses = addresses.count { it.host == host }, trusted = host in trusted,
+                unknownCount = unknown.count { it.host == host }, unknownMsat = unknown.filter { it.host == host }.sumOf { it.amountMsat },
             )
         }.sortedWith(compareBy({ !it.isHome }, { it.host }))
     }
@@ -586,27 +592,30 @@ class Wallet(
             refreshUnderLock()
             var checked = 0
             var gone = 0
+            var unknown = 0
             val unreachable = mutableListOf<String>()
-            val notes = store.notes(activeId()).first().filter(Note::isRecheckable)
+            val notes = store.notes(activeId()).first().filter { it.isRecheckable() || it.isUnknown() }
             if (notes.isNotEmpty()) working(WalletTask.CheckingNotes(0, notes.size)) {
                 for ((i, note) in notes.withIndex()) {
                     _task.value = WalletTask.CheckingNotes(i, notes.size)
                     if (note.host in unreachable) continue
                     when (recheck(note.id)) {
                         is NoteCheck.Ok -> checked++
-                        NoteCheck.Spent, NoteCheck.Unknown -> { checked++; gone++ }
+                        NoteCheck.Spent -> { checked++; gone++ }
+                        // One set aside before is as it was: nothing to tell.
+                        NoteCheck.Unknown -> if (!note.isUnknown()) { checked++; unknown++ }
                         NoteCheck.Unreachable, is NoteCheck.KeyChanged -> unreachable += note.host
                         // Only outstanding notes are checked here; the refresh above settled the confirming ones.
                         NoteCheck.NotFound, NoteCheck.Landed, NoteCheck.NotLanded -> Unit
                     }
                 }
             }
-            NotesCheck(checked, gone, unreachable)
+            NotesCheck(checked, gone, unreachable, unknown)
         }
     }
 
     private suspend fun recheck(id: String): NoteCheck {
-        val note = store.note(id)?.takeIf { it.accountId == activeId() && (it.isRecheckable() || it.isConfirming()) } ?: return NoteCheck.NotFound
+        val note = store.note(id)?.takeIf { it.accountId == activeId() && (it.isRecheckable() || it.isUnknown() || it.isConfirming()) } ?: return NoteCheck.NotFound
         if (store.mint(note.host) == null) return NoteCheck.Unreachable
         // A recheck only asks: whatever failure a developer armed, it goes unanswered.
         if (SimulatedFailure.takeAny()) return NoteCheck.Unreachable
@@ -622,6 +631,32 @@ class Wallet(
             is KeyProbe.Unused -> NoteCheck.Unknown
             is KeyProbe.Refused, is KeyProbe.Failed -> NoteCheck.Unreachable
         }
+    }
+
+    /**
+     * Asks the mints again, now, about the active account's notes they said they don't know ([NoteState.Unknown]); one
+     * they know again is back in the balance. [NotesCheck.checked] counts those, [NotesCheck.unknown] those still unknown.
+     */
+    suspend fun recheckUnknownNotes(): NotesCheck = lock.withLock {
+        val notes = store.notes(activeId()).first().filter { it.isUnknown() }
+        if (notes.isEmpty()) return@withLock NotesCheck(0, 0, emptyList())
+        working(WalletTask.CheckingNotes(0, notes.size)) {
+            var back = 0
+            var still = 0
+            val unreachable = mutableListOf<String>()
+            for ((i, note) in notes.withIndex()) {
+                _task.value = WalletTask.CheckingNotes(i, notes.size)
+                if (note.host in unreachable) continue
+                unknownCheckedAt[note.id] = now()
+                when (recheck(note.id)) {
+                    is NoteCheck.Ok -> back++
+                    NoteCheck.Unknown -> still++
+                    NoteCheck.Unreachable, is NoteCheck.KeyChanged -> unreachable += note.host
+                    NoteCheck.Spent, NoteCheck.NotFound, NoteCheck.Landed, NoteCheck.NotLanded -> Unit
+                }
+            }
+            NotesCheck(back, 0, unreachable, still)
+        }.also { if (it.checked > 0) applyPolicies(activeId()) }
     }
 
     /**
@@ -676,7 +711,7 @@ class Wallet(
 
     private suspend fun asksMints(): Boolean = store.journal(UNSETTLED).isNotEmpty() || store.accounts.first().any { summary ->
         val id = summary.account.id
-        summary.profile != null || store.addresses(id).first().isNotEmpty() || store.notes(id).first().any { it.state == NoteState.Shared }
+        summary.profile != null || store.addresses(id).first().isNotEmpty() || store.notes(id).first().any { it.state == NoteState.Shared || it.state == NoteState.Unknown }
     }
 
     private suspend fun refreshLocked(): RefreshResult {
@@ -685,6 +720,7 @@ class Wallet(
         var result = RefreshResult(0, 0)
         for (summary in store.accounts.first()) {
             val id = summary.account.id
+            unknownNotes.recheckDue(id)
             // Without an address there's nothing to check or scan; notes arrive by claim or invoice.
             val profile = summary.profile
             if (profile == null && requireAddress) continue
@@ -972,11 +1008,17 @@ sealed interface NoteCheck {
     data object NotFound : NoteCheck
 }
 
-/** What [Wallet.recheckNotes] found: notes still there, notes gone, and mints that didn't answer. */
-data class NotesCheck(val checked: Int, val gone: Int, val unreachable: List<String>)
+/**
+ * What [Wallet.recheckNotes] found: notes still there, notes gone (spent elsewhere), mints that didn't answer, and
+ * notes set aside because their mint doesn't know them ([unknown]).
+ */
+data class NotesCheck(val checked: Int, val gone: Int, val unreachable: List<String>, val unknown: Int = 0)
 
 /** Notes a lookup can confirm and a rotate can renew: outstanding, at a key derived from the seed. */
 internal fun Note.isRecheckable(): Boolean = state == NoteState.Outstanding && kind == NoteKind.KeyPath && purpose != null && index != null
+
+/** Set aside because its mint says it doesn't know it ([NoteState.Unknown]); a recheck may bring it back. */
+internal fun Note.isUnknown(): Boolean = state == NoteState.Unknown && kind == NoteKind.KeyPath && purpose != null && index != null
 
 /** In a change whose answer never came ([NoteState.Ambiguous]); a recheck settles it. */
 internal fun Note.isConfirming(): Boolean = state == NoteState.Ambiguous && kind == NoteKind.KeyPath

@@ -21,6 +21,7 @@ import whitewallet.brand.WalletTask
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.Profile
+import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
@@ -67,6 +68,10 @@ data class HomeState(
     val historyFilter: HistoryFilterOption = HistoryFilterOption.Types,
     /** What the wallet did to the notes by itself, to tell the user in a short message; see [HomeViewModel.noticeShown]. */
     val notice: MaintenanceNotice? = null,
+    /** The active account's mints that say they don't know some of its notes (set aside, out of the balance). */
+    val unknownNotes: List<AccountMint> = emptyList(),
+    /** The mints are being asked about those notes again ([HomeViewModel.recheckUnknown]). */
+    val checkingUnknown: Boolean = false,
 ) {
     /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */
     val status: WalletStatus
@@ -135,6 +140,22 @@ class HomeViewModel(
     init {
         refresh()
         viewModelScope.launch { collectNotices() }
+        viewModelScope.launch { wallet.accountMints.collect { mints -> status.update { it.copy(unknownNotes = mints.filter { m -> m.unknownCount > 0 }) } } }
+    }
+
+    /** Asks the mints now about the notes they said they don't know; those they know again are back in the balance. */
+    fun recheckUnknown() {
+        if (status.value.checkingUnknown) return
+        status.update { it.copy(checkingUnknown = true) }
+        viewModelScope.launch {
+            try {
+                wallet.recheckUnknownNotes()
+            } catch (e: IOException) {
+                // Still unknown; the wallet asks again on a later refresh.
+            } finally {
+                status.update { it.copy(checkingUnknown = false) }
+            }
+        }
     }
 
     /**

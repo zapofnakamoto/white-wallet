@@ -321,6 +321,7 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
 internal fun noteStatus(note: Note): NoteStatus = when {
     note.state == NoteState.Paying -> NoteStatus.Paying
     note.state == NoteState.Ambiguous -> NoteStatus.Unclear
+    note.state == NoteState.Unknown -> NoteStatus.Unknown
     note.certificate == null -> NoteStatus.Uncertified
     else -> NoteStatus.Ready
 }
@@ -331,6 +332,7 @@ internal fun noteStatusText(status: NoteStatus): String? = when (status) {
     NoteStatus.Paying -> stringResource(R.string.notes_state_paying)
     NoteStatus.Unclear -> stringResource(R.string.notes_state_ambiguous)
     NoteStatus.Uncertified -> stringResource(R.string.notes_uncertified)
+    NoteStatus.Unknown -> stringResource(R.string.notes_state_unknown)
     else -> null
 }
 
@@ -338,6 +340,7 @@ private fun noteStatusIcon(status: NoteStatus): Int? = when (status) {
     NoteStatus.Paying -> DesignR.drawable.ic_pending
     NoteStatus.Unclear -> DesignR.drawable.ic_unknown
     NoteStatus.Uncertified -> DesignR.drawable.ic_uncertified
+    NoteStatus.Unknown -> DesignR.drawable.ic_warning
     else -> null
 }
 
@@ -402,7 +405,7 @@ internal fun Outcome(outcome: NotesOutcome, showMints: Boolean, onDismiss: () ->
 
 private val NotesOutcome.isProblem: Boolean
     get() = this is NotesOutcome.Failed || this is NotesOutcome.KeyChanged || this is NotesOutcome.AlreadySpent ||
-        (this is NotesOutcome.Checked && (gone > 0 || unreachable.isNotEmpty()))
+        (this is NotesOutcome.Checked && (gone > 0 || unknown > 0 || unreachable.isNotEmpty()))
 
 @Composable
 private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String = when (outcome) {
@@ -412,7 +415,8 @@ private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String = whe
     is NotesOutcome.Renewed -> stringResource(R.string.notes_renewed, formatAmount(outcome.amountMsat))
     is NotesOutcome.Checked -> buildList {
         if (outcome.gone > 0) add(pluralStringResource(R.plurals.notes_checked_gone, outcome.gone, outcome.gone))
-        else if (outcome.unreachable.isEmpty()) add(pluralStringResource(R.plurals.notes_checked_ok, outcome.ok, outcome.ok))
+        if (outcome.unknown > 0) add(pluralStringResource(R.plurals.notes_checked_unknown, outcome.unknown, outcome.unknown))
+        if (outcome.gone == 0 && outcome.unknown == 0 && outcome.unreachable.isEmpty()) add(pluralStringResource(R.plurals.notes_checked_ok, outcome.ok, outcome.ok))
         if (outcome.unreachable.isNotEmpty()) {
             add(if (showMints) stringResource(R.string.notes_checked_unreachable, ListFormatter.getInstance().format(outcome.unreachable)) else stringResource(R.string.notes_checked_no_answer))
         }

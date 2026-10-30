@@ -307,7 +307,7 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   (the notes list and a note's details), `Claim` (someone's note before the user claims it), `Shared` (a
   handed-out note: its page, and its row in the notes view, under the handed-out heading) or `Paper` (printed). `params` has the amount
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
-  `Redeemed`, `TakenBack`; give a `when` an `else`), its words and mark, the age, the mint (null with
+  `Redeemed`, `TakenBack`, `Unknown`; give a `when` an `else`), its words and mark, the age, the mint (null with
   `mints.visible=false`), whether it is trusted, and `selected` while the user selects (null otherwise).
   `NoteGroupHeader` heads one mint's notes; its `mint` is null with `mints.visible=false`, and then it only separates
   them. The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their

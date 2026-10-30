@@ -143,6 +143,12 @@ says where each is enforced.
 6. **Never accept a mint-generated secret.**
 7. **A shared note stays the wallet's until redeemed.** It is `Shared` until a lookup shows it burned, and can be
    taken back (rotated to a fresh key) until then.
+8. **A note the mint doesn't know is set aside, never dropped.** A mint that lost its records (or misbehaves) may say
+   `Unknown note.` about a note the wallet holds. When a mint refuses to spend notes as unknown or spent (a merge with
+   an unknown input is refused as spent), each input is looked up by `p` (`UnknownNotes`): an unknown one becomes
+   `Unknown` (out of the balance, never spent, kept with its certificate), a burned one `Spent`, and the rest are spent
+   without them. Refreshes ask again (each refresh for a day, then daily); a note the mint knows again is
+   `Outstanding` again.
 
 ### Sync
 

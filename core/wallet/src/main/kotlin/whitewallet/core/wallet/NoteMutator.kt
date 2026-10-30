@@ -16,6 +16,7 @@ import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteInfo
+import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.RejectionKind
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
@@ -39,8 +40,11 @@ internal sealed interface MutationResult {
     /** Landed; [outputs] are the recorded output notes, in request order. */
     data class Done(val outputs: List<Note>, val journalId: String) : MutationResult
 
-    /** Processed and refused by the mint. Nothing changed. */
-    data class Refused(val kind: RejectionKind, val reason: String?) : MutationResult
+    /**
+     * Processed and refused by the mint. Nothing changed at the mint; inputs it doesn't know (or burned) were found and
+     * [setAside] (see [UnknownNotes]), so the rest can be spent without them.
+     */
+    data class Refused(val kind: RejectionKind, val reason: String?, val setAside: List<String> = emptyList()) : MutationResult
 
     /** The mint could not be asked (unknown mint or no answer before anything was sent). Nothing changed. */
     data class Unreachable(val reason: String?) : MutationResult
@@ -76,6 +80,8 @@ internal class NoteMutator(private val wallet: Wallet) {
         val spends = inputs.map { note -> branch.spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, domain) }
         if (SimulatedFailure.take(SimulatedFailure.Kind.Unreachable)) return MutationResult.Unreachable("simulated: no answer")
         val info = runCatching { wallet.client.noteInfo(mint.withdrawUrl, spends.first().k1) }.getOrElse {
+            // The mint won't say what the note is worth: it may not know it. That is about the notes, not the mint.
+            if (it is NoteLookupError && it.kind in UnknownNotes.GONE) return refused(inputs, it.kind, it.reason)
             return MutationResult.Unreachable(it.message)
         }
         // Nothing goes out to a mint that signs with another key than the pinned one (see Pinning).
@@ -84,8 +90,13 @@ internal class NoteMutator(private val wallet: Wallet) {
         } catch (e: MintKeyChangedException) {
             return MutationResult.Unreachable(e.message)
         }
-        return run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputs.sumOf { it.amountMsat }, type, outputs, buildUrl)
+        val result = run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputs.sumOf { it.amountMsat }, type, outputs, buildUrl)
+        return if (result is MutationResult.Refused && result.kind in UnknownNotes.GONE) refused(inputs, result.kind, result.reason) else result
     }
+
+    /** A refusal that may be about some of [inputs]: those the mint doesn't know (or burned) are set aside. */
+    private suspend fun refused(inputs: List<Note>, kind: RejectionKind, reason: String?): MutationResult.Refused =
+        MutationResult.Refused(kind, reason, UnknownNotes(wallet).sortOut(inputs))
 
     /**
      * Rotates a note handed over by a link ([spend], worth [amountMsat] as [info] says) into a fresh wallet key of

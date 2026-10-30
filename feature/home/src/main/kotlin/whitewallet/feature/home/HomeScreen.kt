@@ -85,6 +85,7 @@ import whitewallet.brand.ui.MoneyDirection
 import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletActivityIcon
 import whitewallet.core.wallet.HistoryFilterOption
+import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.MaintenanceNotice
 import whitewallet.core.designsystem.WalletAssistChip
 import whitewallet.core.designsystem.WalletButton
@@ -125,7 +126,7 @@ fun HomeRoute(
     HomeScreen(
         appName, state, onSend, onReceive, viewModel::refresh, onSettings, onBackup, viewModel::dismissBackupPrompt, onChangeAddress,
         AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds), onOpenNote, viewModel::toggleBalanceHidden, onOpenMint, notesTab, menu,
-        viewModel::noticeShown,
+        viewModel::noticeShown, viewModel::recheckUnknown,
     )
 }
 
@@ -165,6 +166,7 @@ fun HomeScreen(
     notesTab: NotesTabSlot? = null,
     menu: List<HomeMenuItem> = emptyList(),
     onNoticeShown: () -> Unit = {},
+    onRecheckUnknown: () -> Unit = {},
 ) {
     var saved by rememberSaveable { mutableStateOf(HomeTab.Wallet) }
     val tab = saved.takeIf { it != HomeTab.Notes || notesTab != null } ?: HomeTab.Wallet
@@ -231,7 +233,7 @@ fun HomeScreen(
                 cover is Cover.Working -> LoadingScreen(cover.task, state)
                 cover == Cover.Blank -> Box(Modifier.fillMaxSize())
                 else -> when (tab) {
-                    HomeTab.Wallet -> WalletTab(state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenMint)
+                    HomeTab.Wallet -> WalletTab(state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenMint, onRecheckUnknown)
                     HomeTab.Notes -> notesTab?.content?.invoke()
                     HomeTab.History -> HistoryTab(state.activity, state.historyFilter, historyFilters, { historyFilters = it }, onOpenNote)
                 }
@@ -365,6 +367,7 @@ private fun WalletTab(
     onChangeAddress: () -> Unit,
     onToggleBalance: () -> Unit,
     onOpenMint: (String) -> Unit,
+    onRecheckUnknown: () -> Unit,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(
@@ -374,6 +377,7 @@ private fun WalletTab(
         ) {
             state.keyChangedHost?.let { KeyChanged(it) { onOpenMint(it) } }
             if (state.addressInactive) state.profile?.let { AddressInactive(it.address, onChangeAddress) }
+            state.unknownNotes.forEach { UnknownNotesCard(it, state.mintsVisible, state.balanceHidden, state.checkingUnknown, onRecheckUnknown) }
             if (state.showBackupPrompt) BackupPrompt(onBackup, onDismissBackup)
             WalletStatusScope(state.status) { BrandDecoration(Anchor.HomeHeader) }
             AmountText(state.balanceMsat, hidden = state.balanceHidden, onToggleHidden = onToggleBalance)
@@ -602,6 +606,28 @@ private fun KeyChanged(host: String, onDetails: () -> Unit) {
             Text(stringResource(R.string.home_key_changed_title, host), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.home_key_changed_body), style = MaterialTheme.typography.bodyMedium)
             WalletButton(onClick = onDetails) { Text(stringResource(R.string.home_key_changed_action)) }
+        }
+    }
+}
+
+/**
+ * A mint says it doesn't know some of the account's notes: they're out of the balance, so say why, and that the
+ * wallet keeps them and asks again. The amount stays hidden with the balance.
+ */
+@Composable
+private fun UnknownNotesCard(mint: AccountMint, mintsVisible: Boolean, balanceHidden: Boolean, checking: Boolean, onRecheck: () -> Unit) {
+    val n = mint.unknownCount
+    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                if (mintsVisible) pluralStringResource(R.plurals.home_unknown_title, n, n, mint.host) else pluralStringResource(R.plurals.home_unknown_title_unnamed, n, n),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                if (balanceHidden) pluralStringResource(R.plurals.home_unknown_body_hidden, n) else pluralStringResource(R.plurals.home_unknown_body, n, formatAmount(mint.unknownMsat)),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            WalletButton(onClick = onRecheck, enabled = !checking) { Text(stringResource(R.string.home_unknown_action)) }
         }
     }
 }

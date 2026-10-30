@@ -74,6 +74,9 @@ data class AccountMint(
     /** The account's Lightning addresses there. */
     val addresses: Int,
     val trusted: Boolean,
+    /** Notes there the mint says it doesn't know ([whitewallet.core.model.NoteState.Unknown]), and what they were worth. */
+    val unknownCount: Int = 0,
+    val unknownMsat: Long = 0,
 )
 
 /** What [Wallet.removeMint] did. */

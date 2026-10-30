@@ -32,6 +32,10 @@
         <item quantity="one">%1$d note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone.</item>
         <item quantity="other">%1$d notes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone.</item>
     </plurals>
+    <plurals name="notes_checked_unknown">
+        <item quantity="one">The mint doesn\'t know %1$d note. It\'s set aside, out of your balance, and your wallet asks again by itself.</item>
+        <item quantity="other">The mint doesn\'t know %1$d notes. They\'re set aside, out of your balance, and your wallet asks again by itself.</item>
+    </plurals>
     <string name="notes_already_spent">This note was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
     <string name="notes_empty">No notes yet. Notes appear here once you receive money.</string>
     <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your notes again on every refresh.</string>
@@ -82,6 +86,9 @@
     <string name="notes_state_paying">Paying…</string>
     <string name="notes_state_ambiguous">Confirming…</string>
     <string name="notes_uncertified">Amount not certified</string>
+    <!-- A note its mint says it doesn't know (the mint lost its records, or misbehaves). -->
+    <string name="notes_state_unknown">Unknown to the mint</string>
+    <string name="notes_state_unknown_detail">The mint says it doesn\'t know this note, so it isn\'t in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it\'s back in your balance.</string>
     <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Combine</string>
     <string name="notes_split">Split</string>

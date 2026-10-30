@@ -132,8 +132,11 @@ sealed interface NotesOutcome {
     data class Moved(val arrivedMsat: Long, val host: String) : NotesOutcome
     data class Renewed(val amountMsat: Long) : NotesOutcome
 
-    /** Asked the mints about notes: [ok] still there, [gone] spent or unknown, no answer from [unreachable]. */
-    data class Checked(val ok: Int, val gone: Int, val unreachable: List<String>) : NotesOutcome
+    /**
+     * Asked the mints about notes: [ok] still there, [gone] spent elsewhere, [unknown] set aside as their mint doesn't
+     * know them, no answer from [unreachable].
+     */
+    data class Checked(val ok: Int, val gone: Int, val unreachable: List<String>, val unknown: Int = 0) : NotesOutcome
     data class KeyChanged(val host: String) : NotesOutcome
 
     /** The note to share turned out to be spent already. */
@@ -177,7 +180,7 @@ class NotesViewModel @Inject constructor(
     )
 
     val state: StateFlow<NotesState> = combine(wallet.notes, context, ui) { notes, c, u ->
-        val live = notes.filter { it.state == NoteState.Outstanding || it.state == NoteState.Paying || it.state == NoteState.Ambiguous }
+        val live = notes.filter { it.state == NoteState.Outstanding || it.state == NoteState.Paying || it.state == NoteState.Ambiguous || it.state == NoteState.Unknown }
         val mints = live.groupBy { it.host }.toList()
             .sortedWith(compareBy({ it.first != c.home }, { it.first }))
             .map { (host, list) ->
@@ -242,7 +245,7 @@ class NotesViewModel @Inject constructor(
         viewModelScope.launch {
             val outcome = try {
                 val check = wallet.recheckNotes()
-                NotesOutcome.Checked(check.checked - check.gone, check.gone, check.unreachable)
+                NotesOutcome.Checked(check.checked - check.gone - check.unknown, check.gone, check.unreachable, check.unknown)
             } catch (e: IOException) {
                 NotesOutcome.Failed(NoteProblem.Unreachable)
             } catch (e: MintKeyChangedException) {
@@ -251,7 +254,7 @@ class NotesViewModel @Inject constructor(
                 ui.update { it.copy(refreshing = false) }
             }
             // Nothing to report when everything is as it was.
-            ui.update { it.copy(outcome = outcome.takeUnless { o -> o is NotesOutcome.Checked && o.gone == 0 && o.unreachable.isEmpty() }) }
+            ui.update { it.copy(outcome = outcome.takeUnless { o -> o is NotesOutcome.Checked && o.gone == 0 && o.unknown == 0 && o.unreachable.isEmpty() }) }
         }
     }
 
@@ -262,11 +265,13 @@ class NotesViewModel @Inject constructor(
     private suspend fun recheckAll(ids: Set<String>): NotesOutcome {
         var ok = 0
         var gone = 0
+        var unknown = 0
         val unreachable = mutableListOf<String>()
         for (id in ids) {
             when (val check = wallet.recheckNote(id)) {
                 is NoteCheck.Ok -> ok++
-                NoteCheck.Spent, NoteCheck.Unknown -> gone++
+                NoteCheck.Spent -> gone++
+                NoteCheck.Unknown -> unknown++
                 NoteCheck.Unreachable -> state.value.mints.firstOrNull { m -> m.notes.any { it.id == id } }?.let { unreachable += it.host }
                 is NoteCheck.KeyChanged -> return NotesOutcome.KeyChanged(check.host)
                 NoteCheck.NotFound -> Unit
@@ -275,7 +280,7 @@ class NotesViewModel @Inject constructor(
                 NoteCheck.NotLanded -> return NotesOutcome.Settled(landed = false)
             }
         }
-        return NotesOutcome.Checked(ok, gone, unreachable.distinct())
+        return NotesOutcome.Checked(ok, gone, unreachable.distinct(), unknown)
     }
 
     /** Renews a note: a fresh key, so any copy of the old one (a QR code shown by mistake) is worthless. */
@@ -434,7 +439,11 @@ class NotesViewModel @Inject constructor(
         /** Notes that can be combined, split, moved, rechecked, renewed or shared. */
         fun selectable(note: Note) = note.state == NoteState.Outstanding && note.kind == NoteKind.KeyPath && note.index != null
 
-        /** Notes that can be rechecked: those, and a confirming one, whose change a recheck settles. */
-        fun recheckable(note: Note) = selectable(note) || (note.state == NoteState.Ambiguous && note.kind == NoteKind.KeyPath)
+        /**
+         * Notes that can be rechecked: those, a confirming one, whose change a recheck settles, and an unknown one, which
+         * a recheck brings back once its mint knows it again.
+         */
+        fun recheckable(note: Note) = selectable(note) ||
+            ((note.state == NoteState.Ambiguous || note.state == NoteState.Unknown) && note.kind == NoteKind.KeyPath)
     }
 }

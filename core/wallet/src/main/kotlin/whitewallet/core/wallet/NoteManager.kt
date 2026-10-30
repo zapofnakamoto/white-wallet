@@ -238,6 +238,7 @@ internal class NoteManager(private val wallet: Wallet) {
                 MintMoveResult.Failed(if (melted is MeltOutcome.Refused) NoteProblem.Refused else NoteProblem.PaymentFailed)
             }
             MeltOutcome.Unreachable -> MintMoveResult.Failed(NoteProblem.Unreachable)
+            MeltOutcome.NoteGone -> MintMoveResult.Failed(NoteProblem.Refused)
         }
     }
 

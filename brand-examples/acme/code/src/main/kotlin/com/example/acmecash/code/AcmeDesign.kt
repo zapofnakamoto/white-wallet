@@ -130,7 +130,7 @@ private object AcmeComponents : BrandComponents {
 }
 
 private val NoteStatus.outOfUse: Boolean
-    get() = this == NoteStatus.Paying || this == NoteStatus.Unclear || this == NoteStatus.Redeemed || this == NoteStatus.TakenBack
+    get() = this == NoteStatus.Paying || this == NoteStatus.Unclear || this == NoteStatus.Redeemed || this == NoteStatus.TakenBack || this == NoteStatus.Unknown
 
 /** The paper of a bill: tinted, a double border and a round seal in each corner. Decorative. */
 @Composable
