@@ -18,7 +18,10 @@ data class KeyId(val accountId: String, val host: String, val purpose: Int, val 
 sealed interface KeyProbe {
     val checkedAtMillis: Long
 
-    /** The mint has never seen this key. */
+    /**
+     * The mint doesn't know a note at this key. It may still hold the key for a note an unpaid invoice would make,
+     * which it never shows: only a refused output (`already in use`) tells.
+     */
     data class Unused(override val checkedAtMillis: Long) : KeyProbe
 
     /** An outstanding note. [imported] is true if this lookup added it to the wallet. */
@@ -26,8 +29,10 @@ sealed interface KeyProbe {
 
     data class Spent(override val checkedAtMillis: Long) : KeyProbe
 
-    /** Refused for another reason (e.g. pending or an unexpected error); counts as unused while scanning. */
-    data class Refused(val reason: String?, override val checkedAtMillis: Long) : KeyProbe
+    /** Refused for another reason: [pending] (a note being paid out, so the key is used) or an unexpected error. */
+    data class Refused(val reason: String?, override val checkedAtMillis: Long) : KeyProbe {
+        val pending: Boolean get() = RejectionKind.fromReason(reason) == RejectionKind.Pending
+    }
 
     /** No answer: network failure, rate limiting or an invalid response. Stops a scan. */
     data class Failed(val reason: String, override val checkedAtMillis: Long) : KeyProbe

@@ -4,7 +4,8 @@ import kotlinx.coroutines.flow.first
 import whitewallet.core.model.NoteKind
 import whitewallet.lnurlcash.NotePurpose
 
-data class DiscoveryResult(val next: Long, val checked: Int, val imported: Int, val stoppedEarly: String?)
+/** [stoppedEarly] says why a scan ended before its gap; [refused] when the mint refused a lookup rather than not answering. */
+data class DiscoveryResult(val next: Long, val checked: Int, val imported: Int, val stoppedEarly: String?, val refused: Boolean = false)
 
 /** The state of one purpose's index on one mint, for the developer key page. */
 data class IndexHealth(val next: Long, val highestUsed: Long, val lastVerifiedAtMillis: Long?) {
@@ -15,7 +16,9 @@ data class IndexHealth(val next: Long, val highestUsed: Long, val lastVerifiedAt
 /**
  * Finds the right index for a purpose (LUD-26 recovery): start past the highest key the wallet knows is used, look
  * keys up by `p` until a gap limit of consecutive ones are unused (20 by default), and set the index right after the
- * last used one. Lookups import and sync notes on the way (through [KeyProber]).
+ * last used one. Lookups import and sync notes on the way (through [KeyProber]). The index never goes back: keys
+ * the wallet handed out (in an invoice, say) may be in use at the mint though a lookup calls them unknown. A lookup
+ * the mint refuses stops the scan, as no answer does: the key may be used.
  */
 internal class IndexDiscovery(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
@@ -39,12 +42,15 @@ internal class IndexDiscovery(private val wallet: Wallet) {
             when (probe) {
                 is KeyProbe.Outstanding -> { lastUsed = index; unused = 0; if (probe.imported) imported++ }
                 is KeyProbe.Spent -> { lastUsed = index; unused = 0 }
-                is KeyProbe.Unused, is KeyProbe.Refused -> unused++
+                is KeyProbe.Refused -> if (probe.pending) { lastUsed = index; unused = 0 } else {
+                    return DiscoveryResult(current(accountId, host, purpose), checked, imported, probe.reason ?: "refused", refused = true)
+                }
+                is KeyProbe.Unused -> unused++
                 is KeyProbe.Failed -> return DiscoveryResult(current(accountId, host, purpose), checked, imported, probe.reason)
             }
             index++
         }
-        val next = lastUsed + 1
+        val next = maxOf(lastUsed + 1, current(accountId, host, purpose))
         if (purpose == NotePurpose.LightningAddress.value) wallet.store.setAddressScanFrom(accountId, host, next)
         else wallet.store.setIndex(accountId, host, purpose, next)
         wallet.markIndexVerified(accountId, host, purpose)

@@ -5,6 +5,17 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Fixed
+
+- Splitting, renewing or combining notes no longer fails for good with "already in use". A mint holds the key of
+  every note an unpaid invoice would make (from Receive, a move that didn't go through, or another phone with the
+  same recovery phrase), but a lookup calls such a key unknown. Finding its keys again, the wallet then went back to
+  keys it had already used, and tried the same refused ones until it gave up. It now never goes back, so the next
+  attempt takes free keys.
+- A restore no longer ends with a balance of nothing when the mint refuses to look a key up: it stops and says the
+  mint can't be used, so nothing is missed. A note being paid out while the restore runs counts as used, so the notes
+  after it are found. Refreshes that look for Lightning address payments stop the same way.
+
 ## [0.6.1]
 
 ### Fixed

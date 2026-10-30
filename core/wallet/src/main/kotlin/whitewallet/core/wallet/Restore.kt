@@ -62,7 +62,7 @@ internal class Restore(private val wallet: Wallet) {
             found.stoppedEarly?.let { reason ->
                 wallet.store.deleteAccount(accountId)
                 wallet.discardSeed(accountId)
-                return RestoreResult.NetworkError(reason)
+                return if (found.refused) RestoreResult.MintInvalid(reason) else RestoreResult.NetworkError(reason)
             }
         }
         wallet.activeBeforeRestore = wallet.store.currentAccountId()

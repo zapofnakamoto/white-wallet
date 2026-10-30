@@ -262,6 +262,29 @@ class RegtestRecoveryTest {
     }
 
     @Test
+    fun `a key the same phrase put in an unpaid invoice on another phone is skipped, though a lookup calls it unknown`() = runBlocking<Unit> {
+        val phone1 = Regtest.phone()
+        phone1.fund(5000)
+        var inUse = 0
+        val watching = Regtest.client { chain ->
+            chain.proceed(chain.request()).also { if ("in use" in it.peekBody(4096).string()) inUse++ }
+        }
+        val store = InMemoryWalletStore()
+        val phone2 = Wallet(store, InMemorySeedStore(), watching, policies = NotePolicies.InMemory(ManualStrategy.ID))
+        assertIs<RestoreResult.Restored>(phone2.restore(phone1.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
+
+        // Phone 1 asks for invoices nobody pays. The mint holds their wallet keys for the notes they would make, so
+        // they are in use for good, yet a lookup by key answers "unknown" for them.
+        repeat(2) { phone1.wallet.requestInvoice(1_000_000) }
+
+        // Phone 2's split names the first of those keys and is refused; it must go on to free keys, not back to them.
+        val note = store.allNotes().single { it.state == NoteState.Outstanding }
+        assertIs<NoteActionResult.Done>(phone2.splitNote(note.id, 2_000_000))
+        assertTrue(inUse >= 1, "the mint refused a key phone 1 put in an invoice")
+        assertEquals(phone1.balance() - 1_000, phone2.balanceMsat.first(), "the split cost the mint's fee")
+    }
+
+    @Test
     fun `restore finds the notes of every purpose and goes on past their keys`() = runBlocking<Unit> {
         // Phone 1 uses all three key purposes: an address payment (2), the change of a payment (1), a claim (0).
         val phone1 = Regtest.phone()

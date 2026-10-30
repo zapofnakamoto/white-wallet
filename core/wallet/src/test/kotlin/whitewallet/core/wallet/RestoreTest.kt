@@ -9,6 +9,10 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.CashBranch
@@ -106,13 +110,48 @@ class RestoreTest {
         assertFalse(wallet.needsAddress())
     }
 
+    @Test
+    fun `a note being paid out counts as used, so the keys after it are looked up too`() =
+        withMint(answering = { host, p -> "pending".takeIf { p == key(host, NotePurpose.Wallet, 0) } }) { mint, store, wallet ->
+            // Key 0 is mid-melt, and 20 is the first key after a gap of 19: found only if key 0 counts as used.
+            mint.credit(key(mint.host, NotePurpose.Wallet, 20), 1_000)
+            val restored = assertIs<RestoreResult.Restored>(wallet.restore(phrase, mint.host, "Restored"))
+            assertEquals(1_000, restored.balanceMsat)
+            assertEquals(21, store.currentIndex(restored.accountId, mint.host, NotePurpose.Wallet.value))
+        }
+
+    @Test
+    fun `a lookup the mint refuses ends the restore and leaves nothing behind`() =
+        withMint(answering = { host, p -> "internal error".takeIf { p == key(host, NotePurpose.Wallet, 1) } }) { mint, store, wallet ->
+            // Counted as unused, the refusal would end in a restore that misses key 2's note.
+            mint.credit(key(mint.host, NotePurpose.Wallet, 0), 1_000)
+            mint.credit(key(mint.host, NotePurpose.Wallet, 2), 2_000)
+            assertIs<RestoreResult.MintInvalid>(wallet.restore(phrase, mint.host, "Restored"))
+            assertTrue(store.accounts.first().isEmpty())
+            assertTrue(seeds.accountIds().isEmpty())
+        }
+
     private val seeds = InMemorySeedStore()
 
-    private fun withMint(test: suspend (MockMint, InMemoryWalletStore, Wallet) -> Unit) = runBlocking<Unit> {
+    /** The `cp1` of the phrase's key [index] of [purpose] on [host]. */
+    private fun key(host: String, purpose: NotePurpose, index: Long) =
+        Cp1.encode(CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), host).notePubkey(purpose, index))
+
+    /** [answering] gives the mint's refusal reason for a lookup of key `p` on a host, or null to let the mint answer. */
+    private fun withMint(
+        answering: (host: String, p: String) -> String? = { _, _ -> null },
+        test: suspend (MockMint, InMemoryWalletStore, Wallet) -> Unit,
+    ) = runBlocking<Unit> {
         assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start().use { mint ->
             val store = InMemoryWalletStore()
-            test(mint, store, Wallet(store, seeds, LnurlcashClient()))
+            val http = LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor { chain ->
+                val request = chain.request()
+                val reason = request.url.queryParameter("p")?.let { answering(mint.host, it) } ?: return@addInterceptor chain.proceed(request)
+                Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(200).message("OK")
+                    .body("""{"status":"ERROR","reason":"$reason"}""".toResponseBody("application/json".toMediaType())).build()
+            }.build()
+            test(mint, store, Wallet(store, seeds, LnurlcashClient(http = http)))
         }
     }
 }
