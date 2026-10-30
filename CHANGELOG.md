@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.6.0]
+
 ### Added
 
 - A note the mint says it doesn't know (a mint that lost its records, or misbehaves) no longer stops the wallet. It
