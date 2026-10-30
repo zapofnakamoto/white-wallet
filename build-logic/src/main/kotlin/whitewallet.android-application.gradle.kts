@@ -38,11 +38,12 @@ val keystoreProperties = Properties().apply {
 fun signing(env: String, key: String): String? = System.getenv(env)?.takeIf { it.isNotBlank() } ?: keystoreProperties.getProperty(key)
 val releaseStoreFile = signing("WW_KEYSTORE", "storeFile")
 
-// Which checkout a debug build came from, shown beside the title: v0.3.0 on the tag, v0.3.0-21-gb1593f9 after it,
-// with -dirty for uncommitted changes. Empty outside a git checkout.
+// Which checkout of the brand a debug build came from, shown beside the title: v0.3.0 on the tag, v0.3.0-21-gb1593f9
+// after it, with -dirty for uncommitted changes. A brand in a repository of its own shows its own tags, not White
+// Wallet's. Empty outside a git checkout.
 val buildLabel = providers.exec {
     commandLine("git", "describe", "--tags", "--always", "--dirty")
-    workingDir = rootDir
+    workingDir = brandDir
     isIgnoreExitValue = true
 }.standardOutput.asText.get().trim()
 

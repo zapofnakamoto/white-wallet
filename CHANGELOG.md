@@ -5,6 +5,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Fixed
+
+- A debug build of a brand in a repository of its own shows that repository's version beside the title, not White
+  Wallet's. Release builds show none, as before.
+
 ## [0.6.0]
 
 ### Added
