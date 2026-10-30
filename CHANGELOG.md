@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.6.2]
+
 ### Fixed
 
 - Splitting, renewing or combining notes no longer fails for good with "already in use". A mint holds the key of
