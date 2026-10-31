@@ -96,3 +96,13 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     invoice. Open: whether paying an invoice can spend a note at its own mint or the send path assumes the home mint;
     what becomes optional (onboarding, restore, the backup screen, collect at home mint, the mint and account
     settings pages); what such a wallet's setup and Receive look like. Asked for on 2026-10-29.
+12. **A restore that survives a bad connection and a large wallet.** A restore looks keys up one at a time, from key
+    0, and one lookup without an answer (dropped twice, a timeout, a rate limit, a proxy's error page) ends it: the
+    account is removed and the next try starts at key 0 again. With Developer options → Network → Flaky, even an
+    empty wallet's 60 or so lookups rarely all get through. A wallet that used tens of thousands of keys (Zap's
+    single strategy uses new ones on every payment, combine and renew) needs as many lookups, which takes the better
+    part of an hour, so one failure near the end throws it all away. Ideas: retry a key with growing waits instead of
+    ending ("Waiting for the mint…", longer when rate limited); keep the account and save progress per purpose, so an
+    interrupted restore goes on from the last confirmed key; a few lookups at once; show progress ("Checked 1,240
+    keys, found 12 zaps"). Open: where progress lives, what the user sees, whether the wallet can be used meanwhile.
+    A rate limit shows "Couldn't connect…" today. Asked for on 2026-10-31.
