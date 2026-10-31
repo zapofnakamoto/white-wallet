@@ -94,7 +94,7 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
             return InvoiceRequest.OutOfRange(pay.pay.minSendable, pay.pay.maxSendable)
         }
         val mint = wallet.store.mint(host) ?: return InvoiceRequest.Unreachable
-        repeat(IN_USE_RETRIES + 1) {
+        repeat(IndexGuard.IN_USE_ATTEMPTS) { attempt ->
             val reserved = guard.reserve(accountId, host, NotePurpose.Wallet)
             when (val fetched = MintInvoice.fetch(wallet, pay, amountMsat, reserved.key)) {
                 is MintInvoice.Ok -> {
@@ -104,7 +104,7 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
                         listOf(reserved.ref), fetched.invoice, JournalStatus.Prepared, null, now, now))
                     return InvoiceRequest.Ready(id, fetched.invoice, amountMsat, expected, fetched.expiresAtMillis)
                 }
-                MintInvoice.InUse -> guard.recover(accountId, host, NotePurpose.Wallet)
+                MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, host, NotePurpose.Wallet)
                 MintInvoice.Unreachable -> return InvoiceRequest.Unreachable
                 MintInvoice.Refused, MintInvoice.Mismatch -> return InvoiceRequest.Refused
             }
@@ -120,9 +120,5 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
             JournalStatus.Rejected -> InvoiceStatus.Expired
             else -> InvoiceStatus.Waiting
         }
-    }
-
-    private companion object {
-        const val IN_USE_RETRIES = 2
     }
 }

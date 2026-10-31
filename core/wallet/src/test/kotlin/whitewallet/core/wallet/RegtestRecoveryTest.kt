@@ -1,5 +1,6 @@
 package whitewallet.core.wallet
 
+import fr.acinq.bitcoin.MnemonicCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -12,6 +13,8 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
+import whitewallet.lnurlcash.CashBranch
+import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
 
 /**
@@ -282,6 +285,69 @@ class RegtestRecoveryTest {
         assertIs<NoteActionResult.Done>(phone2.splitNote(note.id, 2_000_000))
         assertTrue(inUse >= 1, "the mint refused a key phone 1 put in an invoice")
         assertEquals(phone1.balance() - 1_000, phone2.balanceMsat.first(), "the split cost the mint's fee")
+    }
+
+    /**
+     * Asks [host] for invoices nobody pays, minting to [wallet]'s wallet keys [indexes] on it: the mint holds those
+     * keys for good, and a lookup calls them unknown. What another phone with the same phrase leaves behind.
+     */
+    private suspend fun holdWalletKeys(wallet: Wallet, host: String, indexes: LongRange) {
+        val pay = wallet.client.servicePayRequest(host)
+        val branch = CashBranch.fromSeed(MnemonicCode.toSeed(wallet.recoveryPhrase(), ""), host)
+        for (i in indexes) assertIs<MintInvoice.Ok>(MintInvoice.fetch(wallet, pay, 1_000_000, branch.notePubkey(NotePurpose.Wallet, i)))
+    }
+
+    /** A wallet restored from [phone]'s phrase, counting the mint's "already in use" answers and the lookups by key. */
+    private class Twin(phone: Regtest.Phone) {
+        var inUse = 0
+        var lookups = 0
+        val store = InMemoryWalletStore()
+        val wallet = Wallet(store, InMemorySeedStore(), Regtest.client { chain ->
+            if (chain.request().url.queryParameter("p") != null) lookups++
+            chain.proceed(chain.request()).also { if ("in use" in it.peekBody(4096).string()) inUse++ }
+        }, policies = NotePolicies.InMemory(ManualStrategy.ID))
+
+        suspend fun restore(phone: Regtest.Phone) =
+            assertIs<RestoreResult.Restored>(wallet.restore(phone.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
+    }
+
+    @Test
+    fun `a renewal goes on past every key the mint holds for another phone's unpaid invoices`() = runBlocking<Unit> {
+        val phone1 = Regtest.phone()
+        phone1.fund(5000)
+        val phone2 = Twin(phone1).also { it.restore(phone1) }
+        holdWalletKeys(phone1.wallet, HOST, 0L..4)
+
+        val zap = phone2.store.allNotes().single { it.state == NoteState.Outstanding }
+        phone2.lookups = 0
+        val rotated = assertIs<RotateResult.Rotated>(phone2.wallet.rotateNote(zap.id))
+        assertEquals(5, phone2.inUse, "each held key was refused once")
+        assertEquals(5, rotated.toIndex, "the first key the mint accepts")
+        assertTrue(phone2.lookups <= 30, "keys are looked up again once, not after every refusal (${phone2.lookups})")
+        assertEquals(6, phone2.store.currentIndex(phone2.store.currentAccountId()!!, HOST, NotePurpose.Wallet.value))
+    }
+
+    @Test
+    fun `an invoice goes on past every key the mint holds for another phone's unpaid invoices`() = runBlocking<Unit> {
+        val phone1 = Regtest.phone()
+        val phone2 = Twin(phone1).also { it.restore(phone1) }
+        holdWalletKeys(phone1.wallet, HOST, 0L..4)
+
+        assertIs<InvoiceRequest.Ready>(phone2.wallet.requestInvoice(1_000_000))
+        assertEquals(5, phone2.inUse)
+    }
+
+    @Test
+    fun `a move to another mint goes on past every key that mint holds for another phone's unpaid invoices`() = runBlocking<Unit> {
+        val phone1 = Regtest.phone()
+        phone1.fund(5000)
+        val phone2 = Twin(phone1).also { it.restore(phone1) }
+        holdWalletKeys(phone1.wallet, HOST2, 0L..4)
+
+        val ids = phone2.store.allNotes().filter { it.state == NoteState.Outstanding }.map { it.id }
+        assertIs<MintMoveQuote.Ready>(phone2.wallet.quoteMintMove(ids, HOST2))
+        assertIs<MintMoveResult.Moved>(phone2.wallet.moveToMint(ids, HOST2))
+        assertEquals(5, phone2.inUse)
     }
 
     @Test

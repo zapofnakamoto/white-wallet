@@ -5,6 +5,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Fixed
+
+- Splitting, renewing, combining, claiming, receiving by invoice and moving money to another mint go on past every
+  key the mint holds for unpaid invoices, up to 20 in a row, so they work the first time. They used to give up after
+  three; another phone with the same recovery phrase leaves such keys behind, and the mint never frees them. The
+  wallet looks its keys up again once per operation, not after every refused key.
+
 ## [0.6.2]
 
 ### Fixed

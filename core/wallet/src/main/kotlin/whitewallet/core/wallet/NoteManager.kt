@@ -207,11 +207,11 @@ internal class NoteManager(private val wallet: Wallet) {
         // The target mints to a fresh key of ours: reserve it (persist before disclose), then ask for its invoice.
         var output: ReservedOutput? = null
         var invoice: String? = null
-        for (attempt in 0..IN_USE_RETRIES) {
+        for (attempt in 0 until IndexGuard.IN_USE_ATTEMPTS) {
             val reserved = guard.reserve(accountId, quote.toHost, NotePurpose.Wallet)
             when (val fetched = MintInvoice.fetch(wallet, prepared.pay, amount, reserved.key)) {
                 is MintInvoice.Ok -> { output = reserved; invoice = fetched.invoice; break }
-                is MintInvoice.InUse -> guard.recover(accountId, quote.toHost, NotePurpose.Wallet)
+                is MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, quote.toHost, NotePurpose.Wallet)
                 is MintInvoice.Unreachable -> return MintMoveResult.Failed(NoteProblem.Unreachable)
                 is MintInvoice.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)
                 is MintInvoice.Mismatch -> return MintMoveResult.Failed(NoteProblem.InvoiceMismatch)
@@ -325,10 +325,6 @@ internal class NoteManager(private val wallet: Wallet) {
         is MutationResult.Pending -> NoteActionResult.Pending
         is MutationResult.Refused -> NoteActionResult.Failed(if (kind == RejectionKind.InsufficientValue) NoteProblem.InvalidAmount else NoteProblem.Refused)
         is MutationResult.Unreachable -> NoteActionResult.Failed(NoteProblem.Unreachable)
-    }
-
-    private companion object {
-        const val IN_USE_RETRIES = 2
     }
 }
 

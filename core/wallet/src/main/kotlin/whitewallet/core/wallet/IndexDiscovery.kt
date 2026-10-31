@@ -83,10 +83,20 @@ internal class IndexGuard(private val wallet: Wallet) {
         error("no free key found for purpose ${purpose.value}")
     }
 
-    /** The mint says a key is already in use: the local index is behind, so find the real one. */
+    /**
+     * The mint says a key is already in use: the local index may be behind, so look the keys up again, which also
+     * finds notes another phone with the same phrase made there. Once per operation: a key held by an unpaid invoice
+     * looks unknown, so further refusals only mean taking the next key.
+     */
     suspend fun recover(accountId: String, host: String, purpose: NotePurpose) = discovery.discover(accountId, host, purpose.value)
 
-    private companion object {
-        const val MAX_SKIPS = 10_000
+    companion object {
+        private const val MAX_SKIPS = 10_000
+
+        /**
+         * How many keys an operation tries while the mint says each is `already in use`: the gap limit, since keys
+         * the mint holds for unpaid invoices (of another phone with the same phrase) can follow each other.
+         */
+        const val IN_USE_ATTEMPTS = AddressScanner.GAP_LIMIT
     }
 }
