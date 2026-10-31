@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.6.3]
+
 ### Fixed
 
 - Splitting, renewing, combining, claiming, receiving by invoice and moving money to another mint go on past every
