@@ -7,8 +7,12 @@ import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.OperationType
 import whitewallet.core.wallet.Regtest.HOST
+import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.protocol.RejectionKind
+import whitewallet.lnurlcash.protocol.Requests
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -34,6 +38,29 @@ class RegtestNotesTest {
         val row = alice.wallet.activity.first().single { it.kind == ActivityKind.Combined }
         assertEquals((inputs - combined.amountMsat).takeIf { it != 0L }, row.feeMsat)
         assertEquals(false, row.automatic, "done by the user")
+    }
+
+    @Test
+    fun `combining a note with itself fails, and the note is untouched`() = runBlocking<Unit> {
+        val alice = Regtest.phone()
+        alice.fund(2000)
+        val note = alice.notes().single()
+
+        // The wallet never asks: the same note twice is one note.
+        assertEquals(NoteActionResult.Failed(NoteProblem.TooFewNotes), alice.wallet.combineNotes(listOf(note.id, note.id)))
+
+        // Asked anyway, the mint refuses to count one note twice.
+        val result = NoteMutator(alice.wallet).mutate(alice.wallet.activeId(), HOST, listOf(note, note), OperationType.Merge,
+            listOf(OutputSpec.Own(alice.wallet.activeId(), NotePurpose.Wallet))) { callback, k1s, outs ->
+            Requests.merge(callback, k1s, outs.single().key)
+        }
+        // It says the second k1 is spent; the note is not, so the wallet keeps it.
+        val refused = assertIs<MutationResult.Refused>(result, "the same k1 twice in a merge")
+        assertEquals(RejectionKind.Spent, refused.kind)
+        assertEquals(emptyList(), refused.setAside)
+        assertEquals(listOf(note.id), alice.notes().map { it.id })
+        assertEquals(1_999_000, alice.balance())
+        assertIs<NoteCheck.Ok>(alice.wallet.recheckNote(note.id), "still outstanding at the mint")
     }
 
     @Test
