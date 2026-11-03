@@ -14,6 +14,8 @@ import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 
 class InMemoryWalletStore : WalletStore {
@@ -53,6 +55,7 @@ class InMemoryWalletStore : WalletStore {
         journal.values.removeAll { it.accountId == id }
         checks.value = checks.value.filterKeys { it.accountId != id }
         activityMap.value = activityMap.value.filterValues { it.second.accountId != id }
+        receivedMap.value = receivedMap.value.filterValues { it.accountId != id }
         if (active.value == id) active.value = null
     }
     override fun notes(accountId: String): Flow<List<Note>> = noteMap.map { it.values.filter { n -> n.accountId == accountId } }
@@ -124,6 +127,14 @@ class InMemoryWalletStore : WalletStore {
             if (row.second.journalId == journalId && row.second.status == ActivityStatus.Pending) row.first to row.second.copy(status = status) else row
         }
     }
+
+    private val receivedMap = MutableStateFlow<Map<String, ReceivedNote>>(emptyMap())
+    override fun receivedNotes(accountId: String): Flow<List<ReceivedNote>> =
+        receivedMap.map { it.values.filter { n -> n.accountId == accountId }.sortedByDescending { n -> n.receivedAtMillis } }
+    override suspend fun receivedNote(id: String) = receivedMap.value[id]
+    override suspend fun receivedNotes(states: Set<ReceivedState>) = receivedMap.value.values.filter { it.state in states }.sortedBy { it.receivedAtMillis }
+    override suspend fun putReceivedNote(note: ReceivedNote) { receivedMap.value = receivedMap.value + (note.id to note) }
+    override suspend fun deleteReceivedNote(id: String) { receivedMap.value = receivedMap.value - id }
 
     fun allNotes() = noteMap.value.values.toList()
 

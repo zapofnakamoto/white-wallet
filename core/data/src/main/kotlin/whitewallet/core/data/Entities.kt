@@ -16,6 +16,8 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
 import whitewallet.core.model.Profile
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
@@ -206,5 +208,32 @@ internal data class ActivityEntity(
     companion object {
         fun from(a: Activity) = ActivityEntity(a.id, a.accountId, a.kind.name, a.amountMsat, a.feeMsat, a.host, a.counterparty, a.certified,
             a.noteCount, a.automatic, a.status.name, a.journalId, a.createdAtMillis)
+    }
+}
+
+/** A note received as a link (see [ReceivedNote]). */
+@Entity(tableName = "received_notes", indices = [Index("accountId")])
+internal data class ReceivedNoteEntity(
+    @PrimaryKey val id: String,
+    val accountId: String,
+    val host: String,
+    val withdrawUrl: String,
+    val k1: String?,
+    val certificate: String?,
+    val declaredMsat: Long?,
+    val amountMsat: Long?,
+    val lockedUntilMillis: Long?,
+    val lockedForSeconds: Long?,
+    val state: String,
+    val journalId: String?,
+    val receivedAtMillis: Long,
+    val updatedAtMillis: Long,
+) {
+    fun toModel() = ReceivedNote(id, accountId, host, withdrawUrl, k1, certificate, declaredMsat, amountMsat, lockedUntilMillis, lockedForSeconds,
+        ReceivedState.valueOf(state), journalId, receivedAtMillis, updatedAtMillis)
+
+    companion object {
+        fun from(n: ReceivedNote) = ReceivedNoteEntity(n.id, n.accountId, n.host, n.withdrawUrl, n.k1, n.certificate, n.declaredMsat, n.amountMsat,
+            n.lockedUntilMillis, n.lockedForSeconds, n.state.name, n.journalId, n.receivedAtMillis, n.updatedAtMillis)
     }
 }

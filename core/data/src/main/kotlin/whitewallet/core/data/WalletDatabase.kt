@@ -147,15 +147,33 @@ internal interface WalletDao {
 
     @Query("DELETE FROM activity WHERE accountId = :id")
     suspend fun deleteActivities(id: String)
+
+    @Query("SELECT * FROM received_notes WHERE accountId = :accountId ORDER BY receivedAtMillis DESC")
+    fun receivedNotes(accountId: String): Flow<List<ReceivedNoteEntity>>
+
+    @Query("SELECT * FROM received_notes WHERE id = :id")
+    suspend fun receivedNote(id: String): ReceivedNoteEntity?
+
+    @Query("SELECT * FROM received_notes WHERE state IN (:states) ORDER BY receivedAtMillis")
+    suspend fun receivedNotes(states: List<String>): List<ReceivedNoteEntity>
+
+    @Upsert
+    suspend fun putReceivedNote(note: ReceivedNoteEntity)
+
+    @Query("DELETE FROM received_notes WHERE id = :id")
+    suspend fun deleteReceivedNote(id: String)
+
+    @Query("DELETE FROM received_notes WHERE accountId = :id")
+    suspend fun deleteReceivedNotes(id: String)
 }
 
 @Database(
     entities = [
         AccountEntity::class, AppStateEntity::class, NoteEntity::class, MintEntity::class, ProfileEntity::class,
         CounterEntity::class, AddressScanEntity::class, JournalEntity::class, KeyCheckEntity::class,
-        AddressEntity::class, ActivityEntity::class,
+        AddressEntity::class, ActivityEntity::class, ReceivedNoteEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 internal abstract class WalletDatabase : RoomDatabase() {
@@ -163,7 +181,7 @@ internal abstract class WalletDatabase : RoomDatabase() {
 
     companion object {
         /** Every schema change from v0.3.0 (version 2) on; installed wallets keep their data. Schemas: core/data/schemas. */
-        val MIGRATIONS = arrayOf(Migration2To3)
+        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4)
     }
 }
 
@@ -173,5 +191,18 @@ internal object Migration2To3 : Migration(2, 3) {
         db.execSQL("ALTER TABLE services RENAME TO mints")
         db.execSQL("UPDATE activity SET kind = 'MovedMint' WHERE kind = 'MovedService'")
         db.execSQL("UPDATE activity SET id = 'mint:' || substr(id, 9) WHERE id LIKE 'service:%'")
+    }
+}
+
+/** Notes received as links are kept until claimed (see ReceivedNote). */
+internal object Migration3To4 : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `received_notes` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, " +
+                "`withdrawUrl` TEXT NOT NULL, `k1` TEXT, `certificate` TEXT, `declaredMsat` INTEGER, `amountMsat` INTEGER, " +
+                "`lockedUntilMillis` INTEGER, `lockedForSeconds` INTEGER, `state` TEXT NOT NULL, `journalId` TEXT, " +
+                "`receivedAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_received_notes_accountId` ON `received_notes` (`accountId`)")
     }
 }

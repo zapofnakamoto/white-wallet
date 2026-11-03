@@ -23,6 +23,8 @@ import org.robolectric.RuntimeEnvironment
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 
 /**
  * An update keeps what a released app stored: a database of an older version, built from its exported schema
@@ -74,6 +76,29 @@ class MigrationTest {
                 listOf("claim:c1" to ActivityKind.Claimed, "mint:m1" to ActivityKind.MovedMint),
                 store.activities("acc").first().map { it.id to it.kind }.sortedBy { it.first },
             )
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun `a wallet of version 3 keeps its notes and history, and can keep received notes`() = runBlocking<Unit> {
+        oldDatabase("v3.db", 3) {
+            execSQL("INSERT INTO accounts VALUES ('acc', 'Main', 1, 'mint.example')")
+            execSQL("INSERT INTO notes VALUES ('n1', 'acc', 'mint.example', 'KeyPath', 0, 0, 21000, NULL, 'Outstanding', 2)")
+            execSQL("INSERT INTO activity VALUES ('claim:c1', 'acc', 'Claimed', 5000, NULL, 'mint.example', NULL, 1, NULL, 0, 'Done', NULL, 4)")
+        }
+        val db = Room.databaseBuilder(context, WalletDatabase::class.java, "v3.db").addMigrations(*WalletDatabase.MIGRATIONS)
+            .allowMainThreadQueries().build()
+        try {
+            val store = RoomWalletStore(db)
+            assertEquals(listOf(21000L), store.notes("acc").first().map { it.amountMsat })
+            assertEquals(listOf("claim:c1"), store.activities("acc").first().map { it.id })
+            assertEquals(emptyList(), store.receivedNotes("acc").first())
+            val note = ReceivedNote("q".repeat(64), "acc", "mint.example", "https://mint.example/w", "cw1example", null, 5000, null,
+                1_800_000_000_000, null, ReceivedState.Locked, null, 5, 5)
+            store.putReceivedNote(note)
+            assertEquals(listOf(note), store.receivedNotes(setOf(ReceivedState.Locked)))
         } finally {
             db.close()
         }

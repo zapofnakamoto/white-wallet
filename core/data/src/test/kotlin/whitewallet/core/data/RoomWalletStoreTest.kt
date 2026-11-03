@@ -22,6 +22,8 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
 import whitewallet.core.model.Profile
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
 
@@ -98,6 +100,7 @@ class RoomWalletStoreTest {
             store.upsertNotes(listOf(Note(id.repeat(64), id, "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, NoteState.Outstanding, 1)))
             store.reserveIndex(id, "mint.example", 0)
             store.putJournal(JournalEntry("j$id", id, OperationType.Rotate, "mint.example", "w", emptyList(), emptyList(), emptyList(), "u", JournalStatus.Unknown, null, 1, 1))
+            store.putReceivedNote(received("r$id".padEnd(64, '0'), id, ReceivedState.Waiting))
         }
         store.setActiveAccount("a")
         store.deleteAccount("a")
@@ -108,5 +111,28 @@ class RoomWalletStoreTest {
         assertNull(store.currentIndexOrNull("a", "mint.example", 0))
         assertEquals(listOf("jb"), store.journal(setOf(JournalStatus.Unknown)).map { it.id })
         assertEquals(1, store.notes("b").first().size)
+        assertEquals(emptyList(), store.receivedNotes("a").first())
+        assertEquals(1, store.receivedNotes("b").first().size)
     }
+
+    @Test
+    fun `a received note comes back as written, with its spend and lock, and is found by its state`() = runBlocking<Unit> {
+        val locked = received(q1, "acc", ReceivedState.Locked).copy(lockedUntilMillis = 1_800_000_000_000, lockedForSeconds = 86_528, receivedAtMillis = 2)
+        val waiting = received(q2, "acc", ReceivedState.Waiting)
+        store.putReceivedNote(locked)
+        store.putReceivedNote(waiting)
+        assertEquals(locked, store.receivedNote(q1))
+        assertEquals(listOf(locked, waiting), store.receivedNotes("acc").first(), "newest first")
+        assertEquals(listOf(waiting), store.receivedNotes(setOf(ReceivedState.Waiting)))
+
+        val claimed = waiting.copy(state = ReceivedState.Claimed, k1 = null, amountMsat = 5_000, journalId = "j1")
+        store.putReceivedNote(claimed)
+        assertEquals(claimed, store.receivedNote(q2))
+        assertEquals(listOf(locked), store.receivedNotes(setOf(ReceivedState.Waiting, ReceivedState.Locked)))
+        store.deleteReceivedNote(q1)
+        assertNull(store.receivedNote(q1))
+    }
+
+    private fun received(q: String, accountId: String, state: ReceivedState) = ReceivedNote(q, accountId, "mint.example", "https://mint.example/w",
+        "cw1example", "cs50n1example", 5_000, null, null, null, state, null, 1, 1)
 }

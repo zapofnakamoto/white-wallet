@@ -52,6 +52,60 @@ data class Note(
     val updatedAtMillis: Long,
 )
 
+/** Where a [ReceivedNote] stands. Only [Claimed] puts its money in the balance, as one of the wallet's own notes. */
+enum class ReceivedState {
+    /** Kept, not claimed yet: its mint couldn't be reached. Tried again on every refresh. */
+    Waiting,
+
+    /** Its spend claims a time its mint hasn't reached yet. Tried again once it may have. */
+    Locked,
+
+    /** A claim was sent and its outcome is unknown; settled with its journal entry. */
+    Claiming,
+
+    /** Renewed to one of the wallet's own keys. */
+    Claimed,
+
+    /** Spent by someone else before it was claimed, or unknown to its mint. */
+    Gone,
+
+    /** Its spend doesn't satisfy the note's script, or claims a time no mint honours. */
+    Invalid,
+}
+
+/**
+ * A note received as a link, kept from the moment the user keeps or claims it until it is one of the wallet's own
+ * notes. Unlike a [Note], its secret can't be derived from the seed: [k1], from the link, is the only copy, so until
+ * it is claimed the recovery phrase doesn't cover it, and whoever made the link can still spend it.
+ */
+data class ReceivedNote(
+    /** Lowercase hex of `Q`. */
+    val id: String,
+    val accountId: String,
+    /** The mint host exactly as in the link (port included). */
+    val host: String,
+    val withdrawUrl: String,
+    /** The spend; cleared once it is worth nothing ([ReceivedState.Claimed], [ReceivedState.Gone]). */
+    val k1: String?,
+    val certificate: String?,
+    /** What the link says it is worth; display only. */
+    val declaredMsat: Long?,
+    /** What its mint says, or a certificate verified against its key; null until known. */
+    val amountMsat: Long?,
+    /** The time its spend claims; its mint refuses it until then. */
+    val lockedUntilMillis: Long?,
+    /** The wait its spend claims after its mint last credited it. */
+    val lockedForSeconds: Long?,
+    val state: ReceivedState,
+    /** The claim in flight ([ReceivedState.Claiming]), or the one that landed. */
+    val journalId: String?,
+    val receivedAtMillis: Long,
+    val updatedAtMillis: Long,
+) {
+    /** Not the wallet's yet, and may still become it. */
+    val isPending: Boolean get() = state == ReceivedState.Waiting || state == ReceivedState.Locked || state == ReceivedState.Claiming
+}
+
 /** A mint the wallet talks to. Only [host] is configuration; the rest is fetched from it. */
 data class Mint(
     val host: String,

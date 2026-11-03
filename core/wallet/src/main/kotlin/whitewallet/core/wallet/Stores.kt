@@ -13,6 +13,8 @@ import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.Profile
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.Mint
 import whitewallet.lnurlcash.client.NetworkConditions
@@ -30,7 +32,7 @@ interface WalletStore {
     suspend fun account(id: String): Account?
     suspend fun saveAccount(account: Account)
 
-    /** Removes the account and all of its notes, addresses, counters, key checks, journal entries and history. */
+    /** Removes the account and all of its notes, received notes, addresses, counters, key checks, journal entries and history. */
     suspend fun deleteAccount(id: String)
 
     fun notes(accountId: String): Flow<List<Note>>
@@ -100,6 +102,20 @@ interface WalletStore {
 
     /** Journal entries of every account with one of [statuses]. */
     suspend fun journal(statuses: Set<JournalStatus>): List<JournalEntry>
+
+    /** The account's received notes (see [ReceivedNote]), newest first. */
+    fun receivedNotes(accountId: String): Flow<List<ReceivedNote>>
+
+    /** A received note by `Q`, whichever account kept it. */
+    suspend fun receivedNote(id: String): ReceivedNote?
+
+    /** Received notes of every account in one of [states]. */
+    suspend fun receivedNotes(states: Set<ReceivedState>): List<ReceivedNote>
+
+    /** Adds [note], or replaces the one with the same `Q`. */
+    suspend fun putReceivedNote(note: ReceivedNote)
+
+    suspend fun deleteReceivedNote(id: String)
 }
 
 /** Holds each account's BIP-39 words. Implemented with Android Keystore encryption on device. */

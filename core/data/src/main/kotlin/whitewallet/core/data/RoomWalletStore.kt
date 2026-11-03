@@ -12,6 +12,8 @@ import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.Profile
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.Mint
 import whitewallet.core.wallet.KeyId
@@ -43,6 +45,7 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
         dao.deleteKeyChecks(id)
         dao.deleteAddresses(id)
         dao.deleteActivities(id)
+        dao.deleteReceivedNotes(id)
         dao.deleteAccountRow(id)
         if (dao.currentAccountId() == id) dao.saveAppState(AppStateEntity(activeAccountId = null))
     }
@@ -101,4 +104,10 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
     override suspend fun putActivity(activity: Activity) = dao.putActivity(ActivityEntity.from(activity))
     override suspend fun settleActivities(journalId: String, status: ActivityStatus) = dao.settleActivities(journalId, status.name)
     override suspend fun counterHosts(accountId: String) = dao.counterHosts(accountId)
+
+    override fun receivedNotes(accountId: String): Flow<List<ReceivedNote>> = dao.receivedNotes(accountId).map { rows -> rows.map { it.toModel() } }
+    override suspend fun receivedNote(id: String) = dao.receivedNote(id)?.toModel()
+    override suspend fun receivedNotes(states: Set<ReceivedState>) = dao.receivedNotes(states.map { it.name }).map { it.toModel() }
+    override suspend fun putReceivedNote(note: ReceivedNote) = dao.putReceivedNote(ReceivedNoteEntity.from(note))
+    override suspend fun deleteReceivedNote(id: String) = dao.deleteReceivedNote(id)
 }
