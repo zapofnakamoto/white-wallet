@@ -7,10 +7,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
+import whitewallet.core.wallet.Regtest.OTHER_KEY
 
 /** What the wallet knows about the real mints: fees, limits, the pinned signing key, and trust. */
 class RegtestMintTest {
@@ -60,9 +60,7 @@ class RegtestMintTest {
         val alice = Regtest.phone(client = Regtest.client { chain ->
             if (chain.request().url.isMutation) sent++
             val response = chain.proceed(chain.request())
-            if (!changed) return@client response
-            val body = response.body.string().replace(Regex("\"mintPubkey\":\\s*\"[0-9a-fA-F]{66}\""), "\"mintPubkey\":\"$OTHER_KEY\"")
-            response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
+            if (changed) Regtest.presentingOtherKey(response) else response
         })
         alice.fund(5000)
         val note = alice.notes().single()
@@ -71,7 +69,7 @@ class RegtestMintTest {
 
         assertEquals(MintDetails.Reachability.KeyChanged, alice.wallet.mintDetails(HOST).reachability)
         assertEquals(NoteCheck.KeyChanged(HOST), alice.wallet.recheckNote(note.id))
-        assertIs<ClaimPreview.Invalid>(alice.wallet.previewClaim(Regtest.note(1000)))
+        assertIs<ClaimPreview.KeyChanged>(alice.wallet.previewClaim(Regtest.note(1000)))
         assertTrue(alice.wallet.rotateNote(note.id) !is RotateResult.Rotated)
         assertTrue(alice.wallet.splitNote(note.id, 1_000_000) !is NoteActionResult.Done)
         // The whole note's amount: no split, so the payment goes straight to the melt.
@@ -133,12 +131,6 @@ class RegtestMintTest {
     /** A client to which, while [changed], every mint presents [OTHER_KEY] as its signing key. */
     private fun changedKey(changed: () -> Boolean) = Regtest.client { chain ->
         val response = chain.proceed(chain.request())
-        if (!changed()) return@client response
-        val body = response.body.string().replace(Regex("\"mintPubkey\":\\s*\"[0-9a-fA-F]{66}\""), "\"mintPubkey\":\"$OTHER_KEY\"")
-        response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
-    }
-
-    private companion object {
-        const val OTHER_KEY = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+        if (changed()) Regtest.presentingOtherKey(response) else response
     }
 }

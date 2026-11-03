@@ -181,6 +181,7 @@ private fun KeepCard(preview: ClaimPreview.Keepable) {
                     ?: preview.declaredMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
                 is ClaimPreview.Locked -> preview.amountMsat?.let { formatAmount(it) }
                     ?: preview.link.declaredAmountMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
+                is ClaimPreview.KeyChanged -> formatAmount(preview.amountMsat)
             }
             amount?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
             Text(
@@ -188,6 +189,7 @@ private fun KeepCard(preview: ClaimPreview.Keepable) {
                     is ClaimPreview.Offline -> stringResource(R.string.claim_offline)
                     is ClaimPreview.Locked -> preview.untilMillis?.let { stringResource(R.string.claim_locked_until, recentTime(it)) }
                         ?: stringResource(R.string.claim_locked_for, lockDuration(preview.forSeconds ?: 0))
+                    is ClaimPreview.KeyChanged -> stringResource(R.string.claim_key_changed, preview.host)
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -229,6 +231,7 @@ private fun ResultMessage(result: ClaimResult) {
             when {
                 note.state == ReceivedState.Locked && note.lockedUntilMillis != null -> stringResource(R.string.claim_kept_until, recentTime(note.lockedUntilMillis!!))
                 note.state == ReceivedState.Locked -> stringResource(R.string.claim_kept_locked)
+                note.state == ReceivedState.KeyChanged -> stringResource(R.string.claim_kept_key_changed)
                 else -> stringResource(R.string.claim_kept)
             } to false
         }

@@ -2,6 +2,7 @@ package whitewallet.core.wallet
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.junit.jupiter.api.BeforeEach
@@ -9,11 +10,15 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.wallet.Regtest.HOST
+import whitewallet.core.wallet.Regtest.HOST2
+import whitewallet.lnurlcash.protocol.NoteLink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Notes received as links are kept with their spend, whatever happens to the connection, and claimed by a refresh
@@ -30,6 +35,24 @@ class RegtestReceivedNotesTest {
         override fun intercept(chain: Interceptor.Chain): Response {
             if (offline) Regtest.dropped()
             return chain.proceed(chain.request())
+        }
+    }
+
+    /**
+     * A connection that writes down every request carrying a spend (`k1`), and drops requests while [offline]. While
+     * [changed], every mint presents [Regtest.OTHER_KEY] as its signing key.
+     */
+    private class Watched : Interceptor {
+        var offline = false
+        var changed = false
+        val spends = mutableListOf<HttpUrl>()
+
+        override fun intercept(chain: Interceptor.Chain): Response {
+            if (offline) Regtest.dropped()
+            val url = chain.request().url
+            if (url.queryParameter("k1") != null) spends += url
+            val response = chain.proceed(chain.request())
+            return if (changed) Regtest.presentingOtherKey(response) else response
         }
     }
 
@@ -148,5 +171,78 @@ class RegtestReceivedNotesTest {
 
         bob.wallet.dismissReceivedNote(gone.id)
         assertEquals(emptyList(), bob.wallet.receivedNotes.first())
+    }
+
+    @Test
+    fun `a note's spend goes out only with its claim, never to look at it or to try again`() = runBlocking<Unit> {
+        val connection = Watched()
+        val bob = Regtest.phone(client = Regtest.client(connection))
+
+        val first = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(aNote()))
+        assertEquals(emptyList(), connection.spends, "looked at by its key alone")
+        assertIs<ClaimResult.Claimed>(bob.wallet.claim(first))
+        assertTrue(connection.spends.single().isMutation, "sent once, with the claim")
+
+        // Kept offline, then claimed by a refresh: the spend goes out with that claim only.
+        connection.spends.clear()
+        val link = aNote()
+        connection.offline = true
+        bob.wallet.keepClaim(assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link)))
+        runCatching { bob.wallet.refresh() }
+        connection.offline = false
+        bob.wallet.refresh()
+        assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().first().state)
+        assertTrue(connection.spends.single().isMutation)
+        assertEquals(2_000_000, bob.balance())
+    }
+
+    @Test
+    fun `a note on a mint whose key changed is kept without sending its spend, and claimed once the user accepts the key`() = runBlocking<Unit> {
+        val link = aNote()
+        val connection = Watched()
+        val bob = Regtest.phone(client = Regtest.client(connection))
+        connection.changed = true
+
+        val preview = assertIs<ClaimPreview.KeyChanged>(bob.wallet.previewClaim(link))
+        assertEquals(HOST, preview.host)
+        assertEquals(1_000_000, preview.amountMsat)
+        assertEquals(ReceivedState.KeyChanged, bob.wallet.keepClaim(preview).note.state)
+        assertEquals(1_000_000, bob.wallet.incomingMsat.first())
+
+        runCatching { bob.wallet.refresh() }
+        assertEquals(ReceivedState.KeyChanged, bob.wallet.receivedNotes.first().single().state, "nothing claimed from a mint with another key")
+        assertEquals(emptyList(), connection.spends, "nor the spend sent there")
+        assertEquals(1_000_000, bob.wallet.client.lookup(assertNotNull(bob.store.mint(HOST)).withdrawUrl, NoteLink.parse(link)!!.spend.q).maxWithdrawableMsat,
+            "still the sender's to take back, but still there")
+
+        assertTrue(bob.wallet.acceptMintKey(HOST, Regtest.OTHER_KEY))
+        bob.wallet.refresh()
+        assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state)
+        assertEquals(1_000_000, bob.balance())
+        assertTrue(connection.spends.single().isMutation)
+    }
+
+    @Test
+    fun `offline, a certificate counts only if it verifies against the key pinned for its mint`() = runBlocking<Unit> {
+        val link = aNote()
+        val connection = Connection()
+        val bob = Regtest.phone(client = Regtest.client(connection))
+        bob.store.saveMint(assertNotNull(bob.store.mint(HOST)).copy(mintPubkey = Regtest.OTHER_KEY))
+        connection.offline = true
+        val preview = assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link))
+        assertNull(preview.certifiedMsat, "signed with a key this wallet doesn't know for the mint")
+        assertEquals(1_000_000, preview.declaredMsat)
+    }
+
+    @Test
+    fun `a note on a mint the wallet doesn't know yet is claimed, and the key that mint presents is pinned`() = runBlocking<Unit> {
+        val link = aNote()
+        val bob = Regtest.phone(host = HOST2)
+        assertNull(bob.store.mint(HOST))
+        val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+        assertTrue(preview.certified, "its certificate verifies against the key the mint presents")
+        assertIs<ClaimResult.Claimed>(bob.wallet.claim(preview))
+        assertEquals(Regtest.mintKey(HOST), assertNotNull(bob.store.mint(HOST)).mintPubkey)
+        assertEquals(1_000_000, bob.notes(HOST).sumOf { it.amountMsat })
     }
 }

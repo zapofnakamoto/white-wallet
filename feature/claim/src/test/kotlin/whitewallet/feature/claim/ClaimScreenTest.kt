@@ -126,6 +126,22 @@ class ClaimScreenTest {
     }
 
     @Test
+    fun aNoteOnAMintWhoseKeyChangedCanBeKeptUntilTheUserDecides() {
+        var kept = false
+        showKeep(ClaimPreview.KeyChanged(link, "other.example", 5_000_000), onKeep = { kept = true })
+        compose.onNodeWithText("other.example now signs with another key than the one your wallet knows", substring = true).assertExists()
+        compose.onNodeWithText("Keep and claim later").performScrollTo().performClick()
+        assertTrue(kept)
+    }
+
+    @Test
+    fun aNoteKeptForAChangedKeySaysWhatClaimsIt() {
+        val note = ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.KeyChanged, null, 1, 1)
+        show(ClaimState(result = ClaimResult.Kept(note)))
+        compose.onNodeWithText("Kept. Your wallet claims it once you accept the mint's new signing key in its details.").assertExists()
+    }
+
+    @Test
     fun aLinkThatDoesntUnlockItsNoteSaysSo() {
         show(ClaimState(input = "x", preview = ClaimPreview.NotSpendable))
         compose.onNodeWithText("This link doesn't unlock the note it names, so it can't be claimed.").assertExists()

@@ -38,6 +38,7 @@
     <string name="received_waiting">Not claimed yet. Tried again when online.</string>
     <string name="received_locked_until">Locked until %1$s</string>
     <string name="received_locked">Locked for now. Tried again on every refresh.</string>
+    <string name="received_key_changed">Its mint changed its signing key. Claimed once you accept the new key in the mint\'s details.</string>
     <string name="received_claiming">Being claimed. Checked again on the next refresh.</string>
     <string name="received_claimed">Claimed</string>
     <string name="received_gone">Someone else spent it before you claimed it.</string>

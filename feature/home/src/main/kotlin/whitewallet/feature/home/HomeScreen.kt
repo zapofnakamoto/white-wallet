@@ -383,7 +383,7 @@ private fun WalletTab(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         ) {
-            state.keyChangedHost?.let { KeyChanged(it) { onOpenMint(it) } }
+            state.keyChangedMint?.let { KeyChanged(it) { onOpenMint(it) } }
             if (state.addressInactive) state.profile?.let { AddressInactive(it.address, onChangeAddress) }
             state.unknownNotes.forEach { UnknownNotesCard(it, state.mintsVisible, state.balanceHidden, state.checkingUnknown, onRecheckUnknown) }
             if (state.showBackupPrompt) BackupPrompt(onBackup, onDismissBackup)

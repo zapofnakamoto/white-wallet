@@ -727,7 +727,7 @@ class Wallet(
     private suspend fun refreshUnderLock(): RefreshResult = if (asksMints()) working(WalletTask.Updating) { refreshLocked() } else refreshLocked()
 
     private suspend fun asksMints(): Boolean =
-        store.journal(UNSETTLED).isNotEmpty() || store.receivedNotes(PENDING_RECEIVED).isNotEmpty() || store.accounts.first().any { summary ->
+        store.journal(UNSETTLED).isNotEmpty() || store.receivedNotes(ReceivedState.PENDING).isNotEmpty() || store.accounts.first().any { summary ->
             val id = summary.account.id
             summary.profile != null || store.addresses(id).first().isNotEmpty() || store.notes(id).first().any { it.state == NoteState.Shared || it.state == NoteState.Unknown }
         }
@@ -1004,9 +1004,6 @@ class Wallet(
 
         /** Journal entries whose outcome isn't settled yet. */
         val UNSETTLED = setOf(JournalStatus.Prepared, JournalStatus.Unknown)
-
-        /** Received notes not claimed yet, which a refresh tries to claim or settles. */
-        val PENDING_RECEIVED = setOf(ReceivedState.Waiting, ReceivedState.Locked, ReceivedState.Claiming)
     }
 }
 

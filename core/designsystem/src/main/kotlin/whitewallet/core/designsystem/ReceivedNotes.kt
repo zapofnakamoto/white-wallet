@@ -16,6 +16,7 @@ fun receivedNoteStatus(note: ReceivedNote): String = when (note.state) {
     ReceivedState.Waiting -> stringResource(R.string.received_waiting)
     ReceivedState.Locked -> note.lockedUntilMillis?.let { stringResource(R.string.received_locked_until, recentTime(it)) }
         ?: stringResource(R.string.received_locked)
+    ReceivedState.KeyChanged -> stringResource(R.string.received_key_changed)
     ReceivedState.Claiming -> stringResource(R.string.received_claiming)
     ReceivedState.Claimed -> stringResource(R.string.received_claimed)
     ReceivedState.Gone -> stringResource(R.string.received_gone)

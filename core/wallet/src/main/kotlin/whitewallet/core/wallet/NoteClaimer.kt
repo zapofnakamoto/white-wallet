@@ -48,6 +48,13 @@ sealed interface ClaimPreview {
      */
     data class Locked(override val link: NoteLink, val untilMillis: Long?, val forSeconds: Long?, val amountMsat: Long?) : Keepable
 
+    /**
+     * Its mint ([host]) presents another signing key than the one pinned for it, so the spend isn't sent there: a host
+     * taken over by someone else couldn't present the mint's key. Kept, it is claimed once the user accepts the new key
+     * (the mint's details). [amountMsat] is what the mint says now.
+     */
+    data class KeyChanged(override val link: NoteLink, val host: String, val amountMsat: Long) : Keepable
+
     /** A script note whose spend doesn't satisfy its script, or claims a time no mint honours (a block height). */
     data object NotSpendable : ClaimPreview
 
@@ -89,13 +96,13 @@ internal class NoteClaimer(private val wallet: Wallet) {
         if (wallet.store.receivedNote(spend.q.toHex())?.state == ReceivedState.Claimed) return ClaimPreview.AlreadyInWallet
         // A lock by date still ahead: no use asking with the spend, the mint refuses it until then.
         if (script?.lockedUntilSeconds?.let { it * 1000 > wallet.now() } == true) return locked(link, script)
+        // Asked by the note's key alone: the spend goes out only with the claim, to a mint with the pinned key. A wait
+        // after crediting is the mint's to judge then; its refusal keeps the note as locked.
         val info = try {
-            wallet.client.noteInfo(link.withdrawUrl, spend.k1)
+            wallet.client.lookup(link.withdrawUrl, spend.q)
         } catch (e: NoteLookupError) {
-            return when {
-                e.kind == RejectionKind.Spent || e.kind == RejectionKind.NoteUnknown -> ClaimPreview.AlreadySpent
-                // The mint's clock is the one that counts: its refusal of a timed spend is the lock.
-                script != null && (script.lockedUntilSeconds != null || script.lockedForSeconds != null) -> locked(link, script)
+            return when (e.kind) {
+                RejectionKind.Spent, RejectionKind.NoteUnknown -> ClaimPreview.AlreadySpent
                 else -> ClaimPreview.Invalid(e.reason ?: "refused")
             }
         } catch (e: ProtocolViolation) {
@@ -106,9 +113,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
         if (info.maxWithdrawableMsat <= 0) return ClaimPreview.AlreadySpent
         val own = wallet.store.account(accountId)?.host
         val mint = wallet.store.mint(link.host)
-        if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey.toHex()) {
-            return ClaimPreview.Invalid("the signing key of ${link.host} changed")
-        }
+        if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey.toHex()) return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
         return ClaimPreview.Ready(link, info, info.maxWithdrawableMsat, certified(link, info), isOwnMint = link.host == own,
             trusted = wallet.isTrusted(MintKey(link.host, info.mintPubkey.toHex())), hasOtherPaths = script?.hasOtherPaths == true)
     }
@@ -126,7 +131,8 @@ internal class NoteClaimer(private val wallet: Wallet) {
     /** Keeps a note that can't be claimed now; a refresh claims it once it can be. */
     suspend fun keep(preview: ClaimPreview.Keepable, accountId: String): ClaimResult.Kept = when (preview) {
         is ClaimPreview.Offline -> ClaimResult.Kept(received.keep(preview.link, accountId, preview.certifiedMsat))
-        is ClaimPreview.Locked -> ClaimResult.Kept(received.keep(preview.link, accountId, preview.amountMsat, locked = true))
+        is ClaimPreview.Locked -> ClaimResult.Kept(received.keep(preview.link, accountId, preview.amountMsat, ReceivedState.Locked))
+        is ClaimPreview.KeyChanged -> ClaimResult.Kept(received.keep(preview.link, accountId, preview.amountMsat, ReceivedState.KeyChanged))
     }
 
     /** Claimed into its own account a sent note is taken back, like NoteSender.reclaim, not received. */

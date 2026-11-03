@@ -60,6 +60,12 @@ enum class ReceivedState {
     /** Its spend claims a time its mint hasn't reached yet. Tried again once it may have. */
     Locked,
 
+    /**
+     * Its mint presents another signing key than the one pinned for it: the spend isn't sent there until the user
+     * accepts the new key (the mint's details). Asked again, by the note's key alone, on every refresh.
+     */
+    KeyChanged,
+
     /** A claim was sent and its outcome is unknown; settled with its journal entry. */
     Claiming,
 
@@ -71,6 +77,12 @@ enum class ReceivedState {
 
     /** Its spend doesn't satisfy the note's script, or claims a time no mint honours. */
     Invalid,
+    ;
+
+    companion object {
+        /** Not the wallet's yet, and may still become it. */
+        val PENDING: Set<ReceivedState> = setOf(Waiting, Locked, KeyChanged, Claiming)
+    }
 }
 
 /**
@@ -103,7 +115,7 @@ data class ReceivedNote(
     val updatedAtMillis: Long,
 ) {
     /** Not the wallet's yet, and may still become it. */
-    val isPending: Boolean get() = state == ReceivedState.Waiting || state == ReceivedState.Locked || state == ReceivedState.Claiming
+    val isPending: Boolean get() = state in ReceivedState.PENDING
 }
 
 /** A mint the wallet talks to. Only [host] is configuration; the rest is fetched from it. */

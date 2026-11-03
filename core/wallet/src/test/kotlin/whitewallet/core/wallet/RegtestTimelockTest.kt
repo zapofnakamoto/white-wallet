@@ -86,15 +86,18 @@ class RegtestTimelockTest {
     }
 
     @Test
-    fun `a note locked for a while after the mint credits it is known as locked by the mint's refusal`() = runBlocking<Unit> {
+    fun `a note locked for a while after the mint credits it is known as locked by the mint's refusal of the claim`() = runBlocking<Unit> {
         val alice = Regtest.phone()
         alice.fund(2000)
         val locked = LockedNote.after(1)
         alice.lockTo(locked.q)
 
-        val preview = assertIs<ClaimPreview.Locked>(alice.wallet.previewClaim(locked.link(HOST, alice.withdrawUrl())))
-        assertEquals(ClaimPreview.Locked(preview.link, null, 512, 1_999_000), preview)
-        alice.wallet.keepClaim(preview)
+        // Looked at by its key alone, it is there; only the claim tells whether its wait is over.
+        val preview = assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(locked.link(HOST, alice.withdrawUrl())))
+        val kept = assertIs<ClaimResult.Kept>(alice.wallet.claim(preview)).note
+        assertEquals(ReceivedState.Locked, kept.state)
+        assertEquals(512, kept.lockedForSeconds)
+        assertEquals(1_999_000, alice.wallet.incomingMsat.first())
         // Only the mint knows when the wait started: asked on every refresh, it still refuses.
         alice.wallet.refresh()
         assertEquals(ReceivedState.Locked, alice.wallet.receivedNotes.first().single().state)

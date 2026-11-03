@@ -438,4 +438,15 @@ class HomeScreenTest {
         compose.onNodeWithText("Remove").performClick()
         assertEquals(gone.id, dismissed)
     }
+
+    @Test
+    fun aNoteKeptForAChangedKeyLeadsToTheMintsDetails() {
+        var opened: String? = null
+        show(HomeState(activeAccountId = "a", received = listOf(received("r1", ReceivedState.KeyChanged))), onOpenMint = { opened = it })
+        compose.onNodeWithText("mint.example changed its signing key").assertExists()
+        compose.onNodeWithText("Its mint changed its signing key. Claimed once you accept the new key in the mint's details.").assertExists()
+        compose.onNodeWithText("₿2,000 received, not claimed yet").assertExists()
+        compose.onNodeWithText("Details").performClick()
+        assertEquals("mint.example", opened)
+    }
 }

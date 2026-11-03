@@ -35,6 +35,7 @@
     <string name="received_waiting">Noch nicht eingelöst. Wird erneut versucht, sobald du online bist.</string>
     <string name="received_locked_until">Gesperrt bis %1$s</string>
     <string name="received_locked">Vorerst gesperrt. Wird bei jedem Aktualisieren erneut versucht.</string>
+    <string name="received_key_changed">Seine Mint hat ihren Signaturschlüssel geändert. Wird eingelöst, sobald du den neuen Schlüssel in den Details der Mint annimmst.</string>
     <string name="received_claiming">Wird eingelöst. Beim nächsten Aktualisieren wird erneut geprüft.</string>
     <string name="received_claimed">Eingelöst</string>
     <string name="received_gone">Jemand anderes hat ihn ausgegeben, bevor du ihn eingelöst hast.</string>

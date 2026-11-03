@@ -80,6 +80,9 @@ data class HomeState(
     /** What [received] notes not claimed yet are worth, as far as known: not in [balanceMsat]. */
     val incomingMsat: Long get() = received.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
 
+    /** The mint whose changed signing key the user should look at: one the last refresh found, or a received note's. */
+    val keyChangedMint: String? get() = keyChangedHost ?: received.firstOrNull { it.state == ReceivedState.KeyChanged }?.host
+
     /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */
     val status: WalletStatus
         get() = when {
