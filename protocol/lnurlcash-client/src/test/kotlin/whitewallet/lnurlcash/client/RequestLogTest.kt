@@ -2,6 +2,7 @@
 
 package whitewallet.lnurlcash.client
 
+import whitewallet.lnurlcash.Redaction
 import whitewallet.lnurlcash.RevealsNoteSecret
 import kotlin.test.Test
 import kotlin.test.assertEquals

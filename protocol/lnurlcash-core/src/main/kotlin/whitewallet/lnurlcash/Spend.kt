@@ -28,6 +28,9 @@ public sealed interface Spend {
 
         public fun verify(domain: String): Boolean =
             Crypto.verifySignatureSchnorr(CanonicalSpend.keyPathSighash(domain, q), signature, XonlyPublicKey(q))
+
+        /** Debug text without the secret. */
+        override fun toString(): String = "KeyPath(q=$q, k1=${Redaction.mask(k1)})"
     }
 
     /** A plain bearer note, sent in its `k1` short form (hex preimage) or as the equivalent `cw1`. */
@@ -37,6 +40,9 @@ public sealed interface Spend {
         override val q: ByteVector32 get() = BearerNote.q(h)
         @RevealsNoteSecret
         override val k1: String get() = if (asCw1) BearerNote.cw1(preimage).encode() else preimage.toHex()
+
+        /** Debug text without the secret. */
+        override fun toString(): String = "Bearer(q=$q, h=$h, k1=${Redaction.mask(k1)})"
     }
 
     /**
@@ -69,6 +75,9 @@ public sealed interface Spend {
          * spend transaction). Independent of the clock: the claimed time is checked against the script, not against now.
          */
         public fun verify(domain: String): Boolean = ScriptPath.verify(cw1, q, domain)
+
+        /** Debug text without the secret. */
+        override fun toString(): String = "Script(q=$q, lockTime=${cw1.lockTime}, sequence=${cw1.sequence}, k1=${Redaction.mask(k1)})"
     }
 
     @OptIn(RevealsNoteSecret::class)

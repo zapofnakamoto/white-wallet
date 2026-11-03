@@ -91,6 +91,11 @@ public data class Cw1(
     /** What satisfies the script: signatures, preimages. The secret part of a spend. */
     @property:RevealsNoteSecret val witness: List<ByteVector>,
 ) {
+    /** Debug text without the witness. */
+    @OptIn(RevealsNoteSecret::class)
+    override fun toString(): String =
+        "Cw1(lockTime=$lockTime, sequence=$sequence, script=$script, controlBlock=$controlBlock, witness=${witness.size} items, redacted)"
+
     @RevealsNoteSecret
     public fun encode(): String {
         val out = java.io.ByteArrayOutputStream()

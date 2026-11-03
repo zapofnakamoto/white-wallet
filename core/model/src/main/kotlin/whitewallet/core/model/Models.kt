@@ -1,5 +1,6 @@
 package whitewallet.core.model
 
+import whitewallet.lnurlcash.Redaction
 import whitewallet.lnurlcash.RevealsNoteSecret
 
 enum class NoteState {
@@ -124,6 +125,14 @@ data class ReceivedNote(
     /** Not the wallet's yet, and may still become it. */
     val isPending: Boolean get() = state in ReceivedState.PENDING
 
+    /** Debug text without the spend. */
+    @OptIn(RevealsNoteSecret::class)
+    override fun toString(): String =
+        "ReceivedNote(id=$id, accountId=$accountId, host=$host, withdrawUrl=$withdrawUrl, k1=${k1?.let(Redaction::mask)}, " +
+            "certificate=$certificate, declaredMsat=$declaredMsat, amountMsat=$amountMsat, lockedUntilMillis=$lockedUntilMillis, " +
+            "lockedForSeconds=$lockedForSeconds, state=$state, journalId=$journalId, receivedAtMillis=$receivedAtMillis, " +
+            "updatedAtMillis=$updatedAtMillis, refusedSinceMillis=$refusedSinceMillis)"
+
     companion object {
         /** The received notes a list shows: not those already claimed, which are the wallet's own notes now. */
         fun shown(notes: List<ReceivedNote>): List<ReceivedNote> = notes.filter { it.state != ReceivedState.Claimed }
@@ -200,7 +209,14 @@ data class JournalEntry(
     val detail: String?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
+) {
+    /** Debug text without the spends. */
+    @OptIn(RevealsNoteSecret::class)
+    override fun toString(): String =
+        "JournalEntry(id=$id, accountId=$accountId, type=$type, host=$host, withdrawUrl=$withdrawUrl, inputIds=$inputIds, " +
+            "inputK1s=${inputK1s.map(Redaction::mask)}, outputs=$outputs, requestUrl=${Redaction.url(requestUrl)}, status=$status, " +
+            "detail=$detail, createdAtMillis=$createdAtMillis, updatedAtMillis=$updatedAtMillis)"
+}
 
 /** What an [Activity] row stands for. */
 enum class ActivityKind(val isMaintenance: Boolean) {

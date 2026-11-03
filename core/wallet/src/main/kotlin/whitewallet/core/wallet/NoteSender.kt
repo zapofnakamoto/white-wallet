@@ -11,6 +11,7 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.Redaction
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.NoteLookupError
@@ -37,7 +38,13 @@ data class SharedNote(
     val state: SharedNoteState,
     val createdAtMillis: Long,
     @property:RevealsNoteSecret val link: String?,
-)
+) {
+    /** Debug text without the link, which is the money. */
+    @OptIn(RevealsNoteSecret::class)
+    override fun toString(): String =
+        "SharedNote(id=$id, host=$host, amountMsat=$amountMsat, certified=$certified, state=$state, createdAtMillis=$createdAtMillis, " +
+            "link=${link?.let(Redaction::url)})"
+}
 
 sealed interface CreateNoteResult {
     data class Created(val note: SharedNote, val feeMsat: Long) : CreateNoteResult
