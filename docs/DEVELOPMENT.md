@@ -174,9 +174,17 @@ Output keys for the wallet's own purposes (0 wallet, 1 change) come from `IndexG
 ## Money-safety rules in the code
 
 - `LnurlcashClient` refuses an `OkHttpClient` with `retryOnConnectionFailure` enabled.
-- Servers close idle keep-alive connections (the reference mint after ~5 s). Read-only requests (`LnurlcashClient.get`: lookups, note info, discovery) are retried once on a connection failure; mutations and registrations always use a fresh connection, never an idle pooled one. Covered by `ClientTest` and the opt-in `RegtestIdleTest`.
+- Servers close idle keep-alive connections (the reference mint after ~5 s). Read-only requests (`LnurlcashClient.get`: lookups, discovery) are retried once on a connection failure; mutations and registrations always use a fresh connection, never an idle pooled one. Covered by `ClientTest` and the opt-in `RegtestIdleTest`.
 - A mutation is written to the journal (`JournalStatus.Prepared`) before its request is sent. Unknown outcomes are settled by `Reconciler` using lookups by `p`, which never disclose a spend.
-- Received notes are rotated into the wallet's own seed-derived keys immediately.
+- Received notes are kept with their spend first, then rotated into the wallet's own seed-derived keys by the claim (see "Receiving a note").
+- **A spend leaves the wallet only in the mutation that spends it.** A spend (`k1`) doesn't bind where the money goes: whoever gets it can claim the note. So every note is checked by its key (`client.lookup`, `?p=`, LUD-25 "Checking a note without exposing it"), never by the informational GET with `?k1=`, which the client no longer offers. The rule is held in layers:
+  - `@RevealsNoteSecret` (`lnurlcash-core`, an opt-in at error level) marks everything that gives out a secret: `Spend.k1` and its parts, `Cw1`'s witness and encoding, `NoteLink.encode`, the mutation `Requests`, `LnurlcashClient.mutate`, `ReceivedNote.k1`, the journal's spends and request, `SharedNote.link`. Each reader opts in as narrowly as it can (a local value where possible), so `git grep RevealsNoteSecret` lists every place a secret is read. No module opts in wholesale.
+  - `SecretGate` (`core/wallet`) is the only caller of `mutate`. It sends the journaled request unchanged, only while it is `Prepared`, only to a mint presenting the pinned key (trust on first use for a mint the wallet doesn't know yet), and only to a callback on the withdraw URL's scheme, host and port. Otherwise nothing is sent and the entry is closed as rejected. `NoteMutator` builds rotate, merge and split requests itself; callers never see a spend.
+  - `SpendGuard`, the client's last network interceptor, refuses any request carrying `k1` that `mutate` didn't send, also one an interceptor rewrote.
+  - `NetworkCodeTest` fails on network code outside `LnurlcashClient` (allowlist with reasons: the regtest faucet) and on any caller of `mutate` but `SecretGate`.
+  - Debug text (`toString`) of spends, links, received notes, journal entries and shared notes masks the secret (`Redaction`); links, QR codes, share and print use the full link on purpose.
+  - The key check catches a mint presenting another key; someone relaying the mint's answers presents the same key, and only TLS stops that.
+  Tests: `SecretGateTest`, `ClientTest`, `SecretTextTest`, `NetworkCodeTest`, and on regtest `RegtestSpendDisclosureTest` (every flow that talks to a mint, watched on the wire; a callback on another host) and `RegtestMintTest` (no spend at all while a key differs).
 
 ## Restore from a recovery phrase
 

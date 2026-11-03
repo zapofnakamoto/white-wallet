@@ -44,6 +44,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Online, a note is certified by the mint's own certificate, whatever certificate the link carries. A link with
   another note's certificate used to show the note as not certified.
 - A certificate whose amount is too large to read is no certificate. It used to crash the claim screen.
+- Combining, splitting, renewing, paying and moving no longer send a note's spend to look the note up first: every
+  note is checked by its key, and a spend goes out only with the operation that spends it, to the mint's own host,
+  after its signing key is compared with the pinned one.
+- The claim screen blocks screenshots and the Recents thumbnail, like the other screens that show a note's link.
 
 ## [0.6.3]
 
