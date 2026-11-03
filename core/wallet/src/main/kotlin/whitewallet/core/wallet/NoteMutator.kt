@@ -79,7 +79,8 @@ internal class NoteMutator(private val wallet: Wallet) {
         val branch = wallet.branch(fromId, host)
         val spends = inputs.map { note -> branch.spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, domain) }
         if (SimulatedFailure.take(SimulatedFailure.Kind.Unreachable)) return MutationResult.Unreachable("simulated: no answer")
-        val info = runCatching { wallet.client.noteInfo(mint.withdrawUrl, spends.first().k1) }.getOrElse {
+        // Asked by the first note's key alone (LUD-25 "Checking a note without exposing it"): spends go out only with the mutation.
+        val info = runCatching { wallet.client.lookup(mint.withdrawUrl, ByteVector32(inputs.first().id)) }.getOrElse {
             // The mint won't say what the note is worth: it may not know it. That is about the notes, not the mint.
             if (it is NoteLookupError && it.kind in UnknownNotes.GONE) return refused(inputs, it.kind, it.reason)
             return MutationResult.Unreachable(it.message)

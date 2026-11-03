@@ -33,9 +33,13 @@ import whitewallet.lnurlcash.protocol.WithdrawDiscovery
  * Servers close idle keep-alive connections (uvicorn after ~5 s), and OkHttp would otherwise reuse such a dead
  * pooled connection after any pause. So read-only requests retry once on a connection failure (they change
  * nothing), and mutations and registrations always go out on a fresh connection, never an idle pooled one.
+ *
+ * A note's spend (`k1`) leaves only with [mutate]: whoever gets it can claim the note, so a note is checked by its
+ * key ([lookup]). [SpendGuard], the last step before the wire, refuses any other request carrying a spend, also one an
+ * interceptor of [http] rewrote.
  */
 public class LnurlcashClient(
-    private val http: OkHttpClient = defaultHttpClient(),
+    http: OkHttpClient = defaultHttpClient(),
     private val mutationReplays: Int = 1,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) {
@@ -44,8 +48,10 @@ public class LnurlcashClient(
         require(mutationReplays >= 0)
     }
 
+    private val http: OkHttpClient = http.newBuilder().addNetworkInterceptor(SpendGuard).build()
+
     /** Same settings and interceptors, but keeps no idle connections, so every request opens a fresh one. */
-    private val freshConnectionHttp: OkHttpClient = http.newBuilder().connectionPool(ConnectionPool(0, 1, TimeUnit.SECONDS)).build()
+    private val freshConnectionHttp: OkHttpClient = this.http.newBuilder().connectionPool(ConnectionPool(0, 1, TimeUnit.SECONDS)).build()
 
     /**
      * GETs [url] and parses the LNURL response. Only for read-only requests: retried once on a connection failure.
@@ -68,16 +74,13 @@ public class LnurlcashClient(
     public suspend fun withdrawDiscovery(host: String): WithdrawDiscovery =
         WithdrawDiscovery.from(get(Requests.serviceWithdrawDiscoveryUrl(host)))
 
-    /** The informational GET for a spend. Verifies the echoed k1; never burns. */
-    public suspend fun noteInfo(withdrawUrl: String, k1: String): NoteInfo = NoteInfo.from(get(Requests.info(withdrawUrl, k1)), k1)
-
     /** Looks a note up by its output key without disclosing the spend. Throws NoteLookupError if unknown or spent. */
     public suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo = NoteInfo.from(get(Requests.lookup(withdrawUrl, q)), null)
 
     /** Sends a mutation URL built by [Requests] and classifies the outcome. */
     public suspend fun mutate(type: MutationType, url: String): MutationOutcome {
         val replays = if (type == MutationType.Melt) 0 else mutationReplays
-        val request = Request.Builder().url(url).get().build()
+        val request = Request.Builder().url(url).get().tag(SpendGuard.Mutation::class.java, SpendGuard.Mutation).build()
         var outcome = MutationClassifier.classify(type, execute(request, freshConnectionHttp))
         repeat(replays) {
             if (outcome !is MutationOutcome.Ambiguous) return outcome

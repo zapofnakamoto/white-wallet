@@ -52,8 +52,9 @@ class RegtestScriptNoteTest {
         assertNotEquals(a.k1, b.k1)
         assertEquals(note.q, a.q)
         assertEquals(note.q, b.q)
-        assertEquals(1_999_000, alice.wallet.client.noteInfo(withdrawUrl, a.k1).maxWithdrawableMsat)
-        assertEquals(1_999_000, alice.wallet.client.noteInfo(withdrawUrl, b.k1).maxWithdrawableMsat)
+        assertTrue(assertIs<Spend.Script>(a).verify(domain))
+        assertTrue(assertIs<Spend.Script>(b).verify(domain))
+        assertEquals(1_999_000, alice.wallet.client.lookup(withdrawUrl, note.q).maxWithdrawableMsat)
 
         // Together in one merge, the mint must see the same note twice and refuse.
         val output = PrivateKey(ByteArray(32).also(SecureRandom()::nextBytes)).xOnlyPublicKey().value

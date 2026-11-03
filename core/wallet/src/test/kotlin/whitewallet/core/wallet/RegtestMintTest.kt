@@ -57,8 +57,10 @@ class RegtestMintTest {
         // On the wire, the mint's answers carry a different signing key (the generator point, a valid key nobody pins).
         var changed = false
         var sent = 0
+        var spends = 0
         val alice = Regtest.phone(client = Regtest.client { chain ->
             if (chain.request().url.isMutation) sent++
+            if (chain.request().url.queryParameter("k1") != null) spends++
             val response = chain.proceed(chain.request())
             if (changed) Regtest.presentingOtherKey(response) else response
         })
@@ -66,6 +68,7 @@ class RegtestMintTest {
         val note = alice.notes().single()
         changed = true
         sent = 0
+        spends = 0
 
         assertEquals(MintDetails.Reachability.KeyChanged, alice.wallet.mintDetails(HOST).reachability)
         assertEquals(NoteCheck.KeyChanged(HOST), alice.wallet.recheckNote(note.id))
@@ -76,6 +79,7 @@ class RegtestMintTest {
         val preview = alice.wallet.previewPayment(Regtest.invoice(4999))
         if (preview is PayPreview.Ready) assertTrue(alice.wallet.pay(preview, 4_999_000) !is PayResult.Paid)
         assertEquals(0, sent, "no rotate, split or melt went out to a mint whose key changed")
+        assertEquals(0, spends, "no spend went out at all, not even to look a note up")
         assertEquals(listOf(note.id), alice.notes().map { it.id }, "the note is untouched")
 
         // The pinned key again: everything works as before.

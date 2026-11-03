@@ -283,10 +283,11 @@ cmd_note() {
     invoice="$(jq -r '.pr' <<<"$response")"
     log "minting a $sats sat note on $mint_url"
     pay_invoice "$invoice"
-    # The note's value after the mint's fee, from the mint itself (it may take a moment to settle).
+    # The note's value after the mint's fee, from the mint itself (it may take a moment to settle). Asked by its hash
+    # (LUD-25 "Checking a note without exposing it"), so the secret stays off the wire until the note is claimed.
     local info amount="" start=$SECONDS
     until [[ -n "$amount" ]]; do
-        info="$(curl -s "${withdraw}?k1=${secret}")"
+        info="$(curl -s "${withdraw}?p=${h}")"
         amount="$(jq -r 'select(.tag == "withdrawRequest") | .maxWithdrawable // empty' <<<"$info" 2>/dev/null || true)"
         if [[ -z "$amount" ]]; then
             (( SECONDS - start > 15 )) && die "the mint did not issue the note: $(jq -r '.reason // .' <<<"$info" 2>/dev/null || echo "$info")"

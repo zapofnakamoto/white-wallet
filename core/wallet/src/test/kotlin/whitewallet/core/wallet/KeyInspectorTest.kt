@@ -76,7 +76,7 @@ class KeyInspectorTest {
         val client = LnurlcashClient()
         val withdrawUrl = assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host)).mint.withdrawUrl
         val spend = branch.spend(NotePurpose.Wallet, 0, spendDomain(mint.host))
-        val info = client.noteInfo(withdrawUrl, spend.k1)
+        val info = client.lookup(withdrawUrl, spend.q)
         assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, branch.notePubkey(NotePurpose.Wallet, 7))))
 
         assertIs<KeyProbe.Spent>(wallet.recheckKey(mint.host, NotePurpose.Wallet.value, 0))
@@ -91,7 +91,7 @@ class KeyInspectorTest {
         val client = LnurlcashClient()
         val withdrawUrl = assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host)).mint.withdrawUrl
         val spend = branch.spend(NotePurpose.Wallet, 2, spendDomain(mint.host))
-        val info = client.noteInfo(withdrawUrl, spend.k1)
+        val info = client.lookup(withdrawUrl, spend.q)
         assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, branch.notePubkey(NotePurpose.Change, 50))))
         store.setIndex("a", mint.host, NotePurpose.Wallet.value, 4)
         assertIs<KeyProbe.Unused>(wallet.recheckKey(mint.host, NotePurpose.Wallet.value, 1))

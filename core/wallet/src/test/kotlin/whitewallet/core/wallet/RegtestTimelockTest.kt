@@ -6,11 +6,14 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.Regtest.HOST
-import whitewallet.lnurlcash.protocol.NoteLookupError
+import fr.acinq.bitcoin.PrivateKey
+import java.security.SecureRandom
+import whitewallet.lnurlcash.protocol.MutationOutcome
+import whitewallet.lnurlcash.protocol.MutationType
+import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -53,8 +56,11 @@ class RegtestTimelockTest {
         alice.lockTo(locked.q)
 
         // The mint refuses the spend, and names the lock; nothing is burned.
-        val refusal = assertFailsWith<NoteLookupError> { alice.wallet.client.noteInfo(alice.withdrawUrl(), locked.spend(spendDomain(HOST)).k1) }
-        assertTrue("in the future" in refusal.message.orEmpty(), "the mint names the unmet lock: ${refusal.message}")
+        val callback = alice.wallet.client.lookup(alice.withdrawUrl(), locked.q).callback
+        val output = PrivateKey(ByteArray(32).also(SecureRandom()::nextBytes)).xOnlyPublicKey().value
+        val rotate = Requests.rotate(callback, locked.spend(spendDomain(HOST)).k1, output)
+        val refusal = assertIs<MutationOutcome.Rejected>(alice.wallet.client.mutate(MutationType.Rotate, rotate))
+        assertTrue("in the future" in refusal.reason.orEmpty(), "the mint names the unmet lock: ${refusal.reason}")
 
         val preview = assertIs<ClaimPreview.Locked>(alice.wallet.previewClaim(locked.link(HOST, alice.withdrawUrl())))
         assertEquals(ClaimPreview.Locked(preview.link, until * 1000, null, 1_999_000), preview, "what it's worth, asked by its key")

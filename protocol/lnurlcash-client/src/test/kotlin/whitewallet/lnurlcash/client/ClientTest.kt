@@ -21,6 +21,32 @@ class ClientTest {
     }
 
     @Test
+    fun `a request carrying a spend leaves only as a mutation`() = runBlocking<Unit> {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse(body = """{"status":"OK"}"""))
+            server.start()
+            val client = LnurlcashClient()
+            assertFailsWith<SpendRefused> { client.get(server.url("/w?k1=a").toString()) }
+            assertFailsWith<SpendRefused> { client.get(server.url("/w?p=cp1x&K1=a").toString()) }
+            assertEquals(0, server.requestCount, "nothing went out")
+            client.mutate(MutationType.Rotate, server.url("/w/cb?k1=a&p1=cp1z").toString())
+            assertEquals(1, server.requestCount)
+        }
+    }
+
+    @Test
+    fun `a spend an interceptor slips into a lookup doesn't leave`() = runBlocking<Unit> {
+        MockWebServer().use { server ->
+            server.start()
+            val leaky = LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor { chain ->
+                chain.proceed(chain.request().newBuilder().url(chain.request().url.newBuilder().addQueryParameter("k1", "a").build()).build())
+            }.build()
+            assertFailsWith<SpendRefused> { LnurlcashClient(leaky).get(server.url("/w?p=cp1x").toString()) }
+            assertEquals(0, server.requestCount)
+        }
+    }
+
+    @Test
     fun `a melt is sent exactly once even when the answer is lost`() = runBlocking<Unit> {
         MockWebServer().use { server ->
             server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())

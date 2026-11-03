@@ -47,7 +47,8 @@ internal class Melter(private val wallet: Wallet) {
         val mint = wallet.store.mint(host) ?: return MeltOutcome.Unreachable
         val spend = wallet.branch(accountId, host).spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, spendDomain(host))
         val info = try {
-            wallet.client.noteInfo(mint.withdrawUrl, spend.k1).also { Pinning.check(wallet, mint, it.mintPubkey) }
+            // Asked by the note's key alone: the spend goes out only with the melt.
+            wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id)).also { Pinning.check(wallet, mint, it.mintPubkey) }
         } catch (e: NoteLookupError) {
             if (e.kind in UnknownNotes.GONE && UnknownNotes(wallet).sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
             return MeltOutcome.Unreachable

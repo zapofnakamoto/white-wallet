@@ -10,9 +10,6 @@ public object Requests {
     public fun mintInvoice(callback: String, amountMsat: Long, output: ByteVector32): String =
         Lnurl.withQuery(callback, listOf("amount" to amountMsat.toString(), "comment" to Cp1.encode(output)))
 
-    /** The informational GET for a spend. Never burns. */
-    public fun info(withdrawUrl: String, k1: String): String = Lnurl.withQuery(withdrawUrl, listOf("k1" to k1))
-
     /** A lookup by output key, which keeps the spend off the wire. Never valid at the callback. */
     public fun lookup(withdrawUrl: String, q: ByteVector32): String = Lnurl.withQuery(withdrawUrl, listOf("p" to Cp1.encode(q)))
 

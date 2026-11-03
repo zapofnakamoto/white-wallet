@@ -25,7 +25,7 @@ class RequestLogTest {
             server.enqueue(MockResponse(body = """{"tag":"withdrawRequest","callback":"x","k1":"$secret","maxWithdrawable":1000,"preimage":"abcdef0123456789"}"""))
             server.start()
             val log = RequestLog()
-            runCatching { client(log).get(server.url("/w?k1=$secret&p1=cp1public").toString()) }
+            client(log).mutate(MutationType.Melt, server.url("/w/cb?k1=$secret&p1=cp1public").toString())
             val entry = log.entries.value.single()
             assertEquals("GET", entry.method)
             assertEquals(200, entry.status)

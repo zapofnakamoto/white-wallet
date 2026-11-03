@@ -46,8 +46,7 @@ class MockMintIntegrationTest {
             assertTrue(Certificates.verify(assertNotNull(looked.certificate), q0, looked.mintPubkey))
 
             val spend = branch.spend(NotePurpose.Wallet, 0, spendDomain(mint.host))
-            val info = client.noteInfo(pay.withdrawUrl, spend.k1)
-            assertEquals(21_000, info.maxWithdrawableMsat)
+            val info = looked
 
             val q1 = branch.notePubkey(NotePurpose.Wallet, 1)
             val outcome = client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, q1))
@@ -75,7 +74,7 @@ class MockMintIntegrationTest {
             val branch = CashBranch.fromSeed(seed, mint.host)
             mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.Wallet, 0)), 21_000)
             val spend = branch.spend(NotePurpose.Wallet, 0, spendDomain(mint.host))
-            val info = client.noteInfo(pay.withdrawUrl, spend.k1)
+            val info = client.lookup(pay.withdrawUrl, spend.q)
             val p1 = branch.notePubkey(NotePurpose.Wallet, 1)
             val p2 = branch.notePubkey(NotePurpose.Change, 0)
             val outcome = assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Split, Requests.split(info.callback, listOf(spend.k1), 5_000, p1, p2)))
@@ -92,7 +91,7 @@ class MockMintIntegrationTest {
             val withdrawUrl = LnurlcashClient().servicePayRequest(mint.host).withdrawUrl
             mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.Wallet, 0)), 21_000)
             val spend = branch.spend(NotePurpose.Wallet, 0, domain)
-            val info = LnurlcashClient().noteInfo(withdrawUrl, spend.k1)
+            val info = LnurlcashClient().lookup(withdrawUrl, spend.q)
             val url = Requests.rotate(info.callback, spend.k1, branch.notePubkey(NotePurpose.Wallet, 1))
 
             val noReplay = LnurlcashClient(mutationReplays = 0).mutate(MutationType.Rotate, url)
@@ -120,7 +119,7 @@ class MockMintIntegrationTest {
             val bearer = Spend.Bearer(preimage)
             mint.credit(bearer.h.toHex(), 10_000)
             val link = assertNotNull(NoteLink.parse("lnurlw://${mint.host}/w?k1=${bearer.k1}"))
-            val info = client.noteInfo(link.withdrawUrl, link.spend.k1)
+            val info = client.lookup(link.withdrawUrl, link.spend.q)
             val target = CashBranch.fromSeed(seed, mint.host).notePubkey(NotePurpose.Wallet, 0)
             assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Rotate, Requests.rotate(info.callback, link.spend.k1, target)))
             assertEquals(10_000, client.lookup(pay.withdrawUrl, target).maxWithdrawableMsat)
