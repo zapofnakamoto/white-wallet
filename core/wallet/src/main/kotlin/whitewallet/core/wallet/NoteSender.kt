@@ -11,11 +11,11 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
-import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 
 /** Where a note handed out as a link stands. */
@@ -36,7 +36,7 @@ data class SharedNote(
     val certified: Boolean,
     val state: SharedNoteState,
     val createdAtMillis: Long,
-    val link: String?,
+    @property:RevealsNoteSecret val link: String?,
 )
 
 sealed interface CreateNoteResult {
@@ -164,9 +164,7 @@ internal class NoteSender(private val wallet: Wallet) {
             Check.Unknown -> return ReclaimResult.Failed(PayProblem.Unreachable)
             Check.Waiting -> Unit
         }
-        val result = mutator.mutate(accountId, note.host, listOf(note), OperationType.Rotate, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet))) { callback, k1s, outs ->
-            Requests.rotate(callback, k1s.single(), outs.single().key)
-        }
+        val result = mutator.mutate(accountId, note.host, listOf(note), OperationType.Rotate, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))
         return when (result) {
             is MutationResult.Done -> {
                 cancel(accountId, id)
@@ -221,6 +219,8 @@ internal class NoteSender(private val wallet: Wallet) {
         wallet.store.putActivity(row.copy(status = if (into == note.accountId) ActivityStatus.Cancelled else ActivityStatus.Done))
     }
 
+    /** The link the user hands out: the note's spend, on purpose. */
+    @OptIn(RevealsNoteSecret::class)
     private suspend fun link(note: Note): String? {
         val mint = wallet.store.mint(note.host) ?: return null
         val spend = wallet.branch(note.accountId, note.host).spend(NotePurpose.entries.first { it.value == note.purpose }, note.index ?: return null, spendDomain(note.host))

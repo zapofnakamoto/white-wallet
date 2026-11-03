@@ -15,7 +15,6 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.NotePurpose
-import whitewallet.lnurlcash.protocol.Requests
 
 /** What one application of an account's note policies did. */
 data class PolicyRun(
@@ -193,7 +192,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     private suspend fun combine(accountId: String, host: String, batch: List<Note>): Outcome {
         val inputs = batch.sumOf { it.amountMsat }
         val target = OutputSpec.Own(accountId, NotePurpose.Wallet)
-        return when (val r = mutator.mutate(accountId, host, batch, OperationType.Merge, listOf(target)) { callback, k1s, outs -> Requests.merge(callback, k1s, outs.single().key) }) {
+        return when (val r = mutator.mutate(accountId, host, batch, OperationType.Merge, listOf(target))) {
             is MutationResult.Done -> {
                 val out = r.outputs.single()
                 log.record("op:${r.journalId}", accountId, ActivityKind.Combined, out.amountMsat.takeIf { it > 0 } ?: inputs, host,
@@ -213,9 +212,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
 
     private suspend fun split(accountId: String, note: Note, firstMsat: Long, fee: Long): Outcome {
         val outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet), OutputSpec.Own(accountId, NotePurpose.Change))
-        return when (val r = mutator.mutate(accountId, note.host, listOf(note), OperationType.Split, outputs) { callback, k1s, outs ->
-            Requests.split(callback, k1s, firstMsat, outs[0].key, outs[1].key)
-        }) {
+        return when (val r = mutator.mutate(accountId, note.host, listOf(note), OperationType.Split, outputs, splitMsat = firstMsat)) {
             is MutationResult.Done -> {
                 log.record("op:${r.journalId}", accountId, ActivityKind.Split, note.amountMsat, note.host,
                     feeMsat = fee.takeIf { it > 0 }, noteCount = 2, automatic = true, journalId = r.journalId)

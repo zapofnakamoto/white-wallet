@@ -8,7 +8,6 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.NotePurpose
-import whitewallet.lnurlcash.protocol.Requests
 
 sealed interface RotateResult {
     /** The note now lives at wallet key (purpose 0) [toIndex]. */
@@ -65,9 +64,7 @@ internal class NoteRotator(private val wallet: Wallet) {
     }
 
     private suspend fun rotate(accountId: String, note: Note, automatic: Boolean): RotateResult {
-        val result = mutator.mutate(accountId, note.host, listOf(note), OperationType.Rotate, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet))) { callback, k1s, outs ->
-            Requests.rotate(callback, k1s.single(), outs.single().key)
-        }
+        val result = mutator.mutate(accountId, note.host, listOf(note), OperationType.Rotate, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))
         return when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single()

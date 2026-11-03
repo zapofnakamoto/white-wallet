@@ -73,6 +73,7 @@ import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
 import whitewallet.core.wallet.Wallet
+import whitewallet.lnurlcash.RevealsNoteSecret
 
 data class CreateNoteState(
     val availableMsat: Long? = null,
@@ -263,6 +264,8 @@ fun SharedNoteRoute(onBack: () -> Unit, viewModel: SharedNoteViewModel = hiltVie
     }
 }
 
+// Shows, shares, copies and prints the link: the note's spend, handed out on purpose.
+@OptIn(RevealsNoteSecret::class)
 @Composable
 fun SharedNoteScreen(
     state: SharedNoteUiState,

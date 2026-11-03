@@ -1,5 +1,8 @@
+@file:OptIn(RevealsNoteSecret::class)
+
 package whitewallet.core.wallet
 
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.ActivityKind
 import fr.acinq.bitcoin.ByteVector32

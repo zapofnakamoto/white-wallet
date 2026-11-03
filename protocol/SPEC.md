@@ -45,7 +45,7 @@ The conformance `spec-vectors.json` was transcribed from luds `50d740a`. Every v
 | LUD-26 derivation, both branch parities, purposes 0/1/2, watch-only from `cx1` | `SpecVectorsTest.derivation`, `ConformancePart2Test.branches` |
 | Registration proof: Schnorr by purpose-0 index-0 key over `sha256("LNURLcash:<action>:<domain>:<username>")` | `SpecVectorsTest.registration proofs`, `ConformancePart2Test.address proofs` |
 | Minting payRequest needs `withdrawLink` and `commentAllowed` ≥ 64 | `ProtocolVectorsTest.minting pay requests` |
-| Informational response must echo the queried `k1` and carry a valid `mintPubkey` | `ProtocolVectorsTest.note info` |
+| Informational response must echo the queried `k1` and carry a valid `mintPubkey` (parsing only: the wallet never sends `?k1=` there) | `ProtocolVectorsTest.note info` |
 | Outputs are wallet-generated `p1`/`p2`; the service never generates a secret | `Requests` (no API exists to accept one) |
 | Only a parsed `ERROR` is a rejection; transport failures and unconfirming bodies are ambiguous | `ProtocolVectorsTest.mutation responses are classified` |
 | A `cp1` output confirmed without its certificate landed (unverifiable, not failed) | `ProtocolVectorsTest.a bare OK for a cp1 rotate is unverifiable but landed` |
@@ -58,6 +58,8 @@ The conformance `spec-vectors.json` was transcribed from luds `50d740a`. Every v
 |---|---|---|---|
 | Registration endpoint | Not specified | `POST /p/<username>?cx1=&sig=` (same on lnurl-mint-rust) | Uses that endpoint |
 | Registration proof | Schnorr, domain-bound, always required | Same in the current code (`lnurl_mint/router.py` at `b2e3500`). Its README still says a fresh claim needs no proof; that is outdated | Sends the spec Schnorr proof. Unregister: `DELETE /p/<username>?sig=` with the `unregister` proof (accepted by lnurl-mint, see `RegtestMultiAddressTest`); the lookup afterwards decides. Overwrite is not implemented |
+| Checking a note | Both the informational GET with `?k1=` and "Checking a note without exposing it" with `?p=` (line 194); neither is preferred | Answers both | Checks every note by `?p=` only; a spend goes out only at the callback, in the mutation that spends it (`SpendGuard`, `SecretGate`) |
+| Callback host | Any URL the informational response names | Its own host | Sends a spend only to a callback on the withdraw URL's scheme, host and port (`SecretGate`); otherwise nothing is sent |
 | `lnurlcash-kotlin` 0.1.1 | — | — | Not used. It signs `ck1` over `sha256("LNURLcash")` and omits the domain from proofs (an older draft) |
 
 ## How the wallet confirms a username

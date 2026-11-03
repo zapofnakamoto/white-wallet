@@ -17,10 +17,13 @@ public sealed interface Spend {
     public val q: ByteVector32
 
     /** The exact string to send as `k1`. */
+    @RevealsNoteSecret
     public val k1: String
 
     /** A `ck1`: BIP-340 signature by `Q` over the canonical spend sighash for one domain. */
-    public data class KeyPath(override val q: ByteVector32, val signature: ByteVector64) : Spend {
+    @OptIn(RevealsNoteSecret::class)
+    public data class KeyPath(override val q: ByteVector32, @property:RevealsNoteSecret val signature: ByteVector64) : Spend {
+        @RevealsNoteSecret
         override val k1: String get() = Ck1.encode(q, signature)
 
         public fun verify(domain: String): Boolean =
@@ -28,9 +31,11 @@ public sealed interface Spend {
     }
 
     /** A plain bearer note, sent in its `k1` short form (hex preimage) or as the equivalent `cw1`. */
-    public data class Bearer(val preimage: ByteVector32, val asCw1: Boolean = false) : Spend {
+    @OptIn(RevealsNoteSecret::class)
+    public data class Bearer(@property:RevealsNoteSecret val preimage: ByteVector32, val asCw1: Boolean = false) : Spend {
         val h: ByteVector32 get() = BearerNote.hash(preimage)
         override val q: ByteVector32 get() = BearerNote.q(h)
+        @RevealsNoteSecret
         override val k1: String get() = if (asCw1) BearerNote.cw1(preimage).encode() else preimage.toHex()
     }
 
@@ -38,7 +43,12 @@ public sealed interface Spend {
      * Any other script-path spend. What its script means is open-ended, so nothing here reads it: the spend is
      * checked as a whole ([verify]), and the time it claims is read from the spend, which a leaf signature commits to.
      */
-    public data class Script(override val q: ByteVector32, val cw1: Cw1, override val k1: String) : Spend {
+    @OptIn(RevealsNoteSecret::class)
+    public data class Script(
+        override val q: ByteVector32,
+        @property:RevealsNoteSecret val cw1: Cw1,
+        @property:RevealsNoteSecret override val k1: String,
+    ) : Spend {
         /** The Unix time the spend claims (`nLockTime`); the mint refuses it until then. Null if it claims none. */
         val lockedUntilSeconds: Long? get() = cw1.lockTime.takeIf { it != 0L }
 
@@ -61,6 +71,7 @@ public sealed interface Spend {
         public fun verify(domain: String): Boolean = ScriptPath.verify(cw1, q, domain)
     }
 
+    @OptIn(RevealsNoteSecret::class)
     public companion object {
         /** Signs a key-path spend of the note owned by [secretKey] at [domain] (all-zero aux_rand, so it is reproducible). */
         public fun keyPath(secretKey: PrivateKey, domain: String): KeyPath {
@@ -119,6 +130,7 @@ internal object ScriptPath {
         ScriptFlags.SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY or ScriptFlags.SCRIPT_VERIFY_CHECKSEQUENCEVERIFY or
         ScriptFlags.SCRIPT_VERIFY_DERSIG or ScriptFlags.SCRIPT_VERIFY_NULLDUMMY
 
+    @OptIn(RevealsNoteSecret::class)
     fun verify(cw1: Cw1, q: ByteVector32, domain: String): Boolean {
         val tx = CanonicalSpend.transaction(domain, cw1.lockTime, cw1.sequence)
             .updateWitness(0, ScriptWitness(cw1.witness + cw1.script + cw1.controlBlock))

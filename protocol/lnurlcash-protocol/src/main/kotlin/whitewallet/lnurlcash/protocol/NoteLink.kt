@@ -1,6 +1,7 @@
 package whitewallet.lnurlcash.protocol
 
 import whitewallet.lnurl.Lnurl
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 
 /** A note as handed between people: `lnurlw://<service>/w?k1=<spend>[&amount=<msat>][&c=<cs1>]`. */
@@ -15,6 +16,8 @@ public data class NoteLink(
     /** The host the note lives on, exactly as written (port included). */
     val host: String get() = checkNotNull(Lnurl.host(withdrawUrl))
 
+    /** The link itself, spend included: what the user hands over. */
+    @RevealsNoteSecret
     public fun encode(): String {
         val params = buildList {
             add("k1" to spend.k1)

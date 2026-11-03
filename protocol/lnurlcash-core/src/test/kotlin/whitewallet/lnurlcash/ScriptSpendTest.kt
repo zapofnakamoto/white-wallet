@@ -1,3 +1,5 @@
+@file:OptIn(RevealsNoteSecret::class)
+
 package whitewallet.lnurlcash
 
 import fr.acinq.bitcoin.ByteVector

@@ -21,6 +21,7 @@ import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
+import whitewallet.lnurlcash.RevealsNoteSecret
 
 @Entity(tableName = "accounts")
 internal data class AccountEntity(@PrimaryKey val id: String, val name: String, val createdAtMillis: Long, val host: String) {
@@ -175,6 +176,7 @@ internal data class JournalEntity(
     )
 
     companion object {
+        @OptIn(RevealsNoteSecret::class) // stored in the encrypted database
         fun from(e: JournalEntry) = JournalEntity(
             e.id, e.accountId, e.type.name, e.host, e.withdrawUrl, e.inputIds.joinToString(","), e.inputK1s.joinToString(","),
             e.outputs.joinToString(",") { "${it.accountId}:${it.purpose}:${it.index}:${it.q}" }, e.requestUrl, e.status.name, e.detail,
@@ -234,6 +236,7 @@ internal data class ReceivedNoteEntity(
         ReceivedState.valueOf(state), journalId, receivedAtMillis, updatedAtMillis, refusedSinceMillis)
 
     companion object {
+        @OptIn(RevealsNoteSecret::class) // stored in the encrypted database: the seed can't derive it again
         fun from(n: ReceivedNote) = ReceivedNoteEntity(n.id, n.accountId, n.host, n.withdrawUrl, n.k1, n.certificate, n.declaredMsat, n.amountMsat,
             n.lockedUntilMillis, n.lockedForSeconds, n.state.name, n.journalId, n.receivedAtMillis, n.updatedAtMillis, n.refusedSinceMillis)
     }

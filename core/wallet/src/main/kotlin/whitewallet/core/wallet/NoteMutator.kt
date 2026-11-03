@@ -12,6 +12,7 @@ import whitewallet.core.model.OutputRef
 import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
@@ -62,7 +63,8 @@ internal class NoteMutator(private val wallet: Wallet) {
     private val guard = IndexGuard(wallet)
 
     /**
-     * Journals and sends one mutation of [fromId]'s [inputs], then records its outputs (in [outputs] order).
+     * Journals and sends one mutation of [fromId]'s [inputs], then records its outputs (in [outputs] order): a rotate or
+     * merge into one output, or a split, whose first output gets [splitMsat].
      * If the mint says an output key is `already in use`, the mutation is retried with fresh output keys, up to
      * [IndexGuard.IN_USE_ATTEMPTS] keys in all; after the first refusal the index is rediscovered.
      */
@@ -72,7 +74,7 @@ internal class NoteMutator(private val wallet: Wallet) {
         inputs: List<Note>,
         type: OperationType,
         outputs: List<OutputSpec>,
-        buildUrl: (callback: String, k1s: List<String>, outputs: List<ReservedOutput>) -> String,
+        splitMsat: Long? = null,
     ): MutationResult {
         val mint = wallet.store.mint(host) ?: return MutationResult.Unreachable("unknown host $host")
         val domain = spendDomain(host)
@@ -91,7 +93,7 @@ internal class NoteMutator(private val wallet: Wallet) {
         } catch (e: MintKeyChangedException) {
             return MutationResult.Unreachable(e.message)
         }
-        val result = run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputs.sumOf { it.amountMsat }, type, outputs, buildUrl)
+        val result = run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputs.sumOf { it.amountMsat }, type, outputs, splitMsat)
         return if (result is MutationResult.Refused && result.kind in UnknownNotes.GONE) refused(inputs, result.kind, result.reason) else result
     }
 
@@ -106,7 +108,7 @@ internal class NoteMutator(private val wallet: Wallet) {
      */
     suspend fun rotateIn(accountId: String, host: String, withdrawUrl: String, info: NoteInfo, spend: Spend, amountMsat: Long, sent: Note?): MutationResult =
         run(accountId, host, withdrawUrl, info, listOf(spend), listOfNotNull(sent), amountMsat, OperationType.Rotate,
-            listOf(OutputSpec.Own(accountId, NotePurpose.Wallet))) { callback, k1s, outs -> Requests.rotate(callback, k1s.single(), outs.single().key) }
+            listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)), splitMsat = null)
 
     /** Sends the mutation, with fresh output keys while the mint says one is `already in use`. */
     private suspend fun run(
@@ -119,7 +121,7 @@ internal class NoteMutator(private val wallet: Wallet) {
         inputMsat: Long,
         type: OperationType,
         outputs: List<OutputSpec>,
-        buildUrl: (callback: String, k1s: List<String>, outputs: List<ReservedOutput>) -> String,
+        splitMsat: Long?,
     ): MutationResult {
         var attempt = 0
         while (true) {
@@ -129,7 +131,7 @@ internal class NoteMutator(private val wallet: Wallet) {
                     is OutputSpec.External -> spec.keyAt(attempt).let { ReservedOutput(it, OutputRef.external(it.toHex())) }
                 }
             }
-            val result = send(fromId, host, withdrawUrl, inputs, spends, inputMsat, type, reserved, info, buildUrl(info.callback, spends.map(Spend::k1), reserved))
+            val result = send(fromId, host, withdrawUrl, inputs, spends, inputMsat, type, reserved, info, request(type, info.callback, spends, reserved, splitMsat))
             if (result is MutationResult.Refused && result.kind == RejectionKind.AlreadyInUse && attempt + 1 < IndexGuard.IN_USE_ATTEMPTS) {
                 if (attempt == 0) outputs.filterIsInstance<OutputSpec.Own>().distinct().forEach { guard.recover(it.accountId, host, it.purpose) }
                 attempt++
@@ -139,6 +141,19 @@ internal class NoteMutator(private val wallet: Wallet) {
         }
     }
 
+    /** The mutation's request: the one place the wallet's spends are written into a URL (sent only by [SecretGate]). */
+    @OptIn(RevealsNoteSecret::class)
+    private fun request(type: OperationType, callback: String, spends: List<Spend>, outputs: List<ReservedOutput>, splitMsat: Long?): String {
+        val k1s = spends.map(Spend::k1)
+        return when (type) {
+            OperationType.Rotate -> Requests.rotate(callback, k1s.single(), outputs.single().key)
+            OperationType.Merge -> Requests.merge(callback, k1s, outputs.single().key)
+            OperationType.Split -> Requests.split(callback, k1s, checkNotNull(splitMsat) { "a split needs its amount" }, outputs[0].key, outputs[1].key)
+            OperationType.Melt, OperationType.Mint -> error("$type is not sent through NoteMutator")
+        }
+    }
+
+    @OptIn(RevealsNoteSecret::class) // journals the spends, to reclaim a received note if the mutation didn't land
     private suspend fun send(
         fromId: String,
         host: String,
@@ -165,12 +180,18 @@ internal class NoteMutator(private val wallet: Wallet) {
         var lost = false
         val outcome = when {
             SimulatedFailure.take(SimulatedFailure.Kind.Refused) -> MutationOutcome.Rejected(RejectionKind.Other, "simulated: refused")
-            SimulatedFailure.take(SimulatedFailure.Kind.AnswerLost) -> {
-                wallet.client.mutate(mutation, url)
-                lost = true
-                MutationOutcome.Ambiguous("simulated: answer lost")
+            else -> when (val released = SecretGate(wallet).release(entry, info, mutation)) {
+                is SecretGate.Released.NotSent -> {
+                    wallet.store.putJournal(entry.copy(status = JournalStatus.Rejected, detail = released.reason, updatedAtMillis = wallet.now()))
+                    return MutationResult.Unreachable(released.reason)
+                }
+                is SecretGate.Released.Sent -> if (SimulatedFailure.take(SimulatedFailure.Kind.AnswerLost)) {
+                    lost = true
+                    MutationOutcome.Ambiguous("simulated: answer lost")
+                } else {
+                    released.outcome
+                }
             }
-            else -> wallet.client.mutate(mutation, url)
         }
         return when (outcome) {
             is MutationOutcome.Confirmed, is MutationOutcome.Unverifiable -> {

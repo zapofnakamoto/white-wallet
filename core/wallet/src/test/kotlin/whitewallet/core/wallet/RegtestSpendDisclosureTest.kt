@@ -1,8 +1,11 @@
 package whitewallet.core.wallet
 
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.BeforeEach
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
 import kotlin.test.Test
@@ -51,5 +54,35 @@ class RegtestSpendDisclosureTest {
         assertTrue(spends.isNotEmpty())
         val stray = spends.filterNot { it.isMutation && "${it.host}:${it.port}" in setOf(HOST, HOST2) }
         assertEquals(emptyList(), stray.map { it.newBuilder().query(null).build() }, "requests that carried a spend outside a mutation")
+    }
+
+    @Test
+    fun `a mint naming a callback on another host gets no spend`() = runBlocking<Unit> {
+        var elsewhere = false
+        val spends = mutableListOf<HttpUrl>()
+        val alice = Regtest.phone(client = Regtest.client { chain ->
+            val url = chain.request().url
+            if (url.queryParameter("k1") != null) spends.add(url)
+            val response = chain.proceed(chain.request())
+            if (!elsewhere || url.queryParameter("p") == null) return@client response
+            val body = response.body.string().replace(Regex("\"callback\":\\s*\"https?://[^/\"]+"), "\"callback\":\"http://elsewhere.example")
+            response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
+        })
+        alice.fund(1000, 1000)
+        val link = Regtest.note(1000)
+        elsewhere = true
+        spends.clear()
+
+        assertIs<NoteActionResult.Failed>(alice.wallet.combineNotes(alice.notes().map { it.id }))
+        val preview = assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(link))
+        assertIs<ClaimResult.Kept>(alice.wallet.claim(preview))
+        assertEquals(emptyList(), spends, "no spend went out")
+        assertEquals(ReceivedState.Waiting, alice.wallet.receivedNotes.first().single().state)
+        assertEquals(2, alice.notes().size, "nothing combined")
+
+        // The mint's own callback again: the kept note is claimed.
+        elsewhere = false
+        alice.wallet.refresh()
+        assertEquals(ReceivedState.Claimed, alice.wallet.receivedNotes.first().single().state)
     }
 }

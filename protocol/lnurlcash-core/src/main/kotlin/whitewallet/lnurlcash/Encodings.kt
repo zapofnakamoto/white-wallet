@@ -88,8 +88,10 @@ public data class Cw1(
     val sequence: Long,
     val script: ByteVector,
     val controlBlock: ByteVector,
-    val witness: List<ByteVector>,
+    /** What satisfies the script: signatures, preimages. The secret part of a spend. */
+    @property:RevealsNoteSecret val witness: List<ByteVector>,
 ) {
+    @RevealsNoteSecret
     public fun encode(): String {
         val out = java.io.ByteArrayOutputStream()
         fun u32(v: Long) = repeat(4) { out.write((v ushr (24 - 8 * it)).toInt() and 0xff) }

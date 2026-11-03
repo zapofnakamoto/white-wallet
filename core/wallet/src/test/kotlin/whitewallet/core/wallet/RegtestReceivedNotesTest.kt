@@ -1,5 +1,8 @@
+@file:OptIn(RevealsNoteSecret::class)
+
 package whitewallet.core.wallet
 
+import whitewallet.lnurlcash.RevealsNoteSecret
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl

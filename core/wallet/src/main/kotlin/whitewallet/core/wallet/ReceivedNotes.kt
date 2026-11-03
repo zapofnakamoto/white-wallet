@@ -6,6 +6,7 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLink
@@ -37,6 +38,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         val until = script?.lockedUntilSeconds?.let { it * 1000 }
         val now = wallet.now()
         val state = found ?: if (until != null && until > now) ReceivedState.Locked else ReceivedState.Waiting
+        // Stored with its spend: the seed can't derive it again.
+        @OptIn(RevealsNoteSecret::class)
         val note = ReceivedNote(spend.q.toHex(), accountId, link.host, link.withdrawUrl, spend.k1, link.certificate, link.declaredAmountMsat,
             amountMsat ?: existing?.amountMsat, until, script?.lockedForSeconds, state, null, existing?.receivedAtMillis ?: now, now)
         wallet.store.putReceivedNote(note)
@@ -51,6 +54,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
      * the note. The key check catches a mint presenting another key; one relaying the mint's answers is TLS's to stop.
      */
     suspend fun claim(note: ReceivedNote, info: NoteInfo? = null, certified: Boolean = false): ClaimResult {
+        @OptIn(RevealsNoteSecret::class)
         val spend = note.k1?.let(Spend::parse) ?: return ClaimResult.Failed(RejectionKind.Other, null)
         val answer = info ?: try {
             wallet.client.lookup(note.withdrawUrl, spend.q)

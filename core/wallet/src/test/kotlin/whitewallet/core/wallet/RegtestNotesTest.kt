@@ -1,5 +1,8 @@
+@file:OptIn(RevealsNoteSecret::class)
+
 package whitewallet.core.wallet
 
+import whitewallet.lnurlcash.RevealsNoteSecret
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
@@ -51,9 +54,7 @@ class RegtestNotesTest {
 
         // Asked anyway, the mint refuses to count one note twice.
         val result = NoteMutator(alice.wallet).mutate(alice.wallet.activeId(), HOST, listOf(note, note), OperationType.Merge,
-            listOf(OutputSpec.Own(alice.wallet.activeId(), NotePurpose.Wallet))) { callback, k1s, outs ->
-            Requests.merge(callback, k1s, outs.single().key)
-        }
+            listOf(OutputSpec.Own(alice.wallet.activeId(), NotePurpose.Wallet)))
         // It says the second k1 is spent; the note is not, so the wallet keeps it.
         val refused = assertIs<MutationResult.Refused>(result, "the same k1 twice in a merge")
         assertEquals(RejectionKind.Spent, refused.kind)

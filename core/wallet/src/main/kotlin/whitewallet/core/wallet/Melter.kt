@@ -9,6 +9,7 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
@@ -56,15 +57,25 @@ internal class Melter(private val wallet: Wallet) {
             // Including a signing key other than the pinned one: nothing is paid through such a mint.
             return MeltOutcome.Unreachable
         }
-        val url = Requests.melt(info.callback, spend.k1, invoice)
         val created = wallet.now()
+        // Written into the request and the journal; it goes out only through SecretGate.
+        @OptIn(RevealsNoteSecret::class)
         val entry = JournalEntry(UUID.randomUUID().toString(), accountId, OperationType.Melt, host, mint.withdrawUrl, listOf(note.id),
-            listOf(spend.k1), emptyList(), url, JournalStatus.Prepared, null, created, created)
+            listOf(spend.k1), emptyList(), Requests.melt(info.callback, spend.k1, invoice), JournalStatus.Prepared, null, created, created)
         wallet.store.putJournal(entry)
         wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Paying, updatedAtMillis = created)))
         beforeSend(entry.id)
 
-        val inFlight = when (val outcome = wallet.client.mutate(MutationType.Melt, url)) {
+        val outcome = when (val released = SecretGate(wallet).release(entry, info, MutationType.Melt)) {
+            is SecretGate.Released.Sent -> released.outcome
+            is SecretGate.Released.NotSent -> {
+                wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now())))
+                wallet.store.putJournal(entry.copy(status = JournalStatus.Rejected, detail = released.reason, updatedAtMillis = wallet.now()))
+                ActivityLog(wallet).settle(entry.id, JournalStatus.Rejected)
+                return MeltOutcome.Unreachable
+            }
+        }
+        val inFlight = when (outcome) {
             is MutationOutcome.Confirmed, is MutationOutcome.Unverifiable ->
                 entry.copy(status = JournalStatus.Unknown, detail = MeltReconciler.IN_FLIGHT, updatedAtMillis = wallet.now())
             is MutationOutcome.Rejected -> {

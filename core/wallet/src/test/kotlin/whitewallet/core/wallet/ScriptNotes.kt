@@ -1,5 +1,8 @@
+@file:OptIn(RevealsNoteSecret::class)
+
 package whitewallet.core.wallet
 
+import whitewallet.lnurlcash.RevealsNoteSecret
 import fr.acinq.bitcoin.ByteVector
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.OP_CHECKLOCKTIMEVERIFY
@@ -78,8 +81,6 @@ internal class LockedNote private constructor(private val leaf: ByteVector, priv
 
 /** Renews the phone's one note on [host] to [q], someone else's key: the money leaves the balance. */
 internal suspend fun Regtest.Phone.lockTo(q: ByteVector32, host: String = Regtest.HOST) {
-    val result = NoteMutator(wallet).mutate(wallet.activeId(), host, listOf(notes(host).single()), OperationType.Rotate, listOf(OutputSpec.External { q })) { callback, k1s, outs ->
-        Requests.rotate(callback, k1s.single(), outs.single().key)
-    }
+    val result = NoteMutator(wallet).mutate(wallet.activeId(), host, listOf(notes(host).single()), OperationType.Rotate, listOf(OutputSpec.External { q }))
     assertIs<MutationResult.Done>(result)
 }

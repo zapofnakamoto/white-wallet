@@ -26,7 +26,6 @@ import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
-import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 
 /** Where a payment goes. */
@@ -295,21 +294,15 @@ internal class Payer(private val wallet: Wallet) {
         var inputs = plan.inputs
         if (!plan.merge && !plan.split) {
             if (target is OutputSpec.Own) return MutationResult.Done(inputs, journalId = "")
-            return mutator.mutate(accountId, host, inputs, OperationType.Rotate, listOf(target)) { callback, k1s, outs ->
-                Requests.rotate(callback, k1s.single(), outs.single().key)
-            }
+            return mutator.mutate(accountId, host, inputs, OperationType.Rotate, listOf(target))
         }
         if (plan.merge) {
             val mergeTarget = if (plan.split) OutputSpec.Own(accountId, NotePurpose.Wallet) else target
-            val merged = mutator.mutate(accountId, host, inputs, OperationType.Merge, listOf(mergeTarget)) { callback, k1s, outs ->
-                Requests.merge(callback, k1s, outs.single().key)
-            }
+            val merged = mutator.mutate(accountId, host, inputs, OperationType.Merge, listOf(mergeTarget))
             if (!plan.split || merged !is MutationResult.Done) return merged
             inputs = merged.outputs
         }
-        return mutator.mutate(accountId, host, inputs, OperationType.Split, listOf(target, OutputSpec.Own(accountId, NotePurpose.Change))) { callback, k1s, outs ->
-            Requests.split(callback, k1s, amountMsat, outs[0].key, outs[1].key)
-        }
+        return mutator.mutate(accountId, host, inputs, OperationType.Split, listOf(target, OutputSpec.Own(accountId, NotePurpose.Change)), splitMsat = amountMsat)
     }
 
     /** Melts [note] into [invoice] and records the payment in History (see [Melter]). */

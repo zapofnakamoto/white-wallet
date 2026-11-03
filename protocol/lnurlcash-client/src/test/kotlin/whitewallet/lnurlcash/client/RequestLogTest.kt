@@ -1,5 +1,8 @@
+@file:OptIn(RevealsNoteSecret::class)
+
 package whitewallet.lnurlcash.client
 
+import whitewallet.lnurlcash.RevealsNoteSecret
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

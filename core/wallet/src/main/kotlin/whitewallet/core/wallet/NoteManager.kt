@@ -16,13 +16,13 @@ import whitewallet.core.model.OperationType
 import whitewallet.lnurl.Bolt11
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurl.string
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.protocol.MintingPayRequest
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
-import whitewallet.lnurlcash.protocol.Requests
 
 /** Why a note action can't be done (or wasn't). Every case maps to a full string in the app. */
 enum class NoteProblem {
@@ -119,9 +119,7 @@ internal class NoteManager(private val wallet: Wallet) {
         }
         if (notes.size < 2) return NoteActionResult.Failed(NoteProblem.TooFewNotes)
         val host = notes.first().host
-        val result = mutator.mutate(accountId, host, notes, OperationType.Merge, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet))) { callback, k1s, outs ->
-            Requests.merge(callback, k1s, outs.single().key)
-        }
+        val result = mutator.mutate(accountId, host, notes, OperationType.Merge, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))
         val inputs = notes.sumOf { it.amountMsat }
         when (result) {
             is MutationResult.Done -> result.outputs.single().let { out ->
@@ -150,9 +148,7 @@ internal class NoteManager(private val wallet: Wallet) {
         val limits = splitLimits(id) ?: return NoteActionResult.Failed(NoteProblem.InvalidAmount)
         if (amountMsat !in limits.minMsat..limits.maxMsat) return NoteActionResult.Failed(NoteProblem.InvalidAmount)
         val outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet), OutputSpec.Own(accountId, NotePurpose.Change))
-        val result = mutator.mutate(accountId, note.host, listOf(note), OperationType.Split, outputs) { callback, k1s, outs ->
-            Requests.split(callback, k1s, amountMsat, outs[0].key, outs[1].key)
-        }
+        val result = mutator.mutate(accountId, note.host, listOf(note), OperationType.Split, outputs, splitMsat = amountMsat)
         when (result) {
             is MutationResult.Done -> log.record("op:${result.journalId}", accountId, ActivityKind.Split, note.amountMsat, note.host,
                 feeMsat = limits.feeMsat.takeIf { it > 0 }, noteCount = 2, journalId = result.journalId)
@@ -192,9 +188,7 @@ internal class NoteManager(private val wallet: Wallet) {
 
         // One note pays one invoice: merge first. If anything later fails, the notes are just combined.
         if (notes.size > 1) {
-            when (val merged = mutator.mutate(accountId, quote.fromHost, notes, OperationType.Merge, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet))) { callback, k1s, outs ->
-                Requests.merge(callback, k1s, outs.single().key)
-            }) {
+            when (val merged = mutator.mutate(accountId, quote.fromHost, notes, OperationType.Merge, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))) {
                 is MutationResult.Done -> notes = merged.outputs
                 is MutationResult.Pending -> return MintMoveResult.Pending
                 is MutationResult.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)
@@ -347,6 +341,8 @@ internal class MintReconciler(private val wallet: Wallet) {
                     info.maxWithdrawableMsat, cert?.encode(), NoteState.Outstanding, wallet.now())))
                 // An invoice of this wallet that was paid (a move's mint has its own row, settled below).
                 if (entry.detail == null) {
+                    // A mint's request is the invoice it paid: no spend in it.
+                    @OptIn(RevealsNoteSecret::class)
                     val paid = Bolt11.decode(entry.requestUrl)?.amountMsat
                     ActivityLog(wallet).record("invoice:${entry.id}", output.accountId, ActivityKind.Received, info.maxWithdrawableMsat, entry.host,
                         feeMsat = paid?.let { it - info.maxWithdrawableMsat }?.takeIf { it > 0 }, certified = cert != null, journalId = entry.id)
@@ -363,7 +359,9 @@ internal class MintReconciler(private val wallet: Wallet) {
         val melt = entry.detail?.let { entry(it) }
         if (melt?.status == JournalStatus.Rejected) return finish(entry, JournalStatus.Rejected)
         // An invoice nobody paid: once it has expired (with a margin for a payment in flight), nothing will come.
-        if (entry.detail == null && Bolt11.decode(entry.requestUrl)?.let { wallet.now() > it.expiresAtSeconds * 1000 + EXPIRY_GRACE_MILLIS } == true) {
+        @OptIn(RevealsNoteSecret::class) // a mint's request is its invoice: no spend in it
+        val invoice = entry.requestUrl
+        if (entry.detail == null && Bolt11.decode(invoice)?.let { wallet.now() > it.expiresAtSeconds * 1000 + EXPIRY_GRACE_MILLIS } == true) {
             return finish(entry, JournalStatus.Rejected)
         }
         if (entry.status == JournalStatus.Prepared) wallet.store.putJournal(entry.copy(status = JournalStatus.Unknown, updatedAtMillis = wallet.now()))

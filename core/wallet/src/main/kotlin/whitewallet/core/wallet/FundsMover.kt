@@ -8,7 +8,6 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.protocol.RejectionKind
-import whitewallet.lnurlcash.protocol.Requests
 
 sealed interface MoveResult {
     data class Moved(val amountMsat: Long) : MoveResult
@@ -67,9 +66,7 @@ internal class FundsMover(private val wallet: Wallet) {
     private suspend fun moveAll(fromId: String, toId: String, host: String, notes: List<Note>): MoveResult {
         val type = if (notes.size == 1) OperationType.Rotate else OperationType.Merge
         val inputs = notes.sumOf { it.amountMsat }
-        val result = mutator.mutate(fromId, host, notes, type, listOf(OutputSpec.Own(toId, NotePurpose.Wallet))) { callback, k1s, outs ->
-            if (notes.size == 1) Requests.rotate(callback, k1s.single(), outs.single().key) else Requests.merge(callback, k1s, outs.single().key)
-        }
+        val result = mutator.mutate(fromId, host, notes, type, listOf(OutputSpec.Own(toId, NotePurpose.Wallet)))
         when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single().amountMsat
@@ -88,16 +85,12 @@ internal class FundsMover(private val wallet: Wallet) {
         var inputs = sorted.takeWhileCovering(amountMsat)
         if (inputs.size > 1) {
             // Merge into one of our own notes first, then split that.
-            val merged = mutator.mutate(fromId, host, inputs, OperationType.Merge, listOf(OutputSpec.Own(fromId, NotePurpose.Wallet))) { callback, k1s, outs ->
-                Requests.merge(callback, k1s, outs.single().key)
-            }
+            val merged = mutator.mutate(fromId, host, inputs, OperationType.Merge, listOf(OutputSpec.Own(fromId, NotePurpose.Wallet)))
             inputs = (merged as? MutationResult.Done)?.outputs ?: return merged.toMove()
             if (inputs.single().amountMsat == amountMsat) return moveAll(fromId, toId, host, inputs)
         }
         val outputs = listOf(OutputSpec.Own(toId, NotePurpose.Wallet), OutputSpec.Own(fromId, NotePurpose.Change))
-        val result = mutator.mutate(fromId, host, inputs, OperationType.Split, outputs) { callback, k1s, outs ->
-            Requests.split(callback, k1s, amountMsat, outs[0].key, outs[1].key)
-        }
+        val result = mutator.mutate(fromId, host, inputs, OperationType.Split, outputs, splitMsat = amountMsat)
         when (result) {
             is MutationResult.Done -> {
                 log.move(fromId, toId, host, amountMsat, ActivityLog.fee(inputs.sumOf { it.amountMsat }, result.outputs), ActivityStatus.Done, result.journalId)

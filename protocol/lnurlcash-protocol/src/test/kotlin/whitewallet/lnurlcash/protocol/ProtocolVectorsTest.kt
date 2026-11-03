@@ -1,5 +1,8 @@
+@file:OptIn(RevealsNoteSecret::class)
+
 package whitewallet.lnurlcash.protocol
 
+import whitewallet.lnurlcash.RevealsNoteSecret
 import fr.acinq.bitcoin.ByteVector32
 import kotlin.test.Test
 import kotlin.test.assertEquals

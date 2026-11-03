@@ -1,5 +1,7 @@
 package whitewallet.core.model
 
+import whitewallet.lnurlcash.RevealsNoteSecret
+
 enum class NoteState {
     /** Held by this wallet and counted in the balance. */
     Outstanding,
@@ -101,7 +103,7 @@ data class ReceivedNote(
     val host: String,
     val withdrawUrl: String,
     /** The spend; cleared once it is worth nothing ([ReceivedState.Claimed], [ReceivedState.Gone]). */
-    val k1: String?,
+    @property:RevealsNoteSecret val k1: String?,
     val certificate: String?,
     /** What the link says it is worth; display only. */
     val declaredMsat: Long?,
@@ -190,10 +192,10 @@ data class JournalEntry(
     /** `Q` of every input note. */
     val inputIds: List<String>,
     /** The spends sent as `k1`. Needed to reclaim a received note if the mutation did not land. Sensitive. */
-    val inputK1s: List<String>,
+    @property:RevealsNoteSecret val inputK1s: List<String>,
     val outputs: List<OutputRef>,
-    /** The exact request, for byte-identical replay. */
-    val requestUrl: String,
+    /** The exact request, for byte-identical replay. Carries the spends. */
+    @property:RevealsNoteSecret val requestUrl: String,
     val status: JournalStatus,
     val detail: String?,
     val createdAtMillis: Long,

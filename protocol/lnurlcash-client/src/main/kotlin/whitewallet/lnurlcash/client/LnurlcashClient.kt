@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import whitewallet.lnurl.LnurlResponse
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.protocol.HttpResult
 import whitewallet.lnurlcash.protocol.MintingPayRequest
 import whitewallet.lnurlcash.protocol.MutationClassifier
@@ -77,7 +78,8 @@ public class LnurlcashClient(
     /** Looks a note up by its output key without disclosing the spend. Throws NoteLookupError if unknown or spent. */
     public suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo = NoteInfo.from(get(Requests.lookup(withdrawUrl, q)), null)
 
-    /** Sends a mutation URL built by [Requests] and classifies the outcome. */
+    /** Sends a mutation URL built by [Requests] and classifies the outcome. The only request that carries a spend. */
+    @RevealsNoteSecret
     public suspend fun mutate(type: MutationType, url: String): MutationOutcome {
         val replays = if (type == MutationType.Melt) 0 else mutationReplays
         val request = Request.Builder().url(url).get().tag(SpendGuard.Mutation::class.java, SpendGuard.Mutation).build()
