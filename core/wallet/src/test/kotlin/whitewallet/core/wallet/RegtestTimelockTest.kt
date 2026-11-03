@@ -86,7 +86,10 @@ class RegtestTimelockTest {
             val sig = CanonicalSpend.transaction(domain, lockTime, sequence)
                 .signInputTaprootScriptPath(key, 0, listOf(CanonicalSpend.spentOutput(q)), SigHash.SIGHASH_DEFAULT, BearerNote.tapleafHash(leaf))
             val cw1 = Cw1(lockTime, sequence, leaf, control, listOf(sig))
-            return assertIs<Spend.Script>(Spend.parse(cw1.encode())).also { assertEquals(q, it.q) }
+            return assertIs<Spend.Script>(Spend.parse(cw1.encode())).also {
+                assertEquals(q, it.q)
+                assertTrue(it.verify(domain), "checks out locally, as at the mint")
+            }
         }
     }
 

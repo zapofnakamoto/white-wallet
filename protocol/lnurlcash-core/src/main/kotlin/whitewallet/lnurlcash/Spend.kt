@@ -4,6 +4,9 @@ import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.ByteVector64
 import fr.acinq.bitcoin.Crypto
 import fr.acinq.bitcoin.PrivateKey
+import fr.acinq.bitcoin.ScriptFlags
+import fr.acinq.bitcoin.ScriptWitness
+import fr.acinq.bitcoin.Transaction
 import fr.acinq.bitcoin.XonlyPublicKey
 import fr.acinq.bitcoin.byteVector32
 import fr.acinq.secp256k1.Hex
@@ -31,8 +34,32 @@ public sealed interface Spend {
         override val k1: String get() = if (asCw1) BearerNote.cw1(preimage).encode() else preimage.toHex()
     }
 
-    /** Any other script-path spend. This wallet can identify its note but not verify it. */
-    public data class Script(override val q: ByteVector32, val cw1: Cw1, override val k1: String) : Spend
+    /**
+     * Any other script-path spend. What its script means is open-ended, so nothing here reads it: the spend is
+     * checked as a whole ([verify]), and the time it claims is read from the spend, which a leaf signature commits to.
+     */
+    public data class Script(override val q: ByteVector32, val cw1: Cw1, override val k1: String) : Spend {
+        /** The Unix time the spend claims (`nLockTime`); the mint refuses it until then. Null if it claims none. */
+        val lockedUntilSeconds: Long? get() = cw1.lockTime.takeIf { it != 0L }
+
+        /**
+         * The wait the spend claims (`nSequence`, BIP-68), counted from when the mint last credited the note (by mint,
+         * rotate, split or merge), which only the mint knows. Null if it claims none.
+         */
+        val lockedForSeconds: Long? get() = Timelock.relativeSeconds(cw1.sequence)
+
+        /** False for a time the mint must refuse to honour: a block height, or a wait counted in blocks. */
+        val isValidLockClaim: Boolean get() = Timelock.isValid(cw1.lockTime, cw1.sequence)
+
+        /** The note may be spent another way too: it has other leaves, or an internal key that isn't the NUMS point. */
+        val hasOtherPaths: Boolean get() = ScriptPath.hasOtherPaths(cw1)
+
+        /**
+         * Whether the spend satisfies its note's script at [domain], as the mint checks it (BIP-341/342 on the canonical
+         * spend transaction). Independent of the clock: the claimed time is checked against the script, not against now.
+         */
+        public fun verify(domain: String): Boolean = ScriptPath.verify(cw1, q, domain)
+    }
 
     public companion object {
         /** Signs a key-path spend of the note owned by [secretKey] at [domain] (all-zero aux_rand, so it is reproducible). */
@@ -82,6 +109,27 @@ internal object ScriptPath {
         return if (parity == odd) q.value else null
     }
 
+    fun hasOtherPaths(cw1: Cw1): Boolean {
+        val control = cw1.controlBlock.toByteArray()
+        return control.size > 33 || control.copyOfRange(1, 33).byteVector32() != BearerNote.NUMS
+    }
+
+    /** Every consensus flag LUD-25 names for a spend. */
+    private const val FLAGS = ScriptFlags.SCRIPT_VERIFY_P2SH or ScriptFlags.SCRIPT_VERIFY_WITNESS or ScriptFlags.SCRIPT_VERIFY_TAPROOT or
+        ScriptFlags.SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY or ScriptFlags.SCRIPT_VERIFY_CHECKSEQUENCEVERIFY or
+        ScriptFlags.SCRIPT_VERIFY_DERSIG or ScriptFlags.SCRIPT_VERIFY_NULLDUMMY
+
+    fun verify(cw1: Cw1, q: ByteVector32, domain: String): Boolean {
+        val tx = CanonicalSpend.transaction(domain, cw1.lockTime, cw1.sequence)
+            .updateWitness(0, ScriptWitness(cw1.witness + cw1.script + cw1.controlBlock))
+        return try {
+            Transaction.correctlySpends(tx, mapOf(tx.txIn[0].outPoint to CanonicalSpend.spentOutput(q)), FLAGS)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun compare(a: ByteArray, b: ByteArray): Int {
         for (i in a.indices) {
             val c = (a[i].toInt() and 0xff) - (b[i].toInt() and 0xff)
@@ -89,4 +137,22 @@ internal object ScriptPath {
         }
         return 0
     }
+}
+
+/** The time a script-path spend claims (LUD-25 "Timelocks"): a Unix time, and a BIP-68 wait counted in seconds. */
+internal object Timelock {
+    /** Below this, `nLockTime` is a block height. */
+    private const val LOCKTIME_THRESHOLD = 500_000_000L
+    private const val SEQUENCE_DISABLE = 1L shl 31
+    private const val SEQUENCE_TYPE_TIME = 1L shl 22
+    private const val SEQUENCE_MASK = 0xffffL
+    private const val SEQUENCE_GRANULARITY_SECONDS = 512L
+
+    fun relativeSeconds(sequence: Long): Long? {
+        if (sequence and SEQUENCE_DISABLE != 0L || sequence and SEQUENCE_TYPE_TIME == 0L) return null
+        return ((sequence and SEQUENCE_MASK) * SEQUENCE_GRANULARITY_SECONDS).takeIf { it > 0 }
+    }
+
+    fun isValid(lockTime: Long, sequence: Long): Boolean =
+        (lockTime == 0L || lockTime >= LOCKTIME_THRESHOLD) && (sequence and SEQUENCE_DISABLE != 0L || sequence and SEQUENCE_TYPE_TIME != 0L)
 }

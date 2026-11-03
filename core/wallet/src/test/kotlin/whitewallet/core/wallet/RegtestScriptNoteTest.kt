@@ -31,6 +31,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /** Notes with more than one script path, on the real mint: one note, several valid spends. */
 class RegtestScriptNoteTest {
@@ -90,7 +91,7 @@ class RegtestScriptNoteTest {
                 .signInputTaprootScriptPath(key, 0, listOf(CanonicalSpend.spentOutput(q)), SigHash.SIGHASH_DEFAULT, BearerNote.tapleafHash(leaf))
             val control = (byteArrayOf((BearerNote.LEAF_VERSION or if (output.second) 1 else 0).toByte()) + BearerNote.NUMS.toByteArray() + sibling.toByteArray()).byteVector()
             val cw1 = Cw1(0, CanonicalSpend.DEFAULT_SEQUENCE, leaf, control, listOf(sig))
-            return assertIs<Spend.Script>(Spend.parse(cw1.encode()))
+            return assertIs<Spend.Script>(Spend.parse(cw1.encode())).also { assertTrue(it.verify(domain), "checks out locally, as at the mint") }
         }
 
         private companion object {
