@@ -5,6 +5,34 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Added
+
+- A note received as a link is kept with its spend from the moment it is claimed or kept, so a bad connection no
+  longer loses it. Opened offline, the claim screen offers "Keep and claim later"; a refresh claims it once the mint
+  can be reached, and the app runs one as soon as the device is online again. Until it is claimed, it is shown next
+  to the balance, never in it: a line under the balance, a card on Home listing each such note and where it stands,
+  and a section in the notes view, each saying what that means (not in the balance, not covered by the recovery
+  phrase, still spendable by whoever made the link). One that someone else spent first can be removed. Database
+  version 4 (a new table; installed wallets keep their data).
+- Script notes: a note whose link carries a script-path spend (`cw1`) can be claimed. The wallet checks the spend
+  itself, without the mint, and reads any time it claims from the spend, never from the script. A note locked until
+  a date, or for a while after its mint last credited it, says so on the claim screen and can be kept; the wallet
+  claims it once the lock has passed. A note that may be spent another way (other script paths) is marked as such.
+- New strings: `claim_not_spendable` and `claim_other_paths` (brand terms, which a brand that renames the note
+  overrides), `claim_offline`, `claim_amount_certified`, `claim_amount_declared`, `claim_locked_until`,
+  `claim_locked_for`, `claim_duration_minutes`, `claim_duration_hours`, `claim_duration_days`, `claim_keep`,
+  `claim_kept`, `claim_kept_until`, `claim_kept_locked`, `claim_kept_hint`, and in the design system
+  `received_title`, `received_hint`, `received_total`, `received_unconfirmed`, `received_unknown_amount`,
+  `received_on`, `received_waiting`, `received_locked_until`, `received_locked`, `received_claiming`,
+  `received_claimed`, `received_gone`, `received_invalid`, `received_dismiss`. `claim_network` is gone.
+
+### Fixed
+
+- A claim that never reached the mint is tried again, instead of ending as failed with only the link to retry it.
+- A claim whose note someone else took first, while its answer was lost, is settled as gone. It used to stay
+  unknown, and was looked up again on every refresh.
+- A link the wallet already claimed says it is in the wallet, not that it was spent.
+
 ## [0.6.3]
 
 ### Fixed
