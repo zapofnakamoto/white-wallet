@@ -37,6 +37,7 @@ import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.ClaimPreview
@@ -53,7 +54,10 @@ import whitewallet.core.designsystem.WalletTextField
 fun ClaimRoute(onBack: () -> Unit, viewModel: ClaimViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     BackHandler(enabled = state.scanning) { viewModel.stopScan() }
-    ClaimScreen(state, onBack, viewModel::onInputChange, viewModel::check, viewModel::claim, viewModel::startScan, viewModel::onScanned, viewModel::stopScan, viewModel::keep)
+    // The field holds a bearer link: no screenshots, no Recents thumbnail.
+    SecureScreen {
+        ClaimScreen(state, onBack, viewModel::onInputChange, viewModel::check, viewModel::claim, viewModel::startScan, viewModel::onScanned, viewModel::stopScan, viewModel::keep)
+    }
 }
 
 @Composable
