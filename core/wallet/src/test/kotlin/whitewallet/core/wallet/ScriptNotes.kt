@@ -59,6 +59,13 @@ internal class LockedNote private constructor(private val leaf: ByteVector, priv
             return LockedNote(Script.write(ops).byteVector(), lockTime, CanonicalSpend.DEFAULT_SEQUENCE - 1, key)
         }
 
+        /** Not locked, with a leaf over 252 bytes (whose length BIP-341 writes in three bytes): `<300 bytes> OP_DROP <key> OP_CHECKSIG`. */
+        fun longLeaf(): LockedNote {
+            val key = key()
+            val ops = listOf(OP_PUSHDATA(ByteArray(300) { 7 }), OP_DROP, OP_PUSHDATA(key.xOnlyPublicKey()), OP_CHECKSIG)
+            return LockedNote(Script.write(ops).byteVector(), 0, CanonicalSpend.DEFAULT_SEQUENCE - 1, key)
+        }
+
         /** Locked for [units] × 512 s after its mint last credited it: `<s> OP_CHECKSEQUENCEVERIFY OP_DROP <key> OP_CHECKSIG`. */
         fun after(units: Int): LockedNote {
             val key = key()

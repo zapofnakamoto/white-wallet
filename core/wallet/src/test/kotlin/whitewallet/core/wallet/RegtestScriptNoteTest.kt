@@ -123,4 +123,15 @@ class RegtestScriptNoteTest {
             }
         }
     }
+
+    @Test
+    fun `a note whose leaf is longer than 252 bytes is claimed through the wallet`() = runBlocking<Unit> {
+        val alice = Regtest.phone()
+        alice.fund(2000)
+        val note = LockedNote.longLeaf()
+        alice.lockTo(note.q)
+        val preview = assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(note.link(HOST, assertNotNull(alice.store.mint(HOST)).withdrawUrl)))
+        assertEquals(ClaimResult.Claimed(1_999_000, true), alice.wallet.claim(preview))
+        assertEquals(1_999_000, alice.balance())
+    }
 }

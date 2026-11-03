@@ -174,10 +174,11 @@ internal class NoteClaimer(private val wallet: Wallet) {
         return ClaimPreview.Locked(link, script.lockedUntilSeconds?.let { it * 1000 }, script.lockedForSeconds, amount)
     }
 
-    private fun certified(link: NoteLink, info: NoteInfo): Boolean {
-        val certificate = link.certificate?.let(Cs1::decode) ?: info.certificate
-        return certificate != null && certificate.amountMsat == info.maxWithdrawableMsat && Certificates.verify(certificate, link.spend.q, info.mintPubkey)
-    }
+    /** Whether the mint vouches for the note at what it is worth: its own certificate, or the link's, verifies. */
+    private fun certified(link: NoteLink, info: NoteInfo): Boolean =
+        listOfNotNull(info.certificate, link.certificate?.let(Cs1::decode)).any {
+            it.amountMsat == info.maxWithdrawableMsat && Certificates.verify(it, link.spend.q, info.mintPubkey)
+        }
 
     /** The link's certificate amount, if it verifies against the pinned key of its mint (known from earlier). */
     private suspend fun certifiedOffline(link: NoteLink): Long? {

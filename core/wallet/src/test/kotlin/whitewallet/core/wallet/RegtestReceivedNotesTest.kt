@@ -245,4 +245,19 @@ class RegtestReceivedNotesTest {
         assertEquals(Regtest.mintKey(HOST), assertNotNull(bob.store.mint(HOST)).mintPubkey)
         assertEquals(1_000_000, bob.notes(HOST).sumOf { it.amountMsat })
     }
+
+    @Test
+    fun `online, the mint's answer decides, a link carrying another note's certificate, or a broken one, changes nothing`() = runBlocking<Unit> {
+        val alice = Regtest.phone()
+        alice.fund(3000)
+        val one = NoteLink.parse(assertNotNull(assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note.link))!!
+        val other = NoteLink.parse(assertNotNull(assertIs<CreateNoteResult.Created>(alice.wallet.createNote(500_000)).note.link))!!
+        val bob = Regtest.phone()
+        assertTrue(assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(one.encode())).certified)
+
+        val swapped = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(one.copy(certificate = other.certificate, declaredAmountMsat = 500_000).encode()))
+        assertEquals(true, swapped.certified, "the mint's own certificate for the note")
+        assertEquals(1_000_000, swapped.amountMsat, "what the mint says, not the link")
+        assertEquals(true, assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(one.copy(certificate = "cs92233720368qqqq").encode())).certified)
+    }
 }
