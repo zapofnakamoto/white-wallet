@@ -86,8 +86,9 @@ class RegtestKeyRotationTest {
     }
 
     @Test
-    fun `a link shared before the key change fails its certificate check for the recipient, and claiming renews the note`() = runBlocking<Unit> {
-        // Links are meant to be short-lived: a certificate of a key the mint no longer signs with must not pass.
+    fun `a link shared before the key change fails its certificate check for the recipient, the mint's own one counts, and claiming renews the note`() = runBlocking<Unit> {
+        // Links are meant to be short-lived: a certificate of a key the mint no longer signs with must not pass. Online,
+        // the mint's answer decides, and it carries a certificate under the key it signs with now.
         val alice = Regtest.phone(host = HOST3)
         alice.fund(2000)
         val oldKey = Regtest.mintKey(HOST3)
@@ -99,7 +100,9 @@ class RegtestKeyRotationTest {
         val certificate = assertNotNull(preview.link.certificate?.let(Cs1::decode), "the link carries a certificate")
         assertTrue(Certificates.verify(certificate, preview.link.spend.q, PublicKey.fromHex(oldKey)), "a genuine one, of the old key")
         assertEquals(preview.info.mintPubkey, newKey)
-        assertEquals(false, preview.certified, "it doesn't count: the mint signs with another key now")
+        assertEquals(false, Certificates.verify(certificate, preview.link.spend.q, newKey), "it doesn't count: the mint signs with another key now")
+        assertTrue(Certificates.verify(assertNotNull(preview.info.certificate), preview.link.spend.q, newKey))
+        assertEquals(true, preview.certified, "by the mint's own certificate")
 
         // Claiming still works, and the note lands at Bob's own key, signed with the new key; the link is known as claimed.
         val claimed = assertIs<ClaimResult.Claimed>(bob.wallet.claim(preview))
