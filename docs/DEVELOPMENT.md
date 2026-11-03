@@ -116,7 +116,7 @@ English is the source; **German** (`values-de`) is complete in every module and 
 
 ## Background sync
 
-`SyncWorker` (WorkManager, every 15 minutes or more, with a network) runs the same `Wallet.refresh()` as pull-to-refresh: it reconciles the journal (payments, moves, claims in flight), scans the address keys, settles sent notes and applies the note policies. It shares the wallet's lock with the UI. A failure retries next period.
+`SyncWorker` (WorkManager, every 15 minutes or more, with a network) runs the same `Wallet.refresh()` as pull-to-refresh: it reconciles the journal (payments, moves, claims in flight), scans the address keys, settles sent notes and applies the note policies. It shares the wallet's lock with the UI. A failure retries next period. A received note kept while its mint couldn't be reached also asks for one run as soon as the device has a network (`SyncWorker.scheduleOnce`, through `Wallet`'s `onWaitingForNetwork`), which stays one while it waits.
 
 ## Mints, keys and security
 
@@ -244,6 +244,18 @@ Send → "Create a note" (`feature/send/NoteScreens.kt`, `NoteSender` via `Walle
 - History: one `SentNote` row per note, `note:<Q>` (`Activity.sentNoteId`); tapping it opens the note screen again (show the QR code again, or take it back).
 
 Tests: `SendNoteTest` (mock mint: split and share under keep-one-note, redeemed by a second wallet, exact note without fee, take back, impossible amounts) and `RegtestE2ETest` (redeemed by another wallet and taken back on the real mint).
+
+## Receiving a note
+
+Receive → "Claim a note" (`feature/claim`, `NoteClaimer` and `ReceivedNotes` via `Wallet.previewClaim` / `claim` / `keepClaim`):
+
+- **The spend goes out only with the claim.** A spend (`k1`) doesn't bind where the money goes, so whoever gets it can claim the note. The preview and every retry look the note up by its key (`client.lookup`, `?p=<Q>`), compare the mint's key with the pinned one, and only the rotate itself carries the spend. A mint presenting another key gets nothing: the note can be kept (`ClaimPreview.KeyChanged`, `ReceivedState.KeyChanged`), Home shows the mint's key-change card, and the first refresh after the user accepts the key claims it. A mint the wallet doesn't know yet is pinned by the claim, as on first contact.
+- **Script notes** (`cw1`, `Spend.Script`): the wallet checks the spend itself (`verify`, bitcoin-kmp's interpreter on the canonical spend transaction, the flags LUD-25 names) and reads the time it claims from the spend (`nLockTime`, BIP-68 `nSequence`), never from the script. A spend that doesn't verify, or claims a block height or a wait in blocks, is `ClaimPreview.NotSpendable`. A lock until a date still ahead is `ClaimPreview.Locked` without asking for the spend; a wait after crediting is known only to the mint, whose refusal of the claim keeps the note `Locked`. Other leaves or a real internal key are `hasOtherPaths` (a warning on the claim screen).
+- **Kept from the start.** A claim stores the note with its spend first (`ReceivedNote`, table `received_notes`), because the seed can't derive it again. Offline, the preview is `ClaimPreview.Offline` (the certificate's amount if it verifies against the pinned key, else what the link declares), and the user can keep it. Every refresh settles claims in flight (`Claiming`, by their journal entry, or by a lookup when the entry was rejected), then tries `Waiting`, `KeyChanged` and due `Locked` notes again. Spent or unknown to its mint is `Gone`; another refusal is retried for a week from the first one, then `Refused`. `Gone` and `Refused` notes can be removed.
+- **Shown apart from the balance.** Notes not claimed yet are on Home (a line under the balance and a card, amounts hidden with the balance) and in the notes view's section "Received, not claimed yet", each with where it stands and what that means: not in the balance, not covered by the recovery phrase, still spendable by whoever made the link. `Wallet.incomingMsat` counts them, by the mint's amount or else the link's.
+- **Certificates only inform.** Online, a note is certified if the mint's own certificate or the link's verifies for the note at the mint's amount; offline, only against the pinned key. Nothing is refused for a missing or wrong certificate.
+
+Tests: `ReceivedNotesTest` (no mint: not spendable, offline, locked, broken spends, certificates offline), `MalformedSpendTest` and `MalformedCertificateTest` (whatever a link holds, reading it never throws), and on regtest `RegtestReceivedNotesTest` (offline and back, lost requests and answers, someone else first, no spend before the claim, a changed key, accounts, a week of refusals), `RegtestTimelockTest` and `RegtestScriptNoteTest`.
 
 ## Deliberately left out
 

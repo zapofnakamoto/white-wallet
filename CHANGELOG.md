@@ -12,19 +12,26 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   can be reached, and the app runs one as soon as the device is online again. Until it is claimed, it is shown next
   to the balance, never in it: a line under the balance, a card on Home listing each such note and where it stands,
   and a section in the notes view, each saying what that means (not in the balance, not covered by the recovery
-  phrase, still spendable by whoever made the link). One that someone else spent first can be removed. Database
-  version 4 (a new table; installed wallets keep their data).
+  phrase, still spendable by whoever made the link). One that someone else spent first can be removed, and so can
+  one its mint kept refusing for a week, which the wallet then stops trying. Database version 4 (a new table;
+  installed wallets keep their data).
+- A note on a mint that now presents another signing key than the one the wallet pinned can be kept: nothing is
+  sent there, Home shows the mint's key-change card, and the note is claimed once the user accepts the new key in
+  the mint's details. It used to be refused as invalid.
 - Script notes: a note whose link carries a script-path spend (`cw1`) can be claimed. The wallet checks the spend
   itself, without the mint, and reads any time it claims from the spend, never from the script. A note locked until
   a date, or for a while after its mint last credited it, says so on the claim screen and can be kept; the wallet
   claims it once the lock has passed. A note that may be spent another way (other script paths) is marked as such.
+  A script of any length is read; one over 252 bytes used to crash the claim screen.
 - New strings: `claim_not_spendable` and `claim_other_paths` (brand terms, which a brand that renames the note
   overrides), `claim_offline`, `claim_amount_certified`, `claim_amount_declared`, `claim_locked_until`,
   `claim_locked_for`, `claim_duration_minutes`, `claim_duration_hours`, `claim_duration_days`, `claim_keep`,
-  `claim_kept`, `claim_kept_until`, `claim_kept_locked`, `claim_kept_hint`, and in the design system
+  `claim_kept`, `claim_kept_until`, `claim_kept_locked`, `claim_kept_key_changed`, `claim_kept_hint`,
+  `claim_key_changed`, and in the design system
   `received_title`, `received_hint`, `received_total`, `received_unconfirmed`, `received_unknown_amount`,
-  `received_on`, `received_waiting`, `received_locked_until`, `received_locked`, `received_claiming`,
-  `received_claimed`, `received_gone`, `received_invalid`, `received_dismiss`. `claim_network` is gone.
+  `received_on`, `received_waiting`, `received_locked_until`, `received_locked`, `received_key_changed`,
+  `received_claiming`, `received_claimed`, `received_gone`, `received_refused`, `received_dismiss`. `claim_network`
+  is gone.
 
 ### Fixed
 
@@ -32,6 +39,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A claim whose note someone else took first, while its answer was lost, is settled as gone. It used to stay
   unknown, and was looked up again on every refresh.
 - A link the wallet already claimed says it is in the wallet, not that it was spent.
+- Looking at a note link no longer sends its spend to the mint. The spend goes out only with the claim, after the
+  mint's signing key is compared with the pinned one, so a host taken over by someone else can't take the note.
+- Online, a note is certified by the mint's own certificate, whatever certificate the link carries. A link with
+  another note's certificate used to show the note as not certified.
+- A certificate whose amount is too large to read is no certificate. It used to crash the claim screen.
 
 ## [0.6.3]
 
