@@ -228,12 +228,13 @@ internal data class ReceivedNoteEntity(
     val journalId: String?,
     val receivedAtMillis: Long,
     val updatedAtMillis: Long,
+    val refusedSinceMillis: Long?,
 ) {
     fun toModel() = ReceivedNote(id, accountId, host, withdrawUrl, k1, certificate, declaredMsat, amountMsat, lockedUntilMillis, lockedForSeconds,
-        ReceivedState.valueOf(state), journalId, receivedAtMillis, updatedAtMillis)
+        ReceivedState.valueOf(state), journalId, receivedAtMillis, updatedAtMillis, refusedSinceMillis)
 
     companion object {
         fun from(n: ReceivedNote) = ReceivedNoteEntity(n.id, n.accountId, n.host, n.withdrawUrl, n.k1, n.certificate, n.declaredMsat, n.amountMsat,
-            n.lockedUntilMillis, n.lockedForSeconds, n.state.name, n.journalId, n.receivedAtMillis, n.updatedAtMillis)
+            n.lockedUntilMillis, n.lockedForSeconds, n.state.name, n.journalId, n.receivedAtMillis, n.updatedAtMillis, n.refusedSinceMillis)
     }
 }

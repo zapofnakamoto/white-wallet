@@ -63,7 +63,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         }
         if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
         val pinned = wallet.store.mint(note.host)?.mintPubkey
-        if (pinned != null && pinned != answer.mintPubkey.toHex()) return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged)))
+        if (pinned != null && pinned != answer.mintPubkey.toHex()) return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, refusedSinceMillis = null)))
         val result = mutator.rotateIn(note.accountId, note.host, note.withdrawUrl, answer, spend, answer.maxWithdrawableMsat, sent = null)
         return when (result) {
             is MutationResult.Done -> {
@@ -99,10 +99,10 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         }
     }
 
-    /** Forgets a note that is no longer worth anything (spent by someone else, or not spendable). */
+    /** Forgets a note that is no longer claimed: spent by someone else, or refused by its mint for too long. */
     suspend fun dismiss(id: String) {
         val note = wallet.store.receivedNote(id) ?: return
-        if (note.state == ReceivedState.Gone || note.state == ReceivedState.Invalid) wallet.store.deleteReceivedNote(id)
+        if (note.state == ReceivedState.Gone || note.state == ReceivedState.Refused) wallet.store.deleteReceivedNote(id)
     }
 
     /** A claim sent earlier: claimed if its journal entry landed; if it didn't, gone or waiting, by what the mint says. */
@@ -142,9 +142,12 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         }
         val script = spend as? Spend.Script
         if (script?.lockedUntilSeconds != null || script?.lockedForSeconds != null) {
-            return ClaimResult.Kept(update(note.copy(state = ReceivedState.Locked)))
+            return ClaimResult.Kept(update(note.copy(state = ReceivedState.Locked, refusedSinceMillis = null)))
         }
-        update(note.copy(state = ReceivedState.Waiting))
+        // Another refusal (rate limited, a mint's own trouble): tried again on every refresh, for a while.
+        val since = note.refusedSinceMillis ?: wallet.now()
+        val state = if (wallet.now() - since >= GIVE_UP_AFTER_MILLIS) ReceivedState.Refused else ReceivedState.Waiting
+        update(note.copy(state = state, refusedSinceMillis = since))
         return ClaimResult.Failed(kind, reason)
     }
 
@@ -160,5 +163,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
     private companion object {
         /** Kept, and claimed by a refresh as soon as it can be. */
         val RETRIED = setOf(ReceivedState.Waiting, ReceivedState.Locked, ReceivedState.KeyChanged)
+
+        /** How long a note is tried again while its mint refuses it for another reason, from the first refusal. */
+        const val GIVE_UP_AFTER_MILLIS = 7 * 24 * 60 * 60 * 1000L
     }
 }

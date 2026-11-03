@@ -20,7 +20,7 @@ fun receivedNoteStatus(note: ReceivedNote): String = when (note.state) {
     ReceivedState.Claiming -> stringResource(R.string.received_claiming)
     ReceivedState.Claimed -> stringResource(R.string.received_claimed)
     ReceivedState.Gone -> stringResource(R.string.received_gone)
-    ReceivedState.Invalid -> stringResource(R.string.received_invalid)
+    ReceivedState.Refused -> stringResource(R.string.received_refused)
 }
 
 /**
@@ -44,7 +44,7 @@ fun ReceivedNoteRow(note: ReceivedNote, showMint: Boolean, amountHidden: Boolean
                 if (showMint) Text(stringResource(R.string.received_on, note.host), style = MaterialTheme.typography.bodySmall)
             }
         },
-        trailingContent = if (note.state == ReceivedState.Gone || note.state == ReceivedState.Invalid) {
+        trailingContent = if (note.state == ReceivedState.Gone || note.state == ReceivedState.Refused) {
             { WalletButton(kind = ButtonKind.Text, onClick = { onDismiss(note.id) }) { Text(stringResource(R.string.received_dismiss)) } }
         } else {
             null

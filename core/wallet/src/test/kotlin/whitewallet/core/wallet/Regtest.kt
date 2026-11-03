@@ -139,10 +139,11 @@ internal object Regtest {
         host: String = HOST,
         collectDefaults: CollectDefaults = CollectDefaults(),
         onWaitingForNetwork: () -> Unit = {},
+        now: () -> Long = System::currentTimeMillis,
     ): Phone {
         val store = InMemoryWalletStore()
         val wallet = Wallet(store, InMemorySeedStore(), client, policies = NotePolicies.InMemory(strategy), collectDefaults = collectDefaults,
-            onWaitingForNetwork = onWaitingForNetwork)
+            onWaitingForNetwork = onWaitingForNetwork, now = now)
         val name = name()
         assertIs<OnboardResult.Ready>(wallet.onboard(name, host))
         return Phone(store, wallet, "$name@$host")
@@ -186,6 +187,10 @@ internal object Regtest {
 
     /** The mint acted on the request, but its answer never arrives. */
     fun lost(): Nothing = throw IOException("connection dropped before the answer arrived")
+
+    /** Answers the request with [json] on the mint's behalf; the mint never sees it. */
+    fun answer(chain: Interceptor.Chain, json: String): Response = Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200)
+        .message("OK").body(json.toResponseBody("application/json".toMediaType())).build()
 
     /** A valid key no mint signs with (the generator point): what a mint whose key changed presents here. */
     const val OTHER_KEY = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"

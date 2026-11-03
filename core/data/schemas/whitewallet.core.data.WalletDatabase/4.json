@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 4,
-    "identityHash": "66a2ccee5a46a1ea0841b7f42a06e91d",
+    "identityHash": "6d34312846e76ce02a81f71370f04fca",
     "entities": [
       {
         "tableName": "accounts",
@@ -612,7 +612,7 @@
       },
       {
         "tableName": "received_notes",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, `k1` TEXT, `certificate` TEXT, `declaredMsat` INTEGER, `amountMsat` INTEGER, `lockedUntilMillis` INTEGER, `lockedForSeconds` INTEGER, `state` TEXT NOT NULL, `journalId` TEXT, `receivedAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, `k1` TEXT, `certificate` TEXT, `declaredMsat` INTEGER, `amountMsat` INTEGER, `lockedUntilMillis` INTEGER, `lockedForSeconds` INTEGER, `state` TEXT NOT NULL, `journalId` TEXT, `receivedAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `refusedSinceMillis` INTEGER, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -690,6 +690,11 @@
             "columnName": "updatedAtMillis",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "refusedSinceMillis",
+            "columnName": "refusedSinceMillis",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -713,7 +718,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '66a2ccee5a46a1ea0841b7f42a06e91d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6d34312846e76ce02a81f71370f04fca')"
     ]
   }
 }

@@ -449,4 +449,20 @@ class HomeScreenTest {
         compose.onNodeWithText("Details").performClick()
         assertEquals("mint.example", opened)
     }
+
+    @Test
+    fun aNoteItsMintKeptRefusingSaysSoAndCanBeRemoved() {
+        var dismissed: String? = null
+        val refused = received("r1", ReceivedState.Refused)
+        compose.setContent {
+            HomeScreen(
+                "Wallet", HomeState(activeAccountId = "a", received = listOf(refused)), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {},
+                onBackup = {}, onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onDismissReceived = { dismissed = it },
+            )
+        }
+        compose.onNodeWithText("Its mint kept refusing it for a week, so your wallet stopped trying.").assertExists()
+        compose.onNodeWithText("received, not claimed yet", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Remove").performClick()
+        assertEquals(refused.id, dismissed)
+    }
 }

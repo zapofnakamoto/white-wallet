@@ -75,8 +75,11 @@ enum class ReceivedState {
     /** Spent by someone else before it was claimed, or unknown to its mint. */
     Gone,
 
-    /** Its spend doesn't satisfy the note's script, or claims a time no mint honours. */
-    Invalid,
+    /**
+     * Its mint kept refusing it for another reason than spent, unknown or locked, for a week since the first refusal:
+     * no longer tried. Its spend is kept until the user removes it.
+     */
+    Refused,
     ;
 
     companion object {
@@ -113,6 +116,8 @@ data class ReceivedNote(
     val journalId: String?,
     val receivedAtMillis: Long,
     val updatedAtMillis: Long,
+    /** When its mint first refused it for another reason than spent, unknown or locked: it gives up a week later. */
+    val refusedSinceMillis: Long? = null,
 ) {
     /** Not the wallet's yet, and may still become it. */
     val isPending: Boolean get() = state in ReceivedState.PENDING

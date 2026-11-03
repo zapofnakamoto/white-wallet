@@ -39,6 +39,6 @@
     <string name="received_claiming">Wird eingelöst. Beim nächsten Aktualisieren wird erneut geprüft.</string>
     <string name="received_claimed">Eingelöst</string>
     <string name="received_gone">Jemand anderes hat ihn ausgegeben, bevor du ihn eingelöst hast.</string>
-    <string name="received_invalid">Er lässt sich nicht einlösen.</string>
+    <string name="received_refused">Seine Mint hat ihn eine Woche lang abgelehnt, deshalb versucht deine Wallet es nicht mehr.</string>
     <string name="received_dismiss">Entfernen</string>
 </resources>

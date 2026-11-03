@@ -10,6 +10,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.ReceivedState
+import whitewallet.lnurlcash.protocol.RejectionKind
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.lnurlcash.protocol.NoteLink
@@ -259,5 +260,88 @@ class RegtestReceivedNotesTest {
         assertEquals(true, swapped.certified, "the mint's own certificate for the note")
         assertEquals(1_000_000, swapped.amountMsat, "what the mint says, not the link")
         assertEquals(true, assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(one.copy(certificate = "cs92233720368qqqq").encode())).certified)
+    }
+
+    @Test
+    fun `a note kept on one account is claimed into that account, whichever is active`() = runBlocking<Unit> {
+        val link = aNote()
+        val connection = Connection()
+        val bob = Regtest.phone(client = Regtest.client(connection))
+        val first = bob.wallet.activeId()
+        connection.offline = true
+        bob.wallet.keepClaim(assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link)))
+        connection.offline = false
+
+        assertIs<OnboardResult.Ready>(bob.wallet.onboard(Regtest.name(), HOST, "Second"))
+        val second = bob.wallet.activeId()
+        assertEquals(emptyList(), bob.wallet.receivedNotes.first(), "the first account's, not shown in the second")
+        assertEquals(0, bob.wallet.incomingMsat.first())
+
+        bob.wallet.refresh()
+        assertEquals(0, bob.balance(), "not claimed into the active account")
+        bob.wallet.switchAccount(first)
+        assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state)
+        assertEquals(1_000_000, bob.balance())
+        assertEquals(listOf(ActivityKind.Claimed), bob.wallet.activity.first().map { it.kind })
+        bob.wallet.switchAccount(second)
+        assertEquals(emptyList(), bob.wallet.activity.first().filter { it.kind == ActivityKind.Claimed })
+    }
+
+    @Test
+    fun `a link opened again while it waits is claimed, and stays one note`() = runBlocking<Unit> {
+        val link = aNote()
+        val connection = Connection()
+        val bob = Regtest.phone(client = Regtest.client(connection))
+        connection.offline = true
+        val kept = bob.wallet.keepClaim(assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link))).note
+        connection.offline = false
+
+        val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+        assertIs<ClaimResult.Claimed>(bob.wallet.claim(preview))
+        val claimed = bob.wallet.receivedNotes.first().single()
+        assertEquals(ReceivedState.Claimed, claimed.state)
+        assertEquals(kept.receivedAtMillis, claimed.receivedAtMillis, "received when first kept")
+        assertEquals(1_000_000, bob.balance())
+        assertEquals(ClaimPreview.AlreadyInWallet, bob.wallet.previewClaim(link))
+    }
+
+    @Test
+    fun `a note its mint keeps refusing for another reason is tried for a week, then given up and can be removed`() = runBlocking<Unit> {
+        val link = aNote()
+        var now = System.currentTimeMillis()
+        // The mint refuses every claim with a reason that is neither spent, unknown nor a lock.
+        val bob = Regtest.phone(client = Regtest.client { chain ->
+            if (chain.request().url.isMutation) Regtest.answer(chain, """{"status":"ERROR","reason":"service temporarily unavailable"}""")
+            else chain.proceed(chain.request())
+        }, now = { now })
+
+        val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+        assertEquals(RejectionKind.Other, assertIs<ClaimResult.Failed>(bob.wallet.claim(preview)).kind)
+        val refused = bob.wallet.receivedNotes.first().single()
+        assertEquals(ReceivedState.Waiting, refused.state, "tried again")
+        assertEquals(now, refused.refusedSinceMillis)
+
+        now += 6 * DAY
+        bob.wallet.refresh()
+        assertEquals(ReceivedState.Waiting, bob.wallet.receivedNotes.first().single().state, "six days on, still tried")
+        assertEquals(1_000_000, bob.wallet.incomingMsat.first())
+
+        now += DAY
+        bob.wallet.refresh()
+        val given = bob.wallet.receivedNotes.first().single()
+        assertEquals(ReceivedState.Refused, given.state, "a week after the first refusal")
+        assertNotNull(given.k1, "kept until the user removes it")
+        assertEquals(0, bob.wallet.incomingMsat.first())
+        bob.wallet.refresh()
+        assertEquals(ReceivedState.Refused, bob.wallet.receivedNotes.first().single().state, "no longer tried")
+
+        bob.wallet.dismissReceivedNote(given.id)
+        assertEquals(emptyList(), bob.wallet.receivedNotes.first())
+        assertEquals(1_000_000, bob.wallet.client.lookup(assertNotNull(bob.store.mint(HOST)).withdrawUrl, NoteLink.parse(link)!!.spend.q).maxWithdrawableMsat,
+            "never claimed: still at the mint")
+    }
+
+    private companion object {
+        const val DAY = 24 * 60 * 60 * 1000L
     }
 }

@@ -116,9 +116,9 @@ class RoomWalletStoreTest {
     }
 
     @Test
-    fun `a received note comes back as written, with its spend and lock, and is found by its state`() = runBlocking<Unit> {
+    fun `a received note comes back as written, with its spend, lock and refusals, and is found by its state`() = runBlocking<Unit> {
         val locked = received(q1, "acc", ReceivedState.Locked).copy(lockedUntilMillis = 1_800_000_000_000, lockedForSeconds = 86_528, receivedAtMillis = 2)
-        val waiting = received(q2, "acc", ReceivedState.Waiting)
+        val waiting = received(q2, "acc", ReceivedState.Waiting).copy(refusedSinceMillis = 1_700_000_000_000)
         store.putReceivedNote(locked)
         store.putReceivedNote(waiting)
         assertEquals(locked, store.receivedNote(q1))

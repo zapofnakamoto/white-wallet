@@ -42,6 +42,6 @@
     <string name="received_claiming">Being claimed. Checked again on the next refresh.</string>
     <string name="received_claimed">Claimed</string>
     <string name="received_gone">Someone else spent it before you claimed it.</string>
-    <string name="received_invalid">It can\'t be claimed.</string>
+    <string name="received_refused">Its mint kept refusing it for a week, so your wallet stopped trying.</string>
     <string name="received_dismiss">Remove</string>
 </resources>
