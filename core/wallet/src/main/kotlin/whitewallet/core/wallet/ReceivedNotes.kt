@@ -48,7 +48,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
      * Claims [note] into its account now. [info] is its mint's answer for the note when the caller has one ([certified]
      * if its certificate verified); otherwise the mint is asked here, by the note's key alone. The spend goes out only
      * with the claim itself, and only to a mint that presents the key pinned for it: whoever gets the spend can claim
-     * the note, and a host taken over by someone else can't present the mint's key.
+     * the note. The key check catches a mint presenting another key; one relaying the mint's answers is TLS's to stop.
      */
     suspend fun claim(note: ReceivedNote, info: NoteInfo? = null, certified: Boolean = false): ClaimResult {
         val spend = note.k1?.let(Spend::parse) ?: return ClaimResult.Failed(RejectionKind.Other, null)

@@ -49,8 +49,8 @@ sealed interface ClaimPreview {
     data class Locked(override val link: NoteLink, val untilMillis: Long?, val forSeconds: Long?, val amountMsat: Long?) : Keepable
 
     /**
-     * Its mint ([host]) presents another signing key than the one pinned for it, so the spend isn't sent there: a host
-     * taken over by someone else couldn't present the mint's key. Kept, it is claimed once the user accepts the new key
+     * Its mint ([host]) presents another signing key than the one pinned for it, so the spend isn't sent there.
+     * Kept, it is claimed once the user accepts the new key
      * (the mint's details). [amountMsat] is what the mint says now.
      */
     data class KeyChanged(override val link: NoteLink, val host: String, val amountMsat: Long) : Keepable

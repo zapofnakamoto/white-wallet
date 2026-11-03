@@ -40,7 +40,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   unknown, and was looked up again on every refresh.
 - A link the wallet already claimed says it is in the wallet, not that it was spent.
 - Looking at a note link no longer sends its spend to the mint. The spend goes out only with the claim, after the
-  mint's signing key is compared with the pinned one, so a host taken over by someone else can't take the note.
+  mint's signing key is compared with the pinned one: a mint presenting another key gets nothing.
 - Online, a note is certified by the mint's own certificate, whatever certificate the link carries. A link with
   another note's certificate used to show the note as not certified.
 - A certificate whose amount is too large to read is no certificate. It used to crash the claim screen.
