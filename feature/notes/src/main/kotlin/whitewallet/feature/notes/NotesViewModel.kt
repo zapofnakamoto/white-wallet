@@ -20,7 +20,6 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
-import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.ManualStrategy
@@ -194,7 +193,7 @@ class NotesViewModel @Inject constructor(
             }
         val selectable = live.filter(::selectable).map { it.id }.toSet()
         u.copy(
-            loaded = true, mints = mints, shared = sharedNotes(notes, c.sort), received = received.filter { it.state != ReceivedState.Claimed },
+            loaded = true, mints = mints, shared = sharedNotes(notes, c.sort), received = ReceivedNote.shown(received),
             sort = c.sort, selected = u.selected intersect selectable, open = u.open?.takeIf { id -> live.any { it.id == id } },
             noteStrategy = c.strategy, strategies = wallet.noteStrategies, developerMode = c.developer,
             failuresOffered = c.developer && failuresBuilt, simulatedFailure = u.simulatedFailure.takeIf { c.developer && failuresBuilt },

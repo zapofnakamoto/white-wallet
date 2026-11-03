@@ -8,6 +8,12 @@ android {
     namespace = "whitewallet.app"
 }
 
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+    // Robolectric reaches into JDK internals for file descriptors.
+    jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED")
+}
+
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:designsystem"))
@@ -28,6 +34,17 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     // Native secp256k1 for bitcoin-kmp on Android.
     runtimeOnly(libs.secp256k1.jni.android)
+
+    // On the JVM: what the app hands to Android (the background sync), under Robolectric (JUnit 4, run by the vintage
+    // engine).
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(kotlin("test-junit"))
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.junit)
+    testImplementation(libs.androidx.work.testing)
+    testRuntimeOnly(libs.junit.vintage.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
 
     // On a device (./gradlew :app:connectedDebugAndroidTest): the native secp256k1 the app ships.
     androidTestImplementation(libs.androidx.test.runner)

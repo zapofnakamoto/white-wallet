@@ -121,6 +121,11 @@ data class ReceivedNote(
 ) {
     /** Not the wallet's yet, and may still become it. */
     val isPending: Boolean get() = state in ReceivedState.PENDING
+
+    companion object {
+        /** The received notes a list shows: not those already claimed, which are the wallet's own notes now. */
+        fun shown(notes: List<ReceivedNote>): List<ReceivedNote> = notes.filter { it.state != ReceivedState.Claimed }
+    }
 }
 
 /** A mint the wallet talks to. Only [host] is configuration; the rest is fetched from it. */

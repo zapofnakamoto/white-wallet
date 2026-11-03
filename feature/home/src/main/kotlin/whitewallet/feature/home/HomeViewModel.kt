@@ -152,7 +152,7 @@ class HomeViewModel(
         viewModelScope.launch { collectNotices() }
         viewModelScope.launch { wallet.accountMints.collect { mints -> status.update { it.copy(unknownNotes = mints.filter { m -> m.unknownCount > 0 }) } } }
         viewModelScope.launch {
-            wallet.receivedNotes.collect { notes -> status.update { it.copy(received = notes.filter { n -> n.state != ReceivedState.Claimed }) } }
+            wallet.receivedNotes.collect { notes -> status.update { it.copy(received = ReceivedNote.shown(notes)) } }
         }
     }
 

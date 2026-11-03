@@ -1,0 +1,47 @@
+package whitewallet.feature.home
+
+import whitewallet.brand.WalletStatus
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+/** What Home makes of received notes: shown apart from the balance, counted as incoming while they may still arrive. */
+class HomeStateTest {
+    private fun received(id: String, state: ReceivedState, amountMsat: Long? = null, declaredMsat: Long? = null, host: String = "mint.example") =
+        ReceivedNote(id, "a", host, "w", "k1", null, declaredMsat, amountMsat, null, null, state, null, 1, 1)
+
+    @Test
+    fun `claimed notes aren't shown, the others are, in their order`() {
+        val notes = ReceivedState.entries.map { received(it.name, it) }
+        assertEquals(ReceivedState.entries - ReceivedState.Claimed, ReceivedNote.shown(notes).map { it.state })
+    }
+
+    @Test
+    fun `incoming counts what may still arrive, by the mint's amount or else the link's`() {
+        val state = HomeState(activeAccountId = "a", received = listOf(
+            received("w", ReceivedState.Waiting, declaredMsat = 1_000),
+            received("l", ReceivedState.Locked, amountMsat = 2_000, declaredMsat = 9_999),
+            received("k", ReceivedState.KeyChanged, amountMsat = 4_000),
+            received("c", ReceivedState.Claiming, amountMsat = 8_000),
+            received("u", ReceivedState.Waiting),
+            received("g", ReceivedState.Gone, amountMsat = 100_000),
+            received("r", ReceivedState.Refused, amountMsat = 100_000),
+        ))
+        assertEquals(15_000, state.incomingMsat)
+    }
+
+    @Test
+    fun `a wallet with only incoming money isn't empty, one with only notes it can no longer claim is`() {
+        assertEquals(WalletStatus.Idle, HomeState(activeAccountId = "a", received = listOf(received("w", ReceivedState.Waiting))).status)
+        assertEquals(WalletStatus.Empty, HomeState(activeAccountId = "a", received = listOf(received("g", ReceivedState.Gone), received("r", ReceivedState.Refused))).status)
+    }
+
+    @Test
+    fun `the key change a refresh found comes first, then a received note's`() {
+        val notes = listOf(received("w", ReceivedState.Waiting, host = "a.example"), received("k", ReceivedState.KeyChanged, host = "b.example"))
+        assertEquals("b.example", HomeState(received = notes).keyChangedMint)
+        assertEquals("c.example", HomeState(received = notes, keyChangedHost = "c.example").keyChangedMint)
+        assertEquals(null, HomeState(received = notes.take(1)).keyChangedMint)
+    }
+}
