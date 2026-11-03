@@ -58,6 +58,17 @@ class ClaimViewModel @Inject constructor(private val wallet: Wallet, savedState:
         }
     }
 
+    /** Keeps a note that can't be claimed now; the wallet claims it once it can. */
+    fun keep() {
+        val preview = _state.value.preview as? ClaimPreview.Keepable ?: return
+        if (_state.value.busy) return
+        _state.update { it.copy(busy = true) }
+        viewModelScope.launch {
+            val result = wallet.keepClaim(preview)
+            _state.update { it.copy(busy = false, result = result) }
+        }
+    }
+
     fun claim() {
         val preview = _state.value.preview as? ClaimPreview.Ready ?: return
         if (_state.value.busy) return

@@ -34,6 +34,8 @@ import whitewallet.brand.ReleaseStage
 import whitewallet.brand.WalletTask
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.Profile
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.Mint
 import whitewallet.lnurlcash.CashBranch
@@ -69,6 +71,11 @@ class Wallet(
     private val trust: MintTrustStore = MintTrustStore.InMemory(),
     /** Mints the brand ships as trusted, each with its key (brand `mints.trusted`). */
     private val brandTrusted: List<MintKey> = emptyList(),
+    /**
+     * Asks for a refresh as soon as the device is online again: a received note is kept waiting for its mint (the
+     * app schedules a sync that needs a network).
+     */
+    private val onWaitingForNetwork: () -> Unit = {},
 ) {
     private val lock = Mutex()
 
@@ -81,6 +88,7 @@ class Wallet(
     private val onboarding = Onboarding(this)
     private val scanner = AddressScanner(this)
     private val claimer = NoteClaimer(this)
+    private val received = ReceivedNotes(this)
     private val reconciler = Reconciler(this)
     private val addressCheck = AddressCheck(this)
     private val mover = FundsMover(this)
@@ -123,6 +131,15 @@ class Wallet(
     val homeHost: Flow<String?> = activeAccount.map { it?.account?.host }.distinctUntilChanged()
     val notes: Flow<List<Note>> = ofActive(emptyList(), store::notes)
     val balanceMsat: Flow<Long> = notes.map { notes -> notes.filter { it.state == NoteState.Outstanding }.sumOf { it.amountMsat } }
+
+    /** The active account's received notes (see [ReceivedNote]), newest first: kept, claimed, or no longer claimable. */
+    val receivedNotes: Flow<List<ReceivedNote>> = ofActive(emptyList()) { id -> store.receivedNotes(id) }
+
+    /**
+     * What the active account's received notes not claimed yet are worth: not in [balanceMsat] until claimed. A note
+     * whose mint hasn't said yet counts what its link says.
+     */
+    val incomingMsat: Flow<Long> = receivedNotes.map { notes -> notes.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 } }
     val backupVerified: Flow<Boolean> = ofActive(false, seeds::backupVerified)
 
     /** The last known status of the active account's primary address; null until checked. Refreshed by [refresh]. */
@@ -709,13 +726,15 @@ class Wallet(
 
     private suspend fun refreshUnderLock(): RefreshResult = if (asksMints()) working(WalletTask.Updating) { refreshLocked() } else refreshLocked()
 
-    private suspend fun asksMints(): Boolean = store.journal(UNSETTLED).isNotEmpty() || store.accounts.first().any { summary ->
-        val id = summary.account.id
-        summary.profile != null || store.addresses(id).first().isNotEmpty() || store.notes(id).first().any { it.state == NoteState.Shared || it.state == NoteState.Unknown }
-    }
+    private suspend fun asksMints(): Boolean =
+        store.journal(UNSETTLED).isNotEmpty() || store.receivedNotes(PENDING_RECEIVED).isNotEmpty() || store.accounts.first().any { summary ->
+            val id = summary.account.id
+            summary.profile != null || store.addresses(id).first().isNotEmpty() || store.notes(id).first().any { it.state == NoteState.Shared || it.state == NoteState.Unknown }
+        }
 
     private suspend fun refreshLocked(): RefreshResult {
         reconciler.reconcileAll()
+        received.retryAll()
         val active = store.currentAccountId()
         var result = RefreshResult(0, 0)
         for (summary in store.accounts.first()) {
@@ -755,10 +774,19 @@ class Wallet(
 
     suspend fun previewClaim(input: String): ClaimPreview = claimer.preview(input, activeId())
 
+    /** Claims the note now. It is kept first, so if it can't be claimed now ([ClaimResult.Kept]), a refresh claims it later. */
     suspend fun claim(preview: ClaimPreview.Ready): ClaimResult = lock.withLock {
         val id = activeId()
         claimer.claim(preview, id).also { applyPolicies(id) }
     }
+
+    /** Keeps a note that can't be claimed now (offline, or locked); a refresh claims it once it can be. */
+    suspend fun keepClaim(preview: ClaimPreview.Keepable): ClaimResult.Kept = lock.withLock { claimer.keep(preview, activeId()) }
+
+    /** Forgets a received note that can no longer be claimed (spent by someone else, or not spendable). */
+    suspend fun dismissReceivedNote(id: String) = lock.withLock { received.dismiss(id) }
+
+    internal fun syncWhenOnline() = onWaitingForNetwork()
 
     /** Moves [amountMsat] (or everything, if null) from the active account to [toAccountId]. */
     suspend fun moveFunds(toAccountId: String, amountMsat: Long?): MoveResult = lock.withLock {
@@ -976,6 +1004,9 @@ class Wallet(
 
         /** Journal entries whose outcome isn't settled yet. */
         val UNSETTLED = setOf(JournalStatus.Prepared, JournalStatus.Unknown)
+
+        /** Received notes not claimed yet, which a refresh tries to claim or settles. */
+        val PENDING_RECEIVED = setOf(ReceivedState.Waiting, ReceivedState.Locked, ReceivedState.Claiming)
     }
 }
 

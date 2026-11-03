@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
@@ -190,24 +191,26 @@ class RegtestRecoveryTest {
         assertEquals(1_999_000, alice.balance())
         assertEquals(0, alice.wallet.unresolvedOperations())
         assertEquals(listOf(ActivityStatus.Done), alice.wallet.activity.first().filter { it.kind == ActivityKind.Claimed }.map { it.status })
-        assertIs<ClaimPreview.AlreadySpent>(alice.wallet.previewClaim(preview.link.encode()), "the link is ours now")
+        assertIs<ClaimPreview.AlreadyInWallet>(alice.wallet.previewClaim(preview.link.encode()), "the link is ours now")
     }
 
     @Test
-    fun `a claim that never reaches the mint changes nothing, and the note can be claimed again`() = runBlocking<Unit> {
+    fun `a claim that never reaches the mint changes nothing there, and the kept note is claimed by the next refresh`() = runBlocking<Unit> {
         val breaker = Breaker(lose = false)
         val alice = Regtest.phone(client = breaker.client)
         val link = Regtest.note(2000)
         val result = breaker.during { alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(link))) }
         assertIs<ClaimResult.Failed>(result)
         assertTrue(breaker.hits > 0)
-        alice.wallet.refresh()
+        assertEquals(ReceivedState.Waiting, alice.wallet.receivedNotes.first().single().state, "kept")
         assertEquals(0, alice.balance())
-        assertEquals(0, alice.wallet.unresolvedOperations())
-        assertEquals(emptyList(), alice.wallet.activity.first().filter { it.kind == ActivityKind.Claimed })
 
-        assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(link))))
+        alice.wallet.refresh()
+        assertEquals(0, alice.wallet.unresolvedOperations())
+        assertEquals(ReceivedState.Claimed, alice.wallet.receivedNotes.first().single().state)
         assertEquals(1_999_000, alice.balance())
+        assertEquals(1, alice.wallet.activity.first().count { it.kind == ActivityKind.Claimed && it.status == ActivityStatus.Done })
+        assertIs<ClaimPreview.AlreadyInWallet>(alice.wallet.previewClaim(link))
     }
 
     @Test
@@ -375,7 +378,7 @@ class RegtestRecoveryTest {
     }
 
     @Test
-    fun `an operation the app died during, before sending it, is rejected on the next refresh`() = runBlocking<Unit> {
+    fun `an operation the app died during, before sending it, is rejected on the next refresh, and a kept note claimed`() = runBlocking<Unit> {
         // The journal entry is written, then the app is gone before the request leaves.
         var dying = false
         val alice = Regtest.phone(client = Regtest.client { chain ->
@@ -389,11 +392,11 @@ class RegtestRecoveryTest {
         dying = false
         assertEquals(1, alice.wallet.unresolvedOperations(), "prepared, never sent")
 
+        // The claim never left; the note was kept, so the same refresh claims it.
         alice.wallet.refresh()
         assertEquals(0, alice.wallet.unresolvedOperations())
-        assertEquals(0, alice.balance())
-        assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(link))))
         assertEquals(1_999_000, alice.balance())
+        assertEquals(ReceivedState.Claimed, alice.wallet.receivedNotes.first().single().state)
     }
 
     @Test

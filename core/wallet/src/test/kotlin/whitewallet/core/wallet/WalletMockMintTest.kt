@@ -89,8 +89,9 @@ class WalletMockMintTest {
             assertEquals(JournalStatus.Confirmed, store.journal.values.single().status)
             assertEquals(1, store.counters[Triple(ACCOUNT, mint.host, 0)])
 
-            // The sender's copy is now worthless.
-            assertIs<ClaimPreview.AlreadySpent>(wallet.previewClaim("lnurlw://${mint.host}/w?k1=${bearer.k1}"))
+            // Opened again here, it is known as claimed; anywhere else, the sender's copy is now worthless.
+            assertIs<ClaimPreview.AlreadyInWallet>(wallet.previewClaim("lnurlw://${mint.host}/w?k1=${bearer.k1}"))
+            assertIs<ClaimPreview.AlreadySpent>(wallet(mint).previewClaim("lnurlw://${mint.host}/w?k1=${bearer.k1}"))
         }
     }
 

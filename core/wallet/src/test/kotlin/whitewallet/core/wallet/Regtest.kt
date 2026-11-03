@@ -138,9 +138,11 @@ internal object Regtest {
         client: LnurlcashClient = LnurlcashClient(),
         host: String = HOST,
         collectDefaults: CollectDefaults = CollectDefaults(),
+        onWaitingForNetwork: () -> Unit = {},
     ): Phone {
         val store = InMemoryWalletStore()
-        val wallet = Wallet(store, InMemorySeedStore(), client, policies = NotePolicies.InMemory(strategy), collectDefaults = collectDefaults)
+        val wallet = Wallet(store, InMemorySeedStore(), client, policies = NotePolicies.InMemory(strategy), collectDefaults = collectDefaults,
+            onWaitingForNetwork = onWaitingForNetwork)
         val name = name()
         assertIs<OnboardResult.Ready>(wallet.onboard(name, host))
         return Phone(store, wallet, "$name@$host")

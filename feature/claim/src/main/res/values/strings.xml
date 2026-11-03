@@ -15,6 +15,8 @@
     <string name="claim_spent">This note has already been spent.</string>
     <string name="claim_in_wallet">This note is already in your wallet.</string>
     <string name="claim_other_mint">This note is held by %1$s and stays there.</string>
+    <string name="claim_not_spendable">This link doesn\'t unlock the note it names, so it can\'t be claimed.</string>
+    <string name="claim_other_paths">This note can also be spent another way, so someone else may take it before you claim it.</string>
 
     <string name="claim_paste">Paste</string>
     <string name="claim_scan">Scan QR code</string>
@@ -26,7 +28,28 @@
     <string name="claim_finish">Done</string>
     <string name="claim_certified">Certified: the amount is signed</string>
     <string name="claim_not_certified">Not certified: the amount can\'t be verified.</string>
-    <string name="claim_network">Couldn\'t connect: %1$s</string>
+    <string name="claim_offline">No connection right now. Keep it, and your wallet claims it as soon as it\'s back online.</string>
+    <string name="claim_amount_certified">%1$s, certified</string>
+    <string name="claim_amount_declared">%1$s, as the link says; not confirmed yet</string>
+    <string name="claim_locked_until">Locked until %1$s. Keep it, and your wallet claims it then.</string>
+    <string name="claim_locked_for">Locked for up to %1$s. Keep it, and your wallet claims it once it opens.</string>
+    <plurals name="claim_duration_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="claim_duration_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="claim_duration_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="claim_keep">Keep and claim later</string>
+    <string name="claim_kept">Kept. Your wallet claims it on its own as soon as it can.</string>
+    <string name="claim_kept_until">Kept. Your wallet claims it after %1$s.</string>
+    <string name="claim_kept_locked">Kept. Your wallet claims it once it opens.</string>
+    <string name="claim_kept_hint">Until then it isn\'t in your balance, your recovery phrase doesn\'t cover it, and whoever gave you the link can still spend it.</string>
     <string name="claim_failed">The claim was refused: %1$s</string>
     <string name="claim_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>
     <string name="claim_trusted">✓ Trusted</string>

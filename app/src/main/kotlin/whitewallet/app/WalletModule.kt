@@ -1,8 +1,10 @@
 package whitewallet.app
 
+import android.content.Context
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import javax.inject.Singleton
@@ -55,13 +57,22 @@ object WalletModule {
 
     @Provides
     @Singleton
-    fun wallet(store: WalletStore, seeds: SeedStore, client: LnurlcashClient, policies: NotePolicies, strategies: NoteStrategies, trust: MintTrustStore): Wallet =
+    fun wallet(
+        @ApplicationContext context: Context,
+        store: WalletStore,
+        seeds: SeedStore,
+        client: LnurlcashClient,
+        policies: NotePolicies,
+        strategies: NoteStrategies,
+        trust: MintTrustStore,
+    ): Wallet =
         Wallet(
             store, seeds, client, policies = policies, strategies = strategies, trust = trust,
             brandTrusted = TrustedMints.parse(BuildConfig.TRUSTED_MINTS),
             maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
             requireAddress = AddressPolicy.fromConfig(BuildConfig.LIGHTNING_ADDRESS) == AddressPolicy.Required,
             collectDefaults = CollectDefaults.fromConfig(BuildConfig.COLLECT_AT_HOME_MINT, BuildConfig.COLLECT_FEE_CAP),
+            onWaitingForNetwork = { SyncWorker.scheduleOnce(context) },
         )
 
     /** dev/regtest's faucet in debug builds; without a host (release) it pays nothing. */

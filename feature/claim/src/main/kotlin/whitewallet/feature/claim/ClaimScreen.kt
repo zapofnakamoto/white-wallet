@@ -41,6 +41,9 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
+import whitewallet.core.designsystem.recentTime
+import whitewallet.core.model.ReceivedState
+import androidx.compose.ui.res.pluralStringResource
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
@@ -50,7 +53,7 @@ import whitewallet.core.designsystem.WalletTextField
 fun ClaimRoute(onBack: () -> Unit, viewModel: ClaimViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     BackHandler(enabled = state.scanning) { viewModel.stopScan() }
-    ClaimScreen(state, onBack, viewModel::onInputChange, viewModel::check, viewModel::claim, viewModel::startScan, viewModel::onScanned, viewModel::stopScan)
+    ClaimScreen(state, onBack, viewModel::onInputChange, viewModel::check, viewModel::claim, viewModel::startScan, viewModel::onScanned, viewModel::stopScan, viewModel::keep)
 }
 
 @Composable
@@ -63,6 +66,7 @@ fun ClaimScreen(
     onStartScan: () -> Unit = {},
     onScanned: (String) -> Unit = {},
     onStopScan: () -> Unit = {},
+    onKeep: () -> Unit = {},
 ) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
@@ -74,10 +78,11 @@ fun ClaimScreen(
                     val status = when (result) {
                         is ClaimResult.Claimed -> WalletStatus.PaymentReceived(result.amountMsat)
                         is ClaimResult.Failed -> WalletStatus.Problem(ProblemKind.Other)
-                        ClaimResult.Pending -> WalletStatus.None
+                        ClaimResult.Pending, is ClaimResult.Kept -> WalletStatus.None
                     }
                     WalletStatusScope(status) { BrandDecoration(Anchor.ClaimResult) }
                     ResultMessage(result)
+                    if (result is ClaimResult.Kept) Text(stringResource(R.string.claim_kept_hint), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
                     PrimaryButton(stringResource(R.string.claim_finish), onBack)
                     return@ScreenColumn
                 }
@@ -115,6 +120,10 @@ fun ClaimScreen(
                 is ClaimPreview.Ready -> {
                     ReadyCard(preview, state.showMints)
                     PrimaryButton(stringResource(R.string.claim_action, formatAmount(preview.amountMsat)), onClaim, busy = state.busy)
+                }
+                is ClaimPreview.Keepable -> {
+                    KeepCard(preview)
+                    PrimaryButton(stringResource(R.string.claim_keep), onKeep, busy = state.busy)
                 }
                 else -> {
                     preview?.let { Text(previewMessage(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
@@ -156,8 +165,47 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
                 )
             }
             if (showMints && !preview.isOwnMint) Text(stringResource(R.string.claim_other_mint, preview.link.host), style = MaterialTheme.typography.bodySmall)
+            if (preview.hasOtherPaths) Text(stringResource(R.string.claim_other_paths), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             Text(stringResource(R.string.claim_bearer_warning), style = MaterialTheme.typography.bodySmall)
         }
+    }
+}
+
+/** A note that can't be claimed now: why, what it is worth as far as known, and what keeping it means. */
+@Composable
+private fun KeepCard(preview: ClaimPreview.Keepable) {
+    WalletCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val amount = when (preview) {
+                is ClaimPreview.Offline -> preview.certifiedMsat?.let { stringResource(R.string.claim_amount_certified, formatAmount(it)) }
+                    ?: preview.declaredMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
+                is ClaimPreview.Locked -> preview.amountMsat?.let { formatAmount(it) }
+                    ?: preview.link.declaredAmountMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
+            }
+            amount?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
+            Text(
+                when (preview) {
+                    is ClaimPreview.Offline -> stringResource(R.string.claim_offline)
+                    is ClaimPreview.Locked -> preview.untilMillis?.let { stringResource(R.string.claim_locked_until, recentTime(it)) }
+                        ?: stringResource(R.string.claim_locked_for, lockDuration(preview.forSeconds ?: 0))
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(stringResource(R.string.claim_kept_hint), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+/** A wait in the largest whole unit that doesn't understate it: minutes, hours or days, rounded up. */
+@Composable
+private fun lockDuration(seconds: Long): String {
+    val minutes = (seconds + 59) / 60
+    val hours = (minutes + 59) / 60
+    val days = (hours + 23) / 24
+    return when {
+        hours >= 24 -> pluralStringResource(R.plurals.claim_duration_days, days.toInt(), days)
+        minutes >= 60 -> pluralStringResource(R.plurals.claim_duration_hours, hours.toInt(), hours)
+        else -> pluralStringResource(R.plurals.claim_duration_minutes, minutes.toInt(), minutes)
     }
 }
 
@@ -166,8 +214,8 @@ private fun previewMessage(preview: ClaimPreview): String = when (preview) {
     is ClaimPreview.Invalid -> stringResource(R.string.claim_invalid, preview.reason)
     ClaimPreview.AlreadySpent -> stringResource(R.string.claim_spent)
     ClaimPreview.AlreadyInWallet -> stringResource(R.string.claim_in_wallet)
-    is ClaimPreview.NetworkError -> stringResource(R.string.claim_network, preview.reason)
-    is ClaimPreview.Ready -> ""
+    ClaimPreview.NotSpendable -> stringResource(R.string.claim_not_spendable)
+    is ClaimPreview.Ready, is ClaimPreview.Keepable -> ""
 }
 
 @Composable
@@ -176,6 +224,14 @@ private fun ResultMessage(result: ClaimResult) {
         is ClaimResult.Claimed -> stringResource(R.string.claim_done, formatAmount(result.amountMsat)) to false
         is ClaimResult.Failed -> stringResource(R.string.claim_failed, result.reason ?: result.kind.name) to true
         ClaimResult.Pending -> stringResource(R.string.claim_pending) to false
+        is ClaimResult.Kept -> {
+            val note = result.note
+            when {
+                note.state == ReceivedState.Locked && note.lockedUntilMillis != null -> stringResource(R.string.claim_kept_until, recentTime(note.lockedUntilMillis!!))
+                note.state == ReceivedState.Locked -> stringResource(R.string.claim_kept_locked)
+                else -> stringResource(R.string.claim_kept)
+            } to false
+        }
     }
     Text(
         text,

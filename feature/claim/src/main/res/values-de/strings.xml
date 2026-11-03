@@ -10,6 +10,8 @@
     <string name="claim_spent">Dieser Schein wurde bereits ausgegeben.</string>
     <string name="claim_in_wallet">Dieser Schein ist bereits in deiner Wallet.</string>
     <string name="claim_other_mint">Dieser Schein liegt bei %1$s und bleibt dort.</string>
+    <string name="claim_not_spendable">Dieser Link öffnet den Schein nicht, den er nennt; er lässt sich nicht einlösen.</string>
+    <string name="claim_other_paths">Dieser Schein lässt sich auch auf anderem Weg ausgeben; jemand anderes kann ihn also nehmen, bevor du ihn einlöst.</string>
 
     <string name="claim_paste">Einfügen</string>
     <string name="claim_scan">QR-Code scannen</string>
@@ -21,7 +23,28 @@
     <string name="claim_finish">Fertig</string>
     <string name="claim_certified">Zertifiziert: Der Betrag ist signiert</string>
     <string name="claim_not_certified">Nicht zertifiziert: Der Betrag lässt sich nicht prüfen.</string>
-    <string name="claim_network">Keine Verbindung: %1$s</string>
+    <string name="claim_offline">Gerade keine Verbindung. Behalte ihn, und deine Wallet löst ihn ein, sobald sie wieder online ist.</string>
+    <string name="claim_amount_certified">%1$s, zertifiziert</string>
+    <string name="claim_amount_declared">%1$s laut Link, noch nicht bestätigt</string>
+    <string name="claim_locked_until">Gesperrt bis %1$s. Behalte ihn, und deine Wallet löst ihn dann ein.</string>
+    <string name="claim_locked_for">Bis zu %1$s gesperrt. Behalte ihn, und deine Wallet löst ihn ein, sobald er frei ist.</string>
+    <plurals name="claim_duration_minutes">
+        <item quantity="one">%d Minute</item>
+        <item quantity="other">%d Minuten</item>
+    </plurals>
+    <plurals name="claim_duration_hours">
+        <item quantity="one">%d Stunde</item>
+        <item quantity="other">%d Stunden</item>
+    </plurals>
+    <plurals name="claim_duration_days">
+        <item quantity="one">%d Tag</item>
+        <item quantity="other">%d Tage</item>
+    </plurals>
+    <string name="claim_keep">Behalten und später einlösen</string>
+    <string name="claim_kept">Behalten. Deine Wallet löst ihn von selbst ein, sobald sie kann.</string>
+    <string name="claim_kept_until">Behalten. Deine Wallet löst ihn nach %1$s ein.</string>
+    <string name="claim_kept_locked">Behalten. Deine Wallet löst ihn ein, sobald er frei ist.</string>
+    <string name="claim_kept_hint">Bis dahin ist er nicht in deinem Guthaben, deine Wiederherstellungsphrase deckt ihn nicht ab, und wer dir den Link gegeben hat, kann ihn noch ausgeben.</string>
     <string name="claim_failed">Das Einlösen wurde abgelehnt: %1$s</string>
     <string name="claim_pending">Noch nicht bestätigt. Deine Wallet prüft beim nächsten Aktualisieren erneut.</string>
     <string name="claim_trusted">✓ Vertraut</string>

@@ -12,7 +12,6 @@ import fr.acinq.bitcoin.XonlyPublicKey
 import fr.acinq.bitcoin.byteVector
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
-import whitewallet.core.model.OperationType
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.BearerNote
 import whitewallet.lnurlcash.CanonicalSpend
@@ -22,6 +21,7 @@ import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.RejectionKind
+import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 import java.security.SecureRandom
@@ -71,6 +71,23 @@ class RegtestScriptNoteTest {
         assertEquals(1_999_000, alice.balance())
     }
 
+    @Test
+    fun `a note with two script paths is claimed through either, and the preview says it may be spent another way`() = runBlocking<Unit> {
+        val alice = Regtest.phone()
+        alice.fund(2000)
+        val note = TwoPathNote()
+        alice.lockTo(note.q)
+        val withdrawUrl = assertNotNull(alice.store.mint(HOST)).withdrawUrl
+        val link = NoteLink(withdrawUrl, note.spendA(spendDomain(HOST)), null, null).encode()
+
+        val preview = assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(link))
+        assertTrue(preview.hasOtherPaths)
+        assertEquals(ClaimResult.Claimed(1_999_000, true), alice.wallet.claim(preview))
+        assertEquals(1_999_000, alice.balance())
+        // The other path's link is the same note: known as claimed.
+        assertIs<ClaimPreview.AlreadyInWallet>(alice.wallet.previewClaim(NoteLink(withdrawUrl, note.spendB(spendDomain(HOST)), null, null).encode()))
+    }
+
     /** `<pkA> OP_CHECKSIG` and `<pkB> OP_CHECKSIG`, two leaves under the NUMS key: either key alone spends it. */
     private class TwoPathNote {
         private val keyA = key()
@@ -105,14 +122,5 @@ class RegtestScriptNoteTest {
                 return Crypto.taggedHash(first.toByteArray() + second.toByteArray(), "TapBranch")
             }
         }
-    }
-
-    /** Renews the phone's one note to [q], someone else's key. */
-    private suspend fun Regtest.Phone.lockTo(q: ByteVector32) {
-        val result = NoteMutator(wallet).mutate(wallet.activeId(), HOST, listOf(notes().single()), OperationType.Rotate, listOf(OutputSpec.External { q })) { callback, k1s, outs ->
-            Requests.rotate(callback, k1s.single(), outs.single().key)
-        }
-        assertIs<MutationResult.Done>(result)
-        assertEquals(0, balance())
     }
 }

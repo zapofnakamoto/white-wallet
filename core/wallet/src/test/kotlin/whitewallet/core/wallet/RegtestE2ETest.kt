@@ -46,8 +46,8 @@ class RegtestE2ETest {
             // History shows the claim once, whatever note maintenance followed.
             val money = wallet.activity.first().filterNot { it.kind.isMaintenance }
             assertEquals(listOf(ActivityKind.Claimed to 1_499_000L), money.map { it.kind to it.amountMsat })
-            // Claiming moved the funds onto our own keys, so the handed-over link is spent now.
-            assertIs<ClaimPreview.AlreadySpent>(wallet.previewClaim(link), "the same link again")
+            // Claiming moved the funds onto our own keys: the handed-over link is spent, and known here as claimed.
+            assertIs<ClaimPreview.AlreadyInWallet>(wallet.previewClaim(link), "the same link again")
         }
     }
 

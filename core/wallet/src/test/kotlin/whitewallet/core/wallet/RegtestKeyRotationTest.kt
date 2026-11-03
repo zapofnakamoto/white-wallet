@@ -101,10 +101,10 @@ class RegtestKeyRotationTest {
         assertEquals(preview.info.mintPubkey, newKey)
         assertEquals(false, preview.certified, "it doesn't count: the mint signs with another key now")
 
-        // Claiming still works, and the note lands at Bob's own key, signed with the new key; the link is spent.
+        // Claiming still works, and the note lands at Bob's own key, signed with the new key; the link is known as claimed.
         val claimed = assertIs<ClaimResult.Claimed>(bob.wallet.claim(preview))
         assertTrue(claimed.certified)
-        assertIs<ClaimPreview.AlreadySpent>(bob.wallet.previewClaim(link))
+        assertIs<ClaimPreview.AlreadyInWallet>(bob.wallet.previewClaim(link))
     }
 
     @Test
