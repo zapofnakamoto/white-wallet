@@ -106,3 +106,9 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     interrupted restore goes on from the last confirmed key; a few lookups at once; show progress ("Checked 1,240
     keys, found 12 zaps"). Open: where progress lives, what the user sees, whether the wallet can be used meanwhile.
     A rate limit shows "Couldn't connect…" today. Asked for on 2026-10-31.
+13. **A time limit on a handed-out note.** When handing out a note, the user can set a limit ("take back if not
+    claimed within 7 days"). The note shows it, so the recipient knows, and once it passes a refresh rotates the note
+    back into the wallet if it is still there. Without a limit a shared note is never taken back on its own: from the
+    moment the link is out, whoever holds it may claim it. Open: where the limit is stored and shown (link, note face,
+    print), whether it can be changed later, how a recipient's wallet shows it, and whether LUD-25 should carry it in
+    the link. Asked for on 2026-11-03.
