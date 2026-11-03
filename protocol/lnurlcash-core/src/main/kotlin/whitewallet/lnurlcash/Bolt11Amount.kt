@@ -20,10 +20,15 @@ public object Bolt11Amount {
     public fun decode(value: String): Long? {
         val match = pattern.matchEntire(value) ?: return null
         val number = match.groupValues[1].toLongOrNull() ?: return null
-        return when (val suffix = match.groupValues[2]) {
-            "" -> Math.multiplyExact(number, MSAT_PER_BTC)
-            "p" -> if (number % 10 == 0L) number / 10 else null
-            else -> Math.multiplyExact(number, multipliers.first { it.first == suffix[0] }.second)
+        // An amount too large for a Long is no amount.
+        return try {
+            when (val suffix = match.groupValues[2]) {
+                "" -> Math.multiplyExact(number, MSAT_PER_BTC)
+                "p" -> if (number % 10 == 0L) number / 10 else null
+                else -> Math.multiplyExact(number, multipliers.first { it.first == suffix[0] }.second)
+            }
+        } catch (e: ArithmeticException) {
+            null
         }
     }
 }

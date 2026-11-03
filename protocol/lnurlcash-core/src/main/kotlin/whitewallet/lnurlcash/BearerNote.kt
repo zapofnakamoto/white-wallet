@@ -25,10 +25,15 @@ public object BearerNote {
         return b.copyOfRange(2, 34).byteVector32()
     }
 
+    /** BIP-341's leaf hash: the script's length as a compact size, so a leaf of any length is a leaf. */
     public fun tapleafHash(script: ByteVector, leafVersion: Int = LEAF_VERSION): ByteVector32 {
         val len = script.size()
-        require(len < 0xfd) { "leaf too large" }
-        return Crypto.taggedHash(byteArrayOf(leafVersion.toByte(), len.toByte()) + script.toByteArray(), "TapLeaf")
+        val size = when {
+            len < 0xfd -> byteArrayOf(len.toByte())
+            len <= 0xffff -> byteArrayOf(0xfd.toByte(), len.toByte(), (len ushr 8).toByte())
+            else -> byteArrayOf(0xfe.toByte(), len.toByte(), (len ushr 8).toByte(), (len ushr 16).toByte(), (len ushr 24).toByte())
+        }
+        return Crypto.taggedHash(byteArrayOf(leafVersion.toByte()) + size + script.toByteArray(), "TapLeaf")
     }
 
     /** Output key `Q` and parity for the note locked to `h`. */
