@@ -28,6 +28,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -381,5 +383,16 @@ class NotesScreenTest {
         state = NotesState(loaded = true, mints = listOf(mint))
         compose.waitForIdle()
         assertEquals(setOf(Anchor.NotesHeader to WalletStatus.Idle), seen.toSet())
+    }
+
+    @Test
+    fun receivedNotesAreListedApartWithWhereTheyStand() {
+        val locked = ReceivedNote("r".repeat(64), "a", "mint.example", "w", "k1", null, null, 4_000_000, 1_893_456_000_000, null, ReceivedState.Locked, null, 1, 1)
+        compose.setContent { NotesContent(NotesState(loaded = true, received = listOf(locked)), NotesActions()) }
+        compose.onNodeWithText("₿4,000 received, not claimed yet").assertExists()
+        compose.onNodeWithText("Received, not claimed yet").assertExists()
+        compose.onNodeWithText("Locked until ", substring = true).assertExists()
+        compose.onNodeWithText("On mint.example").assertExists()
+        compose.onNodeWithText("No notes yet", substring = true).assertDoesNotExist()
     }
 }

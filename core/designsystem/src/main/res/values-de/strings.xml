@@ -25,4 +25,19 @@
     <string name="release_notice_beta">Diese App ist eine Beta-Version: Sie wird noch getestet und kann Fehler haben.</string>
     <string name="release_notes_title">Neuigkeiten</string>
     <string name="release_notes_done">Verstanden</string>
+
+    <string name="received_title">Erhalten, noch nicht eingelöst</string>
+    <string name="received_hint">Deine Wallet löst sie von selbst ein. Bis dahin sind sie nicht in deinem Guthaben, deine Wiederherstellungsphrase deckt sie nicht ab, und wer dir einen Link gegeben hat, kann ihn noch ausgeben.</string>
+    <string name="received_total">%1$s erhalten, noch nicht eingelöst</string>
+    <string name="received_unconfirmed">%1$s, noch nicht bestätigt</string>
+    <string name="received_unknown_amount">Betrag noch nicht bekannt</string>
+    <string name="received_on">Auf %1$s</string>
+    <string name="received_waiting">Noch nicht eingelöst. Wird erneut versucht, sobald du online bist.</string>
+    <string name="received_locked_until">Gesperrt bis %1$s</string>
+    <string name="received_locked">Vorerst gesperrt. Wird bei jedem Aktualisieren erneut versucht.</string>
+    <string name="received_claiming">Wird eingelöst. Beim nächsten Aktualisieren wird erneut geprüft.</string>
+    <string name="received_claimed">Eingelöst</string>
+    <string name="received_gone">Jemand anderes hat ihn ausgegeben, bevor du ihn eingelöst hast.</string>
+    <string name="received_invalid">Er lässt sich nicht einlösen.</string>
+    <string name="received_dismiss">Entfernen</string>
 </resources>

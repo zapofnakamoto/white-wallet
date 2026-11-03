@@ -65,6 +65,7 @@ import whitewallet.core.designsystem.WalletNoteGroupHeader
 import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
@@ -95,6 +96,7 @@ class NotesActions(
     val dismissDialog: () -> Unit = {},
     val openShared: (String) -> Unit = {},
     val simulateFailure: (SimulatedFailure.Kind?) -> Unit = {},
+    val dismissReceived: (String) -> Unit = {},
 )
 
 /** Wires [NotesViewModel] to [NotesContent]; [onOpenShared] shows a shared note (its QR code, or taking it back). */
@@ -107,7 +109,7 @@ fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Un
         openSplit = viewModel::openSplit, recheck = viewModel::recheck, renew = viewModel::renew, combine = viewModel::combine,
         openMove = viewModel::openMove, recheckSelected = viewModel::recheckSelected, moveAnyway = viewModel::moveAnyway,
         splitAmount = viewModel::onSplitAmount, split = viewModel::split, moveTarget = viewModel::onMoveTarget, move = viewModel::move,
-        dismissDialog = viewModel::dismissDialog, openShared = onOpenShared,
+        dismissDialog = viewModel::dismissDialog, openShared = onOpenShared, dismissReceived = viewModel::dismissReceived,
     )
 }
 
@@ -160,7 +162,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
             item { Summary(state) }
             if (state.busy) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
             state.outcome?.takeIf { state.open == null }?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
-            if (state.loaded && state.mints.isEmpty() && state.shared.isEmpty()) {
+            if (state.loaded && state.mints.isEmpty() && state.shared.isEmpty() && state.received.isEmpty()) {
                 item {
                     Column(Modifier.padding(16.dp)) {
                         WalletStatusScope(WalletStatus.Empty) { BrandDecoration(Anchor.NotesEmpty) }
@@ -172,6 +174,10 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
             state.mints.forEach { mint ->
                 if (state.groupHeaders) item(key = "mint:${mint.host}") { MintHeader(mint, state, actions.moveAnyway) }
                 items(mint.notes, key = { it.id }) { note -> NoteRow(note, state, actions) }
+            }
+            if (state.received.isNotEmpty()) {
+                item { ReceivedHeader() }
+                items(state.received, key = { "received:${it.id}" }) { note -> ReceivedNoteRow(note, state.showMints, amountHidden = false, onDismiss = actions.dismissReceived) }
             }
             if (state.shared.isNotEmpty()) {
                 item { SharedHeader() }
@@ -202,6 +208,9 @@ private fun Summary(state: NotesState) {
             }
             Text(parts.joinToString(stringResource(R.string.notes_detail_separator)), style = MaterialTheme.typography.bodyMedium)
         }
+        if (state.receivedMsat > 0) {
+            Text(stringResource(DesignR.string.received_total, formatAmount(state.receivedMsat)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (state.sharedMsat > 0) {
             Text(stringResource(R.string.notes_waiting_total, formatAmount(state.sharedMsat)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -210,7 +219,7 @@ private fun Summary(state: NotesState) {
 
 /** Empty without notes, waiting while handed-out notes are out, else idle. */
 internal fun notesStatus(state: NotesState): WalletStatus = when {
-    state.noteCount == 0 && state.shared.isEmpty() -> WalletStatus.Empty
+    state.noteCount == 0 && state.shared.isEmpty() && state.received.none { it.isPending } -> WalletStatus.Empty
     state.sharedMsat > 0 -> WalletStatus.WaitingForRecipient
     else -> WalletStatus.Idle
 }
@@ -342,6 +351,16 @@ private fun noteStatusIcon(status: NoteStatus): Int? = when (status) {
     NoteStatus.Uncertified -> DesignR.drawable.ic_uncertified
     NoteStatus.Unknown -> DesignR.drawable.ic_warning
     else -> null
+}
+
+/** Received as links, not claimed yet: what that means for the user. */
+@Composable
+private fun ReceivedHeader() {
+    HorizontalDivider()
+    WalletListItem(
+        headlineContent = { Text(stringResource(DesignR.string.received_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() }) },
+        supportingContent = { Text(stringResource(DesignR.string.received_hint)) },
+    )
 }
 
 @Composable

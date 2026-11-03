@@ -73,6 +73,7 @@ import whitewallet.core.designsystem.ReleaseNotesSheet
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
@@ -126,7 +127,7 @@ fun HomeRoute(
     HomeScreen(
         appName, state, onSend, onReceive, viewModel::refresh, onSettings, onBackup, viewModel::dismissBackupPrompt, onChangeAddress,
         AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds), onOpenNote, viewModel::toggleBalanceHidden, onOpenMint, notesTab, menu,
-        viewModel::noticeShown, viewModel::recheckUnknown,
+        viewModel::noticeShown, viewModel::recheckUnknown, viewModel::dismissReceived,
     )
 }
 
@@ -167,6 +168,7 @@ fun HomeScreen(
     menu: List<HomeMenuItem> = emptyList(),
     onNoticeShown: () -> Unit = {},
     onRecheckUnknown: () -> Unit = {},
+    onDismissReceived: (String) -> Unit = {},
 ) {
     var saved by rememberSaveable { mutableStateOf(HomeTab.Wallet) }
     val tab = saved.takeIf { it != HomeTab.Notes || notesTab != null } ?: HomeTab.Wallet
@@ -233,7 +235,10 @@ fun HomeScreen(
                 cover is Cover.Working -> LoadingScreen(cover.task, state)
                 cover == Cover.Blank -> Box(Modifier.fillMaxSize())
                 else -> when (tab) {
-                    HomeTab.Wallet -> WalletTab(state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenMint, onRecheckUnknown)
+                    HomeTab.Wallet -> WalletTab(
+                        state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenMint, onRecheckUnknown,
+                        onDismissReceived, onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
+                    )
                     HomeTab.Notes -> notesTab?.content?.invoke()
                     HomeTab.History -> HistoryTab(state.activity, state.historyFilter, historyFilters, { historyFilters = it }, onOpenNote)
                 }
@@ -368,6 +373,9 @@ private fun WalletTab(
     onToggleBalance: () -> Unit,
     onOpenMint: (String) -> Unit,
     onRecheckUnknown: () -> Unit,
+    onDismissReceived: (String) -> Unit,
+    /** Opens the notes view, where received notes are listed too; null without one (the card below lists them). */
+    onOpenIncoming: (() -> Unit)?,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(
@@ -381,6 +389,17 @@ private fun WalletTab(
             if (state.showBackupPrompt) BackupPrompt(onBackup, onDismissBackup)
             WalletStatusScope(state.status) { BrandDecoration(Anchor.HomeHeader) }
             AmountText(state.balanceMsat, hidden = state.balanceHidden, onToggleHidden = onToggleBalance)
+            // Received but not claimed yet: next to the balance, never in it.
+            if (state.received.any { it.isPending }) {
+                Text(
+                    if (state.balanceHidden) stringResource(DesignR.string.received_title) else stringResource(DesignR.string.received_total, formatAmount(state.incomingMsat)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = onOpenIncoming?.let { Modifier.clickable(onClick = it) } ?: Modifier,
+                )
+            }
+            if (state.received.isNotEmpty()) ReceivedCard(state, onDismissReceived)
             // Nothing in the wallet yet: say how money gets in. Not while the balance is hidden, which would give it away.
             if (state.status == WalletStatus.Empty && !state.balanceHidden) {
                 Text(stringResource(R.string.home_wallet_empty), textAlign = TextAlign.Center)
@@ -628,6 +647,23 @@ private fun UnknownNotesCard(mint: AccountMint, mintsVisible: Boolean, balanceHi
                 style = MaterialTheme.typography.bodyMedium,
             )
             WalletButton(onClick = onRecheck, enabled = !checking) { Text(stringResource(R.string.home_unknown_action)) }
+        }
+    }
+}
+
+/**
+ * Notes received as links, not claimed yet or no longer claimable: each with where it stands, and what that means.
+ * Amounts stay hidden with the balance.
+ */
+@Composable
+private fun ReceivedCard(state: HomeState, onDismiss: (String) -> Unit) {
+    WalletCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 8.dp)) {
+            Text(stringResource(DesignR.string.received_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 16.dp))
+            state.received.forEach { ReceivedNoteRow(it, showMint = state.mintsVisible, amountHidden = state.balanceHidden, onDismiss = onDismiss) }
+            if (state.received.any { it.isPending }) {
+                Text(stringResource(DesignR.string.received_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
+            }
         }
     }
 }

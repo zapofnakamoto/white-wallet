@@ -31,6 +31,8 @@ import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 
 data class HomeState(
     /** The wallet's figures have been read; until then Home shows none (rather than a balance of nothing). */
@@ -72,13 +74,18 @@ data class HomeState(
     val unknownNotes: List<AccountMint> = emptyList(),
     /** The mints are being asked about those notes again ([HomeViewModel.recheckUnknown]). */
     val checkingUnknown: Boolean = false,
+    /** Notes received as links and not claimed yet, or no longer claimable: kept apart from the balance. */
+    val received: List<ReceivedNote> = emptyList(),
 ) {
+    /** What [received] notes not claimed yet are worth, as far as known: not in [balanceMsat]. */
+    val incomingMsat: Long get() = received.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
+
     /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */
     val status: WalletStatus
         get() = when {
             activeAccountId == null -> WalletStatus.None
             error != null -> WalletStatus.Problem(ProblemKind.Offline)
-            balanceMsat > 0 -> WalletStatus.Idle
+            balanceMsat > 0 || received.any { it.isPending } -> WalletStatus.Idle
             else -> WalletStatus.Empty
         }
 }
@@ -141,6 +148,14 @@ class HomeViewModel(
         refresh()
         viewModelScope.launch { collectNotices() }
         viewModelScope.launch { wallet.accountMints.collect { mints -> status.update { it.copy(unknownNotes = mints.filter { m -> m.unknownCount > 0 }) } } }
+        viewModelScope.launch {
+            wallet.receivedNotes.collect { notes -> status.update { it.copy(received = notes.filter { n -> n.state != ReceivedState.Claimed }) } }
+        }
+    }
+
+    /** Forgets a received note that can no longer be claimed. */
+    fun dismissReceived(id: String) {
+        viewModelScope.launch { wallet.dismissReceivedNote(id) }
     }
 
     /** Asks the mints now about the notes they said they don't know; those they know again are back in the balance. */

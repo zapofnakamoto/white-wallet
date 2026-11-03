@@ -19,6 +19,8 @@ import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.ManualStrategy
@@ -64,6 +66,8 @@ data class NotesState(
     val mints: List<MintNotes> = emptyList(),
     /** Notes handed out as links that nobody has redeemed yet. */
     val shared: List<Note> = emptyList(),
+    /** Notes received as links, not claimed yet or no longer claimable: not in the balance. */
+    val received: List<ReceivedNote> = emptyList(),
     val sort: NoteSort = NoteSort.Largest,
     /** Selection mode: tapping a note selects it instead of opening it. */
     val selecting: Boolean = false,
@@ -94,6 +98,7 @@ data class NotesState(
     val totalMsat: Long get() = mints.sumOf { it.totalMsat }
     val noteCount: Int get() = all.size
     val sharedMsat: Long get() = shared.sumOf { it.amountMsat }
+    val receivedMsat: Long get() = received.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
     val openNote: Note? get() = open?.let { id -> all.firstOrNull { it.id == id } }
     val openTrusted: Boolean get() = openNote?.let { n -> mints.any { it.host == n.host && it.trusted } } == true
     val selectedMsat: Long get() = all.filter { it.id in selected }.sumOf { it.amountMsat }
@@ -179,7 +184,7 @@ class NotesViewModel @Inject constructor(
         val sort: NoteSort,
     )
 
-    val state: StateFlow<NotesState> = combine(wallet.notes, context, ui) { notes, c, u ->
+    val state: StateFlow<NotesState> = combine(wallet.notes, wallet.receivedNotes, context, ui) { notes, received, c, u ->
         val live = notes.filter { it.state == NoteState.Outstanding || it.state == NoteState.Paying || it.state == NoteState.Ambiguous || it.state == NoteState.Unknown }
         val mints = live.groupBy { it.host }.toList()
             .sortedWith(compareBy({ it.first != c.home }, { it.first }))
@@ -189,13 +194,18 @@ class NotesViewModel @Inject constructor(
             }
         val selectable = live.filter(::selectable).map { it.id }.toSet()
         u.copy(
-            loaded = true, mints = mints, shared = sharedNotes(notes, c.sort),
+            loaded = true, mints = mints, shared = sharedNotes(notes, c.sort), received = received.filter { it.state != ReceivedState.Claimed },
             sort = c.sort, selected = u.selected intersect selectable, open = u.open?.takeIf { id -> live.any { it.id == id } },
             noteStrategy = c.strategy, strategies = wallet.noteStrategies, developerMode = c.developer,
             failuresOffered = c.developer && failuresBuilt, simulatedFailure = u.simulatedFailure.takeIf { c.developer && failuresBuilt },
             knownHosts = (listOfNotNull(c.home) + mints.map { it.host } + c.devHosts).distinct(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesState())
+
+    /** Forgets a received note that can no longer be claimed. */
+    fun dismissReceived(id: String) {
+        viewModelScope.launch { wallet.dismissReceivedNote(id) }
+    }
 
     fun setSort(sort: NoteSort) {
         viewModelScope.launch { preferences.setNotesSort(sort.name) }

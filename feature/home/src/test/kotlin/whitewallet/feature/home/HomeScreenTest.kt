@@ -15,6 +15,8 @@ import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -396,5 +398,44 @@ class HomeScreenTest {
         compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
         compose.onNodeWithText("brand: ${WalletStatus.Working(WalletTask.Updating)}", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Updating your balance…").assertExists()
+    }
+
+    private fun received(id: String, state: ReceivedState, amountMsat: Long? = 2_000_000, declaredMsat: Long? = null, lockedUntil: Long? = null) =
+        ReceivedNote(id.padEnd(64, '0'), "a", "mint.example", "w", "k1", null, declaredMsat, amountMsat, lockedUntil, null, state, null, 1, 1)
+
+    @Test
+    fun aNoteNotClaimedYetIsShownNextToTheBalanceNotInIt() {
+        show(HomeState(activeAccountId = "a", received = listOf(received("r1", ReceivedState.Waiting), received("r2", ReceivedState.Locked, null, 1_000_000))))
+        compose.onNodeWithText("₿0").assertExists()
+        compose.onNodeWithText("₿3,000 received, not claimed yet").assertExists()
+        compose.onNodeWithText("Received, not claimed yet").assertExists()
+        compose.onNodeWithText("Not claimed yet. Tried again when online.").assertExists()
+        compose.onNodeWithText("₿1,000, not confirmed yet").assertExists()
+        compose.onNodeWithText("Locked for now. Tried again on every refresh.").assertExists()
+        compose.onNodeWithText("Your wallet claims these on its own", substring = true).assertExists()
+        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertDoesNotExist()
+    }
+
+    @Test
+    fun aHiddenBalanceHidesWhatIsIncomingToo() {
+        show(HomeState(activeAccountId = "a", balanceHidden = true, received = listOf(received("r1", ReceivedState.Waiting))))
+        compose.onNodeWithText("₿2,000", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Not claimed yet. Tried again when online.").assertExists()
+    }
+
+    @Test
+    fun aNoteSomeoneElseSpentCanBeRemoved() {
+        var dismissed: String? = null
+        val gone = received("r1", ReceivedState.Gone)
+        compose.setContent {
+            HomeScreen(
+                "Wallet", HomeState(activeAccountId = "a", received = listOf(gone)), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {},
+                onBackup = {}, onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onDismissReceived = { dismissed = it },
+            )
+        }
+        compose.onNodeWithText("Someone else spent it before you claimed it.").assertExists()
+        compose.onNodeWithText("received, not claimed yet", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Remove").performClick()
+        assertEquals(gone.id, dismissed)
     }
 }
