@@ -1,0 +1,3 @@
+# Formatting-only commits, skipped by git blame (git config blame.ignoreRevsFile .git-blame-ignore-revs).
+# ktfmt through Spotless
+7b8fffb61f753d033458941f880b0d4124ef92c7
