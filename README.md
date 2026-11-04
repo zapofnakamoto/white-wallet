@@ -3,7 +3,7 @@
 A minimal, white-label Android wallet for [LNURLcash](https://github.com/lnurl/luds/pull/301) (LUD-25/26): bitcoin
 held as bearer notes on a Lightning mint, with a Lightning address and a recovery phrase that stays on your phone.
 It works on first launch with preselected defaults, and anyone can ship it under their own brand by configuration
-alone. Distributed through [Zapstore](https://zapstore.dev), without Google Play Services.
+alone.
 
 - A Lightning address that receives while the phone is off, or an invoice for a set amount
 - Pay Lightning invoices, addresses and LNURL-pay links; hand out a note as a link or QR code

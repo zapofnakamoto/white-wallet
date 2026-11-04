@@ -123,7 +123,7 @@ android {
         buildConfigField("int", "MAX_ACCOUNTS", brand.getProperty("accounts.max", "0").trim())
         buildConfigField("int", "MAX_ADDRESSES", brand.getProperty("addresses.max", "1").trim())
         buildConfigField("String", "NOTE_STRATEGIES", "\"${brand.getProperty("notes.strategies", "single,manual").trim()}\"")
-        buildConfigField("String", "DEFAULT_NOTE_STRATEGY", "\"${brand.getProperty("notes.strategy.default", "single").trim()}\"")
+        buildConfigField("String", "DEFAULT_NOTE_STRATEGY", "\"${brand.getProperty("notes.strategy.default", "manual").trim()}\"")
         // Timings, in milliseconds (see "Timings" in docs/WHITE_LABEL.md).
         buildConfigField("long", "CONNECT_TIMEOUT_MILLIS", "${brand.brandDuration("network.timeout.connect", "15s", "1s", "2m")}L")
         buildConfigField("long", "READ_TIMEOUT_MILLIS", "${brand.brandDuration("network.timeout.read", "30s", "1s", "5m")}L")

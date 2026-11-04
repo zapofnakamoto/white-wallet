@@ -60,6 +60,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- The note strategy starts on "Manual"; "Keep only one note" is a choice under Note settings. An account
+  that never picked a strategy switches too, so its notes are no longer combined on their own. Brands:
+  `notes.strategy.default` now defaults to `manual`.
 - Home is quieter: "Scan a QR code" is an icon in the top bar instead of a button under Send and Receive,
   which stand alone as the wallet's two actions.
 - One scanner does for both: a note scanned or pasted under Send opens Claim, and an invoice or Lightning address
