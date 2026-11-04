@@ -48,10 +48,10 @@ class SettingsScreensTest {
                 onBack = {}, onRefresh = {}, onToggleWatchOnly = { show = !show }, onCopyWatchOnly = {},
             )
         }
-        compose.onNodeWithText("Reachable").assertExists()
+        compose.onNodeWithText(text(R.string.mint_reachable)).assertExists()
         compose.onNodeWithText("₿999 in 1 note").assertExists()
         compose.onNodeWithText("cx1test").assertDoesNotExist()
-        compose.onNodeWithText("Show").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.mint_show)).performScrollTo().performClick()
         compose.onNodeWithText("cx1test").assertExists()
     }
 
@@ -60,7 +60,7 @@ class SettingsScreensTest {
         compose.setContent {
             MintDetailsScreen(MintDetailsState(details(MintDetails.Reachability.KeyChanged), loading = false), {}, {}, {}, {})
         }
-        compose.onNodeWithText("Signing key changed").assertExists()
+        compose.onNodeWithText(text(R.string.mint_key_changed_short)).assertExists()
         compose.onNodeWithText("now signs with a different key", substring = true).assertExists()
     }
 
@@ -74,21 +74,21 @@ class SettingsScreensTest {
                 onBack = {}, onRefresh = {}, onToggleWatchOnly = {}, onCopyWatchOnly = {}, onAcceptKey = { accepted += it },
             )
         }
-        compose.onNodeWithText("Remembered key").assertExists()
+        compose.onNodeWithText(text(R.string.mint_key_remembered)).assertExists()
         compose.onNodeWithText(presented.chunked(4).joinToString(" ")).assertExists()
-        compose.onNodeWithText("Use the new key").performClick()
+        compose.onNodeWithText(text(R.string.mint_key_accept)).performClick()
         compose.onNodeWithText("Only do this if you know why mint.example changed its key", substring = true).assertExists()
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText(text(R.string.backup_cancel)).performClick()
         assertEquals(emptyList<String>(), accepted)
-        compose.onNodeWithText("Use the new key").performClick()
-        compose.onNodeWithText("Use it").performClick()
+        compose.onNodeWithText(text(R.string.mint_key_accept)).performClick()
+        compose.onNodeWithText(text(R.string.mint_key_accept_confirm)).performClick()
         assertEquals(listOf(presented), accepted)
     }
 
     @Test
     fun appLockNeedsAScreenLock() {
         compose.setContent { SecuritySettingsScreen(appLock = false, available = false, onBack = {}, onAppLock = {}) }
-        compose.onNodeWithText("Set up a screen lock on your phone first.").assertExists()
+        compose.onNodeWithText(text(R.string.security_no_screen_lock)).assertExists()
         compose.onNode(isToggleable()).assertIsNotEnabled()
     }
 
@@ -101,9 +101,9 @@ class SettingsScreensTest {
                 {}, {}, {}, {}, onChangeHome = { asked = it },
             )
         }
-        compose.onNodeWithText("Change home mint").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.mint_change_home)).performScrollTo().performClick()
         assertEquals(null, asked)
-        compose.onNodeWithText("Make this my home mint").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_make_home)).assertDoesNotExist()
     }
 
     @Test
@@ -115,7 +115,7 @@ class SettingsScreensTest {
                 {}, {}, {}, {}, onChangeHome = { asked = it },
             )
         }
-        compose.onNodeWithText("Make this my home mint").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.mint_make_home)).performScrollTo().performClick()
         assertEquals("mint.example", asked)
     }
 
@@ -124,7 +124,7 @@ class SettingsScreensTest {
         compose.setContent {
             MintDetailsScreen(MintDetailsState(details(MintDetails.Reachability.Reachable), loading = false), {}, {}, {}, {})
         }
-        compose.onNodeWithText("Change home mint").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_change_home)).assertDoesNotExist()
     }
 
     @Test
@@ -140,11 +140,11 @@ class SettingsScreensTest {
     fun whileCollectingTheHomePageOffersNoMove() {
         var state by mutableStateOf(MintDetailsState(details(MintDetails.Reachability.Reachable), loading = false, collects = true))
         compose.setContent { MintDetailsScreen(state, {}, {}, {}, {}) }
-        compose.onNodeWithText("Move…").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_move_money)).assertDoesNotExist()
         state = state.copy(collects = false)
-        compose.onNodeWithText("Move…").assertExists()
+        compose.onNodeWithText(text(R.string.mint_move_money)).assertExists()
         state = state.copy(collects = true, details = state.details!!.copy(host = "other.example", isHome = false))
-        compose.onNodeWithText("Move…").assertExists()
+        compose.onNodeWithText(text(R.string.mint_move_money)).assertExists()
     }
 
     @Test
@@ -159,14 +159,14 @@ class SettingsScreensTest {
         )
         compose.setContent { MintDetailsScreen(state, {}, {}, {}, {}, onRemove = { removed = true }) }
         compose.onNodeWithText("Your money").assertDoesNotExist()
-        compose.onNodeWithText("Make this my home mint").assertDoesNotExist()
-        compose.onNodeWithText("Watch-only key", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Remove mint").performScrollTo().performClick()
-        compose.onNodeWithText("Remove").performClick()
+        compose.onNodeWithText(text(R.string.mint_make_home)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_watch_only), substring = true).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mints_remove_mint)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.mints_remove_confirm)).performClick()
         assertEquals(true, removed)
 
         state = state.copy(mint = removable.copy(removable = false, homeOf = listOf("Main")))
-        compose.onNodeWithText("Home mint of Main").assertExists()
+        compose.onNodeWithText(text(R.string.mints_home_mint_of, "Main")).assertExists()
         compose.onNodeWithText("Can't be removed", substring = true).performScrollTo().assertExists()
     }
 
@@ -175,10 +175,10 @@ class SettingsScreensTest {
         var moved = false
         var state by mutableStateOf(MintDetailsState(details(MintDetails.Reachability.Reachable), loading = false, moneyElsewhere = true))
         compose.setContent { MintDetailsScreen(state, {}, {}, {}, {}, onMoveAllHere = { moved = true }) }
-        compose.onNodeWithText("Move all money here").performClick()
+        compose.onNodeWithText(text(R.string.mint_move_all_here)).performClick()
         assertEquals(true, moved)
         state = state.copy(moneyElsewhere = false)
-        compose.onNodeWithText("Move all money here").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_move_all_here)).assertDoesNotExist()
     }
 
     @Test

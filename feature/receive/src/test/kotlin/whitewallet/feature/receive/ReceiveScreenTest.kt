@@ -33,10 +33,10 @@ class ReceiveScreenTest {
         compose.setContent {
             ReceiveScreen(ReceiveState("alice@mint.example", receivedMsat = 21_000), onBack = {}, onClaim = {}, InvoiceActions(onReceiveMore = { more = true }))
         }
-        compose.onNodeWithText("Payment received").assertExists()
+        compose.onNodeWithText(text(R.string.receive_success_title)).assertExists()
         compose.onNodeWithText("₿21").assertExists()
         compose.onNodeWithText("alice@mint.example").assertDoesNotExist()
-        compose.onNodeWithText("Receive more").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.receive_more)).performScrollTo().performClick()
         assertTrue(more)
     }
 
@@ -51,7 +51,7 @@ class ReceiveScreenTest {
     fun withoutAnAddressItAsksForAnAmount() {
         var created = false
         compose.setContent { ReceiveScreen(ReceiveState(address = null, amountText = "2100"), onBack = {}, onClaim = {}, InvoiceActions(onCreate = { created = true })) }
-        compose.onNodeWithText("Create invoice").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.receive_invoice_create)).performScrollTo().performClick()
         assertTrue(created)
     }
 
@@ -59,7 +59,7 @@ class ReceiveScreenTest {
     fun anAddressCanStillRequestAnAmount() {
         var asked = false
         compose.setContent { ReceiveScreen(ReceiveState("alice@mint.example"), onBack = {}, onClaim = {}, InvoiceActions(onRequestAmount = { asked = true })) }
-        compose.onNodeWithText("Request a specific amount").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.receive_request_amount)).performScrollTo().performClick()
         assertTrue(asked)
     }
 
@@ -68,11 +68,11 @@ class ReceiveScreenTest {
         val request = InvoiceRequest.Ready("i", "lnbcrt21u1test", 21_000, 20_000, 0)
         var state by mutableStateOf(ReceiveState(invoice = ShownInvoice(request)))
         compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}) }
-        compose.onNodeWithText("You receive ₿20 after a fee of ₿1.").assertExists()
-        compose.onNodeWithText("Waiting for payment…").assertExists()
+        compose.onNodeWithText(text(R.string.receive_invoice_fee, "₿20", "₿1")).assertExists()
+        compose.onNodeWithText(text(R.string.receive_invoice_waiting)).assertExists()
         state = state.copy(invoice = ShownInvoice(request, InvoiceStatus.Paid(20_000)))
-        compose.onNodeWithText("Payment received").assertExists()
+        compose.onNodeWithText(text(R.string.receive_success_title)).assertExists()
         compose.onNodeWithText("₿20").assertExists()
-        compose.onNodeWithText("Waiting for payment…").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.receive_invoice_waiting)).assertDoesNotExist()
     }
 }

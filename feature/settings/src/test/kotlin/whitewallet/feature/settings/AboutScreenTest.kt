@@ -23,13 +23,13 @@ class AboutScreenTest {
     fun sevenTapsOnTheVersionUnlockDeveloperOptions() {
         var unlocked = 0
         compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}, onUnlock = { unlocked++ }) }
-        val version = compose.onNodeWithText("Version 1.0")
+        val version = compose.onNodeWithText(text(R.string.about_version, "1.0"))
         repeat(3) { version.performClick() }
         compose.onNodeWithText("4 more taps to show developer options").assertExists()
         repeat(3) { version.performClick() }
         compose.onNodeWithText("1 more tap to show developer options").assertExists()
         version.performClick()
-        compose.onNodeWithText("Developer options are now in Settings.").assertExists()
+        compose.onNodeWithText(text(R.string.about_developer_unlocked)).assertExists()
         version.performClick()
         assertEquals(1, unlocked)
     }
@@ -37,8 +37,8 @@ class AboutScreenTest {
     @Test
     fun withNothingToUnlockTheVersionIsJustText() {
         compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}) }
-        repeat(7) { compose.onNodeWithText("Version 1.0").performClick() }
-        compose.onNodeWithText("Developer options are now in Settings.").assertDoesNotExist()
+        repeat(7) { compose.onNodeWithText(text(R.string.about_version, "1.0")).performClick() }
+        compose.onNodeWithText(text(R.string.about_developer_unlocked)).assertDoesNotExist()
     }
 
     @Test
@@ -46,15 +46,15 @@ class AboutScreenTest {
         compose.setContent {
             CompositionLocalProvider(LocalReleaseStage provides ReleaseStage.Beta) { AboutScreen("Wallet", "0.2.0", "https://example.com", onBack = {}) }
         }
-        compose.onNodeWithText("Beta").assertExists()
-        compose.onNodeWithText("This app is a beta version: it is still being tested and may have bugs.").assertExists()
+        compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.release_notice_beta)).assertExists()
     }
 
     @Test
     fun aStableReleaseShowsNoStage() {
         compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}) }
-        compose.onNodeWithText("Beta").assertDoesNotExist()
-        compose.onNodeWithText("This app is a beta version: it is still being tested and may have bugs.").assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.release_notice_beta)).assertDoesNotExist()
     }
 
     @Test
@@ -62,16 +62,16 @@ class AboutScreenTest {
         // Any two strings stand in for a note's title and body.
         val note = ReleaseNote("sample", DesignR.string.release_stage_alpha, DesignR.string.release_notice_alpha)
         compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}, releaseNotes = listOf(note)) }
-        compose.onNodeWithText("This app is an alpha version: it is still being built and may have bugs.").assertDoesNotExist()
-        compose.onNodeWithText("What's new").performClick()
-        compose.onNodeWithText("This app is an alpha version: it is still being built and may have bugs.").assertExists()
-        compose.onNodeWithText("Got it").performClick()
-        compose.onNodeWithText("This app is an alpha version: it is still being built and may have bugs.").assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.release_notice_alpha)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.release_notes_title)).performClick()
+        compose.onNodeWithText(text(DesignR.string.release_notice_alpha)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.release_notes_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.release_notice_alpha)).assertDoesNotExist()
     }
 
     @Test
     fun withoutReleaseNotesThereIsNoWhatsNew() {
         compose.setContent { AboutScreen("Wallet", "1.0", "https://example.com", onBack = {}) }
-        compose.onNodeWithText("What's new").assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.release_notes_title)).assertDoesNotExist()
     }
 }

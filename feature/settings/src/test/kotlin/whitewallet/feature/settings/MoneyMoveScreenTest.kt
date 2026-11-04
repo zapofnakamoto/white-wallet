@@ -49,10 +49,10 @@ class MoneyMoveScreenTest {
                 onConfirm = { confirmed += it },
             ))
         }
-        compose.onNodeWithText("Change and move ₿110").assertExists()
-        compose.onNodeWithText("Choose what moves").performClick()
+        compose.onNodeWithText(text(R.string.money_change_and_move, "₿110")).assertExists()
+        compose.onNodeWithText(text(R.string.money_review_choose)).performClick()
         compose.onNode(isToggleable() and hasText("₿10 on pricey.example")).performClick()
-        compose.onNodeWithText("Change and move ₿100").performClick()
+        compose.onNodeWithText(text(R.string.money_change_and_move, "₿100")).performClick()
         compose.onNode(hasText("Change home mint") and hasClickAction()).performScrollTo().performClick()
         assertEquals(listOf(true, false), confirmed)
     }
@@ -60,9 +60,9 @@ class MoneyMoveScreenTest {
     @Test
     fun whileCollectingWhatMovesIsDecidedByTheFeeCap() {
         compose.setContent { MoneyMoveScreen(review(collects = true), {}, MoneyMoveActions()) }
-        compose.onNodeWithText("₿10 on pricey.example stays: moving it costs more than 2 %").assertExists()
-        compose.onNodeWithText("Change and move ₿100").assertExists()
-        compose.onNodeWithText("Choose what moves").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.money_review_over_cap, "₿10", "pricey.example", 2)).assertExists()
+        compose.onNodeWithText(text(R.string.money_change_and_move, "₿100")).assertExists()
+        compose.onNodeWithText(text(R.string.money_review_choose)).assertDoesNotExist()
         compose.onNode(hasText("Change home mint") and hasClickAction()).assertDoesNotExist()
     }
 
@@ -79,17 +79,17 @@ class MoneyMoveScreenTest {
         compose.setContent {
             MoneyMoveScreen(MoneyMoveState(target = "new.example", outcome = outcome), {}, MoneyMoveActions(onRetry = { retried = true }))
         }
-        compose.onNodeWithText("New home: new.example").assertExists()
-        compose.onNodeWithText("₿99 arrived from old.example (fee ₿1)").assertExists()
-        compose.onNodeWithText("₿3,000 on same.example didn't move (the payment failed). It's still there.").assertExists()
-        compose.onNodeWithText("Try again").performClick()
+        compose.onNodeWithText(text(R.string.money_home_changed, "new.example")).assertExists()
+        compose.onNodeWithText(text(R.string.money_result_moved, "₿99", "old.example", "₿1")).assertExists()
+        compose.onNodeWithText(text(R.string.money_result_failed, "₿3,000", "same.example", "the payment failed")).assertExists()
+        compose.onNodeWithText(text(R.string.money_try_again)).performClick()
         assertEquals(true, retried)
     }
 
     @Test
     fun onlyKnownMintsCanBePicked() {
         compose.setContent { MoneyMoveScreen(MoneyMoveState(mode = MoneyMoveMode.Move, from = "old.example"), {}, MoneyMoveActions()) }
-        compose.onNodeWithText("There is nowhere else to move it. Add one under Settings first.").assertExists()
+        compose.onNodeWithText(text(R.string.money_move_no_mints)).assertExists()
     }
 
     @Test
@@ -113,6 +113,6 @@ class MoneyMoveScreenTest {
         assertEquals(false, state.copy(collects = true).canChoose)
         assertEquals("asked for, so nothing is left out for the cap", 110_000L, state.copy(collects = true).chosenMsat)
         compose.setContent { MoneyMoveScreen(state, {}, MoneyMoveActions()) }
-        compose.onNodeWithText("Move ₿110").assertExists()
+        compose.onNodeWithText(text(R.string.money_move_amount, "₿110")).assertExists()
     }
 }

@@ -31,14 +31,14 @@ class NoticeSettingsTest {
     fun theSwitchTurnsTheMessagesOff() {
         var chosen: Boolean? = null
         show(offered = true, on = true) { chosen = it }
-        compose.onNodeWithText("Tell me what the wallet did by itself").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.settings_notices)).performScrollTo().performClick()
         assertEquals(false, chosen)
     }
 
     @Test
     fun noSwitchIfTheBrandDecides() {
         show(offered = false, on = true)
-        compose.onNodeWithText("Tell me what the wallet did by itself").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_notices)).assertDoesNotExist()
     }
 
     @Test

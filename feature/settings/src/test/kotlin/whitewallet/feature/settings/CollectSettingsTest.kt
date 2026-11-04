@@ -36,7 +36,7 @@ class CollectSettingsTest {
     fun theSwitchNamesTheHomeMintAndTheCapShowsWhileOn() {
         var cap = 0
         show(state(collect = true), CollectActions(onFeeCap = { cap = it }))
-        compose.onNodeWithText("Move everything to home.example").performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.notes_collect_title, "home.example")).performScrollTo().assertExists()
         compose.onNodeWithText("5%").performScrollTo().performClick()
         assertEquals(5, cap)
     }
@@ -44,7 +44,7 @@ class CollectSettingsTest {
     @Test
     fun noCapWhileOffAndNothingIfTheBrandHidesIt() {
         show(state(collect = false, offered = false))
-        compose.onNodeWithText("Move everything to home.example").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.notes_collect_title, "home.example")).assertDoesNotExist()
         compose.onNodeWithText("2%").assertDoesNotExist()
     }
 
@@ -52,8 +52,8 @@ class CollectSettingsTest {
     fun aSkippedMintIsReportedHere() {
         val run = PolicyRun(0, 0, 0, null, 0, notCollected = listOf(NotCollected("other.example", 50_000, NotCollected.Reason.FeeTooHigh(2_000, 2))))
         show(state(collect = true, run))
-        compose.onNodeWithText("Not moved: ₿50 on other.example. The fee of ₿2 is more than 2%.").performScrollTo().assertExists()
-        compose.onNodeWithText("Move anyway").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.notes_collect_fee_too_high, "₿50", "other.example", "₿2", 2)).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.money_move_amount, "anyway")).assertDoesNotExist()
     }
 
     @Test

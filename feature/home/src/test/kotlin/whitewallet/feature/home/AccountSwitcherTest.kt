@@ -49,6 +49,6 @@ class AccountSwitcherTest {
     @Test
     fun manyAccountsScrollToTheButtonsAndTheHint() {
         show((1..30).map { summary("$it", "Account $it") }, activeId = "1")
-        compose.onNodeWithText("Each account has its own recovery phrase. Back up every account.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.accounts_separate_backups)).performScrollTo().assertIsDisplayed()
     }
 }

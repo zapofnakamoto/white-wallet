@@ -28,11 +28,11 @@ class SettingsHubTest {
                 opened += (it as SearchDestination.Page).target
             }
         }
-        compose.onNodeWithText("Back up your recovery phrase").assertDoesNotExist()
-        compose.onNodeWithText("Delete this account from this device").assertDoesNotExist()
-        compose.onNodeWithText("App lock off").assertExists()
+        compose.onNodeWithText(text(R.string.settings_backup_now)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_delete)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_app_lock_off)).assertExists()
         compose.onNodeWithText("M").assertExists() // the account's mark
-        compose.onNodeWithText("Account: Main").performClick()
+        compose.onNodeWithText(text(R.string.settings_account_section, "Main")).performClick()
         assertEquals(listOf(SettingsTarget.Account), opened)
     }
 
@@ -42,7 +42,7 @@ class SettingsHubTest {
         compose.setContent {
             SettingsScreen(SettingsState(accountName = "Main", profile = profile), "1.0", emptyList(), {}) { opened += (it as SearchDestination.Page).target }
         }
-        compose.onNodeWithText("Back up your recovery phrase").performClick()
+        compose.onNodeWithText(text(R.string.settings_backup_now)).performClick()
         assertEquals(listOf(SettingsTarget.Backup), opened)
     }
 
@@ -52,20 +52,20 @@ class SettingsHubTest {
         val state = SettingsState(accountName = "Main", profile = profile, backupVerified = true, homeHost = "mint.example", hidden = hidden)
         compose.setContent { AccountSettingsScreen(state, {}, {}) }
         compose.onNodeWithText("alice@mint.example").assertExists()
-        compose.onNodeWithText("Your mints").assertDoesNotExist()
-        compose.onNodeWithText("Note settings").assertDoesNotExist()
-        compose.onNodeWithText("Notes").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_account_mints)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_notes)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_note_list)).assertDoesNotExist()
     }
 
     @Test
     fun hiddenPagesAreLeftOutOfTheHubAndSearch() {
         val state = SettingsState(accountName = "Main", profile = profile, backupVerified = true, hidden = setOf(SettingsTarget.Mints, SettingsTarget.Notes, SettingsTarget.Display, SettingsTarget.Developer))
         compose.setContent { SettingsScreen(state, "1.0", emptyList(), {}) {} }
-        compose.onNodeWithText("Mints").assertDoesNotExist()
-        compose.onNodeWithText("Developer options").assertDoesNotExist()
-        compose.onNodeWithText("Amounts").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_mints)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_developer)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_amounts)).assertDoesNotExist()
         compose.onNode(hasSetTextAction()).performTextInput("trusted")
-        compose.onNodeWithText("Mints").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_mints)).assertDoesNotExist()
     }
 
     @Test

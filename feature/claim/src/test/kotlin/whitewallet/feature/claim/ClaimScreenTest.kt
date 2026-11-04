@@ -44,33 +44,33 @@ class ClaimScreenTest {
     @Test
     fun aCheckedNoteSaysWhereItIsAndWhetherItsMintIsTrusted() {
         show(ClaimState(input = "x", preview = ready))
-        compose.onNodeWithText("On other.example").assertExists()
-        compose.onNodeWithText("✓ Trusted").assertExists()
-        compose.onNodeWithText("This note is held by other.example and stays there.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_mint, "other.example")).assertExists()
+        compose.onNodeWithText(text(R.string.claim_trusted)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_other_mint, "other.example")).assertExists()
         compose.onNodeWithText("certified", substring = true, ignoreCase = true).assertDoesNotExist()
     }
 
     @Test
     fun withoutMintsOnlyWhatNeedsTheUserIsShown() {
         show(ClaimState(input = "x", preview = ready.copy(certified = false), showMints = false))
-        compose.onNodeWithText("On other.example").assertDoesNotExist()
-        compose.onNodeWithText("✓ Trusted").assertDoesNotExist()
-        compose.onNodeWithText("This note is held by other.example and stays there.").assertDoesNotExist()
-        compose.onNodeWithText("Not certified: the amount can't be verified.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_mint, "other.example")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.claim_trusted)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.claim_other_mint, "other.example")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.claim_not_certified)).assertExists()
     }
 
     @Test
     fun checkNeedsALink() {
         show(ClaimState())
-        compose.onNodeWithText("Check note").assertIsNotEnabled()
-        compose.onNodeWithText("Scan QR code").assertIsEnabled()
+        compose.onNodeWithText(text(R.string.claim_check)).assertIsNotEnabled()
+        compose.onNodeWithText(text(R.string.claim_scan)).assertIsEnabled()
     }
 
     @Test
     fun aLinkIsChecked() {
         var checked = false
         show(ClaimState(input = "lnurlw://mint.example/w?k1=00"), onCheck = { checked = true })
-        compose.onNodeWithText("Check note").performClick()
+        compose.onNodeWithText(text(R.string.claim_check)).performClick()
         assertTrue(checked)
     }
 
@@ -78,9 +78,9 @@ class ClaimScreenTest {
     fun theUsersOwnSharedNoteIsTakenBackNotClaimed() {
         var takenBack = false
         show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = true)), onTakeBack = { takenBack = true })
-        compose.onNodeWithText("You shared this note, and nobody has claimed it yet.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_own_shared)).assertExists()
         compose.onAllNodesWithText("Claim", substring = true).assertCountEquals(1) // the title only
-        compose.onNodeWithText("Keep and claim later").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
         compose.onNodeWithText("Take back", substring = true).performScrollTo().performClick()
         assertTrue(takenBack)
     }
@@ -88,23 +88,23 @@ class ClaimScreenTest {
     @Test
     fun theUsersOwnSharedNoteOfflineOffersNothingButToCheckAgain() {
         show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false)))
-        compose.onNodeWithText("You shared this note. Its mint can't be reached right now, so it can't be taken back yet.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_own_offline)).assertExists()
         compose.onNodeWithText("Take back", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Keep and claim later").assertDoesNotExist()
-        compose.onNodeWithText("Check note").assertIsEnabled()
+        compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.claim_check)).assertIsEnabled()
     }
 
     @Test
     fun takingBackSaysHowItWent() {
         show(ClaimState(takenBack = ReclaimResult.AlreadySpent))
-        compose.onNodeWithText("This note has already been spent.").assertExists()
-        compose.onNodeWithText("Done").assertExists()
+        compose.onNodeWithText(text(R.string.claim_spent)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_finish)).assertExists()
     }
 
     @Test
     fun aSpentNoteSaysSo() {
         show(ClaimState(input = "lnurlw://mint.example/w?k1=00", preview = ClaimPreview.AlreadySpent))
-        compose.onNodeWithText("This note has already been spent.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_spent)).assertExists()
     }
 
     @Test
@@ -125,11 +125,11 @@ class ClaimScreenTest {
     fun aNoteOpenedOfflineCanBeKept() {
         var kept = false
         showKeep(ClaimPreview.Offline(link, 5_000_000, 5_000_000), onKeep = { kept = true })
-        compose.onNodeWithText("No connection right now. Keep it, and your wallet claims it as soon as it's back online.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_offline)).assertExists()
         // A certified amount is shown plainly, without a word about it.
         compose.onNodeWithText("certified", substring = true, ignoreCase = true).assertDoesNotExist()
-        compose.onNodeWithText("Not yours yet: the sender can still spend it, and your recovery phrase doesn't cover it.").assertExists()
-        compose.onNodeWithText("Keep and claim later").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.claim_kept_hint)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_keep)).performScrollTo().performClick()
         assertTrue(kept)
     }
 
@@ -142,7 +142,7 @@ class ClaimScreenTest {
     @Test
     fun aLockedNoteSaysUntilWhenOrForHowLong() {
         showKeep(ClaimPreview.Locked(link, null, 2 * 86_400L, 5_000_000))
-        compose.onNodeWithText("Locked for up to 2 days. Keep it, and your wallet claims it once it opens.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_locked_for, "2 days")).assertExists()
     }
 
     @Test
@@ -162,7 +162,7 @@ class ClaimScreenTest {
         var kept = false
         showKeep(ClaimPreview.KeyChanged(link, "other.example", 5_000_000), onKeep = { kept = true })
         compose.onNodeWithText("other.example now signs with another key than the one your wallet knows", substring = true).assertExists()
-        compose.onNodeWithText("Keep and claim later").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.claim_keep)).performScrollTo().performClick()
         assertTrue(kept)
     }
 
@@ -170,27 +170,27 @@ class ClaimScreenTest {
     fun aNoteKeptForAChangedKeySaysWhatClaimsIt() {
         val note = ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.KeyChanged, null, 1, 1)
         show(ClaimState(result = ClaimResult.Kept(note)))
-        compose.onNodeWithText("Kept. Your wallet claims it once you accept the mint's new signing key in its details.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_kept_key_changed)).assertExists()
     }
 
     @Test
     fun aLinkThatDoesntUnlockItsNoteSaysSo() {
         show(ClaimState(input = "x", preview = ClaimPreview.NotSpendable))
-        compose.onNodeWithText("This link doesn't unlock the note it names, so it can't be claimed.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_not_spendable)).assertExists()
     }
 
     @Test
     fun aNoteWithOtherPathsWarns() {
         show(ClaimState(input = "x", preview = ready.copy(hasOtherPaths = true)))
-        compose.onNodeWithText("This note can also be spent another way, so someone else may take it before you claim it.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_other_paths)).assertExists()
     }
 
     @Test
     fun aKeptNoteSaysWhenItIsClaimed() {
         val note = ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.Waiting, null, 1, 1)
         show(ClaimState(result = ClaimResult.Kept(note)))
-        compose.onNodeWithText("Kept. Your wallet claims it on its own as soon as it can.").assertExists()
-        compose.onNodeWithText("Not yours yet: the sender can still spend it, and your recovery phrase doesn't cover it.").assertExists()
+        compose.onNodeWithText(text(R.string.claim_kept)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_kept_hint)).assertExists()
     }
 
     @Test

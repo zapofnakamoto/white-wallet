@@ -35,51 +35,51 @@ class MintsScreenTest {
     fun theHomeMintIsTrustedByDefaultAndOthersCanBeSwitchedOn() {
         var changed: Pair<String, Boolean>? = null
         show(MintsState(listOf(home, other, unknown))) { m: MintInfo, t: Boolean -> changed = m.host to t }
-        compose.onNodeWithText("Trusted by default: your account's home").assertExists()
-        compose.onNodeWithText("Home mint of Main, Savings").assertExists()
+        compose.onNodeWithText(text(R.string.mints_default_home)).assertExists()
+        compose.onNodeWithText(text(R.string.mints_home_mint_of, "Main, Savings")).assertExists()
         compose.onNodeWithText("₿", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Key 02ababab…abababab").assertExists()
+        compose.onNodeWithText(text(R.string.mints_key, "02ababab…abababab")).assertExists()
         val switches = compose.onAllNodes(isToggleable())
         switches[0].assertIsOn()
         switches[1].assertIsOff().performClick()
         assertEquals("other.example" to true, changed)
         switches[2].assertIsNotEnabled()
-        compose.onNodeWithText("No signing key known yet").assertExists()
+        compose.onNodeWithText(text(R.string.mints_no_key)).assertExists()
     }
 
     @Test
     fun untrustingADefaultSaysSo() {
         show(MintsState(listOf(home.copy(trusted = false))))
-        compose.onNodeWithText("Trusted by default, but you switched it off").assertExists()
+        compose.onNodeWithText(text(R.string.mints_untrusted_default)).assertExists()
     }
 
     @Test
     fun aMintThatCantBeReachedIsNotAdded() {
         show(MintsState(listOf(home), newHost = "nope.example", problem = MintsProblem.Unreachable))
-        compose.onNodeWithText("Couldn't connect. Check the address and your connection.").assertExists()
+        compose.onNodeWithText(text(R.string.mints_add_unreachable)).assertExists()
     }
 
     @Test
     fun withoutCustomMintsOnlyMissingSuggestionsCanBeAdded() {
         var added: String? = null
         show(MintsState(listOf(home), offered = listOf("mint2.example"), custom = false), onAddOffered = { added = it })
-        compose.onNodeWithText("Mint, e.g. example.com").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mints_add_field)).assertDoesNotExist()
         compose.onNodeWithText("mint2.example").assertExists()
-        compose.onNodeWithText("Add").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.mints_add)).performScrollTo().performClick()
         assertEquals("mint2.example", added)
     }
 
     @Test
     fun withEverySuggestionKnownThereIsNothingToAdd() {
         show(MintsState(listOf(home), custom = false))
-        compose.onNodeWithText("Add").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mints_add)).assertDoesNotExist()
     }
 
     @Test
     fun customMintsAreTypedNextToTheMissingSuggestions() {
         show(MintsState(listOf(home), offered = listOf("mint2.example")))
         compose.onNodeWithText("mint2.example").assertExists()
-        compose.onNodeWithText("Mint, e.g. example.com").performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.mints_add_field)).performScrollTo().assertExists()
     }
 
     @Test

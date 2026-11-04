@@ -65,8 +65,8 @@ class SharedNoteScreenTest {
     @Test
     fun aNoteHandedOutOfflineSaysItsMintHasntConfirmedItYet() {
         show(note(SharedNoteState.Waiting).copy(confirmed = false))
-        compose.onNodeWithText("Its mint hasn't confirmed this note yet. Your wallet checks once it's online.").assertExists()
-        compose.onNodeWithText("Its mint doesn't know this note, so the link may not work.").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.note_unconfirmed)).assertExists()
+        compose.onNodeWithText(text(R.string.note_unknown_to_mint)).assertDoesNotExist()
     }
 
     @Test
@@ -84,7 +84,7 @@ class SharedNoteScreenTest {
     @Test
     fun aNoteItsMintDoesntKnowSaysSo() {
         show(note(SharedNoteState.Waiting).copy(unknownToMint = true))
-        compose.onNodeWithText("Its mint doesn't know this note, so the link may not work.").assertExists()
+        compose.onNodeWithText(text(R.string.note_unknown_to_mint)).assertExists()
         compose.onNodeWithText("Its mint hasn't confirmed", substring = true).assertDoesNotExist()
     }
 
@@ -176,13 +176,13 @@ class SharedNoteScreenTest {
         }
         compose.onNodeWithText("bill ₿1,000 Waiting").assertExists()
         // The QR code is the app's, covered until a tap, and never reads the secret link out.
-        compose.onNodeWithText("Tap to show the QR code").performClick()
+        compose.onNodeWithText(text(R.string.note_qr_show)).performClick()
         compose.onNodeWithContentDescription("QR code of the note").assertExists()
         compose.onNodeWithText("https://mint.example/note#secret", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Anyone with this code can take the money.", substring = true).assertExists()
-        compose.onNodeWithText("Share").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.note_bearer_warning), substring = true).assertExists()
+        compose.onNodeWithText(text(R.string.note_share)).performScrollTo().performClick()
         assertEquals("https://mint.example/note#secret", shared)
-        compose.onNodeWithText("Take back").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.note_reclaim)).performScrollTo().performClick()
         assertTrue(askedBack)
     }
 
@@ -210,7 +210,7 @@ class SharedNoteScreenTest {
             }
         }
         faces.clear()
-        compose.onNodeWithText("Print").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.note_print)).performScrollTo().performClick()
         // Robolectric draws only when asked; a phone draws the next frame by itself.
         compose.onRoot().captureToImage()
         compose.waitUntil(5_000) { pages.isNotEmpty() }
@@ -225,7 +225,7 @@ class SharedNoteScreenTest {
         assertTrue(NoteStatus.Waiting in faces)
         // The page was only drawn for paper, QR code included though the screen still covers it.
         compose.onAllNodesWithContentDescription("QR code of the note").assertCountEquals(0)
-        compose.onNodeWithText("Tap to show the QR code").assertExists()
+        compose.onNodeWithText(text(R.string.note_qr_show)).assertExists()
     }
 
     @Test
@@ -236,8 +236,8 @@ class SharedNoteScreenTest {
                 onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
             )
         }
-        compose.onNodeWithText("Share").assertExists()
-        compose.onNodeWithText("Print").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.note_share)).assertExists()
+        compose.onNodeWithText(text(R.string.note_print)).assertDoesNotExist()
     }
 
     @Test
@@ -256,13 +256,13 @@ class SharedNoteScreenTest {
             }
         }
         compose.onNodeWithContentDescription("QR code of the note").assertDoesNotExist()
-        compose.onNodeWithText("Tap to show the QR code").assertHasClickAction().performClick()
+        compose.onNodeWithText(text(R.string.note_qr_show)).assertHasClickAction().performClick()
         compose.onNodeWithContentDescription("QR code of the note").assertExists()
-        compose.onNodeWithText("Tap to show the QR code").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.note_qr_show)).assertDoesNotExist()
         // Leaving the app (another app, the home screen, the screen off) covers it again.
         compose.runOnIdle { owner.registry.currentState = Lifecycle.State.CREATED }
         compose.onNodeWithContentDescription("QR code of the note").assertDoesNotExist()
-        compose.onNodeWithText("Tap to show the QR code").assertExists()
+        compose.onNodeWithText(text(R.string.note_qr_show)).assertExists()
     }
 
     @Test
@@ -306,11 +306,11 @@ class SharedNoteScreenTest {
             }
         }
         assertEquals(NoteFacePlace.Shared to true, seen.last())
-        compose.onNodeWithText("Tap to show the QR code").performClick()
+        compose.onNodeWithText(text(R.string.note_qr_show)).performClick()
         compose.waitForIdle()
         assertEquals(NoteFacePlace.Shared to false, seen.last())
         // Once spent there is no code, so nothing is covered either.
-        compose.onNodeWithText("Tap to show the QR code").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.note_qr_show)).assertDoesNotExist()
         state = state.copy(note = note(SharedNoteState.Spent))
         compose.waitForIdle()
         assertEquals(NoteFacePlace.Shared to false, seen.last())

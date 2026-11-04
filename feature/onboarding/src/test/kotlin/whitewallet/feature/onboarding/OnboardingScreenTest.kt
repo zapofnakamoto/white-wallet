@@ -1,6 +1,7 @@
 package whitewallet.feature.onboarding
 
 import androidx.compose.material3.Text
+import whitewallet.core.designsystem.R as DesignR
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -48,7 +49,7 @@ class OnboardingScreenTest {
                 onSuggestion = { picked = it }, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
-        compose.onNodeWithText("Already taken. Try one of these:").assertExists()
+        compose.onNodeWithText(text(R.string.availability_taken)).assertExists()
         compose.onNodeWithText("calmotter7310").performScrollTo().performClick()
         assertEquals("calmotter7310", picked)
     }
@@ -65,9 +66,9 @@ class OnboardingScreenTest {
                 onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
-        compose.onNodeWithText("Address on another mint").assertExists()
-        compose.onNodeWithText("Your address: alice@other.example").assertExists()
-        compose.onNodeWithText("Mint").performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_add_elsewhere_title)).assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_address_preview, "alice@other.example")).assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_mint)).performScrollTo().assertExists()
     }
 
     @Test
@@ -80,10 +81,10 @@ class OnboardingScreenTest {
                 onSuggestion = {}, onStart = { started = true }, onContinue = {}, onAccountNameChange = {}, onRestore = {},
             )
         }
-        compose.onNodeWithText("Your address").assertDoesNotExist()
-        compose.onNodeWithText("Mint").assertDoesNotExist()
-        compose.onNodeWithText("Restore from recovery phrase").assertExists()
-        compose.onNodeWithText("Get started").performClick()
+        compose.onNodeWithText(text(R.string.restore_address_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.onboarding_mint)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.onboarding_restore)).assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_start)).performClick()
         assertTrue(started)
     }
 
@@ -99,8 +100,8 @@ class OnboardingScreenTest {
                 onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
-        compose.onNodeWithText("Your address").assertDoesNotExist()
-        compose.onNodeWithText("Mint").assertExists()
+        compose.onNodeWithText(text(R.string.restore_address_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.onboarding_mint)).assertExists()
     }
 
     @Test
@@ -113,9 +114,9 @@ class OnboardingScreenTest {
                 onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {}, onSkipAddress = { skipped = true },
             )
         }
-        compose.onNodeWithText("Get started").assertExists()
-        compose.onNodeWithText("You can receive with an invoice and get an address later in Settings.").performScrollTo().assertExists()
-        compose.onNodeWithText("Continue without an address").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.onboarding_start)).assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_skip_address_hint)).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_skip_address)).performScrollTo().performClick()
         assertTrue(skipped)
     }
 
@@ -128,7 +129,7 @@ class OnboardingScreenTest {
                 onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
-        compose.onNodeWithText("Continue without an address").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.onboarding_skip_address)).assertDoesNotExist()
     }
 
     @Test
@@ -140,7 +141,7 @@ class OnboardingScreenTest {
                 onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
-        compose.onNodeWithText("Continue without an address").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText(text(R.string.onboarding_skip_address)).performScrollTo().assertIsNotEnabled()
     }
 
     @Test
@@ -153,8 +154,8 @@ class OnboardingScreenTest {
                 onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {}, onSkipAddress = { skipped = true },
             )
         }
-        compose.onNodeWithText("Use this address").assertExists()
-        compose.onNodeWithText("Continue without an address").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.restore_address_submit)).assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_skip_address)).performScrollTo().performClick()
         assertTrue(skipped)
     }
 
@@ -216,8 +217,8 @@ class OnboardingScreenTest {
         }
         // The badge sits by the brand's own title, once.
         compose.onNodeWithText("wordmark", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Alpha").assertExists()
-        compose.onNodeWithText("This app is an alpha version: it is still being built and may have bugs.").performScrollTo().assertExists()
+        compose.onNodeWithText(text(DesignR.string.release_stage_alpha)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.release_notice_alpha)).performScrollTo().assertExists()
         // A brand drawing its own title knows the stage too.
         assertEquals(ReleaseStage.Alpha, stage)
     }
@@ -230,7 +231,7 @@ class OnboardingScreenTest {
                 onBack = null, onUsernameChange = {}, mint = MintActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
             )
         }
-        compose.onNodeWithText("Beta").assertDoesNotExist()
-        compose.onNodeWithText("Alpha").assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.release_stage_alpha)).assertDoesNotExist()
     }
 }

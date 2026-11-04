@@ -1,6 +1,7 @@
 package whitewallet.feature.home
 
 import androidx.compose.material3.Text
+import whitewallet.core.designsystem.R as DesignR
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -60,14 +61,14 @@ class HomeScreenTest {
                 onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onScan = { scans++ },
             )
         }
-        compose.onNodeWithText("Scan a QR code").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.home_scan)).performScrollTo().performClick()
         assertEquals(1, scans)
     }
 
     @Test
     fun withoutAScanHomeShowsNoScanButton() {
         show(HomeState(balanceMsat = 845_000))
-        compose.onNodeWithText("Scan a QR code").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_scan)).assertDoesNotExist()
     }
 
     @Test
@@ -82,25 +83,25 @@ class HomeScreenTest {
         }
         compose.onNodeWithText("₿845").performClick()
         compose.onNodeWithText("₿845").assertDoesNotExist()
-        compose.onNodeWithText("••••••").assertExists()
+        compose.onNodeWithText(text(DesignR.string.amount_hidden)).assertExists()
     }
 
     @Test
     fun anEmptyWalletSaysHowMoneyGetsIn() {
         show(HomeState(activeAccountId = "a"))
-        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertExists()
+        compose.onNodeWithText(text(R.string.home_wallet_empty)).assertExists()
     }
 
     @Test
     fun aWalletWithMoneyHasNoEmptyHint() {
         show(HomeState(activeAccountId = "a", balanceMsat = 845_000))
-        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
     }
 
     @Test
     fun aHiddenBalanceDoesNotGiveAwayAnEmptyWallet() {
         show(HomeState(activeAccountId = "a", balanceHidden = true))
-        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
     }
 
     @Test
@@ -113,7 +114,7 @@ class HomeScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("Beta").assertExists()
+        compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertExists()
     }
 
     @Test
@@ -126,7 +127,7 @@ class HomeScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("Beta").assertExists()
+        compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertExists()
         compose.onNodeWithText("v0.3.0-21-gb1593f9-dirty").assertExists()
     }
 
@@ -140,14 +141,14 @@ class HomeScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("Beta").assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertDoesNotExist()
         compose.onNodeWithText("v1.0.0").assertExists()
     }
 
     @Test
     fun aStableReleaseHasNoBadgeInTheTitle() {
         show(HomeState())
-        compose.onNodeWithText("Beta").assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertDoesNotExist()
     }
 
     @Test
@@ -164,15 +165,15 @@ class HomeScreenTest {
         show(HomeState(accounts = listOf(main, savings), activeAccountId = "a", canAddAccount = false))
         compose.onNodeWithText("Main").performClick()
         compose.onNodeWithText("Savings").assertExists()
-        compose.onNodeWithText("Add account").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.accounts_add)).assertDoesNotExist()
     }
 
     @Test
     fun aChangedSigningKeyLeadsToTheDetails() {
         var opened: String? = null
         show(HomeState(keyChangedHost = "mint.example"), onOpenMint = { opened = it })
-        compose.onNodeWithText("mint.example changed its signing key").assertExists()
-        compose.onNodeWithText("Details").performClick()
+        compose.onNodeWithText(text(R.string.home_key_changed_title, "mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.home_key_changed_action)).performClick()
         assertEquals("mint.example", opened)
     }
 
@@ -182,10 +183,10 @@ class HomeScreenTest {
     @Test
     fun aFeeTheMintPaidBackShowsAsARefund() {
         show(HomeState(activity = listOf(combined(-1_000))))
-        compose.onNodeWithText("History").performClick()
-        compose.onNodeWithText("Show note maintenance").performClick()
-        compose.onNodeWithText("Fee refunded ₿1", substring = true).assertExists()
-        compose.onNodeWithText("Fee ₿", substring = true).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
+        compose.onNodeWithText(text(R.string.history_show_maintenance)).performClick()
+        compose.onNodeWithText(text(R.string.activity_fee_refunded, "₿1"), substring = true).assertExists()
+        compose.onNodeWithText(text(R.string.activity_fee, "₿"), substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -213,56 +214,56 @@ class HomeScreenTest {
     @Test
     fun whoDidAnEntryShowsNextToItsTitle() {
         show(HomeState(activity = mixed))
-        compose.onNodeWithText("History").performClick()
-        compose.onNodeWithText("Note maintenance").performClick()
-        compose.onAllNodesWithText("Automatic").assertCountEquals(1)
-        compose.onAllNodesWithText("By you").assertCountEquals(1)
-        compose.onNodeWithText("Sent a note").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
+        compose.onNodeWithText(text(R.string.history_filter_maintenance)).performClick()
+        compose.onAllNodesWithText(text(R.string.activity_automatic)).assertCountEquals(1)
+        compose.onAllNodesWithText(text(R.string.activity_manual)).assertCountEquals(1)
+        compose.onNodeWithText(text(R.string.activity_sent_note)).assertDoesNotExist()
         // A move home that collecting did by itself is automatic too; a payment the user made says nothing.
-        compose.onNodeWithText("Moved").performClick()
-        compose.onAllNodesWithText("Automatic").assertCountEquals(2)
+        compose.onNodeWithText(text(R.string.history_filter_moved)).performClick()
+        compose.onAllNodesWithText(text(R.string.activity_automatic)).assertCountEquals(2)
     }
 
     @Test
     fun theHistoryNarrowsToAKindOfEntry() {
         show(HomeState(activity = mixed))
-        compose.onNodeWithText("History").performClick()
-        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
-        compose.onNodeWithText("Sent to bob@mint.example").assertExists()
+        compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
+        compose.onNodeWithText(text(R.string.activity_split)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.activity_sent_to, "bob@mint.example")).assertExists()
 
-        compose.onNodeWithText("Sent").performClick()
-        compose.onNodeWithText("Sent to bob@mint.example").assertExists()
-        compose.onNodeWithText("Sent a note").assertExists()
-        compose.onNodeWithText("Moved to home.example").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.history_filter_sent)).performClick()
+        compose.onNodeWithText(text(R.string.activity_sent_to, "bob@mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.activity_sent_note)).assertExists()
+        compose.onNodeWithText(text(R.string.activity_moved_mint, "home.example")).assertDoesNotExist()
 
-        compose.onNodeWithText("Moved").performClick()
-        compose.onNodeWithText("Moved to home.example").assertExists()
-        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.history_filter_moved)).performClick()
+        compose.onNodeWithText(text(R.string.activity_moved_mint, "home.example")).assertExists()
+        compose.onNodeWithText(text(R.string.activity_split)).assertDoesNotExist()
 
-        compose.onNodeWithText("Sent").performClick()
-        compose.onNodeWithText("Moved").performClick()
-        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
-        compose.onNodeWithText("Sent a note").assertExists()
+        compose.onNodeWithText(text(R.string.history_filter_sent)).performClick()
+        compose.onNodeWithText(text(R.string.history_filter_moved)).performClick()
+        compose.onNodeWithText(text(R.string.activity_split)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.activity_sent_note)).assertExists()
     }
 
     @Test
     fun aBrandCanOfferOnlyTheMaintenanceSwitchOrNoFilter() {
         show(HomeState(activity = listOf(row("n", ActivityKind.SentNote), row("m", ActivityKind.MovedMint), row("x", ActivityKind.Split)),
             historyFilter = HistoryFilterOption.Maintenance))
-        compose.onNodeWithText("History").performClick()
-        compose.onNodeWithText("Moved").assertDoesNotExist()
-        compose.onNodeWithText("Note maintenance").performClick()
-        compose.onNodeWithText("Split a note in two").assertExists()
-        compose.onNodeWithText("Sent a note").assertExists()
+        compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
+        compose.onNodeWithText(text(R.string.history_filter_moved)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.history_filter_maintenance)).performClick()
+        compose.onNodeWithText(text(R.string.activity_split)).assertExists()
+        compose.onNodeWithText(text(R.string.activity_sent_note)).assertExists()
     }
 
     @Test
     fun withoutFiltersMaintenanceStaysHidden() {
         show(HomeState(activity = mixed, historyFilter = HistoryFilterOption.None))
-        compose.onNodeWithText("History").performClick()
-        compose.onNodeWithText("Note maintenance").assertDoesNotExist()
-        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
-        compose.onNodeWithText("Sent a note").assertExists()
+        compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
+        compose.onNodeWithText(text(R.string.history_filter_maintenance)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.activity_split)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.activity_sent_note)).assertExists()
     }
 
     @Test
@@ -291,7 +292,7 @@ class HomeScreenTest {
     @Test
     fun withoutNotesOnlyTheBalanceIsTold() {
         show(HomeState(notice = MaintenanceNotice.BalanceChanged(-1_000)))
-        compose.onNodeWithText("Fees paid: ₿1.").assertExists()
+        compose.onNodeWithText(text(R.string.notice_fees_paid, "₿1")).assertExists()
     }
 
     @Test
@@ -305,14 +306,14 @@ class HomeScreenTest {
                 accountActions = AccountActions({}, {}, {}), onNoticeShown = { shown = true },
             )
         }
-        compose.onNodeWithText("Details").performClick()
-        compose.onNodeWithText("Split a note in two").assertExists()
-        compose.onNodeWithText("Sent a note").assertExists()
+        compose.onNodeWithText(text(R.string.notice_details)).performClick()
+        compose.onNodeWithText(text(R.string.activity_split)).assertExists()
+        compose.onNodeWithText(text(R.string.activity_sent_note)).assertExists()
         assertEquals(true, shown)
         // Turned off, maintenance is hidden again, and so is its switch.
-        compose.onNodeWithText("Note maintenance").performClick()
-        compose.onNodeWithText("Split a note in two").assertDoesNotExist()
-        compose.onNodeWithText("Note maintenance").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.history_filter_maintenance)).performClick()
+        compose.onNodeWithText(text(R.string.activity_split)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.history_filter_maintenance)).assertDoesNotExist()
     }
 
     /** Home with [state], changeable by the test while it is shown. */
@@ -331,7 +332,7 @@ class HomeScreenTest {
     fun aBalanceNotReadYetIsNotShownAsNothing() {
         show(HomeState(loaded = false, activeAccountId = "a"))
         compose.onNodeWithText("₿0").assertDoesNotExist()
-        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
     }
 
     @Test
@@ -341,18 +342,18 @@ class HomeScreenTest {
         compose.mainClock.advanceTimeByFrame()
         // Never shown yet: not shown stale either.
         compose.onNodeWithText("₿845").assertDoesNotExist()
-        compose.onNodeWithText("Updating your balance…").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_working_updating)).assertDoesNotExist()
         compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
-        compose.onNodeWithText("Updating your balance…").assertExists()
+        compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
         compose.onNodeWithText("₿845").assertDoesNotExist()
 
         set(HomeState(activeAccountId = "a", balanceMsat = 900_000, task = WalletTask.Maintaining(MaintenanceStep.Combining, "single")))
         compose.mainClock.advanceTimeByFrame()
-        compose.onNodeWithText("Combining your notes…").assertExists()
+        compose.onNodeWithText(text(R.string.home_working_combining)).assertExists()
 
         set(HomeState(activeAccountId = "a", balanceMsat = 900_000))
         compose.mainClock.advanceTimeByFrame()
-        compose.onNodeWithText("Combining your notes…").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_working_combining)).assertDoesNotExist()
         compose.onNodeWithText("₿900").assertExists()
     }
 
@@ -366,7 +367,7 @@ class HomeScreenTest {
         compose.onNodeWithText("₿845").assertExists()
         set(HomeState(activeAccountId = "a", balanceMsat = 845_000))
         compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS)
-        compose.onNodeWithText("Updating your balance…").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_working_updating)).assertDoesNotExist()
         compose.onNodeWithText("₿845").assertExists()
     }
 
@@ -383,8 +384,8 @@ class HomeScreenTest {
         compose.mainClock.autoAdvance = false
         showLive(HomeState(task = WalletTask.Maintaining(MaintenanceStep.Splitting, "small"), strategyText = R.string.home_send))
         compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
-        compose.onNodeWithText("Send").assertExists()
-        compose.onNodeWithText("Splitting your notes…").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_send)).assertExists()
+        compose.onNodeWithText(text(R.string.home_working_splitting)).assertDoesNotExist()
     }
 
     @Test
@@ -392,10 +393,10 @@ class HomeScreenTest {
         compose.mainClock.autoAdvance = false
         val set = showLive(HomeState(task = WalletTask.Maintaining(MaintenanceStep.Combining, "single"), notesVisible = false))
         compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
-        compose.onNodeWithText("Updating your balance…").assertExists()
+        compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
         set(HomeState(task = WalletTask.Maintaining(MaintenanceStep.MovingHome), mintsVisible = false))
         compose.mainClock.advanceTimeByFrame()
-        compose.onNodeWithText("Updating your balance…").assertExists()
+        compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
     }
 
     @Test
@@ -417,7 +418,7 @@ class HomeScreenTest {
         }
         compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
         compose.onNodeWithText("brand: ${WalletStatus.Working(WalletTask.Updating)}", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Updating your balance…").assertExists()
+        compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
     }
 
     private fun received(id: String, state: ReceivedState, amountMsat: Long? = 2_000_000, declaredMsat: Long? = null, lockedUntil: Long? = null) =
@@ -427,13 +428,13 @@ class HomeScreenTest {
     fun aNoteNotClaimedYetIsShownNextToTheBalanceNotInIt() {
         show(HomeState(activeAccountId = "a", received = listOf(received("r1", ReceivedState.Waiting), received("r2", ReceivedState.Locked, null, 1_000_000))))
         compose.onNodeWithText("₿0").assertExists()
-        compose.onNodeWithText("₿3,000 received, not claimed yet").assertExists()
-        compose.onNodeWithText("Received, not claimed yet").assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_total, "₿3,000")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_title)).assertExists()
         compose.onNodeWithText("Not claimed yet. Tried again when online.").assertExists()
-        compose.onNodeWithText("₿1,000, not confirmed yet").assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_unconfirmed, "₿1,000")).assertExists()
         compose.onNodeWithText("Locked for now. Tried again on every refresh.").assertExists()
         compose.onNodeWithText("Your wallet claims these on its own", substring = true).assertExists()
-        compose.onNodeWithText("Nothing here yet. Share your address to get paid, or claim a note.").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
     }
 
     @Test
@@ -453,9 +454,9 @@ class HomeScreenTest {
                 onBackup = {}, onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onDismissReceived = { dismissed = it },
             )
         }
-        compose.onNodeWithText("Someone else spent it before you claimed it.").assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_gone)).assertExists()
         compose.onNodeWithText("received, not claimed yet", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Remove").performClick()
+        compose.onNodeWithText(text(DesignR.string.received_dismiss)).performClick()
         assertEquals(gone.id, dismissed)
     }
 
@@ -463,10 +464,10 @@ class HomeScreenTest {
     fun aNoteKeptForAChangedKeyLeadsToTheMintsDetails() {
         var opened: String? = null
         show(HomeState(activeAccountId = "a", received = listOf(received("r1", ReceivedState.KeyChanged))), onOpenMint = { opened = it })
-        compose.onNodeWithText("mint.example changed its signing key").assertExists()
+        compose.onNodeWithText(text(R.string.home_key_changed_title, "mint.example")).assertExists()
         compose.onNodeWithText("Its mint changed its signing key. Claimed once you accept the new key in the mint's details.").assertExists()
-        compose.onNodeWithText("₿2,000 received, not claimed yet").assertExists()
-        compose.onNodeWithText("Details").performClick()
+        compose.onNodeWithText(text(DesignR.string.received_total, "₿2,000")).assertExists()
+        compose.onNodeWithText(text(R.string.home_key_changed_action)).performClick()
         assertEquals("mint.example", opened)
     }
 
@@ -480,9 +481,9 @@ class HomeScreenTest {
                 onBackup = {}, onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onDismissReceived = { dismissed = it },
             )
         }
-        compose.onNodeWithText("Its mint kept refusing it for a week, so your wallet stopped trying.").assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_refused)).assertExists()
         compose.onNodeWithText("received, not claimed yet", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Remove").performClick()
+        compose.onNodeWithText(text(DesignR.string.received_dismiss)).performClick()
         assertEquals(refused.id, dismissed)
     }
 }

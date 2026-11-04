@@ -34,7 +34,7 @@ class AddressesScreenTest {
         show(AddressesState(listOf(home, other), homeHost = "home.example", otherMints = true))
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("alice@other.example"))
         compose.onNodeWithText("other.example").assertExists()
-        compose.onNodeWithText("Make primary").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_make_primary)).assertDoesNotExist()
     }
 
     @Test
@@ -42,14 +42,14 @@ class AddressesScreenTest {
         var asked = false
         show(AddressesState(listOf(home), homeHost = "home.example", otherMints = true), onAddElsewhere = { asked = true })
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Add an address on another mint"))
-        compose.onNodeWithText("Add an address on another mint").performClick()
+        compose.onNodeWithText(text(R.string.addresses_add_elsewhere)).performClick()
         assertEquals(true, asked)
     }
 
     @Test
     fun aLockedBrandShowsNoOtherMint() {
         show(AddressesState(listOf(home), homeHost = "home.example", otherMints = false))
-        compose.onNodeWithText("Add an address on another mint").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_add_elsewhere)).assertDoesNotExist()
     }
 
     @Test

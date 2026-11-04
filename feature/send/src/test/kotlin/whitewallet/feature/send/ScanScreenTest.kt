@@ -45,9 +45,9 @@ class ScanScreenTest {
     @Test
     fun anythingElseSaysSoAndGoesNowhere() {
         show("https://example.com/menu")
-        compose.onNodeWithText("This QR code isn't a payment or a note.").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.scan_unknown)).assertDoesNotExist()
         compose.onNodeWithText("see code").performClick()
-        compose.onNodeWithText("This QR code isn't a payment or a note.").assertExists()
+        compose.onNodeWithText(text(R.string.scan_unknown)).assertExists()
         assertEquals(emptyList<IncomingLink>(), scanned)
     }
 }

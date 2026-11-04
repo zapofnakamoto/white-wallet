@@ -54,7 +54,7 @@ They are the proof for everything the wallet does with a mint: **a change that t
 
 **Coverage**: `just coverage` runs the tests with the regtest stack and writes a JaCoCo report (lines and branches) for each protocol and wallet module, `core/wallet/build/reports/jacoco/test/html/index.html` for the wallet. A path that talks to a mint and shows up uncovered there needs a regtest test.
 
-`test` also runs the **screen tests** of every feature module: Compose UI tests under Robolectric on the JVM (`*ScreenTest`, `SettingsScreensTest`), in English and German (`@Config(qualifiers = "de")`). Robolectric emulates the SDK set in `build-logic/test-resources/robolectric.properties`, which can lag `compileSdk`.
+`test` also runs the **screen tests** of every feature module: Compose UI tests under Robolectric on the JVM (`*ScreenTest`, `SettingsScreensTest`), in English and German (`@Config(qualifiers = "de")`). A test finds text by its string resource, `text(R.string.x, args)` (each module's `TestStrings.kt`), so rewording a string never breaks a test; only the German tests, which check that the translation is complete, and fragments matched with `substring = true` spell the words out. Robolectric emulates the SDK set in `build-logic/test-resources/robolectric.properties`, which can lag `compileSdk`.
 
 What only a device can check runs as **instrumented tests**: the Keystore-encrypted seed, the SQLCipher database and its passphrase (`core/data/src/androidTest`), and the native secp256k1 the app ships (`app/src/androidTest`):
 

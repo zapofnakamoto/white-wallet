@@ -29,7 +29,7 @@ class SendScreenTest {
     fun aNoteCanBeCreatedInstead() {
         var opened = false
         compose.setContent { SendScreen(SendState(), onBack = {}, onDone = {}, actions = actions { opened = true }) }
-        compose.onNodeWithText("Create a note").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.send_create_note)).performScrollTo().performClick()
         assertTrue(opened)
     }
 
@@ -38,10 +38,10 @@ class SendScreenTest {
         var more = false
         val paid = SendState(result = PayResult.Paid(amountMsat = 1_000_000, feeMsat = 1_000))
         compose.setContent { SendScreen(paid, onBack = {}, onDone = {}, actions = SendActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, onSendMore = { more = true })) }
-        compose.onNodeWithText("Paid").assertExists()
+        compose.onNodeWithText(text(R.string.send_paid_title)).assertExists()
         compose.onNodeWithText("₿1,000").assertExists()
-        compose.onNodeWithText("Fee: ₿1").assertExists()
-        compose.onNodeWithText("Send more").performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.send_fee, "₿1")).assertExists()
+        compose.onNodeWithText(text(R.string.send_more)).performScrollTo().performClick()
         assertTrue(more)
     }
 }
