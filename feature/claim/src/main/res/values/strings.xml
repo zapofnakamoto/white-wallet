@@ -49,7 +49,7 @@
     <string name="claim_kept_until">Kept. Your wallet claims it after %1$s.</string>
     <string name="claim_kept_key_changed">Kept. Your wallet claims it once you accept the mint\'s new signing key in its details.</string>
     <string name="claim_kept_locked">Kept. Your wallet claims it once it opens.</string>
-    <string name="claim_kept_hint">Not yours yet: whoever gave you the link can still spend it, and your recovery phrase doesn\'t cover it.</string>
+    <string name="claim_kept_hint">Not yours yet: the sender can still spend it, and your recovery phrase doesn\'t cover it.</string>
     <string name="claim_failed">The claim was refused: %1$s</string>
     <string name="claim_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>
     <string name="claim_trusted">✓ Trusted</string>

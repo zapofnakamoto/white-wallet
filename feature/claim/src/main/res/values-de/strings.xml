@@ -44,7 +44,7 @@
     <string name="claim_kept_until">Behalten. Deine Wallet löst ihn nach %1$s ein.</string>
     <string name="claim_kept_key_changed">Behalten. Deine Wallet löst ihn ein, sobald du den neuen Signaturschlüssel der Mint in ihren Details annimmst.</string>
     <string name="claim_kept_locked">Behalten. Deine Wallet löst ihn ein, sobald er frei ist.</string>
-    <string name="claim_kept_hint">Noch nicht deiner: Wer dir den Link gegeben hat, kann ihn noch ausgeben, und deine Wiederherstellungsphrase deckt ihn nicht ab.</string>
+    <string name="claim_kept_hint">Noch nicht deiner: Der Absender kann ihn noch ausgeben, und deine Wiederherstellungsphrase deckt ihn nicht ab.</string>
     <string name="claim_failed">Das Einlösen wurde abgelehnt: %1$s</string>
     <string name="claim_pending">Noch nicht bestätigt. Deine Wallet prüft beim nächsten Aktualisieren erneut.</string>
     <string name="claim_trusted">✓ Vertraut</string>

@@ -46,8 +46,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   "claimed", not "redeemed".
 - New strings: `note_checked_at`, `home_scan`, `scan_title`, `scan_hint`, `scan_unknown`.
 - Strings `claim_certified`, `claim_amount_certified` and `notes_certified` are gone; `claim_kept_hint`,
-  `note_bearer_warning`, `claim_bearer_warning`, `note_waiting`, `activity_note_waiting`, `notes_waiting_total` and
-  `notes_shared_title` say less or say it differently.
+  `note_bearer_warning`, `claim_bearer_warning`, `note_waiting`, `activity_note_waiting`, `notes_waiting_total`,
+  `notes_shared_title`, `note_unconfirmed`, `note_unknown_to_mint`, `note_checked_at`, `note_reclaim_body` and
+  `scan_hint` say less or say it differently.
 - A shared note found spent says "Spent", not "Redeemed": usually the recipient took it, but another device with the
   same recovery phrase may have. Strings `note_redeemed`, `note_already_redeemed` and `activity_note_redeemed` are
   now `note_spent`, `note_already_spent` and `activity_note_spent`; a brand that overrode them needs to rename them.
