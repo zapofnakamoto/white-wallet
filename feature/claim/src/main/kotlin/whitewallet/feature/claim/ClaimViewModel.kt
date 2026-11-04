@@ -13,6 +13,7 @@ import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.IncomingLink
+import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.Wallet
 import java.io.IOException
 import whitewallet.core.wallet.MintKeyChangedException
@@ -24,6 +25,8 @@ data class ClaimState(
     val busy: Boolean = false,
     val preview: ClaimPreview? = null,
     val result: ClaimResult? = null,
+    /** The outcome of taking back the user's own note ([ClaimPreview.OwnShared]). */
+    val takenBack: ReclaimResult? = null,
     /** Say which mint the note is on and whether it's trusted (brand `mints.visible`). */
     val showMints: Boolean = true,
     /** An invoice, address or pay link was scanned or pasted here: Send takes it over, so one scanner does for both. */
@@ -76,6 +79,17 @@ class ClaimViewModel @Inject constructor(private val wallet: Wallet, savedState:
         viewModelScope.launch {
             val result = wallet.keepClaim(preview)
             _state.update { it.copy(busy = false, result = result) }
+        }
+    }
+
+    /** Takes back the user's own note, as its note screen does. */
+    fun takeBack() {
+        val preview = _state.value.preview as? ClaimPreview.OwnShared ?: return
+        if (_state.value.busy || !preview.reachable) return
+        _state.update { it.copy(busy = true) }
+        viewModelScope.launch {
+            val result = wallet.reclaimNote(preview.id)
+            _state.update { it.copy(busy = false, takenBack = result) }
         }
     }
 

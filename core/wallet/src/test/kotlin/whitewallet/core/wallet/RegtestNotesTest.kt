@@ -125,13 +125,14 @@ class RegtestNotesTest {
     }
 
     @Test
-    fun `under keep only one note, a note claimed back through its own link is combined again straight away`() = runBlocking<Unit> {
+    fun `under keep only one note, a note taken back from the claim screen is combined again straight away`() = runBlocking<Unit> {
         val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
         alice.fund(3000)
         val before = alice.balance()
         val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note
 
-        assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(assertNotNull(sent.link)))))
+        val own = assertIs<ClaimPreview.OwnShared>(alice.wallet.previewClaim(assertNotNull(sent.link)))
+        assertIs<ReclaimResult.Reclaimed>(alice.wallet.reclaimNote(own.id))
         assertEquals(before, alice.notes().single().amountMsat)
         assertEquals(SharedNoteState.Reclaimed, alice.wallet.sharedNote(sent.id)?.state)
         assertEquals(emptyList(), alice.wallet.activity.first().filter { it.kind == ActivityKind.Claimed }, "taken back, not received")

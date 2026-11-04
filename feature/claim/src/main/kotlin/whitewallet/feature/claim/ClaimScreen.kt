@@ -43,6 +43,7 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
+import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.ReceivedState
 import androidx.compose.ui.res.pluralStringResource
@@ -61,7 +62,7 @@ fun ClaimRoute(onBack: () -> Unit, onPay: (String) -> Unit = {}, viewModel: Clai
     BackHandler(enabled = state.scanning) { viewModel.stopScan() }
     // The field holds a bearer link: no screenshots, no Recents thumbnail.
     SecureScreen {
-        ClaimScreen(state, onBack, viewModel::onInputChange, viewModel::check, viewModel::claim, viewModel::startScan, viewModel::onScanned, viewModel::stopScan, viewModel::keep)
+        ClaimScreen(state, onBack, viewModel::onInputChange, viewModel::check, viewModel::claim, viewModel::startScan, viewModel::onScanned, viewModel::stopScan, viewModel::keep, viewModel::takeBack)
     }
 }
 
@@ -76,6 +77,7 @@ fun ClaimScreen(
     onScanned: (String) -> Unit = {},
     onStopScan: () -> Unit = {},
     onKeep: () -> Unit = {},
+    onTakeBack: () -> Unit = {},
 ) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
@@ -95,6 +97,16 @@ fun ClaimScreen(
                     PrimaryButton(stringResource(R.string.claim_finish), onBack)
                     return@ScreenColumn
                 }
+            }
+            state.takenBack?.let { result ->
+                val status = when (result) {
+                    is ReclaimResult.Failed -> WalletStatus.Problem(ProblemKind.Other)
+                    else -> WalletStatus.None
+                }
+                WalletStatusScope(status) { BrandDecoration(Anchor.ClaimResult) }
+                TakeBackMessage(result)
+                PrimaryButton(stringResource(R.string.claim_finish), onBack)
+                return@ScreenColumn
             }
             if (state.scanning) {
                 Text(stringResource(R.string.claim_scan_hint), textAlign = TextAlign.Center)
@@ -133,6 +145,14 @@ fun ClaimScreen(
                 is ClaimPreview.Keepable -> {
                     KeepCard(preview)
                     PrimaryButton(stringResource(R.string.claim_keep), onKeep, busy = state.busy)
+                }
+                // The user's own note: taken back, as on its note screen, never claimed.
+                is ClaimPreview.OwnShared -> if (preview.reachable) {
+                    OwnCard(preview)
+                    PrimaryButton(stringResource(R.string.claim_take_back, formatAmount(preview.amountMsat)), onTakeBack, busy = state.busy)
+                } else {
+                    Text(stringResource(R.string.claim_own_offline), textAlign = TextAlign.Center)
+                    PrimaryButton(stringResource(R.string.claim_check), onCheck, enabled = state.input.isNotBlank(), busy = state.busy)
                 }
                 else -> {
                     preview?.let { Text(previewMessage(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
@@ -173,6 +193,17 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
             if (showMints && !preview.isOwnMint) Text(stringResource(R.string.claim_other_mint, preview.link.host), style = MaterialTheme.typography.bodySmall)
             if (preview.hasOtherPaths) Text(stringResource(R.string.claim_other_paths), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             Text(stringResource(R.string.claim_bearer_warning), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+/** The user's own note, handed out and not claimed yet. */
+@Composable
+private fun OwnCard(preview: ClaimPreview.OwnShared) {
+    WalletCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            WalletNoteFace(NoteFaceSize.Large, preview.amountMsat, Modifier.fillMaxWidth(), status = NoteStatus.Waiting, place = NoteFacePlace.Claim)
+            Text(stringResource(R.string.claim_own_shared), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -223,7 +254,23 @@ private fun previewMessage(preview: ClaimPreview): String = when (preview) {
     ClaimPreview.AlreadySpent -> stringResource(R.string.claim_spent)
     ClaimPreview.AlreadyInWallet -> stringResource(R.string.claim_in_wallet)
     ClaimPreview.NotSpendable -> stringResource(R.string.claim_not_spendable)
-    is ClaimPreview.Ready, is ClaimPreview.Keepable -> ""
+    is ClaimPreview.Ready, is ClaimPreview.Keepable, is ClaimPreview.OwnShared -> ""
+}
+
+@Composable
+private fun TakeBackMessage(result: ReclaimResult) {
+    val (text, isError) = when (result) {
+        is ReclaimResult.Reclaimed -> stringResource(R.string.claim_taken_back, formatAmount(result.amountMsat)) to false
+        ReclaimResult.Pending -> stringResource(R.string.claim_pending) to false
+        ReclaimResult.AlreadySpent -> stringResource(R.string.claim_spent) to true
+        is ReclaimResult.Failed -> stringResource(R.string.claim_take_back_failed) to true
+    }
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        textAlign = TextAlign.Center,
+        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+    )
 }
 
 @Composable

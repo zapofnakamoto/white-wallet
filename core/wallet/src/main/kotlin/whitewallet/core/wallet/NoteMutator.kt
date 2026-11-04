@@ -103,11 +103,10 @@ internal class NoteMutator(private val wallet: Wallet) {
 
     /**
      * Rotates a note handed over by a link ([spend], worth [amountMsat] as [info] says) into a fresh wallet key of
-     * [accountId]. The note may be one of this app's, sent as a link ([sent]): it is spent with it. The mint's key
-     * was checked against the pinned one when [info] was looked up.
+     * [accountId]. The mint's key was checked against the pinned one when [info] was looked up.
      */
-    suspend fun rotateIn(accountId: String, host: String, withdrawUrl: String, info: NoteInfo, spend: Spend, amountMsat: Long, sent: Note?): MutationResult =
-        run(accountId, host, withdrawUrl, info, listOf(spend), listOfNotNull(sent), amountMsat, OperationType.Rotate,
+    suspend fun rotateIn(accountId: String, host: String, withdrawUrl: String, info: NoteInfo, spend: Spend, amountMsat: Long): MutationResult =
+        run(accountId, host, withdrawUrl, info, listOf(spend), emptyList(), amountMsat, OperationType.Rotate,
             listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)), splitMsat = null)
 
     /** Sends the mutation, with fresh output keys while the mint says one is `already in use`. */

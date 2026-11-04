@@ -39,28 +39,24 @@ class RegtestNoteKindsTest {
         }
     }
 
-    /** A link of each kind, made by someone other than [receiver] (but for the receiver's own shared note). */
-    private val kinds: Map<String, suspend (receiver: Regtest.Phone) -> String> = mapOf(
-        "bearer, hex" to { _ -> Regtest.note(1000) },
-        "bearer, cw1" to { _ ->
+    /** A link of each kind, made by someone other than the receiver (its own shared note is taken back: RegtestSharedNotesTest). */
+    private val kinds: Map<String, suspend () -> String> = mapOf(
+        "bearer, hex" to { Regtest.note(1000) },
+        "bearer, cw1" to {
             val link = assertNotNull(NoteLink.parse(Regtest.note(1000)))
             link.copy(spend = assertIs<Spend.Bearer>(link.spend).copy(asCw1 = true)).encode()
         },
-        "key path, another wallet's" to { _ ->
+        "key path, another wallet's" to {
             val sender = Regtest.phone()
             sender.fund(2000)
             assertNotNull(assertIs<CreateNoteResult.Created>(sender.wallet.createNote(1_000_000)).note.link)
         },
-        "script, one checksig leaf" to { _ ->
+        "script, one checksig leaf" to {
             val sender = Regtest.phone()
             sender.fund(2000)
             val note = LockedNote.checksig()
             sender.lockTo(note.q)
             note.link(HOST, assertNotNull(sender.store.mint(HOST)).withdrawUrl)
-        },
-        "key path, the receiver's own shared note" to { receiver ->
-            receiver.fund(2000)
-            assertNotNull(assertIs<CreateNoteResult.Created>(receiver.wallet.createNote(1_000_000)).note.link)
         },
     )
 
@@ -69,7 +65,7 @@ class RegtestNoteKindsTest {
         for ((kind, make) in kinds) {
             val wire = Wire()
             val receiver = Regtest.phone(client = Regtest.client(wire))
-            val link = make(receiver)
+            val link = make()
             val before = receiver.balance()
             wire.spends.clear()
 
@@ -87,7 +83,7 @@ class RegtestNoteKindsTest {
         for ((kind, make) in kinds) {
             val wire = Wire()
             val receiver = Regtest.phone(client = Regtest.client(wire))
-            val link = make(receiver)
+            val link = make()
             val before = receiver.balance()
 
             wire.offline = true

@@ -71,7 +71,7 @@ class RegtestScriptNoteTest {
 
         // Path B alone spends it: the refusal was about the duplicate, not a bad spend.
         val info = alice.wallet.client.lookup(withdrawUrl, note.q)
-        assertIs<MutationResult.Done>(NoteMutator(alice.wallet).rotateIn(alice.wallet.activeId(), HOST, withdrawUrl, info, b, info.maxWithdrawableMsat, sent = null))
+        assertIs<MutationResult.Done>(NoteMutator(alice.wallet).rotateIn(alice.wallet.activeId(), HOST, withdrawUrl, info, b, info.maxWithdrawableMsat))
         assertEquals(1_999_000, alice.balance())
     }
 

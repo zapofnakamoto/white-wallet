@@ -262,15 +262,6 @@ internal class NoteSender(private val wallet: Wallet) {
         activity(accountId, id)?.let { wallet.store.putActivity(it.copy(status = ActivityStatus.Cancelled)) }
     }
 
-    /**
-     * The shared [note] was claimed into this app's account [into], as any received note: back into its own account
-     * it was taken back, into another one it was claimed.
-     */
-    suspend fun claimed(note: Note, into: String) {
-        val row = activity(note.accountId, note.id)?.takeIf { it.status == ActivityStatus.Pending } ?: return
-        wallet.store.putActivity(row.copy(status = if (into == note.accountId) ActivityStatus.Cancelled else ActivityStatus.Done))
-    }
-
     /** The link the user hands out: the note's spend, on purpose. */
     @OptIn(RevealsNoteSecret::class)
     private suspend fun link(note: Note): String? {

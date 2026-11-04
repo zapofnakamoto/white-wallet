@@ -3,6 +3,8 @@ package whitewallet.feature.claim
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -19,6 +21,7 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
+import whitewallet.core.wallet.ReclaimResult
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLink
@@ -28,8 +31,8 @@ class ClaimScreenTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun show(state: ClaimState, onCheck: () -> Unit = {}) = compose.setContent {
-        ClaimScreen(state, onBack = {}, onInputChange = {}, onCheck = onCheck, onClaim = {})
+    private fun show(state: ClaimState, onCheck: () -> Unit = {}, onTakeBack: () -> Unit = {}) = compose.setContent {
+        ClaimScreen(state, onBack = {}, onInputChange = {}, onCheck = onCheck, onClaim = {}, onTakeBack = onTakeBack)
     }
 
     private val ready = ClaimPreview.Ready(
@@ -69,6 +72,33 @@ class ClaimScreenTest {
         show(ClaimState(input = "lnurlw://mint.example/w?k1=00"), onCheck = { checked = true })
         compose.onNodeWithText("Check note").performClick()
         assertTrue(checked)
+    }
+
+    @Test
+    fun theUsersOwnSharedNoteIsTakenBackNotClaimed() {
+        var takenBack = false
+        show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = true)), onTakeBack = { takenBack = true })
+        compose.onNodeWithText("You shared this note, and nobody has claimed it yet.").assertExists()
+        compose.onAllNodesWithText("Claim", substring = true).assertCountEquals(1) // the title only
+        compose.onNodeWithText("Keep and claim later").assertDoesNotExist()
+        compose.onNodeWithText("Take back", substring = true).performScrollTo().performClick()
+        assertTrue(takenBack)
+    }
+
+    @Test
+    fun theUsersOwnSharedNoteOfflineOffersNothingButToCheckAgain() {
+        show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false)))
+        compose.onNodeWithText("You shared this note. Its mint can't be reached right now, so it can't be taken back yet.").assertExists()
+        compose.onNodeWithText("Take back", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Keep and claim later").assertDoesNotExist()
+        compose.onNodeWithText("Check note").assertIsEnabled()
+    }
+
+    @Test
+    fun takingBackSaysHowItWent() {
+        show(ClaimState(takenBack = ReclaimResult.AlreadySpent))
+        compose.onNodeWithText("This note has already been spent.").assertExists()
+        compose.onNodeWithText("Done").assertExists()
     }
 
     @Test

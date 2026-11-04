@@ -53,7 +53,7 @@ class SendNoteTest {
         assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
         MockMint.start(*flags).use { mint ->
             val store = InMemoryWalletStore()
-            val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to alice)), LnurlcashClient(), policies = NotePolicies.InMemory(strategy))
+            val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to alice, "s" to bob)), LnurlcashClient(), policies = NotePolicies.InMemory(strategy))
             store.addAccount("a", "Main", Profile("alice", mint.host))
             assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(alice, ""), mint.host)).test()
@@ -123,15 +123,29 @@ class SendNoteTest {
     }
 
     @Test
-    fun `a shared note claimed back through its own link counts as taken back`() = withMint(strategy = SingleNoteStrategy.ID) {
+    fun `a shared note's own link is offered to take back, not to claim`() = withMint(strategy = SingleNoteStrategy.ID) {
         fund(40)
         val note = assertIs<CreateNoteResult.Created>(wallet.createNote(15_000)).note
-        assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(note.link!!))))
+        assertEquals(ClaimPreview.OwnShared(note.id, 15_000, reachable = true), wallet.previewClaim(note.link!!))
+        assertIs<ReclaimResult.Reclaimed>(wallet.reclaimNote(note.id))
         assertEquals(40_000, wallet.balanceMsat.first())
         wallet.refresh()
         assertEquals(ActivityStatus.Cancelled, sentRow().status)
         assertEquals(emptyList(), store.activities("a").first().filter { it.kind == ActivityKind.Claimed })
         assertEquals(SharedNoteState.Reclaimed, wallet.sharedNote(note.id)?.state)
+    }
+
+    @Test
+    fun `a shared note claimed into another account is received there, and found spent in its own`() = withMint {
+        fund(40)
+        val note = assertIs<CreateNoteResult.Created>(wallet.createNote(15_000)).note
+        store.addAccount("s", "Savings", Profile("bob", mint.host))
+        assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(note.link!!))))
+        assertEquals(listOf(ActivityKind.Claimed), store.activities("s").first().map { it.kind })
+        wallet.switchAccount("a")
+        wallet.refresh()
+        assertEquals(ActivityStatus.Done, sentRow().status)
+        assertEquals(SharedNoteState.Spent, wallet.sharedNote(note.id)?.state)
     }
 
     @Test

@@ -9,6 +9,8 @@
     <string name="claim_invalid">Kein gültiger Schein: %1$s</string>
     <string name="claim_spent">Dieser Schein wurde bereits ausgegeben.</string>
     <string name="claim_in_wallet">Dieser Schein ist bereits in deiner Wallet.</string>
+    <string name="claim_own_shared">Du hast diesen Schein geteilt, und niemand hat ihn bisher eingelöst.</string>
+    <string name="claim_own_offline">Du hast diesen Schein geteilt. Die Mint ist gerade nicht erreichbar, darum lässt er sich noch nicht zurückholen.</string>
     <string name="claim_other_mint">Dieser Schein liegt bei %1$s und bleibt dort.</string>
     <string name="claim_not_spendable">Dieser Link öffnet den Schein nicht, den er nennt; er lässt sich nicht einlösen.</string>
     <string name="claim_other_paths">Dieser Schein lässt sich auch auf anderem Weg ausgeben; jemand anderes kann ihn also nehmen, bevor du ihn einlöst.</string>
@@ -47,6 +49,9 @@
     <string name="claim_kept_hint">Noch nicht deiner: Der Absender kann ihn noch ausgeben, und deine Wiederherstellungsphrase deckt ihn nicht ab.</string>
     <string name="claim_failed">Das Einlösen wurde abgelehnt: %1$s</string>
     <string name="claim_pending">Noch nicht bestätigt. Deine Wallet prüft beim nächsten Aktualisieren erneut.</string>
+    <string name="claim_take_back">%1$s zurückholen</string>
+    <string name="claim_taken_back">%1$s zurückgeholt</string>
+    <string name="claim_take_back_failed">Zurückholen hat nicht geklappt. Versuch es später noch einmal.</string>
     <string name="claim_trusted">✓ Vertraut</string>
     <string name="claim_not_trusted">Nicht vertraut (siehe Einstellungen).</string>
 </resources>

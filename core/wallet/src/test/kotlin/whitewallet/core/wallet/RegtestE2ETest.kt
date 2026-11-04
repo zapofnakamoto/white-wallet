@@ -294,14 +294,15 @@ class RegtestE2ETest {
     }
 
     @Test
-    fun `a sent note claimed back through its own link shows as taken back`() = runBlocking<Unit> {
+    fun `a sent note taken back from the claim screen shows as taken back`() = runBlocking<Unit> {
         val phone = Regtest.phone(strategy = SingleNoteStrategy.ID)
         phone.fund(5000)
         val wallet = phone.wallet
         val start = phone.balance()
 
         val note = assertIs<CreateNoteResult.Created>(wallet.createNote(1_000_000)).note
-        assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(note.link!!))))
+        val own = assertIs<ClaimPreview.OwnShared>(wallet.previewClaim(note.link!!))
+        assertIs<ReclaimResult.Reclaimed>(wallet.reclaimNote(own.id))
         wallet.refresh()
         assertEquals(start, phone.balance())
         // One row, taken back, as with Take back: not a sent note waiting forever next to a claim of the same money.

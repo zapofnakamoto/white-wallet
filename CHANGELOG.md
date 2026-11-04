@@ -52,6 +52,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A shared note found spent says "Spent", not "Redeemed": usually the recipient took it, but another device with the
   same recovery phrase may have. Strings `note_redeemed`, `note_already_redeemed` and `activity_note_redeemed` are
   now `note_spent`, `note_already_spent` and `activity_note_spent`; a brand that overrode them needs to rename them.
+- Your own shared note, scanned or pasted on Claim, is not claimed: the screen says you shared it and offers "Take
+  back", which does what Take back on its note screen does. Offline it says it can't be taken back yet, and nothing
+  is kept. Claimed in another account of the same wallet it is received there, and its own account finds it spent.
+  New strings: `claim_own_shared` and `claim_own_offline` (brand terms), `claim_take_back`, `claim_taken_back`,
+  `claim_take_back_failed`.
 - Brand API: `WalletEvent.NoteRedeemed` is now `WalletEvent.NoteSpent`, and `NoteStatus.Redeemed` is now
   `NoteStatus.Spent`; a brand's code that uses them needs the new names.
 
@@ -70,8 +75,6 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   note is checked by its key, and a spend goes out only with the operation that spends it, to the mint's own host,
   after its signing key is compared with the pinned one.
 - The claim screen blocks screenshots and the Recents thumbnail, like the other screens that show a note's link.
-- A wallet's own note, opened in it offline and claimed by a later refresh, is taken back as it is online. It used to
-  show as received from someone, while the note it had handed out stayed waiting.
 
 ## [0.6.3]
 

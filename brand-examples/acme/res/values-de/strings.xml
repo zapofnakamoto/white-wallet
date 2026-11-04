@@ -41,6 +41,8 @@
     <string name="claim_invalid">Kein gültiger Geldschein: %1$s</string>
     <string name="claim_spent">Dieser Geldschein wurde bereits ausgegeben.</string>
     <string name="claim_in_wallet">Dieser Geldschein ist bereits in deiner Wallet.</string>
+    <string name="claim_own_shared">Du hast diesen Geldschein geteilt, und niemand hat ihn bisher eingelöst.</string>
+    <string name="claim_own_offline">Du hast diesen Geldschein geteilt. Dein Anbieter ist gerade nicht erreichbar, darum lässt er sich noch nicht zurückholen.</string>
     <string name="claim_other_mint">Dieser Geldschein liegt bei %1$s und bleibt dort.</string>
     <string name="home_tab_notes">Geldscheine</string>
     <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Geldschein ein.</string>

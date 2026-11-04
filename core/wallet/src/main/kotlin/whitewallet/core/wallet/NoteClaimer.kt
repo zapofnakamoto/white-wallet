@@ -2,8 +2,6 @@ package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.PublicKey
 import java.io.IOException
-import whitewallet.core.model.ActivityKind
-import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
@@ -59,6 +57,12 @@ sealed interface ClaimPreview {
     /** A script note whose spend doesn't satisfy its script, or claims a time no mint honours (a block height). */
     data object NotSpendable : ClaimPreview
 
+    /**
+     * One of the active account's own notes, handed out as a link and not claimed yet: taken back
+     * ([Wallet.reclaimNote] with [id]), never claimed. [reachable] is false while its mint can't be asked.
+     */
+    data class OwnShared(val id: String, val amountMsat: Long, val reachable: Boolean) : ClaimPreview
+
     data class Invalid(val reason: String) : ClaimPreview
     data object AlreadySpent : ClaimPreview
     data object AlreadyInWallet : ClaimPreview
@@ -82,8 +86,6 @@ sealed interface ClaimResult {
  * this wallet's own branch.
  */
 internal class NoteClaimer(private val wallet: Wallet) {
-    private val mutator = NoteMutator(wallet)
-    private val log = ActivityLog(wallet)
     private val received = ReceivedNotes(wallet)
 
     suspend fun preview(input: String, accountId: String): ClaimPreview {
@@ -93,7 +95,11 @@ internal class NoteClaimer(private val wallet: Wallet) {
         if (spend is Spend.KeyPath && !spend.verify(domain)) return ClaimPreview.Invalid("this note is not valid for ${link.host}")
         val script = spend as? Spend.Script
         if (script != null && (!script.isValidLockClaim || !script.verify(domain))) return ClaimPreview.NotSpendable
-        wallet.store.note(spend.q.toHex())?.let { if (it.state == NoteState.Outstanding) return ClaimPreview.AlreadyInWallet }
+        val mine = wallet.store.note(spend.q.toHex())
+        if (mine?.state == NoteState.Outstanding) return ClaimPreview.AlreadyInWallet
+        // The account's own note handed out as a link: it is taken back, not claimed. In another account it is
+        // received like any other note, and its own account finds it spent on the next refresh.
+        val shared = mine?.takeIf { it.accountId == accountId && it.state.isShared }
         if (wallet.store.receivedNote(spend.q.toHex())?.state == ReceivedState.Claimed) return ClaimPreview.AlreadyInWallet
         // A lock by date still ahead: no use asking with the spend, the mint refuses it until then.
         if (script?.lockedUntilSeconds?.let { it * 1000 > wallet.now() } == true) return locked(link, script)
@@ -109,9 +115,11 @@ internal class NoteClaimer(private val wallet: Wallet) {
         } catch (e: ProtocolViolation) {
             return ClaimPreview.Invalid(e.message ?: "invalid response")
         } catch (e: IOException) {
+            if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = false)
             return ClaimPreview.Offline(link, link.declaredAmountMsat, certifiedOffline(link))
         }
         if (info.maxWithdrawableMsat <= 0) return ClaimPreview.AlreadySpent
+        if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
         val own = wallet.store.account(accountId)?.host
         val mint = wallet.store.mint(link.host)
         if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey.toHex()) return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
@@ -120,11 +128,6 @@ internal class NoteClaimer(private val wallet: Wallet) {
     }
 
     suspend fun claim(preview: ClaimPreview.Ready, accountId: String): ClaimResult {
-        val spend = preview.link.spend
-        // A note this app sent as a link: spent with the claim, and its History row settled. It is this wallet's own
-        // note already (its key derives from a seed here), so it isn't kept as a received one.
-        val sent = wallet.store.note(spend.q.toHex())?.takeIf { it.state.isShared }
-        if (sent != null) return claimSent(preview, sent, accountId)
         val note = received.keep(preview.link, accountId, preview.amountMsat)
         return received.claim(note, preview.info, preview.certified)
     }
@@ -134,30 +137,6 @@ internal class NoteClaimer(private val wallet: Wallet) {
         is ClaimPreview.Offline -> ClaimResult.Kept(received.keep(preview.link, accountId, preview.certifiedMsat))
         is ClaimPreview.Locked -> ClaimResult.Kept(received.keep(preview.link, accountId, preview.amountMsat, ReceivedState.Locked))
         is ClaimPreview.KeyChanged -> ClaimResult.Kept(received.keep(preview.link, accountId, preview.amountMsat, ReceivedState.KeyChanged))
-    }
-
-    /** Claimed into its own account a sent note is taken back, like NoteSender.reclaim, not received. */
-    private suspend fun claimSent(preview: ClaimPreview.Ready, sent: whitewallet.core.model.Note, accountId: String): ClaimResult {
-        val host = preview.link.host
-        val received = sent.accountId != accountId
-        return when (val result = mutator.rotateIn(accountId, host, preview.link.withdrawUrl, preview.info, preview.link.spend, preview.amountMsat, sent)) {
-            is MutationResult.Done -> {
-                val note = result.outputs.single()
-                val amount = note.amountMsat.takeIf { it > 0 } ?: preview.amountMsat
-                NoteSender(wallet).claimed(sent, accountId)
-                if (received) log.record("claim:${result.journalId}", accountId, ActivityKind.Claimed, amount, host, certified = note.certificate != null || preview.certified)
-                ClaimResult.Claimed(amount, note.certificate != null)
-            }
-            // Either the rotate landed or the note is back where it was once reconciled.
-            is MutationResult.Pending -> {
-                NoteSender(wallet).claimed(sent, accountId)
-                if (received) log.record("claim:${result.journalId}", accountId, ActivityKind.Claimed, preview.amountMsat, host, ActivityStatus.Pending,
-                    certified = preview.certified, journalId = result.journalId)
-                ClaimResult.Pending
-            }
-            is MutationResult.Refused -> ClaimResult.Failed(result.kind, result.reason)
-            is MutationResult.Unreachable -> ClaimResult.Failed(RejectionKind.Other, result.reason)
-        }
     }
 
     /** A locked note: what it is worth is asked by its key alone, which the mint answers whatever the lock. */

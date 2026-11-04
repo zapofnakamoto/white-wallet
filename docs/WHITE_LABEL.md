@@ -126,6 +126,8 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `claim_invalid` | Not a valid note: %1$s |
 | `claim_spent` | This note has already been spent. |
 | `claim_in_wallet` | This note is already in your wallet. |
+| `claim_own_shared` | You shared this note, and nobody has claimed it yet. |
+| `claim_own_offline` | You shared this note. Its mint can't be reached right now, so it can't be taken back yet. |
 | `claim_other_mint` | This note is held by %1$s and stays there. |
 | `home_tab_notes` | Notes |
 | `home_empty` | Nothing here yet. Share your address to get paid, or claim a note. |

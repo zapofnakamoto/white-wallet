@@ -100,7 +100,7 @@ class RegtestSharedNotesTest {
     }
 
     @Test
-    fun `a wallet's own note opened in it offline is taken back once online, not received`() = runBlocking<Unit> {
+    fun `a wallet's own note opened in it offline is never kept as received, and is taken back once online`() = runBlocking<Unit> {
         val wire = Wire()
         val alice = Regtest.phone(client = Regtest.client(wire))
         alice.fund(2000)
@@ -108,12 +108,14 @@ class RegtestSharedNotesTest {
         val before = alice.balance()
 
         wire.offline = true
-        val preview = assertIs<ClaimPreview.Offline>(alice.wallet.previewClaim(assertNotNull(sent.link)))
-        alice.wallet.keepClaim(preview)
+        assertEquals(ClaimPreview.OwnShared(sent.id, 1_000_000, reachable = false), alice.wallet.previewClaim(assertNotNull(sent.link)))
 
         wire.offline = false
+        val own = assertIs<ClaimPreview.OwnShared>(alice.wallet.previewClaim(assertNotNull(sent.link)))
+        assertTrue(own.reachable)
+        assertIs<ReclaimResult.Reclaimed>(alice.wallet.reclaimNote(own.id))
         alice.wallet.refresh()
-        assertEquals(ReceivedState.Claimed, alice.wallet.receivedNotes.first().single().state)
+        assertEquals(emptyList(), alice.wallet.receivedNotes.first(), "never kept as a received note")
         assertEquals(SharedNoteState.Reclaimed, alice.wallet.sharedNote(sent.id)?.state)
         assertEquals(ActivityStatus.Cancelled, alice.sentRow(sent.id).status, "taken back")
         assertTrue(alice.wallet.activity.first().none { it.kind == ActivityKind.Claimed }, "not received from someone")

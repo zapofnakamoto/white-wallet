@@ -6,7 +6,6 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
-import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
@@ -69,26 +68,20 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
         val pinned = wallet.store.mint(note.host)?.mintPubkey
         if (pinned != null && pinned != answer.mintPubkey.toHex()) return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, refusedSinceMillis = null)))
-        // One of this app's own notes handed out as a link (kept here while offline): spent with the claim and settled
-        // as NoteClaimer does online, so back in its own account it is taken back, not received.
-        val sent = wallet.store.note(note.id)?.takeIf { it.state.isShared }
-        val received = sent == null || sent.accountId != note.accountId
-        val result = mutator.rotateIn(note.accountId, note.host, note.withdrawUrl, answer, spend, answer.maxWithdrawableMsat, sent)
+        val result = mutator.rotateIn(note.accountId, note.host, note.withdrawUrl, answer, spend, answer.maxWithdrawableMsat)
         return when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single()
                 val amount = out.amountMsat.takeIf { it > 0 } ?: answer.maxWithdrawableMsat
-                sent?.let { NoteSender(wallet).claimed(it, note.accountId) }
-                if (received) log.record("claim:${result.journalId}", note.accountId, ActivityKind.Claimed, amount, note.host, certified = out.certificate != null || certified)
+                log.record("claim:${result.journalId}", note.accountId, ActivityKind.Claimed, amount, note.host, certified = out.certificate != null || certified)
                 update(note.copy(state = ReceivedState.Claimed, k1 = null, amountMsat = amount, journalId = result.journalId))
                 if (wallet.store.mint(note.host) == null) Onboarding(wallet).connectMint(note.host)
                 ClaimResult.Claimed(amount, out.certificate != null)
             }
             // Either the rotate landed or the note is back where it was once reconciled; then it is tried again.
             is MutationResult.Pending -> {
-                sent?.let { NoteSender(wallet).claimed(it, note.accountId) }
-                if (received) log.record("claim:${result.journalId}", note.accountId, ActivityKind.Claimed, answer.maxWithdrawableMsat, note.host,
-                    ActivityStatus.Pending, certified = certified, journalId = result.journalId)
+                log.record("claim:${result.journalId}", note.accountId, ActivityKind.Claimed, answer.maxWithdrawableMsat, note.host, ActivityStatus.Pending,
+                    certified = certified, journalId = result.journalId)
                 update(note.copy(state = ReceivedState.Claiming, amountMsat = answer.maxWithdrawableMsat, journalId = result.journalId))
                 ClaimResult.Pending
             }
