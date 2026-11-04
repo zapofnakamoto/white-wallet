@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.7.0]
+
 ### Added
 
 - A note received as a link is kept with its spend from the moment it is claimed or kept, so a bad connection no
