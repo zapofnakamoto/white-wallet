@@ -26,6 +26,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A whole note can be handed out offline (Notes → Share as QR): its link comes from the recovery phrase, not the
   mint. The note screen says its mint hasn't confirmed it yet; the first refresh online confirms it, or finds it
   spent. A shared note is never taken back on its own, only when the user does it.
+- A shared note's screen says when its mint last answered for it.
 - New strings: `note_unconfirmed`, `note_unknown_to_mint`, `claim_not_spendable` and `claim_other_paths` (brand terms, which a brand that renames the note
   overrides), `claim_offline`, `claim_amount_certified`, `claim_amount_declared`, `claim_locked_until`,
   `claim_locked_for`, `claim_duration_minutes`, `claim_duration_hours`, `claim_duration_days`, `claim_keep`,
@@ -43,7 +44,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Fewer words where nothing needs the user: a certified amount is no longer labelled as such (only one that can't
   be verified is), and the bearer warnings and the hint for a kept note are shorter. A shared note waits to be
   "claimed", not "redeemed".
-- New strings: `home_scan`, `scan_title`, `scan_hint`, `scan_unknown`.
+- New strings: `note_checked_at`, `home_scan`, `scan_title`, `scan_hint`, `scan_unknown`.
 - Strings `claim_certified`, `claim_amount_certified` and `notes_certified` are gone; `claim_kept_hint`,
   `note_bearer_warning`, `claim_bearer_warning`, `note_waiting`, `activity_note_waiting`, `notes_waiting_total` and
   `notes_shared_title` say less or say it differently.

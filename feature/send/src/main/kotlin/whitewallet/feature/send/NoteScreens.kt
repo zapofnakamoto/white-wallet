@@ -64,6 +64,7 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.printBitmap
+import whitewallet.core.designsystem.recentTime
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.CreateNoteResult
 import whitewallet.core.wallet.NoteAction
@@ -315,6 +316,7 @@ fun SharedNoteScreen(
                     Text(stringResource(R.string.note_bearer_warning), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
                     Text(stringResource(R.string.note_waiting), style = MaterialTheme.typography.bodyMedium)
                     if (!note.confirmed) Text(stringResource(R.string.note_unconfirmed), style = MaterialTheme.typography.bodyMedium)
+                    note.checkedAtMillis?.let { Text(stringResource(R.string.note_checked_at, recentTime(it)), style = MaterialTheme.typography.bodySmall) }
                     if (note.unknownToMint) Text(stringResource(R.string.note_unknown_to_mint), color = MaterialTheme.colorScheme.error)
                     if (!note.certified) Text(stringResource(R.string.note_uncertified), style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {

@@ -194,9 +194,10 @@ internal object Migration2To3 : Migration(2, 3) {
     }
 }
 
-/** Notes received as links are kept until claimed (see ReceivedNote). */
+/** Notes received as links are kept until claimed (see ReceivedNote); a note remembers when its mint last answered for it. */
 internal object Migration3To4 : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE notes ADD COLUMN `checkedAtMillis` INTEGER")
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `received_notes` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, " +
                 "`withdrawUrl` TEXT NOT NULL, `k1` TEXT, `certificate` TEXT, `declaredMsat` INTEGER, `amountMsat` INTEGER, " +

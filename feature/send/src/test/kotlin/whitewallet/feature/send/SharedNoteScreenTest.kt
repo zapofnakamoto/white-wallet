@@ -70,6 +70,18 @@ class SharedNoteScreenTest {
     }
 
     @Test
+    fun aWaitingNoteSaysWhenItsMintLastAnswered() {
+        show(note(SharedNoteState.Waiting).copy(checkedAtMillis = System.currentTimeMillis()))
+        compose.onNodeWithText("Last checked with its mint: ", substring = true).assertExists()
+    }
+
+    @Test
+    fun aNoteNeverCheckedSaysNothingAboutIt() {
+        show(note(SharedNoteState.Waiting).copy(confirmed = false))
+        compose.onNodeWithText("Last checked", substring = true).assertDoesNotExist()
+    }
+
+    @Test
     fun aNoteItsMintDoesntKnowSaysSo() {
         show(note(SharedNoteState.Waiting).copy(unknownToMint = true))
         compose.onNodeWithText("Its mint doesn't know this note. The link may not work.").assertExists()

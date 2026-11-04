@@ -62,6 +62,8 @@ data class Note(
     val certificate: String?,
     val state: NoteState,
     val updatedAtMillis: Long,
+    /** When its mint last answered a lookup for it; kept for shared notes, so their screen can say how fresh it is. */
+    val checkedAtMillis: Long? = null,
 )
 
 /** Where a [ReceivedNote] stands. Only [Claimed] puts its money in the balance, as one of the wallet's own notes. */

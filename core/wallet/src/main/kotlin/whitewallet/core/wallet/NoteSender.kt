@@ -36,6 +36,7 @@ enum class SharedNoteState {
  * A note handed out as a link. [link] (the money itself) is only there while it is [SharedNoteState.Waiting].
  * [confirmed]: its mint said it is there; false for a note handed out offline until the wallet could ask.
  * [unknownToMint]: the last check found that its mint doesn't know the note.
+ * [checkedAtMillis]: when its mint last answered for it while it waits; null before the first answer.
  */
 data class SharedNote(
     val id: String,
@@ -47,12 +48,13 @@ data class SharedNote(
     @property:RevealsNoteSecret val link: String?,
     val confirmed: Boolean = true,
     val unknownToMint: Boolean = false,
+    val checkedAtMillis: Long? = null,
 ) {
     /** Debug text without the link, which is the money. */
     @OptIn(RevealsNoteSecret::class)
     override fun toString(): String =
         "SharedNote(id=$id, host=$host, amountMsat=$amountMsat, certified=$certified, state=$state, createdAtMillis=$createdAtMillis, " +
-            "link=${link?.let(Redaction::url)}, confirmed=$confirmed, unknownToMint=$unknownToMint)"
+            "link=${link?.let(Redaction::url)}, confirmed=$confirmed, unknownToMint=$unknownToMint, checkedAtMillis=$checkedAtMillis)"
 }
 
 sealed interface CreateNoteResult {
@@ -158,7 +160,7 @@ internal class NoteSender(private val wallet: Wallet) {
             }
             Check.Unreadable -> return ShareNoteResult.Unreachable
         }
-        val shared = note.copy(state = state, updatedAtMillis = wallet.now())
+        val shared = note.copy(state = state, updatedAtMillis = wallet.now(), checkedAtMillis = wallet.now().takeIf { state == NoteState.Shared })
         wallet.store.upsertNotes(listOf(shared))
         log.record(activityId(id), accountId, ActivityKind.SentNote, shared.amountMsat, shared.host, ActivityStatus.Pending,
             certified = shared.certificate != null)
@@ -177,7 +179,8 @@ internal class NoteSender(private val wallet: Wallet) {
         }
         return SharedNote(id, activity.host, activity.amountMsat, activity.certified == true, state, activity.createdAtMillis,
             link = note?.takeIf { state == SharedNoteState.Waiting }?.let { link(it) },
-            confirmed = note?.state != NoteState.SharedUnconfirmed, unknownToMint = unknownToMint && state == SharedNoteState.Waiting)
+            confirmed = note?.state != NoteState.SharedUnconfirmed, unknownToMint = unknownToMint && state == SharedNoteState.Waiting,
+            checkedAtMillis = note?.checkedAtMillis?.takeIf { state == SharedNoteState.Waiting })
     }
 
     /** Takes a sent note back while nobody has redeemed it: rotated to a fresh wallet key, back in the balance. */
@@ -225,7 +228,10 @@ internal class NoteSender(private val wallet: Wallet) {
         } catch (e: NoteLookupError) {
             if (e.kind != RejectionKind.Spent) return when (e.kind) {
                 RejectionKind.Pending -> confirmed(note)
-                RejectionKind.NoteUnknown -> Check.UnknownToMint
+                RejectionKind.NoteUnknown -> {
+                    answered(note)
+                    Check.UnknownToMint
+                }
                 else -> Check.Unreadable
             }
         } catch (e: IOException) {
@@ -240,8 +246,13 @@ internal class NoteSender(private val wallet: Wallet) {
 
     /** Its mint has it: a note handed out offline is confirmed now. */
     private suspend fun confirmed(note: Note): Check {
-        if (note.state == NoteState.SharedUnconfirmed) wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Shared, updatedAtMillis = wallet.now())))
+        answered(if (note.state == NoteState.SharedUnconfirmed) note.copy(state = NoteState.Shared, updatedAtMillis = wallet.now()) else note)
         return Check.Waiting
+    }
+
+    /** Its mint answered for [note] just now (stored only for a note that is handed out). */
+    private suspend fun answered(note: Note) {
+        if (note.state.isShared) wallet.store.upsertNotes(listOf(note.copy(checkedAtMillis = wallet.now())))
     }
 
     private suspend fun cancel(accountId: String, id: String) {

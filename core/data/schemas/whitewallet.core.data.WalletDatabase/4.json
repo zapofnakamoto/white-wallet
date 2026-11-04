@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 4,
-    "identityHash": "6d34312846e76ce02a81f71370f04fca",
+    "identityHash": "13d5a3ec70cf2b89eea70ce2c2e4de1f",
     "entities": [
       {
         "tableName": "accounts",
@@ -65,7 +65,7 @@
       },
       {
         "tableName": "notes",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `kind` TEXT NOT NULL, `purpose` INTEGER, `noteIndex` INTEGER, `amountMsat` INTEGER NOT NULL, `certificate` TEXT, `state` TEXT NOT NULL, `updatedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `kind` TEXT NOT NULL, `purpose` INTEGER, `noteIndex` INTEGER, `amountMsat` INTEGER NOT NULL, `certificate` TEXT, `state` TEXT NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `checkedAtMillis` INTEGER, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -123,6 +123,11 @@
             "columnName": "updatedAtMillis",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "checkedAtMillis",
+            "columnName": "checkedAtMillis",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -718,7 +723,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6d34312846e76ce02a81f71370f04fca')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '13d5a3ec70cf2b89eea70ce2c2e4de1f')"
     ]
   }
 }

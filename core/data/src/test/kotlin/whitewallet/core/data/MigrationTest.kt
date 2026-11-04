@@ -95,6 +95,11 @@ class MigrationTest {
             assertEquals(listOf(21000L), store.notes("acc").first().map { it.amountMsat })
             assertEquals(listOf("claim:c1"), store.activities("acc").first().map { it.id })
             assertEquals(emptyList(), store.receivedNotes("acc").first())
+            // Never checked yet; a check is remembered from now on.
+            val n1 = store.notes("acc").first().single()
+            assertEquals(null, n1.checkedAtMillis)
+            store.upsertNotes(listOf(n1.copy(checkedAtMillis = 7)))
+            assertEquals(7L, store.note("n1")?.checkedAtMillis)
             val note = ReceivedNote("q".repeat(64), "acc", "mint.example", "https://mint.example/w", "cw1example", null, 5000, null,
                 1_800_000_000_000, null, ReceivedState.Locked, null, 5, 5)
             store.putReceivedNote(note)

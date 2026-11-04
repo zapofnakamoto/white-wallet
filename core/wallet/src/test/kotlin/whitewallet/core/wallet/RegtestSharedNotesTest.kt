@@ -57,6 +57,7 @@ class RegtestSharedNotesTest {
         assertFalse(shared.confirmed)
         assertEquals(SharedNoteState.Waiting, shared.state)
         assertNotNull(shared.link, "the link is there offline: it derives from the seed")
+        assertEquals(null, shared.checkedAtMillis, "its mint hasn't answered for it yet")
         assertEquals(NoteState.SharedUnconfirmed, alice.store.note(note.id)?.state)
         assertEquals(0, alice.balance())
 
@@ -64,6 +65,7 @@ class RegtestSharedNotesTest {
         alice.wallet.refresh()
         val confirmed = assertNotNull(alice.wallet.sharedNote(note.id))
         assertTrue(confirmed.confirmed)
+        assertNotNull(confirmed.checkedAtMillis, "the screen can say when its mint last answered")
         assertEquals(SharedNoteState.Waiting, confirmed.state)
         assertEquals(NoteState.Shared, alice.store.note(note.id)?.state, "not taken back on its own")
         assertEquals(ActivityStatus.Pending, alice.sentRow(note.id).status)
@@ -130,6 +132,7 @@ class RegtestSharedNotesTest {
         alice.wallet.refresh()
         assertEquals(NoteState.Shared, alice.store.note(shared.id)?.state)
         assertEquals(SharedNoteState.Waiting, alice.wallet.sharedNote(shared.id)?.state)
+        assertNotNull(alice.wallet.sharedNote(shared.id)?.checkedAtMillis, "shared online: checked by its mint just now")
         assertEquals(kept.amountMsat, alice.balance())
     }
 }

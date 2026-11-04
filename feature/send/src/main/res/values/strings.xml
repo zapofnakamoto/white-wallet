@@ -77,6 +77,7 @@
     <string name="note_waiting">Not claimed yet. You can take it back until then.</string>
     <string name="note_unconfirmed">Handed out offline, so its mint hasn\'t confirmed this note yet. Your wallet asks as soon as it\'s online.</string>
     <string name="note_unknown_to_mint">Its mint doesn\'t know this note. The link may not work.</string>
+    <string name="note_checked_at">Last checked with its mint: %1$s</string>
     <string name="note_share">Share</string>
     <string name="note_qr_show">Tap to show the QR code</string>
     <string name="note_print">Print</string>
