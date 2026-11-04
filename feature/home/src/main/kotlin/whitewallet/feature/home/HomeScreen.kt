@@ -224,6 +224,10 @@ fun HomeScreen(
                 }
             val actions: @Composable () -> Unit = {
                 if (tab == HomeTab.Notes) notesTab?.actions?.invoke()
+                // Scanning is a step towards Send or Claim: a quiet icon on the wallet tab, so Send and Receive stand alone below.
+                if (tab == HomeTab.Wallet && onScan != null) {
+                    IconButton(onClick = onScan) { Icon(painterResource(DesignR.drawable.ic_qr_scan), stringResource(R.string.home_scan)) }
+                }
                 IconButton(onClick = if (tab == HomeTab.Notes) notesTab!!.onRefresh else onRefresh) {
                     Icon(painterResource(DesignR.drawable.ic_refresh), stringResource(DesignR.string.refresh))
                 }
@@ -282,7 +286,6 @@ fun HomeScreen(
                                 onRecheckUnknown,
                                 onDismissReceived,
                                 onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
-                                onScan = onScan,
                             )
                         HomeTab.Notes -> notesTab?.content?.invoke()
                         HomeTab.History ->
@@ -456,7 +459,6 @@ private fun WalletTab(
     onDismissReceived: (String) -> Unit,
     /** Opens the notes view, where received notes are listed too; null without one (the card below lists them). */
     onOpenIncoming: (() -> Unit)?,
-    onScan: (() -> Unit)? = null,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(
@@ -517,11 +519,6 @@ private fun WalletTab(
                     modifier = Modifier.weight(1f).semantics { if (onSend == null) stateDescription = soon },
                 )
                 PrimaryButton(stringResource(R.string.home_receive), onReceive, Modifier.weight(1f))
-            }
-            onScan?.let { scan ->
-                WalletButton(onClick = scan, kind = ButtonKind.Secondary, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.home_scan))
-                }
             }
             state.error?.let {
                 Text(

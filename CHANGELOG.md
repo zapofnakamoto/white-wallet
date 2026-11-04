@@ -60,6 +60,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- Home is quieter: "Scan a QR code" is an icon in the top bar instead of a button under Send and Receive,
+  which stand alone as the wallet's two actions.
 - One scanner does for both: a note scanned or pasted under Send opens Claim, and an invoice or Lightning address
   under Claim opens Send. Home has "Scan a QR code", so there's no choosing between paying and claiming first.
 - Fewer words where nothing needs the user: a certified amount is no longer labelled as such (only one that can't

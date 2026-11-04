@@ -10,9 +10,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -79,14 +79,17 @@ class HomeScreenTest {
                 onScan = { scans++ },
             )
         }
-        compose.onNodeWithText(text(R.string.home_scan)).performScrollTo().performClick()
+        compose.onNodeWithContentDescription(text(R.string.home_scan)).performClick()
         assertEquals(1, scans)
+        // Only the wallet tab offers it.
+        compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
+        compose.onNodeWithContentDescription(text(R.string.home_scan)).assertDoesNotExist()
     }
 
     @Test
     fun withoutAScanHomeShowsNoScanButton() {
         show(HomeState(balanceMsat = 845_000))
-        compose.onNodeWithText(text(R.string.home_scan)).assertDoesNotExist()
+        compose.onNodeWithContentDescription(text(R.string.home_scan)).assertDoesNotExist()
     }
 
     @Test
