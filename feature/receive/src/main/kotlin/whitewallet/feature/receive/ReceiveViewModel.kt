@@ -88,13 +88,13 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
         combine(wallet.profile, received, ui, faucet.available) { profile, msat, u, canFaucet ->
                 ReceiveState(
                     profile?.address,
-                    msat,
+                    receivedMsat = msat,
                     u.requestingAmount,
                     u.amountText,
                     u.creating,
                     u.problem,
                     u.invoice,
-                    u.faucet.takeIf { canFaucet },
+                    faucet = u.faucet.takeIf { canFaucet },
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState())

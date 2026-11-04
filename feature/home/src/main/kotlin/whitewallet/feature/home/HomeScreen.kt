@@ -131,20 +131,20 @@ fun HomeRoute(
         state,
         onSend,
         onReceive,
-        viewModel::refresh,
+        onRefresh = viewModel::refresh,
         onSettings,
         onBackup,
-        viewModel::dismissBackupPrompt,
+        onDismissBackup = viewModel::dismissBackupPrompt,
         onChangeAddress,
-        AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds),
+        accountActions = AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds),
         onOpenNote,
-        viewModel::toggleBalanceHidden,
+        onToggleBalance = viewModel::toggleBalanceHidden,
         onOpenMint,
         notesTab,
         menu,
-        viewModel::noticeShown,
-        viewModel::recheckUnknown,
-        viewModel::dismissReceived,
+        onNoticeShown = viewModel::noticeShown,
+        onRecheckUnknown = viewModel::recheckUnknown,
+        onDismissReceived = viewModel::dismissReceived,
         onScan,
     )
 }
@@ -273,7 +273,7 @@ fun HomeScreen(
                                 state,
                                 onSend,
                                 onReceive,
-                                { showAccounts = true },
+                                onAccounts = { showAccounts = true },
                                 onBackup,
                                 onDismissBackup,
                                 onChangeAddress,
@@ -286,7 +286,13 @@ fun HomeScreen(
                             )
                         HomeTab.Notes -> notesTab?.content?.invoke()
                         HomeTab.History ->
-                            HistoryTab(state.activity, state.historyFilter, historyFilters, { historyFilters = it }, onOpenNote)
+                            HistoryTab(
+                                state.activity,
+                                option = state.historyFilter,
+                                selected = historyFilters,
+                                onSelect = { historyFilters = it },
+                                onOpenNote,
+                            )
                     }
             }
         }
@@ -461,7 +467,13 @@ private fun WalletTab(
             state.keyChangedMint?.let { KeyChanged(it) { onOpenMint(it) } }
             if (state.addressInactive) state.profile?.let { AddressInactive(it.address, onChangeAddress) }
             state.unknownNotes.forEach {
-                UnknownNotesCard(it, state.mintsVisible, state.balanceHidden, state.checkingUnknown, onRecheckUnknown)
+                UnknownNotesCard(
+                    mint = it,
+                    state.mintsVisible,
+                    state.balanceHidden,
+                    checking = state.checkingUnknown,
+                    onRecheck = onRecheckUnknown,
+                )
             }
             if (state.showBackupPrompt) BackupPrompt(onBackup, onDismissBackup)
             WalletStatusScope(state.status) { BrandDecoration(Anchor.HomeHeader) }

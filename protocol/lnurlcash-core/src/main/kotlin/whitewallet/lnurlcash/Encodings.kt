@@ -131,7 +131,7 @@ public data class Cw1(
                 pos += len
             }
             if (items.size < 2) return null
-            return Cw1(u32(0), u32(4), items[0], items[1], items.drop(2))
+            return Cw1(lockTime = u32(0), sequence = u32(4), script = items[0], controlBlock = items[1], witness = items.drop(2))
         }
     }
 }

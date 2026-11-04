@@ -123,7 +123,7 @@ class MainActivity : FragmentActivity() {
                         AppLockGate(appName) {
                             WalletApp(
                                 incoming,
-                                BrandScreens(brandScreens),
+                                brand = BrandScreens(brandScreens),
                                 showNotesTab = defaults.notesView == NotesView.Tab,
                                 addressAfterRestore = defaults.address != AddressPolicy.None,
                                 onIncomingHandled = { incoming.value = null },
@@ -414,8 +414,8 @@ private fun WalletApp(
         }
         composable(Routes.SETTINGS) {
             SettingsRoute(
-                BuildConfig.VERSION_NAME,
-                DeveloperPages.all,
+                versionName = BuildConfig.VERSION_NAME,
+                developerPages = DeveloperPages.all,
                 brandPages = brand.on(BrandScreenEntry.Settings).map { BrandPage(it.title, Routes.brand(it.id), it.icon) },
                 onBack = { nav.popBackStack() },
                 onNavigate = { destination ->

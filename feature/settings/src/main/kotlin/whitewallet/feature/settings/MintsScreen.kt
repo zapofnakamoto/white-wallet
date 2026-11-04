@@ -85,7 +85,14 @@ class MintsViewModel @Inject constructor(private val wallet: Wallet, private val
     val state: StateFlow<MintsState> =
         combine(wallet.mints, ui) { mints, u ->
                 val known = mints.map { it.host }
-                MintsState(mints, u.newHost, u.adding, u.problem, defaults.mintSuggestions.filter { it !in known }, defaults.customMints)
+                MintsState(
+                    mints,
+                    u.newHost,
+                    u.adding,
+                    u.problem,
+                    offered = defaults.mintSuggestions.filter { it !in known },
+                    custom = defaults.customMints,
+                )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MintsState(custom = defaults.customMints))
 
@@ -123,7 +130,15 @@ class MintsViewModel @Inject constructor(private val wallet: Wallet, private val
 @Composable
 fun MintsRoute(onBack: () -> Unit, onOpen: (host: String) -> Unit, viewModel: MintsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    MintsScreen(state, onBack, onOpen, viewModel::setTrusted, viewModel::onHost, { viewModel.add() }, { viewModel.add(it) })
+    MintsScreen(
+        state,
+        onBack,
+        onOpen,
+        onTrusted = viewModel::setTrusted,
+        onHost = viewModel::onHost,
+        onAdd = { viewModel.add() },
+        onAddOffered = { viewModel.add(it) },
+    )
 }
 
 @Composable

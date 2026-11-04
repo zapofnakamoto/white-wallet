@@ -73,14 +73,14 @@ public object Bolt11 {
         }
         return Bolt11Invoice(
             raw,
-            match.groupValues[1],
-            amount.takeIf { it > 0 },
-            timestamp,
-            paymentHash ?: return null,
+            currency = match.groupValues[1],
+            amountMsat = amount.takeIf { it > 0 },
+            timestampSeconds = timestamp,
+            paymentHashHex = paymentHash ?: return null,
             description,
-            descriptionHash,
-            expiry,
-            payee,
+            descriptionHashHex = descriptionHash,
+            expirySeconds = expiry,
+            payeeHex = payee,
         )
     }
 

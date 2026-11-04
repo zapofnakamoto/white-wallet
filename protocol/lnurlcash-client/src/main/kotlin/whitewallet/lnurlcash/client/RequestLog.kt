@@ -38,7 +38,16 @@ public class RequestLog(private val capacity: Int = 200, private val now: () -> 
 
     internal fun record(method: String, url: String, status: Int?, durationMillis: Long, body: String?, error: String?) {
         val entry =
-            LogEntry(ids.incrementAndGet(), now(), method, Redaction.url(url), status, durationMillis, body?.let(Redaction::body), error)
+            LogEntry(
+                id = ids.incrementAndGet(),
+                timestampMillis = now(),
+                method,
+                url = Redaction.url(url),
+                status,
+                durationMillis,
+                responseBody = body?.let(Redaction::body),
+                error,
+            )
         _entries.update { (listOf(entry) + it).take(capacity) }
     }
 

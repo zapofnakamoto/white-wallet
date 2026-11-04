@@ -130,7 +130,13 @@ fun WalletListItem(
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
     LocalBrandDesign.current.components.ListRow(
-        ListRowParams(headlineContent, overlineContent, supportingContent, leadingContent, trailingContent),
+        ListRowParams(
+            headline = headlineContent,
+            overline = overlineContent,
+            supporting = supportingContent,
+            leading = leadingContent,
+            trailing = trailingContent,
+        ),
         modifier,
     )
 }
@@ -151,7 +157,14 @@ fun WalletActivityIcon(type: ActivityType, direction: MoneyDirection, automatic:
             ActivityType.Renewed -> R.drawable.ic_activity_rotated
         }
     LocalBrandDesign.current.components.ActivityIcon(
-        ActivityIconParams(type, direction, automatic, settled, painterResource(icon), painterResource(R.drawable.ic_activity_automatic)),
+        ActivityIconParams(
+            type,
+            direction,
+            automatic,
+            settled,
+            icon = painterResource(icon),
+            automaticBadge = painterResource(R.drawable.ic_activity_automatic),
+        ),
         modifier,
     )
 }
@@ -165,7 +178,14 @@ fun WalletAccountMark(name: String, index: Int, modifier: Modifier = Modifier, a
     val locale = LocalConfiguration.current.locales[0]
     val letter = remember(name, locale) { firstLetter(name, locale) }
     LocalBrandDesign.current.components.AccountMark(
-        AccountMarkParams(letter, index, active, size, painterResource(R.drawable.ic_account), painterResource(R.drawable.ic_check_circle)),
+        AccountMarkParams(
+            letter,
+            index,
+            active,
+            size,
+            fallback = painterResource(R.drawable.ic_account),
+            activeBadge = painterResource(R.drawable.ic_check_circle),
+        ),
         modifier,
     )
 }
@@ -205,11 +225,11 @@ fun WalletNoteFace(
     LocalBrandDesign.current.components.NoteFace(
         NoteFaceParams(
             size,
-            formatAmount(amountMsat),
+            amount = formatAmount(amountMsat),
             amountMsat,
             status,
             statusText,
-            statusIcon?.let { painterResource(it) },
+            statusIcon = statusIcon?.let { painterResource(it) },
             age,
             mint,
             trusted,
@@ -230,7 +250,15 @@ fun WalletNoteFace(
 @Composable
 fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted: Boolean, labels: String?, modifier: Modifier = Modifier) {
     LocalBrandDesign.current.components.NoteGroupHeader(
-        NoteGroupParams(mint, formatAmount(totalMsat), totalMsat, home, trusted, labels, painterResource(R.drawable.ic_check_circle)),
+        NoteGroupParams(
+            mint,
+            total = formatAmount(totalMsat),
+            totalMsat,
+            home,
+            trusted,
+            labels,
+            trustedIcon = painterResource(R.drawable.ic_check_circle),
+        ),
         if (mint != null) modifier.semantics(mergeDescendants = true) { heading() } else modifier,
     )
 }
@@ -333,7 +361,7 @@ fun WalletFilterChip(
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     LocalBrandDesign.current.components.Chip(
-        ChipParams(ChipKind.Filter, onClick, label, selected, enabled, leadingIcon, trailingIcon),
+        ChipParams(kind = ChipKind.Filter, onClick, label, selected, enabled, leadingIcon, trailingIcon),
         modifier,
     )
 }
@@ -348,7 +376,7 @@ fun WalletAssistChip(
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     LocalBrandDesign.current.components.Chip(
-        ChipParams(ChipKind.Assist, onClick, label, false, enabled, leadingIcon, trailingIcon),
+        ChipParams(kind = ChipKind.Assist, onClick, label, selected = false, enabled, leadingIcon, trailingIcon),
         modifier,
     )
 }

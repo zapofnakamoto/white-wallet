@@ -216,11 +216,11 @@ constructor(
             Context(
                 home,
                 trusted,
-                run?.notCollected.orEmpty(),
+                notCollected = run?.notCollected.orEmpty(),
                 strategy,
-                dev.first,
-                dev.second,
-                sort?.let { runCatching { NoteSort.valueOf(it) }.getOrNull() } ?: NoteSort.Largest,
+                developer = dev.first,
+                devHosts = dev.second,
+                sort = sort?.let { runCatching { NoteSort.valueOf(it) }.getOrNull() } ?: NoteSort.Largest,
             )
         }
 
@@ -249,7 +249,13 @@ constructor(
                         .sortedWith(compareBy({ it.first != c.home }, { it.first }))
                         .map { (host, list) ->
                             val skipped = c.notCollected.firstOrNull { it.host == host }?.reason as? NotCollected.Reason.FeeTooHigh
-                            MintNotes(host, host == c.home, list.sortedWith(c.sort.order), skipped, trusted = host in c.trusted)
+                            MintNotes(
+                                host,
+                                isHome = host == c.home,
+                                notes = list.sortedWith(c.sort.order),
+                                skipped,
+                                trusted = host in c.trusted,
+                            )
                         }
                 val selectable = live.filter(::selectable).map { it.id }.toSet()
                 u.copy(

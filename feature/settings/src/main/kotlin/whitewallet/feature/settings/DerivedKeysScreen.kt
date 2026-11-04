@@ -279,21 +279,22 @@ fun DerivedKeysRoute(onBack: () -> Unit, viewModel: DerivedKeysViewModel = hiltV
     DerivedKeysScreen(
         state,
         onBack,
-        viewModel::selectHost,
-        viewModel::selectPurpose,
-        viewModel::toggle,
-        viewModel::recheck,
-        IndexActions(
-            viewModel::scanAhead,
-            viewModel::recheckAll,
-            viewModel::findIndex,
-            viewModel::onGapInput,
-            viewModel::openSetIndex,
-            viewModel::onSetIndexInput,
-            viewModel::confirmSetIndex,
-            viewModel::dismissSetIndex,
-        ),
-        RotateActions(viewModel::askRotate, viewModel::askRotateAll, viewModel::confirmRotate, viewModel::dismissRotate),
+        onHost = viewModel::selectHost,
+        onPurpose = viewModel::selectPurpose,
+        onToggle = viewModel::toggle,
+        onRecheck = viewModel::recheck,
+        index =
+            IndexActions(
+                onScanAhead = viewModel::scanAhead,
+                onRecheckAll = viewModel::recheckAll,
+                onFind = viewModel::findIndex,
+                onGapInput = viewModel::onGapInput,
+                onOpenSet = viewModel::openSetIndex,
+                onSetInput = viewModel::onSetIndexInput,
+                onConfirmSet = viewModel::confirmSetIndex,
+                onDismissSet = viewModel::dismissSetIndex,
+            ),
+        rotate = RotateActions(viewModel::askRotate, viewModel::askRotateAll, viewModel::confirmRotate, viewModel::dismissRotate),
     )
 }
 

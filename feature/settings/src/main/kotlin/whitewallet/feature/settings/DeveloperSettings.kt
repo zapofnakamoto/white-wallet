@@ -93,12 +93,12 @@ fun DeveloperSettingsRoute(
         enabled,
         pages,
         onBack,
-        viewModel::setEnabled,
+        onToggle = viewModel::setEnabled,
         onOpenPage,
         maxAddresses,
-        viewModel::setMaxAddresses,
-        network.takeIf { viewModel.networkOffered },
-        viewModel::setNetworkProfile,
+        onMaxAddresses = viewModel::setMaxAddresses,
+        network = network.takeIf { viewModel.networkOffered },
+        onNetwork = viewModel::setNetworkProfile,
     )
 }
 

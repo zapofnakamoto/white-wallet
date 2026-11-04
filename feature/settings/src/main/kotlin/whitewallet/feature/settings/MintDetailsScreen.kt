@@ -166,8 +166,8 @@ fun MintDetailsRoute(
     MintDetailsScreen(
         state,
         onBack,
-        viewModel::refresh,
-        viewModel::toggleWatchOnly,
+        onRefresh = viewModel::refresh,
+        onToggleWatchOnly = viewModel::toggleWatchOnly,
         onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key) },
         onAcceptKey = viewModel::acceptKey,
         onChangeHome = onChangeHome,

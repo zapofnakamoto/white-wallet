@@ -171,7 +171,8 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
             val home = wallet.homeHost.first()
             val from = host.takeIf { mode == MoneyMoveMode.Move }
             val collects = wallet.collectAtHome.first()
-            val targets = moveTargets(mode, wallet.mints.first().map { it.host }, home, from, collects, defaults::mintAllowed)
+            val targets =
+                moveTargets(mode, known = wallet.mints.first().map { it.host }, home, from, collects, allowed = defaults::mintAllowed)
             val preset = host.takeIf { mode == MoneyMoveMode.ChangeHome && it in targets } ?: targets.firstOrNull()
             val profile = wallet.profile.first()
             _state.update {
@@ -341,14 +342,14 @@ fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, view
         state,
         onClose,
         MoneyMoveActions(
-            viewModel::onTarget,
-            viewModel::onUsername,
-            viewModel::review,
-            viewModel::onToggle,
-            viewModel::confirm,
-            viewModel::back,
-            viewModel::retry,
-            onClose,
+            onTarget = viewModel::onTarget,
+            onUsername = viewModel::onUsername,
+            onReview = viewModel::review,
+            onToggle = viewModel::onToggle,
+            onConfirm = viewModel::confirm,
+            onBack = viewModel::back,
+            onRetry = viewModel::retry,
+            onDone = onClose,
         ),
     )
 }

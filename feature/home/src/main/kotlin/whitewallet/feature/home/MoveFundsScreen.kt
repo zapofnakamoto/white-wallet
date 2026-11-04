@@ -39,7 +39,14 @@ import whitewallet.core.wallet.MoveResult
 @Composable
 fun MoveFundsRoute(onBack: () -> Unit, viewModel: MoveFundsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    MoveFundsScreen(state, onBack, viewModel::onTarget, viewModel::onEverything, viewModel::onAmount, viewModel::move)
+    MoveFundsScreen(
+        state,
+        onBack,
+        onTarget = viewModel::onTarget,
+        onEverything = viewModel::onEverything,
+        onAmount = viewModel::onAmount,
+        onMove = viewModel::move,
+    )
 }
 
 @Composable

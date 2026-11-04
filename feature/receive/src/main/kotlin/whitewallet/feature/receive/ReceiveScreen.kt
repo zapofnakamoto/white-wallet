@@ -58,12 +58,12 @@ fun ReceiveRoute(onBack: () -> Unit, onClaim: () -> Unit, viewModel: ReceiveView
         onBack,
         onClaim,
         InvoiceActions(
-            viewModel::requestAmount,
-            viewModel::onAmountChange,
-            viewModel::createInvoice,
-            viewModel::newInvoice,
-            viewModel::receiveMore,
-            viewModel::payFromFaucet,
+            onRequestAmount = viewModel::requestAmount,
+            onAmountChange = viewModel::onAmountChange,
+            onCreate = viewModel::createInvoice,
+            onNewInvoice = viewModel::newInvoice,
+            onReceiveMore = viewModel::receiveMore,
+            onFaucet = viewModel::payFromFaucet,
         ),
     )
 }
@@ -86,15 +86,15 @@ fun ReceiveScreen(state: ReceiveState, onBack: () -> Unit, onClaim: () -> Unit, 
         val arrived = state.arrivedMsat
         if (arrived != null) {
             SuccessScreen(
-                Anchor.ReceiveSuccess,
-                WalletStatus.PaymentReceived(arrived),
-                stringResource(R.string.receive_success_title),
-                arrived,
-                stringResource(R.string.receive_done),
-                onBack,
-                stringResource(R.string.receive_more),
-                invoice.onReceiveMore,
-                Modifier.padding(padding),
+                anchor = Anchor.ReceiveSuccess,
+                status = WalletStatus.PaymentReceived(arrived),
+                title = stringResource(R.string.receive_success_title),
+                amountMsat = arrived,
+                doneLabel = stringResource(R.string.receive_done),
+                onDone = onBack,
+                moreLabel = stringResource(R.string.receive_more),
+                onMore = invoice.onReceiveMore,
+                modifier = Modifier.padding(padding),
             )
             return@Scaffold
         }

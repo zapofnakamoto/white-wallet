@@ -308,7 +308,7 @@ fun SharedNoteScreen(
             val link = note.link?.takeIf { note.state == SharedNoteState.Waiting }
             val qrDescription = stringResource(R.string.note_qr_description)
             WalletNoteFace(
-                NoteFaceSize.Large,
+                size = NoteFaceSize.Large,
                 note.amountMsat,
                 status =
                     when (note.state) {
@@ -392,7 +392,7 @@ fun SharedNoteScreen(
         printed?.let { note ->
             val qrDescription = stringResource(R.string.note_qr_description)
             WalletNoteFace(
-                NoteFaceSize.Large,
+                size = NoteFaceSize.Large,
                 note.amountMsat,
                 status = NoteStatus.Waiting,
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),

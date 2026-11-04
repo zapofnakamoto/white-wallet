@@ -356,7 +356,7 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
     val status = noteStatus(note)
     val selected = (note.id in state.selected).takeIf { state.selecting }
     WalletNoteFace(
-        NoteFaceSize.Row,
+        size = NoteFaceSize.Row,
         note.amountMsat,
         status = status,
         statusText = noteStatusText(status),
@@ -446,9 +446,9 @@ private fun SharedHeader() {
 @Composable
 private fun SharedRow(note: Note, showMints: Boolean, onOpen: (String) -> Unit) {
     WalletNoteFace(
-        NoteFaceSize.Row,
+        size = NoteFaceSize.Row,
         note.amountMsat,
-        Modifier.clickable { onOpen(note.id) },
+        modifier = Modifier.clickable { onOpen(note.id) },
         status = NoteStatus.Waiting,
         age = recentTime(note.updatedAtMillis),
         mint = note.host.takeIf { showMints },

@@ -98,15 +98,15 @@ fun OnboardingRoute(
         logo,
         state,
         onBack,
-        viewModel::onUsernameChange,
-        MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange),
-        viewModel::onSuggestion,
-        viewModel::start,
-        viewModel::onContinue,
-        viewModel::onAccountNameChange,
+        onUsernameChange = viewModel::onUsernameChange,
+        mint = MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange),
+        onSuggestion = viewModel::onSuggestion,
+        onStart = viewModel::start,
+        onContinue = viewModel::onContinue,
+        onAccountNameChange = viewModel::onAccountNameChange,
         onRestore,
-        viewModel::cancelRestore,
-        viewModel::skipAddress,
+        onCancelRestore = viewModel::cancelRestore,
+        onSkipAddress = viewModel::skipAddress,
     )
 }
 
@@ -156,7 +156,14 @@ fun OnboardingScreen(
                     ClaimedContent(claimed, onContinue)
                 } else if (state.changingAddress) {
                     Text(stringResource(R.string.onboarding_change_body, state.host), textAlign = TextAlign.Center)
-                    AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
+                    AddressForm(
+                        state,
+                        onUsernameChange,
+                        mint,
+                        onSuggestion,
+                        onStart,
+                        submitLabel = stringResource(R.string.onboarding_claim),
+                    )
                 } else if (state.restoringAddress) {
                     Text(
                         if (state.restoredMsat > 0) stringResource(R.string.restore_address_found, formatAmount(state.restoredMsat))
@@ -165,17 +172,38 @@ fun OnboardingScreen(
                         textAlign = TextAlign.Center,
                     )
                     Text(stringResource(R.string.restore_address_body, state.host), textAlign = TextAlign.Center)
-                    AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.restore_address_submit))
+                    AddressForm(
+                        state,
+                        onUsernameChange,
+                        mint,
+                        onSuggestion,
+                        onStart,
+                        submitLabel = stringResource(R.string.restore_address_submit),
+                    )
                     SkipAddress(state, onSkipAddress)
                     WalletButton(kind = ButtonKind.Text, onClick = { confirmCancel = true }, enabled = !state.busy) {
                         Text(stringResource(R.string.restore_cancel))
                     }
                 } else if (state.addingAddress) {
                     Text(stringResource(R.string.onboarding_add_body, state.host), textAlign = TextAlign.Center)
-                    AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
+                    AddressForm(
+                        state,
+                        onUsernameChange,
+                        mint,
+                        onSuggestion,
+                        onStart,
+                        submitLabel = stringResource(R.string.onboarding_claim),
+                    )
                 } else if (state.addingElsewhere) {
                     Text(stringResource(R.string.onboarding_add_elsewhere_body), textAlign = TextAlign.Center)
-                    AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_claim))
+                    AddressForm(
+                        state,
+                        onUsernameChange,
+                        mint,
+                        onSuggestion,
+                        onStart,
+                        submitLabel = stringResource(R.string.onboarding_claim),
+                    )
                 } else {
                     Text(
                         stringResource(
@@ -198,7 +226,7 @@ fun OnboardingScreen(
                             mint,
                             onSuggestion,
                             onStart,
-                            stringResource(R.string.onboarding_create_account),
+                            submitLabel = stringResource(R.string.onboarding_create_account),
                         )
                         SkipAddress(state, onSkipAddress)
                     } else {
@@ -232,7 +260,7 @@ fun OnboardingScreen(
                 textAlign = TextAlign.Center,
             )
             if (state.withAddress) {
-                AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, stringResource(R.string.onboarding_start))
+                AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, submitLabel = stringResource(R.string.onboarding_start))
                 SkipAddress(state, onSkipAddress)
             } else {
                 // Without an address and with a single mint, this is just the button.
@@ -302,7 +330,7 @@ private fun AddressForm(
             state.suggestions.forEach { name -> WalletSuggestionChip(onClick = { onSuggestion(name) }, label = { Text(name) }) }
         }
     }
-    if (state.showMintPicker) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
+    if (state.showMintPicker) MintPicker(options = state.mintOptions, selected = state.selectedMint, state.customHost, state.busy, mint)
     ErrorText(state)
     PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
 }
@@ -325,7 +353,7 @@ private fun SkipAddress(state: OnboardingState, onSkip: () -> Unit) {
 /** A new account without a Lightning address: the mint (when there is a choice) and the button. */
 @Composable
 private fun MintForm(state: OnboardingState, mint: MintActions, onStart: () -> Unit, submitLabel: String) {
-    if (state.showMintPicker) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
+    if (state.showMintPicker) MintPicker(options = state.mintOptions, selected = state.selectedMint, state.customHost, state.busy, mint)
     ErrorText(state)
     PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
 }

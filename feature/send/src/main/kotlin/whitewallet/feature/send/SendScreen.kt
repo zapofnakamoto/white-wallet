@@ -79,18 +79,18 @@ fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, onClaim: (String) ->
         onDone = onDone,
         actions =
             SendActions(
-                viewModel::onInputChange,
-                viewModel::startScan,
-                viewModel::stopScan,
-                viewModel::onScanned,
-                viewModel::check,
-                viewModel::onAmountChange,
-                viewModel::onCommentChange,
-                viewModel::pay,
-                viewModel::edit,
+                onInputChange = viewModel::onInputChange,
+                onStartScan = viewModel::startScan,
+                onStopScan = viewModel::stopScan,
+                onScanned = viewModel::onScanned,
+                onCheck = viewModel::check,
+                onAmountChange = viewModel::onAmountChange,
+                onCommentChange = viewModel::onCommentChange,
+                onPay = viewModel::pay,
+                onEdit = viewModel::edit,
                 onCreateNote,
-                viewModel::invoiceFromFaucet,
-                viewModel::sendMore,
+                onFaucet = viewModel::invoiceFromFaucet,
+                onSendMore = viewModel::sendMore,
             ),
     )
 }
@@ -120,15 +120,15 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
         if (paid != null) {
             val to = state.preview?.payee
             SuccessScreen(
-                Anchor.SendSuccess,
-                WalletStatus.Sent(paid.amountMsat),
-                stringResource(R.string.send_paid_title),
+                anchor = Anchor.SendSuccess,
+                status = WalletStatus.Sent(paid.amountMsat),
+                title = stringResource(R.string.send_paid_title),
                 paid.amountMsat,
-                stringResource(R.string.send_done),
+                doneLabel = stringResource(R.string.send_done),
                 onDone,
-                stringResource(R.string.send_more),
-                actions.onSendMore,
-                Modifier.padding(padding),
+                moreLabel = stringResource(R.string.send_more),
+                onMore = actions.onSendMore,
+                modifier = Modifier.padding(padding),
                 details =
                     listOfNotNull(
                         to?.let { stringResource(R.string.send_success_to, it) },

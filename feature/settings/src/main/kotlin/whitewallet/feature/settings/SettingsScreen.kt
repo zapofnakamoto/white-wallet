@@ -110,9 +110,9 @@ private fun Hub(
     state.accountName?.let { name ->
         val (status, color) = addressSummary(state.addressStatus)
         SummaryRow(
-            { WalletAccountMark(name, state.accountPlace) },
-            stringResource(R.string.settings_account_section, name),
-            state.profile?.address ?: stringResource(R.string.settings_account_contents),
+            leading = { WalletAccountMark(name, state.accountPlace) },
+            title = stringResource(R.string.settings_account_section, name),
+            summary = state.profile?.address ?: stringResource(R.string.settings_account_contents),
             extra =
                 state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) }
                     ?: status.takeIf { color == MaterialTheme.colorScheme.error },
@@ -169,9 +169,9 @@ private fun Hub(
 @Composable
 private fun BackupWarning(onClick: () -> Unit) {
     SummaryRow(
-        pageIcon(DesignR.drawable.ic_warning, Tone.Danger),
-        stringResource(R.string.settings_backup_now),
-        stringResource(R.string.settings_backup_now_hint),
+        leading = pageIcon(DesignR.drawable.ic_warning, Tone.Danger),
+        title = stringResource(R.string.settings_backup_now),
+        summary = stringResource(R.string.settings_backup_now_hint),
         titleColor = MaterialTheme.colorScheme.error,
         onClick = onClick,
     )
@@ -213,8 +213,8 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
                         profile.address
                     }
                 SummaryRow(
-                    pageIcon(SettingsTarget.Addresses),
-                    stringResource(R.string.addresses_title),
+                    leading = pageIcon(SettingsTarget.Addresses),
+                    title = stringResource(R.string.addresses_title),
                     summary,
                     extra = status,
                     extraColor = color,
@@ -252,9 +252,9 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
             }
             if (SettingsTarget.Notes !in state.hidden) {
                 SummaryRow(
-                    pageIcon(SettingsTarget.Notes),
-                    stringResource(R.string.settings_notes),
-                    notesSummary(state),
+                    leading = pageIcon(SettingsTarget.Notes),
+                    title = stringResource(R.string.settings_notes),
+                    summary = notesSummary(state),
                     extra = state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) },
                     extraColor = MaterialTheme.colorScheme.error,
                 ) {

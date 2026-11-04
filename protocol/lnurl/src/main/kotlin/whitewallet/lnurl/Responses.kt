@@ -77,7 +77,14 @@ public sealed interface LnurlResponse {
             val max = obj.msat("maxSendable") ?: return null
             if (min > max) return null
             val commentAllowed = if ("commentAllowed" in obj) obj.msat("commentAllowed")?.toInt() ?: return null else null
-            return PayRequest(callback, min, max, obj.string("metadata") ?: "[]", commentAllowed, obj)
+            return PayRequest(
+                callback,
+                minSendable = min,
+                maxSendable = max,
+                metadata = obj.string("metadata") ?: "[]",
+                commentAllowed,
+                raw = obj,
+            )
         }
 
         private fun parseWithdraw(obj: JsonObject): WithdrawRequest? {
@@ -85,7 +92,14 @@ public sealed interface LnurlResponse {
             val max = obj.msat("maxWithdrawable") ?: return null
             val min = if ("minWithdrawable" in obj) obj.msat("minWithdrawable") ?: return null else 0
             if (min > max) return null
-            return WithdrawRequest(callback, obj.string("k1"), min, max, obj.string("defaultDescription"), obj)
+            return WithdrawRequest(
+                callback,
+                k1 = obj.string("k1"),
+                minWithdrawable = min,
+                maxWithdrawable = max,
+                defaultDescription = obj.string("defaultDescription"),
+                raw = obj,
+            )
         }
     }
 }

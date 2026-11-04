@@ -68,14 +68,14 @@ fun ClaimRoute(onBack: () -> Unit, onPay: (String) -> Unit = {}, viewModel: Clai
         ClaimScreen(
             state,
             onBack,
-            viewModel::onInputChange,
-            viewModel::check,
-            viewModel::claim,
-            viewModel::startScan,
-            viewModel::onScanned,
-            viewModel::stopScan,
-            viewModel::keep,
-            viewModel::takeBack,
+            onInputChange = viewModel::onInputChange,
+            onCheck = viewModel::check,
+            onClaim = viewModel::claim,
+            onStartScan = viewModel::startScan,
+            onScanned = viewModel::onScanned,
+            onStopScan = viewModel::stopScan,
+            onKeep = viewModel::keep,
+            onTakeBack = viewModel::takeBack,
         )
     }
 }
@@ -199,9 +199,9 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             WalletNoteFace(
-                NoteFaceSize.Large,
+                size = NoteFaceSize.Large,
                 preview.amountMsat,
-                Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 status = if (preview.certified) NoteStatus.Ready else NoteStatus.Uncertified,
                 mint = preview.link.host.takeIf { showMints },
                 trusted = preview.trusted,
@@ -247,9 +247,9 @@ private fun OwnCard(preview: ClaimPreview.OwnShared) {
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             WalletNoteFace(
-                NoteFaceSize.Large,
+                size = NoteFaceSize.Large,
                 preview.amountMsat,
-                Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 status = NoteStatus.Waiting,
                 place = NoteFacePlace.Claim,
             )

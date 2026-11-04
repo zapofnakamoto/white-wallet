@@ -68,9 +68,9 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             WalletNoteFace(
-                NoteFaceSize.Large,
+                size = NoteFaceSize.Large,
                 note.amountMsat,
-                Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 status = noteStatus(note),
                 statusText = noteStatusText(noteStatus(note)),
                 age = recentTime(note.updatedAtMillis),

@@ -125,10 +125,10 @@ fun NotesSettingsRoute(onBack: () -> Unit, viewModel: NotesSettingsViewModel = h
     NotesSettingsScreen(
         state,
         onBack,
-        viewModel::setNoteStrategy,
-        viewModel::setAutoRotate,
-        CollectActions(viewModel::setCollectAtHome, viewModel::setCollectFeeCap),
-        viewModel::setNotices,
+        onNoteStrategy = viewModel::setNoteStrategy,
+        onAutoRotate = viewModel::setAutoRotate,
+        collect = CollectActions(viewModel::setCollectAtHome, viewModel::setCollectFeeCap),
+        onNotices = viewModel::setNotices,
     )
 }
 

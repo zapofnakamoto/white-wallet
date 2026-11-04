@@ -54,7 +54,13 @@ public object BearerNote {
     /** The full `cw1` spend for [preimage]: the leaf, its control block, witness `[preimage]`, no time claim. */
     public fun cw1(preimage: ByteVector32): Cw1 {
         val h = hash(preimage)
-        return Cw1(0, CanonicalSpend.DEFAULT_SEQUENCE, leaf(h), controlBlock(h), listOf(preimage))
+        return Cw1(
+            lockTime = 0,
+            sequence = CanonicalSpend.DEFAULT_SEQUENCE,
+            script = leaf(h),
+            controlBlock = controlBlock(h),
+            witness = listOf(preimage),
+        )
     }
 
     /** Resolves a `cp1` or the `cp1` short form (hex `h`) to `Q`. */

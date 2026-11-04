@@ -54,8 +54,8 @@ class DeleteWalletViewModel @Inject constructor(private val wallet: Wallet) : Vi
                 DeleteWalletState(
                     account?.profile,
                     account?.account?.host,
-                    balance,
-                    backedUp,
+                    balanceMsat = balance,
+                    backupVerified = backedUp,
                     l.unresolved,
                     l.acknowledged,
                     l.confirming,

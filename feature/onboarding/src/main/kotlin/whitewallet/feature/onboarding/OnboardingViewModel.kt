@@ -173,8 +173,8 @@ constructor(
     private val _state =
         MutableStateFlow(
             OnboardingState(
-                UsernameSuggestions.random(),
-                defaults.defaultMintHost,
+                username = UsernameSuggestions.random(),
+                host = defaults.defaultMintHost,
                 canChangeHost = true,
                 withAddress = defaults.address != AddressPolicy.None,
                 canSkipAddress = defaults.address == AddressPolicy.Optional,

@@ -118,8 +118,8 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
                     ui.busy,
                     ui.confirm,
                     ui.message,
-                    home,
-                    defaults.allowMintChange && defaults.otherMintsAllowed(home),
+                    homeHost = home,
+                    otherMints = defaults.allowMintChange && defaults.otherMintsAllowed(home),
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState())
@@ -205,10 +205,10 @@ fun AddressesRoute(
         onBack,
         onAdd,
         onChangePrimary,
-        viewModel::checkAll,
-        AddressActions(viewModel::check, viewModel::makePrimary, viewModel::askUnregister),
-        viewModel::confirmUnregister,
-        viewModel::dismissUnregister,
+        onCheckAll = viewModel::checkAll,
+        actions = AddressActions(viewModel::check, viewModel::makePrimary, viewModel::askUnregister),
+        onConfirmUnregister = viewModel::confirmUnregister,
+        onDismissUnregister = viewModel::dismissUnregister,
         onAddElsewhere,
     )
 }

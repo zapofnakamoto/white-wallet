@@ -49,11 +49,11 @@ fun RestoreRoute(
         RestoreScreen(
             state,
             onBack,
-            viewModel::onPhraseChange,
-            viewModel::onAccountNameChange,
-            MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange),
-            viewModel::restore,
-            viewModel::useTestPhrase,
+            onPhraseChange = viewModel::onPhraseChange,
+            onAccountNameChange = viewModel::onAccountNameChange,
+            mint = MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange),
+            onRestore = viewModel::restore,
+            onUseTestPhrase = viewModel::useTestPhrase,
         )
     }
 }
@@ -98,7 +98,8 @@ fun RestoreScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            if (state.showMintPicker) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
+            if (state.showMintPicker)
+                MintPicker(options = state.mintOptions, selected = state.selectedMint, state.customHost, state.busy, mint)
             state.error?.let { error ->
                 val message =
                     when (error) {
