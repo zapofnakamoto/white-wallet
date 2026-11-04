@@ -49,6 +49,7 @@ import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletTheme
 import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.BackupRequired
 import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.Wallet
@@ -126,6 +127,7 @@ class MainActivity : FragmentActivity() {
                                 brand = BrandScreens(brandScreens),
                                 showNotesTab = defaults.notesView == NotesView.Tab,
                                 addressAfterRestore = defaults.address != AddressPolicy.None,
+                                backupAtSetup = defaults.backupRequired == BackupRequired.Setup,
                                 onIncomingHandled = { incoming.value = null },
                             )
                         }
@@ -195,6 +197,10 @@ internal object Routes {
     const val SETTINGS = "settings"
     const val ACCOUNT_SETTINGS = "settings/account"
     const val BACKUP = "backup"
+    const val BACKUP_AT_SETUP = "backup/setup?next={next}"
+
+    fun backupAtSetup(next: String?) = if (next == null) "backup/setup" else "backup/setup?next=${Uri.encode(next)}"
+
     const val CHANGE_ADDRESS = "address"
     const val ADDRESSES = "addresses"
     /** Note settings (strategy, collecting, auto-rotate). */
@@ -238,6 +244,7 @@ private fun WalletApp(
     brand: BrandScreens,
     showNotesTab: Boolean,
     addressAfterRestore: Boolean,
+    backupAtSetup: Boolean,
     onIncomingHandled: () -> Unit,
     start: StartViewModel = hiltViewModel(),
 ) {
@@ -275,8 +282,10 @@ private fun WalletApp(
                 appName = appName,
                 logo = { Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null) },
                 // The brand's welcome page, if it has one, comes between setup and the wallet.
+                // With backup.required=setup, the new account's backup comes first.
                 onDone = {
-                    nav.navigate(brand.afterOnboarding?.let { Routes.brand(it.id) } ?: Routes.HOME) {
+                    val next = brand.afterOnboarding?.let { Routes.brand(it.id) } ?: Routes.HOME
+                    nav.navigate(if (backupAtSetup) Routes.backupAtSetup(next) else next) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
                     }
                 },
@@ -355,7 +364,11 @@ private fun WalletApp(
             OnboardingRoute(
                 appName,
                 logo = {},
-                onDone = { nav.popBackStack() },
+                onDone = {
+                    if (backupAtSetup)
+                        nav.navigate(Routes.backupAtSetup(next = null)) { popUpTo(Routes.NEW_ACCOUNT_ON) { inclusive = true } }
+                    else nav.popBackStack()
+                },
                 mode = OnboardingMode.NewAccount,
                 onBack = { nav.popBackStack() },
                 presetHost = entry.arguments?.getString("host"),
@@ -559,6 +572,27 @@ private fun WalletApp(
         }
         composable(Routes.BACKUP) {
             BackupRoute(onDone = { nav.popBackStack() })
+        }
+        // A new account's backup during setup: no way back, then on to [next] (the wallet, or the brand's welcome page), or back where
+        // "Add account" was opened.
+        composable(
+            Routes.BACKUP_AT_SETUP,
+            arguments =
+                listOf(
+                    navArgument("next") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) { entry ->
+            val next = entry.arguments?.getString("next")
+            BackupRoute(
+                required = true,
+                onDone = {
+                    if (next == null) nav.popBackStack() else nav.navigate(next) { popUpTo(Routes.BACKUP_AT_SETUP) { inclusive = true } }
+                },
+            )
         }
         composable(Routes.BRAND, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
             val screen = brand.byId.getValue(checkNotNull(entry.arguments?.getString("id")))

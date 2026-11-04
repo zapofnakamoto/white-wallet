@@ -22,7 +22,7 @@ Then edit the brand-term strings and `zapstore.yaml`, and see §4 to sign and pu
 
 ## 1. `brand/brand.properties`
 
-Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `accounts.*`, `addresses.*`, `amounts.*`, `notes.*`, `history.*`, `developer.*`. A key with two values reads as a statement (`mints.visible=true`); one with more lists them. A brand still using a key from before the grouping (`appName`, `showMints`, …) fails the build with its new name.
+Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `accounts.*`, `addresses.*`, `amounts.*`, `notes.*`, `history.*`, `backup.*`, `security.*`, `network.*`, `sync.*`, `developer.*`. A key with two values reads as a statement (`mints.visible=true`); one with more lists them. A brand still using a key from before the grouping (`appName`, `showMints`, …) fails the build with its new name.
 
 | Key | Effect |
 |---|---|
@@ -50,8 +50,25 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 | `notes.collect.feeCap` | The default fee cap for those moves, in percent of what is moved (default `2`). Users pick 1, 2, 5 or 10 % |
 | `notes.maintenance.notices` | A short message on the home screen when the wallet changed the notes by itself: combined, split or renewed them, or moved them to the home mint ("Combined 2 notes into one of ₿63. You got ₿1 in fees back."), with Details opening History's note maintenance. It shows while the home screen is up; after a claim or a payment, whose own screen says what happened, only if the balance changed. `hidden` = never, `off` = a switch under Note settings that starts off, `on` (default) = a switch that starts on, `always` = always, no switch |
 | `notes.maintenance.notices.whenNotesHidden` | With `notes.view=hidden`, users don't know about notes: `true` (default) tells them what the balance did ("You got ₿1 in fees back."), and about moves to the home mint while mints are visible; `false` tells them nothing |
+| `notes.collect.feeCaps` | The fee caps users pick from for collecting, in percent, comma-separated (default `1,2,5,10`). An account's own cap, or `notes.collect.feeCap`, stays selectable even if not listed |
+| `notes.collect.retryAfter` | How long collecting leaves a mint alone after a move from it failed (default `1h`, from `1m` to `7d`). See "Timings" |
+| `notes.received.giveUpAfter` | How long a received note its mint keeps refusing (for a reason other than spent, unknown or locked) is tried again before it's given up and can be removed (default `7d`, from `1h` to `90d`). The note says how long it was tried |
 | `history.filter` | Filters on the History tab: `types` (default) = chips for received, sent, moved and note maintenance; `maintenance` = one chip that shows or hides note maintenance; `none` = no filters, and note maintenance stays hidden |
+| `backup.required` | `never` (default): Home reminds users to write down their recovery phrase. `setup`: right after a new account is set up (at first start and with "Add account"), its phrase is shown and checked before the wallet opens, with no way back and no "Not now"; on a phone without a screen lock users may still skip it, and Home's reminder stays. A restored account is never asked |
+| `backup.reminder.above` | Home's backup reminder shows once the balance is above this many sats (default `0`: as soon as there is money) |
+| `security.appLock` | The app lock under Settings → Security, which asks for the phone's own lock (fingerprint, face or screen lock) when the app opens: `off` (default) = users may switch it on, `on` = it starts on for a new install and users may switch it off, `always` = always on, no switch (Security says so). A phone without a screen lock still opens the app: there is nothing to ask for |
+| `security.appLock.relockAfter` | How long the app may be in the background before the lock asks again (default `30s`, from `0s` = every time, to `1h`). Security's hint names it |
+| `security.clipboard.clearAfter` | When a copied secret (the recovery phrase, a note's link, a watch-only key) is cleared from the clipboard, unless something else was copied since (default `60s`, from `10s` to `10m`). The backup screen names it |
+| `network.timeout.connect`, `network.timeout.read` | Connecting to a mint, and waiting for its answer (defaults `15s`, from `1s` to `2m`, and `30s`, from `1s` to `5m`). A mutation is never resent on a timeout; the wallet asks the mint what happened instead |
+| `sync.background` | How often the wallet refreshes in the background, while the phone has a network (default `15m`, Android's minimum, which is also the lowest allowed) |
+| `sync.receive`, `sync.invoice` | While Receive is open: how often it refreshes, for payments to the address (default `15s`, `1s` to `5m`), and how often it asks whether its invoice was paid (default `3s`, `1s` to `1m`) |
+| `sync.sharedNote` | While a handed-out note's page is open, how often it asks whether the note was claimed (default `10s`, `1s` to `5m`) |
+| `sync.paymentWait` | How long a payment is waited for before it shows as pending; it settles by itself later (default `30s`, `5s` to `5m`) |
 | `developer.options` | Developer options in Settings (developer mode, request log, derived keys): `shown` (default) = always; `unlock` = hidden until the user taps the version in Settings → About seven times, as on Android itself; `hidden` = never in release builds. A debug build treats `hidden` as `unlock`, and starts with developer mode on, so the options show there anyway |
+
+### Timings
+
+Durations are a whole number with its unit: `500ms`, `30s`, `15m`, `1h`, `7d`. Each key has a range, and a value outside it, or one without a unit, fails the build with the key's name and its limits. The defaults are what White Wallet ships with; shorter polling means quicker updates on screen and more requests to the mint. What the wallet must keep to stay safe and restorable (the gaps a restore scans, how long a lost payment answer is waited for, that mutations are never resent) is not configurable.
 
 ### Which mints users can use
 

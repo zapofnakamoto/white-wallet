@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -38,22 +39,27 @@ import kotlinx.coroutines.flow.stateIn
 import whitewallet.brand.ui.Anchor
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.AppLockPolicy
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.feature.settings.DeviceAuth
 
 /**
- * The optional app lock (Settings → Security): while on, the app asks for the phone's own lock when it starts and when it comes back after
- * [RELOCK_AFTER_MILLIS] in the background. The wallet stays composed underneath (so navigation and incoming links survive) but is hidden,
- * also from accessibility services, until unlocked.
+ * The app lock (Settings → Security, or always on with the brand's `security.appLock=always`): while on, the app asks for the phone's own
+ * lock when it starts and when it comes back after the brand's `security.appLock.relockAfter` in the background. The wallet stays composed
+ * underneath (so navigation and incoming links survive) but is hidden, also from accessibility services, until unlocked.
  */
 @HiltViewModel
-class AppLockViewModel @Inject constructor(preferences: AppPreferences) : ViewModel() {
+class AppLockViewModel @Inject constructor(preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
+    private val relockAfterMillis = defaults.timings.relockAfterMillis
+    private val always = defaults.appLock == AppLockPolicy.Always
     private val unlocked = MutableStateFlow(false)
     private var backgroundSince: Long? = null
 
     /** Null until the setting is known, so nothing of the wallet flashes before the lock. */
     val locked: StateFlow<Boolean?> =
-        combine(preferences.appLock, unlocked) { enabled, open -> enabled && !open }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        combine(preferences.appLock, unlocked) { enabled, open -> (always || enabled) && !open }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun unlock() {
         unlocked.value = true
@@ -66,11 +72,7 @@ class AppLockViewModel @Inject constructor(preferences: AppPreferences) : ViewMo
     fun onStart() {
         val since = backgroundSince ?: return
         backgroundSince = null
-        if (SystemClock.elapsedRealtime() - since >= RELOCK_AFTER_MILLIS) unlocked.value = false
-    }
-
-    private companion object {
-        const val RELOCK_AFTER_MILLIS = 30_000L
+        if (SystemClock.elapsedRealtime() - since >= relockAfterMillis) unlocked.value = false
     }
 }
 
@@ -83,7 +85,10 @@ fun AppLockGate(appName: String, viewModel: AppLockViewModel = hiltViewModel(), 
         Box(if (locked != false) Modifier.clearAndSetSemantics {} else Modifier) { content() }
         when (locked) {
             null -> Surface(Modifier.fillMaxSize()) {}
-            true -> LockScreen(appName, viewModel::unlock)
+            // Without a screen lock on the phone there is nothing to ask for: the app opens rather than locking its owner out.
+            true ->
+                if (DeviceAuth.isAvailable(LocalContext.current)) LockScreen(appName, viewModel::unlock)
+                else LaunchedEffect(Unit) { viewModel.unlock() }
             false -> Unit
         }
     }

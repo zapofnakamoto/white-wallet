@@ -146,7 +146,7 @@ class HomeViewModel(
                     balanceMsat = balance,
                     profile = profile,
                     activity = activity,
-                    showBackupPrompt = balance > 0 && !backedUp && !s.backupPromptDismissed,
+                    showBackupPrompt = defaults.remindBackup(balance) && !backedUp && !s.backupPromptDismissed,
                     balanceHidden = hidden,
                     canAddAccount = accounts.size < wallet.maxAccounts,
                     showAccounts = wallet.maxAccounts > 1 || accounts.size > 1,

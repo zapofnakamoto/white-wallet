@@ -7,12 +7,15 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.AppLockPolicy
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.wallet.BackupRequired
 import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.DeveloperOptions
 import whitewallet.core.wallet.HistoryFilterOption
@@ -26,6 +29,7 @@ import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.SeedStore
 import whitewallet.core.wallet.SingleNoteStrategy
+import whitewallet.core.wallet.Timings
 import whitewallet.core.wallet.TrustedMints
 import whitewallet.core.wallet.Wallet
 import whitewallet.core.wallet.WalletStore
@@ -52,6 +56,8 @@ object WalletModule {
         LnurlcashClient(
             LnurlcashClient.defaultHttpClient()
                 .newBuilder()
+                .connectTimeout(BuildConfig.CONNECT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                .readTimeout(BuildConfig.READ_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
                 .addInterceptor(log.interceptor())
                 .addInterceptor(conditions.interceptor())
                 .build()
@@ -78,8 +84,16 @@ object WalletModule {
             brandTrusted = TrustedMints.parse(BuildConfig.TRUSTED_MINTS),
             maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
             requireAddress = AddressPolicy.fromConfig(BuildConfig.LIGHTNING_ADDRESS) == AddressPolicy.Required,
-            collectDefaults = CollectDefaults.fromConfig(BuildConfig.COLLECT_AT_HOME_MINT, BuildConfig.COLLECT_FEE_CAP),
+            collectDefaults =
+                CollectDefaults.fromConfig(
+                    BuildConfig.COLLECT_AT_HOME_MINT,
+                    BuildConfig.COLLECT_FEE_CAP,
+                    BuildConfig.COLLECT_FEE_CAPS,
+                    BuildConfig.COLLECT_RETRY_MILLIS,
+                ),
             onWaitingForNetwork = { SyncWorker.scheduleOnce(context) },
+            payWaitMillis = BuildConfig.SYNC_PAYMENT_WAIT_MILLIS,
+            receivedGiveUpMillis = BuildConfig.RECEIVED_GIVE_UP_MILLIS,
         )
 
     /** dev/regtest's faucet in debug builds; without a host (release) it pays nothing. */
@@ -129,5 +143,16 @@ object WalletModule {
             noteActions = NoteAction.fromConfig(BuildConfig.NOTE_ACTIONS, BuildConfig.SHOW_MINTS),
             developerOptions = DeveloperOptions.fromConfig(BuildConfig.DEVELOPER_OPTIONS, debug = BuildConfig.DEBUG),
             releaseStage = releaseStageFromConfig(BuildConfig.RELEASE_STAGE, BuildConfig.VERSION_NAME),
+            timings =
+                Timings(
+                    receivePollMillis = BuildConfig.SYNC_RECEIVE_MILLIS,
+                    invoicePollMillis = BuildConfig.SYNC_INVOICE_MILLIS,
+                    sharedNotePollMillis = BuildConfig.SYNC_SHARED_NOTE_MILLIS,
+                    clipboardClearMillis = BuildConfig.CLIPBOARD_CLEAR_MILLIS,
+                    relockAfterMillis = BuildConfig.RELOCK_AFTER_MILLIS,
+                ),
+            appLock = AppLockPolicy.fromConfig(BuildConfig.APP_LOCK),
+            backupRequired = BackupRequired.fromConfig(BuildConfig.BACKUP_REQUIRED),
+            backupReminderAboveMsat = BuildConfig.BACKUP_REMINDER_ABOVE_SAT * 1_000,
         )
 }

@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.model.ReceivedNote
@@ -22,8 +23,19 @@ fun receivedNoteStatus(note: ReceivedNote): String =
         ReceivedState.Claiming -> stringResource(R.string.received_claiming)
         ReceivedState.Claimed -> stringResource(R.string.received_claimed)
         ReceivedState.Gone -> stringResource(R.string.received_gone)
-        ReceivedState.Refused -> stringResource(R.string.received_refused)
+        ReceivedState.Refused -> refused(note)
     }
+
+/** How long its mint refused it before the wallet gave up (the brand's `notes.received.giveUpAfter`, as it was then). */
+@Composable
+private fun refused(note: ReceivedNote): String {
+    val since = note.refusedSinceMillis ?: return stringResource(R.string.received_refused)
+    val tried = WholeDuration.atLeast(note.updatedAtMillis - since, listOf(WholeDuration.Unit.Hours, WholeDuration.Unit.Days))
+    return when (tried.unit) {
+        WholeDuration.Unit.Days -> pluralStringResource(R.plurals.received_refused_days, tried.count, tried.count)
+        else -> pluralStringResource(R.plurals.received_refused_hours, tried.count, tried.count)
+    }
+}
 
 /**
  * A received note in a list: what it is worth as far as known (not with [amountHidden]), on which mint ([showMint]), and where it stands.

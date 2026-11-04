@@ -213,6 +213,10 @@ data class SharedNoteUiState(
 @HiltViewModel
 class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) :
     ViewModel() {
+    private val pollMillis = defaults.timings.sharedNotePollMillis
+
+    /** How soon a copied link is cleared from the clipboard. */
+    val clipboardClearMillis = defaults.timings.clipboardClearMillis
     private val id: String = checkNotNull(savedState["id"])
     private val _state = MutableStateFlow(SharedNoteUiState(canPrint = NoteAction.Print in defaults.noteActions))
     val state: StateFlow<SharedNoteUiState> = _state
@@ -222,7 +226,7 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
             _state.update { it.copy(note = wallet.sharedNote(id), loading = false) }
             // While the screen is open, notice when the recipient claims it.
             while (_state.value.note?.state == SharedNoteState.Waiting) {
-                delay(CHECK_EVERY_MILLIS)
+                delay(pollMillis)
                 if (_state.value.reclaiming) continue
                 wallet.checkSharedNote(id)?.let { note -> _state.update { it.copy(note = note) } }
             }
@@ -249,10 +253,6 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
             }
         }
     }
-
-    private companion object {
-        const val CHECK_EVERY_MILLIS = 10_000L
-    }
 }
 
 /** A sent note: its QR code and link while nobody has claimed it (share, copy, take back), else where it ended up. */
@@ -270,7 +270,7 @@ fun SharedNoteRoute(onBack: () -> Unit, viewModel: SharedNoteViewModel = hiltVie
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link)
                 context.startActivity(Intent.createChooser(send, shareTitle))
             },
-            onCopy = { link -> SensitiveClipboard.copy(context, "note", link) },
+            onCopy = { link -> SensitiveClipboard.copy(context, "note", link, viewModel.clipboardClearMillis) },
             onPrint = { page -> printBitmap(context, printJob, page) },
             onAskReclaim = viewModel::askReclaim,
             onDismissReclaim = viewModel::dismissReclaim,

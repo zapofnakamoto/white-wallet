@@ -4,9 +4,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -16,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.model.Mint
 import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.MintDetails
@@ -102,6 +105,59 @@ class SettingsScreensTest {
         compose.setContent { SecuritySettingsScreen(appLock = false, available = false, onBack = {}, onAppLock = {}) }
         compose.onNodeWithText(text(R.string.security_no_screen_lock)).assertExists()
         compose.onNode(isToggleable()).assertIsNotEnabled()
+    }
+
+    @Test
+    fun theHintSaysWhenTheLockAsksAgain() {
+        compose.setContent {
+            SecuritySettingsScreen(appLock = false, available = true, onBack = {}, relockAfterMillis = 120_000, onAppLock = {})
+        }
+        compose
+            .onNodeWithText("Ask for your fingerprint, face or screen lock when opening the app, and when returning to it after 2 minutes.")
+            .assertExists()
+        compose.onNode(isToggleable()).assertIsEnabled()
+    }
+
+    @Test
+    fun aLockTheBrandAlwaysWantsHasNoSwitch() {
+        compose.setContent {
+            SecuritySettingsScreen(appLock = false, available = true, onBack = {}, always = true, relockAfterMillis = 0, onAppLock = {})
+        }
+        compose.onNodeWithText(text(R.string.security_app_lock_hint_always)).assertExists()
+        compose.onNodeWithText(text(R.string.security_app_lock_on_always)).assertExists()
+        compose.onNode(isToggleable()).assertDoesNotExist()
+    }
+
+    @Test
+    fun aBackupDuringSetupCantBeLeft() {
+        var left = false
+        compose.setContent {
+            BackupScreen(BackupState(), onBack = { left = true }, {}, {}, {}, {}, {}, {}, required = true)
+        }
+        compose.onNodeWithText(text(R.string.backup_show)).assertExists()
+        compose.onNodeWithText(text(R.string.backup_not_now)).assertDoesNotExist()
+        compose.onNodeWithContentDescription(text(DesignR.string.back), substring = true, ignoreCase = true).assertDoesNotExist()
+        assertEquals(false, left)
+    }
+
+    @Test
+    fun theCopiedPhraseSaysWhenTheClipboardIsCleared() {
+        compose.setContent {
+            BackupScreen(
+                BackupState(step = BackupStep.Display(List(12) { "word$it" }), clipboardClearMillis = 30_000),
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+                {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.backup_copy)).performScrollTo().performClick()
+        compose
+            .onNodeWithText("Writing the words down is safer. The clipboard is cleared after 30 seconds.", substring = true)
+            .assertExists()
     }
 
     @Test

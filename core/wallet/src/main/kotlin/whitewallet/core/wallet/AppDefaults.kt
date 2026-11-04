@@ -126,6 +126,56 @@ enum class AddressPolicy {
     }
 }
 
+/** Whether the app asks for the phone's lock when it opens (brand `security.appLock`). */
+enum class AppLockPolicy {
+    /** Users may switch it on under Settings → Security; it starts off. */
+    Off,
+
+    /** Users may switch it off; it starts on. */
+    On,
+
+    /** Always on, no switch. A phone without a screen lock still opens the app: there is nothing to ask for. */
+    Always;
+
+    /** Whether it is on until the user chooses. */
+    val onByDefault: Boolean
+        get() = this != Off
+
+    companion object {
+        fun fromConfig(value: String): AppLockPolicy = configEnum("security.appLock", value)
+    }
+}
+
+/** When a new account's recovery phrase must be written down and checked (brand `backup.required`). */
+enum class BackupRequired {
+    /** Never; Home reminds users once they hold money. */
+    Never,
+
+    /** Right after setting up a new account, before the wallet opens. A restored account is backed up already. */
+    Setup;
+
+    companion object {
+        fun fromConfig(value: String): BackupRequired = configEnum("backup.required", value)
+    }
+}
+
+/**
+ * How often screens ask the mints while they are open, when a copied secret is cleared and when the app lock asks again (brand `sync.*`,
+ * `security.clipboard.clearAfter`, `security.appLock.relockAfter`).
+ */
+data class Timings(
+    /** Receive refreshes the wallet, for payments to the address. */
+    val receivePollMillis: Long = 15_000L,
+    /** Receive asks whether its invoice was paid. */
+    val invoicePollMillis: Long = 3_000L,
+    /** A handed-out note's page asks whether it was claimed. */
+    val sharedNotePollMillis: Long = 10_000L,
+    /** A secret copied to the clipboard is cleared, unless something else was copied since. */
+    val clipboardClearMillis: Long = 60_000L,
+    /** The app lock asks again when the app comes back after this long in the background; 0 = every time. */
+    val relockAfterMillis: Long = 30_000L,
+)
+
 data class AppDefaults(
     /**
      * The mints offered at setup and restore (brand `mints.suggestions`), the first preselected; empty when users bring their own. Without
@@ -170,6 +220,14 @@ data class AppDefaults(
     val developerOptions: DeveloperOptions = DeveloperOptions.Shown,
     /** How finished the app is (brand `app.releaseStage`), shown at setup and in About unless [ReleaseStage.Stable]. */
     val releaseStage: ReleaseStage = ReleaseStage.Stable,
+    /** Screen polling, clipboard and app lock timing. */
+    val timings: Timings = Timings(),
+    /** Whether the app lock starts on, or is always on (brand `security.appLock`). */
+    val appLock: AppLockPolicy = AppLockPolicy.Off,
+    /** Whether setup makes users back up a new account's recovery phrase (brand `backup.required`). */
+    val backupRequired: BackupRequired = BackupRequired.Never,
+    /** Home reminds users to back up once the balance is above this (brand `backup.reminder.above`, in sats). */
+    val backupReminderAboveMsat: Long = 0,
 ) {
     init {
         require(mintSuggestions.isNotEmpty() || customMints) { "mints.suggestions is empty and mints.custom=false: no mint to set up with" }
@@ -207,6 +265,9 @@ data class AppDefaults(
             DeveloperOptions.Unlock -> unlocked || developerMode
             DeveloperOptions.Hidden -> false
         }
+
+    /** Whether Home reminds users to back up, at [balanceMsat] and not backed up yet: above the brand's `backup.reminder.above`. */
+    fun remindBackup(balanceMsat: Long): Boolean = balanceMsat > backupReminderAboveMsat
 
     /** The unit amounts are shown in: the user's [chosen] one if the brand lets them choose, else the brand's. */
     fun amountUnit(chosen: AmountUnit?): AmountUnit = chosen?.takeIf { allowUnitChange } ?: defaultAmountUnit

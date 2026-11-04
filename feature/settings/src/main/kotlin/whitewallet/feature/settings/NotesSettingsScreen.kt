@@ -39,7 +39,6 @@ import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.AppDefaults
-import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
@@ -55,6 +54,8 @@ data class NotesSettingsState(
     /** Notes on other mints move to [homeHost] automatically, when the fee is at most [collectFeeCap] percent. */
     val collectAtHome: Boolean = false,
     val collectFeeCap: Int = 0,
+    /** The fee caps to pick from: the brand's, and [collectFeeCap] if it is another one. */
+    val collectFeeCaps: List<Int> = emptyList(),
     val homeHost: String? = null,
     val lastPolicyRun: PolicyRun? = null,
     /** A policy change is being applied (it may merge or rotate notes right away). */
@@ -87,6 +88,7 @@ class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet, pri
                     collectOffered = wallet.collectDefaults.offered,
                     collectAtHome = collect.first,
                     collectFeeCap = collect.second,
+                    collectFeeCaps = wallet.collectDefaults.feeCapChoices(collect.second),
                     homeHost = home.first,
                     noticesOffered = defaults.maintenanceNotices.offered,
                     notices = home.second,
@@ -228,7 +230,7 @@ private fun CollectSettings(state: NotesSettingsState, actions: CollectActions) 
         Column(Modifier.padding(horizontal = 16.dp)) {
             Text(stringResource(R.string.notes_collect_fee_cap), style = MaterialTheme.typography.bodyMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                (CollectDefaults.FEE_CAPS + state.collectFeeCap).distinct().sorted().forEach { percent ->
+                state.collectFeeCaps.forEach { percent ->
                     WalletFilterChip(
                         selected = percent == state.collectFeeCap,
                         onClick = { actions.onFeeCap(percent) },

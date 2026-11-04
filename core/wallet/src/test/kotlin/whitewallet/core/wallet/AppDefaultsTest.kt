@@ -89,4 +89,23 @@ class AppDefaultsTest {
         assertEquals(AddressPolicy.None, AddressPolicy.fromConfig(" None "))
         assertFailsWith<IllegalStateException> { AddressPolicy.fromConfig("true") }
     }
+
+    @Test
+    fun `the brand's app lock starts off, on, or is always on`() {
+        assertEquals(false, AppLockPolicy.fromConfig("off").onByDefault)
+        assertEquals(true, AppLockPolicy.fromConfig("On").onByDefault)
+        assertEquals(AppLockPolicy.Always, AppLockPolicy.fromConfig(" always "))
+        assertFailsWith<IllegalStateException> { AppLockPolicy.fromConfig("maybe") }
+    }
+
+    @Test
+    fun `Home reminds to back up above the brand's amount`() {
+        assertEquals(BackupRequired.Setup, BackupRequired.fromConfig("setup"))
+        assertFailsWith<IllegalStateException> { BackupRequired.fromConfig("always") }
+        assertEquals(false, defaults.remindBackup(0))
+        assertEquals(true, defaults.remindBackup(1_000))
+        val later = defaults.copy(backupReminderAboveMsat = 10_000_000)
+        assertEquals(false, later.remindBackup(10_000_000), "at the amount, not yet")
+        assertEquals(true, later.remindBackup(10_001_000))
+    }
 }

@@ -82,6 +82,9 @@ data class MintDetailsState(
 class MintDetailsViewModel
 @Inject
 constructor(private val wallet: Wallet, savedState: SavedStateHandle, private val defaults: AppDefaults) : ViewModel() {
+    /** How soon a copied key is cleared from the clipboard. */
+    val clipboardClearMillis = defaults.timings.clipboardClearMillis
+
     /** The mint to show: the route's `host`, else the account's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
     private val _state = MutableStateFlow(MintDetailsState(device = savedState.get<Boolean>("device") ?: false))
@@ -168,7 +171,7 @@ fun MintDetailsRoute(
         onBack,
         onRefresh = viewModel::refresh,
         onToggleWatchOnly = viewModel::toggleWatchOnly,
-        onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key) },
+        onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key, viewModel.clipboardClearMillis) },
         onAcceptKey = viewModel::acceptKey,
         onChangeHome = onChangeHome,
         onMoveMoney = onMoveMoney,

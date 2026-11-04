@@ -172,6 +172,34 @@ class CollectTest {
         }
 
     @Test
+    fun `a brand sets how long a failed mint is left alone`() =
+        withMint("--meltAlwaysFails", defaults = CollectDefaults(retryAfterMillis = 5 * 60_000L)) {
+            fund(30)
+            NotesTest.TargetMint(feeMsat = 0, mints = false).use { home ->
+                moveHomeTo(home.host)
+                wallet.setCollectAtHome(true)
+                assertEquals(1, melts())
+                clock += 4 * 60_000L
+                wallet.refresh()
+                assertEquals(1, melts(), "four minutes on, still left alone")
+                clock += 2 * 60_000L
+                wallet.refresh()
+                assertEquals(2, melts(), "tried again after the brand's five minutes")
+            }
+        }
+
+    @Test
+    fun `a brand's fee caps to choose from, and its retry time`() {
+        val brand = CollectDefaults.fromConfig("on", 3, feeCaps = "1, 3,20", retryAfterMillis = 600_000L)
+        assertEquals(listOf(1, 3, 20), brand.feeCaps)
+        assertEquals(600_000L, brand.retryAfterMillis)
+        assertEquals(listOf(1, 3, 7, 20), brand.feeCapChoices(7), "an account's own cap stays selectable")
+        assertEquals(listOf(1, 2, 5, 10), CollectDefaults.fromConfig("off", 2).feeCaps)
+        assertFailsWith<IllegalArgumentException> { CollectDefaults(feeCaps = listOf(0, 2)) }
+        assertFailsWith<IllegalArgumentException> { CollectDefaults(feeCaps = emptyList()) }
+    }
+
+    @Test
     fun `a payment still unsettled on that mint holds collecting back`() = withMint {
         fund(30)
         NotesTest.TargetMint(feeMsat = 0).use { home ->

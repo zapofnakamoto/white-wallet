@@ -70,7 +70,10 @@ data class NotCollected(val host: String, val amountMsat: Long, val reason: Reas
     }
 }
 
-/** Collecting at the home mint as the brand configures it (brand `notes.collect.atHomeMint`, `notes.collect.feeCap`). */
+/**
+ * Collecting at the home mint as the brand configures it (brand `notes.collect.atHomeMint`, `notes.collect.feeCap`,
+ * `notes.collect.feeCaps`, `notes.collect.retryAfter`).
+ */
 data class CollectDefaults(
     /** Users see the option at all. */
     val offered: Boolean = true,
@@ -80,28 +83,45 @@ data class CollectDefaults(
     val feeCapPercent: Int = 2,
     /** Every account collects, and users have no switch for it ([offered] is false). */
     val always: Boolean = false,
+    /** The fee caps a user can pick from, in percent. */
+    val feeCaps: List<Int> = listOf(1, 2, 5, 10),
+    /** How long collecting leaves a mint alone after a move from it failed. */
+    val retryAfterMillis: Long = 60 * 60_000L,
 ) {
     init {
         require(feeCapPercent in 0..100) { "notes.collect.feeCap must be 0 to 100 (percent), not $feeCapPercent" }
+        require(feeCaps.isNotEmpty() && feeCaps.all { it in 1..100 }) { "notes.collect.feeCaps must be 1 to 100 (percent), not $feeCaps" }
         require(!(always && offered)) { "collecting always leaves nothing to offer" }
     }
 
     /** Whether an account collects, given its own choice (null if it never made one). */
     fun active(choice: Boolean?): Boolean = always || offered && (choice ?: enabled)
 
-    companion object {
-        /** The fee caps a user can pick from, in percent. */
-        val FEE_CAPS = listOf(1, 2, 5, 10)
+    /** The fee caps to pick from: the brand's, and [current] if it is another one. */
+    fun feeCapChoices(current: Int): List<Int> = (feeCaps + current).distinct().sorted()
 
-        /** `notes.collect.atHomeMint` = `hidden`, `off`, `on` or `always`. */
-        fun fromConfig(value: String, feeCapPercent: Int): CollectDefaults =
-            when (value.trim().lowercase()) {
-                "hidden" -> CollectDefaults(offered = false, enabled = false, feeCapPercent = feeCapPercent)
-                "off" -> CollectDefaults(offered = true, enabled = false, feeCapPercent = feeCapPercent)
-                "on" -> CollectDefaults(offered = true, enabled = true, feeCapPercent = feeCapPercent)
-                "always" -> CollectDefaults(offered = false, enabled = true, feeCapPercent = feeCapPercent, always = true)
+    companion object {
+        /**
+         * `notes.collect.atHomeMint` = `hidden`, `off`, `on` or `always`; [feeCaps] comma-separated (`notes.collect.feeCaps`), null for the
+         * default ones.
+         */
+        fun fromConfig(
+            value: String,
+            feeCapPercent: Int,
+            feeCaps: String? = null,
+            retryAfterMillis: Long = CollectDefaults().retryAfterMillis,
+        ): CollectDefaults {
+            val caps = feeCaps?.split(',')?.map { it.trim().toInt() } ?: CollectDefaults().feeCaps
+            fun defaults(offered: Boolean, enabled: Boolean, always: Boolean = false) =
+                CollectDefaults(offered, enabled, feeCapPercent, always, caps, retryAfterMillis)
+            return when (value.trim().lowercase()) {
+                "hidden" -> defaults(offered = false, enabled = false)
+                "off" -> defaults(offered = true, enabled = false)
+                "on" -> defaults(offered = true, enabled = true)
+                "always" -> defaults(offered = false, enabled = true, always = true)
                 else -> error("notes.collect.atHomeMint must be hidden, off, on or always, not '$value'")
             }
+        }
     }
 }
 
@@ -329,8 +349,8 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     /**
      * Moves each other mint's outstanding notes to the home mint when the move costs at most the fee cap (what leaves that mint minus what
      * arrives at home, against what leaves). Skipped, without sending anything: a mint with a payment of the account still unsettled (a
-     * melt there, or any move's mint at home), and one whose last move failed less than [COLLECT_COOLDOWN_MILLIS] ago (never a retried
-     * payment in a loop).
+     * melt there, or any move's mint at home), and one whose last move failed less than [CollectDefaults.retryAfterMillis] ago (never a
+     * retried payment in a loop).
      */
     private suspend fun collect(accountId: String, policy: CollectPolicy, start: PolicyRun): PolicyRun {
         var run = start
@@ -367,7 +387,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
                                             // and so is one that refused a note it doesn't know (set aside now: the others can go).
                                             val setAside = notes.any { wallet.store.note(it.id)?.state == NoteState.Unknown }
                                             if (result.problem != NoteProblem.Unreachable && !setAside)
-                                                wallet.blockCollect(accountId, host, wallet.now() + COLLECT_COOLDOWN_MILLIS)
+                                                wallet.blockCollect(accountId, host, wallet.now() + wallet.collectDefaults.retryAfterMillis)
                                         }
                                 }
                         run.copy(notCollected = run.notCollected + NotCollected(host, total, reason))
@@ -391,8 +411,5 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
 
         /** Steps per mint and run: a strategy that never settles still ends. The next refresh continues. */
         const val MAX_ROUNDS = 50
-
-        /** How long collecting leaves a mint alone after a move from it failed. */
-        const val COLLECT_COOLDOWN_MILLIS = 60 * 60_000L
     }
 }

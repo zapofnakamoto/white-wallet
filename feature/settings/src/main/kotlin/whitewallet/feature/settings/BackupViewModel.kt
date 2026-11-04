@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.BackupQuiz
+import whitewallet.core.wallet.Timings
 import whitewallet.core.wallet.Wallet
 
 /** The steps of the recovery phrase backup, following the Bitcoin Design Guide's manual backup flow. */
@@ -31,11 +33,13 @@ data class BackupState(
     val alreadyVerified: Boolean = false,
     /** Addresses a restore can't find by itself (not seed-derived), to write down next to the words. */
     val addressesToWriteDown: List<String> = emptyList(),
+    /** How soon copied words are cleared from the clipboard (brand `security.clipboard.clearAfter`). */
+    val clipboardClearMillis: Long = Timings().clipboardClearMillis,
 )
 
 @HiltViewModel
-class BackupViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
-    private val _state = MutableStateFlow(BackupState())
+class BackupViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {
+    private val _state = MutableStateFlow(initial())
     val state: StateFlow<BackupState> = _state
     private var quiz: BackupQuiz? = null
 
@@ -84,8 +88,10 @@ class BackupViewModel @Inject constructor(private val wallet: Wallet) : ViewMode
         }
     }
 
+    private fun initial() = BackupState(clipboardClearMillis = defaults.timings.clipboardClearMillis)
+
     override fun onCleared() {
         quiz = null
-        _state.value = BackupState()
+        _state.value = initial()
     }
 }

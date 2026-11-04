@@ -25,3 +25,29 @@ fun recentTime(millis: Long, now: Long = System.currentTimeMillis()): String {
         }
     return localTime(millis, skeleton)
 }
+
+/**
+ * A duration as a count of one unit, for a sentence that has a plural per unit (so translations never assemble a sentence from a unit
+ * word). [exact]: the largest unit it is a whole number of, for a brand's configured duration; [atLeast]: the largest unit it reaches,
+ * rounded down, for a time that passed.
+ */
+data class WholeDuration(val unit: Unit, val count: Int) {
+    enum class Unit(val millis: Long) {
+        Seconds(1_000),
+        Minutes(60_000),
+        Hours(3_600_000),
+        Days(86_400_000),
+    }
+
+    companion object {
+        fun exact(millis: Long, units: List<Unit> = Unit.entries): WholeDuration {
+            val unit = units.sortedDescending().firstOrNull { millis % it.millis == 0L } ?: units.min()
+            return WholeDuration(unit, ((millis + unit.millis - 1) / unit.millis).toInt())
+        }
+
+        fun atLeast(millis: Long, units: List<Unit> = Unit.entries): WholeDuration {
+            val unit = units.sortedDescending().firstOrNull { millis >= it.millis } ?: units.min()
+            return WholeDuration(unit, (millis / unit.millis).toInt().coerceAtLeast(1))
+        }
+    }
+}

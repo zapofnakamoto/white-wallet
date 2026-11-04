@@ -10,6 +10,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.Collected
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.NotCollected
@@ -26,13 +27,14 @@ class CollectSettingsTest {
         NotesSettingsScreen(state, onBack = {}, onNoteStrategy = {}, onAutoRotate = {}, collect = collect)
     }
 
-    private fun state(collect: Boolean, run: PolicyRun? = null, offered: Boolean = true) =
+    private fun state(collect: Boolean, run: PolicyRun? = null, offered: Boolean = true, defaults: CollectDefaults = CollectDefaults()) =
         NotesSettingsState(
             noteStrategy = manual,
             strategies = listOf(manual),
             collectOffered = offered,
             collectAtHome = collect,
             collectFeeCap = 2,
+            collectFeeCaps = defaults.feeCapChoices(2),
             homeHost = "home.example",
             lastPolicyRun = run,
         )
@@ -44,6 +46,13 @@ class CollectSettingsTest {
         compose.onNodeWithText(text(R.string.notes_collect_title, "home.example")).performScrollTo().assertExists()
         compose.onNodeWithText("5%").performScrollTo().performClick()
         assertEquals(5, cap)
+    }
+
+    @Test
+    fun theBrandsOwnCapsAndTheAccountsCurrentOne() {
+        show(state(collect = true, defaults = CollectDefaults(feeCaps = listOf(3, 20))))
+        listOf("2%", "3%", "20%").forEach { compose.onNodeWithText(it).performScrollTo().assertExists() }
+        compose.onNodeWithText("5%").assertDoesNotExist()
     }
 
     @Test

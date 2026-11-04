@@ -144,6 +144,7 @@ internal object Regtest {
         collectDefaults: CollectDefaults = CollectDefaults(),
         onWaitingForNetwork: () -> Unit = {},
         now: () -> Long = System::currentTimeMillis,
+        receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
     ): Phone {
         val store = InMemoryWalletStore()
         val wallet =
@@ -155,6 +156,7 @@ internal object Regtest {
                 collectDefaults = collectDefaults,
                 onWaitingForNetwork = onWaitingForNetwork,
                 now = now,
+                receivedGiveUpMillis = receivedGiveUpMillis,
             )
         val name = name()
         assertIs<OnboardResult.Ready>(wallet.onboard(name, host))

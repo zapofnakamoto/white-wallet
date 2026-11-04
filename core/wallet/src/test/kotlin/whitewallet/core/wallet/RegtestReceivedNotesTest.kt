@@ -382,7 +382,35 @@ class RegtestReceivedNotesTest {
             )
         }
 
+    @Test
+    fun `a brand gives up on a refused note sooner`() =
+        runBlocking<Unit> {
+            val link = aNote()
+            var now = System.currentTimeMillis()
+            val bob =
+                Regtest.phone(
+                    client =
+                        Regtest.client { chain ->
+                            if (chain.request().url.isMutation)
+                                Regtest.answer(chain, """{"status":"ERROR","reason":"service temporarily unavailable"}""")
+                            else chain.proceed(chain.request())
+                        },
+                    now = { now },
+                    receivedGiveUpMillis = 2 * HOUR,
+                )
+            val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+            assertIs<ClaimResult.Failed>(bob.wallet.claim(preview))
+
+            now += HOUR
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.Waiting, bob.wallet.receivedNotes.first().single().state, "an hour on, still tried")
+            now += HOUR
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.Refused, bob.wallet.receivedNotes.first().single().state, "given up after the brand's two hours")
+        }
+
     private companion object {
-        const val DAY = 24 * 60 * 60 * 1000L
+        const val HOUR = 60 * 60 * 1000L
+        const val DAY = 24 * HOUR
     }
 }

@@ -45,12 +45,13 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         private const val NAME = "sync"
         internal const val ONCE = "sync-once"
 
+        /** Every `sync.background` (brand). UPDATE, not KEEP: an update that changes the interval takes effect, without a fresh start. */
         fun schedule(context: Context) {
             val request =
-                PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES)
+                PeriodicWorkRequestBuilder<SyncWorker>(BuildConfig.SYNC_BACKGROUND_MILLIS, TimeUnit.MILLISECONDS)
                     .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                     .build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
         }
 
         /**

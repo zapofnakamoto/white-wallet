@@ -1,5 +1,6 @@
 package whitewallet.feature.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,9 +39,14 @@ import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletSuggestionChip
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.WholeDuration
 
+/**
+ * The recovery phrase backup. [required]: part of setting up a new account (brand `backup.required=setup`), so there is no way back and no
+ * "Not now", except on a phone without a screen lock, which can't be made to show the words safely.
+ */
 @Composable
-fun BackupRoute(onDone: () -> Unit, viewModel: BackupViewModel = hiltViewModel()) {
+fun BackupRoute(onDone: () -> Unit, required: Boolean = false, viewModel: BackupViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val activity = LocalActivity.current as? FragmentActivity
     val context = LocalContext.current
@@ -49,6 +55,7 @@ fun BackupRoute(onDone: () -> Unit, viewModel: BackupViewModel = hiltViewModel()
     BackupScreen(
         state = state,
         onBack = onDone,
+        required = required,
         onShow = {
             if (activity == null || !DeviceAuth.isAvailable(context)) {
                 viewModel.onNoScreenLock()
@@ -57,7 +64,7 @@ fun BackupRoute(onDone: () -> Unit, viewModel: BackupViewModel = hiltViewModel()
             }
         },
         onContinueWithoutLock = viewModel::onAuthenticated,
-        onCopy = { words -> SensitiveClipboard.copy(context, "recovery phrase", words.joinToString(" ")) },
+        onCopy = { words -> SensitiveClipboard.copy(context, "recovery phrase", words.joinToString(" "), state.clipboardClearMillis) },
         onWroteItDown = viewModel::onWroteItDown,
         onTap = viewModel::onTap,
         onSkipVerify = viewModel::onSkipVerify,
@@ -74,13 +81,17 @@ fun BackupScreen(
     onWroteItDown: () -> Unit,
     onTap: (Int) -> Unit,
     onSkipVerify: () -> Unit,
+    required: Boolean = false,
 ) {
-    Scaffold(topBar = { WalletTopBar(stringResource(R.string.backup_title), onBack) }) { padding ->
+    val leave = onBack.takeUnless { required && state.step != BackupStep.Success }
+    BackHandler(enabled = leave == null) {}
+    Scaffold(topBar = { WalletTopBar(stringResource(R.string.backup_title), leave) }) { padding ->
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             when (val step = state.step) {
-                BackupStep.Intro -> Intro(onShow, onBack)
+                BackupStep.Intro -> Intro(onShow, leave)
                 BackupStep.NoScreenLock -> NoScreenLock(onContinueWithoutLock, onBack)
-                is BackupStep.Display -> SecureScreen { Display(step.words, state.addressesToWriteDown, onCopy, onWroteItDown) }
+                is BackupStep.Display ->
+                    SecureScreen { Display(step.words, state.addressesToWriteDown, state.clipboardClearMillis, onCopy, onWroteItDown) }
                 is BackupStep.Verify -> SecureScreen { Verify(step, state.alreadyVerified, onTap, onSkipVerify) }
                 BackupStep.Success -> Success(onBack)
             }
@@ -89,7 +100,7 @@ fun BackupScreen(
 }
 
 @Composable
-private fun Intro(onShow: () -> Unit, onNotNow: () -> Unit) {
+private fun Intro(onShow: () -> Unit, onNotNow: (() -> Unit)?) {
     listOf(
             R.string.backup_intro_next,
             R.string.backup_intro_what,
@@ -100,7 +111,7 @@ private fun Intro(onShow: () -> Unit, onNotNow: () -> Unit) {
         )
         .forEach { Text(stringResource(it), modifier = Modifier.fillMaxWidth()) }
     PrimaryButton(stringResource(R.string.backup_show), onShow)
-    WalletButton(kind = ButtonKind.Text, onClick = onNotNow) { Text(stringResource(R.string.backup_not_now)) }
+    if (onNotNow != null) WalletButton(kind = ButtonKind.Text, onClick = onNotNow) { Text(stringResource(R.string.backup_not_now)) }
 }
 
 @Composable
@@ -116,7 +127,19 @@ private fun NoScreenLock(onContinue: () -> Unit, onCancel: () -> Unit) {
 }
 
 @Composable
-private fun Display(words: List<String>, addresses: List<String>, onCopy: (List<String>) -> Unit, onWroteItDown: () -> Unit) {
+private fun Display(
+    words: List<String>,
+    addresses: List<String>,
+    clipboardClearMillis: Long,
+    onCopy: (List<String>) -> Unit,
+    onWroteItDown: () -> Unit,
+) {
+    val cleared = WholeDuration.exact(clipboardClearMillis, listOf(WholeDuration.Unit.Seconds, WholeDuration.Unit.Minutes))
+    val (copiedText, copyBody) =
+        when (cleared.unit) {
+            WholeDuration.Unit.Minutes -> R.plurals.backup_copied_minutes to R.plurals.backup_copy_body_minutes
+            else -> R.plurals.backup_copied_seconds to R.plurals.backup_copy_body_seconds
+        }
     var confirmCopy by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
     Text(stringResource(R.string.backup_display_warning), textAlign = TextAlign.Center)
@@ -143,12 +166,12 @@ private fun Display(words: List<String>, addresses: List<String>, onCopy: (List<
     }
     PrimaryButton(stringResource(R.string.backup_wrote_it_down), onWroteItDown)
     WalletButton(kind = ButtonKind.Text, onClick = { confirmCopy = true }) { Text(stringResource(R.string.backup_copy)) }
-    if (copied) Text(stringResource(R.string.backup_copied), style = MaterialTheme.typography.bodySmall)
+    if (copied) Text(pluralStringResource(copiedText, cleared.count, cleared.count), style = MaterialTheme.typography.bodySmall)
     if (confirmCopy) {
         WalletDialog(
             onDismissRequest = { confirmCopy = false },
             title = { Text(stringResource(R.string.backup_copy_title)) },
-            text = { Text(stringResource(R.string.backup_copy_body)) },
+            text = { Text(pluralStringResource(copyBody, cleared.count, cleared.count)) },
             confirmButton = {
                 WalletButton(
                     kind = ButtonKind.Text,

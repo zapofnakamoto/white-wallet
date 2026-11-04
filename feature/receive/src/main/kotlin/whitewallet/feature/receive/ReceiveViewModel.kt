@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceRequest
 import whitewallet.core.wallet.InvoiceStatus
@@ -79,7 +80,9 @@ private data class ReceiveUi(
  * for an amount that mints to this account (see [Wallet.requestInvoice]).
  */
 @HiltViewModel
-class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private val faucet: RegtestFaucet) : ViewModel() {
+class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, defaults: AppDefaults) :
+    ViewModel() {
+    private val timings = defaults.timings
     private val received = MutableStateFlow(0L)
     private val ui = MutableStateFlow(ReceiveUi())
     private var watch: Job? = null
@@ -102,7 +105,7 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
     init {
         viewModelScope.launch {
             while (isActive) {
-                delay(POLL_MILLIS)
+                delay(timings.receivePollMillis)
                 val result = runCatching { wallet.refresh() }.getOrNull()
                 if (result != null && result.receivedMsat > 0) received.value += result.receivedMsat
             }
@@ -169,17 +172,12 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
         watch?.cancel()
         watch = viewModelScope.launch {
             while (isActive) {
-                delay(INVOICE_POLL_MILLIS)
+                delay(timings.invoicePollMillis)
                 val status = runCatching { wallet.invoiceStatus(id) }.getOrNull() ?: continue
                 if (status == InvoiceStatus.Waiting) continue
                 ui.update { u -> u.copy(invoice = u.invoice?.takeIf { it.request.id == id }?.copy(status = status) ?: u.invoice) }
                 break
             }
         }
-    }
-
-    private companion object {
-        const val POLL_MILLIS = 15_000L
-        const val INVOICE_POLL_MILLIS = 3_000L
     }
 }

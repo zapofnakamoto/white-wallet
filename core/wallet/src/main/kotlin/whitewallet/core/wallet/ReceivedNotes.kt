@@ -185,9 +185,10 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         if (script?.lockedUntilSeconds != null || script?.lockedForSeconds != null) {
             return ClaimResult.Kept(update(note.copy(state = ReceivedState.Locked, refusedSinceMillis = null)))
         }
-        // Another refusal (rate limited, a mint's own trouble): tried again on every refresh, for a while.
+        // Another refusal (rate limited, a mint's own trouble): tried again on every refresh, for Wallet.receivedGiveUpMillis from the
+        // first refusal.
         val since = note.refusedSinceMillis ?: wallet.now()
-        val state = if (wallet.now() - since >= GIVE_UP_AFTER_MILLIS) ReceivedState.Refused else ReceivedState.Waiting
+        val state = if (wallet.now() - since >= wallet.receivedGiveUpMillis) ReceivedState.Refused else ReceivedState.Waiting
         update(note.copy(state = state, refusedSinceMillis = since))
         return ClaimResult.Failed(kind, reason)
     }
@@ -204,8 +205,5 @@ internal class ReceivedNotes(private val wallet: Wallet) {
     private companion object {
         /** Kept, and claimed by a refresh as soon as it can be. */
         val RETRIED = setOf(ReceivedState.Waiting, ReceivedState.Locked, ReceivedState.KeyChanged)
-
-        /** How long a note is tried again while its mint refuses it for another reason, from the first refusal. */
-        const val GIVE_UP_AFTER_MILLIS = 7 * 24 * 60 * 60 * 1000L
     }
 }

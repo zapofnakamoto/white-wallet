@@ -75,11 +75,15 @@ class Wallet(
      * needs a network).
      */
     private val onWaitingForNetwork: () -> Unit = {},
+    /** How long [pay] waits for a melt's payment to settle before reporting it as pending (brand `sync.paymentWait`). */
+    payWaitMillis: Long = 30_000L,
+    /** How long a received note its mint refuses is tried again before it counts as refused (brand `notes.received.giveUpAfter`). */
+    internal val receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
 ) {
     private val lock = Mutex()
 
-    /** How long [pay] waits for a melt's payment to settle before reporting it as pending. */
-    internal var payWaitMillis = 30_000L
+    /** See the constructor; tests shorten it. */
+    internal var payWaitMillis = payWaitMillis
     private val branches = ConcurrentHashMap<Pair<String, String>, CashBranch>()
     /** The last check of each address, by (account id, address). In memory; see [refresh] and [checkAddresses]. */
     private val addressStatuses = MutableStateFlow<Map<Pair<String, String>, AddressStatus>>(emptyMap())

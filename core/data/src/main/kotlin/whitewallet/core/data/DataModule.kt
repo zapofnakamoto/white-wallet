@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.MintTrustStore
 import whitewallet.core.wallet.NotePolicies
@@ -48,10 +49,14 @@ object DataModule {
 
     @Provides
     @Singleton
-    internal fun preferences(@ApplicationContext context: Context): DataStorePreferences {
+    internal fun preferences(@ApplicationContext context: Context, defaults: AppDefaults): DataStorePreferences {
         // The app's own build type (a library's BuildConfig.DEBUG would not tell): debug builds start in developer mode.
         val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-        return DataStorePreferences(context.settingsDataStore, developerModeByDefault = debuggable)
+        return DataStorePreferences(
+            context.settingsDataStore,
+            developerModeByDefault = debuggable,
+            appLockByDefault = defaults.appLock.onByDefault,
+        )
     }
 
     @Provides internal fun appPreferences(preferences: DataStorePreferences): AppPreferences = preferences

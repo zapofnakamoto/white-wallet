@@ -624,7 +624,9 @@ class HomeScreenTest {
     @Test
     fun aNoteItsMintKeptRefusingSaysSoAndCanBeRemoved() {
         var dismissed: String? = null
-        val refused = received("r1", ReceivedState.Refused)
+        val received = received("r1", ReceivedState.Refused)
+        // Given up at the first refresh after a week (the default notes.received.giveUpAfter).
+        val refused = received.copy(refusedSinceMillis = received.updatedAtMillis - 7 * 86_400_000L - 15 * 60_000L)
         compose.setContent {
             HomeScreen(
                 "Wallet",
@@ -640,7 +642,7 @@ class HomeScreenTest {
                 onDismissReceived = { dismissed = it },
             )
         }
-        compose.onNodeWithText(text(DesignR.string.received_refused)).assertExists()
+        compose.onNodeWithText("Its mint kept refusing it for 7 days, so your wallet stopped trying.").assertExists()
         compose.onNodeWithText("received, not claimed yet", substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.received_dismiss)).performClick()
         assertEquals(refused.id, dismissed)

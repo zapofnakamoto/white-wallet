@@ -124,6 +124,31 @@ android {
         buildConfigField("int", "MAX_ADDRESSES", brand.getProperty("addresses.max", "1").trim())
         buildConfigField("String", "NOTE_STRATEGIES", "\"${brand.getProperty("notes.strategies", "single,manual").trim()}\"")
         buildConfigField("String", "DEFAULT_NOTE_STRATEGY", "\"${brand.getProperty("notes.strategy.default", "single").trim()}\"")
+        // Timings, in milliseconds (see "Timings" in docs/WHITE_LABEL.md).
+        buildConfigField("long", "CONNECT_TIMEOUT_MILLIS", "${brand.brandDuration("network.timeout.connect", "15s", "1s", "2m")}L")
+        buildConfigField("long", "READ_TIMEOUT_MILLIS", "${brand.brandDuration("network.timeout.read", "30s", "1s", "5m")}L")
+        // WorkManager runs periodic work at most every 15 minutes.
+        buildConfigField("long", "SYNC_BACKGROUND_MILLIS", "${brand.brandDuration("sync.background", "15m", "15m")}L")
+        buildConfigField("long", "SYNC_RECEIVE_MILLIS", "${brand.brandDuration("sync.receive", "15s", "1s", "5m")}L")
+        buildConfigField("long", "SYNC_INVOICE_MILLIS", "${brand.brandDuration("sync.invoice", "3s", "1s", "1m")}L")
+        buildConfigField("long", "SYNC_SHARED_NOTE_MILLIS", "${brand.brandDuration("sync.sharedNote", "10s", "1s", "5m")}L")
+        buildConfigField("long", "SYNC_PAYMENT_WAIT_MILLIS", "${brand.brandDuration("sync.paymentWait", "30s", "5s", "5m")}L")
+        buildConfigField("long", "RELOCK_AFTER_MILLIS", "${brand.brandDuration("security.appLock.relockAfter", "30s", "0s", "1h")}L")
+        buildConfigField("long", "CLIPBOARD_CLEAR_MILLIS", "${brand.brandDuration("security.clipboard.clearAfter", "60s", "10s", "10m")}L")
+        buildConfigField("long", "COLLECT_RETRY_MILLIS", "${brand.brandDuration("notes.collect.retryAfter", "1h", "1m", "7d")}L")
+        buildConfigField("long", "RECEIVED_GIVE_UP_MILLIS", "${brand.brandDuration("notes.received.giveUpAfter", "7d", "1h", "90d")}L")
+        val feeCaps = brand.getProperty("notes.collect.feeCaps", "1,2,5,10").split(',').map(String::trim).filter(String::isNotEmpty)
+        check(feeCaps.isNotEmpty() && feeCaps.all { it.toIntOrNull() in 1..100 }) {
+            "brand.properties: notes.collect.feeCaps must be whole percentages from 1 to 100, comma-separated, not '${feeCaps.joinToString(",")}'"
+        }
+        buildConfigField("String", "COLLECT_FEE_CAPS", "\"${feeCaps.joinToString(",")}\"")
+        buildConfigField("String", "APP_LOCK", "\"${brand.brandChoice("security.appLock", "off", "off", "on", "always")}\"")
+        buildConfigField("String", "BACKUP_REQUIRED", "\"${brand.brandChoice("backup.required", "never", "never", "setup")}\"")
+        val reminderAbove = brand.getProperty("backup.reminder.above", "0").trim()
+        check(reminderAbove.toLongOrNull()?.let { it >= 0 } == true) {
+            "brand.properties: backup.reminder.above must be a whole number of sats, 0 or more, not '$reminderAbove'"
+        }
+        buildConfigField("long", "BACKUP_REMINDER_ABOVE_SAT", "${reminderAbove}L")
         val appearance = brand.getProperty("app.appearance", "system").trim()
         check(appearance in setOf("system", "light", "dark")) {
             "brand.properties: app.appearance must be system, light or dark, not '$appearance'"

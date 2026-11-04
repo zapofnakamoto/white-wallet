@@ -36,6 +36,27 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `received_on`, `received_waiting`, `received_locked_until`, `received_locked`, `received_key_changed`,
   `received_claiming`, `received_claimed`, `received_gone`, `received_refused`, `received_dismiss`. `claim_network`
   is gone.
+- Brands can set the wallet's timings in `brand.properties` (see "Timings" in docs/WHITE_LABEL.md): mint timeouts
+  (`network.timeout.connect`, `network.timeout.read`), background and on-screen refreshes (`sync.background`,
+  `sync.receive`, `sync.invoice`, `sync.sharedNote`), how long a payment is waited for (`sync.paymentWait`), the app
+  lock's grace period (`security.appLock.relockAfter`), when a copied secret is cleared
+  (`security.clipboard.clearAfter`), how long collecting leaves a failed mint alone (`notes.collect.retryAfter`), how
+  long a refused received note is tried (`notes.received.giveUpAfter`), and the fee caps users pick from
+  (`notes.collect.feeCaps`). Durations carry their unit (`30s`, `15m`, `7d`); a value out of range fails the build.
+  Every default is what the app did before.
+- `security.appLock`: the app lock can start on (`on`) or be always on with no switch (`always`). A phone without a
+  screen lock now opens the app even with the lock on, rather than locking its owner out.
+- `backup.required=setup`: a new account's recovery phrase is written down and checked during setup, with no way
+  past it except on a phone without a screen lock. `backup.reminder.above`: Home's backup reminder waits until the
+  balance is above that many sats.
+- The sentences that name these timings follow the brand's value, in whole sentences per unit: strings
+  `security_app_lock_hint`, `backup_copy_body` and `backup_copied` are now `security_app_lock_hint_always` and the
+  plurals `security_app_lock_hint_seconds`, `_minutes`, `_hours`, `backup_copy_body_seconds`, `_minutes`,
+  `backup_copied_seconds`, `_minutes`; a brand that overrode them needs to rename them. `received_refused` no
+  longer says "a week": the plurals `received_refused_hours` and `received_refused_days` say how long it was tried.
+  New string: `security_app_lock_on_always`.
+- Code: `CollectDefaults.FEE_CAPS` is now `CollectDefaults.feeCaps` (the brand's), and `SensitiveClipboard.copy`
+  takes how long until the clipboard is cleared (`AppDefaults.timings.clipboardClearMillis`).
 
 ### Changed
 

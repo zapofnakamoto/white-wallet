@@ -511,11 +511,46 @@ notes.collect.feeCap={o.collect_fee_cap}
 # whenNotesHidden=true still tells what the balance did.
 notes.maintenance.notices=on
 notes.maintenance.notices.whenNotesHidden=true
+# The fee caps users pick from for collecting, in percent, comma-separated (an account's own cap stays selectable).
+notes.collect.feeCaps=1,2,5,10
+# How long collecting leaves a mint alone after a move from it failed.
+notes.collect.retryAfter=1h
+# How long a received note its mint keeps refusing (not as spent, unknown or locked) is tried again before it's given up.
+notes.received.giveUpAfter=7d
 
 # History
 # Filters on the History tab: types = received, sent, moved and note maintenance, maintenance = only showing or
 # hiding note maintenance, none = no filters (note maintenance stays hidden).
 history.filter={o.history_filter}
+
+# Backup
+# backup.required: never = Home reminds users to write down their recovery phrase, setup = a new account's phrase is
+# written down and checked during setup, with no way past it (a phone without a screen lock can still skip). A restored
+# account is never asked. backup.reminder.above: Home's reminder shows once the balance is above this many sats.
+backup.required=never
+backup.reminder.above=0
+
+# Security
+# The app lock (asking for the phone's own lock when the app opens): off = users may switch it on, on = it starts on and
+# users may switch it off, always = always on, no switch. A phone without a screen lock still opens the app.
+security.appLock=off
+# How long the app may be in the background before the lock asks again (0s = every time).
+security.appLock.relockAfter=30s
+# When a copied secret (the recovery phrase, a note, a watch-only key) is cleared from the clipboard.
+security.clipboard.clearAfter=60s
+
+# Timings, each a number with its unit: ms, s, m, h or d.
+# Connecting to a mint, and waiting for its answer.
+network.timeout.connect=15s
+network.timeout.read=30s
+# Refreshing in the background (at least 15m, Android's limit); while Receive is open, for payments to the address;
+# while an invoice is shown; while a handed-out note's page is open, for whether it was claimed; and how long a payment
+# is waited for before it shows as pending.
+sync.background=15m
+sync.receive=15s
+sync.invoice=3s
+sync.sharedNote=10s
+sync.paymentWait=30s
 
 # Developer options in Settings: shown = always, unlock = hidden until the version in About is tapped seven times,
 # hidden = never in release builds (debug builds treat hidden as unlock).

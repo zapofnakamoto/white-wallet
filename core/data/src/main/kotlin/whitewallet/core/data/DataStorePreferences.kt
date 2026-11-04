@@ -19,11 +19,12 @@ import whitewallet.lnurlcash.client.NetworkConditions
 
 /**
  * App-wide preferences and per-account note policies, in the `settings` DataStore. Developer mode starts as [developerModeByDefault] (on in
- * debug builds) until the user sets it.
+ * debug builds) and the app lock as [appLockByDefault] (brand `security.appLock`) until the user sets them.
  */
 internal class DataStorePreferences(
     private val prefs: DataStore<Preferences>,
     private val developerModeByDefault: Boolean = false,
+    private val appLockByDefault: Boolean = false,
 ) : AppPreferences, NotePolicies, MintTrustStore {
     override val developerMode: Flow<Boolean> = prefs.data.map { it[DEVELOPER_MODE] ?: developerModeByDefault }
 
@@ -100,7 +101,7 @@ internal class DataStorePreferences(
         prefs.edit { it[SEEN_RELEASE_NOTES] = ids }
     }
 
-    override val appLock: Flow<Boolean> = prefs.data.map { it[APP_LOCK] ?: false }
+    override val appLock: Flow<Boolean> = prefs.data.map { it[APP_LOCK] ?: appLockByDefault }
 
     override suspend fun setAppLock(enabled: Boolean) {
         prefs.edit { it[APP_LOCK] = enabled }

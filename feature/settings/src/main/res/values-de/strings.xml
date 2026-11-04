@@ -110,10 +110,24 @@
     <string name="backup_wrote_it_down">Ich habe sie aufgeschrieben</string>
     <string name="backup_copy">Kopieren</string>
     <string name="backup_copy_title">Wiederherstellungsphrase kopieren?</string>
-    <string name="backup_copy_body">Andere Apps und Tastaturen können deine Zwischenablage eventuell lesen. Die Wörter aufzuschreiben ist sicherer. Die Zwischenablage wird nach 60 Sekunden geleert.</string>
+    <plurals name="backup_copy_body_seconds">
+        <item quantity="one">Andere Apps und Tastaturen können deine Zwischenablage eventuell lesen. Die Wörter aufzuschreiben ist sicherer. Die Zwischenablage wird nach %d Sekunde geleert.</item>
+        <item quantity="other">Andere Apps und Tastaturen können deine Zwischenablage eventuell lesen. Die Wörter aufzuschreiben ist sicherer. Die Zwischenablage wird nach %d Sekunden geleert.</item>
+    </plurals>
+    <plurals name="backup_copy_body_minutes">
+        <item quantity="one">Andere Apps und Tastaturen können deine Zwischenablage eventuell lesen. Die Wörter aufzuschreiben ist sicherer. Die Zwischenablage wird nach %d Minute geleert.</item>
+        <item quantity="other">Andere Apps und Tastaturen können deine Zwischenablage eventuell lesen. Die Wörter aufzuschreiben ist sicherer. Die Zwischenablage wird nach %d Minuten geleert.</item>
+    </plurals>
     <string name="backup_copy_confirm">Trotzdem kopieren</string>
     <string name="backup_cancel">Abbrechen</string>
-    <string name="backup_copied">Kopiert. Die Zwischenablage wird in 60 Sekunden geleert.</string>
+    <plurals name="backup_copied_seconds">
+        <item quantity="one">Kopiert. Die Zwischenablage wird in %d Sekunde geleert.</item>
+        <item quantity="other">Kopiert. Die Zwischenablage wird in %d Sekunden geleert.</item>
+    </plurals>
+    <plurals name="backup_copied_minutes">
+        <item quantity="one">Kopiert. Die Zwischenablage wird in %d Minute geleert.</item>
+        <item quantity="other">Kopiert. Die Zwischenablage wird in %d Minuten geleert.</item>
+    </plurals>
     <string name="backup_verify_title">Prüfe deine Sicherung</string>
     <string name="backup_verify_body">Tippe die Wörter in der Reihenfolge an, in der du sie aufgeschrieben hast.</string>
     <string name="backup_verify_wrong">Das ist nicht Wort %1$d. Sieh auf deinem Papier nach und fang neu an.</string>
@@ -283,7 +297,20 @@
 
     <string name="security_title">Sicherheit</string>
     <string name="security_app_lock">App-Sperre</string>
-    <string name="security_app_lock_hint">Beim Öffnen der App und bei der Rückkehr nach 30 Sekunden nach Fingerabdruck, Gesicht oder Displaysperre fragen.</string>
+    <string name="security_app_lock_hint_always">Beim Öffnen der App und bei jeder Rückkehr nach Fingerabdruck, Gesicht oder Displaysperre fragen.</string>
+    <plurals name="security_app_lock_hint_seconds">
+        <item quantity="one">Beim Öffnen der App und bei der Rückkehr nach %d Sekunde nach Fingerabdruck, Gesicht oder Displaysperre fragen.</item>
+        <item quantity="other">Beim Öffnen der App und bei der Rückkehr nach %d Sekunden nach Fingerabdruck, Gesicht oder Displaysperre fragen.</item>
+    </plurals>
+    <plurals name="security_app_lock_hint_minutes">
+        <item quantity="one">Beim Öffnen der App und bei der Rückkehr nach %d Minute nach Fingerabdruck, Gesicht oder Displaysperre fragen.</item>
+        <item quantity="other">Beim Öffnen der App und bei der Rückkehr nach %d Minuten nach Fingerabdruck, Gesicht oder Displaysperre fragen.</item>
+    </plurals>
+    <plurals name="security_app_lock_hint_hours">
+        <item quantity="one">Beim Öffnen der App und bei der Rückkehr nach %d Stunde nach Fingerabdruck, Gesicht oder Displaysperre fragen.</item>
+        <item quantity="other">Beim Öffnen der App und bei der Rückkehr nach %d Stunden nach Fingerabdruck, Gesicht oder Displaysperre fragen.</item>
+    </plurals>
+    <string name="security_app_lock_on_always">In dieser App immer eingeschaltet.</string>
     <string name="security_no_screen_lock">Richte zuerst eine Displaysperre auf deinem Handy ein.</string>
     <string name="security_confirm">Bestätige, dass du es bist</string>
     <string name="security_encrypted">Die Daten deiner Wallet sind auf diesem Gerät immer verschlüsselt, und deine Wiederherstellungsphrase schützt die sichere Hardware des Handys.</string>

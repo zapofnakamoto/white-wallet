@@ -115,10 +115,24 @@
     <string name="backup_wrote_it_down">I wrote it down</string>
     <string name="backup_copy">Copy</string>
     <string name="backup_copy_title">Copy recovery phrase?</string>
-    <string name="backup_copy_body">Other apps and keyboards may be able to read your clipboard. Writing the words down is safer. The clipboard is cleared after 60 seconds.</string>
+    <plurals name="backup_copy_body_seconds">
+        <item quantity="one">Other apps and keyboards may be able to read your clipboard. Writing the words down is safer. The clipboard is cleared after %d second.</item>
+        <item quantity="other">Other apps and keyboards may be able to read your clipboard. Writing the words down is safer. The clipboard is cleared after %d seconds.</item>
+    </plurals>
+    <plurals name="backup_copy_body_minutes">
+        <item quantity="one">Other apps and keyboards may be able to read your clipboard. Writing the words down is safer. The clipboard is cleared after %d minute.</item>
+        <item quantity="other">Other apps and keyboards may be able to read your clipboard. Writing the words down is safer. The clipboard is cleared after %d minutes.</item>
+    </plurals>
     <string name="backup_copy_confirm">Copy anyway</string>
     <string name="backup_cancel">Cancel</string>
-    <string name="backup_copied">Copied. The clipboard will be cleared in 60 seconds.</string>
+    <plurals name="backup_copied_seconds">
+        <item quantity="one">Copied. The clipboard will be cleared in %d second.</item>
+        <item quantity="other">Copied. The clipboard will be cleared in %d seconds.</item>
+    </plurals>
+    <plurals name="backup_copied_minutes">
+        <item quantity="one">Copied. The clipboard will be cleared in %d minute.</item>
+        <item quantity="other">Copied. The clipboard will be cleared in %d minutes.</item>
+    </plurals>
     <string name="backup_verify_title">Check your backup</string>
     <string name="backup_verify_body">Tap the words in the order you wrote them down.</string>
     <string name="backup_verify_wrong">That\'s not word %1$d. Check your paper and start again.</string>
@@ -289,7 +303,20 @@
 
     <string name="security_title">Security</string>
     <string name="security_app_lock">App lock</string>
-    <string name="security_app_lock_hint">Ask for your fingerprint, face or screen lock when opening the app, and when returning to it after 30 seconds.</string>
+    <string name="security_app_lock_hint_always">Ask for your fingerprint, face or screen lock when opening the app, and every time you return to it.</string>
+    <plurals name="security_app_lock_hint_seconds">
+        <item quantity="one">Ask for your fingerprint, face or screen lock when opening the app, and when returning to it after %d second.</item>
+        <item quantity="other">Ask for your fingerprint, face or screen lock when opening the app, and when returning to it after %d seconds.</item>
+    </plurals>
+    <plurals name="security_app_lock_hint_minutes">
+        <item quantity="one">Ask for your fingerprint, face or screen lock when opening the app, and when returning to it after %d minute.</item>
+        <item quantity="other">Ask for your fingerprint, face or screen lock when opening the app, and when returning to it after %d minutes.</item>
+    </plurals>
+    <plurals name="security_app_lock_hint_hours">
+        <item quantity="one">Ask for your fingerprint, face or screen lock when opening the app, and when returning to it after %d hour.</item>
+        <item quantity="other">Ask for your fingerprint, face or screen lock when opening the app, and when returning to it after %d hours.</item>
+    </plurals>
+    <string name="security_app_lock_on_always">Always on in this app.</string>
     <string name="security_no_screen_lock">Set up a screen lock on your phone first.</string>
     <string name="security_confirm">Confirm it\'s you</string>
     <string name="security_encrypted">Your wallet\'s data is always encrypted on this device, and your recovery phrase is protected by the phone\'s secure hardware.</string>
