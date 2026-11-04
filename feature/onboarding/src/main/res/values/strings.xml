@@ -3,8 +3,8 @@
     <!--
       Brand terms: the strings in this block name the party that holds users' funds ("mint" by default) or the notes
       it issues ("note"). A brand that uses other words overrides exactly these, per language, in
-      brand/res/values*/strings.xml. All other strings are written without either word (developer options and search
-      keywords aside). See docs/WHITE_LABEL.md.
+      brand/res/values*/strings.xml. All other strings are written without either word (developer options
+      aside). See docs/WHITE_LABEL.md.
     -->
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Mint address</string>

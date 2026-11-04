@@ -38,7 +38,7 @@ data class SettingsState(
     val homeHost: String? = null,
     /** Notes on other mints are moved to [homeHost] automatically. */
     val collectAtHome: Boolean = false,
-    /** Pages this brand leaves out (see [hiddenPages]): no row, no search result. */
+    /** Pages this brand leaves out (see [hiddenPages]): no row. */
     val hidden: Set<SettingsTarget> = setOf(SettingsTarget.NoteList),
     /** Mints the wallet knows, and how many of them are trusted. */
     val mintCount: Int = 0,
