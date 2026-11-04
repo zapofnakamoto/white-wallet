@@ -113,9 +113,10 @@ internal data class CollectPolicy(val homeHost: String, val feeCapPercent: Int)
  * - the note strategy (see [NoteStrategy]) proposes steps, which run here with the usual safeguards, round after round until it proposes
  *   none. Steps that don't apply are skipped; notes the mint refused are left out of later rounds; a mint that doesn't answer (or an
  *   outcome still pending) ends the run;
- * - auto-rotate: no outstanding note on an address key (purpose 2); each is rotated onto the next wallet key. Part of strategies that
- *   rotate themselves. Before that, with "collect at home mint", every other mint's notes are moved to the home mint (see [collect]), so
- *   the strategy then shapes them there. Idempotent: anything that failed is simply retried the next time it runs.
+ * - auto-rotate: no outstanding note on an address key (purpose 2); each is rotated onto the next wallet key. Notes on wallet and change
+ *   keys are never rotated, neither here nor by a strategy's rotate step. Part of strategies that rotate themselves. Before that, with
+ *   "collect at home mint", every other mint's notes are moved to the home mint (see [collect]), so the strategy then shapes them there.
+ *   Idempotent: anything that failed is simply retried the next time it runs.
  */
 internal class NotePolicyEngine(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)

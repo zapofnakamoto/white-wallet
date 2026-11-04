@@ -4,7 +4,7 @@ import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
 
-/** Leaves notes as they arrive (auto-rotate, if on, still applies). */
+/** Leaves notes as they arrive (auto-rotate, if on, still moves address-key notes). */
 class ManualStrategy(override val title: Int = 0, override val description: Int = 0) : NoteStrategy {
     override val id = ID
     override val reshapesNotes = false

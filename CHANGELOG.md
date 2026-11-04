@@ -57,6 +57,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   is kept. Claimed in another account of the same wallet it is received there, and its own account finds it spent.
   New strings: `claim_own_shared` and `claim_own_offline` (brand terms), `claim_take_back`, `claim_taken_back`,
   `claim_take_back_failed`.
+- The auto-renew setting says what it renews: notes paid to your Lightning address. Notes on wallet and change keys
+  were never renewed and still aren't; tests now prove it. Strings `settings_auto_renew`, `settings_auto_renew_hint`
+  and `search_kw_auto_renew` say it differently; a brand that overrode them should update its wording.
 - Code is formatted by ktfmt (kotlinlang style, 140 wide) through Spotless: `just format` formats, and `just check`
   and CI fail on code that isn't formatted. A brand's code in `brand/code` is formatted with the rest.
 - Brand API: `WalletEvent.NoteRedeemed` is now `WalletEvent.NoteSpent`, and `NoteStatus.Redeemed` is now

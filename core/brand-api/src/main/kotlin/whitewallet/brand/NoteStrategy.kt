@@ -21,8 +21,8 @@ interface NoteStrategy {
     val description: Int
 
     /**
-     * True if the strategy also moves notes off address keys, so the separate auto-rotate switch is included in it. Rotating breaks the
-     * link between an address payment and the note it became.
+     * True if the strategy also moves notes off Lightning address keys (purpose 2), so the separate auto-rotate switch is included in it.
+     * Wallet and change notes are never rotated. Rotating breaks the link between an address payment and the note it became.
      */
     val rotatesAddressNotes: Boolean
         get() = false
@@ -74,6 +74,6 @@ sealed interface NoteStep {
      */
     data class Split(val noteId: String, val firstMsat: Long) : NoteStep
 
-    /** Move a note from an address key onto a fresh key of the wallet (free). Ignored for notes already there. */
+    /** Move a note from a Lightning address key (purpose 2) onto a fresh wallet key (free). Ignored for wallet and change notes. */
     data class Rotate(val noteId: String) : NoteStep
 }

@@ -2,8 +2,10 @@ package whitewallet.core.wallet
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 
@@ -38,5 +40,24 @@ class RegtestPolicyTest {
             val rotated = bob.notes().single()
             assertEquals(0, rotated.purpose)
             assertEquals(balance, bob.balance())
+        }
+
+    @Test
+    fun `auto-rotate leaves wallet and change notes where they are`() =
+        runBlocking<Unit> {
+            val carol = Regtest.phone(strategy = ManualStrategy.ID)
+            carol.fund(3000)
+            // A split puts the address note onto a wallet key and a change key.
+            assertIs<NoteActionResult.Done>(carol.wallet.splitNote(carol.notes().single().id, 1_000_000))
+            val kept = carol.notes().map { it.id }.toSet()
+            assertEquals(listOf(0, 1), carol.notes().mapNotNull { it.purpose }.sorted())
+            carol.fund(1500)
+
+            carol.wallet.setAutoRotate(true)
+            val after = carol.notes()
+            assertTrue(after.none { it.purpose == 2 }, "the address note is rotated")
+            assertTrue(after.map { it.id }.containsAll(kept), "the wallet and change notes are untouched")
+            assertEquals(3, after.size)
+            assertEquals(1, assertNotNull(carol.wallet.lastPolicyRun.first()).rotated, "only the address note")
         }
 }

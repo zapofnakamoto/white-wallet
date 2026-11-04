@@ -160,7 +160,7 @@ class Wallet(
             }
         }
 
-    /** The active account's auto-rotate setting. */
+    /** The active account's auto-rotate setting: whether notes on Lightning address keys (purpose 2) move to wallet keys. */
     val autoRotate: Flow<Boolean> = ofActive(false, policies::autoRotate)
 
     /** The active account's history, newest first (see [Activity]). */
@@ -243,7 +243,7 @@ class Wallet(
     /** The last time the active account's note policies changed something, if they have this session. */
     val lastPolicyRun: Flow<PolicyRun?> = combine(store.activeAccountId, _lastPolicyRun) { id, runs -> runs[id] }
 
-    /** Saves the active account's auto-rotate setting and applies it right away. */
+    /** Saves the active account's auto-rotate setting (address-key notes only) and applies it right away. */
     suspend fun setAutoRotate(enabled: Boolean) = lock.withLock {
         val id = activeId()
         policies.setAutoRotate(id, enabled)

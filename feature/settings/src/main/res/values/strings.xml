@@ -31,8 +31,8 @@
     <string name="settings_note_strategy">Note strategy</string>
     <string name="settings_strategy_manual_hint">Keep notes as they arrive.</string>
     <string name="settings_strategy_single">Keep only one note</string>
-    <string name="settings_auto_renew">Auto-renew incoming notes</string>
-    <string name="settings_auto_renew_hint">Moves each received note to a fresh key of this wallet.</string>
+    <string name="settings_auto_renew">Auto-renew notes from your Lightning address</string>
+    <string name="settings_auto_renew_hint">Moves each note paid to your Lightning address to a fresh key of this wallet. Other notes stay where they are.</string>
     <string name="mint_invalid">Answers, but can\'t hold notes</string>
     <string name="mint_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost.</string>
     <plurals name="mint_balance">
@@ -105,7 +105,7 @@
     <string name="search_kw_unregister">remove address, release, free name, delete address</string>
     <string name="search_kw_notes">notes, combine, merge, renew, rotate, coins</string>
     <string name="search_kw_single_note">merge, combine, one note, consolidate</string>
-    <string name="search_kw_auto_renew">renew, rotate, privacy, fresh key, incoming</string>
+    <string name="search_kw_auto_renew">renew, rotate, privacy, fresh key, incoming, lightning address</string>
     <string name="search_kw_delete">remove, wipe, reset, erase, account</string>
     <string name="search_kw_developer">debug, advanced, logs, testing</string>
     <string name="search_kw_max_addresses">limit, multiple addresses, how many</string>

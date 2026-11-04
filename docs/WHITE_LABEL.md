@@ -200,8 +200,8 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `settings_note_strategy` | Note strategy |
 | `settings_strategy_manual_hint` | Keep notes as they arrive. |
 | `settings_strategy_single` | Keep only one note |
-| `settings_auto_renew` | Auto-renew incoming notes |
-| `settings_auto_renew_hint` | Moves each received note to a fresh key of this wallet. |
+| `settings_auto_renew` | Auto-renew notes from your Lightning address |
+| `settings_auto_renew_hint` | Moves each note paid to your Lightning address to a fresh key of this wallet. Other notes stay where they are. |
 | `mint_invalid` | Answers, but can't hold notes |
 | `mint_key_accept_body` | Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost. |
 | `mint_balance` | %1$s in %2$d note / %1$s in %2$d notes (plural) |

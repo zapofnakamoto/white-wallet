@@ -80,7 +80,7 @@ class NotePolicyTest {
     }
 
     @Test
-    fun `auto-rotate moves every incoming note onto a wallet key`() = withMint {
+    fun `auto-rotate moves every address note onto a wallet key`() = withMint {
         wallet.setNoteStrategy(ManualStrategy.ID)
         wallet.setAutoRotate(true)
         pay(1_000, 2_000)
@@ -95,6 +95,26 @@ class NotePolicyTest {
         wallet.refresh()
         assertTrue(outstanding().none { it.purpose == 2 })
         assertEquals(7_000, wallet.balanceMsat.first())
+    }
+
+    @Test
+    fun `auto-rotate leaves wallet and change notes where they are`() = withMint {
+        wallet.setNoteStrategy(ManualStrategy.ID)
+        pay(3_000)
+        wallet.refresh()
+        // A split puts the address note onto a wallet key and a change key.
+        assertIs<NoteActionResult.Done>(wallet.splitNote(outstanding().single().id, 1_000))
+        val kept = outstanding()
+        assertEquals(listOf(0, 1), kept.mapNotNull { it.purpose }.sorted())
+        mint.credit(Cp1.encode(branchA.notePubkey(NotePurpose.LightningAddress, 1)), 4_000)
+        wallet.refresh()
+
+        wallet.setAutoRotate(true)
+        val after = outstanding()
+        assertTrue(after.none { it.purpose == 2 }, "the address note is rotated")
+        assertTrue(after.map { it.id }.containsAll(kept.map { it.id }), "the wallet and change notes are untouched")
+        assertEquals(3, after.size)
+        assertEquals(1, assertNotNull(wallet.lastPolicyRun.first()).rotated, "only the address note")
     }
 
     @Test

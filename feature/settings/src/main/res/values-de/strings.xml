@@ -26,8 +26,8 @@
     <string name="settings_note_strategy">Umgang mit Scheinen</string>
     <string name="settings_strategy_manual_hint">Scheine so behalten, wie sie ankommen.</string>
     <string name="settings_strategy_single">Nur einen Schein behalten</string>
-    <string name="settings_auto_renew">Eingehende Scheine automatisch erneuern</string>
-    <string name="settings_auto_renew_hint">Verschiebt jeden empfangenen Schein auf einen neuen Schlüssel dieser Wallet.</string>
+    <string name="settings_auto_renew">Scheine von deiner Lightning-Adresse automatisch erneuern</string>
+    <string name="settings_auto_renew_hint">Verschiebt jeden Schein, der an deine Lightning-Adresse gezahlt wurde, auf einen neuen Schlüssel dieser Wallet. Andere Scheine bleiben, wo sie sind.</string>
     <string name="mint_invalid">Antwortet, kann aber keine Scheine verwahren</string>
     <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
     <plurals name="mint_balance">
@@ -100,7 +100,7 @@
     <string name="search_kw_unregister">Adresse entfernen, freigeben, Name freigeben, Adresse löschen</string>
     <string name="search_kw_notes">Scheine, zusammenlegen, zusammenführen, erneuern, rotieren, Münzen</string>
     <string name="search_kw_single_note">zusammenführen, zusammenlegen, ein Schein, bündeln</string>
-    <string name="search_kw_auto_renew">erneuern, rotieren, Privatsphäre, neuer Schlüssel, eingehend</string>
+    <string name="search_kw_auto_renew">erneuern, rotieren, Privatsphäre, neuer Schlüssel, eingehend, Lightning-Adresse</string>
     <string name="search_kw_delete">entfernen, löschen, zurücksetzen, Konto</string>
     <string name="search_kw_developer">Debug, erweitert, Protokolle, Logs, Testen</string>
     <string name="search_kw_max_addresses">Limit, mehrere Adressen, wie viele</string>

@@ -196,8 +196,8 @@ interface AppPreferences {
 }
 
 /**
- * Per-account note policies: auto-rotate (off by default) and the id of the chosen note strategy (null until the user picks one; the
- * brand's default applies, see [NoteStrategies]).
+ * Per-account note policies: auto-rotate of notes on Lightning address keys (off by default) and the id of the chosen note strategy (null
+ * until the user picks one; the brand's default applies, see [NoteStrategies]).
  */
 interface NotePolicies {
     fun autoRotate(accountId: String): Flow<Boolean>

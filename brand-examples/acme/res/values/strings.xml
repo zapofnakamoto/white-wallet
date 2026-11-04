@@ -147,8 +147,8 @@
     <string name="settings_note_strategy">Banknote strategy</string>
     <string name="settings_strategy_manual_hint">Keep banknotes as they arrive.</string>
     <string name="settings_strategy_single">Keep only one banknote</string>
-    <string name="settings_auto_renew">Auto-renew incoming banknotes</string>
-    <string name="settings_auto_renew_hint">Moves each received banknote to a fresh key of this wallet.</string>
+    <string name="settings_auto_renew">Auto-renew banknotes from your Lightning address</string>
+    <string name="settings_auto_renew_hint">Moves each banknote paid to your Lightning address to a fresh key of this wallet. Other banknotes stay where they are.</string>
     <string name="mint_invalid">Answers, but can\'t hold banknotes</string>
     <string name="mint_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your banknotes there and anything you send can be lost.</string>
     <plurals name="mint_balance">
