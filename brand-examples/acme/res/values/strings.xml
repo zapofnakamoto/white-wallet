@@ -160,4 +160,36 @@
     <string name="notes_collect_pending">Moving the banknotes from %1$s; they arrive shortly.</string>
     <string name="mints_add_invalid">That address can\'t hold banknotes.</string>
     <string name="mints_remove_body">The app forgets it, its signing key and whether you trust it. Banknotes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the app remembers.</string>
+    <string name="claim_not_spendable">This link doesn\'t unlock the banknote it names, so it can\'t be claimed.</string>
+    <string name="claim_other_paths">This banknote can also be spent another way, so someone else may take it before you claim it.</string>
+    <plurals name="notice_combined_into_one">
+        <item quantity="one">Combined %1$d banknote into one of %2$s</item>
+        <item quantity="other">Combined %1$d banknotes into one of %2$s</item>
+    </plurals>
+    <plurals name="notice_combined">
+        <item quantity="one">Combined %1$d banknote into %2$d</item>
+        <item quantity="other">Combined %1$d banknotes into %2$d</item>
+    </plurals>
+    <plurals name="notice_split">
+        <item quantity="one">Split %1$d banknote into %2$d</item>
+        <item quantity="other">Split %1$d banknotes into %2$d</item>
+    </plurals>
+    <plurals name="notice_rearranged">
+        <item quantity="one">Rearranged %1$d banknote into %2$d</item>
+        <item quantity="other">Rearranged %1$d banknotes into %2$d</item>
+    </plurals>
+    <plurals name="notice_renewed">
+        <item quantity="one">Renewed %1$d banknote</item>
+        <item quantity="other">Renewed %1$d banknotes</item>
+    </plurals>
+    <string name="notice_moved_home">Moved %1$s to your provider</string>
+    <plurals name="home_working_checking_notes">
+        <item quantity="one">Checking your banknote…</item>
+        <item quantity="other">Checking banknote %1$d of %2$d…</item>
+    </plurals>
+    <string name="home_working_combining">Combining your banknotes…</string>
+    <string name="home_working_splitting">Splitting your banknotes…</string>
+    <string name="home_working_renewing">Renewing your banknotes…</string>
+    <string name="home_working_moving_home">Moving your money to your provider…</string>
+    <string name="settings_notices_hint">A short message when the wallet combined, split, renewed or moved your banknotes by itself.</string>
 </resources>
