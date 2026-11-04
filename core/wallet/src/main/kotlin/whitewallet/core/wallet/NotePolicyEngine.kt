@@ -125,7 +125,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     suspend fun apply(accountId: String, strategy: NoteStrategy, autoRotate: Boolean, collect: CollectPolicy? = null): PolicyRun {
         val start = balance(accountId)
         val unsettled = ambiguous(accountId)
-        var run = PolicyRun(0, 0, 0, null, wallet.now())
+        var run = PolicyRun(rotated = 0, merged = 0, failed = 0, stoppedEarly = null, atMillis = wallet.now())
         if (collect != null) run = collect(accountId, collect, run)
         for (host in outstanding(accountId).map { it.host }.distinct()) {
             run = follow(accountId, host, strategy, run)
@@ -222,14 +222,16 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     private suspend fun combine(accountId: String, host: String, batch: List<Note>): Outcome {
         val inputs = batch.sumOf { it.amountMsat }
         val target = OutputSpec.Own(accountId, NotePurpose.Wallet)
-        return when (val r = mutator.mutate(accountId, host, batch, OperationType.Merge, listOf(target))) {
+        return when (
+            val r = mutator.mutate(fromId = accountId, host, inputs = batch, type = OperationType.Merge, outputs = listOf(target))
+        ) {
             is MutationResult.Done -> {
                 val out = r.outputs.single()
                 log.record(
-                    "op:${r.journalId}",
+                    id = "op:${r.journalId}",
                     accountId,
-                    ActivityKind.Combined,
-                    out.amountMsat.takeIf { it > 0 } ?: inputs,
+                    kind = ActivityKind.Combined,
+                    amountMsat = out.amountMsat.takeIf { it > 0 } ?: inputs,
                     host,
                     feeMsat = ActivityLog.fee(inputs, r.outputs),
                     noteCount = batch.size,
@@ -243,12 +245,12 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             is MutationResult.Unreachable -> Outcome.Stop(r.reason ?: "no answer", failed = true)
             is MutationResult.Pending -> {
                 log.record(
-                    "op:${r.journalId}",
+                    id = "op:${r.journalId}",
                     accountId,
-                    ActivityKind.Combined,
-                    inputs,
+                    kind = ActivityKind.Combined,
+                    amountMsat = inputs,
                     host,
-                    ActivityStatus.Pending,
+                    status = ActivityStatus.Pending,
                     noteCount = batch.size,
                     automatic = true,
                     journalId = r.journalId,
@@ -260,12 +262,22 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
 
     private suspend fun split(accountId: String, note: Note, firstMsat: Long, fee: Long): Outcome {
         val outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet), OutputSpec.Own(accountId, NotePurpose.Change))
-        return when (val r = mutator.mutate(accountId, note.host, listOf(note), OperationType.Split, outputs, splitMsat = firstMsat)) {
+        return when (
+            val r =
+                mutator.mutate(
+                    fromId = accountId,
+                    note.host,
+                    inputs = listOf(note),
+                    type = OperationType.Split,
+                    outputs,
+                    splitMsat = firstMsat,
+                )
+        ) {
             is MutationResult.Done -> {
                 log.record(
-                    "op:${r.journalId}",
+                    id = "op:${r.journalId}",
                     accountId,
-                    ActivityKind.Split,
+                    kind = ActivityKind.Split,
                     note.amountMsat,
                     note.host,
                     feeMsat = fee.takeIf { it > 0 },
@@ -279,12 +291,12 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             is MutationResult.Unreachable -> Outcome.Stop(r.reason ?: "no answer", failed = true)
             is MutationResult.Pending -> {
                 log.record(
-                    "op:${r.journalId}",
+                    id = "op:${r.journalId}",
                     accountId,
-                    ActivityKind.Split,
+                    kind = ActivityKind.Split,
                     note.amountMsat,
                     note.host,
-                    ActivityStatus.Pending,
+                    status = ActivityStatus.Pending,
                     noteCount = 2,
                     automatic = true,
                     journalId = r.journalId,

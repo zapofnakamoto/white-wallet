@@ -40,7 +40,16 @@ internal class MintInspector(private val wallet: Wallet) {
     suspend fun details(host: String): MintDetails {
         val accountId = wallet.activeId()
         val h =
-            Onboarding.normalizeHost(host) ?: return MintDetails(host, null, MintDetails.Reachability.Invalid, null, 0, 0, isHome = false)
+            Onboarding.normalizeHost(host)
+                ?: return MintDetails(
+                    host,
+                    mint = null,
+                    reachability = MintDetails.Reachability.Invalid,
+                    description = null,
+                    balanceMsat = 0,
+                    noteCount = 0,
+                    isHome = false,
+                )
         var description: String? = null
         var presented: String? = null
         val reachability =

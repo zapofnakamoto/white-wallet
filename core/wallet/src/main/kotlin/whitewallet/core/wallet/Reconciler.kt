@@ -46,16 +46,16 @@ internal class Reconciler(private val wallet: Wallet) {
                     wallet.store.upsertNotes(
                         listOf(
                             Note(
-                                output.q,
+                                id = output.q,
                                 output.accountId,
                                 entry.host,
-                                NoteKind.KeyPath,
+                                kind = NoteKind.KeyPath,
                                 output.purpose,
                                 output.index,
-                                info.maxWithdrawableMsat,
-                                cert?.encode(),
-                                NoteState.Outstanding,
-                                wallet.now(),
+                                amountMsat = info.maxWithdrawableMsat,
+                                certificate = cert?.encode(),
+                                state = NoteState.Outstanding,
+                                updatedAtMillis = wallet.now(),
                             )
                         )
                     )

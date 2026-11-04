@@ -59,18 +59,25 @@ internal class NoteRotator(private val wallet: Wallet) {
                 }
                 is RotateResult.Failed -> {
                     failed++
-                    if (r.noAnswer) return RotateAllResult(rotated, failed, pending, total, r.reason ?: "no answer")
+                    if (r.noAnswer)
+                        return RotateAllResult(rotated, failed, pending, totalMsat = total, stoppedEarly = r.reason ?: "no answer")
                 }
                 RotateResult.Pending -> pending++
                 is RotateResult.NotRotatable -> Unit
             }
         }
-        return RotateAllResult(rotated, failed, pending, total, null)
+        return RotateAllResult(rotated, failed, pending, totalMsat = total, stoppedEarly = null)
     }
 
     private suspend fun rotate(accountId: String, note: Note, automatic: Boolean): RotateResult {
         val result =
-            mutator.mutate(accountId, note.host, listOf(note), OperationType.Rotate, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))
+            mutator.mutate(
+                fromId = accountId,
+                note.host,
+                inputs = listOf(note),
+                type = OperationType.Rotate,
+                outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)),
+            )
         return when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single()
@@ -82,10 +89,10 @@ internal class NoteRotator(private val wallet: Wallet) {
                     KeyProbe.Outstanding(out.amountMsat, out.certificate != null, imported = false, now),
                 )
                 log.record(
-                    "op:${result.journalId}",
+                    id = "op:${result.journalId}",
                     accountId,
-                    ActivityKind.Rotated,
-                    out.amountMsat.takeIf { it > 0 } ?: note.amountMsat,
+                    kind = ActivityKind.Rotated,
+                    amountMsat = out.amountMsat.takeIf { it > 0 } ?: note.amountMsat,
                     note.host,
                     automatic = automatic,
                     journalId = result.journalId,
@@ -96,12 +103,12 @@ internal class NoteRotator(private val wallet: Wallet) {
             is MutationResult.Unreachable -> RotateResult.Failed(result.reason, noAnswer = true)
             is MutationResult.Pending -> {
                 log.record(
-                    "op:${result.journalId}",
+                    id = "op:${result.journalId}",
                     accountId,
-                    ActivityKind.Rotated,
+                    kind = ActivityKind.Rotated,
                     note.amountMsat,
                     note.host,
-                    ActivityStatus.Pending,
+                    status = ActivityStatus.Pending,
                     automatic = automatic,
                     journalId = result.journalId,
                 )

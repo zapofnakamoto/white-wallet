@@ -522,7 +522,7 @@ class Wallet(
                     val homeOf = accounts.filter { it.account.host == host }.map { it.account.name }
                     MintInfo(
                         host,
-                        key,
+                        pubkey = key,
                         trusted = key != null && isTrusted(MintKey(host, key), default, trusted, untrusted),
                         trustedByDefault = default,
                         homeOf = homeOf,

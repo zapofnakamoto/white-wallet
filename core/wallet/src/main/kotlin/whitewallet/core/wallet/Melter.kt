@@ -70,19 +70,19 @@ internal class Melter(private val wallet: Wallet) {
         @OptIn(RevealsNoteSecret::class)
         val entry =
             JournalEntry(
-                UUID.randomUUID().toString(),
+                id = UUID.randomUUID().toString(),
                 accountId,
-                OperationType.Melt,
+                type = OperationType.Melt,
                 host,
                 mint.withdrawUrl,
-                listOf(note.id),
-                listOf(spend.k1),
-                emptyList(),
-                Requests.melt(info.callback, spend.k1, invoice),
-                JournalStatus.Prepared,
-                null,
-                created,
-                created,
+                inputIds = listOf(note.id),
+                inputK1s = listOf(spend.k1),
+                outputs = emptyList(),
+                requestUrl = Requests.melt(info.callback, spend.k1, invoice),
+                status = JournalStatus.Prepared,
+                detail = null,
+                createdAtMillis = created,
+                updatedAtMillis = created,
             )
         wallet.store.putJournal(entry)
         wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Paying, updatedAtMillis = created)))

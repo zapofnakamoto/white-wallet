@@ -112,17 +112,17 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
                         JournalEntry(
                             id,
                             accountId,
-                            OperationType.Mint,
+                            type = OperationType.Mint,
                             host,
                             mint.withdrawUrl,
-                            emptyList(),
-                            emptyList(),
-                            listOf(reserved.ref),
-                            fetched.invoice,
-                            JournalStatus.Prepared,
-                            null,
-                            now,
-                            now,
+                            inputIds = emptyList(),
+                            inputK1s = emptyList(),
+                            outputs = listOf(reserved.ref),
+                            requestUrl = fetched.invoice,
+                            status = JournalStatus.Prepared,
+                            detail = null,
+                            createdAtMillis = now,
+                            updatedAtMillis = now,
                         )
                     )
                     return InvoiceRequest.Ready(id, fetched.invoice, amountMsat, expected, fetched.expiresAtMillis)

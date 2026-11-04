@@ -95,7 +95,8 @@ internal class NoteMutator(private val wallet: Wallet) {
         } catch (e: MintKeyChangedException) {
             return MutationResult.Unreachable(e.message)
         }
-        val result = run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputs.sumOf { it.amountMsat }, type, outputs, splitMsat)
+        val result =
+            run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputMsat = inputs.sumOf { it.amountMsat }, type, outputs, splitMsat)
         return if (result is MutationResult.Refused && result.kind in UnknownNotes.GONE) refused(inputs, result.kind, result.reason)
         else result
     }
@@ -117,15 +118,15 @@ internal class NoteMutator(private val wallet: Wallet) {
         amountMsat: Long,
     ): MutationResult =
         run(
-            accountId,
+            fromId = accountId,
             host,
             withdrawUrl,
             info,
-            listOf(spend),
-            emptyList(),
-            amountMsat,
-            OperationType.Rotate,
-            listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)),
+            spends = listOf(spend),
+            inputs = emptyList(),
+            inputMsat = amountMsat,
+            type = OperationType.Rotate,
+            outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)),
             splitMsat = null,
         )
 
@@ -159,9 +160,9 @@ internal class NoteMutator(private val wallet: Wallet) {
                     spends,
                     inputMsat,
                     type,
-                    reserved,
+                    outputs = reserved,
                     info,
-                    request(type, info.callback, spends, reserved, splitMsat),
+                    url = request(type, info.callback, spends, outputs = reserved, splitMsat),
                 )
             if (result is MutationResult.Refused && result.kind == RejectionKind.AlreadyInUse && attempt + 1 < IndexGuard.IN_USE_ATTEMPTS) {
                 if (attempt == 0)
@@ -209,19 +210,19 @@ internal class NoteMutator(private val wallet: Wallet) {
         val created = wallet.now()
         val entry =
             JournalEntry(
-                UUID.randomUUID().toString(),
-                fromId,
+                id = UUID.randomUUID().toString(),
+                accountId = fromId,
                 type,
                 host,
                 withdrawUrl,
-                spends.map { it.q.toHex() },
-                spends.map(Spend::k1),
-                outputs.map { it.ref },
-                url,
-                JournalStatus.Prepared,
-                null,
-                created,
-                created,
+                inputIds = spends.map { it.q.toHex() },
+                inputK1s = spends.map(Spend::k1),
+                outputs = outputs.map { it.ref },
+                requestUrl = url,
+                status = JournalStatus.Prepared,
+                detail = null,
+                createdAtMillis = created,
+                updatedAtMillis = created,
             )
         wallet.store.putJournal(entry)
 
@@ -267,16 +268,16 @@ internal class NoteMutator(private val wallet: Wallet) {
                     // Without a certificate, fall back to what the inputs imply (fees may make this approximate).
                     val amount = cert?.amountMsat ?: if (outputs.size == 1) inputMsat else 0L
                     Note(
-                        out.ref.q,
+                        id = out.ref.q,
                         out.ref.accountId,
                         host,
-                        NoteKind.KeyPath,
+                        kind = NoteKind.KeyPath,
                         out.ref.purpose,
                         out.ref.index,
-                        amount,
-                        cert?.encode(),
-                        NoteState.Outstanding,
-                        wallet.now(),
+                        amountMsat = amount,
+                        certificate = cert?.encode(),
+                        state = NoteState.Outstanding,
+                        updatedAtMillis = wallet.now(),
                     )
                 }
                 // Someone else's outputs are reported to the caller but never stored as this wallet's notes.
@@ -301,16 +302,16 @@ internal class NoteMutator(private val wallet: Wallet) {
                             outputs.map { out ->
                                 wallet.store.note(out.ref.q)
                                     ?: Note(
-                                        out.ref.q,
-                                        "",
+                                        id = out.ref.q,
+                                        accountId = "",
                                         host,
-                                        NoteKind.KeyPath,
+                                        kind = NoteKind.KeyPath,
                                         out.ref.purpose,
-                                        null,
-                                        0,
-                                        null,
-                                        NoteState.Outstanding,
-                                        wallet.now(),
+                                        index = null,
+                                        amountMsat = 0,
+                                        certificate = null,
+                                        state = NoteState.Outstanding,
+                                        updatedAtMillis = wallet.now(),
                                     )
                             },
                             entry.id,

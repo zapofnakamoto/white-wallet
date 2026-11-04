@@ -148,13 +148,13 @@ internal class NoteSender(private val wallet: Wallet) {
             )
         wallet.store.upsertNotes(listOf(shared))
         log.record(
-            activityId(shared.id),
+            id = activityId(shared.id),
             accountId,
-            ActivityKind.SentNote,
+            kind = ActivityKind.SentNote,
             shared.amountMsat,
             host,
-            ActivityStatus.Pending,
-            plan.feeMsat.takeIf { it > 0 },
+            status = ActivityStatus.Pending,
+            feeMsat = plan.feeMsat.takeIf { it > 0 },
             certified = shared.certificate != null,
         )
         return CreateNoteResult.Created(checkNotNull(sharedNote(shared.id)), plan.feeMsat.coerceAtLeast(0))
@@ -186,12 +186,12 @@ internal class NoteSender(private val wallet: Wallet) {
             note.copy(state = state, updatedAtMillis = wallet.now(), checkedAtMillis = wallet.now().takeIf { state == NoteState.Shared })
         wallet.store.upsertNotes(listOf(shared))
         log.record(
-            activityId(id),
+            id = activityId(id),
             accountId,
-            ActivityKind.SentNote,
+            kind = ActivityKind.SentNote,
             shared.amountMsat,
             shared.host,
-            ActivityStatus.Pending,
+            status = ActivityStatus.Pending,
             certified = shared.certificate != null,
         )
         return ShareNoteResult.Shared(checkNotNull(sharedNote(id)))
@@ -213,7 +213,7 @@ internal class NoteSender(private val wallet: Wallet) {
             id,
             activity.host,
             activity.amountMsat,
-            activity.certified == true,
+            certified = activity.certified == true,
             state,
             activity.createdAtMillis,
             link = waiting?.let { link(it) },
@@ -238,7 +238,13 @@ internal class NoteSender(private val wallet: Wallet) {
             Check.Waiting -> Unit
         }
         val result =
-            mutator.mutate(accountId, note.host, listOf(note), OperationType.Rotate, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))
+            mutator.mutate(
+                fromId = accountId,
+                note.host,
+                inputs = listOf(note),
+                type = OperationType.Rotate,
+                outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)),
+            )
         return when (result) {
             is MutationResult.Done -> {
                 cancel(accountId, id)

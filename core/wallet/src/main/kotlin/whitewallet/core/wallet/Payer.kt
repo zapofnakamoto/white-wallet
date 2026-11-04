@@ -244,13 +244,13 @@ internal class Payer(private val wallet: Wallet) {
             return when (val made = exact(accountId, host, plan, amountMsat, target)) {
                 is MutationResult.Done -> {
                     log.record(
-                        "pay:${made.journalId}",
+                        id = "pay:${made.journalId}",
                         accountId,
-                        ActivityKind.Sent,
+                        kind = ActivityKind.Sent,
                         amountMsat,
                         host,
-                        ActivityStatus.Done,
-                        plan.feeMsat.takeIf { it > 0 },
+                        status = ActivityStatus.Done,
+                        feeMsat = plan.feeMsat.takeIf { it > 0 },
                         counterparty,
                         journalId = made.journalId,
                     )
@@ -258,12 +258,12 @@ internal class Payer(private val wallet: Wallet) {
                 }
                 is MutationResult.Pending -> {
                     log.record(
-                        "pay:${made.journalId}",
+                        id = "pay:${made.journalId}",
                         accountId,
-                        ActivityKind.Sent,
+                        kind = ActivityKind.Sent,
                         amountMsat,
                         host,
-                        ActivityStatus.Pending,
+                        status = ActivityStatus.Pending,
                         counterparty = counterparty,
                         journalId = made.journalId,
                     )
@@ -286,7 +286,7 @@ internal class Payer(private val wallet: Wallet) {
             }
         if (invoice.isExpired(wallet.now())) return PayResult.Failed(PayProblem.Expired)
         val note =
-            when (val made = exact(accountId, host, plan, amountMsat, OutputSpec.Own(accountId, NotePurpose.Wallet))) {
+            when (val made = exact(accountId, host, plan, amountMsat, target = OutputSpec.Own(accountId, NotePurpose.Wallet))) {
                 is MutationResult.Done -> made.outputs.first()
                 // Nothing is paid; the merge or split itself is settled by reconciliation on a later refresh.
                 is MutationResult.Pending -> return PayResult.Failed(PayProblem.Unreachable)
@@ -336,20 +336,20 @@ internal class Payer(private val wallet: Wallet) {
         var inputs = plan.inputs
         if (!plan.merge && !plan.split) {
             if (target is OutputSpec.Own) return MutationResult.Done(inputs, journalId = "")
-            return mutator.mutate(accountId, host, inputs, OperationType.Rotate, listOf(target))
+            return mutator.mutate(fromId = accountId, host, inputs, type = OperationType.Rotate, outputs = listOf(target))
         }
         if (plan.merge) {
             val mergeTarget = if (plan.split) OutputSpec.Own(accountId, NotePurpose.Wallet) else target
-            val merged = mutator.mutate(accountId, host, inputs, OperationType.Merge, listOf(mergeTarget))
+            val merged = mutator.mutate(fromId = accountId, host, inputs, type = OperationType.Merge, outputs = listOf(mergeTarget))
             if (!plan.split || merged !is MutationResult.Done) return merged
             inputs = merged.outputs
         }
         return mutator.mutate(
-            accountId,
+            fromId = accountId,
             host,
             inputs,
-            OperationType.Split,
-            listOf(target, OutputSpec.Own(accountId, NotePurpose.Change)),
+            type = OperationType.Split,
+            outputs = listOf(target, OutputSpec.Own(accountId, NotePurpose.Change)),
             splitMsat = amountMsat,
         )
     }
@@ -367,13 +367,13 @@ internal class Payer(private val wallet: Wallet) {
         val outcome =
             Melter(wallet).melt(accountId, host, note, invoice.raw) { journalId ->
                 log.record(
-                    "pay:$journalId",
+                    id = "pay:$journalId",
                     accountId,
-                    ActivityKind.Sent,
-                    amount,
+                    kind = ActivityKind.Sent,
+                    amountMsat = amount,
                     host,
-                    ActivityStatus.Pending,
-                    feeMsat.takeIf { it > 0 },
+                    status = ActivityStatus.Pending,
+                    feeMsat = feeMsat.takeIf { it > 0 },
                     counterparty,
                     journalId = journalId,
                 )

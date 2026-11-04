@@ -41,20 +41,20 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         @OptIn(RevealsNoteSecret::class)
         val note =
             ReceivedNote(
-                spend.q.toHex(),
+                id = spend.q.toHex(),
                 accountId,
                 link.host,
                 link.withdrawUrl,
                 spend.k1,
                 link.certificate,
-                link.declaredAmountMsat,
-                amountMsat ?: existing?.amountMsat,
-                until,
+                declaredMsat = link.declaredAmountMsat,
+                amountMsat = amountMsat ?: existing?.amountMsat,
+                lockedUntilMillis = until,
                 script?.lockedForSeconds,
                 state,
-                null,
-                existing?.receivedAtMillis ?: now,
-                now,
+                journalId = null,
+                receivedAtMillis = existing?.receivedAtMillis ?: now,
+                updatedAtMillis = now,
             )
         wallet.store.putReceivedNote(note)
         if (state == ReceivedState.Waiting) wallet.syncWhenOnline()
@@ -84,16 +84,17 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         val pinned = wallet.store.mint(note.host)?.mintPubkey
         if (pinned != null && pinned != answer.mintPubkey.toHex())
             return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, refusedSinceMillis = null)))
-        val result = mutator.rotateIn(note.accountId, note.host, note.withdrawUrl, answer, spend, answer.maxWithdrawableMsat)
+        val result =
+            mutator.rotateIn(note.accountId, note.host, note.withdrawUrl, info = answer, spend, amountMsat = answer.maxWithdrawableMsat)
         return when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single()
                 val amount = out.amountMsat.takeIf { it > 0 } ?: answer.maxWithdrawableMsat
                 log.record(
-                    "claim:${result.journalId}",
+                    id = "claim:${result.journalId}",
                     note.accountId,
-                    ActivityKind.Claimed,
-                    amount,
+                    kind = ActivityKind.Claimed,
+                    amountMsat = amount,
                     note.host,
                     certified = out.certificate != null || certified,
                 )
@@ -104,12 +105,12 @@ internal class ReceivedNotes(private val wallet: Wallet) {
             // Either the rotate landed or the note is back where it was once reconciled; then it is tried again.
             is MutationResult.Pending -> {
                 log.record(
-                    "claim:${result.journalId}",
+                    id = "claim:${result.journalId}",
                     note.accountId,
-                    ActivityKind.Claimed,
-                    answer.maxWithdrawableMsat,
+                    kind = ActivityKind.Claimed,
+                    amountMsat = answer.maxWithdrawableMsat,
                     note.host,
-                    ActivityStatus.Pending,
+                    status = ActivityStatus.Pending,
                     certified = certified,
                     journalId = result.journalId,
                 )

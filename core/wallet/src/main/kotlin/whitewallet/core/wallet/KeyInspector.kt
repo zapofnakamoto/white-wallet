@@ -139,13 +139,13 @@ internal class KeyInspector(private val wallet: Wallet) {
             val failure = failures[id]?.takeIf { it.checkedAtMillis >= (probe?.checkedAtMillis ?: Long.MIN_VALUE) }
             DerivedKey(
                 id,
-                q.toHex(),
-                Cp1.encode(q),
+                q = q.toHex(),
+                cp1 = Cp1.encode(q),
                 probe,
                 failure,
-                note?.state,
-                note?.amountMsat,
-                KeyStatus.of(index, tabIndex, note, probe),
+                noteState = note?.state,
+                noteAmountMsat = note?.amountMsat,
+                status = KeyStatus.of(index, tabIndex, note, probe),
             )
         }
     }
@@ -153,19 +153,29 @@ internal class KeyInspector(private val wallet: Wallet) {
     /** Looks up keys from the index until [gap] unused keys in a row follow the last used one. */
     suspend fun scanAhead(accountId: String, host: String, purpose: Int, gap: Int): KeyScanResult {
         val from = index(accountId, host, purpose)
-        return scan(accountId, host, purpose, from, from + gap, gap)
+        return scan(accountId, host, purpose, from, until = from + gap, gap)
     }
 
     /** Looks up every key handed out so far, then on until [gap] unused keys in a row follow the last used one. */
     suspend fun recheckAll(accountId: String, host: String, purpose: Int, gap: Int): KeyScanResult =
-        scan(accountId, host, purpose, 0, index(accountId, host, purpose) + gap, gap)
+        scan(accountId, host, purpose, from = 0, until = index(accountId, host, purpose) + gap, gap)
 
     /**
      * Looks up keys from [from], at least until [until] and then on until [gap] unused keys in a row follow the last used key found, moving
      * the index past it. Stops early if the mint stops answering or after [MAX_SCAN] keys.
      */
     private suspend fun scan(accountId: String, host: String, purpose: Int, from: Long, until: Long, gap: Int): KeyScanResult {
-        val mint = wallet.store.mint(host) ?: return KeyScanResult(from, until, 0, 0, 0, "unknown host", index(accountId, host, purpose))
+        val mint =
+            wallet.store.mint(host)
+                ?: return KeyScanResult(
+                    from,
+                    until,
+                    checked = 0,
+                    outstanding = 0,
+                    imported = 0,
+                    stoppedEarly = "unknown host",
+                    indexAfter = index(accountId, host, purpose),
+                )
         var end = until
         var checked = 0
         var outstanding = 0
@@ -197,7 +207,15 @@ internal class KeyInspector(private val wallet: Wallet) {
             index++
         }
         advanceIndex(accountId, host, purpose, lastUsed)
-        return KeyScanResult(from, index, checked, outstanding, imported, stopped, index(accountId, host, purpose))
+        return KeyScanResult(
+            from,
+            until = index,
+            checked,
+            outstanding,
+            imported,
+            stoppedEarly = stopped,
+            indexAfter = index(accountId, host, purpose),
+        )
     }
 
     suspend fun recheck(id: KeyId): KeyProbe {

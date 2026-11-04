@@ -58,10 +58,10 @@ internal class IndexDiscovery(private val wallet: Wallet) {
                         unused = 0
                     } else {
                         return DiscoveryResult(
-                            current(accountId, host, purpose),
+                            next = current(accountId, host, purpose),
                             checked,
                             imported,
-                            probe.reason ?: "refused",
+                            stoppedEarly = probe.reason ?: "refused",
                             refused = true,
                         )
                     }

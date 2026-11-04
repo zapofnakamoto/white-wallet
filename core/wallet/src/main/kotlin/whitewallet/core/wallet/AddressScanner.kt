@@ -28,7 +28,14 @@ internal class AddressScanner(private val wallet: Wallet) {
                         received += probe.amountMsat
                         // Each address key is paid once, so its note's Q identifies the payment.
                         val q = wallet.branch(accountId, host).notePubkey(NotePurpose.LightningAddress, index).toHex()
-                        log.record("recv:$q", accountId, ActivityKind.Received, probe.amountMsat, host, certified = probe.certified)
+                        log.record(
+                            id = "recv:$q",
+                            accountId,
+                            kind = ActivityKind.Received,
+                            probe.amountMsat,
+                            host,
+                            certified = probe.certified,
+                        )
                     }
                     lastUsed = index
                     gap = 0

@@ -118,16 +118,23 @@ internal class NoteManager(private val wallet: Wallet) {
             }
         if (notes.size < 2) return NoteActionResult.Failed(NoteProblem.TooFewNotes)
         val host = notes.first().host
-        val result = mutator.mutate(accountId, host, notes, OperationType.Merge, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))
+        val result =
+            mutator.mutate(
+                fromId = accountId,
+                host,
+                inputs = notes,
+                type = OperationType.Merge,
+                outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)),
+            )
         val inputs = notes.sumOf { it.amountMsat }
         when (result) {
             is MutationResult.Done ->
                 result.outputs.single().let { out ->
                     log.record(
-                        "op:${result.journalId}",
+                        id = "op:${result.journalId}",
                         accountId,
-                        ActivityKind.Combined,
-                        out.amountMsat.takeIf { it > 0 } ?: inputs,
+                        kind = ActivityKind.Combined,
+                        amountMsat = out.amountMsat.takeIf { it > 0 } ?: inputs,
                         host,
                         feeMsat = ActivityLog.fee(inputs, result.outputs),
                         noteCount = notes.size,
@@ -136,12 +143,12 @@ internal class NoteManager(private val wallet: Wallet) {
                 }
             is MutationResult.Pending ->
                 log.record(
-                    "op:${result.journalId}",
+                    id = "op:${result.journalId}",
                     accountId,
-                    ActivityKind.Combined,
-                    inputs,
+                    kind = ActivityKind.Combined,
+                    amountMsat = inputs,
                     host,
-                    ActivityStatus.Pending,
+                    status = ActivityStatus.Pending,
                     noteCount = notes.size,
                     journalId = result.journalId,
                 )
@@ -166,13 +173,21 @@ internal class NoteManager(private val wallet: Wallet) {
         val limits = splitLimits(id) ?: return NoteActionResult.Failed(NoteProblem.InvalidAmount)
         if (amountMsat !in limits.minMsat..limits.maxMsat) return NoteActionResult.Failed(NoteProblem.InvalidAmount)
         val outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet), OutputSpec.Own(accountId, NotePurpose.Change))
-        val result = mutator.mutate(accountId, note.host, listOf(note), OperationType.Split, outputs, splitMsat = amountMsat)
+        val result =
+            mutator.mutate(
+                fromId = accountId,
+                note.host,
+                inputs = listOf(note),
+                type = OperationType.Split,
+                outputs,
+                splitMsat = amountMsat,
+            )
         when (result) {
             is MutationResult.Done ->
                 log.record(
-                    "op:${result.journalId}",
+                    id = "op:${result.journalId}",
                     accountId,
-                    ActivityKind.Split,
+                    kind = ActivityKind.Split,
                     note.amountMsat,
                     note.host,
                     feeMsat = limits.feeMsat.takeIf { it > 0 },
@@ -181,12 +196,12 @@ internal class NoteManager(private val wallet: Wallet) {
                 )
             is MutationResult.Pending ->
                 log.record(
-                    "op:${result.journalId}",
+                    id = "op:${result.journalId}",
                     accountId,
-                    ActivityKind.Split,
+                    kind = ActivityKind.Split,
                     note.amountMsat,
                     note.host,
-                    ActivityStatus.Pending,
+                    status = ActivityStatus.Pending,
                     noteCount = 2,
                     journalId = result.journalId,
                 )
@@ -229,11 +244,11 @@ internal class NoteManager(private val wallet: Wallet) {
             when (
                 val merged =
                     mutator.mutate(
-                        accountId,
-                        quote.fromHost,
-                        notes,
-                        OperationType.Merge,
-                        listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)),
+                        fromId = accountId,
+                        host = quote.fromHost,
+                        inputs = notes,
+                        type = OperationType.Merge,
+                        outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)),
                     )
             ) {
                 is MutationResult.Done -> notes = merged.outputs
@@ -272,30 +287,30 @@ internal class NoteManager(private val wallet: Wallet) {
                 val now = wallet.now()
                 wallet.store.putJournal(
                     JournalEntry(
-                        mintId,
+                        id = mintId,
                         accountId,
-                        OperationType.Mint,
-                        quote.toHost,
+                        type = OperationType.Mint,
+                        host = quote.toHost,
                         target.withdrawUrl,
-                        emptyList(),
-                        emptyList(),
-                        listOf(output.ref),
-                        invoice,
-                        JournalStatus.Prepared,
-                        meltId,
-                        now,
-                        now,
+                        inputIds = emptyList(),
+                        inputK1s = emptyList(),
+                        outputs = listOf(output.ref),
+                        requestUrl = invoice,
+                        status = JournalStatus.Prepared,
+                        detail = meltId,
+                        createdAtMillis = now,
+                        updatedAtMillis = now,
                     )
                 )
                 log.record(
-                    "mint:$mintId",
+                    id = "mint:$mintId",
                     accountId,
-                    ActivityKind.MovedMint,
-                    expected,
-                    quote.fromHost,
-                    ActivityStatus.Pending,
-                    (amount - expected).takeIf { it > 0 },
-                    quote.toHost,
+                    kind = ActivityKind.MovedMint,
+                    amountMsat = expected,
+                    host = quote.fromHost,
+                    status = ActivityStatus.Pending,
+                    feeMsat = (amount - expected).takeIf { it > 0 },
+                    counterparty = quote.toHost,
                     automatic = automatic,
                     journalId = mintId,
                 )
@@ -429,16 +444,16 @@ internal class MintReconciler(private val wallet: Wallet) {
                 wallet.store.upsertNotes(
                     listOf(
                         Note(
-                            output.q,
+                            id = output.q,
                             output.accountId,
                             entry.host,
-                            NoteKind.KeyPath,
+                            kind = NoteKind.KeyPath,
                             output.purpose,
                             output.index,
-                            info.maxWithdrawableMsat,
-                            cert?.encode(),
-                            NoteState.Outstanding,
-                            wallet.now(),
+                            amountMsat = info.maxWithdrawableMsat,
+                            certificate = cert?.encode(),
+                            state = NoteState.Outstanding,
+                            updatedAtMillis = wallet.now(),
                         )
                     )
                 )

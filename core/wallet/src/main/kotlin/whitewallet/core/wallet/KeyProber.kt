@@ -67,17 +67,17 @@ internal class KeyProber(private val wallet: Wallet) {
                     wallet.store.upsertNotes(
                         listOf(
                             Note(
-                                noteId,
+                                id = noteId,
                                 id.accountId,
                                 id.host,
-                                NoteKind.KeyPath,
+                                kind = NoteKind.KeyPath,
                                 id.purpose,
                                 id.index,
-                                info.maxWithdrawableMsat,
-                                certificate?.encode() ?: existing?.certificate,
+                                amountMsat = info.maxWithdrawableMsat,
+                                certificate = certificate?.encode() ?: existing?.certificate,
                                 // A note handed out as a link stays out of the balance until it is spent or taken back.
-                                existing?.state?.takeIf { it.isShared } ?: NoteState.Outstanding,
-                                now,
+                                state = existing?.state?.takeIf { it.isShared } ?: NoteState.Outstanding,
+                                updatedAtMillis = now,
                             )
                         )
                     )

@@ -67,7 +67,7 @@ internal class FundsMover(private val wallet: Wallet) {
     private suspend fun moveAll(fromId: String, toId: String, host: String, notes: List<Note>): MoveResult {
         val type = if (notes.size == 1) OperationType.Rotate else OperationType.Merge
         val inputs = notes.sumOf { it.amountMsat }
-        val result = mutator.mutate(fromId, host, notes, type, listOf(OutputSpec.Own(toId, NotePurpose.Wallet)))
+        val result = mutator.mutate(fromId, host, inputs = notes, type, outputs = listOf(OutputSpec.Own(toId, NotePurpose.Wallet)))
         when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single().amountMsat
@@ -75,13 +75,14 @@ internal class FundsMover(private val wallet: Wallet) {
                     fromId,
                     toId,
                     host,
-                    out.takeIf { it > 0 } ?: inputs,
-                    ActivityLog.fee(inputs, result.outputs),
-                    ActivityStatus.Done,
+                    amountMsat = out.takeIf { it > 0 } ?: inputs,
+                    feeMsat = ActivityLog.fee(inputs, result.outputs),
+                    status = ActivityStatus.Done,
                     result.journalId,
                 )
             }
-            is MutationResult.Pending -> log.move(fromId, toId, host, inputs, null, ActivityStatus.Pending, result.journalId)
+            is MutationResult.Pending ->
+                log.move(fromId, toId, host, amountMsat = inputs, feeMsat = null, status = ActivityStatus.Pending, result.journalId)
             else -> Unit
         }
         return result.toMove()
@@ -98,12 +99,19 @@ internal class FundsMover(private val wallet: Wallet) {
         var inputs = sorted.takeWhileCovering(amountMsat)
         if (inputs.size > 1) {
             // Merge into one of our own notes first, then split that.
-            val merged = mutator.mutate(fromId, host, inputs, OperationType.Merge, listOf(OutputSpec.Own(fromId, NotePurpose.Wallet)))
+            val merged =
+                mutator.mutate(
+                    fromId,
+                    host,
+                    inputs,
+                    type = OperationType.Merge,
+                    outputs = listOf(OutputSpec.Own(fromId, NotePurpose.Wallet)),
+                )
             inputs = (merged as? MutationResult.Done)?.outputs ?: return merged.toMove()
             if (inputs.single().amountMsat == amountMsat) return moveAll(fromId, toId, host, inputs)
         }
         val outputs = listOf(OutputSpec.Own(toId, NotePurpose.Wallet), OutputSpec.Own(fromId, NotePurpose.Change))
-        val result = mutator.mutate(fromId, host, inputs, OperationType.Split, outputs, splitMsat = amountMsat)
+        val result = mutator.mutate(fromId, host, inputs, type = OperationType.Split, outputs, splitMsat = amountMsat)
         when (result) {
             is MutationResult.Done -> {
                 log.move(
@@ -111,12 +119,13 @@ internal class FundsMover(private val wallet: Wallet) {
                     toId,
                     host,
                     amountMsat,
-                    ActivityLog.fee(inputs.sumOf { it.amountMsat }, result.outputs),
-                    ActivityStatus.Done,
+                    feeMsat = ActivityLog.fee(inputs.sumOf { it.amountMsat }, result.outputs),
+                    status = ActivityStatus.Done,
                     result.journalId,
                 )
             }
-            is MutationResult.Pending -> log.move(fromId, toId, host, amountMsat, null, ActivityStatus.Pending, result.journalId)
+            is MutationResult.Pending ->
+                log.move(fromId, toId, host, amountMsat, feeMsat = null, status = ActivityStatus.Pending, result.journalId)
             else -> Unit
         }
         val r = result.toMove()

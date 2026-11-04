@@ -94,7 +94,7 @@ internal class Onboarding(private val wallet: Wallet) {
             return OnboardResult.AccountLimitReached(wallet.maxAccounts)
         val accountId = if (creating) UUID.randomUUID().toString() else existing
         if (creating) wallet.createSeed(accountId)
-        val result = claim(name, h, accountId, creating, newAccountName?.trim()?.ifEmpty { null } ?: DEFAULT_ACCOUNT_NAME)
+        val result = claim(name, h, accountId, creating, accountName = newAccountName?.trim()?.ifEmpty { null } ?: DEFAULT_ACCOUNT_NAME)
         // Kept for the next attempt, so the seed-derived names offered stay the same.
         if (creating && result !is OnboardResult.Ready) wallet.discardSeed(accountId, keepForRetry = true)
         return result
@@ -178,7 +178,7 @@ internal class Onboarding(private val wallet: Wallet) {
             is ConnectResult.Failed -> return connected.result
             is ConnectResult.Connected -> Unit
         }
-        val ready = suspend { confirmed: Boolean -> ready(accountId, creating, accountName, name, h, confirmed, primary) }
+        val ready = suspend { confirmed: Boolean -> ready(accountId, creating, accountName, name, host = h, confirmed, primary) }
 
         // Check first: the name may already be ours (an earlier attempt whose answer was lost) or someone else's.
         when (val before = addresses.check(name, h, accountId)) {

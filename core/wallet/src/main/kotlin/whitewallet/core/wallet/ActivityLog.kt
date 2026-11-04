@@ -39,7 +39,7 @@ internal class ActivityLog(private val wallet: Wallet) {
                 automatic,
                 status,
                 journalId,
-                wallet.now(),
+                createdAtMillis = wallet.now(),
             )
         )
 
@@ -55,8 +55,27 @@ internal class ActivityLog(private val wallet: Wallet) {
     ) {
         val fromName = wallet.store.account(fromId)?.name
         val toName = wallet.store.account(toId)?.name
-        record("move:$journalId:out", fromId, ActivityKind.MovedOut, amountMsat, host, status, feeMsat, toName, journalId = journalId)
-        record("move:$journalId:in", toId, ActivityKind.MovedIn, amountMsat, host, status, counterparty = fromName, journalId = journalId)
+        record(
+            id = "move:$journalId:out",
+            accountId = fromId,
+            kind = ActivityKind.MovedOut,
+            amountMsat,
+            host,
+            status,
+            feeMsat,
+            counterparty = toName,
+            journalId = journalId,
+        )
+        record(
+            id = "move:$journalId:in",
+            accountId = toId,
+            kind = ActivityKind.MovedIn,
+            amountMsat,
+            host,
+            status,
+            counterparty = fromName,
+            journalId = journalId,
+        )
     }
 
     /** Settles rows waiting for a journal entry once reconciliation knows its outcome. */
