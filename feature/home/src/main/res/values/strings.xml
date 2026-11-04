@@ -92,7 +92,7 @@
     <string name="activity_moved_in">Moved from %1$s</string>
     <string name="activity_moved_in_other">Moved from another account</string>
     <string name="activity_renewed">Moved onto a new key</string>
-    <string name="activity_note_waiting">Not redeemed yet</string>
+    <string name="activity_note_waiting">Not claimed yet</string>
     <string name="activity_note_spent">Spent</string>
     <string name="activity_note_taken_back">Taken back</string>
     <string name="activity_moved_mint">Moved to %1$s</string>

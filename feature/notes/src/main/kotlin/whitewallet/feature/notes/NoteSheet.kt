@@ -88,19 +88,16 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                     Text(stringResource(R.string.notes_trusted), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 }
             }
-            Text(
-                stringResource(
-                    when {
-                        note.state == NoteState.Paying -> R.string.notes_state_paying
-                        note.state == NoteState.Ambiguous -> R.string.notes_state_ambiguous
-                        note.state == NoteState.Unknown -> R.string.notes_state_unknown_detail
-                        note.certificate != null -> R.string.notes_certified
-                        else -> R.string.notes_uncertified
-                    },
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // A ready, certified note needs no words; only a state or an amount that can't be verified does.
+            when {
+                note.state == NoteState.Paying -> R.string.notes_state_paying
+                note.state == NoteState.Ambiguous -> R.string.notes_state_ambiguous
+                note.state == NoteState.Unknown -> R.string.notes_state_unknown_detail
+                note.certificate == null -> R.string.notes_uncertified
+                else -> null
+            }?.let {
+                Text(stringResource(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             val enabled = NotesViewModel.selectable(note) && !state.busy
             val offered = state.noteActions
             if (offered.any { !it.bulk } || NoteAction.Recheck in offered) {

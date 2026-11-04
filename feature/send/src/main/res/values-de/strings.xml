@@ -67,7 +67,7 @@
     <string name="send_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Dein Geld ist wieder in deinem Guthaben.</string>
 
     <string name="send_or">oder</string>
-    <string name="note_bearer_warning">Jeder mit diesem Code kann ihn ausgeben. Teile ihn nur mit der Person, für die er gedacht ist.</string>
+    <string name="note_bearer_warning">Jeder mit diesem Code kann das Geld nehmen.</string>
     <string name="note_waiting">Noch nicht eingelöst. Bis dahin kannst du ihn zurückholen.</string>
     <string name="note_unconfirmed">Offline weitergegeben, darum hat die Mint diesen Schein noch nicht bestätigt. Deine Wallet fragt nach, sobald sie online ist.</string>
     <string name="note_unknown_to_mint">Die Mint kennt diesen Schein nicht. Der Link funktioniert vielleicht nicht.</string>

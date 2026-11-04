@@ -281,7 +281,11 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
             MoveFundsRoute(onBack = { nav.popBackStack() })
         }
         composable(Routes.SEND_WITH, arguments = listOf(navArgument("input") { type = NavType.StringType; nullable = true; defaultValue = null })) {
-            SendRoute(onDone = { nav.popBackStack() }, onCreateNote = { nav.navigate(Routes.CREATE_NOTE) })
+            SendRoute(
+                onDone = { nav.popBackStack() },
+                onCreateNote = { nav.navigate(Routes.CREATE_NOTE) },
+                onClaim = { nav.navigate(Routes.claim(it)) { popUpTo(Routes.HOME) } },
+            )
         }
         composable(Routes.CREATE_NOTE) {
             CreateNoteRoute(onBack = { nav.popBackStack() }, onCreated = { id -> nav.navigate(Routes.note(id)) { popUpTo(Routes.HOME) } })
@@ -293,7 +297,10 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
             ReceiveRoute(onBack = { nav.popBackStack() }, onClaim = { nav.navigate(Routes.CLAIM) { popUpTo(Routes.HOME) } })
         }
         composable(Routes.CLAIM_WITH, arguments = listOf(navArgument("input") { type = NavType.StringType; nullable = true; defaultValue = null })) {
-            ClaimRoute(onBack = { nav.popBackStack(Routes.HOME, inclusive = false) })
+            ClaimRoute(
+                onBack = { nav.popBackStack(Routes.HOME, inclusive = false) },
+                onPay = { nav.navigate(Routes.send(it)) { popUpTo(Routes.HOME) } },
+            )
         }
         composable(Routes.SETTINGS) {
             SettingsRoute(

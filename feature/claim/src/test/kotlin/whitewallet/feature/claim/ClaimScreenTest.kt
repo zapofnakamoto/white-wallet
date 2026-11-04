@@ -44,6 +44,7 @@ class ClaimScreenTest {
         compose.onNodeWithText("On other.example").assertExists()
         compose.onNodeWithText("✓ Trusted").assertExists()
         compose.onNodeWithText("This note is held by other.example and stays there.").assertExists()
+        compose.onNodeWithText("certified", substring = true, ignoreCase = true).assertDoesNotExist()
     }
 
     @Test
@@ -95,8 +96,9 @@ class ClaimScreenTest {
         var kept = false
         showKeep(ClaimPreview.Offline(link, 5_000_000, 5_000_000), onKeep = { kept = true })
         compose.onNodeWithText("No connection right now. Keep it, and your wallet claims it as soon as it's back online.").assertExists()
-        compose.onNodeWithText(", certified", substring = true).assertExists()
-        compose.onNodeWithText("Until then it isn't in your balance, your recovery phrase doesn't cover it, and whoever gave you the link can still spend it.").assertExists()
+        // A certified amount is shown plainly, without a word about it.
+        compose.onNodeWithText("certified", substring = true, ignoreCase = true).assertDoesNotExist()
+        compose.onNodeWithText("Not yours yet: whoever gave you the link can still spend it, and your recovery phrase doesn't cover it.").assertExists()
         compose.onNodeWithText("Keep and claim later").performScrollTo().performClick()
         assertTrue(kept)
     }
@@ -158,7 +160,7 @@ class ClaimScreenTest {
         val note = ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.Waiting, null, 1, 1)
         show(ClaimState(result = ClaimResult.Kept(note)))
         compose.onNodeWithText("Kept. Your wallet claims it on its own as soon as it can.").assertExists()
-        compose.onNodeWithText("Until then it isn't in your balance, your recovery phrase doesn't cover it, and whoever gave you the link can still spend it.").assertExists()
+        compose.onNodeWithText("Not yours yet: whoever gave you the link can still spend it, and your recovery phrase doesn't cover it.").assertExists()
     }
 
     @Test

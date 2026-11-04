@@ -73,8 +73,8 @@
 
     <!-- Sending a note: a link or QR code that holds the money itself. -->
     <string name="send_or">or</string>
-    <string name="note_bearer_warning">Anyone with this code can spend it. Share it only with the person it\'s for.</string>
-    <string name="note_waiting">Not redeemed yet. You can take it back until it is.</string>
+    <string name="note_bearer_warning">Anyone with this code can take the money.</string>
+    <string name="note_waiting">Not claimed yet. You can take it back until then.</string>
     <string name="note_unconfirmed">Handed out offline, so its mint hasn\'t confirmed this note yet. Your wallet asks as soon as it\'s online.</string>
     <string name="note_unknown_to_mint">Its mint doesn\'t know this note. The link may not work.</string>
     <string name="note_share">Share</string>

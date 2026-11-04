@@ -38,6 +38,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- One scanner does for both: a note scanned or pasted under Send opens Claim, and an invoice or Lightning address
+  under Claim opens Send.
+- Fewer words where nothing needs the user: a certified amount is no longer labelled as such (only one that can't
+  be verified is), and the bearer warnings and the hint for a kept note are shorter. A shared note waits to be
+  "claimed", not "redeemed".
+- Strings `claim_certified`, `claim_amount_certified` and `notes_certified` are gone; `claim_kept_hint`,
+  `note_bearer_warning`, `claim_bearer_warning`, `note_waiting`, `activity_note_waiting`, `notes_waiting_total` and
+  `notes_shared_title` say less or say it differently.
 - A shared note found spent says "Spent", not "Redeemed": usually the recipient took it, but another device with the
   same recovery phrase may have. Strings `note_redeemed`, `note_already_redeemed` and `activity_note_redeemed` are
   now `note_spent`, `note_already_spent` and `activity_note_spent`; a brand that overrode them needs to rename them.

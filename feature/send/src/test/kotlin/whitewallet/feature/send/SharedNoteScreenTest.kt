@@ -167,7 +167,7 @@ class SharedNoteScreenTest {
         compose.onNodeWithText("Tap to show the QR code").performClick()
         compose.onNodeWithContentDescription("QR code of the note").assertExists()
         compose.onNodeWithText("https://mint.example/note#secret", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Anyone with this code can spend it.", substring = true).assertExists()
+        compose.onNodeWithText("Anyone with this code can take the money.", substring = true).assertExists()
         compose.onNodeWithText("Share").performScrollTo().performClick()
         assertEquals("https://mint.example/note#secret", shared)
         compose.onNodeWithText("Take back").performScrollTo().performClick()

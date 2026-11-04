@@ -219,10 +219,10 @@ class NotesScreenTest {
         var opened: String? = null
         val shared = note("s", "home.example", 3_333, NoteState.Shared)
         compose.setContent { NotesContent(state({ it.copy(shared = listOf(shared)) }), NotesActions(openShared = { opened = it })) }
-        compose.onNodeWithText("₿3,333 shared, not redeemed yet").assertExists()
+        compose.onNodeWithText("₿3,333 shared, not claimed yet").assertExists()
         // The list is lazy: rows below the screen exist only once scrolled to.
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Tap one to show its QR code again or take it back."))
-        compose.onNodeWithText("Shared, not redeemed yet").assertExists()
+        compose.onNodeWithText("Shared, not claimed yet").assertExists()
         compose.onNodeWithText("₿3,333").performClick()
         assertEquals("s", opened)
     }

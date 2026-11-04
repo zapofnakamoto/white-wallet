@@ -59,15 +59,14 @@
     <string name="notes_state_unknown">Unknown to the mint</string>
     <string name="notes_state_unknown_detail">The mint says it doesn\'t know this note, so it isn\'t in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it\'s back in your balance.</string>
 
-    <string name="notes_waiting_total">%1$s shared, not redeemed yet</string>
+    <string name="notes_waiting_total">%1$s shared, not claimed yet</string>
     <string name="notes_sort_largest">Largest first</string>
     <string name="notes_sort_newest">Newest first</string>
     <string name="notes_select">Select</string>
     <string name="notes_group_not_moved">Not moved home: the fee of %1$s is more than %2$d%%.</string>
     <string name="notes_move_anyway">Move anyway</string>
-    <string name="notes_shared_title">Shared, not redeemed yet</string>
+    <string name="notes_shared_title">Shared, not claimed yet</string>
     <string name="notes_shared_hint">Tap one to show its QR code again or take it back.</string>
-    <string name="notes_certified">Amount certified</string>
     <string name="notes_sheet_where">On %1$s · %2$s</string>
     <string name="notes_share">Share as QR</string>
     <string name="notes_recheck">Recheck</string>

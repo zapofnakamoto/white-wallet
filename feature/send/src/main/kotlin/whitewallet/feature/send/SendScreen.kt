@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,10 +52,16 @@ import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletTextField
 
-/** Pay an invoice, a Lightning address or a pay link: enter or scan it, review the amount and fee, pay. */
+/**
+ * Pay an invoice, a Lightning address or a pay link: enter or scan it, review the amount and fee, pay. A note link
+ * entered here goes to [onClaim].
+ */
 @Composable
-fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, viewModel: SendViewModel = hiltViewModel()) {
+fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, onClaim: (String) -> Unit = {}, viewModel: SendViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(state.claim) {
+        state.claim?.let { onClaim(it); viewModel.claimOpened() }
+    }
     SendScreen(
         state,
         onBack = {

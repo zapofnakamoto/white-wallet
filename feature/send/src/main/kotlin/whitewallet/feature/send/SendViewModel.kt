@@ -17,6 +17,7 @@ import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
+import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
 
@@ -40,6 +41,8 @@ data class SendState(
     val result: PayResult? = null,
     /** Developer: whether the regtest faucet can make an invoice to pay, and its last attempt. */
     val faucet: FaucetState? = null,
+    /** A note link was scanned or pasted here: Claim takes it over, so one scanner does for both. */
+    val claim: String? = null,
 ) {
     /** The amount to pay in msat, or null while none is entered. */
     val amountMsat: Long? get() = preview?.fixedAmountMsat ?: amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
@@ -94,6 +97,10 @@ class SendViewModel @Inject constructor(
     fun check() {
         val input = _state.value.input
         if (input.isBlank() || _state.value.checking) return
+        (IncomingLink.classify(input) as? IncomingLink.Claim)?.let { link ->
+            _state.update { it.copy(input = "", claim = link.text) }
+            return
+        }
         _state.update { it.copy(checking = true, problem = null) }
         viewModelScope.launch {
             when (val preview = wallet.previewPayment(input)) {
@@ -105,6 +112,9 @@ class SendViewModel @Inject constructor(
             }
         }
     }
+
+    /** Claim has the note link now. */
+    fun claimOpened() = _state.update { it.copy(claim = null) }
 
     fun onAmountChange(value: String) {
         _state.update { it.copy(amountText = value.filter(Char::isDigit).take(12)) }

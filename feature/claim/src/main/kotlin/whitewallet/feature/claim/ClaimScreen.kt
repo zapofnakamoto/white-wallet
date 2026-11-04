@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,8 +52,12 @@ import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletTextField
 
 @Composable
-fun ClaimRoute(onBack: () -> Unit, viewModel: ClaimViewModel = hiltViewModel()) {
+fun ClaimRoute(onBack: () -> Unit, onPay: (String) -> Unit = {}, viewModel: ClaimViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Something to pay rather than a note: Send takes it.
+    LaunchedEffect(state.pay) {
+        state.pay?.let { onPay(it); viewModel.payOpened() }
+    }
     BackHandler(enabled = state.scanning) { viewModel.stopScan() }
     // The field holds a bearer link: no screenshots, no Recents thumbnail.
     SecureScreen {
@@ -151,7 +156,7 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
                 trusted = preview.trusted,
                 place = NoteFacePlace.Claim,
             )
-            // Without showMints, only what needs the user: an amount that can't be verified, and the bearer warning.
+            // Without showMints, only what needs the user: an amount that can't be verified, other spend paths, and the bearer warning.
             if (showMints) {
                 Text(stringResource(if (preview.isOwnMint) R.string.claim_home_mint else R.string.claim_mint, preview.link.host), style = MaterialTheme.typography.bodyMedium)
                 // Trust is the user's own list (Settings → Mints), by signing key; nothing is blocked either way.
@@ -161,12 +166,9 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
                     color = if (preview.trusted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (showMints || !preview.certified) {
-                Text(
-                    stringResource(if (preview.certified) R.string.claim_certified else R.string.claim_not_certified),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (preview.certified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                )
+            // A certified amount is the normal case and says nothing; only one that can't be verified needs the user.
+            if (!preview.certified) {
+                Text(stringResource(R.string.claim_not_certified), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
             if (showMints && !preview.isOwnMint) Text(stringResource(R.string.claim_other_mint, preview.link.host), style = MaterialTheme.typography.bodySmall)
             if (preview.hasOtherPaths) Text(stringResource(R.string.claim_other_paths), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -181,7 +183,7 @@ private fun KeepCard(preview: ClaimPreview.Keepable) {
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val amount = when (preview) {
-                is ClaimPreview.Offline -> preview.certifiedMsat?.let { stringResource(R.string.claim_amount_certified, formatAmount(it)) }
+                is ClaimPreview.Offline -> preview.certifiedMsat?.let { formatAmount(it) }
                     ?: preview.declaredMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
                 is ClaimPreview.Locked -> preview.amountMsat?.let { formatAmount(it) }
                     ?: preview.link.declaredAmountMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }

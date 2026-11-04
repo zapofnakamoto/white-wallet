@@ -61,7 +61,6 @@
     <string name="notes_move_anyway">Trotzdem verschieben</string>
     <string name="notes_shared_title">Verschickt, noch nicht eingelöst</string>
     <string name="notes_shared_hint">Tippe auf einen, um seinen QR-Code erneut zu zeigen oder ihn zurückzuholen.</string>
-    <string name="notes_certified">Betrag zertifiziert</string>
     <string name="notes_sheet_where">Bei %1$s · %2$s</string>
     <string name="notes_share">Als QR teilen</string>
     <string name="notes_recheck">Prüfen</string>

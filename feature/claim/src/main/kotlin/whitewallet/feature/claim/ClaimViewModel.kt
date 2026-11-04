@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.Wallet
 import java.io.IOException
 import whitewallet.core.wallet.MintKeyChangedException
@@ -25,6 +26,8 @@ data class ClaimState(
     val result: ClaimResult? = null,
     /** Say which mint the note is on and whether it's trusted (brand `mints.visible`). */
     val showMints: Boolean = true,
+    /** An invoice, address or pay link was scanned or pasted here: Send takes it over, so one scanner does for both. */
+    val pay: String? = null,
 )
 
 @HiltViewModel
@@ -51,12 +54,19 @@ class ClaimViewModel @Inject constructor(private val wallet: Wallet, savedState:
     fun check() {
         val input = _state.value.input.trim()
         if (input.isEmpty() || _state.value.busy) return
+        (IncomingLink.classify(input) as? IncomingLink.Pay)?.let { link ->
+            _state.update { ClaimState(showMints = it.showMints, pay = link.text) }
+            return
+        }
         _state.update { it.copy(busy = true, preview = null) }
         viewModelScope.launch {
             val preview = wallet.previewClaim(input)
             _state.update { it.copy(busy = false, preview = preview) }
         }
     }
+
+    /** Send has the payment now. */
+    fun payOpened() = _state.update { it.copy(pay = null) }
 
     /** Keeps a note that can't be claimed now; the wallet claims it once it can. */
     fun keep() {
