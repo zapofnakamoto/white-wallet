@@ -112,3 +112,12 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     moment the link is out, whoever holds it may claim it. Open: where the limit is stored and shown (link, note face,
     print), whether it can be changed later, how a recipient's wallet shows it, and whether LUD-25 should carry it in
     the link. Asked for on 2026-11-03.
+14. **Accounts fully separate.** Each account has its own recovery phrase and should act like a wallet on another
+    phone: within the active account, never look at another account's notes. Two places still do. The claim preview
+    says "already in your wallet" for a note in any account's balance, or a link any account claimed
+    (`NoteClaimer.preview`). And received notes are stored by the note's key alone, so a link kept in one account and
+    then in another moves to the second (`ReceivedNotes.keep`). Do it before the next release: `received_notes` is
+    new in database version 4, which is unreleased, so its key can still become (account, note) without a migration.
+    Once separate, the same link kept offline in two accounts is claimed by the account that kept it first (the
+    refresh tries kept notes oldest first, whichever account is active); the other finds it spent. Agreed on
+    2026-11-04.
