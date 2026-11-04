@@ -17,7 +17,7 @@
     <string name="note_uncertified">The amount of this note isn\'t certified.</string>
     <string name="note_share_title">Share note</string>
     <string name="note_reclaim_title">Take this note back?</string>
-    <string name="note_already_redeemed">Too late: someone already redeemed this note.</string>
+    <string name="note_already_spent">Too late: this note has already been spent.</string>
     <string name="note_not_found">This note isn\'t in this account.</string>
 
     <string name="send_title">Send</string>
@@ -75,6 +75,8 @@
     <string name="send_or">or</string>
     <string name="note_bearer_warning">Anyone with this code can spend it. Share it only with the person it\'s for.</string>
     <string name="note_waiting">Not redeemed yet. You can take it back until it is.</string>
+    <string name="note_unconfirmed">Handed out offline, so its mint hasn\'t confirmed this note yet. Your wallet asks as soon as it\'s online.</string>
+    <string name="note_unknown_to_mint">Its mint doesn\'t know this note. The link may not work.</string>
     <string name="note_share">Share</string>
     <string name="note_qr_show">Tap to show the QR code</string>
     <string name="note_print">Print</string>
@@ -83,7 +85,7 @@
     <string name="note_reclaim">Take back</string>
     <string name="note_cancel">Cancel</string>
     <string name="note_reclaim_body">The money returns to your balance and this code stops working. If someone has redeemed it already, nothing changes.</string>
-    <string name="note_redeemed">Redeemed. The recipient has the money.</string>
+    <string name="note_spent">Spent. Usually that means the recipient has the money; it could also have been spent on another device with your recovery phrase.</string>
     <string name="note_reclaimed">Taken back. The money is in your balance again.</string>
     <string name="note_reclaim_pending">Taking it back… History shows when it\'s confirmed.</string>
     <!-- Developer mode on a local regtest mint (debug builds): dev/regtest's faucet makes an invoice to pay. %1$s: an amount -->

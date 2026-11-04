@@ -10,6 +10,7 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
+import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.Redaction
 import whitewallet.lnurlcash.RevealsNoteSecret
@@ -23,13 +24,19 @@ import whitewallet.lnurlcash.spendDomain
 enum class SharedNoteState {
     /** Nobody has redeemed it yet; the link still holds the money. */
     Waiting,
+
+    /** Spent at its mint: by whoever holds the link, or by another device with the same recovery phrase. */
     Redeemed,
 
     /** Taken back into the balance. */
     Reclaimed,
 }
 
-/** A note handed out as a link. [link] (the money itself) is only there while it is [SharedNoteState.Waiting]. */
+/**
+ * A note handed out as a link. [link] (the money itself) is only there while it is [SharedNoteState.Waiting].
+ * [confirmed]: its mint said it is there; false for a note handed out offline until the wallet could ask.
+ * [unknownToMint]: the last check found that its mint doesn't know the note.
+ */
 data class SharedNote(
     val id: String,
     val host: String,
@@ -38,12 +45,14 @@ data class SharedNote(
     val state: SharedNoteState,
     val createdAtMillis: Long,
     @property:RevealsNoteSecret val link: String?,
+    val confirmed: Boolean = true,
+    val unknownToMint: Boolean = false,
 ) {
     /** Debug text without the link, which is the money. */
     @OptIn(RevealsNoteSecret::class)
     override fun toString(): String =
         "SharedNote(id=$id, host=$host, amountMsat=$amountMsat, certified=$certified, state=$state, createdAtMillis=$createdAtMillis, " +
-            "link=${link?.let(Redaction::url)})"
+            "link=${link?.let(Redaction::url)}, confirmed=$confirmed, unknownToMint=$unknownToMint)"
 }
 
 sealed interface CreateNoteResult {
@@ -61,8 +70,11 @@ sealed interface ShareNoteResult {
     /** The mint says the note is already spent (now recorded); nothing was handed out. */
     data object AlreadySpent : ShareNoteResult
 
-    /** The mint couldn't confirm the note is still there; nothing was handed out. */
+    /** The mint's answer couldn't be read; nothing was handed out. (Offline, the note is handed out unconfirmed.) */
     data object Unreachable : ShareNoteResult
+
+    /** The mint says it doesn't know the note; nothing was handed out, and the note is set aside (see [UnknownNotes]). */
+    data object UnknownToMint : ShareNoteResult
 
     /** Not an outstanding note of the active account with a derived key. */
     data object NotShareable : ShareNoteResult
@@ -127,20 +139,26 @@ internal class NoteSender(private val wallet: Wallet) {
     }
 
     /**
-     * Hands out the whole note [id] as it is, without splitting: once the mint confirms it is still there, it is
-     * marked shared and gets a History row, like a note made with [create].
+     * Hands out the whole note [id] as it is, without splitting: marked shared, with a History row, like a note made
+     * with [create]. Its link derives from the seed, so this works offline too: then it is handed out unconfirmed
+     * ([NoteState.SharedUnconfirmed]), and the first lookup once online confirms it, or finds it spent.
      */
     suspend fun share(id: String): ShareNoteResult {
         val accountId = wallet.activeId()
         val note = wallet.store.note(id)
             ?.takeIf { it.accountId == accountId && it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null }
             ?: return ShareNoteResult.NotShareable
-        when (check(note)) {
-            Check.Waiting -> Unit
+        val state = when (check(note)) {
+            Check.Waiting -> NoteState.Shared
+            Check.Offline -> NoteState.SharedUnconfirmed
             Check.Redeemed -> return ShareNoteResult.AlreadySpent
-            Check.Unknown -> return ShareNoteResult.Unreachable
+            Check.UnknownToMint -> {
+                UnknownNotes(wallet).sortOut(listOf(note))
+                return ShareNoteResult.UnknownToMint
+            }
+            Check.Unreadable -> return ShareNoteResult.Unreachable
         }
-        val shared = note.copy(state = NoteState.Shared, updatedAtMillis = wallet.now())
+        val shared = note.copy(state = state, updatedAtMillis = wallet.now())
         wallet.store.upsertNotes(listOf(shared))
         log.record(activityId(id), accountId, ActivityKind.SentNote, shared.amountMsat, shared.host, ActivityStatus.Pending,
             certified = shared.certificate != null)
@@ -148,27 +166,28 @@ internal class NoteSender(private val wallet: Wallet) {
     }
 
     /** The active account's sent note [id], with its link while nobody has redeemed it. */
-    suspend fun sharedNote(id: String): SharedNote? {
+    suspend fun sharedNote(id: String, unknownToMint: Boolean = false): SharedNote? {
         val accountId = wallet.activeId()
         val activity = activity(accountId, id) ?: return null
         val note = wallet.store.note(id)?.takeIf { it.accountId == accountId }
         val state = when {
             activity.status == ActivityStatus.Cancelled -> SharedNoteState.Reclaimed
-            note?.state == NoteState.Shared -> SharedNoteState.Waiting
+            note?.state?.isShared == true -> SharedNoteState.Waiting
             else -> SharedNoteState.Redeemed
         }
         return SharedNote(id, activity.host, activity.amountMsat, activity.certified == true, state, activity.createdAtMillis,
-            link = note?.takeIf { state == SharedNoteState.Waiting }?.let { link(it) })
+            link = note?.takeIf { state == SharedNoteState.Waiting }?.let { link(it) },
+            confirmed = note?.state != NoteState.SharedUnconfirmed, unknownToMint = unknownToMint && state == SharedNoteState.Waiting)
     }
 
     /** Takes a sent note back while nobody has redeemed it: rotated to a fresh wallet key, back in the balance. */
     suspend fun reclaim(id: String): ReclaimResult {
         val accountId = wallet.activeId()
-        val note = wallet.store.note(id)?.takeIf { it.accountId == accountId && it.state == NoteState.Shared && it.index != null }
+        val note = wallet.store.note(id)?.takeIf { it.accountId == accountId && it.state.isShared && it.index != null }
             ?: return if (sharedNote(id)?.state == SharedNoteState.Redeemed) ReclaimResult.AlreadyRedeemed else ReclaimResult.Failed(PayProblem.Refused)
         when (check(note)) {
             Check.Redeemed -> return ReclaimResult.AlreadyRedeemed
-            Check.Unknown -> return ReclaimResult.Failed(PayProblem.Unreachable)
+            Check.Offline, Check.Unreadable, Check.UnknownToMint -> return ReclaimResult.Failed(PayProblem.Unreachable)
             Check.Waiting -> Unit
         }
         val result = mutator.mutate(accountId, note.host, listOf(note), OperationType.Rotate, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))
@@ -188,29 +207,41 @@ internal class NoteSender(private val wallet: Wallet) {
         }
     }
 
-    /** On refresh: an account's shared notes that someone redeemed are marked spent, and their History rows done. */
-    suspend fun reconcile(accountId: String) {
-        wallet.store.notes(accountId).first().filter { it.state == NoteState.Shared }.forEach { check(it) }
-    }
+    /**
+     * On refresh: an account's shared notes are looked up by key. Spent ones are marked so, and their History rows
+     * done; one handed out offline that its mint has is confirmed. Returns the ids its mints say they don't know.
+     */
+    suspend fun reconcile(accountId: String): Set<String> =
+        wallet.store.notes(accountId).first().filter { it.state.isShared }.filter { check(it) == Check.UnknownToMint }.map { it.id }.toSet()
 
-    private enum class Check { Waiting, Redeemed, Unknown }
+    private enum class Check { Waiting, Redeemed, UnknownToMint, Offline, Unreadable }
 
-    /** Looks [note] up by `p`; burned means redeemed (recorded as such). */
+    /** Looks [note] up by `p`, never with its spend: burned means spent (recorded as such); there confirms it. */
     private suspend fun check(note: Note): Check {
-        val mint = wallet.store.mint(note.host) ?: return Check.Unknown
+        val mint = wallet.store.mint(note.host) ?: return Check.Unreadable
         try {
             wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id))
-            return Check.Waiting
+            return confirmed(note)
         } catch (e: NoteLookupError) {
-            if (e.kind != RejectionKind.Spent) return if (e.kind == RejectionKind.Pending) Check.Waiting else Check.Unknown
+            if (e.kind != RejectionKind.Spent) return when (e.kind) {
+                RejectionKind.Pending -> confirmed(note)
+                RejectionKind.NoteUnknown -> Check.UnknownToMint
+                else -> Check.Unreadable
+            }
         } catch (e: IOException) {
-            return Check.Unknown
+            return Check.Offline
         } catch (e: ProtocolViolation) {
-            return Check.Unknown
+            return Check.Unreadable
         }
         wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Spent, updatedAtMillis = wallet.now())))
         activity(note.accountId, note.id)?.takeIf { it.status == ActivityStatus.Pending }?.let { wallet.store.putActivity(it.copy(status = ActivityStatus.Done)) }
         return Check.Redeemed
+    }
+
+    /** Its mint has it: a note handed out offline is confirmed now. */
+    private suspend fun confirmed(note: Note): Check {
+        if (note.state == NoteState.SharedUnconfirmed) wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Shared, updatedAtMillis = wallet.now())))
+        return Check.Waiting
     }
 
     private suspend fun cancel(accountId: String, id: String) {

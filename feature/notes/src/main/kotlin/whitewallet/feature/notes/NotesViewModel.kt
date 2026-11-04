@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import whitewallet.brand.NoteStrategy
+import whitewallet.core.model.isShared
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -44,7 +45,7 @@ enum class NoteSort(internal val order: Comparator<Note>) {
 }
 
 /** The handed-out notes, waiting for their recipients, in the order the user chose for all notes. */
-internal fun sharedNotes(notes: List<Note>, sort: NoteSort): List<Note> = notes.filter { it.state == NoteState.Shared }.sortedWith(sort.order)
+internal fun sharedNotes(notes: List<Note>, sort: NoteSort): List<Note> = notes.filter { it.state.isShared }.sortedWith(sort.order)
 
 /** One mint's notes in the list. [skipped] is set when collecting at the home mint left them there (fee too high). */
 data class MintNotes(
@@ -302,7 +303,7 @@ class NotesViewModel @Inject constructor(
         }
     }
 
-    /** Hands the whole note out: once the mint confirms it, the screen moves on to its QR code ([NotesState.sharedId]). */
+    /** Hands the whole note out (offline too, unconfirmed), then the screen moves on to its QR code ([NotesState.sharedId]). */
     fun share(id: String) = act(NoteAction.Share, setOf(id)) {
         when (val r = wallet.shareNote(id)) {
             is ShareNoteResult.Shared -> {
@@ -311,6 +312,7 @@ class NotesViewModel @Inject constructor(
             }
             ShareNoteResult.AlreadySpent -> NotesOutcome.AlreadySpent
             ShareNoteResult.Unreachable -> NotesOutcome.Failed(NoteProblem.Unreachable)
+            ShareNoteResult.UnknownToMint -> NotesOutcome.Checked(ok = 0, gone = 0, unreachable = emptyList(), unknown = 1)
             ShareNoteResult.NotShareable -> NotesOutcome.Failed(NoteProblem.NotFound)
         }
     }

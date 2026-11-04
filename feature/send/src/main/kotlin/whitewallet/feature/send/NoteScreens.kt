@@ -314,6 +314,8 @@ fun SharedNoteScreen(
                 SharedNoteState.Waiting -> if (link != null) {
                     Text(stringResource(R.string.note_bearer_warning), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
                     Text(stringResource(R.string.note_waiting), style = MaterialTheme.typography.bodyMedium)
+                    if (!note.confirmed) Text(stringResource(R.string.note_unconfirmed), style = MaterialTheme.typography.bodyMedium)
+                    if (note.unknownToMint) Text(stringResource(R.string.note_unknown_to_mint), color = MaterialTheme.colorScheme.error)
                     if (!note.certified) Text(stringResource(R.string.note_uncertified), style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         WalletButton(kind = ButtonKind.Secondary, onClick = { onShare(link) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.note_share)) }
@@ -328,7 +330,7 @@ fun SharedNoteScreen(
                     if (state.reclaiming) WalletCircularProgress()
                 }
                 SharedNoteState.Redeemed -> Text(
-                    stringResource(if (state.alreadyRedeemed) R.string.note_already_redeemed else R.string.note_redeemed),
+                    stringResource(if (state.alreadyRedeemed) R.string.note_already_spent else R.string.note_spent),
                     textAlign = TextAlign.Center,
                 )
                 SharedNoteState.Reclaimed -> Text(

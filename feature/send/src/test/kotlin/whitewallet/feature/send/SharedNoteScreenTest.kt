@@ -58,6 +58,37 @@ class SharedNoteScreenTest {
         link = if (state == SharedNoteState.Waiting) "https://mint.example/note#secret" else null,
     )
 
+    private fun show(note: SharedNote) = compose.setContent {
+        SharedNoteScreen(SharedNoteUiState(note = note, loading = false), onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {})
+    }
+
+    @Test
+    fun aNoteHandedOutOfflineSaysItsMintHasntConfirmedItYet() {
+        show(note(SharedNoteState.Waiting).copy(confirmed = false))
+        compose.onNodeWithText("Handed out offline, so its mint hasn't confirmed this note yet. Your wallet asks as soon as it's online.").assertExists()
+        compose.onNodeWithText("Its mint doesn't know this note. The link may not work.").assertDoesNotExist()
+    }
+
+    @Test
+    fun aNoteItsMintDoesntKnowSaysSo() {
+        show(note(SharedNoteState.Waiting).copy(unknownToMint = true))
+        compose.onNodeWithText("Its mint doesn't know this note. The link may not work.").assertExists()
+        compose.onNodeWithText("Handed out offline", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun aSpentNoteDoesntClaimWhoSpentIt() {
+        show(note(SharedNoteState.Redeemed))
+        compose.onNodeWithText("Spent. Usually that means the recipient has the money", substring = true).assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun germanSaysANoteHandedOutOfflineIsUnconfirmed() {
+        show(note(SharedNoteState.Waiting).copy(confirmed = false))
+        compose.onNodeWithText("Offline weitergegeben", substring = true).assertExists()
+    }
+
     @Test
     fun theBrandSeesTheNoteWaitBeRedeemedOrComeBack() {
         val statuses = mutableListOf<WalletStatus>()

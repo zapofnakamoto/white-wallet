@@ -2,6 +2,7 @@ package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.PublicKey
 import java.io.IOException
+import whitewallet.core.model.isShared
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
@@ -122,7 +123,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
         val spend = preview.link.spend
         // A note this app sent as a link: spent with the claim, and its History row settled. It is this wallet's own
         // note already (its key derives from a seed here), so it isn't kept as a received one.
-        val sent = wallet.store.note(spend.q.toHex())?.takeIf { it.state == NoteState.Shared }
+        val sent = wallet.store.note(spend.q.toHex())?.takeIf { it.state.isShared }
         if (sent != null) return claimSent(preview, sent, accountId)
         val note = received.keep(preview.link, accountId, preview.amountMsat)
         return received.claim(note, preview.info, preview.certified)

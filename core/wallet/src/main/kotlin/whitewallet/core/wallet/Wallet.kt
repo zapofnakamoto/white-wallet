@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import whitewallet.core.model.isShared
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.model.Activity
 import whitewallet.core.model.AccountSummary
@@ -699,8 +700,8 @@ class Wallet(
 
     /** Checks whether sent note [id] has been redeemed (on top of the check every refresh does). */
     suspend fun checkSharedNote(id: String): SharedNote? = lock.withLock {
-        sender.reconcile(activeId())
-        sender.sharedNote(id)
+        val unknown = sender.reconcile(activeId())
+        sender.sharedNote(id, unknownToMint = id in unknown)
     }
 
     /** Merges the active account's notes [ids] (on one mint) into one. */
@@ -729,7 +730,7 @@ class Wallet(
     private suspend fun asksMints(): Boolean =
         store.journal(UNSETTLED).isNotEmpty() || store.receivedNotes(ReceivedState.PENDING).isNotEmpty() || store.accounts.first().any { summary ->
             val id = summary.account.id
-            summary.profile != null || store.addresses(id).first().isNotEmpty() || store.notes(id).first().any { it.state == NoteState.Shared || it.state == NoteState.Unknown }
+            summary.profile != null || store.addresses(id).first().isNotEmpty() || store.notes(id).first().any { it.state.isShared || it.state == NoteState.Unknown }
         }
 
     private suspend fun refreshLocked(): RefreshResult {

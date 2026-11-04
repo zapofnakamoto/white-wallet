@@ -83,7 +83,7 @@
     <string name="activity_moved_in_other">Von einem anderen Konto verschoben</string>
     <string name="activity_renewed">Auf einen neuen Schlüssel verschoben</string>
     <string name="activity_note_waiting">Noch nicht eingelöst</string>
-    <string name="activity_note_redeemed">Eingelöst</string>
+    <string name="activity_note_spent">Ausgegeben</string>
     <string name="activity_note_taken_back">Zurückgeholt</string>
     <string name="activity_moved_mint">Zu %1$s verschoben</string>
     <string name="activity_amount_in">+%1$s</string>

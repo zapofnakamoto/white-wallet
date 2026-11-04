@@ -12,7 +12,7 @@
     <string name="note_uncertified">Der Betrag dieses Scheins ist nicht zertifiziert.</string>
     <string name="note_share_title">Schein teilen</string>
     <string name="note_reclaim_title">Diesen Schein zurückholen?</string>
-    <string name="note_already_redeemed">Zu spät: Jemand hat diesen Schein schon eingelöst.</string>
+    <string name="note_already_spent">Zu spät: Dieser Schein wurde schon ausgegeben.</string>
     <string name="note_not_found">Dieser Schein ist nicht in diesem Konto.</string>
 
     <string name="send_title">Senden</string>
@@ -69,6 +69,8 @@
     <string name="send_or">oder</string>
     <string name="note_bearer_warning">Jeder mit diesem Code kann ihn ausgeben. Teile ihn nur mit der Person, für die er gedacht ist.</string>
     <string name="note_waiting">Noch nicht eingelöst. Bis dahin kannst du ihn zurückholen.</string>
+    <string name="note_unconfirmed">Offline weitergegeben, darum hat die Mint diesen Schein noch nicht bestätigt. Deine Wallet fragt nach, sobald sie online ist.</string>
+    <string name="note_unknown_to_mint">Die Mint kennt diesen Schein nicht. Der Link funktioniert vielleicht nicht.</string>
     <string name="note_share">Teilen</string>
     <string name="note_qr_show">Tippen, um den QR-Code zu zeigen</string>
     <string name="note_print">Drucken</string>
@@ -77,7 +79,7 @@
     <string name="note_reclaim">Zurückholen</string>
     <string name="note_cancel">Abbrechen</string>
     <string name="note_reclaim_body">Das Geld kommt zurück in dein Guthaben und dieser Code funktioniert nicht mehr. Hat ihn schon jemand eingelöst, ändert sich nichts.</string>
-    <string name="note_redeemed">Eingelöst. Der Empfänger hat das Geld.</string>
+    <string name="note_spent">Ausgegeben. Meist heißt das: Der Empfänger hat das Geld. Es kann auch auf einem anderen Gerät mit deiner Wiederherstellungsphrase ausgegeben worden sein.</string>
     <string name="note_reclaimed">Zurückgeholt. Das Geld ist wieder in deinem Guthaben.</string>
     <string name="note_reclaim_pending">Wird zurückgeholt … Der Verlauf zeigt, wann es bestätigt ist.</string>
     <!-- Entwicklermodus auf einer lokalen Regtest-Mint (Debug-Builds): der Faucet von dev/regtest erstellt eine Rechnung zum Bezahlen. %1$s: ein Betrag -->

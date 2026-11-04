@@ -129,7 +129,7 @@
     <string name="note_uncertified">The amount of this banknote isn\'t certified.</string>
     <string name="note_share_title">Share banknote</string>
     <string name="note_reclaim_title">Take this banknote back?</string>
-    <string name="note_already_redeemed">Too late: someone already redeemed this banknote.</string>
+    <string name="note_already_spent">Too late: this banknote has already been spent.</string>
     <string name="note_not_found">This banknote isn\'t in this account.</string>
     <string name="mint_key_changed">%1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn\'t send or receive there. Your banknotes there are unchanged.</string>
     <string name="settings_notes">Banknote settings</string>

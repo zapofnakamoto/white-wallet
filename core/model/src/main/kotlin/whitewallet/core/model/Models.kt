@@ -20,11 +20,20 @@ enum class NoteState {
     Shared,
 
     /**
+     * Handed out as a link while its mint couldn't be asked, so not confirmed to be there. Like [Shared] in every way;
+     * the first lookup by its key makes it [Shared], or [Spent].
+     */
+    SharedUnconfirmed,
+
+    /**
      * Held by this wallet, but its mint says it doesn't know the note (a mint that lost its records, or misbehaves).
      * Not in the balance and never spent; kept with its certificate, and outstanding again once the mint knows it.
      */
     Unknown,
 }
+
+/** Handed out as a link, confirmed by its mint or not yet. */
+val NoteState.isShared: Boolean get() = this == NoteState.Shared || this == NoteState.SharedUnconfirmed
 
 enum class NoteKind { KeyPath, Bearer }
 

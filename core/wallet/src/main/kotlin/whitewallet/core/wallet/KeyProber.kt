@@ -1,5 +1,6 @@
 package whitewallet.core.wallet
 
+import whitewallet.core.model.isShared
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -58,7 +59,7 @@ internal class KeyProber(private val wallet: Wallet) {
                 wallet.store.upsertNotes(listOf(Note(noteId, id.accountId, id.host, NoteKind.KeyPath, id.purpose, id.index,
                     info.maxWithdrawableMsat, certificate?.encode() ?: existing?.certificate,
                     // A note handed out as a link stays out of the balance until it is redeemed or taken back.
-                    if (existing?.state == NoteState.Shared) NoteState.Shared else NoteState.Outstanding, now)))
+                    existing?.state?.takeIf { it.isShared } ?: NoteState.Outstanding, now)))
             }
             if (existing == null) ensureCounterPast(id)
             KeyProbe.Outstanding(info.maxWithdrawableMsat, certificate != null, imported = existing == null, now)
