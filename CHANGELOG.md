@@ -77,6 +77,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   note is checked by its key, and a spend goes out only with the operation that spends it, to the mint's own host,
   after its signing key is compared with the pinned one.
 - The claim screen blocks screenshots and the Recents thumbnail, like the other screens that show a note's link.
+- `claim_key_changed`, `claim_kept_key_changed`, `note_unconfirmed`, `note_unknown_to_mint` and `scan_unknown` are
+  brand terms, as they name the mint or the note: a brand that uses other words overrides them too. They were outside
+  the brand-term block, so a brand couldn't know to.
 
 ## [0.6.3]
 

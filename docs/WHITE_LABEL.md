@@ -110,6 +110,10 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `home_unknown_title_unnamed` | Your mint doesn't know %1$d of your notes / Your mint doesn't know %1$d of your notes (plural) |
 | `home_unknown_body` | %1$s isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it's back. / %1$s isn't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they're back. (plural) |
 | `home_unknown_body_hidden` | It isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it's back. / They aren't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they're back. (plural) |
+| `claim_key_changed` | %1$s now signs with another key than the one your wallet knows, so nothing is sent there yet. Keep it, and your wallet claims it once you accept the new key in the mint's details. |
+| `claim_kept_key_changed` | Kept. Your wallet claims it once you accept the mint's new signing key in its details. |
+| `home_working_moving_home` | Moving your money to your home mint… |
+| `mints_add_offered_hint` | Add one of these mints to trust it before you receive anything from there, or to make it your home mint. |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 
@@ -207,6 +211,15 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notes_collect_pending` | Moving the notes from %1$s; they arrive shortly. |
 | `mints_add_invalid` | That address can't hold notes. |
 | `mints_remove_body` | The app forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it's like the first time: the key it shows then is the one the app remembers. |
+| `claim_not_spendable` | This link doesn't unlock the note it names, so it can't be claimed. |
+| `claim_other_paths` | This note can also be spent another way, so someone else may take it before you claim it. |
+| `home_working_checking_notes` | Checking your note… / Checking note %1$d of %2$d… (plural) |
+| `home_working_combining` | Combining your notes… |
+| `home_working_splitting` | Splitting your notes… |
+| `home_working_renewing` | Renewing your notes… |
+| `note_unconfirmed` | Its mint hasn't confirmed this note yet. Your wallet checks once it's online. |
+| `note_unknown_to_mint` | Its mint doesn't know this note, so the link may not work. |
+| `scan_unknown` | This QR code isn't a payment or a note. |
 
 #### Using your own words
 

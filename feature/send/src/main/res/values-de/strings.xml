@@ -14,6 +14,9 @@
     <string name="note_reclaim_title">Diesen Schein zurückholen?</string>
     <string name="note_already_spent">Zu spät: Dieser Schein wurde schon ausgegeben.</string>
     <string name="note_not_found">Dieser Schein ist nicht in diesem Konto.</string>
+    <string name="note_unconfirmed">Die Mint hat diesen Schein noch nicht bestätigt. Deine Wallet prüft, sobald sie online ist.</string>
+    <string name="note_unknown_to_mint">Die Mint kennt diesen Schein nicht, deshalb funktioniert der Link vielleicht nicht.</string>
+    <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Schein.</string>
 
     <string name="send_title">Senden</string>
     <string name="send_input">Rechnung, Lightning-Adresse oder Link</string>
@@ -69,8 +72,6 @@
     <string name="send_or">oder</string>
     <string name="note_bearer_warning">Jeder mit diesem Code kann das Geld nehmen.</string>
     <string name="note_waiting">Noch nicht eingelöst. Bis dahin kannst du ihn zurückholen.</string>
-    <string name="note_unconfirmed">Die Mint hat diesen Schein noch nicht bestätigt. Deine Wallet prüft, sobald sie online ist.</string>
-    <string name="note_unknown_to_mint">Die Mint kennt diesen Schein nicht, deshalb funktioniert der Link vielleicht nicht.</string>
     <string name="note_checked_at">Zuletzt geprüft: %1$s</string>
     <string name="note_share">Teilen</string>
     <string name="note_qr_show">Tippen, um den QR-Code zu zeigen</string>
@@ -89,5 +90,4 @@
     <string name="send_faucet_failed">Der Regtest-Faucet hat keine Rechnung erstellt: %1$s. Läuft dev/regtest und ist es verbunden?</string>
     <string name="scan_title">Scannen</string>
     <string name="scan_hint">Richte die Kamera auf einen QR-Code, um zu bezahlen oder einzulösen.</string>
-    <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Schein.</string>
 </resources>

@@ -19,6 +19,9 @@
     <string name="note_reclaim_title">Take this note back?</string>
     <string name="note_already_spent">Too late: this note has already been spent.</string>
     <string name="note_not_found">This note isn\'t in this account.</string>
+    <string name="note_unconfirmed">Its mint hasn\'t confirmed this note yet. Your wallet checks once it\'s online.</string>
+    <string name="note_unknown_to_mint">Its mint doesn\'t know this note, so the link may not work.</string>
+    <string name="scan_unknown">This QR code isn\'t a payment or a note.</string>
 
     <string name="send_title">Send</string>
     <string name="send_input">Invoice, Lightning address or link</string>
@@ -75,8 +78,6 @@
     <string name="send_or">or</string>
     <string name="note_bearer_warning">Anyone with this code can take the money.</string>
     <string name="note_waiting">Not claimed yet. You can take it back until then.</string>
-    <string name="note_unconfirmed">Its mint hasn\'t confirmed this note yet. Your wallet checks once it\'s online.</string>
-    <string name="note_unknown_to_mint">Its mint doesn\'t know this note, so the link may not work.</string>
     <string name="note_checked_at">Last checked: %1$s</string>
     <string name="note_share">Share</string>
     <string name="note_qr_show">Tap to show the QR code</string>
@@ -95,5 +96,4 @@
     <string name="send_faucet_failed">The regtest faucet made no invoice: %1$s. Is dev/regtest up and connected?</string>
     <string name="scan_title">Scan</string>
     <string name="scan_hint">Point the camera at a QR code to pay or claim.</string>
-    <string name="scan_unknown">This QR code isn\'t a payment or a note.</string>
 </resources>
