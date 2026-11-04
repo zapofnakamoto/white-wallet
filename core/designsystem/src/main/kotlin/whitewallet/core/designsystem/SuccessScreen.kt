@@ -26,9 +26,9 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.walletSpacing
 
 /**
- * The whole screen after money moved, the same for receiving and sending: the brand's picture at [anchor] (a check
- * mark by default) with [status], the [title], the amount, [details] (who, the fee), then [doneLabel] and, smaller,
- * [moreLabel] for another. The title is announced to screen readers and the phone gives a short buzz.
+ * The whole screen after money moved, the same for receiving and sending: the brand's picture at [anchor] (a check mark by default) with
+ * [status], the [title], the amount, [details] (who, the fee), then [doneLabel] and, smaller, [moreLabel] for another. The title is
+ * announced to screen readers and the phone gives a short buzz.
  */
 @Composable
 fun SuccessScreen(
@@ -57,10 +57,21 @@ fun SuccessScreen(
             title,
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading(); liveRegion = LiveRegionMode.Polite },
+            modifier =
+                Modifier.semantics {
+                    heading()
+                    liveRegion = LiveRegionMode.Polite
+                },
         )
         AmountText(amountMsat)
-        details.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center) }
+        details.forEach {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
         Spacer(Modifier.weight(1f))
         PrimaryButton(doneLabel, onDone)
         WalletButton(kind = ButtonKind.Text, onClick = onMore) { Text(moreLabel) }

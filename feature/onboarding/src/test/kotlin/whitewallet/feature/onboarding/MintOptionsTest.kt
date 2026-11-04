@@ -7,12 +7,18 @@ import kotlin.test.assertTrue
 import whitewallet.core.wallet.AppDefaults
 
 class MintOptionsTest {
-    private val defaults = AppDefaults(listOf("mint.example"), allowMintChange = true, localDevMints = listOf("localhost:8111", "localhost:8112"))
+    private val defaults =
+        AppDefaults(listOf("mint.example"), allowMintChange = true, localDevMints = listOf("localhost:8111", "localhost:8112"))
 
     @Test
     fun `every local mint is offered in developer mode, none otherwise`() {
         assertEquals(
-            listOf(MintOption.Suggested("mint.example"), MintOption.LocalDev("localhost:8111"), MintOption.LocalDev("localhost:8112"), MintOption.Custom),
+            listOf(
+                MintOption.Suggested("mint.example"),
+                MintOption.LocalDev("localhost:8111"),
+                MintOption.LocalDev("localhost:8112"),
+                MintOption.Custom,
+            ),
             mintOptions(defaults, developerMode = true),
         )
         assertEquals(listOf(MintOption.Suggested("mint.example"), MintOption.Custom), mintOptions(defaults, developerMode = false))
@@ -21,7 +27,10 @@ class MintOptionsTest {
     @Test
     fun `without custom mints, only the suggested ones are offered`() {
         val curated = defaults.copy(mintSuggestions = listOf("mint.example", "mint2.example"), customMints = false)
-        assertEquals(listOf(MintOption.Suggested("mint.example"), MintOption.Suggested("mint2.example")), mintOptions(curated, developerMode = false))
+        assertEquals(
+            listOf(MintOption.Suggested("mint.example"), MintOption.Suggested("mint2.example")),
+            mintOptions(curated, developerMode = false),
+        )
         assertTrue(mintOptions(curated, developerMode = false).hasChoice())
         assertFalse(mintOptions(curated.copy(mintSuggestions = listOf("mint.example")), developerMode = false).hasChoice())
     }

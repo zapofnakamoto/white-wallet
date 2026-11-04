@@ -31,17 +31,20 @@ internal class AddressCheck(private val wallet: Wallet) {
         val name = Onboarding.normalizeUsername(username) ?: return AddressStatus.Invalid(Onboarding.USERNAME_RULE)
         val h = Onboarding.normalizeHost(host) ?: return AddressStatus.Invalid("not a valid host")
         val url = Lnurl.lightningAddressUrl("$name@$h") ?: return AddressStatus.Invalid(Onboarding.USERNAME_RULE)
-        val response = try {
-            wallet.client.get(url)
-        } catch (e: IOException) {
-            return AddressStatus.CheckFailed(e.message ?: "network error")
-        } catch (e: ProtocolViolation) {
-            return AddressStatus.CheckFailed(e.message ?: "unexpected response")
-        }
-        val pay = response as? LnurlResponse.PayRequest
-            ?: return if (response is LnurlResponse.Error) AddressStatus.Available else AddressStatus.CheckFailed("unexpected response")
-        val cpub = pay.metadataEntries.firstOrNull { it.first == "text/cpub" }?.second?.substringBeforeLast(':')
-            ?: return AddressStatus.Unconfirmed
+        val response =
+            try {
+                wallet.client.get(url)
+            } catch (e: IOException) {
+                return AddressStatus.CheckFailed(e.message ?: "network error")
+            } catch (e: ProtocolViolation) {
+                return AddressStatus.CheckFailed(e.message ?: "unexpected response")
+            }
+        val pay =
+            response as? LnurlResponse.PayRequest
+                ?: return if (response is LnurlResponse.Error) AddressStatus.Available else AddressStatus.CheckFailed("unexpected response")
+        val cpub =
+            pay.metadataEntries.firstOrNull { it.first == "text/cpub" }?.second?.substringBeforeLast(':')
+                ?: return AddressStatus.Unconfirmed
         val ours = wallet.branchIfSeeded(accountId, h)?.cx1()
         return if (ours != null && cpub.equals(ours, ignoreCase = true)) AddressStatus.Ours else AddressStatus.Taken
     }

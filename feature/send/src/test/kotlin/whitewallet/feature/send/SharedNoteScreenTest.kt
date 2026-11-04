@@ -50,16 +50,29 @@ import whitewallet.core.wallet.SharedNoteState
 
 @RunWith(RobolectricTestRunner::class)
 class SharedNoteScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
-    private fun note(state: SharedNoteState) = SharedNote(
-        id = "n1", host = "mint.example", amountMsat = 1_000_000, certified = true, state = state, createdAtMillis = 0,
-        link = if (state == SharedNoteState.Waiting) "https://mint.example/note#secret" else null,
-    )
+    private fun note(state: SharedNoteState) =
+        SharedNote(
+            id = "n1",
+            host = "mint.example",
+            amountMsat = 1_000_000,
+            certified = true,
+            state = state,
+            createdAtMillis = 0,
+            link = if (state == SharedNoteState.Waiting) "https://mint.example/note#secret" else null,
+        )
 
     private fun show(note: SharedNote) = compose.setContent {
-        SharedNoteScreen(SharedNoteUiState(note = note, loading = false), onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {})
+        SharedNoteScreen(
+            SharedNoteUiState(note = note, loading = false),
+            onBack = {},
+            onShare = {},
+            onCopy = {},
+            onAskReclaim = {},
+            onDismissReclaim = {},
+            onReclaim = {},
+        )
     }
 
     @Test
@@ -104,15 +117,16 @@ class SharedNoteScreenTest {
     @Test
     fun theBrandSeesTheNoteWaitBeSpentOrComeBack() {
         val statuses = mutableListOf<WalletStatus>()
-        val design = object : BrandDesign {
-            @Composable
-            override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
-                if (anchor == Anchor.NoteShared) {
-                    statuses += context.status
-                    Text("brand mark")
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    if (anchor == Anchor.NoteShared) {
+                        statuses += context.status
+                        Text("brand mark")
+                    }
                 }
             }
-        }
         var state by mutableStateOf(SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false))
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides design) {
@@ -144,7 +158,12 @@ class SharedNoteScreenTest {
         compose.setContent {
             SharedNoteScreen(
                 SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false),
-                onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+                onBack = {},
+                onShare = {},
+                onCopy = {},
+                onAskReclaim = {},
+                onDismissReclaim = {},
+                onReclaim = {},
             )
         }
         compose.onNodeWithText("₿1,000").assertExists()
@@ -155,22 +174,29 @@ class SharedNoteScreenTest {
     fun aBrandFramesTheNoteAndTheAppKeepsTheQrCodeTheWarningAndTheActions() {
         var shared: String? = null
         var askedBack = false
-        val bill = object : BrandDesign {
-            override val components = object : BrandComponents {
-                @Composable
-                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
-                    Column(modifier) {
-                        Text("bill ${params.amount} ${params.status}")
-                        params.qrCode?.invoke()
+        val bill =
+            object : BrandDesign {
+                override val components =
+                    object : BrandComponents {
+                        @Composable
+                        override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                            Column(modifier) {
+                                Text("bill ${params.amount} ${params.status}")
+                                params.qrCode?.invoke()
+                            }
+                        }
                     }
-                }
             }
-        }
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides bill) {
                 SharedNoteScreen(
                     SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false),
-                    onBack = {}, onShare = { shared = it }, onCopy = {}, onAskReclaim = { askedBack = true }, onDismissReclaim = {}, onReclaim = {},
+                    onBack = {},
+                    onShare = { shared = it },
+                    onCopy = {},
+                    onAskReclaim = { askedBack = true },
+                    onDismissReclaim = {},
+                    onReclaim = {},
                 )
             }
         }
@@ -192,20 +218,28 @@ class SharedNoteScreenTest {
     fun printingDrawsTheBrandsNoteOnWhitePaperEvenInDarkMode() {
         val pages = mutableListOf<Bitmap>()
         val faces = mutableListOf<NoteStatus>()
-        val bill = object : BrandDesign {
-            override val components = object : BrandComponents {
-                @Composable
-                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
-                    if (params.place == NoteFacePlace.Paper) faces += params.status
-                    DefaultComponents.noteFace(params, modifier)
-                }
+        val bill =
+            object : BrandDesign {
+                override val components =
+                    object : BrandComponents {
+                        @Composable
+                        override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                            if (params.place == NoteFacePlace.Paper) faces += params.status
+                            DefaultComponents.noteFace(params, modifier)
+                        }
+                    }
             }
-        }
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides bill) {
                 SharedNoteScreen(
                     SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false, canPrint = true),
-                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {}, onPrint = { pages += it },
+                    onBack = {},
+                    onShare = {},
+                    onCopy = {},
+                    onAskReclaim = {},
+                    onDismissReclaim = {},
+                    onReclaim = {},
+                    onPrint = { pages += it },
                 )
             }
         }
@@ -233,7 +267,12 @@ class SharedNoteScreenTest {
         compose.setContent {
             SharedNoteScreen(
                 SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false, canPrint = false),
-                onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+                onBack = {},
+                onShare = {},
+                onCopy = {},
+                onAskReclaim = {},
+                onDismissReclaim = {},
+                onReclaim = {},
             )
         }
         compose.onNodeWithText(text(R.string.note_share)).assertExists()
@@ -242,16 +281,23 @@ class SharedNoteScreenTest {
 
     @Test
     fun theQrCodeIsCoveredUntilATapAndAgainOnceTheAppLeaves() {
-        val owner = object : LifecycleOwner {
-            val registry = LifecycleRegistry(this)
-            override val lifecycle: Lifecycle get() = registry
-        }
+        val owner =
+            object : LifecycleOwner {
+                val registry = LifecycleRegistry(this)
+                override val lifecycle: Lifecycle
+                    get() = registry
+            }
         compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
         compose.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides owner) {
                 SharedNoteScreen(
                     SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false),
-                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+                    onBack = {},
+                    onShare = {},
+                    onCopy = {},
+                    onAskReclaim = {},
+                    onDismissReclaim = {},
+                    onReclaim = {},
                 )
             }
         }
@@ -267,19 +313,26 @@ class SharedNoteScreenTest {
 
     @Test
     fun aBrandDrawsTheCoverAndTheAppKeepsTheTap() {
-        val spark = object : BrandDesign {
-            override val components = object : BrandComponents {
-                @Composable
-                override fun QrCodeCover(params: QrCodeCoverParams, modifier: Modifier) {
-                    Column(modifier) { Text("spark cover: ${params.label}") }
-                }
+        val spark =
+            object : BrandDesign {
+                override val components =
+                    object : BrandComponents {
+                        @Composable
+                        override fun QrCodeCover(params: QrCodeCoverParams, modifier: Modifier) {
+                            Column(modifier) { Text("spark cover: ${params.label}") }
+                        }
+                    }
             }
-        }
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides spark) {
                 SharedNoteScreen(
                     SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false),
-                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+                    onBack = {},
+                    onShare = {},
+                    onCopy = {},
+                    onAskReclaim = {},
+                    onDismissReclaim = {},
+                    onReclaim = {},
                 )
             }
         }
@@ -290,15 +343,17 @@ class SharedNoteScreenTest {
     @Test
     fun theBrandKnowsTheNoteIsOnItsPageOrOnPaperAndWhetherTheCodeIsCovered() {
         val seen = mutableListOf<Pair<NoteFacePlace, Boolean>>()
-        val card = object : BrandDesign {
-            override val components = object : BrandComponents {
-                @Composable
-                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
-                    seen += params.place to params.qrCovered
-                    DefaultComponents.noteFace(params, modifier)
-                }
+        val card =
+            object : BrandDesign {
+                override val components =
+                    object : BrandComponents {
+                        @Composable
+                        override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                            seen += params.place to params.qrCovered
+                            DefaultComponents.noteFace(params, modifier)
+                        }
+                    }
             }
-        }
         var state by mutableStateOf(SharedNoteUiState(note = note(SharedNoteState.Waiting), loading = false))
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides card) {
@@ -319,20 +374,27 @@ class SharedNoteScreenTest {
     @Test
     fun aClaimedNoteIsNeverCovered() {
         val seen = mutableListOf<Boolean>()
-        val card = object : BrandDesign {
-            override val components = object : BrandComponents {
-                @Composable
-                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
-                    seen += params.qrCovered
-                    DefaultComponents.noteFace(params, modifier)
-                }
+        val card =
+            object : BrandDesign {
+                override val components =
+                    object : BrandComponents {
+                        @Composable
+                        override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                            seen += params.qrCovered
+                            DefaultComponents.noteFace(params, modifier)
+                        }
+                    }
             }
-        }
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides card) {
                 SharedNoteScreen(
                     SharedNoteUiState(note = note(SharedNoteState.Spent), loading = false),
-                    onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
+                    onBack = {},
+                    onShare = {},
+                    onCopy = {},
+                    onAskReclaim = {},
+                    onDismissReclaim = {},
+                    onReclaim = {},
                 )
             }
         }

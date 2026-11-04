@@ -10,5 +10,6 @@ internal object Bech32m {
     fun decode(value: String): Pair<String, ByteArray>? = runCatching {
         val (hrp, data, encoding) = Bech32.decodeBytes(value)
         if (encoding != Bech32.Encoding.Bech32m) null else hrp to data
-    }.getOrNull()
+    }
+        .getOrNull()
 }

@@ -29,6 +29,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.text.NumberFormat
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -52,8 +54,6 @@ import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintUse
 import whitewallet.core.wallet.RemoveMintResult
 import whitewallet.core.wallet.Wallet
-import java.text.NumberFormat
-import javax.inject.Inject
 
 data class MintDetailsState(
     val details: MintDetails? = null,
@@ -61,8 +61,8 @@ data class MintDetailsState(
     val watchOnlyKey: String? = null,
     val showWatchOnly: Boolean = false,
     /**
-     * This page offers changing the home mint (`mints.changeable`): on the home's, when there is another mint the brand
-     * allows (`mints.custom`); on another mint's, to it if the brand allows it.
+     * This page offers changing the home mint (`mints.changeable`): on the home's, when there is another mint the brand allows
+     * (`mints.custom`); on another mint's, to it if the brand allows it.
      */
     val canChangeHome: Boolean = false,
     /** The account collects at its home mint: money only moves home, so the home's page offers no move. */
@@ -79,7 +79,9 @@ data class MintDetailsState(
 )
 
 @HiltViewModel
-class MintDetailsViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, private val defaults: AppDefaults) : ViewModel() {
+class MintDetailsViewModel
+@Inject
+constructor(private val wallet: Wallet, savedState: SavedStateHandle, private val defaults: AppDefaults) : ViewModel() {
     /** The mint to show: the route's `host`, else the account's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
     private val _state = MutableStateFlow(MintDetailsState(device = savedState.get<Boolean>("device") ?: false))
@@ -91,10 +93,14 @@ class MintDetailsViewModel @Inject constructor(private val wallet: Wallet, saved
         viewModelScope.launch { wallet.homeHost.drop(1).collect { refresh() } }
         viewModelScope.launch { wallet.collectAtHome.collect { c -> _state.update { it.copy(collects = c) } } }
         viewModelScope.launch {
-            wallet.accountMints.collect { mints -> _state.update { it.copy(moneyElsewhere = mints.any { m -> !m.isHome && m.balanceMsat > 0 }) } }
+            wallet.accountMints.collect { mints ->
+                _state.update { it.copy(moneyElsewhere = mints.any { m -> !m.isHome && m.balanceMsat > 0 }) }
+            }
         }
         viewModelScope.launch {
-            wallet.mints.collect { mints -> _state.update { s -> s.copy(mint = mints.firstOrNull { it.host == (s.details?.host ?: requestedHost) }) } }
+            wallet.mints.collect { mints ->
+                _state.update { s -> s.copy(mint = mints.firstOrNull { it.host == (s.details?.host ?: requestedHost) }) }
+            }
         }
     }
 
@@ -104,10 +110,17 @@ class MintDetailsViewModel @Inject constructor(private val wallet: Wallet, saved
             val host = requestedHost ?: wallet.homeHost.first() ?: return@launch _state.update { it.copy(loading = false) }
             val details = wallet.mintDetails(host)
             val mint = wallet.mints.first().firstOrNull { it.host == details.host }
-            val canChangeHome = defaults.allowMintChange &&
-                if (details.isHome) defaults.otherMintsAllowed(details.host) else defaults.mintAllowed(details.host)
+            val canChangeHome =
+                defaults.allowMintChange &&
+                    if (details.isHome) defaults.otherMintsAllowed(details.host) else defaults.mintAllowed(details.host)
             _state.update {
-                it.copy(details = details, loading = false, watchOnlyKey = wallet.watchOnlyKey(details.host), mint = mint, canChangeHome = canChangeHome)
+                it.copy(
+                    details = details,
+                    loading = false,
+                    watchOnlyKey = wallet.watchOnlyKey(details.host),
+                    mint = mint,
+                    canChangeHome = canChangeHome,
+                )
             }
         }
     }
@@ -151,7 +164,10 @@ fun MintDetailsRoute(
     val context = LocalContext.current
     LaunchedEffect(state.removed) { if (state.removed) onBack() }
     MintDetailsScreen(
-        state, onBack, viewModel::refresh, viewModel::toggleWatchOnly,
+        state,
+        onBack,
+        viewModel::refresh,
+        viewModel::toggleWatchOnly,
         onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key) },
         onAcceptKey = viewModel::acceptKey,
         onChangeHome = onChangeHome,
@@ -162,9 +178,8 @@ fun MintDetailsRoute(
 }
 
 /**
- * One mint (brief §6): whether it answers, its description, fees and limits, the signing key pinned on first
- * contact (and, if it changed, both keys and a way to use the new one), the account's money there, its website, and
- * the account's watch-only key.
+ * One mint (brief §6): whether it answers, its description, fees and limits, the signing key pinned on first contact (and, if it changed,
+ * both keys and a way to use the new one), the account's money there, its website, and the account's watch-only key.
  */
 @Composable
 fun MintDetailsScreen(
@@ -193,13 +208,17 @@ fun MintDetailsScreen(
                 headlineContent = { Text(stringResource(reachabilityText(details.reachability))) },
                 supportingContent = details.description?.let { { Text(it) } },
                 trailingContent = {
-                    if (state.loading) WalletCircularProgress() else WalletButton(kind = ButtonKind.Text, onClick = onRefresh) { Text(stringResource(R.string.mint_check_again)) }
+                    if (state.loading) WalletCircularProgress()
+                    else WalletButton(kind = ButtonKind.Text, onClick = onRefresh) { Text(stringResource(R.string.mint_check_again)) }
                 },
             )
             if (state.device) {
-                state.mint?.homeOf?.takeIf { it.isNotEmpty() }?.let { homes ->
-                    WalletListItem(headlineContent = { Text(stringResource(R.string.mints_home_mint_of, homes.joinToString(", "))) })
-                }
+                state.mint
+                    ?.homeOf
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { homes ->
+                        WalletListItem(headlineContent = { Text(stringResource(R.string.mints_home_mint_of, homes.joinToString(", "))) })
+                    }
             } else {
                 AccountSection(details, state, onChangeHome, onMoveMoney, onMoveAllHere)
             }
@@ -215,13 +234,24 @@ fun MintDetailsScreen(
                 }
                 WalletListItem(
                     headlineContent = { Text(stringResource(R.string.mint_limits)) },
-                    supportingContent = { Text(stringResource(R.string.mint_limits_value, formatAmount(mint.minSendableMsat), formatAmount(mint.maxSendableMsat))) },
+                    supportingContent = {
+                        Text(
+                            stringResource(
+                                R.string.mint_limits_value,
+                                formatAmount(mint.minSendableMsat),
+                                formatAmount(mint.maxSendableMsat),
+                            )
+                        )
+                    },
                 )
                 WalletListItem(
                     headlineContent = { Text(stringResource(R.string.mint_signing_key)) },
                     supportingContent = {
                         Column {
-                            Text(mint.mintPubkey?.chunked(4)?.joinToString(" ") ?: stringResource(R.string.mint_signing_key_unknown), fontFamily = FontFamily.Monospace)
+                            Text(
+                                mint.mintPubkey?.chunked(4)?.joinToString(" ") ?: stringResource(R.string.mint_signing_key_unknown),
+                                fontFamily = FontFamily.Monospace,
+                            )
                             Text(stringResource(R.string.mint_signing_key_hint), style = MaterialTheme.typography.bodySmall)
                         }
                     },
@@ -232,26 +262,41 @@ fun MintDetailsScreen(
             WalletListItem(
                 headlineContent = { Text(stringResource(R.string.mint_website)) },
                 supportingContent = { Text(website) },
-                trailingContent = { WalletButton(kind = ButtonKind.Text, onClick = { runCatching { uri.openUri(website) } }) { Text(stringResource(R.string.mint_open)) } },
+                trailingContent = {
+                    WalletButton(kind = ButtonKind.Text, onClick = { runCatching { uri.openUri(website) } }) {
+                        Text(stringResource(R.string.mint_open))
+                    }
+                },
             )
             if (state.device) state.mint?.let { RemoveSection(it, state.removeRefused, onRemove) }
-            state.watchOnlyKey?.takeUnless { state.device }?.let { key ->
-                HorizontalDivider()
-                WalletListItem(
-                    headlineContent = { Text(stringResource(R.string.mint_watch_only)) },
-                    supportingContent = { Text(stringResource(R.string.mint_watch_only_hint)) },
-                    trailingContent = {
-                        WalletButton(kind = ButtonKind.Text, onClick = onToggleWatchOnly) { Text(stringResource(if (state.showWatchOnly) R.string.mint_hide else R.string.mint_show)) }
-                    },
-                )
-                if (state.showWatchOnly) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        QrCode(key, description = stringResource(R.string.mint_watch_only_qr))
-                        Text(key, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
-                        WalletButton(kind = ButtonKind.Secondary, onClick = { onCopyWatchOnly(key) }) { Text(stringResource(R.string.mint_copy)) }
+            state.watchOnlyKey
+                ?.takeUnless { state.device }
+                ?.let { key ->
+                    HorizontalDivider()
+                    WalletListItem(
+                        headlineContent = { Text(stringResource(R.string.mint_watch_only)) },
+                        supportingContent = { Text(stringResource(R.string.mint_watch_only_hint)) },
+                        trailingContent = {
+                            WalletButton(kind = ButtonKind.Text, onClick = onToggleWatchOnly) {
+                                Text(stringResource(if (state.showWatchOnly) R.string.mint_hide else R.string.mint_show))
+                            }
+                        },
+                    )
+                    if (state.showWatchOnly) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            QrCode(key, description = stringResource(R.string.mint_watch_only_qr))
+                            Text(
+                                key,
+                                fontFamily = FontFamily.Monospace,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                            WalletButton(kind = ButtonKind.Secondary, onClick = { onCopyWatchOnly(key) }) {
+                                Text(stringResource(R.string.mint_copy))
+                            }
+                        }
                     }
                 }
-            }
         }
     }
 }
@@ -269,24 +314,48 @@ private fun AccountSection(
         WalletListItem(
             headlineContent = { Text(stringResource(R.string.settings_home_mint)) },
             supportingContent = { Text(stringResource(R.string.mint_home_hint)) },
-            trailingContent = state.canChangeHome.takeIf { it }?.let {
-                { WalletButton(kind = ButtonKind.Text, onClick = { onChangeHome(null) }) { Text(stringResource(R.string.mint_change_home)) } }
-            },
+            trailingContent =
+                state.canChangeHome
+                    .takeIf { it }
+                    ?.let {
+                        {
+                            WalletButton(kind = ButtonKind.Text, onClick = { onChangeHome(null) }) {
+                                Text(stringResource(R.string.mint_change_home))
+                            }
+                        }
+                    },
         )
     } else if (state.canChangeHome) {
-        WalletButton(kind = ButtonKind.Secondary, onClick = { onChangeHome(details.host) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        WalletButton(
+            kind = ButtonKind.Secondary,
+            onClick = { onChangeHome(details.host) },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
             Text(stringResource(R.string.mint_make_home))
         }
     }
     WalletListItem(
         headlineContent = { Text(stringResource(R.string.mint_your_money)) },
-        supportingContent = { Text(pluralStringResource(R.plurals.mint_balance, details.noteCount, formatAmount(details.balanceMsat), details.noteCount)) },
-        trailingContent = (details.balanceMsat > 0 && !(details.isHome && state.collects)).takeIf { it }?.let {
-            { WalletButton(kind = ButtonKind.Text, onClick = { onMoveMoney(details.host) }) { Text(stringResource(R.string.mint_move_money)) } }
+        supportingContent = {
+            Text(pluralStringResource(R.plurals.mint_balance, details.noteCount, formatAmount(details.balanceMsat), details.noteCount))
         },
+        trailingContent =
+            (details.balanceMsat > 0 && !(details.isHome && state.collects))
+                .takeIf { it }
+                ?.let {
+                    {
+                        WalletButton(kind = ButtonKind.Text, onClick = { onMoveMoney(details.host) }) {
+                            Text(stringResource(R.string.mint_move_money))
+                        }
+                    }
+                },
     )
     if (details.isHome && state.moneyElsewhere) {
-        WalletButton(kind = ButtonKind.Secondary, onClick = onMoveAllHere, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        WalletButton(
+            kind = ButtonKind.Secondary,
+            onClick = onMoveAllHere,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
             Text(stringResource(R.string.mint_move_all_here))
         }
     }
@@ -298,7 +367,11 @@ private fun RemoveSection(mint: MintInfo, refused: MintUse?, onRemove: () -> Uni
     var confirming by remember { mutableStateOf(false) }
     HorizontalDivider()
     if (mint.removable) {
-        WalletButton(kind = ButtonKind.Text, onClick = { confirming = true }, modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
+        WalletButton(
+            kind = ButtonKind.Text,
+            onClick = { confirming = true },
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+        ) {
             Text(stringResource(R.string.mints_remove_mint), color = MaterialTheme.colorScheme.error)
         }
     } else {
@@ -307,16 +380,32 @@ private fun RemoveSection(mint: MintInfo, refused: MintUse?, onRemove: () -> Uni
             supportingContent = { Text(stringResource(R.string.mints_remove_in_use)) },
         )
     }
-    refused?.let { Text(stringResource(R.string.mints_remove_in_use), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp)) }
+    refused?.let {
+        Text(
+            stringResource(R.string.mints_remove_in_use),
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
     if (confirming) {
         WalletDialog(
             onDismissRequest = { confirming = false },
             title = { Text(stringResource(R.string.mints_remove_title, mint.host)) },
             text = { Text(stringResource(R.string.mints_remove_body)) },
             confirmButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false; onRemove() }) { Text(stringResource(R.string.mints_remove_confirm)) }
+                WalletButton(
+                    kind = ButtonKind.Text,
+                    onClick = {
+                        confirming = false
+                        onRemove()
+                    },
+                ) {
+                    Text(stringResource(R.string.mints_remove_confirm))
+                }
             },
-            dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) } },
+            dismissButton = {
+                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) }
+            },
         )
     }
 }
@@ -334,11 +423,23 @@ private fun KeyChangedCard(host: String, remembered: String?, presented: String?
             Text(stringResource(R.string.mint_key_changed, host), color = color)
             for ((label, key) in listOf(R.string.mint_key_remembered to remembered, R.string.mint_key_new to presented)) {
                 if (key == null) continue
-                Text(stringResource(label), style = MaterialTheme.typography.labelMedium, color = color, modifier = Modifier.padding(top = 12.dp))
-                Text(key.chunked(4).joinToString(" "), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, color = color)
+                Text(
+                    stringResource(label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = color,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+                Text(
+                    key.chunked(4).joinToString(" "),
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = color,
+                )
             }
             if (presented != null && onAccept != null) {
-                WalletButton(onClick = { confirming = true }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.mint_key_accept)) }
+                WalletButton(onClick = { confirming = true }, modifier = Modifier.padding(top = 12.dp)) {
+                    Text(stringResource(R.string.mint_key_accept))
+                }
             }
         }
     }
@@ -348,16 +449,27 @@ private fun KeyChangedCard(host: String, remembered: String?, presented: String?
             title = { Text(stringResource(R.string.mint_key_accept_title)) },
             text = { Text(stringResource(R.string.mint_key_accept_body, host)) },
             confirmButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false; onAccept(presented) }) { Text(stringResource(R.string.mint_key_accept_confirm)) }
+                WalletButton(
+                    kind = ButtonKind.Text,
+                    onClick = {
+                        confirming = false
+                        onAccept(presented)
+                    },
+                ) {
+                    Text(stringResource(R.string.mint_key_accept_confirm))
+                }
             },
-            dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) } },
+            dismissButton = {
+                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) }
+            },
         )
     }
 }
 
-private fun reachabilityText(reachability: MintDetails.Reachability): Int = when (reachability) {
-    MintDetails.Reachability.Reachable -> R.string.mint_reachable
-    MintDetails.Reachability.Unreachable -> R.string.mint_unreachable
-    MintDetails.Reachability.Invalid -> R.string.mint_invalid
-    MintDetails.Reachability.KeyChanged -> R.string.mint_key_changed_short
-}
+private fun reachabilityText(reachability: MintDetails.Reachability): Int =
+    when (reachability) {
+        MintDetails.Reachability.Reachable -> R.string.mint_reachable
+        MintDetails.Reachability.Unreachable -> R.string.mint_unreachable
+        MintDetails.Reachability.Invalid -> R.string.mint_invalid
+        MintDetails.Reachability.KeyChanged -> R.string.mint_key_changed_short
+    }

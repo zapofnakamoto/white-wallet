@@ -18,8 +18,7 @@ import whitewallet.core.wallet.InvoiceStatus
 
 @RunWith(RobolectricTestRunner::class)
 class ReceiveScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     @Test
     fun showsTheAddress() {
@@ -31,7 +30,12 @@ class ReceiveScreenTest {
     fun whatArrivesGetsItsOwnScreen() {
         var more = false
         compose.setContent {
-            ReceiveScreen(ReceiveState("alice@mint.example", receivedMsat = 21_000), onBack = {}, onClaim = {}, InvoiceActions(onReceiveMore = { more = true }))
+            ReceiveScreen(
+                ReceiveState("alice@mint.example", receivedMsat = 21_000),
+                onBack = {},
+                onClaim = {},
+                InvoiceActions(onReceiveMore = { more = true }),
+            )
         }
         compose.onNodeWithText(text(R.string.receive_success_title)).assertExists()
         compose.onNodeWithText("₿21").assertExists()
@@ -50,7 +54,14 @@ class ReceiveScreenTest {
     @Test
     fun withoutAnAddressItAsksForAnAmount() {
         var created = false
-        compose.setContent { ReceiveScreen(ReceiveState(address = null, amountText = "2100"), onBack = {}, onClaim = {}, InvoiceActions(onCreate = { created = true })) }
+        compose.setContent {
+            ReceiveScreen(
+                ReceiveState(address = null, amountText = "2100"),
+                onBack = {},
+                onClaim = {},
+                InvoiceActions(onCreate = { created = true }),
+            )
+        }
         compose.onNodeWithText(text(R.string.receive_invoice_create)).performScrollTo().performClick()
         assertTrue(created)
     }
@@ -58,7 +69,9 @@ class ReceiveScreenTest {
     @Test
     fun anAddressCanStillRequestAnAmount() {
         var asked = false
-        compose.setContent { ReceiveScreen(ReceiveState("alice@mint.example"), onBack = {}, onClaim = {}, InvoiceActions(onRequestAmount = { asked = true })) }
+        compose.setContent {
+            ReceiveScreen(ReceiveState("alice@mint.example"), onBack = {}, onClaim = {}, InvoiceActions(onRequestAmount = { asked = true }))
+        }
         compose.onNodeWithText(text(R.string.receive_request_amount)).performScrollTo().performClick()
         assertTrue(asked)
     }

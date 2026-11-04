@@ -46,18 +46,27 @@ data class SettingsState(
 )
 
 /**
- * The pages a brand's configuration leaves out: the note list unless it lives in settings (`notes.view`), the mint pages
- * without `mints.visible`, Amounts when the unit is fixed (`amounts.unit.changeable`), Developer options unless the brand shows them
- * (`developer.options`), and Note settings when there is nothing to choose (one strategy that also renews the address's
- * notes, and no switch for collecting or for being told what the wallet did by itself).
+ * The pages a brand's configuration leaves out: the note list unless it lives in settings (`notes.view`), the mint pages without
+ * `mints.visible`, Amounts when the unit is fixed (`amounts.unit.changeable`), Developer options unless the brand shows them
+ * (`developer.options`), and Note settings when there is nothing to choose (one strategy that also renews the address's notes, and no
+ * switch for collecting or for being told what the wallet did by itself).
  */
-internal fun hiddenPages(defaults: AppDefaults, wallet: Wallet, strategy: NoteStrategy?, developer: Boolean, unlocked: Boolean): Set<SettingsTarget> = buildSet {
+internal fun hiddenPages(
+    defaults: AppDefaults,
+    wallet: Wallet,
+    strategy: NoteStrategy?,
+    developer: Boolean,
+    unlocked: Boolean,
+): Set<SettingsTarget> = buildSet {
     if (!defaults.developerOptionsVisible(developer, unlocked)) add(SettingsTarget.Developer)
     if (defaults.notesView != NotesView.Settings) add(SettingsTarget.NoteList)
     if (!defaults.showMints) addAll(listOf(SettingsTarget.Mints, SettingsTarget.AccountMints))
     if (!defaults.allowUnitChange) add(SettingsTarget.Display)
-    val nothingToChoose = wallet.noteStrategies.size <= 1 && strategy?.rotatesAddressNotes == true && !wallet.collectDefaults.offered &&
-        !defaults.maintenanceNotices.offered
+    val nothingToChoose =
+        wallet.noteStrategies.size <= 1 &&
+            strategy?.rotatesAddressNotes == true &&
+            !wallet.collectDefaults.offered &&
+            !defaults.maintenanceNotices.offered
     if (nothingToChoose) add(SettingsTarget.Notes)
 }
 
@@ -65,21 +74,41 @@ internal fun hiddenPages(defaults: AppDefaults, wallet: Wallet, strategy: NoteSt
 class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
     private val notes = combine(wallet.noteStrategy, wallet.autoRotate, wallet.lastPolicyRun, ::Triple)
     private val address = combine(wallet.profile, wallet.addressStatus, wallet.addresses, ::Triple)
-    private val account = combine(wallet.activeAccount, wallet.backupVerified, wallet.accounts) { active, backedUp, accounts ->
-        Triple(active, backedUp, accounts.indexOfFirst { it.account.id == active?.account?.id }.coerceAtLeast(0))
-    }
+    private val account =
+        combine(wallet.activeAccount, wallet.backupVerified, wallet.accounts) { active, backedUp, accounts ->
+            Triple(active, backedUp, accounts.indexOfFirst { it.account.id == active?.account?.id }.coerceAtLeast(0))
+        }
     private val developer = combine(preferences.developerMode, preferences.developerOptionsUnlocked, ::Pair)
     private val app = combine(developer, preferences.appLock, wallet.collectAtHome, ::Triple)
 
-    val state: StateFlow<SettingsState> = combine(account, address, notes, app, wallet.mints) {
-            (account, backedUp, place), (profile, status, addresses), (strategy, rotate, run), (developerState, appLock, collect), mints ->
-        val (developer, unlocked) = developerState
-        SettingsState(
-            account?.account?.name, place, profile, backedUp, status, (addresses.size - 1).coerceAtLeast(0), developer, strategy, rotate, run, appLock,
-            account?.account?.host, collect, hidden = hiddenPages(defaults, wallet, strategy, developer, unlocked), mintCount = mints.size, trustedCount = mints.count { it.trusted },
-        )
-    }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
+    val state: StateFlow<SettingsState> =
+        combine(account, address, notes, app, wallet.mints) {
+                (account, backedUp, place),
+                (profile, status, addresses),
+                (strategy, rotate, run),
+                (developerState, appLock, collect),
+                mints ->
+                val (developer, unlocked) = developerState
+                SettingsState(
+                    account?.account?.name,
+                    place,
+                    profile,
+                    backedUp,
+                    status,
+                    (addresses.size - 1).coerceAtLeast(0),
+                    developer,
+                    strategy,
+                    rotate,
+                    run,
+                    appLock,
+                    account?.account?.host,
+                    collect,
+                    hidden = hiddenPages(defaults, wallet, strategy, developer, unlocked),
+                    mintCount = mints.size,
+                    trustedCount = mints.count { it.trusted },
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
 
     init {
         // Refreshing also re-checks that the address still points at this wallet.

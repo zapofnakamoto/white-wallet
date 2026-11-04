@@ -22,13 +22,11 @@ object RecoveryPhrase {
     val COUNTS = setOf(12, 15, 18, 21, 24)
 
     /**
-     * Reads a phrase the way people write it down: any case, separated by spaces, commas or new lines, optionally
-     * numbered ("1. abandon 2. ability" or "1) abandon").
+     * Reads a phrase the way people write it down: any case, separated by spaces, commas or new lines, optionally numbered ("1. abandon 2.
+     * ability" or "1) abandon").
      */
-    fun words(input: String): List<String> = input.lowercase()
-        .split(Regex("[\\s,;]+"))
-        .map { it.replace(NUMBERING, "") }
-        .filter { it.isNotEmpty() }
+    fun words(input: String): List<String> =
+        input.lowercase().split(Regex("[\\s,;]+")).map { it.replace(NUMBERING, "") }.filter { it.isNotEmpty() }
 
     fun check(input: String): PhraseCheck {
         val words = words(input)
@@ -39,19 +37,20 @@ object RecoveryPhrase {
     }
 
     /**
-     * [check] for a phrase being typed: the last word, with no space after it yet, isn't called unknown (nor counted)
-     * while it can still become a valid word.
+     * [check] for a phrase being typed: the last word, with no space after it yet, isn't called unknown (nor counted) while it can still
+     * become a valid word.
      */
     fun checkWhileTyping(input: String): PhraseCheck {
         val check = check(input)
         val last = words(input).lastOrNull() ?: return check
         val typing = !input.last().isWhitespace() && WORDS_LIST.any { it.startsWith(last) }
-        return if (typing && check is PhraseCheck.UnknownWords && check.words == listOf(last)) PhraseCheck.WrongCount(words(input).size - 1) else check
+        return if (typing && check is PhraseCheck.UnknownWords && check.words == listOf(last)) PhraseCheck.WrongCount(words(input).size - 1)
+        else check
     }
 
     /**
-     * [words] as space-separated ASCII bytes, for encrypting. Made without an intermediate string, so the caller can
-     * zero the result once it is used.
+     * [words] as space-separated ASCII bytes, for encrypting. Made without an intermediate string, so the caller can zero the result once
+     * it is used.
      */
     fun toBytes(words: List<String>): ByteArray {
         val bytes = ByteArray(words.sumOf { it.length } + (words.size - 1).coerceAtLeast(0))
@@ -64,8 +63,8 @@ object RecoveryPhrase {
     }
 
     /**
-     * The words of [toBytes]'s output. Each is the wordlist's own string, so reading a phrase leaves no copies of
-     * its words behind, only their order in the returned list. [bytes] is left as is; the caller zeroes it.
+     * The words of [toBytes]'s output. Each is the wordlist's own string, so reading a phrase leaves no copies of its words behind, only
+     * their order in the returned list. [bytes] is left as is; the caller zeroes it.
      */
     fun fromBytes(bytes: ByteArray): List<String> {
         val words = ArrayList<String>(24)
@@ -79,10 +78,9 @@ object RecoveryPhrase {
     }
 
     /**
-     * The BIP-39 seed of [words] with no passphrase: PBKDF2-HMAC-SHA512 over the space-joined words, salt "mnemonic",
-     * 2048 rounds. Unlike `MnemonicCode.toSeed`, the phrase is never joined into a string; it goes in as characters
-     * that are zeroed afterwards. (The English words are ASCII, so BIP-39's NFKD step changes nothing.) The caller
-     * zeroes the returned seed.
+     * The BIP-39 seed of [words] with no passphrase: PBKDF2-HMAC-SHA512 over the space-joined words, salt "mnemonic", 2048 rounds. Unlike
+     * `MnemonicCode.toSeed`, the phrase is never joined into a string; it goes in as characters that are zeroed afterwards. (The English
+     * words are ASCII, so BIP-39's NFKD step changes nothing.) The caller zeroes the returned seed.
      */
     fun seed(words: List<String>): ByteArray {
         val chars = CharArray(words.sumOf { it.length } + (words.size - 1).coerceAtLeast(0))

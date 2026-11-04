@@ -1,8 +1,8 @@
 package whitewallet.lnurlcash
 
 /**
- * Masks bearer secrets: `k1` spends in URLs and JSON, and payment preimages. Also address proofs (`sig`): an unregister
- * proof stays valid for its name, so a leaked one could free the name later. Everything else is public.
+ * Masks bearer secrets: `k1` spends in URLs and JSON, and payment preimages. Also address proofs (`sig`): an unregister proof stays valid
+ * for its name, so a leaked one could free the name later. Everything else is public.
  */
 public object Redaction {
     private const val KEEP = 6

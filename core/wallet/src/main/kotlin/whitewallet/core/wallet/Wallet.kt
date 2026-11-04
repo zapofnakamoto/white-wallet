@@ -1,12 +1,11 @@
 package whitewallet.core.wallet
 
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.MnemonicCode
 import fr.acinq.bitcoin.PublicKey
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,22 +21,21 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import whitewallet.core.model.AmountUnit
-import whitewallet.core.model.Activity
+import kotlinx.coroutines.withContext
+import whitewallet.brand.NoteStrategy
+import whitewallet.brand.WalletTask
 import whitewallet.core.model.AccountSummary
+import whitewallet.core.model.Activity
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.brand.NoteStrategy
-import whitewallet.brand.ReleaseStage
-import whitewallet.brand.WalletTask
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.Profile
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.model.Mint
 import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Certificates
@@ -45,9 +43,9 @@ import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
 
 /**
- * The wallet's entry point. It holds several accounts, each with its own recovery phrase; everything except
- * account management acts on the *active* account. Operations that touch notes run under one lock, so counters,
- * the journal and the note table are never written concurrently, and the active account cannot change mid-operation.
+ * The wallet's entry point. It holds several accounts, each with its own recovery phrase; everything except account management acts on the
+ * *active* account. Operations that touch notes run under one lock, so counters, the journal and the note table are never written
+ * concurrently, and the active account cannot change mid-operation.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class Wallet(
@@ -64,8 +62,8 @@ class Wallet(
     /** How many accounts this wallet may hold (brand `accounts.max`); [AppDefaults.UNLIMITED] for no limit. */
     val maxAccounts: Int = AppDefaults.UNLIMITED,
     /**
-     * Whether every account needs a Lightning address (brand `addresses.lightning=required`). Without, an account is set up with
-     * just its mint ([createAccount]) and receives by invoice ([requestInvoice]) until it registers one.
+     * Whether every account needs a Lightning address (brand `addresses.lightning=required`). Without, an account is set up with just its
+     * mint ([createAccount]) and receives by invoice ([requestInvoice]) until it registers one.
      */
     val requireAddress: Boolean = true,
     /** The user's trust choices for mints (see [mints]). */
@@ -73,8 +71,8 @@ class Wallet(
     /** Mints the brand ships as trusted, each with its key (brand `mints.trusted`). */
     private val brandTrusted: List<MintKey> = emptyList(),
     /**
-     * Asks for a refresh as soon as the device is online again: a received note is kept waiting for its mint (the
-     * app schedules a sync that needs a network).
+     * Asks for a refresh as soon as the device is online again: a received note is kept waiting for its mint (the app schedules a sync that
+     * needs a network).
      */
     private val onWaitingForNetwork: () -> Unit = {},
 ) {
@@ -112,19 +110,22 @@ class Wallet(
     internal val unknownCheckedAt = mutableMapOf<String, Long>()
 
     /**
-     * Lookups that got no answer this session. Not saved: they say nothing about the key, so the last real answer
-     * stays in the store and shows again after a restart.
+     * Lookups that got no answer this session. Not saved: they say nothing about the key, so the last real answer stays in the store and
+     * shows again after a restart.
      */
     private val failedProbes = MutableStateFlow<Map<KeyId, KeyProbe.Failed>>(emptyMap())
 
     /**
-     * The mint's last answer for each of the active account's looked-up keys (scans, rechecks, rotates), for the
-     * developer key page. Saved, so it survives restarts.
+     * The mint's last answer for each of the active account's looked-up keys (scans, rechecks, rotates), for the developer key page. Saved,
+     * so it survives restarts.
      */
     val keyProbes: Flow<Map<KeyId, KeyProbe>> = ofActive(emptyMap(), store::keyChecks)
 
-    val accounts: Flow<List<AccountSummary>> get() = store.accounts
-    val activeAccount: Flow<AccountSummary?> = combine(store.accounts, store.activeAccountId) { list, id -> list.firstOrNull { it.account.id == id } }
+    val accounts: Flow<List<AccountSummary>>
+        get() = store.accounts
+
+    val activeAccount: Flow<AccountSummary?> =
+        combine(store.accounts, store.activeAccountId) { list, id -> list.firstOrNull { it.account.id == id } }
 
     val profile: Flow<Profile?> = ofActive(null, store::profile)
 
@@ -137,23 +138,27 @@ class Wallet(
     val receivedNotes: Flow<List<ReceivedNote>> = ofActive(emptyList()) { id -> store.receivedNotes(id) }
 
     /**
-     * What the active account's received notes not claimed yet are worth: not in [balanceMsat] until claimed. A note
-     * whose mint hasn't said yet counts what its link says.
+     * What the active account's received notes not claimed yet are worth: not in [balanceMsat] until claimed. A note whose mint hasn't said
+     * yet counts what its link says.
      */
-    val incomingMsat: Flow<Long> = receivedNotes.map { notes -> notes.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 } }
+    val incomingMsat: Flow<Long> = receivedNotes.map { notes ->
+        notes.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
+    }
     val backupVerified: Flow<Boolean> = ofActive(false, seeds::backupVerified)
 
     /** The last known status of the active account's primary address; null until checked. Refreshed by [refresh]. */
-    val addressStatus: Flow<AddressStatus?> = combine(store.activeAccountId, profile, addressStatuses) { id, primary, statuses ->
-        if (id == null || primary == null) null else statuses[id to primary.address]
-    }
+    val addressStatus: Flow<AddressStatus?> =
+        combine(store.activeAccountId, profile, addressStatuses) { id, primary, statuses ->
+            if (id == null || primary == null) null else statuses[id to primary.address]
+        }
 
     /** Every Lightning address of the active account, oldest first, with its last check. */
-    val addresses: Flow<List<AddressEntry>> = ofActive(emptyList()) { id ->
-        combine(store.addresses(id), store.profile(id), addressStatuses) { list, primary, statuses ->
-            list.map { AddressEntry(it, primary?.username == it.username && primary.host == it.host, statuses[id to it.address]) }
+    val addresses: Flow<List<AddressEntry>> =
+        ofActive(emptyList()) { id ->
+            combine(store.addresses(id), store.profile(id), addressStatuses) { list, primary, statuses ->
+                list.map { AddressEntry(it, primary?.username == it.username && primary.host == it.host, statuses[id to it.address]) }
+            }
         }
-    }
 
     /** The active account's auto-rotate setting. */
     val autoRotate: Flow<Boolean> = ofActive(false, policies::autoRotate)
@@ -168,7 +173,8 @@ class Wallet(
     val noteStrategy: Flow<NoteStrategy> = ofActive(strategies.default) { id -> policies.strategy(id).map(strategies::resolve) }
 
     /** The note strategies a user can choose from, in the brand's order. */
-    val noteStrategies: List<NoteStrategy> get() = strategies.offered
+    val noteStrategies: List<NoteStrategy>
+        get() = strategies.offered
 
     /** Whether the active account moves notes from other mints to its home mint (see [CollectDefaults.active]). */
     val collectAtHome: Flow<Boolean> = ofActive(false) { id -> policies.collect(id).map(collectDefaults::active) }
@@ -180,8 +186,8 @@ class Wallet(
     private fun collectFeeCap(accountId: String): Flow<Int> = policies.collectFeeCap(accountId).map { it ?: collectDefaults.feeCapPercent }
 
     /**
-     * Whether the active account's user wants to be told what the note policies did by themselves; null until they
-     * choose (then [MaintenanceNoticeDefaults.active] decides).
+     * Whether the active account's user wants to be told what the note policies did by themselves; null until they choose (then
+     * [MaintenanceNoticeDefaults.active] decides).
      */
     val maintenanceNoticesChoice: Flow<Boolean?> = ofActive(null, policies::maintenanceNotices)
 
@@ -205,20 +211,24 @@ class Wallet(
 
     /** Per (account, mint): until when collecting leaves that mint alone after a failed move. This session only. */
     private val collectBlocks = MutableStateFlow<Map<Pair<String, String>, Long>>(emptyMap())
+
     internal fun collectBlockedUntil(accountId: String, host: String): Long = collectBlocks.value[accountId to host] ?: 0
-    internal fun blockCollect(accountId: String, host: String, untilMillis: Long) = collectBlocks.update { it + ((accountId to host) to untilMillis) }
+
+    internal fun blockCollect(accountId: String, host: String, untilMillis: Long) = collectBlocks.update {
+        it + ((accountId to host) to untilMillis)
+    }
 
     private val _task = MutableStateFlow<WalletTask?>(null)
 
     /**
-     * What the wallet works on right now that changes what the user sees (see [WalletTask]); null while it works on
-     * nothing that takes a mint's answer. Set by [refresh], [recheckNotes] and the note policies.
+     * What the wallet works on right now that changes what the user sees (see [WalletTask]); null while it works on nothing that takes a
+     * mint's answer. Set by [refresh], [recheckNotes] and the note policies.
      */
     val task: StateFlow<WalletTask?> = _task.asStateFlow()
 
     /**
-     * Runs [block] as [task], then goes back to what the wallet worked on before (a refresh around maintenance). Only
-     * under the lock, so tasks nest and never interleave.
+     * Runs [block] as [task], then goes back to what the wallet worked on before (a refresh around maintenance). Only under the lock, so
+     * tasks nest and never interleave.
      */
     internal suspend fun <T> working(task: WalletTask, block: suspend () -> T): T {
         val before = _task.value
@@ -251,14 +261,14 @@ class Wallet(
     suspend fun isSetUp(): Boolean = store.currentAccountId()?.let { !requireAddress || store.currentProfile(it) != null } ?: false
 
     /**
-     * The active account exists but has no address yet although this app requires one: it was restored and the
-     * address step wasn't finished.
+     * The active account exists but has no address yet although this app requires one: it was restored and the address step wasn't
+     * finished.
      */
     suspend fun needsAddress(): Boolean = requireAddress && store.currentAccountId()?.let { store.currentProfile(it) == null } ?: false
 
     /**
-     * Creates an account on the mint at [host] without a Lightning address, with a fresh recovery phrase, and makes
-     * it active. Only where addresses aren't required ([requireAddress]); otherwise accounts start with [onboard].
+     * Creates an account on the mint at [host] without a Lightning address, with a fresh recovery phrase, and makes it active. Only where
+     * addresses aren't required ([requireAddress]); otherwise accounts start with [onboard].
      */
     suspend fun createAccount(host: String, name: String): CreateAccountResult = lock.withLock {
         check(!requireAddress) { "this app requires an address; use onboard" }
@@ -266,11 +276,12 @@ class Wallet(
     }
 
     /**
-     * Recovers an account from its recovery phrase on [host] and makes it active (see [Restore]). The account has no
-     * address afterwards; give it one with [onboard] (no new account name), which accepts an address it already owns.
+     * Recovers an account from its recovery phrase on [host] and makes it active (see [Restore]). The account has no address afterwards;
+     * give it one with [onboard] (no new account name), which accepts an address it already owns.
      */
-    suspend fun restore(phrase: String, host: String, accountName: String): RestoreResult =
-        lock.withLock { restorer.restore(phrase, host, accountName) }
+    suspend fun restore(phrase: String, host: String, accountName: String): RestoreResult = lock.withLock {
+        restorer.restore(phrase, host, accountName)
+    }
 
     /** The active account's BIP-39 recovery phrase. Only for the backup screen; never log or persist it elsewhere. */
     suspend fun recoveryPhrase(): List<String> = checkNotNull(seeds.load(activeId())) { "account has no seed" }
@@ -278,30 +289,31 @@ class Wallet(
     suspend fun markBackupVerified() = seeds.setBackupVerified(activeId())
 
     /**
-     * Claims [username] on [host] and confirms the claim. With [newAccountName], creates a new account with its own
-     * recovery phrase (kept only if the claim succeeds) and makes it active; without, changes the active account's
-     * address. The very first call always creates an account.
+     * Claims [username] on [host] and confirms the claim. With [newAccountName], creates a new account with its own recovery phrase (kept
+     * only if the claim succeeds) and makes it active; without, changes the active account's address. The very first call always creates an
+     * account.
      */
-    suspend fun onboard(username: String, host: String, newAccountName: String? = null): OnboardResult =
-        lock.withLock { onboarding.onboard(username, host, newAccountName) }
+    suspend fun onboard(username: String, host: String, newAccountName: String? = null): OnboardResult = lock.withLock {
+        onboarding.onboard(username, host, newAccountName)
+    }
 
     /** Validates and stores a mint (and pins its key) without registering a username. */
     suspend fun connectMint(host: String): ConnectResult = lock.withLock { onboarding.connectMint(host) }
 
     /**
-     * Checks whether [username]@[host] is free, taken, or already the active account's. Pass [forNewAccount] when
-     * choosing a name for an account that does not exist yet, so nothing counts as ours. Read-only.
+     * Checks whether [username]@[host] is free, taken, or already the active account's. Pass [forNewAccount] when choosing a name for an
+     * account that does not exist yet, so nothing counts as ours. Read-only.
      */
     suspend fun checkAddress(username: String, host: String, forNewAccount: Boolean = false): AddressStatus =
         addressCheck.check(username, host, if (forNewAccount) null else store.currentAccountId())
 
     /**
-     * Registers another address for the active account: on its home mint, or on [host] (same recovery phrase, that
-     * mint's own keys; never the primary address). Refused with
-     * [OnboardResult.LimitReached] once the account holds [limit] addresses there.
+     * Registers another address for the active account: on its home mint, or on [host] (same recovery phrase, that mint's own keys; never
+     * the primary address). Refused with [OnboardResult.LimitReached] once the account holds [limit] addresses there.
      */
-    suspend fun addAddress(username: String, limit: Int, host: String? = null): OnboardResult =
-        lock.withLock { onboarding.addAddress(username, limit, host) }
+    suspend fun addAddress(username: String, limit: Int, host: String? = null): OnboardResult = lock.withLock {
+        onboarding.addAddress(username, limit, host)
+    }
 
     /** Checks every address of the active account, or only [address], against its mint. */
     suspend fun checkAddresses(address: RegisteredAddress? = null) {
@@ -314,16 +326,18 @@ class Wallet(
     /** Makes one of the active account's addresses the primary one (shown on Home and Receive). */
     suspend fun setPrimaryAddress(address: RegisteredAddress) = lock.withLock {
         val id = activeId()
-        check(store.addresses(id).first().any { it.username == address.username && it.host == address.host }) { "not an address of this account" }
+        check(store.addresses(id).first().any { it.username == address.username && it.host == address.host }) {
+            "not an address of this account"
+        }
         check(address.host == store.account(id)?.host) { "the primary address is on the home mint; use changeHome" }
         store.saveProfile(id, Profile(address.username, address.host))
     }
 
     /**
-     * Moves the active account's home to the mint at [host], with [username] there as its primary address: claimed like
-     * [onboard] does, so a name the account already holds there is taken as it is. From then on invoices are minted
-     * there. Money stays where it is: move it with [moveMoney] (an account that collects at its home mint also has it
-     * moved by its next refresh). The old primary address stays registered, and the old home stays trusted if it was.
+     * Moves the active account's home to the mint at [host], with [username] there as its primary address: claimed like [onboard] does, so
+     * a name the account already holds there is taken as it is. From then on invoices are minted there. Money stays where it is: move it
+     * with [moveMoney] (an account that collects at its home mint also has it moved by its next refresh). The old primary address stays
+     * registered, and the old home stays trusted if it was.
      */
     suspend fun changeHome(host: String, username: String): OnboardResult = changeHome(host, username, emptyList()).result
 
@@ -331,9 +345,8 @@ class Wallet(
     suspend fun changeHome(host: String): ConnectResult = changeHome(host, emptyList()).result
 
     /**
-     * [changeHome], then [moveMoney] of [lines] to the new home, with nothing in between: a refresh slipping in would
-     * collect the money itself (when the account collects at its home mint) and leave the move nothing to do. Nothing
-     * moves unless the change succeeds.
+     * [changeHome], then [moveMoney] of [lines] to the new home, with nothing in between: a refresh slipping in would collect the money
+     * itself (when the account collects at its home mint) and leave the move nothing to do. Nothing moves unless the change succeeds.
      */
     suspend fun changeHome(host: String, username: String, lines: List<MovePreview.Line>): HomeChanged<OnboardResult> = lock.withLock {
         val (id, keepTrusted) = leavingHome(host) ?: return@withLock HomeChanged(OnboardResult.MintInvalid(ALREADY_HOME))
@@ -345,7 +358,8 @@ class Wallet(
 
     /** [changeHome] with [lines] for an account without a Lightning address. */
     suspend fun changeHome(host: String, lines: List<MovePreview.Line>): HomeChanged<ConnectResult> = lock.withLock {
-        val (id, keepTrusted) = leavingHome(host) ?: return@withLock HomeChanged(ConnectResult.Failed(OnboardResult.MintInvalid(ALREADY_HOME)))
+        val (id, keepTrusted) =
+            leavingHome(host) ?: return@withLock HomeChanged(ConnectResult.Failed(OnboardResult.MintInvalid(ALREADY_HOME)))
         check(store.currentProfile(id) == null) { "the account has an address; pass the name to use on the new home" }
         val result = onboarding.connectMint(host)
         if (result !is ConnectResult.Connected) return@withLock HomeChanged(result)
@@ -355,9 +369,9 @@ class Wallet(
     }
 
     /**
-     * What moving the active account's money to [toHost] would do: per mint holding it (only [fromHost], if given),
-     * what arrives and the fee, or why it can't move. Null if [toHost] is not a valid host. Connects to [toHost]
-     * (pinning its key) to ask for the quotes; nothing is paid.
+     * What moving the active account's money to [toHost] would do: per mint holding it (only [fromHost], if given), what arrives and the
+     * fee, or why it can't move. Null if [toHost] is not a valid host. Connects to [toHost] (pinning its key) to ask for the quotes;
+     * nothing is paid.
      */
     suspend fun previewMove(toHost: String, fromHost: String? = null): MovePreview? {
         val id = activeId()
@@ -366,8 +380,8 @@ class Wallet(
     }
 
     /**
-     * Moves the money of [lines] (from [previewMove], as the user confirmed them) to [toHost]: per mint, its notes
-     * combined into one and paid over Lightning, only at the confirmed fee or less. Says per mint what happened.
+     * Moves the money of [lines] (from [previewMove], as the user confirmed them) to [toHost]: per mint, its notes combined into one and
+     * paid over Lightning, only at the confirmed fee or less. Says per mint what happened.
      */
     suspend fun moveMoney(toHost: String, lines: List<MovePreview.Line>): List<MoneyMoved> = lock.withLock {
         val h = requireNotNull(Onboarding.normalizeHost(toHost)) { "not a valid host" }
@@ -375,8 +389,8 @@ class Wallet(
     }
 
     /**
-     * The active account and its home mint's trusted key, about to be left for [host]; null if [host] already is the
-     * home. Its trust is read now: once the account has moved, the home default no longer covers it.
+     * The active account and its home mint's trusted key, about to be left for [host]; null if [host] already is the home. Its trust is
+     * read now: once the account has moved, the home default no longer covers it.
      */
     private suspend fun leavingHome(host: String): Pair<String, MintKey?>? {
         val id = activeId()
@@ -386,7 +400,9 @@ class Wallet(
     }
 
     /** Frees one of the active account's addresses at its mint. Never the primary one. */
-    suspend fun unregisterAddress(address: RegisteredAddress): UnregisterResult = lock.withLock { onboarding.unregister(activeId(), address) }
+    suspend fun unregisterAddress(address: RegisteredAddress): UnregisterResult = lock.withLock {
+        onboarding.unregister(activeId(), address)
+    }
 
     suspend fun switchAccount(accountId: String) = lock.withLock {
         checkNotNull(store.account(accountId)) { "unknown account" }
@@ -400,27 +416,35 @@ class Wallet(
     suspend fun quotePayment(preview: PayPreview.Ready, amountMsat: Long): PayQuote = payer.quote(preview, amountMsat)
 
     /** Pays [amountMsat] to [preview]'s destination from the active account. [comment] goes to pay links that accept one. */
-    suspend fun pay(preview: PayPreview.Ready, amountMsat: Long, comment: String? = null): PayResult =
-        lock.withLock { payer.pay(preview, amountMsat, comment) }
+    suspend fun pay(preview: PayPreview.Ready, amountMsat: Long, comment: String? = null): PayResult = lock.withLock {
+        payer.pay(preview, amountMsat, comment)
+    }
 
     /**
-     * The name a new account on [host] suggests first: derived from the recovery phrase it is about to get, so a
-     * restore finds the address again. Null for an invalid host.
+     * The name a new account on [host] suggests first: derived from the recovery phrase it is about to get, so a restore finds the address
+     * again. Null for an invalid host.
      */
     suspend fun defaultUsername(host: String): String? {
         val h = Onboarding.normalizeHost(host) ?: return null
         val prepared = prepared()
-        prepared.names[h]?.let { return it }
+        prepared.names[h]?.let {
+            return it
+        }
         val words = prepared.words.toList()
         return withContext(Dispatchers.Default) {
-            val seed = RecoveryPhrase.seed(words)
-            try { DefaultAddress.names(CashBranch.fromSeed(seed, h)).first() } finally { seed.fill(0) }
-        }.also { prepared.names[h] = it }
+                val seed = RecoveryPhrase.seed(words)
+                try {
+                    DefaultAddress.names(CashBranch.fromSeed(seed, h)).first()
+                } finally {
+                    seed.fill(0)
+                }
+            }
+            .also { prepared.names[h] = it }
     }
 
     /**
-     * After a restore: the seed-derived address on [host] that is still registered to the active account, if any.
-     * Null if none is (it was never taken, or was unregistered) or the mint can't be reached.
+     * After a restore: the seed-derived address on [host] that is still registered to the active account, if any. Null if none is (it was
+     * never taken, or was unregistered) or the mint can't be reached.
      */
     suspend fun recoverableUsername(host: String): String? {
         val accountId = activeId()
@@ -432,18 +456,22 @@ class Wallet(
     /** The active account's addresses a restore can't find by itself (not seed-derived): to be written down. */
     suspend fun addressesToWriteDown(): List<String> {
         val accountId = activeId()
-        return store.addresses(accountId).first().filter { address ->
-            val branch = branchIfSeeded(accountId, address.host) ?: return@filter true
-            address.username !in DefaultAddress.names(branch)
-        }.map { it.address }
+        return store
+            .addresses(accountId)
+            .first()
+            .filter { address ->
+                val branch = branchIfSeeded(accountId, address.host) ?: return@filter true
+                address.username !in DefaultAddress.names(branch)
+            }
+            .map { it.address }
     }
 
     /** A mint as the details page shows it, checked live (this also refreshes its stored fees and limits). */
     suspend fun mintDetails(host: String): MintDetails = mintInspector.details(host)
 
     /**
-     * The active account's watch-only key (`cx1`) on [host]: it lets someone see the account's notes there and pay
-     * it directly, but never spend. Null if the account has no recovery phrase on this device.
+     * The active account's watch-only key (`cx1`) on [host]: it lets someone see the account's notes there and pay it directly, but never
+     * spend. Null if the account has no recovery phrase on this device.
      */
     suspend fun watchOnlyKey(host: String): String? = branchIfSeeded(activeId(), host)?.cx1()
 
@@ -472,57 +500,79 @@ class Wallet(
     private val allAddresses: Flow<List<RegisteredAddress>> = ofEveryAccount(store::addresses)
 
     /**
-     * Every mint the wallet has used (connected to, or holding any account's notes), on this device and for all
-     * accounts, until removed ([removeMint]): its key, whether it's trusted and why, whose home it is, and whether it can
-     * be removed. Homes first, then by host. Trust follows [isTrusted]. Nothing about one account's money: see
-     * [accountMints].
+     * Every mint the wallet has used (connected to, or holding any account's notes), on this device and for all accounts, until removed
+     * ([removeMint]): its key, whether it's trusted and why, whose home it is, and whether it can be removed. Homes first, then by host.
+     * Trust follows [isTrusted]. Nothing about one account's money: see [accountMints].
      */
-    val mints: Flow<List<MintInfo>> = combine(store.mints, store.accounts, allNotes, allAddresses, combine(trust.trusted, trust.untrusted, ::Pair)) { mints, accounts, notes, addresses, (trusted, untrusted) ->
-        val homes = accounts.map { it.account.host }.toSet()
-        val keys = mints.associate { it.host to it.mintPubkey }
-        val held = notes.filter { it.state != NoteState.Spent }
-        (keys.keys + held.map { it.host }).distinct().map { host ->
-            val key = keys[host]
-            val default = key?.let { trustDefault(MintKey(host, it), homes) }
-            val homeOf = accounts.filter { it.account.host == host }.map { it.account.name }
-            MintInfo(
-                host, key, trusted = key != null && isTrusted(MintKey(host, key), default, trusted, untrusted), trustedByDefault = default,
-                homeOf = homeOf, removable = homeOf.isEmpty() && held.none { it.host == host } && addresses.none { it.host == host },
-            )
-        }.sortedWith(compareBy({ it.homeOf.isEmpty() }, { it.host }))
-    }
+    val mints: Flow<List<MintInfo>> =
+        combine(store.mints, store.accounts, allNotes, allAddresses, combine(trust.trusted, trust.untrusted, ::Pair)) {
+            mints,
+            accounts,
+            notes,
+            addresses,
+            (trusted, untrusted) ->
+            val homes = accounts.map { it.account.host }.toSet()
+            val keys = mints.associate { it.host to it.mintPubkey }
+            val held = notes.filter { it.state != NoteState.Spent }
+            (keys.keys + held.map { it.host })
+                .distinct()
+                .map { host ->
+                    val key = keys[host]
+                    val default = key?.let { trustDefault(MintKey(host, it), homes) }
+                    val homeOf = accounts.filter { it.account.host == host }.map { it.account.name }
+                    MintInfo(
+                        host,
+                        key,
+                        trusted = key != null && isTrusted(MintKey(host, key), default, trusted, untrusted),
+                        trustedByDefault = default,
+                        homeOf = homeOf,
+                        removable = homeOf.isEmpty() && held.none { it.host == host } && addresses.none { it.host == host },
+                    )
+                }
+                .sortedWith(compareBy({ it.homeOf.isEmpty() }, { it.host }))
+        }
 
     /**
-     * The active account's mints: its home, then every mint where it has money (or notes it doesn't know) or a Lightning
-     * address, by host; with its money there. What the account can do there (change home, move money) starts from here.
+     * The active account's mints: its home, then every mint where it has money (or notes it doesn't know) or a Lightning address, by host;
+     * with its money there. What the account can do there (change home, move money) starts from here.
      */
-    val accountMints: Flow<List<AccountMint>> = combine(homeHost, notes, ofActive(emptyList(), store::addresses), trustedHosts()) { home, notes, addresses, trusted ->
-        val live = notes.filter { it.state == NoteState.Outstanding }
-        val unknown = notes.filter { it.state == NoteState.Unknown }
-        (listOfNotNull(home) + live.map { it.host } + unknown.map { it.host } + addresses.map { it.host }).distinct().map { host ->
-            AccountMint(
-                host, isHome = host == home, balanceMsat = live.filter { it.host == host }.sumOf { it.amountMsat },
-                noteCount = live.count { it.host == host }, addresses = addresses.count { it.host == host }, trusted = host in trusted,
-                unknownCount = unknown.count { it.host == host }, unknownMsat = unknown.filter { it.host == host }.sumOf { it.amountMsat },
-            )
-        }.sortedWith(compareBy({ !it.isHome }, { it.host }))
-    }
+    val accountMints: Flow<List<AccountMint>> =
+        combine(homeHost, notes, ofActive(emptyList(), store::addresses), trustedHosts()) { home, notes, addresses, trusted ->
+            val live = notes.filter { it.state == NoteState.Outstanding }
+            val unknown = notes.filter { it.state == NoteState.Unknown }
+            (listOfNotNull(home) + live.map { it.host } + unknown.map { it.host } + addresses.map { it.host })
+                .distinct()
+                .map { host ->
+                    AccountMint(
+                        host,
+                        isHome = host == home,
+                        balanceMsat = live.filter { it.host == host }.sumOf { it.amountMsat },
+                        noteCount = live.count { it.host == host },
+                        addresses = addresses.count { it.host == host },
+                        trusted = host in trusted,
+                        unknownCount = unknown.count { it.host == host },
+                        unknownMsat = unknown.filter { it.host == host }.sumOf { it.amountMsat },
+                    )
+                }
+                .sortedWith(compareBy({ !it.isHome }, { it.host }))
+        }
 
     /**
-     * Forgets the mint at [host]: its pinned signing key and the user's trust choice for it, so adding it again is a
-     * first contact (as after a restore). Only if no account has its home, a note that isn't spent, an address or an
-     * unsettled operation there ([RemoveMintResult.InUse] says which); notes and history are never touched.
+     * Forgets the mint at [host]: its pinned signing key and the user's trust choice for it, so adding it again is a first contact (as
+     * after a restore). Only if no account has its home, a note that isn't spent, an address or an unsettled operation there
+     * ([RemoveMintResult.InUse] says which); notes and history are never touched.
      */
     suspend fun removeMint(host: String): RemoveMintResult = lock.withLock {
         val h = Onboarding.normalizeHost(host) ?: host
         val accounts = store.accounts.first()
-        val use = when {
-            accounts.any { it.account.host == h } -> MintUse.Home
-            accounts.any { a -> store.notes(a.account.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
-            accounts.any { a -> store.addresses(a.account.id).first().any { it.host == h } } -> MintUse.Address
-            store.journal(UNSETTLED).any { it.host == h } -> MintUse.OpenOperation
-            else -> null
-        }
+        val use =
+            when {
+                accounts.any { it.account.host == h } -> MintUse.Home
+                accounts.any { a -> store.notes(a.account.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
+                accounts.any { a -> store.addresses(a.account.id).first().any { it.host == h } } -> MintUse.Address
+                store.journal(UNSETTLED).any { it.host == h } -> MintUse.OpenOperation
+                else -> null
+            }
         if (use != null) return@withLock RemoveMintResult.InUse(use)
         store.mint(h)?.mintPubkey?.let { trust.forget(MintKey(h, it)) }
         store.removeMint(h)
@@ -530,9 +580,11 @@ class Wallet(
     }
 
     /** Hosts of trusted mints, for highlighting notes. */
-    val trustedHosts: Flow<Set<String>> get() = trustedHosts()
+    val trustedHosts: Flow<Set<String>>
+        get() = trustedHosts()
 
-    private fun trustedHosts(): Flow<Set<String>> = mints.map { list -> list.filter { it.trusted }.map { it.host }.toSet() }.distinctUntilChanged()
+    private fun trustedHosts(): Flow<Set<String>> =
+        mints.map { list -> list.filter { it.trusted }.map { it.host }.toSet() }.distinctUntilChanged()
 
     /** Trusts or untrusts [host] with the key the wallet pinned for it. A mint without a pinned key can't be trusted. */
     suspend fun setMintTrusted(host: String, trusted: Boolean) {
@@ -541,18 +593,18 @@ class Wallet(
     }
 
     /**
-     * Keeps using [host] with the signing key [key] it now presents in place of the pinned one, once the user has seen
-     * the change. Only that key: if the mint presents yet another one (or none), nothing changes and false is
-     * returned. A mint the user trusted stays trusted with the new key, and the notes held there get the mint's
-     * certificates under the new key (see [recertify]).
+     * Keeps using [host] with the signing key [key] it now presents in place of the pinned one, once the user has seen the change. Only
+     * that key: if the mint presents yet another one (or none), nothing changes and false is returned. A mint the user trusted stays
+     * trusted with the new key, and the notes held there get the mint's certificates under the new key (see [recertify]).
      */
     suspend fun acceptMintKey(host: String, key: String): Boolean = lock.withLock {
         val mint = store.mint(host) ?: return false
-        val presented = try {
-            client.withdrawDiscovery(host).mintPubkey
-        } catch (e: Exception) {
-            return false
-        }
+        val presented =
+            try {
+                client.withdrawDiscovery(host).mintPubkey
+            } catch (e: Exception) {
+                return false
+            }
         if (presented == null || presented.toHex() != key) return false
         val old = mint.mintPubkey
         store.saveMint(mint.copy(mintPubkey = key))
@@ -562,13 +614,16 @@ class Wallet(
     }
 
     /**
-     * Replaces the certificates of every account's notes on [mint], signed with its old key, by the mint's current
-     * ones under [key]: a note shared later carries a certificate its recipient can verify. A note whose certificate
-     * doesn't verify is left without one; one the mint doesn't answer for (spent, or no answer) keeps its old one.
+     * Replaces the certificates of every account's notes on [mint], signed with its old key, by the mint's current ones under [key]: a note
+     * shared later carries a certificate its recipient can verify. A note whose certificate doesn't verify is left without one; one the
+     * mint doesn't answer for (spent, or no answer) keeps its old one.
      */
     private suspend fun recertify(mint: Mint, key: PublicKey) {
-        val held = store.accounts.first().flatMap { store.notes(it.account.id).first() }
-            .filter { it.host == mint.host && it.kind == NoteKind.KeyPath && it.state != NoteState.Spent }
+        val held =
+            store.accounts
+                .first()
+                .flatMap { store.notes(it.account.id).first() }
+                .filter { it.host == mint.host && it.kind == NoteKind.KeyPath && it.state != NoteState.Spent }
         val updated = held.mapNotNull { note ->
             val q = ByteVector32(note.id)
             val info = runCatching { client.lookup(mint.withdrawUrl, q) }.getOrNull() ?: return@mapNotNull null
@@ -588,11 +643,12 @@ class Wallet(
     }
 
     /** The home mint is trusted by default with the key pinned for it; a brand's mint only with the key it ships. */
-    private suspend fun trustDefault(mint: MintKey, homes: Set<String>): TrustDefault? = when {
-        mint.host in homes && store.mint(mint.host)?.mintPubkey == mint.pubkey -> TrustDefault.Home
-        mint in brandTrusted -> TrustDefault.Brand
-        else -> null
-    }
+    private suspend fun trustDefault(mint: MintKey, homes: Set<String>): TrustDefault? =
+        when {
+            mint.host in homes && store.mint(mint.host)?.mintPubkey == mint.pubkey -> TrustDefault.Home
+            mint in brandTrusted -> TrustDefault.Brand
+            else -> null
+        }
 
     /** Hands out the active account's note [id] whole, as a link (see [NoteSender.share]). */
     suspend fun shareNote(id: String): ShareNoteResult = lock.withLock { sender.share(id) }
@@ -601,9 +657,8 @@ class Wallet(
     suspend fun recheckNote(id: String): NoteCheck = lock.withLock { recheck(id) }
 
     /**
-     * Refreshes (as on Home), then asks the mints about every outstanding note of the active account. A mint
-     * that doesn't answer is skipped for the rest of the run. As [WalletTask.Updating] throughout, so the work never
-     * seems done between the two.
+     * Refreshes (as on Home), then asks the mints about every outstanding note of the active account. A mint that doesn't answer is skipped
+     * for the rest of the run. As [WalletTask.Updating] throughout, so the work never seems done between the two.
      */
     suspend fun recheckNotes(): NotesCheck = lock.withLock {
         working(WalletTask.Updating) {
@@ -613,77 +668,98 @@ class Wallet(
             var unknown = 0
             val unreachable = mutableListOf<String>()
             val notes = store.notes(activeId()).first().filter { it.isRecheckable() || it.isUnknown() }
-            if (notes.isNotEmpty()) working(WalletTask.CheckingNotes(0, notes.size)) {
-                for ((i, note) in notes.withIndex()) {
-                    _task.value = WalletTask.CheckingNotes(i, notes.size)
-                    if (note.host in unreachable) continue
-                    when (recheck(note.id)) {
-                        is NoteCheck.Ok -> checked++
-                        NoteCheck.Spent -> { checked++; gone++ }
-                        // One set aside before is as it was: nothing to tell.
-                        NoteCheck.Unknown -> if (!note.isUnknown()) { checked++; unknown++ }
-                        NoteCheck.Unreachable, is NoteCheck.KeyChanged -> unreachable += note.host
-                        // Only outstanding notes are checked here; the refresh above settled the confirming ones.
-                        NoteCheck.NotFound, NoteCheck.Landed, NoteCheck.NotLanded -> Unit
+            if (notes.isNotEmpty())
+                working(WalletTask.CheckingNotes(0, notes.size)) {
+                    for ((i, note) in notes.withIndex()) {
+                        _task.value = WalletTask.CheckingNotes(i, notes.size)
+                        if (note.host in unreachable) continue
+                        when (recheck(note.id)) {
+                            is NoteCheck.Ok -> checked++
+                            NoteCheck.Spent -> {
+                                checked++
+                                gone++
+                            }
+                            // One set aside before is as it was: nothing to tell.
+                            NoteCheck.Unknown ->
+                                if (!note.isUnknown()) {
+                                    checked++
+                                    unknown++
+                                }
+                            NoteCheck.Unreachable,
+                            is NoteCheck.KeyChanged -> unreachable += note.host
+                            // Only outstanding notes are checked here; the refresh above settled the confirming ones.
+                            NoteCheck.NotFound,
+                            NoteCheck.Landed,
+                            NoteCheck.NotLanded -> Unit
+                        }
                     }
                 }
-            }
             NotesCheck(checked, gone, unreachable, unknown)
         }
     }
 
     private suspend fun recheck(id: String): NoteCheck {
-        val note = store.note(id)?.takeIf { it.accountId == activeId() && (it.isRecheckable() || it.isUnknown() || it.isConfirming()) } ?: return NoteCheck.NotFound
+        val note =
+            store.note(id)?.takeIf { it.accountId == activeId() && (it.isRecheckable() || it.isUnknown() || it.isConfirming()) }
+                ?: return NoteCheck.NotFound
         if (store.mint(note.host) == null) return NoteCheck.Unreachable
         // A recheck only asks: whatever failure a developer armed, it goes unanswered.
         if (SimulatedFailure.takeAny()) return NoteCheck.Unreachable
         if (note.isConfirming()) return settle(note)
-        val probe = try {
-            inspector.recheck(KeyId(note.accountId, note.host, note.purpose!!, note.index!!))
-        } catch (e: MintKeyChangedException) {
-            return NoteCheck.KeyChanged(note.host)
-        }
+        val probe =
+            try {
+                inspector.recheck(KeyId(note.accountId, note.host, note.purpose!!, note.index!!))
+            } catch (e: MintKeyChangedException) {
+                return NoteCheck.KeyChanged(note.host)
+            }
         return when (probe) {
             is KeyProbe.Outstanding -> NoteCheck.Ok(probe.amountMsat, probe.certified)
             is KeyProbe.Spent -> NoteCheck.Spent
             is KeyProbe.Unused -> NoteCheck.Unknown
-            is KeyProbe.Refused, is KeyProbe.Failed -> NoteCheck.Unreachable
+            is KeyProbe.Refused,
+            is KeyProbe.Failed -> NoteCheck.Unreachable
         }
     }
 
     /**
-     * Asks the mints again, now, about the active account's notes they said they don't know ([NoteState.Unknown]); one
-     * they know again is back in the balance. [NotesCheck.checked] counts those, [NotesCheck.unknown] those still unknown.
+     * Asks the mints again, now, about the active account's notes they said they don't know ([NoteState.Unknown]); one they know again is
+     * back in the balance. [NotesCheck.checked] counts those, [NotesCheck.unknown] those still unknown.
      */
     suspend fun recheckUnknownNotes(): NotesCheck = lock.withLock {
         val notes = store.notes(activeId()).first().filter { it.isUnknown() }
         if (notes.isEmpty()) return@withLock NotesCheck(0, 0, emptyList())
         working(WalletTask.CheckingNotes(0, notes.size)) {
-            var back = 0
-            var still = 0
-            val unreachable = mutableListOf<String>()
-            for ((i, note) in notes.withIndex()) {
-                _task.value = WalletTask.CheckingNotes(i, notes.size)
-                if (note.host in unreachable) continue
-                unknownCheckedAt[note.id] = now()
-                when (recheck(note.id)) {
-                    is NoteCheck.Ok -> back++
-                    NoteCheck.Unknown -> still++
-                    NoteCheck.Unreachable, is NoteCheck.KeyChanged -> unreachable += note.host
-                    NoteCheck.Spent, NoteCheck.NotFound, NoteCheck.Landed, NoteCheck.NotLanded -> Unit
+                var back = 0
+                var still = 0
+                val unreachable = mutableListOf<String>()
+                for ((i, note) in notes.withIndex()) {
+                    _task.value = WalletTask.CheckingNotes(i, notes.size)
+                    if (note.host in unreachable) continue
+                    unknownCheckedAt[note.id] = now()
+                    when (recheck(note.id)) {
+                        is NoteCheck.Ok -> back++
+                        NoteCheck.Unknown -> still++
+                        NoteCheck.Unreachable,
+                        is NoteCheck.KeyChanged -> unreachable += note.host
+                        NoteCheck.Spent,
+                        NoteCheck.NotFound,
+                        NoteCheck.Landed,
+                        NoteCheck.NotLanded -> Unit
+                    }
                 }
+                NotesCheck(back, 0, unreachable, still)
             }
-            NotesCheck(back, 0, unreachable, still)
-        }.also { if (it.checked > 0) applyPolicies(activeId()) }
+            .also { if (it.checked > 0) applyPolicies(activeId()) }
     }
 
     /**
-     * Settles the change [note] went into whose answer never came (see [NoteState.Ambiguous]), now rather than on the
-     * next refresh: the mint is asked whether it landed.
+     * Settles the change [note] went into whose answer never came (see [NoteState.Ambiguous]), now rather than on the next refresh: the
+     * mint is asked whether it landed.
      */
     private suspend fun settle(note: Note): NoteCheck {
-        val entry = store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).firstOrNull { note.id in it.inputIds }
-            ?: return NoteCheck.NotFound
+        val entry =
+            store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).firstOrNull { note.id in it.inputIds }
+                ?: return NoteCheck.NotFound
         return when (Reconciler(this).reconcile(entry)) {
             JournalStatus.Confirmed -> NoteCheck.Landed
             JournalStatus.Rejected -> NoteCheck.NotLanded
@@ -693,8 +769,9 @@ class Wallet(
 
     /** Renews the active account's note [id]: rotated onto a fresh wallet key, so any copy of the old one is worthless. */
     suspend fun rotateNote(id: String): RotateResult = lock.withLock {
-        val note = store.note(id)?.takeIf { it.accountId == activeId() && it.isRecheckable() }
-            ?: return@withLock RotateResult.NotRotatable("no outstanding note $id")
+        val note =
+            store.note(id)?.takeIf { it.accountId == activeId() && it.isRecheckable() }
+                ?: return@withLock RotateResult.NotRotatable("no outstanding note $id")
         rotator.rotate(note.accountId, note.host, note.purpose!!, note.index!!)
     }
 
@@ -720,18 +797,23 @@ class Wallet(
     suspend fun moveToMint(ids: Collection<String>, toHost: String): MintMoveResult = lock.withLock { noteManager.move(ids, toHost) }
 
     /**
-     * Settles unknown outcomes, then checks every account's address and scans for new notes. As [WalletTask.Updating],
-     * unless no mint has anything to tell (no address, nothing open, no handed-out note).
+     * Settles unknown outcomes, then checks every account's address and scans for new notes. As [WalletTask.Updating], unless no mint has
+     * anything to tell (no address, nothing open, no handed-out note).
      */
     suspend fun refresh(): RefreshResult = lock.withLock { refreshUnderLock() }
 
-    private suspend fun refreshUnderLock(): RefreshResult = if (asksMints()) working(WalletTask.Updating) { refreshLocked() } else refreshLocked()
+    private suspend fun refreshUnderLock(): RefreshResult =
+        if (asksMints()) working(WalletTask.Updating) { refreshLocked() } else refreshLocked()
 
     private suspend fun asksMints(): Boolean =
-        store.journal(UNSETTLED).isNotEmpty() || store.receivedNotes(ReceivedState.PENDING).isNotEmpty() || store.accounts.first().any { summary ->
-            val id = summary.account.id
-            summary.profile != null || store.addresses(id).first().isNotEmpty() || store.notes(id).first().any { it.state.isShared || it.state == NoteState.Unknown }
-        }
+        store.journal(UNSETTLED).isNotEmpty() ||
+            store.receivedNotes(ReceivedState.PENDING).isNotEmpty() ||
+            store.accounts.first().any { summary ->
+                val id = summary.account.id
+                summary.profile != null ||
+                    store.addresses(id).first().isNotEmpty() ||
+                    store.notes(id).first().any { it.state.isShared || it.state == NoteState.Unknown }
+            }
 
     private suspend fun refreshLocked(): RefreshResult {
         reconciler.reconcileAll()
@@ -763,8 +845,8 @@ class Wallet(
     }
 
     /**
-     * An invoice for [amountMsat] that mints a note to the active account on its home mint once paid (see
-     * [InvoiceReceiver]); the way to receive without a Lightning address. Follow it with [invoiceStatus].
+     * An invoice for [amountMsat] that mints a note to the active account on its home mint once paid (see [InvoiceReceiver]); the way to
+     * receive without a Lightning address. Follow it with [invoiceStatus].
      */
     suspend fun requestInvoice(amountMsat: Long): InvoiceRequest = lock.withLock { invoices.request(amountMsat) }
 
@@ -799,16 +881,15 @@ class Wallet(
     }
 
     /**
-     * Deletes the active account from this device: its seed, notes, journal and settings. Its funds stay at the
-     * mint and can only be recovered with its recovery phrase. Another account becomes active if there is one.
-     * Returns true if one did.
+     * Deletes the active account from this device: its seed, notes, journal and settings. Its funds stay at the mint and can only be
+     * recovered with its recovery phrase. Another account becomes active if there is one. Returns true if one did.
      */
     suspend fun deleteActiveAccount(): Boolean = lock.withLock { deleteActive(prefer = null) }
 
     /**
-     * Undoes a restore whose address step isn't done (see [needsAddress]): the restored account is removed from this
-     * device, and the account that was active before it (if still known) is active again. Nothing changes at the mint:
-     * the money stays under the recovery phrase and can be restored again. Returns whether an account remains.
+     * Undoes a restore whose address step isn't done (see [needsAddress]): the restored account is removed from this device, and the
+     * account that was active before it (if still known) is active again. Nothing changes at the mint: the money stays under the recovery
+     * phrase and can be restored again. Returns whether an account remains.
      */
     suspend fun abortRestore(): Boolean = lock.withLock {
         check(store.currentAccountId()?.let { store.currentProfile(it) == null } == true) { "no restore in progress" }
@@ -845,28 +926,33 @@ class Wallet(
         activeId().let { id -> inspector.keys(id, host, purpose, gap, store.keyChecks(id).first(), failedProbes.value) }
 
     /** Looks up keys index until index + [gap], importing notes and moving the index past any used key found. */
-    suspend fun scanKeysAhead(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult =
-        lock.withLock { inspector.scanAhead(activeId(), host, purpose, gap) }
+    suspend fun scanKeysAhead(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult = lock.withLock {
+        inspector.scanAhead(activeId(), host, purpose, gap)
+    }
 
-    suspend fun recheckKey(host: String, purpose: Int, index: Long): KeyProbe =
-        lock.withLock { inspector.recheck(KeyId(activeId(), host, purpose, index)) }
+    suspend fun recheckKey(host: String, purpose: Int, index: Long): KeyProbe = lock.withLock {
+        inspector.recheck(KeyId(activeId(), host, purpose, index))
+    }
 
     /** Finds the right index for [purpose] on [host] (lookups past the highest used key, gap limit 20) and sets it. */
-    suspend fun findKeyIndex(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): DiscoveryResult =
-        lock.withLock { discovery.discover(activeId(), host, purpose, gap) }
+    suspend fun findKeyIndex(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): DiscoveryResult = lock.withLock {
+        discovery.discover(activeId(), host, purpose, gap)
+    }
 
     /** Sets an index by hand; refused below the highest key the wallet knows is used (+1). */
     suspend fun setKeyIndex(host: String, purpose: Int, index: Long): SetIndexResult = lock.withLock {
         val id = activeId()
         val floor = discovery.highestKnownUsed(id, host, purpose) + 1
         if (index < floor) return@withLock SetIndexResult.BelowFloor(floor)
-        if (purpose == NotePurpose.LightningAddress.value) store.setAddressScanFrom(id, host, index) else store.setIndex(id, host, purpose, index)
+        if (purpose == NotePurpose.LightningAddress.value) store.setAddressScanFrom(id, host, index)
+        else store.setIndex(id, host, purpose, index)
         SetIndexResult.Applied(index)
     }
 
     /** Looks up keys 0 until index + [gap] of [purpose] on [host] and syncs the wallet with the answers. */
-    suspend fun recheckAllKeys(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult =
-        lock.withLock { inspector.recheckAll(activeId(), host, purpose, gap) }
+    suspend fun recheckAllKeys(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult = lock.withLock {
+        inspector.recheckAll(activeId(), host, purpose, gap)
+    }
 
     suspend fun keyIndexHealth(host: String, purpose: Int): IndexHealth {
         val id = activeId()
@@ -874,28 +960,32 @@ class Wallet(
         return IndexHealth(next, discovery.highestKnownUsed(id, host, purpose), indexVerifiedAt.value[Triple(id, host, purpose)])
     }
 
-    internal fun markIndexVerified(accountId: String, host: String, purpose: Int) =
-        indexVerifiedAt.update { it + (Triple(accountId, host, purpose) to now()) }
+    internal fun markIndexVerified(accountId: String, host: String, purpose: Int) = indexVerifiedAt.update {
+        it + (Triple(accountId, host, purpose) to now())
+    }
 
     /** The active account's indexes on [host], updated on every change (from any screen or background refresh). */
-    fun keyIndexesFlow(host: String): Flow<KeyIndexes> = ofActive(KeyIndexes(0, 0, 0)) { id -> store.indexesFlow(id, host) }.distinctUntilChanged()
+    fun keyIndexesFlow(host: String): Flow<KeyIndexes> =
+        ofActive(KeyIndexes(0, 0, 0)) { id -> store.indexesFlow(id, host) }.distinctUntilChanged()
 
     /**
-     * Emits whenever anything the developer key page shows for [host] may have changed: the active account's notes,
-     * lookup results, indexes, policy runs or verification times. Lets that page stay in sync without polling.
+     * Emits whenever anything the developer key page shows for [host] may have changed: the active account's notes, lookup results,
+     * indexes, policy runs or verification times. Lets that page stay in sync without polling.
      */
-    fun keyViewChanges(host: String): Flow<Unit> = merge(
-        notes.map { },
-        keyProbes.map { },
-        failedProbes.map { },
-        keyIndexesFlow(host).map { },
-        lastPolicyRun.map { },
-        indexVerifiedAt.map { },
-    )
+    fun keyViewChanges(host: String): Flow<Unit> =
+        merge(
+            notes.map {},
+            keyProbes.map {},
+            failedProbes.map {},
+            keyIndexesFlow(host).map {},
+            lastPolicyRun.map {},
+            indexVerifiedAt.map {},
+        )
 
     /** Rotates the active account's note at ([host], [purpose], [index]) onto the next wallet key (purpose 0). */
-    suspend fun rotateKey(host: String, purpose: Int, index: Long): RotateResult =
-        lock.withLock { rotator.rotate(activeId(), host, purpose, index) }
+    suspend fun rotateKey(host: String, purpose: Int, index: Long): RotateResult = lock.withLock {
+        rotator.rotate(activeId(), host, purpose, index)
+    }
 
     /** Rotates every outstanding note of [purpose] on [host] onto new wallet keys, one at a time. */
     suspend fun rotateAllKeys(host: String, purpose: Int): RotateAllResult = lock.withLock { rotator.rotateAll(activeId(), host, purpose) }
@@ -913,16 +1003,27 @@ class Wallet(
         }
     }
 
-    suspend fun unresolvedOperations(): Int = store.journal(UNSETTLED)
-        // An invoice waiting to be paid isn't stuck (see [requestInvoice]).
-        .count { !(it.type == OperationType.Mint && it.detail == null) }
+    suspend fun unresolvedOperations(): Int =
+        store
+            .journal(UNSETTLED)
+            // An invoice waiting to be paid isn't stuck (see [requestInvoice]).
+            .count { !(it.type == OperationType.Mint && it.detail == null) }
 
     /** Applies [accountId]'s note policies; must be called under the lock. */
     private suspend fun applyPolicies(accountId: String) {
-        val collect = collectDefaults.takeIf { it.active(policies.collect(accountId).first()) }?.let {
-            store.account(accountId)?.host?.let { home -> CollectPolicy(home, collectFeeCap(accountId).first()) }
-        }
-        val run = policyEngine.apply(accountId, strategies.resolve(policies.strategy(accountId).first()), policies.autoRotate(accountId).first(), collect)
+        val collect =
+            collectDefaults
+                .takeIf { it.active(policies.collect(accountId).first()) }
+                ?.let {
+                    store.account(accountId)?.host?.let { home -> CollectPolicy(home, collectFeeCap(accountId).first()) }
+                }
+        val run =
+            policyEngine.apply(
+                accountId,
+                strategies.resolve(policies.strategy(accountId).first()),
+                policies.autoRotate(accountId).first(),
+                collect,
+            )
         if (run.didSomething) _lastPolicyRun.update { it + (accountId to run) }
     }
 
@@ -931,21 +1032,29 @@ class Wallet(
         store.activeAccountId.flatMapLatest { id -> id?.let(ofAccount) ?: flowOf(none) }
 
     /** [ofAccount] of every account, joined, following accounts being added and removed. */
-    private fun <T> ofEveryAccount(ofAccount: (String) -> Flow<List<T>>): Flow<List<T>> = store.accounts.flatMapLatest { accounts ->
-        if (accounts.isEmpty()) flowOf(emptyList()) else combine(accounts.map { ofAccount(it.account.id) }) { lists -> lists.flatMap { it.toList() } }
-    }
+    private fun <T> ofEveryAccount(ofAccount: (String) -> Flow<List<T>>): Flow<List<T>> =
+        store.accounts.flatMapLatest { accounts ->
+            if (accounts.isEmpty()) flowOf(emptyList())
+            else combine(accounts.map { ofAccount(it.account.id) }) { lists -> lists.flatMap { it.toList() } }
+        }
 
     internal suspend fun activeId(): String = checkNotNull(store.currentAccountId()) { "no active account" }
 
     /**
-     * The account's branch on [host], kept for the life of the process. The seed it comes from is not: it can derive
-     * the keys of every mint, so it is made again for each new branch and zeroed straight after.
+     * The account's branch on [host], kept for the life of the process. The seed it comes from is not: it can derive the keys of every
+     * mint, so it is made again for each new branch and zeroed straight after.
      */
     internal suspend fun branch(accountId: String, host: String): CashBranch {
-        branches[accountId to host]?.let { return it }
+        branches[accountId to host]?.let {
+            return it
+        }
         val words = checkNotNull(seeds.load(accountId)) { "account has no seed" }
         val seed = RecoveryPhrase.seed(words)
-        return try { branches.getOrPut(accountId to host) { CashBranch.fromSeed(seed, host) } } finally { seed.fill(0) }
+        return try {
+            branches.getOrPut(accountId to host) { CashBranch.fromSeed(seed, host) }
+        } finally {
+            seed.fill(0)
+        }
     }
 
     /** The branch, or null if the account has no seed (so nothing can be ours). */
@@ -957,29 +1066,34 @@ class Wallet(
     }
 
     /**
-     * The recovery phrase the next new account gets, made ahead so onboarding can suggest its seed-derived name
-     * ([DefaultAddress]). Held in memory only until an account is created with it or [forgetPreparedPhrase] is called.
-     * Its entries are the wordlist's own strings, so emptying the list leaves nothing of the phrase behind.
+     * The recovery phrase the next new account gets, made ahead so onboarding can suggest its seed-derived name ([DefaultAddress]). Held in
+     * memory only until an account is created with it or [forgetPreparedPhrase] is called. Its entries are the wordlist's own strings, so
+     * emptying the list leaves nothing of the phrase behind.
      */
-    @Volatile
-    private var prepared: PreparedPhrase? = null
+    @Volatile private var prepared: PreparedPhrase? = null
 
     /**
-     * A phrase made ahead and the names already derived from it, by host: deriving one runs PBKDF2 and BIP-32, which
-     * leave copies behind that can't be zeroed, so each mint's name is derived once. The names are public.
+     * A phrase made ahead and the names already derived from it, by host: deriving one runs PBKDF2 and BIP-32, which leave copies behind
+     * that can't be zeroed, so each mint's name is derived once. The names are public.
      */
     private class PreparedPhrase(val words: MutableList<String>) {
         val names = ConcurrentHashMap<String, String>()
     }
 
-    private fun prepared(): PreparedPhrase = prepared ?: run {
-        val entropy = ByteArray(16).also(random::nextBytes)
-        try { PreparedPhrase(MnemonicCode.toMnemonics(entropy).toMutableList()).also { prepared = it } } finally { entropy.fill(0) }
-    }
+    private fun prepared(): PreparedPhrase =
+        prepared
+            ?: run {
+                val entropy = ByteArray(16).also(random::nextBytes)
+                try {
+                    PreparedPhrase(MnemonicCode.toMnemonics(entropy).toMutableList()).also { prepared = it }
+                } finally {
+                    entropy.fill(0)
+                }
+            }
 
     /**
-     * Drops the phrase made ahead for the next new account. Call it when onboarding is left: a later one gets a new
-     * phrase (and so other suggested names).
+     * Drops the phrase made ahead for the next new account. Call it when onboarding is left: a later one gets a new phrase (and so other
+     * suggested names).
      */
     fun forgetPreparedPhrase() {
         prepared?.words?.clear()
@@ -1038,8 +1152,8 @@ sealed interface NoteCheck {
 }
 
 /**
- * What [Wallet.recheckNotes] found: notes still there, notes gone (spent elsewhere), mints that didn't answer, and
- * notes set aside because their mint doesn't know them ([unknown]).
+ * What [Wallet.recheckNotes] found: notes still there, notes gone (spent elsewhere), mints that didn't answer, and notes set aside because
+ * their mint doesn't know them ([unknown]).
  */
 data class NotesCheck(val checked: Int, val gone: Int, val unreachable: List<String>, val unknown: Int = 0)
 

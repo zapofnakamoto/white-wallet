@@ -2,7 +2,6 @@
 
 package whitewallet.core.wallet
 
-import whitewallet.lnurlcash.RevealsNoteSecret
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.MnemonicCode
 import fr.acinq.secp256k1.Hex
@@ -25,6 +24,7 @@ import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.Requests
@@ -37,22 +37,25 @@ class ActivityLogTest {
 
     private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branchA: CashBranch)
 
-    private fun withMint(test: suspend Fixture.() -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
-        MockMint.start().use { mint ->
-            val store = InMemoryWalletStore()
-            val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient())
-            store.addAccount("b", "Savings", Profile("bob", mint.host))
-            store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-            Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(wordsA, ""), mint.host)).test()
+    private fun withMint(test: suspend Fixture.() -> Unit) =
+        runBlocking<Unit> {
+            assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
+            MockMint.start().use { mint ->
+                val store = InMemoryWalletStore()
+                val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient())
+                store.addAccount("b", "Savings", Profile("bob", mint.host))
+                store.addAccount("a", "Main", Profile("alice", mint.host))
+                assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
+                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(wordsA, ""), mint.host)).test()
+            }
         }
+
+    private fun Fixture.pay(vararg amounts: Long, from: Long = 0) = amounts.forEachIndexed { i, msat ->
+        mint.credit(Cp1.encode(branchA.notePubkey(NotePurpose.LightningAddress, from + i)), msat)
     }
 
-    private fun Fixture.pay(vararg amounts: Long, from: Long = 0) =
-        amounts.forEachIndexed { i, msat -> mint.credit(Cp1.encode(branchA.notePubkey(NotePurpose.LightningAddress, from + i)), msat) }
-
     private suspend fun Fixture.history(account: String = "a"): List<Activity> = store.activities(account).first()
+
     private suspend fun Fixture.money(account: String = "a") = history(account).filterNot { it.kind.isMaintenance }
 
     private suspend fun Fixture.claimBearer(byte: String, msat: Long): ClaimResult {
@@ -131,11 +134,40 @@ class ActivityLogTest {
         val known = assertNotNull(store.mintMap[mint.host])
         val q = branchA.notePubkey(NotePurpose.Wallet, 0)
         // A claim that was journaled but never reached the mint (e.g. the app died).
-        store.putJournal(JournalEntry("crashed", "a", OperationType.Rotate, mint.host, known.withdrawUrl, listOf(bearer.q.toHex()),
-            listOf(bearer.k1), listOf(OutputRef("a", 0, 0, q.toHex())), Requests.rotate("${mint.url}/w/cb", bearer.k1, q),
-            JournalStatus.Prepared, null, 0, 0))
-        store.putActivity(Activity("claim:crashed", "a", ActivityKind.Claimed, 3_000, null, mint.host, null, true, null, false,
-            ActivityStatus.Pending, "crashed", 0))
+        store.putJournal(
+            JournalEntry(
+                "crashed",
+                "a",
+                OperationType.Rotate,
+                mint.host,
+                known.withdrawUrl,
+                listOf(bearer.q.toHex()),
+                listOf(bearer.k1),
+                listOf(OutputRef("a", 0, 0, q.toHex())),
+                Requests.rotate("${mint.url}/w/cb", bearer.k1, q),
+                JournalStatus.Prepared,
+                null,
+                0,
+                0,
+            )
+        )
+        store.putActivity(
+            Activity(
+                "claim:crashed",
+                "a",
+                ActivityKind.Claimed,
+                3_000,
+                null,
+                mint.host,
+                null,
+                true,
+                null,
+                false,
+                ActivityStatus.Pending,
+                "crashed",
+                0,
+            )
+        )
         wallet.refresh()
         assertEquals(ActivityStatus.Failed, history().single().status)
     }

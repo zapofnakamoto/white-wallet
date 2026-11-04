@@ -35,16 +35,32 @@ class InMemoryWalletStore : WalletStore {
     /** Bumped on every counter or scan-start write, so [indexesFlow] can be observed like Room's. */
     private val indexVersion = MutableStateFlow(0L)
 
-    override val accounts: Flow<List<AccountSummary>> = combine(accountMap, profiles, noteMap) { accounts, profiles, notes ->
-        accounts.values.sortedBy { it.createdAtMillis }.map { a ->
-            AccountSummary(a, profiles[a.id], notes.values.filter { it.accountId == a.id && it.state == NoteState.Outstanding }.sumOf { it.amountMsat })
+    override val accounts: Flow<List<AccountSummary>> =
+        combine(accountMap, profiles, noteMap) { accounts, profiles, notes ->
+            accounts.values
+                .sortedBy { it.createdAtMillis }
+                .map { a ->
+                    AccountSummary(
+                        a,
+                        profiles[a.id],
+                        notes.values.filter { it.accountId == a.id && it.state == NoteState.Outstanding }.sumOf { it.amountMsat },
+                    )
+                }
         }
-    }
     override val activeAccountId: Flow<String?> = active
+
     override suspend fun currentAccountId() = active.value
-    override suspend fun setActiveAccount(id: String?) { active.value = id }
+
+    override suspend fun setActiveAccount(id: String?) {
+        active.value = id
+    }
+
     override suspend fun account(id: String) = accountMap.value[id]
-    override suspend fun saveAccount(account: Account) { accountMap.value = accountMap.value + (account.id to account) }
+
+    override suspend fun saveAccount(account: Account) {
+        accountMap.value = accountMap.value + (account.id to account)
+    }
+
     override suspend fun deleteAccount(id: String) {
         accountMap.value = accountMap.value - id
         profiles.value = profiles.value - id
@@ -58,9 +74,13 @@ class InMemoryWalletStore : WalletStore {
         receivedMap.value = receivedMap.value.filterValues { it.accountId != id }
         if (active.value == id) active.value = null
     }
+
     override fun notes(accountId: String): Flow<List<Note>> = noteMap.map { it.values.filter { n -> n.accountId == accountId } }
+
     override fun profile(accountId: String): Flow<Profile?> = profiles.map { it[accountId] }
+
     override suspend fun currentProfile(accountId: String) = profiles.value[accountId]
+
     override suspend fun saveProfile(accountId: String, profile: Profile) {
         profiles.value = profiles.value + (accountId to profile)
         val list = addressMap.value[accountId].orEmpty()
@@ -68,27 +88,43 @@ class InMemoryWalletStore : WalletStore {
             saveAddress(accountId, RegisteredAddress(profile.username, profile.host, System.currentTimeMillis()))
         }
     }
-    override fun addresses(accountId: String): Flow<List<RegisteredAddress>> = addressMap.map { it[accountId].orEmpty().sortedBy { a -> a.addedAtMillis } }
+
+    override fun addresses(accountId: String): Flow<List<RegisteredAddress>> = addressMap.map {
+        it[accountId].orEmpty().sortedBy { a -> a.addedAtMillis }
+    }
+
     override suspend fun saveAddress(accountId: String, address: RegisteredAddress) {
         val others = addressMap.value[accountId].orEmpty().filterNot { it.username == address.username && it.host == address.host }
         addressMap.value = addressMap.value + (accountId to others + address)
     }
+
     override suspend fun deleteAddress(accountId: String, username: String, host: String) {
-        addressMap.value = addressMap.value + (accountId to addressMap.value[accountId].orEmpty().filterNot { it.username == username && it.host == host })
+        addressMap.value =
+            addressMap.value + (accountId to addressMap.value[accountId].orEmpty().filterNot { it.username == username && it.host == host })
     }
+
     override suspend fun mint(host: String) = mintMap[host]
+
     override suspend fun saveMint(mint: Mint) {
         mintMap[mint.host] = mint
         mintsFlow.value = mintMap.values.sortedBy { it.host }
     }
+
     override suspend fun removeMint(host: String) {
         mintMap.remove(host)
         mintsFlow.value = mintMap.values.sortedBy { it.host }
     }
+
     private val mintsFlow = MutableStateFlow<List<Mint>>(emptyList())
-    override val mints get() = mintsFlow
+    override val mints
+        get() = mintsFlow
+
     override suspend fun note(id: String) = noteMap.value[id]
-    override suspend fun upsertNotes(notes: List<Note>) { noteMap.value = noteMap.value + notes.associateBy { it.id } }
+
+    override suspend fun upsertNotes(notes: List<Note>) {
+        noteMap.value = noteMap.value + notes.associateBy { it.id }
+    }
+
     override suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long {
         val key = Triple(accountId, host, purpose)
         val next = counters[key] ?: 0
@@ -96,45 +132,77 @@ class InMemoryWalletStore : WalletStore {
         indexVersion.value++
         return next
     }
+
     override suspend fun currentIndexOrNull(accountId: String, host: String, purpose: Int) = counters[Triple(accountId, host, purpose)]
+
     override suspend fun setIndex(accountId: String, host: String, purpose: Int, next: Long) {
         counters[Triple(accountId, host, purpose)] = next
         indexVersion.value++
     }
+
     override fun indexesFlow(accountId: String, host: String): Flow<KeyIndexes> = indexVersion.map {
         KeyIndexes(counters[Triple(accountId, host, 0)] ?: 0, counters[Triple(accountId, host, 1)] ?: 0, scanFrom[accountId to host] ?: 0)
     }
+
     override suspend fun addressScanFrom(accountId: String, host: String) = scanFrom[accountId to host] ?: 0
+
     override suspend fun setAddressScanFrom(accountId: String, host: String, index: Long) {
         scanFrom[accountId to host] = index
         indexVersion.value++
     }
+
     override fun keyChecks(accountId: String): Flow<Map<KeyId, KeyProbe>> = checks.map { it.filterKeys { id -> id.accountId == accountId } }
-    override suspend fun putKeyCheck(id: KeyId, probe: KeyProbe) { checks.value = checks.value + (id to probe) }
-    override suspend fun putJournal(entry: JournalEntry) { journal[entry.id] = entry }
+
+    override suspend fun putKeyCheck(id: KeyId, probe: KeyProbe) {
+        checks.value = checks.value + (id to probe)
+    }
+
+    override suspend fun putJournal(entry: JournalEntry) {
+        journal[entry.id] = entry
+    }
+
     override suspend fun counterHosts(accountId: String) = counters.keys.filter { it.first == accountId }.map { it.second }.distinct()
+
     override suspend fun journal(statuses: Set<JournalStatus>) = journal.values.filter { it.status in statuses }
+
     override fun activities(accountId: String): Flow<List<Activity>> = activityMap.map { rows ->
-        rows.values.filter { it.second.accountId == accountId }
+        rows.values
+            .filter { it.second.accountId == accountId }
             .sortedWith(compareByDescending<Pair<Long, Activity>> { it.second.createdAtMillis }.thenByDescending { it.first })
             .map { it.second }
     }
+
     override suspend fun putActivity(activity: Activity) {
         activityMap.value = activityMap.value + (activity.id to ((activityMap.value[activity.id]?.first ?: activitySeq++) to activity))
     }
+
     override suspend fun settleActivities(journalId: String, status: ActivityStatus) {
-        activityMap.value = activityMap.value.mapValues { (_, row) ->
-            if (row.second.journalId == journalId && row.second.status == ActivityStatus.Pending) row.first to row.second.copy(status = status) else row
-        }
+        activityMap.value =
+            activityMap.value.mapValues { (_, row) ->
+                if (row.second.journalId == journalId && row.second.status == ActivityStatus.Pending)
+                    row.first to row.second.copy(status = status)
+                else row
+            }
     }
 
     private val receivedMap = MutableStateFlow<Map<String, ReceivedNote>>(emptyMap())
-    override fun receivedNotes(accountId: String): Flow<List<ReceivedNote>> =
-        receivedMap.map { it.values.filter { n -> n.accountId == accountId }.sortedByDescending { n -> n.receivedAtMillis } }
+
+    override fun receivedNotes(accountId: String): Flow<List<ReceivedNote>> = receivedMap.map {
+        it.values.filter { n -> n.accountId == accountId }.sortedByDescending { n -> n.receivedAtMillis }
+    }
+
     override suspend fun receivedNote(id: String) = receivedMap.value[id]
-    override suspend fun receivedNotes(states: Set<ReceivedState>) = receivedMap.value.values.filter { it.state in states }.sortedBy { it.receivedAtMillis }
-    override suspend fun putReceivedNote(note: ReceivedNote) { receivedMap.value = receivedMap.value + (note.id to note) }
-    override suspend fun deleteReceivedNote(id: String) { receivedMap.value = receivedMap.value - id }
+
+    override suspend fun receivedNotes(states: Set<ReceivedState>) =
+        receivedMap.value.values.filter { it.state in states }.sortedBy { it.receivedAtMillis }
+
+    override suspend fun putReceivedNote(note: ReceivedNote) {
+        receivedMap.value = receivedMap.value + (note.id to note)
+    }
+
+    override suspend fun deleteReceivedNote(id: String) {
+        receivedMap.value = receivedMap.value - id
+    }
 
     fun allNotes() = noteMap.value.values.toList()
 
@@ -149,13 +217,23 @@ class InMemoryWalletStore : WalletStore {
 class InMemorySeedStore(initial: Map<String, List<String>> = emptyMap()) : SeedStore {
     private val words = initial.toMutableMap()
     private val verified = MutableStateFlow<Set<String>>(emptySet())
+
     override suspend fun load(accountId: String) = words[accountId]
-    override suspend fun save(accountId: String, words: List<String>) { this.words[accountId] = words }
+
+    override suspend fun save(accountId: String, words: List<String>) {
+        this.words[accountId] = words
+    }
+
     override fun backupVerified(accountId: String): Flow<Boolean> = verified.map { accountId in it }
-    override suspend fun setBackupVerified(accountId: String) { verified.value = verified.value + accountId }
+
+    override suspend fun setBackupVerified(accountId: String) {
+        verified.value = verified.value + accountId
+    }
+
     override suspend fun clear(accountId: String) {
         words.remove(accountId)
         verified.value = verified.value - accountId
     }
+
     fun accountIds() = words.keys.toSet()
 }

@@ -44,6 +44,10 @@ class Bolt11Test {
     fun `garbage and a broken checksum are not invoices`() {
         assertNull(Bolt11.decode("hello"))
         assertNull(Bolt11.decode(coffee.dropLast(1) + "q"))
-        assertNull(Bolt11.decode("lnurl1dp68gurn8ghj7um9wfmxjcm99e3k7mf0v9cxj0m385ekvcenxc6r2c35xvukxefcv5mkvv34x5ekzd3ev56nyd3hxqurzepexejxxepnxscrvwfnv9nxzcn9xq6xyefhvgcxxcmyxymnserxfq5fns"))
+        assertNull(
+            Bolt11.decode(
+                "lnurl1dp68gurn8ghj7um9wfmxjcm99e3k7mf0v9cxj0m385ekvcenxc6r2c35xvukxefcv5mkvv34x5ekzd3ev56nyd3hxqurzepexejxxepnxscrvwfnv9nxzcn9xq6xyefhvgcxxcmyxymnserxfq5fns"
+            )
+        )
     }
 }

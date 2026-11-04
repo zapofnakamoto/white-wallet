@@ -3,9 +3,9 @@ package whitewallet.core.wallet
 import whitewallet.core.model.Note
 
 /**
- * How to turn an account's notes on one mint into one note worth exactly the amount to pay, under LUD-25's fee
- * rules: a split costs the mint's base fee, taken from the change (which must stay above zero); a merge of n
- * notes refunds (n - 1) base fees; a note used as is costs nothing.
+ * How to turn an account's notes on one mint into one note worth exactly the amount to pay, under LUD-25's fee rules: a split costs the
+ * mint's base fee, taken from the change (which must stay above zero); a merge of n notes refunds (n - 1) base fees; a note used as is
+ * costs nothing.
  */
 internal data class PayPlan(
     /** The notes to spend, largest first. */
@@ -21,7 +21,11 @@ internal object PayPlanner {
     fun plan(notes: List<Note>, amountMsat: Long, baseFeeMsat: Long): PayPlan? {
         require(amountMsat > 0) { "amount must be positive" }
         val sorted = notes.sortedByDescending { it.amountMsat }
-        sorted.firstOrNull { it.amountMsat == amountMsat }?.let { return PayPlan(listOf(it), merge = false, split = false, feeMsat = 0) }
+        sorted
+            .firstOrNull { it.amountMsat == amountMsat }
+            ?.let {
+                return PayPlan(listOf(it), merge = false, split = false, feeMsat = 0)
+            }
         var sum = 0L
         for ((i, note) in sorted.withIndex()) {
             sum += note.amountMsat
@@ -39,8 +43,8 @@ internal object PayPlanner {
         if (notes.isEmpty()) 0 else notes.sumOf { it.amountMsat } + (notes.size - 1) * baseFeeMsat
 
     /**
-     * The most that can be paid below [max] (one split needs the base fee plus at least 1 msat of change), so an
-     * amount between this and [max] can't be made.
+     * The most that can be paid below [max] (one split needs the base fee plus at least 1 msat of change), so an amount between this and
+     * [max] can't be made.
      */
     fun maxWithChange(notes: List<Note>, baseFeeMsat: Long): Long = (max(notes, baseFeeMsat) - baseFeeMsat - 1).coerceAtLeast(0)
 }

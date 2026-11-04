@@ -1,8 +1,8 @@
 package whitewallet.brand.ui
 
 /**
- * A named place in the app where a brand may show its own content ([BrandDesign.Decoration]). New anchors may be
- * added in later releases; a brand's `when` needs an `else` branch that calls the default.
+ * A named place in the app where a brand may show its own content ([BrandDesign.Decoration]). New anchors may be added in later releases; a
+ * brand's `when` needs an `else` branch that calls the default.
  */
 @JvmInline
 value class Anchor(val id: String) {
@@ -17,10 +17,9 @@ value class Anchor(val id: String) {
         val HomeHeader = Anchor("home.header")
 
         /**
-         * The picture on the home screen's loading screen, shown instead of the balance, notes and history while the
-         * wallet works on something that changes them for more than a moment (status
-         * [whitewallet.brand.WalletStatus.Working], with the task). The app says what it does below it. Default: a
-         * spinner, filling up while the notes are checked.
+         * The picture on the home screen's loading screen, shown instead of the balance, notes and history while the wallet works on
+         * something that changes them for more than a moment (status [whitewallet.brand.WalletStatus.Working], with the task). The app says
+         * what it does below it. Default: a spinner, filling up while the notes are checked.
          */
         val Loading = Anchor("home.loading")
 
@@ -31,8 +30,8 @@ value class Anchor(val id: String) {
         val ReceiveHeader = Anchor("receive.header")
 
         /**
-         * The picture on the screen that says a payment arrived (status [whitewallet.brand.WalletStatus.PaymentReceived],
-         * with the amount so far; it grows when more arrives). Default: a check mark that draws itself.
+         * The picture on the screen that says a payment arrived (status [whitewallet.brand.WalletStatus.PaymentReceived], with the amount
+         * so far; it grows when more arrives). Default: a check mark that draws itself.
          */
         val ReceiveSuccess = Anchor("receive.success")
 
@@ -40,8 +39,8 @@ value class Anchor(val id: String) {
         val SendHeader = Anchor("send.header")
 
         /**
-         * The picture on the screen that says a payment went out (status [whitewallet.brand.WalletStatus.Sent]).
-         * Default: a check mark that draws itself, as at [ReceiveSuccess].
+         * The picture on the screen that says a payment went out (status [whitewallet.brand.WalletStatus.Sent]). Default: a check mark that
+         * draws itself, as at [ReceiveSuccess].
          */
         val SendSuccess = Anchor("send.success")
 
@@ -49,16 +48,15 @@ value class Anchor(val id: String) {
         val ClaimResult = Anchor("claim.result")
 
         /**
-         * Above a handed-out note's amount: while it waits for its recipient (status
-         * [whitewallet.brand.WalletStatus.WaitingForRecipient]), once spent ([whitewallet.brand.WalletStatus.Sent])
-         * and once taken back ([whitewallet.brand.WalletStatus.Idle]). Default: nothing.
+         * Above a handed-out note's amount: while it waits for its recipient (status [whitewallet.brand.WalletStatus.WaitingForRecipient]),
+         * once spent ([whitewallet.brand.WalletStatus.Sent]) and once taken back ([whitewallet.brand.WalletStatus.Idle]). Default: nothing.
          */
         val NoteShared = Anchor("note.shared")
 
         /**
          * Above the total of the notes view: status [whitewallet.brand.WalletStatus.Empty] without notes,
-         * [whitewallet.brand.WalletStatus.WaitingForRecipient] while handed-out notes wait, else
-         * [whitewallet.brand.WalletStatus.Idle]. Default: nothing.
+         * [whitewallet.brand.WalletStatus.WaitingForRecipient] while handed-out notes wait, else [whitewallet.brand.WalletStatus.Idle].
+         * Default: nothing.
          */
         val NotesHeader = Anchor("notes.header")
 

@@ -10,7 +10,13 @@ class NoteSortTest {
     private fun note(id: String, sats: Long, at: Long, state: NoteState = NoteState.Shared) =
         Note(id, "a", "home.example", NoteKind.KeyPath, 0, 0, sats * 1000, "cs1", state, at)
 
-    private val notes = listOf(note("small-new", 10, at = 3), note("big-old", 500, at = 1), note("mid", 100, at = 2), note("held", 900, at = 4, NoteState.Outstanding))
+    private val notes =
+        listOf(
+            note("small-new", 10, at = 3),
+            note("big-old", 500, at = 1),
+            note("mid", 100, at = 2),
+            note("held", 900, at = 4, NoteState.Outstanding),
+        )
 
     @Test
     fun handedOutNotesFollowTheSortTheUserChose() {

@@ -9,8 +9,8 @@ import android.os.Looper
 import android.os.PersistableBundle
 
 /**
- * Copies a secret to the clipboard marked as sensitive (hidden from the system clipboard preview),
- * and clears it after [CLEAR_AFTER_MILLIS] unless something else has been copied since.
+ * Copies a secret to the clipboard marked as sensitive (hidden from the system clipboard preview), and clears it after [CLEAR_AFTER_MILLIS]
+ * unless something else has been copied since.
  */
 object SensitiveClipboard {
     private const val CLEAR_AFTER_MILLIS = 60_000L

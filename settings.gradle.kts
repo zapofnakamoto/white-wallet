@@ -19,6 +19,7 @@ rootProject.name = "white-wallet"
 
 // A brand's own code: brandDir/code (see docs/WHITE_LABEL.md, "Custom code"), built into the app when present.
 val brandCode = file(providers.gradleProperty("brandDir").getOrElse("brand")).resolve("code")
+
 if (brandCode.resolve("build.gradle.kts").exists()) {
     include(":brand-code")
     project(":brand-code").projectDir = brandCode

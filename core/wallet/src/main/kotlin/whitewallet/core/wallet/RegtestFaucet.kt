@@ -18,9 +18,9 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
- * The local regtest stack's faucet (dev/regtest/faucet.py, reached over `adb reverse`): pays this wallet, or makes an
- * invoice for it to pay, from the stack's own Lightning nodes, so receiving and sending can be tried without a
- * terminal. [host] is null in release builds, where there is no faucet.
+ * The local regtest stack's faucet (dev/regtest/faucet.py, reached over `adb reverse`): pays this wallet, or makes an invoice for it to
+ * pay, from the stack's own Lightning nodes, so receiving and sending can be tried without a terminal. [host] is null in release builds,
+ * where there is no faucet.
  */
 class RegtestFaucet(
     val host: String?,
@@ -31,9 +31,10 @@ class RegtestFaucet(
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) {
     /** Whether to offer it: a debug build (it has a host), developer mode, and an account on a local regtest mint. */
-    val available: Flow<Boolean> = combine(developerMode, homeHost) { developer, home ->
-        developer && host != null && home in localDevMints
-    }
+    val available: Flow<Boolean> =
+        combine(developerMode, homeHost) { developer, home ->
+            developer && host != null && home in localDevMints
+        }
 
     /** Pays [target] (a Lightning address on a local mint, or an invoice) [sats]; returns what arrived. */
     suspend fun pay(target: String, sats: Long): Long =
@@ -44,18 +45,25 @@ class RegtestFaucet(
         call("invoice", "sats" to sats.toString(), "host" to home)["invoice"]?.jsonPrimitive?.content
             ?: throw IOException("the faucet made no invoice")
 
-    private suspend fun call(path: String, vararg query: Pair<String, String>): JsonObject = withContext(io) {
-        val host = host ?: throw IOException("no regtest faucet in this build")
-        val url = HttpUrl.Builder().scheme("http").host(host.substringBefore(':')).port(host.substringAfter(':').toInt())
-            .addPathSegment(path).apply { query.forEach { (k, v) -> addQueryParameter(k, v) } }.build()
-        http.newCall(Request.Builder().url(url).post(ByteArray(0).toRequestBody()).build()).execute().use { response ->
-            val body = runCatching { Json.parseToJsonElement(response.body.string()).jsonObject }.getOrNull()
-            if (!response.isSuccessful || body == null) {
-                throw IOException(body?.get("error")?.jsonPrimitive?.content ?: "the faucet answered HTTP ${response.code}")
+    private suspend fun call(path: String, vararg query: Pair<String, String>): JsonObject =
+        withContext(io) {
+            val host = host ?: throw IOException("no regtest faucet in this build")
+            val url =
+                HttpUrl.Builder()
+                    .scheme("http")
+                    .host(host.substringBefore(':'))
+                    .port(host.substringAfter(':').toInt())
+                    .addPathSegment(path)
+                    .apply { query.forEach { (k, v) -> addQueryParameter(k, v) } }
+                    .build()
+            http.newCall(Request.Builder().url(url).post(ByteArray(0).toRequestBody()).build()).execute().use { response ->
+                val body = runCatching { Json.parseToJsonElement(response.body.string()).jsonObject }.getOrNull()
+                if (!response.isSuccessful || body == null) {
+                    throw IOException(body?.get("error")?.jsonPrimitive?.content ?: "the faucet answered HTTP ${response.code}")
+                }
+                body
             }
-            body
         }
-    }
 }
 
 /** A developer's request to the faucet, as a screen shows it: under way, or why it failed. */

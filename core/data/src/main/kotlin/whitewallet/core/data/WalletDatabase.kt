@@ -17,42 +17,31 @@ internal interface WalletDao {
                COALESCE((SELECT SUM(n.amountMsat) FROM notes n WHERE n.accountId = a.id AND n.state = 'Outstanding'), 0) AS balanceMsat
         FROM accounts a LEFT JOIN profile p ON p.accountId = a.id
         ORDER BY a.createdAtMillis
-        """,
+        """
     )
     fun accountSummaries(): Flow<List<AccountSummaryRow>>
 
-    @Query("SELECT * FROM accounts WHERE id = :id")
-    suspend fun account(id: String): AccountEntity?
+    @Query("SELECT * FROM accounts WHERE id = :id") suspend fun account(id: String): AccountEntity?
 
-    @Upsert
-    suspend fun saveAccount(account: AccountEntity)
+    @Upsert suspend fun saveAccount(account: AccountEntity)
 
-    @Query("SELECT activeAccountId FROM app_state WHERE id = 0")
-    fun activeAccountId(): Flow<String?>
+    @Query("SELECT activeAccountId FROM app_state WHERE id = 0") fun activeAccountId(): Flow<String?>
 
-    @Query("SELECT activeAccountId FROM app_state WHERE id = 0")
-    suspend fun currentAccountId(): String?
+    @Query("SELECT activeAccountId FROM app_state WHERE id = 0") suspend fun currentAccountId(): String?
 
-    @Upsert
-    suspend fun saveAppState(state: AppStateEntity)
+    @Upsert suspend fun saveAppState(state: AppStateEntity)
 
-    @Query("DELETE FROM accounts WHERE id = :id")
-    suspend fun deleteAccountRow(id: String)
+    @Query("DELETE FROM accounts WHERE id = :id") suspend fun deleteAccountRow(id: String)
 
-    @Query("DELETE FROM notes WHERE accountId = :id")
-    suspend fun deleteNotes(id: String)
+    @Query("DELETE FROM notes WHERE accountId = :id") suspend fun deleteNotes(id: String)
 
-    @Query("DELETE FROM profile WHERE accountId = :id")
-    suspend fun deleteProfile(id: String)
+    @Query("DELETE FROM profile WHERE accountId = :id") suspend fun deleteProfile(id: String)
 
-    @Query("DELETE FROM counters WHERE accountId = :id")
-    suspend fun deleteCounters(id: String)
+    @Query("DELETE FROM counters WHERE accountId = :id") suspend fun deleteCounters(id: String)
 
-    @Query("DELETE FROM address_scan WHERE accountId = :id")
-    suspend fun deleteAddressScan(id: String)
+    @Query("DELETE FROM address_scan WHERE accountId = :id") suspend fun deleteAddressScan(id: String)
 
-    @Query("DELETE FROM addresses WHERE accountId = :id")
-    suspend fun deleteAddresses(id: String)
+    @Query("DELETE FROM addresses WHERE accountId = :id") suspend fun deleteAddresses(id: String)
 
     @Query("SELECT * FROM addresses WHERE accountId = :accountId ORDER BY addedAtMillis")
     fun addresses(accountId: String): Flow<List<AddressEntity>>
@@ -60,62 +49,46 @@ internal interface WalletDao {
     @Query("SELECT COUNT(*) FROM addresses WHERE accountId = :accountId AND host = :host AND username = :username")
     suspend fun addressCount(accountId: String, host: String, username: String): Int
 
-    @Upsert
-    suspend fun saveAddress(address: AddressEntity)
+    @Upsert suspend fun saveAddress(address: AddressEntity)
 
     @Query("DELETE FROM addresses WHERE accountId = :accountId AND host = :host AND username = :username")
     suspend fun deleteAddress(accountId: String, host: String, username: String)
 
-    @Query("DELETE FROM key_checks WHERE accountId = :id")
-    suspend fun deleteKeyChecks(id: String)
+    @Query("DELETE FROM key_checks WHERE accountId = :id") suspend fun deleteKeyChecks(id: String)
 
-    @Query("SELECT * FROM key_checks WHERE accountId = :accountId")
-    fun keyChecks(accountId: String): Flow<List<KeyCheckEntity>>
+    @Query("SELECT * FROM key_checks WHERE accountId = :accountId") fun keyChecks(accountId: String): Flow<List<KeyCheckEntity>>
 
-    @Upsert
-    suspend fun putKeyCheck(check: KeyCheckEntity)
+    @Upsert suspend fun putKeyCheck(check: KeyCheckEntity)
 
-    @Query("DELETE FROM journal WHERE accountId = :id")
-    suspend fun deleteJournal(id: String)
+    @Query("DELETE FROM journal WHERE accountId = :id") suspend fun deleteJournal(id: String)
 
     @Query("SELECT * FROM notes WHERE accountId = :accountId ORDER BY updatedAtMillis DESC")
     fun notes(accountId: String): Flow<List<NoteEntity>>
 
-    @Query("SELECT * FROM notes WHERE id = :id")
-    suspend fun note(id: String): NoteEntity?
+    @Query("SELECT * FROM notes WHERE id = :id") suspend fun note(id: String): NoteEntity?
 
-    @Upsert
-    suspend fun upsertNotes(notes: List<NoteEntity>)
+    @Upsert suspend fun upsertNotes(notes: List<NoteEntity>)
 
-    @Query("SELECT * FROM profile WHERE accountId = :accountId")
-    fun profile(accountId: String): Flow<ProfileEntity?>
+    @Query("SELECT * FROM profile WHERE accountId = :accountId") fun profile(accountId: String): Flow<ProfileEntity?>
 
-    @Query("SELECT * FROM profile WHERE accountId = :accountId")
-    suspend fun currentProfile(accountId: String): ProfileEntity?
+    @Query("SELECT * FROM profile WHERE accountId = :accountId") suspend fun currentProfile(accountId: String): ProfileEntity?
 
-    @Upsert
-    suspend fun saveProfile(profile: ProfileEntity)
+    @Upsert suspend fun saveProfile(profile: ProfileEntity)
 
-    @Query("SELECT * FROM mints WHERE host = :host")
-    suspend fun mint(host: String): MintEntity?
+    @Query("SELECT * FROM mints WHERE host = :host") suspend fun mint(host: String): MintEntity?
 
-    @Query("SELECT * FROM mints ORDER BY host")
-    fun mints(): Flow<List<MintEntity>>
+    @Query("SELECT * FROM mints ORDER BY host") fun mints(): Flow<List<MintEntity>>
 
-    @Upsert
-    suspend fun saveMint(mint: MintEntity)
+    @Upsert suspend fun saveMint(mint: MintEntity)
 
-    @Query("DELETE FROM mints WHERE host = :host")
-    suspend fun removeMint(host: String)
+    @Query("DELETE FROM mints WHERE host = :host") suspend fun removeMint(host: String)
 
     @Query("SELECT next FROM address_scan WHERE accountId = :accountId AND host = :host")
     suspend fun addressScanFrom(accountId: String, host: String): Long?
 
-    @Upsert
-    suspend fun saveAddressScan(scan: AddressScanEntity)
+    @Upsert suspend fun saveAddressScan(scan: AddressScanEntity)
 
-    @Query("SELECT DISTINCT host FROM counters WHERE accountId = :accountId")
-    suspend fun counterHosts(accountId: String): List<String>
+    @Query("SELECT DISTINCT host FROM counters WHERE accountId = :accountId") suspend fun counterHosts(accountId: String): List<String>
 
     @Query("SELECT * FROM counters WHERE accountId = :accountId AND host = :host")
     fun countersFlow(accountId: String, host: String): Flow<List<CounterEntity>>
@@ -126,11 +99,9 @@ internal interface WalletDao {
     @Query("SELECT next FROM counters WHERE accountId = :accountId AND host = :host AND purpose = :purpose")
     suspend fun counter(accountId: String, host: String, purpose: Int): Long?
 
-    @Upsert
-    suspend fun saveCounter(counter: CounterEntity)
+    @Upsert suspend fun saveCounter(counter: CounterEntity)
 
-    @Upsert
-    suspend fun putJournal(entry: JournalEntity)
+    @Upsert suspend fun putJournal(entry: JournalEntity)
 
     @Query("SELECT * FROM journal WHERE status IN (:statuses) ORDER BY createdAtMillis")
     suspend fun journal(statuses: List<String>): List<JournalEntity>
@@ -139,40 +110,44 @@ internal interface WalletDao {
     @Query("SELECT * FROM activity WHERE accountId = :accountId ORDER BY createdAtMillis DESC, rowid DESC")
     fun activities(accountId: String): Flow<List<ActivityEntity>>
 
-    @Upsert
-    suspend fun putActivity(activity: ActivityEntity)
+    @Upsert suspend fun putActivity(activity: ActivityEntity)
 
     @Query("UPDATE activity SET status = :status WHERE journalId = :journalId AND status = 'Pending'")
     suspend fun settleActivities(journalId: String, status: String)
 
-    @Query("DELETE FROM activity WHERE accountId = :id")
-    suspend fun deleteActivities(id: String)
+    @Query("DELETE FROM activity WHERE accountId = :id") suspend fun deleteActivities(id: String)
 
     @Query("SELECT * FROM received_notes WHERE accountId = :accountId ORDER BY receivedAtMillis DESC")
     fun receivedNotes(accountId: String): Flow<List<ReceivedNoteEntity>>
 
-    @Query("SELECT * FROM received_notes WHERE id = :id")
-    suspend fun receivedNote(id: String): ReceivedNoteEntity?
+    @Query("SELECT * FROM received_notes WHERE id = :id") suspend fun receivedNote(id: String): ReceivedNoteEntity?
 
     @Query("SELECT * FROM received_notes WHERE state IN (:states) ORDER BY receivedAtMillis")
     suspend fun receivedNotes(states: List<String>): List<ReceivedNoteEntity>
 
-    @Upsert
-    suspend fun putReceivedNote(note: ReceivedNoteEntity)
+    @Upsert suspend fun putReceivedNote(note: ReceivedNoteEntity)
 
-    @Query("DELETE FROM received_notes WHERE id = :id")
-    suspend fun deleteReceivedNote(id: String)
+    @Query("DELETE FROM received_notes WHERE id = :id") suspend fun deleteReceivedNote(id: String)
 
-    @Query("DELETE FROM received_notes WHERE accountId = :id")
-    suspend fun deleteReceivedNotes(id: String)
+    @Query("DELETE FROM received_notes WHERE accountId = :id") suspend fun deleteReceivedNotes(id: String)
 }
 
 @Database(
-    entities = [
-        AccountEntity::class, AppStateEntity::class, NoteEntity::class, MintEntity::class, ProfileEntity::class,
-        CounterEntity::class, AddressScanEntity::class, JournalEntity::class, KeyCheckEntity::class,
-        AddressEntity::class, ActivityEntity::class, ReceivedNoteEntity::class,
-    ],
+    entities =
+        [
+            AccountEntity::class,
+            AppStateEntity::class,
+            NoteEntity::class,
+            MintEntity::class,
+            ProfileEntity::class,
+            CounterEntity::class,
+            AddressScanEntity::class,
+            JournalEntity::class,
+            KeyCheckEntity::class,
+            AddressEntity::class,
+            ActivityEntity::class,
+            ReceivedNoteEntity::class,
+        ],
     version = 4,
     exportSchema = true,
 )
@@ -202,7 +177,7 @@ internal object Migration3To4 : Migration(3, 4) {
             "CREATE TABLE IF NOT EXISTS `received_notes` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, " +
                 "`withdrawUrl` TEXT NOT NULL, `k1` TEXT, `certificate` TEXT, `declaredMsat` INTEGER, `amountMsat` INTEGER, " +
                 "`lockedUntilMillis` INTEGER, `lockedForSeconds` INTEGER, `state` TEXT NOT NULL, `journalId` TEXT, " +
-                "`receivedAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `refusedSinceMillis` INTEGER, PRIMARY KEY(`id`))",
+                "`receivedAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `refusedSinceMillis` INTEGER, PRIMARY KEY(`id`))"
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_received_notes_accountId` ON `received_notes` (`accountId`)")
     }

@@ -1,8 +1,8 @@
 package whitewallet.brand
 
 /**
- * What the screen the user is looking at is about, in a few words a brand's design can show: a face, a colour, a
- * motion. It says what is going on, never how to show it, and carries no wallet data beyond an amount.
+ * What the screen the user is looking at is about, in a few words a brand's design can show: a face, a colour, a motion. It says what is
+ * going on, never how to show it, and carries no wallet data beyond an amount.
  *
  * New statuses may be added in later releases: a brand's `when` needs an `else` branch.
  */
@@ -38,4 +38,8 @@ sealed interface WalletStatus {
     data class Problem(val kind: ProblemKind) : WalletStatus
 }
 
-enum class ProblemKind { NotEnoughFunds, Offline, Other }
+enum class ProblemKind {
+    NotEnoughFunds,
+    Offline,
+    Other,
+}

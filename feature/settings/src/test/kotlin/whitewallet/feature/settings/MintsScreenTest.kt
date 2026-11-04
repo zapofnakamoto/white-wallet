@@ -19,17 +19,18 @@ import whitewallet.core.wallet.TrustDefault
 
 @RunWith(RobolectricTestRunner::class)
 class MintsScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     private val key = "02" + "ab".repeat(32)
-    private val home = MintInfo("home.example", key, trusted = true, trustedByDefault = TrustDefault.Home, homeOf = listOf("Main", "Savings"))
+    private val home =
+        MintInfo("home.example", key, trusted = true, trustedByDefault = TrustDefault.Home, homeOf = listOf("Main", "Savings"))
     private val other = MintInfo("other.example", "03" + "cd".repeat(32), trusted = false, trustedByDefault = null, removable = true)
     private val unknown = MintInfo("old.example", null, trusted = false, trustedByDefault = null)
 
-    private fun show(state: MintsState, onAddOffered: (String) -> Unit = {}, onTrusted: (MintInfo, Boolean) -> Unit = { _, _ -> }) = compose.setContent {
-        MintsScreen(state, onBack = {}, onOpen = {}, onTrusted = onTrusted, onHost = {}, onAdd = {}, onAddOffered = onAddOffered)
-    }
+    private fun show(state: MintsState, onAddOffered: (String) -> Unit = {}, onTrusted: (MintInfo, Boolean) -> Unit = { _, _ -> }) =
+        compose.setContent {
+            MintsScreen(state, onBack = {}, onOpen = {}, onTrusted = onTrusted, onHost = {}, onAdd = {}, onAddOffered = onAddOffered)
+        }
 
     @Test
     fun theHomeMintIsTrustedByDefaultAndOthersCanBeSwitchedOn() {

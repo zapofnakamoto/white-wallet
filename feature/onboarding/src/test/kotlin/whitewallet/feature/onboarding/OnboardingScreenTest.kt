@@ -1,13 +1,12 @@
 package whitewallet.feature.onboarding
 
 import androidx.compose.material3.Text
-import whitewallet.core.designsystem.R as DesignR
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -20,33 +19,42 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.brand.ReleaseStage
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
-import whitewallet.brand.ReleaseStage
 import whitewallet.core.designsystem.LocalAppName
 import whitewallet.core.designsystem.LocalReleaseStage
+import whitewallet.core.designsystem.R as DesignR
 
 @RunWith(RobolectricTestRunner::class)
 class OnboardingScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     @Test
     fun aTakenNameOffersOthers() {
         var picked: String? = null
-        val state = OnboardingState(
-            username = "calmotter4821",
-            host = "mint.example",
-            canChangeHost = false,
-            availability = Availability.Taken,
-            suggestions = listOf("calmotter7310"),
-        )
+        val state =
+            OnboardingState(
+                username = "calmotter4821",
+                host = "mint.example",
+                canChangeHost = false,
+                availability = Availability.Taken,
+                suggestions = listOf("calmotter7310"),
+            )
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
-                onSuggestion = { picked = it }, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                "Wallet",
+                logo = {},
+                state = state,
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = { picked = it },
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
             )
         }
         compose.onNodeWithText(text(R.string.availability_taken)).assertExists()
@@ -56,14 +64,27 @@ class OnboardingScreenTest {
 
     @Test
     fun anAddressOnAnotherMintOffersTheMintChoice() {
-        val state = OnboardingState(
-            username = "alice", host = "other.example", canChangeHost = true, mode = OnboardingMode.AddAddressElsewhere,
-            mintOptions = listOf(MintOption.Suggested("other.example"), MintOption.Custom), selectedMint = MintOption.Suggested("other.example"),
-        )
+        val state =
+            OnboardingState(
+                username = "alice",
+                host = "other.example",
+                canChangeHost = true,
+                mode = OnboardingMode.AddAddressElsewhere,
+                mintOptions = listOf(MintOption.Suggested("other.example"), MintOption.Custom),
+                selectedMint = MintOption.Suggested("other.example"),
+            )
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = {}, onUsernameChange = {}, mint = MintActions({}, {}),
-                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                "Wallet",
+                logo = {},
+                state = state,
+                onBack = {},
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
             )
         }
         compose.onNodeWithText(text(R.string.onboarding_add_elsewhere_title)).assertExists()
@@ -77,8 +98,17 @@ class OnboardingScreenTest {
         val state = OnboardingState(username = "", host = "mint.example", canChangeHost = false, withAddress = false)
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
-                onSuggestion = {}, onStart = { started = true }, onContinue = {}, onAccountNameChange = {}, onRestore = {},
+                "Wallet",
+                logo = {},
+                state = state,
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = { started = true },
+                onContinue = {},
+                onAccountNameChange = {},
+                onRestore = {},
             )
         }
         compose.onNodeWithText(text(R.string.restore_address_title)).assertDoesNotExist()
@@ -90,14 +120,27 @@ class OnboardingScreenTest {
 
     @Test
     fun withoutAnAddressTheMintIsStillOfferedWhenThereIsAChoice() {
-        val state = OnboardingState(
-            username = "", host = "mint.example", canChangeHost = true, withAddress = false,
-            mintOptions = listOf(MintOption.Suggested("mint.example"), MintOption.Custom), selectedMint = MintOption.Suggested("mint.example"),
-        )
+        val state =
+            OnboardingState(
+                username = "",
+                host = "mint.example",
+                canChangeHost = true,
+                withAddress = false,
+                mintOptions = listOf(MintOption.Suggested("mint.example"), MintOption.Custom),
+                selectedMint = MintOption.Suggested("mint.example"),
+            )
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
-                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                "Wallet",
+                logo = {},
+                state = state,
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
             )
         }
         compose.onNodeWithText(text(R.string.restore_address_title)).assertDoesNotExist()
@@ -110,8 +153,17 @@ class OnboardingScreenTest {
         val state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false, canSkipAddress = true)
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
-                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {}, onSkipAddress = { skipped = true },
+                "Wallet",
+                logo = {},
+                state = state,
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
+                onSkipAddress = { skipped = true },
             )
         }
         compose.onNodeWithText(text(R.string.onboarding_start)).assertExists()
@@ -125,8 +177,16 @@ class OnboardingScreenTest {
         val state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false)
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
-                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                "Wallet",
+                logo = {},
+                state = state,
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
             )
         }
         compose.onNodeWithText(text(R.string.onboarding_skip_address)).assertDoesNotExist()
@@ -134,11 +194,26 @@ class OnboardingScreenTest {
 
     @Test
     fun aNewAccountWithoutAddressStillNeedsItsName() {
-        val state = OnboardingState(username = "", host = "mint.example", canChangeHost = false, mode = OnboardingMode.NewAccount, canSkipAddress = true)
+        val state =
+            OnboardingState(
+                username = "",
+                host = "mint.example",
+                canChangeHost = false,
+                mode = OnboardingMode.NewAccount,
+                canSkipAddress = true,
+            )
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = {}, onUsernameChange = {}, mint = MintActions({}, {}),
-                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                "Wallet",
+                logo = {},
+                state = state,
+                onBack = {},
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
             )
         }
         compose.onNodeWithText(text(R.string.onboarding_skip_address)).performScrollTo().assertIsNotEnabled()
@@ -147,11 +222,27 @@ class OnboardingScreenTest {
     @Test
     fun aRestoredAccountCanGoOnWithoutItsAddress() {
         var skipped = false
-        val state = OnboardingState(username = "", host = "mint.example", canChangeHost = false, mode = OnboardingMode.RestoreAddress, canSkipAddress = true)
+        val state =
+            OnboardingState(
+                username = "",
+                host = "mint.example",
+                canChangeHost = false,
+                mode = OnboardingMode.RestoreAddress,
+                canSkipAddress = true,
+            )
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = {}, state = state, onBack = null, onUsernameChange = {}, mint = MintActions({}, {}),
-                onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {}, onSkipAddress = { skipped = true },
+                "Wallet",
+                logo = {},
+                state = state,
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
+                onSkipAddress = { skipped = true },
             )
         }
         compose.onNodeWithText(text(R.string.restore_address_submit)).assertExists()
@@ -163,8 +254,16 @@ class OnboardingScreenTest {
     fun withoutABrandDesignTheLogoAndNameShow() {
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
-                onBack = null, onUsernameChange = {}, mint = MintActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                "Wallet",
+                logo = { Text("logo") },
+                state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
             )
         }
         // Decorations are decorative: the default logo is drawn but not read out; the name is a heading.
@@ -175,18 +274,27 @@ class OnboardingScreenTest {
     @Test
     fun aBrandDesignDrawsItsOwnHeaderAndTitle() {
         val anchors = mutableListOf<Anchor>()
-        val design = object : BrandDesign {
-            @Composable
-            override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
-                anchors += anchor
-                Text("brand ${anchor.id} ${context.appName}", Modifier.testTag(anchor.id))
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    anchors += anchor
+                    Text("brand ${anchor.id} ${context.appName}", Modifier.testTag(anchor.id))
+                }
             }
-        }
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides design, LocalAppName provides "Wallet") {
                 OnboardingScreen(
-                    "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
-                    onBack = null, onUsernameChange = {}, mint = MintActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                    "Wallet",
+                    logo = { Text("logo") },
+                    state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
+                    onBack = null,
+                    onUsernameChange = {},
+                    mint = MintActions({}, {}),
+                    onSuggestion = {},
+                    onStart = {},
+                    onContinue = {},
+                    onAccountNameChange = {},
                 )
             }
         }
@@ -200,18 +308,27 @@ class OnboardingScreenTest {
     @Test
     fun anAlphaSaysSoBeforeTheUserStarts() {
         var stage: ReleaseStage? = null
-        val design = object : BrandDesign {
-            @Composable
-            override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
-                stage = context.releaseStage
-                if (anchor == Anchor.OnboardingTitle) Text("wordmark") else default()
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    stage = context.releaseStage
+                    if (anchor == Anchor.OnboardingTitle) Text("wordmark") else default()
+                }
             }
-        }
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides design, LocalReleaseStage provides ReleaseStage.Alpha) {
                 OnboardingScreen(
-                    "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
-                    onBack = null, onUsernameChange = {}, mint = MintActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                    "Wallet",
+                    logo = { Text("logo") },
+                    state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
+                    onBack = null,
+                    onUsernameChange = {},
+                    mint = MintActions({}, {}),
+                    onSuggestion = {},
+                    onStart = {},
+                    onContinue = {},
+                    onAccountNameChange = {},
                 )
             }
         }
@@ -227,8 +344,16 @@ class OnboardingScreenTest {
     fun aStableReleaseShowsNoStageAtSetup() {
         compose.setContent {
             OnboardingScreen(
-                "Wallet", logo = { Text("logo") }, state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
-                onBack = null, onUsernameChange = {}, mint = MintActions({}, {}), onSuggestion = {}, onStart = {}, onContinue = {}, onAccountNameChange = {},
+                "Wallet",
+                logo = { Text("logo") },
+                state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
             )
         }
         compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertDoesNotExist()

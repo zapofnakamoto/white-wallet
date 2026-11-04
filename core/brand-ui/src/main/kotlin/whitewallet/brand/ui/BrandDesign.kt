@@ -11,16 +11,16 @@ import whitewallet.brand.WalletEvent
 import whitewallet.brand.WalletStatus
 
 /**
- * A brand's design in code (docs/WHITE_LABEL.md, "Design"), on top of what its resources already set. Every member
- * has a default that keeps the app as it is, so a brand overrides only what it changes, and new members in later
- * releases don't break it. Register one in the brand's code module: `@Provides fun design(): BrandDesign = …`.
+ * A brand's design in code (docs/WHITE_LABEL.md, "Design"), on top of what its resources already set. Every member has a default that keeps
+ * the app as it is, so a brand overrides only what it changes, and new members in later releases don't break it. Register one in the
+ * brand's code module: `@Provides fun design(): BrandDesign = …`.
  *
  * The wallet keeps its flows, texts and accessibility: a design decides how things look, never what happens.
  */
 interface BrandDesign {
     /**
-     * The theme around the whole app. [tokens] are built from the brand's resources; change any of them and end
-     * with [WalletMaterialTheme], adding CompositionLocals of the brand's own if its components need them.
+     * The theme around the whole app. [tokens] are built from the brand's resources; change any of them and end with [WalletMaterialTheme],
+     * adding CompositionLocals of the brand's own if its components need them.
      */
     @Composable
     fun Theme(tokens: ThemeTokens, content: @Composable () -> Unit) {
@@ -28,12 +28,13 @@ interface BrandDesign {
     }
 
     /** The building blocks of every screen: buttons, fields, rows, cards, dialogs and more. */
-    val components: BrandComponents get() = DefaultComponents
+    val components: BrandComponents
+        get() = DefaultComponents
 
     /**
-     * Brand content at a named place in the app ([Anchor]), such as a logo above the onboarding form or a mascot
-     * above the balance. [default] is what the app shows there without a brand design (often nothing): call it to
-     * keep it, or draw something else. Decorations are decorative: the app keeps the texts and headings next to them.
+     * Brand content at a named place in the app ([Anchor]), such as a logo above the onboarding form or a mascot above the balance.
+     * [default] is what the app shows there without a brand design (often nothing): call it to keep it, or draw something else. Decorations
+     * are decorative: the app keeps the texts and headings next to them.
      */
     @Composable
     fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
@@ -50,7 +51,10 @@ class DecorationContext(
     val reduceMotion: Boolean,
     /** The app's name, for a wordmark. */
     val appName: String,
-    /** How finished the app is: a wordmark may carry the stage, if the brand draws its own [ReleaseBadge][BrandComponents.ReleaseBadge] there. */
+    /**
+     * How finished the app is: a wordmark may carry the stage, if the brand draws its own [ReleaseBadge][BrandComponents.ReleaseBadge]
+     * there.
+     */
     val releaseStage: ReleaseStage = ReleaseStage.Stable,
 )
 

@@ -32,8 +32,7 @@ public object Cp1 {
 public object Ck1 {
     private const val HRP = "ck"
 
-    public fun encode(q: ByteVector32, signature: ByteVector64): String =
-        Bech32m.encode(HRP, q.toByteArray() + signature.toByteArray())
+    public fun encode(q: ByteVector32, signature: ByteVector64): String = Bech32m.encode(HRP, q.toByteArray() + signature.toByteArray())
 
     public fun decode(value: String): Pair<ByteVector32, ByteVector64>? {
         val (hrp, data) = Bech32m.decode(value) ?: return null
@@ -80,8 +79,8 @@ public data class Cs1(val amountMsat: Long, val signature: ByteVector) {
 }
 
 /**
- * `cw1<...>`: a script-path spend.
- * Payload: `u32 locktime || u32 sequence || (u16 len || item)*` over script, control block, then witness items.
+ * `cw1<...>`: a script-path spend. Payload: `u32 locktime || u32 sequence || (u16 len || item)*` over script, control block, then witness
+ * items.
  */
 public data class Cw1(
     val lockTime: Long,

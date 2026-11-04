@@ -8,13 +8,14 @@ import kotlinx.coroutines.flow.update
 data class MintKey(val host: String, val pubkey: String)
 
 /**
- * The user's trust choices, on this device and for all accounts. Trust always names a key: if a mint's key changes,
- * it is no longer trusted (and the wallet stops operating with it anyway, see [Pinning]).
- * [untrusted] records mints the user untrusted, although they are trusted by default (the home mint, the brand's).
+ * The user's trust choices, on this device and for all accounts. Trust always names a key: if a mint's key changes, it is no longer trusted
+ * (and the wallet stops operating with it anyway, see [Pinning]). [untrusted] records mints the user untrusted, although they are trusted
+ * by default (the home mint, the brand's).
  */
 interface MintTrustStore {
     val trusted: Flow<Set<MintKey>>
     val untrusted: Flow<Set<MintKey>>
+
     suspend fun setTrusted(mint: MintKey, trusted: Boolean)
 
     /** Drops the user's choice for [mint] either way, as if it was never made. */
@@ -88,7 +89,12 @@ sealed interface RemoveMintResult {
 }
 
 /** Why a mint can't be removed, checked in this order. */
-enum class MintUse { Home, Notes, Address, OpenOperation }
+enum class MintUse {
+    Home,
+    Notes,
+    Address,
+    OpenOperation,
+}
 
 /** The trust rule: the user's choice for this exact key, else the default (home mint, brand list) for it. */
 internal fun isTrusted(mint: MintKey, default: TrustDefault?, trusted: Set<MintKey>, untrusted: Set<MintKey>): Boolean =
@@ -96,15 +102,18 @@ internal fun isTrusted(mint: MintKey, default: TrustDefault?, trusted: Set<MintK
 
 object TrustedMints {
     /**
-     * Parses the brand's `mints.trusted`: comma-separated `host:pubkey` (the key after the last colon, so a host may
-     * carry a port). Empty means none. Throws on anything else, so a broken config fails the build's checks early.
+     * Parses the brand's `mints.trusted`: comma-separated `host:pubkey` (the key after the last colon, so a host may carry a port). Empty
+     * means none. Throws on anything else, so a broken config fails the build's checks early.
      */
-    fun parse(config: String): List<MintKey> = config.split(',').map(String::trim).filter(String::isNotEmpty).map { entry ->
-        val host = entry.substringBeforeLast(':', "").trim().lowercase()
-        val key = entry.substringAfterLast(':').trim().lowercase()
-        require(host.isNotEmpty() && KEY.matches(key)) { "mints.trusted: '$entry' is not host:pubkey (66 hex characters, 02 or 03 first)" }
-        MintKey(host, key)
-    }
+    fun parse(config: String): List<MintKey> =
+        config.split(',').map(String::trim).filter(String::isNotEmpty).map { entry ->
+            val host = entry.substringBeforeLast(':', "").trim().lowercase()
+            val key = entry.substringAfterLast(':').trim().lowercase()
+            require(host.isNotEmpty() && KEY.matches(key)) {
+                "mints.trusted: '$entry' is not host:pubkey (66 hex characters, 02 or 03 first)"
+            }
+            MintKey(host, key)
+        }
 
     private val KEY = Regex("0[23][0-9a-f]{64}")
 }

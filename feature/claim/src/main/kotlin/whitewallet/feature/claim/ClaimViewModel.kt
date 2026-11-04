@@ -4,19 +4,19 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
-import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.IncomingLink
+import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.Wallet
-import java.io.IOException
-import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.lnurlcash.protocol.RejectionKind
 
 data class ClaimState(
@@ -46,6 +46,7 @@ class ClaimViewModel @Inject constructor(private val wallet: Wallet, savedState:
     fun onInputChange(value: String) = _state.update { ClaimState(input = value, showMints = it.showMints) }
 
     fun startScan() = _state.update { it.copy(scanning = true) }
+
     fun stopScan() = _state.update { it.copy(scanning = false) }
 
     /** A scanned or pasted note is checked right away. */
@@ -98,13 +99,14 @@ class ClaimViewModel @Inject constructor(private val wallet: Wallet, savedState:
         if (_state.value.busy) return
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
-            val result = try {
-                wallet.claim(preview)
-            } catch (e: IOException) {
-                ClaimResult.Failed(RejectionKind.Other, e.message)
-            } catch (e: MintKeyChangedException) {
-                ClaimResult.Failed(RejectionKind.Other, e.message)
-            }
+            val result =
+                try {
+                    wallet.claim(preview)
+                } catch (e: IOException) {
+                    ClaimResult.Failed(RejectionKind.Other, e.message)
+                } catch (e: MintKeyChangedException) {
+                    ClaimResult.Failed(RejectionKind.Other, e.message)
+                }
             _state.update { it.copy(busy = false, result = result) }
         }
     }

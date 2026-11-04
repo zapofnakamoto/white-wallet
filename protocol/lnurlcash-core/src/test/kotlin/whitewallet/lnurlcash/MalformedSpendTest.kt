@@ -19,8 +19,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * A spend comes from whoever made the link: anything in it may be wrong. Whatever it holds, reading and checking it
- * says "no spend" or "doesn't verify", and never throws.
+ * A spend comes from whoever made the link: anything in it may be wrong. Whatever it holds, reading and checking it says "no spend" or
+ * "doesn't verify", and never throws.
  */
 class MalformedSpendTest {
     private val domain = "mint.example"
@@ -37,12 +37,14 @@ class MalformedSpendTest {
     @Test
     fun `a spend of a long leaf is read and checked like any other`() {
         // 300 bytes of data dropped, then a signature check: a leaf well over 252 bytes.
-        val leaf = Script.write(listOf(OP_PUSHDATA(ByteArray(300) { 7 }), OP_DROP, OP_PUSHDATA(key.xOnlyPublicKey()), OP_CHECKSIG)).byteVector()
+        val leaf =
+            Script.write(listOf(OP_PUSHDATA(ByteArray(300) { 7 }), OP_DROP, OP_PUSHDATA(key.xOnlyPublicKey()), OP_CHECKSIG)).byteVector()
         val hash = ScriptTree.Leaf(leaf, BearerNote.LEAF_VERSION).hash()
         val (q, odd) = XonlyPublicKey(BearerNote.NUMS).outputKey(hash)
         val sequence = CanonicalSpend.DEFAULT_SEQUENCE - 1
-        val sig = CanonicalSpend.transaction(domain, 0, sequence)
-            .signInputTaprootScriptPath(key, 0, listOf(CanonicalSpend.spentOutput(q.value)), SigHash.SIGHASH_DEFAULT, hash)
+        val sig =
+            CanonicalSpend.transaction(domain, 0, sequence)
+                .signInputTaprootScriptPath(key, 0, listOf(CanonicalSpend.spentOutput(q.value)), SigHash.SIGHASH_DEFAULT, hash)
         val control = (byteArrayOf((BearerNote.LEAF_VERSION or if (odd) 1 else 0).toByte()) + BearerNote.NUMS.toByteArray()).byteVector()
         val spend = assertIs<Spend.Script>(Spend.parse(Cw1(0, sequence, leaf, control, listOf(sig)).encode()))
         assertEquals(q.value, spend.q)
@@ -54,24 +56,30 @@ class MalformedSpendTest {
         val nums = BearerNote.NUMS.toByteArray()
         val control = byteArrayOf(BearerNote.LEAF_VERSION.toByte()) + nums
         val checksig = Script.write(listOf(OP_PUSHDATA(key.xOnlyPublicKey()), OP_CHECKSIG))
-        val broken = mapOf(
-            "too short for its times" to raw(ByteArray(5)),
-            "no control block" to raw(times() + item(checksig)),
-            "an item cut off" to raw(times() + item(checksig) + byteArrayOf(0, 40, 1, 2)),
-            "a control block of 10 bytes" to cw1(checksig, ByteArray(10), ByteArray(64)),
-            "a control block between two lengths" to cw1(checksig, control + ByteArray(5), ByteArray(64)),
-            "an internal key off the curve" to cw1(checksig, byteArrayOf(BearerNote.LEAF_VERSION.toByte()) + ByteArray(32) { -1 }, ByteArray(64)),
-            "an empty script" to cw1(ByteArray(0), control, ByteArray(64)),
-            "no witness" to cw1(checksig, control),
-            "a witness item of 65535 bytes" to cw1(checksig, control, ByteArray(0xffff)),
-            "a thousand witness items" to cw1(checksig, control, *Array(1000) { ByteArray(1) }),
-            "a script of 65535 bytes" to cw1(ByteArray(0xffff) { 0x51 }, control, ByteArray(64)),
-            "a lock time and wait of all ones" to raw(ByteArray(8) { -1 } + item(checksig) + item(control) + item(ByteArray(64))),
-        )
+        val broken =
+            mapOf(
+                "too short for its times" to raw(ByteArray(5)),
+                "no control block" to raw(times() + item(checksig)),
+                "an item cut off" to raw(times() + item(checksig) + byteArrayOf(0, 40, 1, 2)),
+                "a control block of 10 bytes" to cw1(checksig, ByteArray(10), ByteArray(64)),
+                "a control block between two lengths" to cw1(checksig, control + ByteArray(5), ByteArray(64)),
+                "an internal key off the curve" to
+                    cw1(checksig, byteArrayOf(BearerNote.LEAF_VERSION.toByte()) + ByteArray(32) { -1 }, ByteArray(64)),
+                "an empty script" to cw1(ByteArray(0), control, ByteArray(64)),
+                "no witness" to cw1(checksig, control),
+                "a witness item of 65535 bytes" to cw1(checksig, control, ByteArray(0xffff)),
+                "a thousand witness items" to cw1(checksig, control, *Array(1000) { ByteArray(1) }),
+                "a script of 65535 bytes" to cw1(ByteArray(0xffff) { 0x51 }, control, ByteArray(64)),
+                "a lock time and wait of all ones" to raw(ByteArray(8) { -1 } + item(checksig) + item(control) + item(ByteArray(64))),
+            )
         for ((what, k1) in broken) {
             val spend = runCatching { Spend.parse(k1) }.getOrElse { throw AssertionError("$what: parse threw $it", it) }
             if (spend is Spend.Script) {
-                val verifies = runCatching { spend.hasOtherPaths; spend.lockedForSeconds; spend.isValidLockClaim && spend.verify(domain) }
+                val verifies = runCatching {
+                    spend.hasOtherPaths
+                    spend.lockedForSeconds
+                    spend.isValidLockClaim && spend.verify(domain)
+                }
                     .getOrElse { throw AssertionError("$what: checking threw $it", it) }
                 assertFalse(verifies, "$what verifies")
             }

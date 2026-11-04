@@ -2,7 +2,11 @@
 
 package whitewallet.core.wallet
 
-import whitewallet.lnurlcash.RevealsNoteSecret
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
@@ -13,252 +17,288 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.OperationType
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.RejectionKind
-import whitewallet.lnurlcash.protocol.Requests
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 /** What the notes page and the note strategies do with notes, on the real mint. */
 class RegtestNotesTest {
-    @BeforeEach
-    fun requireStack() = Regtest.requireStack()
+    @BeforeEach fun requireStack() = Regtest.requireStack()
 
     @Test
-    fun `combining notes leaves one, and the row shows what the mint kept or paid back`() = runBlocking<Unit> {
-        val alice = Regtest.phone()
-        alice.fund(1000, 2000, 3000)
-        val notes = alice.notes()
-        val inputs = notes.sumOf { it.amountMsat }
-        val done = assertIs<NoteActionResult.Done>(alice.wallet.combineNotes(notes.map { it.id }))
-        val combined = done.notes.single()
-        assertNotNull(combined.certificate)
-        assertEquals(listOf(combined.id), alice.notes().map { it.id })
-        assertEquals(combined.amountMsat, alice.balance())
-        val row = alice.wallet.activity.first().single { it.kind == ActivityKind.Combined }
-        assertEquals((inputs - combined.amountMsat).takeIf { it != 0L }, row.feeMsat)
-        assertEquals(false, row.automatic, "done by the user")
-    }
-
-    @Test
-    fun `combining a note with itself fails, and the note is untouched`() = runBlocking<Unit> {
-        val alice = Regtest.phone()
-        alice.fund(2000)
-        val note = alice.notes().single()
-
-        // The wallet never asks: the same note twice is one note.
-        assertEquals(NoteActionResult.Failed(NoteProblem.TooFewNotes), alice.wallet.combineNotes(listOf(note.id, note.id)))
-
-        // Asked anyway, the mint refuses to count one note twice.
-        val result = NoteMutator(alice.wallet).mutate(alice.wallet.activeId(), HOST, listOf(note, note), OperationType.Merge,
-            listOf(OutputSpec.Own(alice.wallet.activeId(), NotePurpose.Wallet)))
-        // It says the second k1 is spent; the note is not, so the wallet keeps it.
-        val refused = assertIs<MutationResult.Refused>(result, "the same k1 twice in a merge")
-        assertEquals(RejectionKind.Spent, refused.kind)
-        assertEquals(emptyList(), refused.setAside)
-        assertEquals(listOf(note.id), alice.notes().map { it.id })
-        assertEquals(1_999_000, alice.balance())
-        assertIs<NoteCheck.Ok>(alice.wallet.recheckNote(note.id), "still outstanding at the mint")
-    }
-
-    @Test
-    fun `a note is split into the amount and the change, minus the split fee`() = runBlocking<Unit> {
-        val alice = Regtest.phone()
-        alice.fund(5000)
-        val note = alice.notes().single()
-        val limits = assertNotNull(alice.wallet.splitLimits(note.id))
-        assertEquals(1_000, limits.feeMsat)
-        val done = assertIs<NoteActionResult.Done>(alice.wallet.splitNote(note.id, 1_500_000))
-        assertEquals(listOf(1_500_000L, 4_999_000 - 1_500_000 - 1_000), done.notes.map { it.amountMsat })
-        assertEquals(done.notes.map { it.id }.toSet(), alice.notes().map { it.id }.toSet())
-    }
-
-    @Test
-    fun `renewing a note moves it to a fresh wallet key, same amount`() = runBlocking<Unit> {
-        val alice = Regtest.phone()
-        alice.fund(2000)
-        val old = alice.notes().single()
-        val rotated = assertIs<RotateResult.Rotated>(alice.wallet.rotateNote(old.id))
-        assertEquals(1_999_000, rotated.amountMsat)
-        val renewed = alice.notes().single()
-        assertTrue(renewed.id != old.id)
-        assertEquals(0, renewed.purpose)
-        assertEquals(1_999_000, alice.balance())
-    }
-
-    @Test
-    fun `a whole note is shared as it is, without a fee, and can be taken back`() = runBlocking<Unit> {
-        val alice = Regtest.phone()
-        alice.fund(1000, 2000)
-        val small = alice.notes().single { it.amountMsat == 999_000L }
-        val shared = assertIs<ShareNoteResult.Shared>(alice.wallet.shareNote(small.id)).note
-        assertEquals(SharedNoteState.Waiting, shared.state)
-        assertEquals(1_999_000, alice.balance(), "out of the balance while shared")
-
-        // Making a note of exactly an existing note's amount also shares it as is.
-        val exact = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_999_000))
-        assertEquals(0, exact.feeMsat)
-        assertEquals(0, alice.balance())
-
-        assertEquals(ReclaimResult.Reclaimed(999_000), alice.wallet.reclaimNote(shared.id))
-        assertEquals(ReclaimResult.Reclaimed(1_999_000), alice.wallet.reclaimNote(exact.note.id))
-        assertEquals(2_998_000, alice.balance())
-    }
-
-    @Test
-    fun `under keep only one note, a note taken back is combined again straight away, the split fee paid back`() = runBlocking<Unit> {
-        val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
-        alice.fund(3000)
-        val before = alice.balance()
-        val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000))
-        assertEquals(1_000, sent.feeMsat)
-
-        assertEquals(ReclaimResult.Reclaimed(1_000_000), alice.wallet.reclaimNote(sent.note.id))
-        assertEquals(before, alice.notes().single().amountMsat, "one note again, without a refresh; the merge refunds the split's base fee")
-        assertEquals(before, alice.balance())
-        // What the user is told: the two notes combined, and the fee that came back.
-        val run = assertNotNull(alice.wallet.lastPolicyRun.first())
-        assertEquals(MaintenanceNotice.Combined(2, 1, before, 1_000), MaintenanceNotice.of(run, notesVisible = true, mintsVisible = true))
-    }
-
-    @Test
-    fun `under keep only one note, a note taken back from the claim screen is combined again straight away`() = runBlocking<Unit> {
-        val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
-        alice.fund(3000)
-        val before = alice.balance()
-        val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note
-
-        val own = assertIs<ClaimPreview.OwnShared>(alice.wallet.previewClaim(assertNotNull(sent.link)))
-        assertIs<ReclaimResult.Reclaimed>(alice.wallet.reclaimNote(own.id))
-        assertEquals(before, alice.notes().single().amountMsat)
-        assertEquals(SharedNoteState.Reclaimed, alice.wallet.sharedNote(sent.id)?.state)
-        assertEquals(emptyList(), alice.wallet.activity.first().filter { it.kind == ActivityKind.Claimed }, "taken back, not received")
-        assertEquals(0, alice.wallet.unresolvedOperations())
-    }
-
-    @Test
-    fun `a note to send is quoted with the mint's split fee, and one bigger than any mint holds is refused`() = runBlocking<Unit> {
-        val alice = Regtest.phone()
-        alice.fund(2000, 3000)
-        val sendable = alice.wallet.sendableNoteMsat()
-        assertTrue(sendable >= 4_998_000, "both notes merged, less at most the merge fee: $sendable")
-        assertIs<PayQuote.Ok>(alice.wallet.quoteNote(sendable))
-        assertEquals(PayQuote.Ok(1_000_000, 1_000), alice.wallet.quoteNote(1_000_000))
-        assertEquals(PayQuote.Ok(2_999_000, 0), alice.wallet.quoteNote(2_999_000), "a whole note, as it is")
-        assertIs<PayQuote.Invalid>(alice.wallet.quoteNote(5_000_000))
-        assertEquals(CreateNoteResult.Failed(PayProblem.TooMuch), alice.wallet.createNote(5_000_000))
-
-        val made = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000))
-        assertEquals(1_000, made.feeMsat, "charged what the quote said")
-        assertEquals(1_000_000, made.note.amountMsat)
-        assertEquals(4_998_000 - 1_000_000 - 1_000, alice.balance(), "split from one note: the other is untouched")
-    }
-
-    @Test
-    fun `a sent note claimed before it is taken back stays spent, and nothing comes back`() = runBlocking<Unit> {
-        val alice = Regtest.phone()
-        alice.fund(3000)
-        val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note
-        val bob = Regtest.phone()
-        assertIs<ClaimResult.Claimed>(bob.wallet.claim(assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(assertNotNull(sent.link)))))
-
-        // Alice hasn't refreshed: she still sees it waiting, and only the mint can tell her.
-        val before = alice.balance()
-        assertEquals(ReclaimResult.AlreadySpent, alice.wallet.reclaimNote(sent.id))
-        assertEquals(before, alice.balance())
-        assertEquals(SharedNoteState.Spent, alice.wallet.sharedNote(sent.id)?.state)
-        assertEquals(ReclaimResult.AlreadySpent, alice.wallet.reclaimNote(sent.id), "and again, from what it knows now")
-        assertEquals(1_000_000, bob.balance(), "claiming is free")
-    }
-
-    @Test
-    fun `notes spent with the same phrase on another phone are noticed, and not handed out`() = runBlocking<Unit> {
-        val phone1 = Regtest.phone()
-        phone1.fund(1000, 2000, 3000)
-        assertIs<NoteCheck.Ok>(phone1.wallet.recheckNote(phone1.notes().first().id))
-
-        // Phone 2 restores the phrase and renews every note: on phone 1 they are all spent now.
-        val phone2 = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
-        assertIs<RestoreResult.Restored>(phone2.restore(phone1.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
-        val ids = phone1.notes().map { it.id }
-        ids.forEach { assertIs<RotateResult.Rotated>(phone2.rotateNote(it)) }
-
-        assertEquals(NoteCheck.Spent, phone1.wallet.recheckNote(ids[0]))
-        assertEquals(ShareNoteResult.AlreadySpent, phone1.wallet.shareNote(ids[1]))
-        val check = phone1.wallet.recheckNotes()
-        assertEquals(1, check.gone)
-        assertEquals(emptyList(), check.unreachable)
-        assertEquals(0, phone1.balance())
-    }
-
-    @Test
-    fun `keep only one note merges many notes in batches`() = runBlocking<Unit> {
-        val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
-        val payments = (1..11).map { 1000L + it }
-        alice.fund(*payments.toLongArray())
-        val note = alice.notes().single()
-        assertTrue(note.amountMsat >= payments.sumOf { (it - 1) * 1000 }, "a merge never loses value")
-        val merges = alice.wallet.activity.first().filter { it.kind == ActivityKind.Combined }
-        assertEquals(listOf(2, 10), merges.map { it.noteCount }.sortedBy { it }, "at most 10 notes per merge")
-        assertTrue(merges.all { it.automatic })
-    }
-
-    @Test
-    fun `a brand strategy reshapes incoming notes, round after round`() = runBlocking<Unit> {
-        // Keeps notes at or below 1000 sats: splits 1000 sats off any bigger note.
-        val chunks = object : NoteStrategy {
-            override val id = "chunks"
-            override val title = 0
-            override val description = 0
-            override fun plan(mint: MintNotes): List<NoteStep> =
-                mint.notes.filter { it.amountMsat > 1_000_000 + mint.feeBaseMsat }.map { NoteStep.Split(it.id, 1_000_000) }
+    fun `combining notes leaves one, and the row shows what the mint kept or paid back`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(1000, 2000, 3000)
+            val notes = alice.notes()
+            val inputs = notes.sumOf { it.amountMsat }
+            val done = assertIs<NoteActionResult.Done>(alice.wallet.combineNotes(notes.map { it.id }))
+            val combined = done.notes.single()
+            assertNotNull(combined.certificate)
+            assertEquals(listOf(combined.id), alice.notes().map { it.id })
+            assertEquals(combined.amountMsat, alice.balance())
+            val row = alice.wallet.activity.first().single { it.kind == ActivityKind.Combined }
+            assertEquals((inputs - combined.amountMsat).takeIf { it != 0L }, row.feeMsat)
+            assertEquals(false, row.automatic, "done by the user")
         }
-        val store = InMemoryWalletStore()
-        val strategies = NoteStrategies(listOf(ManualStrategy(), chunks), listOf(ManualStrategy.ID, chunks.id), chunks.id)
-        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), strategies = strategies)
-        val name = Regtest.name()
-        assertIs<OnboardResult.Ready>(wallet.onboard(name, HOST))
-        Regtest.pay("$name@$HOST", 3504)
-        wallet.refresh()
-        // 3503 sats: three splits of 1000, each 1 sat fee, leave 500.
-        assertEquals(listOf(1_000_000L, 1_000_000, 1_000_000, 500_000), store.allNotes().filter { it.state == whitewallet.core.model.NoteState.Outstanding }
-            .map { it.amountMsat }.sortedDescending())
-        assertEquals(3, assertNotNull(wallet.lastPolicyRun.first()).split)
-    }
 
     @Test
-    fun `keeping one note and always collecting puts a note from another mint into the one note at home`() = runBlocking<Unit> {
-        val alice = Regtest.phone(strategy = SingleNoteStrategy.ID, collectDefaults = CollectDefaults(offered = false, always = true))
-        alice.fund(5000)
-        val before = alice.balance()
-        val claimed = assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(3000, second = true)))))
-        assertEquals(emptyList(), alice.notes(Regtest.HOST2), "nothing left on the other mint")
-        val home = alice.notes().single()
-        assertEquals(home.amountMsat, alice.balance())
-        assertTrue(home.amountMsat > 4_999_000 + 2_000_000, "the claimed note arrived, less the move's fees: ${home.amountMsat}")
-        assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedMint }.automatic)
-        // What the user is told: the move home, and what it did to the balance (its fee, less what the merge at home
-        // paid back; here they cancel out, which is no news).
-        val run = assertNotNull(alice.wallet.lastPolicyRun.first())
-        assertEquals(home.amountMsat - before - claimed.amountMsat, run.balanceChangeMsat)
-        val moved = assertIs<MaintenanceNotice.MovedHome>(MaintenanceNotice.of(run, notesVisible = true, mintsVisible = true))
-        assertEquals(run.collected.single().arrivedMsat, moved.arrivedMsat)
-        assertEquals(run.balanceChangeMsat?.takeIf { it != 0L }, moved.balanceChangeMsat)
-    }
+    fun `combining a note with itself fails, and the note is untouched`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(2000)
+            val note = alice.notes().single()
+
+            // The wallet never asks: the same note twice is one note.
+            assertEquals(NoteActionResult.Failed(NoteProblem.TooFewNotes), alice.wallet.combineNotes(listOf(note.id, note.id)))
+
+            // Asked anyway, the mint refuses to count one note twice.
+            val result =
+                NoteMutator(alice.wallet)
+                    .mutate(
+                        alice.wallet.activeId(),
+                        HOST,
+                        listOf(note, note),
+                        OperationType.Merge,
+                        listOf(OutputSpec.Own(alice.wallet.activeId(), NotePurpose.Wallet)),
+                    )
+            // It says the second k1 is spent; the note is not, so the wallet keeps it.
+            val refused = assertIs<MutationResult.Refused>(result, "the same k1 twice in a merge")
+            assertEquals(RejectionKind.Spent, refused.kind)
+            assertEquals(emptyList(), refused.setAside)
+            assertEquals(listOf(note.id), alice.notes().map { it.id })
+            assertEquals(1_999_000, alice.balance())
+            assertIs<NoteCheck.Ok>(alice.wallet.recheckNote(note.id), "still outstanding at the mint")
+        }
 
     @Test
-    fun `turning collect at home on moves a note waiting on another mint home`() = runBlocking<Unit> {
-        val alice = Regtest.phone(collectDefaults = CollectDefaults(offered = true, enabled = false))
-        assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(3000, second = true)))))
-        assertEquals(1, alice.notes(Regtest.HOST2).size, "off: the note stays where it was claimed")
+    fun `a note is split into the amount and the change, minus the split fee`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(5000)
+            val note = alice.notes().single()
+            val limits = assertNotNull(alice.wallet.splitLimits(note.id))
+            assertEquals(1_000, limits.feeMsat)
+            val done = assertIs<NoteActionResult.Done>(alice.wallet.splitNote(note.id, 1_500_000))
+            assertEquals(listOf(1_500_000L, 4_999_000 - 1_500_000 - 1_000), done.notes.map { it.amountMsat })
+            assertEquals(done.notes.map { it.id }.toSet(), alice.notes().map { it.id }.toSet())
+        }
 
-        alice.wallet.setCollectAtHome(true)
-        assertEquals(true, alice.wallet.collectAtHome.first())
-        assertEquals(emptyList(), alice.notes(Regtest.HOST2))
-        assertTrue(alice.notes().single().amountMsat > 2_990_000, "home, less the move's fees: ${alice.notes()}")
-        assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedMint }.automatic)
-    }
+    @Test
+    fun `renewing a note moves it to a fresh wallet key, same amount`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(2000)
+            val old = alice.notes().single()
+            val rotated = assertIs<RotateResult.Rotated>(alice.wallet.rotateNote(old.id))
+            assertEquals(1_999_000, rotated.amountMsat)
+            val renewed = alice.notes().single()
+            assertTrue(renewed.id != old.id)
+            assertEquals(0, renewed.purpose)
+            assertEquals(1_999_000, alice.balance())
+        }
+
+    @Test
+    fun `a whole note is shared as it is, without a fee, and can be taken back`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(1000, 2000)
+            val small = alice.notes().single { it.amountMsat == 999_000L }
+            val shared = assertIs<ShareNoteResult.Shared>(alice.wallet.shareNote(small.id)).note
+            assertEquals(SharedNoteState.Waiting, shared.state)
+            assertEquals(1_999_000, alice.balance(), "out of the balance while shared")
+
+            // Making a note of exactly an existing note's amount also shares it as is.
+            val exact = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_999_000))
+            assertEquals(0, exact.feeMsat)
+            assertEquals(0, alice.balance())
+
+            assertEquals(ReclaimResult.Reclaimed(999_000), alice.wallet.reclaimNote(shared.id))
+            assertEquals(ReclaimResult.Reclaimed(1_999_000), alice.wallet.reclaimNote(exact.note.id))
+            assertEquals(2_998_000, alice.balance())
+        }
+
+    @Test
+    fun `under keep only one note, a note taken back is combined again straight away, the split fee paid back`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
+            alice.fund(3000)
+            val before = alice.balance()
+            val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000))
+            assertEquals(1_000, sent.feeMsat)
+
+            assertEquals(ReclaimResult.Reclaimed(1_000_000), alice.wallet.reclaimNote(sent.note.id))
+            assertEquals(
+                before,
+                alice.notes().single().amountMsat,
+                "one note again, without a refresh; the merge refunds the split's base fee",
+            )
+            assertEquals(before, alice.balance())
+            // What the user is told: the two notes combined, and the fee that came back.
+            val run = assertNotNull(alice.wallet.lastPolicyRun.first())
+            assertEquals(
+                MaintenanceNotice.Combined(2, 1, before, 1_000),
+                MaintenanceNotice.of(run, notesVisible = true, mintsVisible = true),
+            )
+        }
+
+    @Test
+    fun `under keep only one note, a note taken back from the claim screen is combined again straight away`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
+            alice.fund(3000)
+            val before = alice.balance()
+            val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note
+
+            val own = assertIs<ClaimPreview.OwnShared>(alice.wallet.previewClaim(assertNotNull(sent.link)))
+            assertIs<ReclaimResult.Reclaimed>(alice.wallet.reclaimNote(own.id))
+            assertEquals(before, alice.notes().single().amountMsat)
+            assertEquals(SharedNoteState.Reclaimed, alice.wallet.sharedNote(sent.id)?.state)
+            assertEquals(emptyList(), alice.wallet.activity.first().filter { it.kind == ActivityKind.Claimed }, "taken back, not received")
+            assertEquals(0, alice.wallet.unresolvedOperations())
+        }
+
+    @Test
+    fun `a note to send is quoted with the mint's split fee, and one bigger than any mint holds is refused`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(2000, 3000)
+            val sendable = alice.wallet.sendableNoteMsat()
+            assertTrue(sendable >= 4_998_000, "both notes merged, less at most the merge fee: $sendable")
+            assertIs<PayQuote.Ok>(alice.wallet.quoteNote(sendable))
+            assertEquals(PayQuote.Ok(1_000_000, 1_000), alice.wallet.quoteNote(1_000_000))
+            assertEquals(PayQuote.Ok(2_999_000, 0), alice.wallet.quoteNote(2_999_000), "a whole note, as it is")
+            assertIs<PayQuote.Invalid>(alice.wallet.quoteNote(5_000_000))
+            assertEquals(CreateNoteResult.Failed(PayProblem.TooMuch), alice.wallet.createNote(5_000_000))
+
+            val made = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000))
+            assertEquals(1_000, made.feeMsat, "charged what the quote said")
+            assertEquals(1_000_000, made.note.amountMsat)
+            assertEquals(4_998_000 - 1_000_000 - 1_000, alice.balance(), "split from one note: the other is untouched")
+        }
+
+    @Test
+    fun `a sent note claimed before it is taken back stays spent, and nothing comes back`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(3000)
+            val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note
+            val bob = Regtest.phone()
+            assertIs<ClaimResult.Claimed>(bob.wallet.claim(assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(assertNotNull(sent.link)))))
+
+            // Alice hasn't refreshed: she still sees it waiting, and only the mint can tell her.
+            val before = alice.balance()
+            assertEquals(ReclaimResult.AlreadySpent, alice.wallet.reclaimNote(sent.id))
+            assertEquals(before, alice.balance())
+            assertEquals(SharedNoteState.Spent, alice.wallet.sharedNote(sent.id)?.state)
+            assertEquals(ReclaimResult.AlreadySpent, alice.wallet.reclaimNote(sent.id), "and again, from what it knows now")
+            assertEquals(1_000_000, bob.balance(), "claiming is free")
+        }
+
+    @Test
+    fun `notes spent with the same phrase on another phone are noticed, and not handed out`() =
+        runBlocking<Unit> {
+            val phone1 = Regtest.phone()
+            phone1.fund(1000, 2000, 3000)
+            assertIs<NoteCheck.Ok>(phone1.wallet.recheckNote(phone1.notes().first().id))
+
+            // Phone 2 restores the phrase and renews every note: on phone 1 they are all spent now.
+            val phone2 =
+                Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
+            assertIs<RestoreResult.Restored>(phone2.restore(phone1.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
+            val ids = phone1.notes().map { it.id }
+            ids.forEach { assertIs<RotateResult.Rotated>(phone2.rotateNote(it)) }
+
+            assertEquals(NoteCheck.Spent, phone1.wallet.recheckNote(ids[0]))
+            assertEquals(ShareNoteResult.AlreadySpent, phone1.wallet.shareNote(ids[1]))
+            val check = phone1.wallet.recheckNotes()
+            assertEquals(1, check.gone)
+            assertEquals(emptyList(), check.unreachable)
+            assertEquals(0, phone1.balance())
+        }
+
+    @Test
+    fun `keep only one note merges many notes in batches`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
+            val payments = (1..11).map { 1000L + it }
+            alice.fund(*payments.toLongArray())
+            val note = alice.notes().single()
+            assertTrue(note.amountMsat >= payments.sumOf { (it - 1) * 1000 }, "a merge never loses value")
+            val merges = alice.wallet.activity.first().filter { it.kind == ActivityKind.Combined }
+            assertEquals(listOf(2, 10), merges.map { it.noteCount }.sortedBy { it }, "at most 10 notes per merge")
+            assertTrue(merges.all { it.automatic })
+        }
+
+    @Test
+    fun `a brand strategy reshapes incoming notes, round after round`() =
+        runBlocking<Unit> {
+            // Keeps notes at or below 1000 sats: splits 1000 sats off any bigger note.
+            val chunks =
+                object : NoteStrategy {
+                    override val id = "chunks"
+                    override val title = 0
+                    override val description = 0
+
+                    override fun plan(mint: MintNotes): List<NoteStep> =
+                        mint.notes.filter { it.amountMsat > 1_000_000 + mint.feeBaseMsat }.map { NoteStep.Split(it.id, 1_000_000) }
+                }
+            val store = InMemoryWalletStore()
+            val strategies = NoteStrategies(listOf(ManualStrategy(), chunks), listOf(ManualStrategy.ID, chunks.id), chunks.id)
+            val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), strategies = strategies)
+            val name = Regtest.name()
+            assertIs<OnboardResult.Ready>(wallet.onboard(name, HOST))
+            Regtest.pay("$name@$HOST", 3504)
+            wallet.refresh()
+            // 3503 sats: three splits of 1000, each 1 sat fee, leave 500.
+            assertEquals(
+                listOf(1_000_000L, 1_000_000, 1_000_000, 500_000),
+                store
+                    .allNotes()
+                    .filter { it.state == whitewallet.core.model.NoteState.Outstanding }
+                    .map { it.amountMsat }
+                    .sortedDescending(),
+            )
+            assertEquals(3, assertNotNull(wallet.lastPolicyRun.first()).split)
+        }
+
+    @Test
+    fun `keeping one note and always collecting puts a note from another mint into the one note at home`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone(strategy = SingleNoteStrategy.ID, collectDefaults = CollectDefaults(offered = false, always = true))
+            alice.fund(5000)
+            val before = alice.balance()
+            val claimed =
+                assertIs<ClaimResult.Claimed>(
+                    alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(3000, second = true))))
+                )
+            assertEquals(emptyList(), alice.notes(Regtest.HOST2), "nothing left on the other mint")
+            val home = alice.notes().single()
+            assertEquals(home.amountMsat, alice.balance())
+            assertTrue(home.amountMsat > 4_999_000 + 2_000_000, "the claimed note arrived, less the move's fees: ${home.amountMsat}")
+            assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedMint }.automatic)
+            // What the user is told: the move home, and what it did to the balance (its fee, less what the merge at home
+            // paid back; here they cancel out, which is no news).
+            val run = assertNotNull(alice.wallet.lastPolicyRun.first())
+            assertEquals(home.amountMsat - before - claimed.amountMsat, run.balanceChangeMsat)
+            val moved = assertIs<MaintenanceNotice.MovedHome>(MaintenanceNotice.of(run, notesVisible = true, mintsVisible = true))
+            assertEquals(run.collected.single().arrivedMsat, moved.arrivedMsat)
+            assertEquals(run.balanceChangeMsat?.takeIf { it != 0L }, moved.balanceChangeMsat)
+        }
+
+    @Test
+    fun `turning collect at home on moves a note waiting on another mint home`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone(collectDefaults = CollectDefaults(offered = true, enabled = false))
+            assertIs<ClaimResult.Claimed>(
+                alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(3000, second = true))))
+            )
+            assertEquals(1, alice.notes(Regtest.HOST2).size, "off: the note stays where it was claimed")
+
+            alice.wallet.setCollectAtHome(true)
+            assertEquals(true, alice.wallet.collectAtHome.first())
+            assertEquals(emptyList(), alice.notes(Regtest.HOST2))
+            assertTrue(alice.notes().single().amountMsat > 2_990_000, "home, less the move's fees: ${alice.notes()}")
+            assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedMint }.automatic)
+        }
 }

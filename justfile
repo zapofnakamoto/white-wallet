@@ -104,6 +104,11 @@ coverage *gradle_args:
     LNURLCASH_REGTEST=1 just test jacocoTestReport {{ gradle_args }}
     @echo "core/wallet: file://{{ justfile_directory() }}/core/wallet/build/reports/jacoco/test/html/index.html"
 
+# Formats every Kotlin source and build script (ktfmt, kotlinlang style, 140 wide)
+[group('checks')]
+format:
+    ./gradlew spotlessApply
+
 # Android lint (fails on new issues)
 [group('checks')]
 lint:
@@ -119,9 +124,10 @@ check-brand brand=brand:
 check-design:
     dev/check-design.sh
 
-# Everything CI checks: tests, both builds, lint, brand and design checks, scaffolder tests
+# Everything CI checks: formatting, tests, both builds, lint, brand and design checks, scaffolder tests
 [group('checks')]
 check: test
+    ./gradlew spotlessCheck
     ./gradlew :app:assembleDebug :app:assembleRelease :app:lintDebug
     for b in brand brand-examples/*/; do dev/check-brand.sh "${b%/}"; done
     dev/check-design.sh

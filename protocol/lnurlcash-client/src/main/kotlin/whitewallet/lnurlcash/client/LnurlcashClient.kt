@@ -26,18 +26,16 @@ import whitewallet.lnurlcash.protocol.WithdrawDiscovery
 /**
  * The only place LNURLcash requests touch the network.
  *
- * Every mutation is an HTTP GET that burns its input, so transport-level retries are forbidden: a resend after a
- * dropped connection could be reported as "already spent" while the first attempt minted the outputs. The only
- * retry is a bounded, byte-identical replay of rotate/split/merge, which LUD-25 requires a service to answer with
- * its original success. A melt is never replayed.
+ * Every mutation is an HTTP GET that burns its input, so transport-level retries are forbidden: a resend after a dropped connection could
+ * be reported as "already spent" while the first attempt minted the outputs. The only retry is a bounded, byte-identical replay of
+ * rotate/split/merge, which LUD-25 requires a service to answer with its original success. A melt is never replayed.
  *
- * Servers close idle keep-alive connections (uvicorn after ~5 s), and OkHttp would otherwise reuse such a dead
- * pooled connection after any pause. So read-only requests retry once on a connection failure (they change
- * nothing), and mutations and registrations always go out on a fresh connection, never an idle pooled one.
+ * Servers close idle keep-alive connections (uvicorn after ~5 s), and OkHttp would otherwise reuse such a dead pooled connection after any
+ * pause. So read-only requests retry once on a connection failure (they change nothing), and mutations and registrations always go out on a
+ * fresh connection, never an idle pooled one.
  *
- * A note's spend (`k1`) leaves only with [mutate]: whoever gets it can claim the note, so a note is checked by its
- * key ([lookup]). [SpendGuard], the last step before the wire, refuses any other request carrying a spend, also one an
- * interceptor of [http] rewrote.
+ * A note's spend (`k1`) leaves only with [mutate]: whoever gets it can claim the note, so a note is checked by its key ([lookup]).
+ * [SpendGuard], the last step before the wire, refuses any other request carrying a spend, also one an interceptor of [http] rewrote.
  */
 public class LnurlcashClient(
     http: OkHttpClient = defaultHttpClient(),
@@ -55,16 +53,16 @@ public class LnurlcashClient(
     private val freshConnectionHttp: OkHttpClient = this.http.newBuilder().connectionPool(ConnectionPool(0, 1, TimeUnit.SECONDS)).build()
 
     /**
-     * GETs [url] and parses the LNURL response. Only for read-only requests: retried once on a connection failure.
-     * Throws [IOException] if both attempts fail.
+     * GETs [url] and parses the LNURL response. Only for read-only requests: retried once on a connection failure. Throws [IOException] if
+     * both attempts fail.
      */
     public suspend fun get(url: String): LnurlResponse {
         val request = Request.Builder().url(url).get().build()
         val result = execute(request).let { if (it is HttpResult.TransportFailure) execute(request) else it }
         return when (result) {
             is HttpResult.TransportFailure -> throw IOException(result.message)
-            is HttpResult.Response -> LnurlResponse.parse(result.body)
-                ?: throw ProtocolViolation("not an LNURL response (HTTP ${result.status})")
+            is HttpResult.Response ->
+                LnurlResponse.parse(result.body) ?: throw ProtocolViolation("not an LNURL response (HTTP ${result.status})")
         }
     }
 
@@ -103,29 +101,34 @@ public class LnurlcashClient(
     private suspend fun registration(request: Request): RegistrationOutcome {
         return when (val result = execute(request, freshConnectionHttp)) {
             is HttpResult.TransportFailure -> RegistrationOutcome.Ambiguous(result.message)
-            is HttpResult.Response -> when (val r = LnurlResponse.parse(result.body)) {
-                is LnurlResponse.Error -> RegistrationOutcome.Rejected(RejectionKind.fromReason(r.reason), r.reason)
-                is LnurlResponse.Ok -> RegistrationOutcome.Registered
-                else -> if (result.status in 200..299) RegistrationOutcome.Registered else RegistrationOutcome.Rejected(RejectionKind.Other, "HTTP ${result.status}")
+            is HttpResult.Response ->
+                when (val r = LnurlResponse.parse(result.body)) {
+                    is LnurlResponse.Error -> RegistrationOutcome.Rejected(RejectionKind.fromReason(r.reason), r.reason)
+                    is LnurlResponse.Ok -> RegistrationOutcome.Registered
+                    else ->
+                        if (result.status in 200..299) RegistrationOutcome.Registered
+                        else RegistrationOutcome.Rejected(RejectionKind.Other, "HTTP ${result.status}")
+                }
+        }
+    }
+
+    private suspend fun execute(request: Request, client: OkHttpClient = http): HttpResult =
+        withContext(io) {
+            try {
+                client.newCall(request).execute().use { response -> HttpResult.Response(response.code, response.body.string()) }
+            } catch (e: IOException) {
+                HttpResult.TransportFailure(e.message ?: e.javaClass.simpleName)
             }
         }
-    }
-
-    private suspend fun execute(request: Request, client: OkHttpClient = http): HttpResult = withContext(io) {
-        try {
-            client.newCall(request).execute().use { response -> HttpResult.Response(response.code, response.body.string()) }
-        } catch (e: IOException) {
-            HttpResult.TransportFailure(e.message ?: e.javaClass.simpleName)
-        }
-    }
 
     public companion object {
-        public fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
-            .retryOnConnectionFailure(false)
-            .followRedirects(false)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build()
+        public fun defaultHttpClient(): OkHttpClient =
+            OkHttpClient.Builder()
+                .retryOnConnectionFailure(false)
+                .followRedirects(false)
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build()
     }
 }
 

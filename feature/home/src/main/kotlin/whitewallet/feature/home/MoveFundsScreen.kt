@@ -25,16 +25,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import whitewallet.core.designsystem.PrimaryButton
-import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.ScreenColumn
-import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.core.designsystem.formatAmount
-import whitewallet.core.wallet.MoveFailure
-import whitewallet.core.wallet.MoveResult
+import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletRadioButton
 import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTextField
+import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.wallet.MoveFailure
+import whitewallet.core.wallet.MoveResult
 
 @Composable
 fun MoveFundsRoute(onBack: () -> Unit, viewModel: MoveFundsViewModel = hiltViewModel()) {
@@ -59,7 +59,11 @@ fun MoveFundsScreen(
                 return@ScreenColumn
             }
             val from = state.from ?: return@ScreenColumn
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 WalletAccountMark(from.account.name, state.places[from.account.id] ?: 0, size = 24.dp)
                 Text(stringResource(R.string.move_from, from.account.name, formatAmount(from.balanceMsat)), modifier = Modifier.weight(1f))
             }
@@ -100,16 +104,22 @@ fun MoveFundsScreen(
 
 @Composable
 private fun ResultText(result: MoveResult) {
-    val (text, error) = when (result) {
-        is MoveResult.Moved -> stringResource(R.string.move_moved, formatAmount(result.amountMsat)) to false
-        MoveResult.Pending -> stringResource(R.string.move_pending) to false
-        is MoveResult.Failed -> when (result.reason) {
-            MoveFailure.InsufficientFunds -> stringResource(R.string.move_insufficient)
-            MoveFailure.SplitAcrossMints -> stringResource(R.string.move_split_mints)
-            MoveFailure.NothingToMove -> stringResource(R.string.move_nothing)
-            else -> stringResource(R.string.move_failed, result.detail ?: result.reason.name)
-        } to true
-    }
-    Text(text, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center,
-        color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+    val (text, error) =
+        when (result) {
+            is MoveResult.Moved -> stringResource(R.string.move_moved, formatAmount(result.amountMsat)) to false
+            MoveResult.Pending -> stringResource(R.string.move_pending) to false
+            is MoveResult.Failed ->
+                when (result.reason) {
+                    MoveFailure.InsufficientFunds -> stringResource(R.string.move_insufficient)
+                    MoveFailure.SplitAcrossMints -> stringResource(R.string.move_split_mints)
+                    MoveFailure.NothingToMove -> stringResource(R.string.move_nothing)
+                    else -> stringResource(R.string.move_failed, result.detail ?: result.reason.name)
+                } to true
+        }
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        textAlign = TextAlign.Center,
+        color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+    )
 }

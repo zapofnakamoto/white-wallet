@@ -14,9 +14,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * The app's theme as built from the brand's resources (docs/WHITE_LABEL.md, "Design"): Material's colour scheme,
- * typography and shapes, plus the wallet's own colour roles and spacing. [dark] is the scheme in use, after the
- * brand's `app.appearance` and the system setting.
+ * The app's theme as built from the brand's resources (docs/WHITE_LABEL.md, "Design"): Material's colour scheme, typography and shapes,
+ * plus the wallet's own colour roles and spacing. [dark] is the scheme in use, after the brand's `app.appearance` and the system setting.
  */
 @Immutable
 data class ThemeTokens(
@@ -47,21 +46,21 @@ data class WalletColors(
 ) {
     companion object {
         /** Every role at its fallback in [scheme]. */
-        fun from(scheme: ColorScheme) = WalletColors(
-            incoming = scheme.primary,
-            outgoing = scheme.onSurface,
-            success = scheme.primary,
-            warning = scheme.error,
-            warningContainer = scheme.errorContainer,
-            onWarningContainer = scheme.onErrorContainer,
-            amount = scheme.onSurface,
-        )
+        fun from(scheme: ColorScheme) =
+            WalletColors(
+                incoming = scheme.primary,
+                outgoing = scheme.onSurface,
+                success = scheme.primary,
+                warning = scheme.error,
+                warningContainer = scheme.errorContainer,
+                onWarningContainer = scheme.onErrorContainer,
+                amount = scheme.onSurface,
+            )
     }
 }
 
 /** The screens' rhythm: the padding at a screen's edges and the gap between its blocks. */
-@Immutable
-data class WalletSpacing(val screen: Dp = 24.dp, val gap: Dp = 16.dp)
+@Immutable data class WalletSpacing(val screen: Dp = 24.dp, val gap: Dp = 16.dp)
 
 /** Null outside [WalletMaterialTheme] (a preview, a test): the roles then follow Material's colours. */
 val LocalWalletColors = staticCompositionLocalOf<WalletColors?> { null }

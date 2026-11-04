@@ -14,8 +14,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -28,39 +28,42 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import whitewallet.core.designsystem.WalletStatusScope
-import whitewallet.core.designsystem.BrandDecoration
-import whitewallet.brand.ui.Anchor
-import whitewallet.brand.WalletStatus
 import whitewallet.brand.ProblemKind
-import whitewallet.core.designsystem.amountInputLabel
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.AmountText
-import whitewallet.core.scanner.QrScanner
+import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessScreen
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletStatusScope
+import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.scanner.QrScanner
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.PayDestination
 import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
-import whitewallet.brand.ui.ButtonKind
-import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletCard
-import whitewallet.core.designsystem.WalletTextField
 
 /**
- * Pay an invoice, a Lightning address or a pay link: enter or scan it, review the amount and fee, pay. A note link
- * entered here goes to [onClaim].
+ * Pay an invoice, a Lightning address or a pay link: enter or scan it, review the amount and fee, pay. A note link entered here goes to
+ * [onClaim].
  */
 @Composable
 fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, onClaim: (String) -> Unit = {}, viewModel: SendViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.claim) {
-        state.claim?.let { onClaim(it); viewModel.claimOpened() }
+        state.claim?.let {
+            onClaim(it)
+            viewModel.claimOpened()
+        }
     }
     SendScreen(
         state,
@@ -74,11 +77,21 @@ fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, onClaim: (String) ->
             }
         },
         onDone = onDone,
-        actions = SendActions(
-            viewModel::onInputChange, viewModel::startScan, viewModel::stopScan, viewModel::onScanned, viewModel::check,
-            viewModel::onAmountChange, viewModel::onCommentChange, viewModel::pay, viewModel::edit, onCreateNote,
-            viewModel::invoiceFromFaucet, viewModel::sendMore,
-        ),
+        actions =
+            SendActions(
+                viewModel::onInputChange,
+                viewModel::startScan,
+                viewModel::stopScan,
+                viewModel::onScanned,
+                viewModel::check,
+                viewModel::onAmountChange,
+                viewModel::onCommentChange,
+                viewModel::pay,
+                viewModel::edit,
+                onCreateNote,
+                viewModel::invoiceFromFaucet,
+                viewModel::sendMore,
+            ),
     )
 }
 
@@ -107,12 +120,20 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
         if (paid != null) {
             val to = state.preview?.payee
             SuccessScreen(
-                Anchor.SendSuccess, WalletStatus.Sent(paid.amountMsat), stringResource(R.string.send_paid_title), paid.amountMsat,
-                stringResource(R.string.send_done), onDone, stringResource(R.string.send_more), actions.onSendMore, Modifier.padding(padding),
-                details = listOfNotNull(
-                    to?.let { stringResource(R.string.send_success_to, it) },
-                    paid.feeMsat.takeIf { it > 0 }?.let { stringResource(R.string.send_fee, formatAmount(it)) },
-                ),
+                Anchor.SendSuccess,
+                WalletStatus.Sent(paid.amountMsat),
+                stringResource(R.string.send_paid_title),
+                paid.amountMsat,
+                stringResource(R.string.send_done),
+                onDone,
+                stringResource(R.string.send_more),
+                actions.onSendMore,
+                Modifier.padding(padding),
+                details =
+                    listOfNotNull(
+                        to?.let { stringResource(R.string.send_success_to, it) },
+                        paid.feeMsat.takeIf { it > 0 }?.let { stringResource(R.string.send_fee, formatAmount(it)) },
+                    ),
             )
             return@Scaffold
         }
@@ -137,20 +158,23 @@ private fun sendStatus(state: SendState): WalletStatus {
         is PayResult.Paid -> WalletStatus.Sent(result.amountMsat)
         is PayResult.Pending -> WalletStatus.Sending
         is PayResult.Failed -> WalletStatus.Problem(problemKind(result.problem))
-        null -> when {
-            state.paying -> WalletStatus.Sending
-            quote is PayQuote.Invalid -> WalletStatus.Problem(problemKind(quote.problem))
-            state.problem != null -> WalletStatus.Problem(problemKind(state.problem))
-            else -> WalletStatus.None
-        }
+        null ->
+            when {
+                state.paying -> WalletStatus.Sending
+                quote is PayQuote.Invalid -> WalletStatus.Problem(problemKind(quote.problem))
+                state.problem != null -> WalletStatus.Problem(problemKind(state.problem))
+                else -> WalletStatus.None
+            }
     }
 }
 
-internal fun problemKind(problem: PayProblem): ProblemKind = when (problem) {
-    PayProblem.NoFunds, PayProblem.TooMuch -> ProblemKind.NotEnoughFunds
-    PayProblem.Unreachable -> ProblemKind.Offline
-    else -> ProblemKind.Other
-}
+internal fun problemKind(problem: PayProblem): ProblemKind =
+    when (problem) {
+        PayProblem.NoFunds,
+        PayProblem.TooMuch -> ProblemKind.NotEnoughFunds
+        PayProblem.Unreachable -> ProblemKind.Offline
+        else -> ProblemKind.Other
+    }
 
 @Composable
 private fun InputContent(state: SendState, actions: SendActions) {
@@ -167,7 +191,12 @@ private fun InputContent(state: SendState, actions: SendActions) {
         modifier = Modifier.fillMaxWidth(),
     )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        WalletButton(kind = ButtonKind.Secondary, onClick = actions.onStartScan, enabled = !state.checking, modifier = Modifier.weight(1f)) {
+        WalletButton(
+            kind = ButtonKind.Secondary,
+            onClick = actions.onStartScan,
+            enabled = !state.checking,
+            modifier = Modifier.weight(1f),
+        ) {
             Text(stringResource(R.string.send_scan))
         }
         WalletButton(
@@ -180,12 +209,19 @@ private fun InputContent(state: SendState, actions: SendActions) {
             },
             enabled = !state.checking,
             modifier = Modifier.weight(1f),
-        ) { Text(stringResource(R.string.send_paste)) }
+        ) {
+            Text(stringResource(R.string.send_paste))
+        }
     }
     state.problem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
     PrimaryButton(stringResource(R.string.send_continue), actions.onCheck, enabled = state.input.isNotBlank(), busy = state.checking)
     Text(stringResource(R.string.send_or), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    WalletButton(kind = ButtonKind.Secondary, onClick = actions.onCreateNote, enabled = !state.checking, modifier = Modifier.fillMaxWidth()) {
+    WalletButton(
+        kind = ButtonKind.Secondary,
+        onClick = actions.onCreateNote,
+        enabled = !state.checking,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Text(stringResource(R.string.send_create_note))
     }
     state.faucet?.let { FaucetButton(it, enabled = !state.checking, onClick = actions.onFaucet) }
@@ -194,10 +230,23 @@ private fun InputContent(state: SendState, actions: SendActions) {
 /** Developer mode with a local regtest mint: the faucet makes an invoice to pay, as `regtest.sh invoice` would. */
 @Composable
 private fun FaucetButton(faucet: FaucetState, enabled: Boolean, onClick: () -> Unit) {
-    WalletButton(kind = ButtonKind.Secondary, onClick = onClick, enabled = enabled, busy = faucet.busy, modifier = Modifier.fillMaxWidth()) {
+    WalletButton(
+        kind = ButtonKind.Secondary,
+        onClick = onClick,
+        enabled = enabled,
+        busy = faucet.busy,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Text(stringResource(R.string.send_faucet, formatAmount(FAUCET_SATS * 1_000)))
     }
-    faucet.error?.let { Text(stringResource(R.string.send_faucet_failed, it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall) }
+    faucet.error?.let {
+        Text(
+            stringResource(R.string.send_faucet_failed, it),
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
 }
 
 @Composable
@@ -218,11 +267,17 @@ private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: 
                 preview.payee ?: stringResource(R.string.send_to_invoice),
                 style = MaterialTheme.typography.titleMedium,
             )
-            preview.description?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            preview.description
+                ?.takeIf { it.isNotBlank() }
+                ?.let {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             if (preview.internal) {
-                Text(stringResource(R.string.send_internal), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    stringResource(R.string.send_internal),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
@@ -235,7 +290,13 @@ private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: 
             onValueChange = actions.onAmountChange,
             label = { Text(amountInputLabel()) },
             supportingText = {
-                Text(stringResource(R.string.send_amount_range, formatAmount(preview.minMsat), formatAmount(minOf(preview.maxMsat, preview.availableMsat))))
+                Text(
+                    stringResource(
+                        R.string.send_amount_range,
+                        formatAmount(preview.minMsat),
+                        formatAmount(minOf(preview.maxMsat, preview.availableMsat)),
+                    )
+                )
             },
             singleLine = true,
             enabled = !state.paying,
@@ -274,17 +335,22 @@ private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: 
 
 @Composable
 private fun QuoteText(quote: PayQuote?) {
-    val (text, error) = when (quote) {
-        null -> return
-        is PayQuote.Ok -> (if (quote.feeMsat > 0) stringResource(R.string.send_fee, formatAmount(quote.feeMsat)) else stringResource(R.string.send_no_fee)) to false
-        is PayQuote.Unreachable -> stringResource(R.string.send_not_exact, formatAmount(quote.allMsat), formatAmount(quote.maxWithChangeMsat)) to true
-        is PayQuote.Invalid -> when (quote.problem) {
-            PayProblem.BelowMinimum -> stringResource(R.string.send_below_minimum, formatAmount(quote.limitMsat ?: 0))
-            PayProblem.AboveMaximum -> stringResource(R.string.send_above_maximum, formatAmount(quote.limitMsat ?: 0))
-            PayProblem.TooMuch -> stringResource(R.string.send_too_much, formatAmount(quote.limitMsat ?: 0))
-            else -> problemText(quote.problem)
-        } to true
-    }
+    val (text, error) =
+        when (quote) {
+            null -> return
+            is PayQuote.Ok ->
+                (if (quote.feeMsat > 0) stringResource(R.string.send_fee, formatAmount(quote.feeMsat))
+                else stringResource(R.string.send_no_fee)) to false
+            is PayQuote.Unreachable ->
+                stringResource(R.string.send_not_exact, formatAmount(quote.allMsat), formatAmount(quote.maxWithChangeMsat)) to true
+            is PayQuote.Invalid ->
+                when (quote.problem) {
+                    PayProblem.BelowMinimum -> stringResource(R.string.send_below_minimum, formatAmount(quote.limitMsat ?: 0))
+                    PayProblem.AboveMaximum -> stringResource(R.string.send_above_maximum, formatAmount(quote.limitMsat ?: 0))
+                    PayProblem.TooMuch -> stringResource(R.string.send_too_much, formatAmount(quote.limitMsat ?: 0))
+                    else -> problemText(quote.problem)
+                } to true
+        }
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
@@ -303,10 +369,18 @@ private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: 
         is PayResult.Pending -> {
             Text(stringResource(R.string.send_pending_title), style = MaterialTheme.typography.headlineSmall)
             val sats = formatAmount(result.amountMsat)
-            Text(if (to != null) stringResource(R.string.send_pending_body, sats, to) else stringResource(R.string.send_pending_body_invoice, sats), textAlign = TextAlign.Center)
+            Text(
+                if (to != null) stringResource(R.string.send_pending_body, sats, to)
+                else stringResource(R.string.send_pending_body_invoice, sats),
+                textAlign = TextAlign.Center,
+            )
         }
         is PayResult.Failed -> {
-            Text(stringResource(R.string.send_failed_title), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.error)
+            Text(
+                stringResource(R.string.send_failed_title),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
             Text(problemText(result.problem), textAlign = TextAlign.Center)
             // Only for an invoice that could still be paid (the money is back or never left).
             if (preview.destination is PayDestination.PayLink || result.problem == PayProblem.PaymentFailed) {
@@ -318,21 +392,22 @@ private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: 
 }
 
 @Composable
-internal fun problemText(problem: PayProblem): String = stringResource(
-    when (problem) {
-        PayProblem.NotRecognized -> R.string.send_problem_not_recognized
-        PayProblem.NoAmount -> R.string.send_problem_no_amount
-        PayProblem.Expired -> R.string.send_problem_expired
-        PayProblem.Unreachable -> R.string.send_problem_unreachable
-        PayProblem.PayeeRefused -> R.string.send_problem_payee_refused
-        PayProblem.InvoiceMismatch -> R.string.send_problem_mismatch
-        PayProblem.OwnAddress -> R.string.send_problem_own_address
-        PayProblem.NoFunds -> R.string.send_problem_no_funds
-        PayProblem.TooMuch -> R.string.send_problem_too_much
-        PayProblem.NotExact -> R.string.send_problem_not_exact
-        PayProblem.BelowMinimum -> R.string.send_problem_below_minimum
-        PayProblem.AboveMaximum -> R.string.send_problem_above_maximum
-        PayProblem.Refused -> R.string.send_problem_refused
-        PayProblem.PaymentFailed -> R.string.send_problem_payment_failed
-    },
-)
+internal fun problemText(problem: PayProblem): String =
+    stringResource(
+        when (problem) {
+            PayProblem.NotRecognized -> R.string.send_problem_not_recognized
+            PayProblem.NoAmount -> R.string.send_problem_no_amount
+            PayProblem.Expired -> R.string.send_problem_expired
+            PayProblem.Unreachable -> R.string.send_problem_unreachable
+            PayProblem.PayeeRefused -> R.string.send_problem_payee_refused
+            PayProblem.InvoiceMismatch -> R.string.send_problem_mismatch
+            PayProblem.OwnAddress -> R.string.send_problem_own_address
+            PayProblem.NoFunds -> R.string.send_problem_no_funds
+            PayProblem.TooMuch -> R.string.send_problem_too_much
+            PayProblem.NotExact -> R.string.send_problem_not_exact
+            PayProblem.BelowMinimum -> R.string.send_problem_below_minimum
+            PayProblem.AboveMaximum -> R.string.send_problem_above_maximum
+            PayProblem.Refused -> R.string.send_problem_refused
+            PayProblem.PaymentFailed -> R.string.send_problem_payment_failed
+        }
+    )

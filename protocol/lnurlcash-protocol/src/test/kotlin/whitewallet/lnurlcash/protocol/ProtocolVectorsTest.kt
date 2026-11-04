@@ -2,7 +2,6 @@
 
 package whitewallet.lnurlcash.protocol
 
-import whitewallet.lnurlcash.RevealsNoteSecret
 import fr.acinq.bitcoin.ByteVector32
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -17,6 +16,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.BearerNote
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.testkit.Vectors
 import whitewallet.testkit.int
@@ -29,33 +29,37 @@ class ProtocolVectorsTest {
     @Test
     fun `mutation responses are classified`() {
         for (c in Vectors.conformance("responses").objects("cases")) {
-            val type = when (c.str("op")) {
-                "split" -> MutationType.Split
-                "melt" -> MutationType.Melt
-                else -> MutationType.Rotate
-            }
+            val type =
+                when (c.str("op")) {
+                    "split" -> MutationType.Split
+                    "melt" -> MutationType.Melt
+                    else -> MutationType.Rotate
+                }
             // This wallet always names cp1 outputs, so it runs the cp1 cases as written and skips those
             // that model a legacy hash output (no "output"/"change" key) expecting a bare OK to be enough.
             val cp1Outputs = c.strOrNull("output") == "cp1" || c.strOrNull("change") == "cp1"
             val legacyOnly = !cp1Outputs && c.str("expect") == "ok" && type != MutationType.Melt
             if (legacyOnly) continue
-            val result = when {
-                c["transportError"]?.jsonPrimitive?.booleanOrNull == true -> HttpResult.TransportFailure("connection reset")
-                c["timeout"]?.jsonPrimitive?.booleanOrNull == true -> HttpResult.TransportFailure("timeout")
-                else -> HttpResult.Response(c.int("http"), (c["body"] as? JsonObject)?.toString() ?: c.str("bodyRaw"))
-            }
-            val outcome = MutationClassifier.classify(type, result)
-            val actual = when (outcome) {
-                is MutationOutcome.Confirmed -> "ok"
-                is MutationOutcome.Unverifiable -> "unverifiable"
-                is MutationOutcome.Ambiguous -> "ambiguous"
-                is MutationOutcome.Rejected -> when (outcome.kind) {
-                    RejectionKind.Pending -> "pending"
-                    RejectionKind.Spent -> "spent"
-                    RejectionKind.NoteUnknown -> "unknown"
-                    else -> "error"
+            val result =
+                when {
+                    c["transportError"]?.jsonPrimitive?.booleanOrNull == true -> HttpResult.TransportFailure("connection reset")
+                    c["timeout"]?.jsonPrimitive?.booleanOrNull == true -> HttpResult.TransportFailure("timeout")
+                    else -> HttpResult.Response(c.int("http"), (c["body"] as? JsonObject)?.toString() ?: c.str("bodyRaw"))
                 }
-            }
+            val outcome = MutationClassifier.classify(type, result)
+            val actual =
+                when (outcome) {
+                    is MutationOutcome.Confirmed -> "ok"
+                    is MutationOutcome.Unverifiable -> "unverifiable"
+                    is MutationOutcome.Ambiguous -> "ambiguous"
+                    is MutationOutcome.Rejected ->
+                        when (outcome.kind) {
+                            RejectionKind.Pending -> "pending"
+                            RejectionKind.Spent -> "spent"
+                            RejectionKind.NoteUnknown -> "unknown"
+                            else -> "error"
+                        }
+                }
             assertEquals(c.str("expect"), actual, c.str("name"))
         }
     }
@@ -79,7 +83,10 @@ class ProtocolVectorsTest {
             val minting = MintingPayRequest.from(response)
             assertEquals(whitewallet.lnurl.Lnurl.resolve(expectedLink), minting.withdrawUrl, c.str("name"))
             val fee = c["mintFee"] as? JsonObject
-            assertEquals(fee?.let { MintFee(it.getValue("baseFeeMsat").jsonPrimitive.long, it.getValue("feePpm").jsonPrimitive.long) }, minting.fee)
+            assertEquals(
+                fee?.let { MintFee(it.getValue("baseFeeMsat").jsonPrimitive.long, it.getValue("feePpm").jsonPrimitive.long) },
+                minting.fee,
+            )
         }
         for (c in v.objects("rejected")) {
             assertFailsWith<ProtocolViolation>(c.str("name")) { MintingPayRequest.from(LnurlResponse.parse(c.obj("body"))) }
@@ -97,7 +104,9 @@ class ProtocolVectorsTest {
         for (c in v.objects("rejected")) {
             assertFailsWith<ProtocolViolation>(c.str("name")) { NoteInfo.from(LnurlResponse.parse(c.obj("body")), queried) }
         }
-        assertFailsWith<NoteLookupError> { NoteInfo.from(LnurlResponse.parse(JsonObject(mapOf("status" to JsonPrimitive("ERROR")))), queried) }
+        assertFailsWith<NoteLookupError> {
+            NoteInfo.from(LnurlResponse.parse(JsonObject(mapOf("status" to JsonPrimitive("ERROR")))), queried)
+        }
     }
 
     @Test

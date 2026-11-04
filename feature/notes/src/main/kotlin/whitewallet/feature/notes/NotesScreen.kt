@@ -57,6 +57,7 @@ import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletListItem
@@ -65,7 +66,6 @@ import whitewallet.core.designsystem.WalletNoteGroupHeader
 import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
-import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
@@ -101,27 +101,47 @@ class NotesActions(
 
 /** Wires [NotesViewModel] to [NotesContent]; [onOpenShared] shows a shared note (its QR code, or taking it back). */
 @Composable
-fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Unit): NotesActions = remember(viewModel, onOpenShared) {
-    NotesActions(
-        tap = viewModel::tap, longPress = viewModel::select, startSelecting = viewModel::startSelecting, stopSelecting = viewModel::stopSelecting,
-        close = viewModel::close, dismissOutcome = viewModel::dismissOutcome, setSort = viewModel::setSort, share = viewModel::share,
-        simulateFailure = viewModel::setSimulatedFailure,
-        openSplit = viewModel::openSplit, recheck = viewModel::recheck, renew = viewModel::renew, combine = viewModel::combine,
-        openMove = viewModel::openMove, recheckSelected = viewModel::recheckSelected, moveAnyway = viewModel::moveAnyway,
-        splitAmount = viewModel::onSplitAmount, split = viewModel::split, moveTarget = viewModel::onMoveTarget, move = viewModel::move,
-        dismissDialog = viewModel::dismissDialog, openShared = onOpenShared, dismissReceived = viewModel::dismissReceived,
-    )
-}
+fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Unit): NotesActions =
+    remember(viewModel, onOpenShared) {
+        NotesActions(
+            tap = viewModel::tap,
+            longPress = viewModel::select,
+            startSelecting = viewModel::startSelecting,
+            stopSelecting = viewModel::stopSelecting,
+            close = viewModel::close,
+            dismissOutcome = viewModel::dismissOutcome,
+            setSort = viewModel::setSort,
+            share = viewModel::share,
+            simulateFailure = viewModel::setSimulatedFailure,
+            openSplit = viewModel::openSplit,
+            recheck = viewModel::recheck,
+            renew = viewModel::renew,
+            combine = viewModel::combine,
+            openMove = viewModel::openMove,
+            recheckSelected = viewModel::recheckSelected,
+            moveAnyway = viewModel::moveAnyway,
+            splitAmount = viewModel::onSplitAmount,
+            split = viewModel::split,
+            moveTarget = viewModel::onMoveTarget,
+            move = viewModel::move,
+            dismissDialog = viewModel::dismissDialog,
+            openShared = onOpenShared,
+            dismissReceived = viewModel::dismissReceived,
+        )
+    }
 
 /**
- * The Notes tab's content, inside Home (which supplies the top bar and pull to refresh, see [NotesViewModel.refresh]).
- * A just-shared note opens through [onOpenShared].
+ * The Notes tab's content, inside Home (which supplies the top bar and pull to refresh, see [NotesViewModel.refresh]). A just-shared note
+ * opens through [onOpenShared].
  */
 @Composable
 fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.sharedId) {
-        state.sharedId?.let { onOpenShared(it); viewModel.sharedShown() }
+        state.sharedId?.let {
+            onOpenShared(it)
+            viewModel.sharedShown()
+        }
     }
     NotesContent(state, rememberNotesActions(viewModel, onOpenShared))
 }
@@ -132,12 +152,18 @@ fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit) {
 fun NotesRoute(onBack: () -> Unit, onSettings: () -> Unit, onOpenShared: (String) -> Unit, viewModel: NotesViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.sharedId) {
-        state.sharedId?.let { onOpenShared(it); viewModel.sharedShown() }
+        state.sharedId?.let {
+            onOpenShared(it)
+            viewModel.sharedShown()
+        }
     }
-    Scaffold(
-        topBar = { WalletTopBar(stringResource(R.string.notes_title), onBack, actions = { NoteSettingsButton(onSettings) }) },
-    ) { padding ->
-        PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.padding(padding).fillMaxSize()) {
+    Scaffold(topBar = { WalletTopBar(stringResource(R.string.notes_title), onBack, actions = { NoteSettingsButton(onSettings) }) }) {
+        padding ->
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = viewModel::refresh,
+            modifier = Modifier.padding(padding).fillMaxSize(),
+        ) {
             NotesContent(state, rememberNotesActions(viewModel, onOpenShared))
         }
     }
@@ -150,8 +176,8 @@ fun NoteSettingsButton(onClick: () -> Unit) {
 }
 
 /**
- * The notes, per mint: how much, where, and whether anything is waiting. Tap a note for its details and actions;
- * long-press (or Select) to pick several on one mint.
+ * The notes, per mint: how much, where, and whether anything is waiting. Tap a note for its details and actions; long-press (or Select) to
+ * pick several on one mint.
  */
 @Composable
 fun NotesContent(state: NotesState, actions: NotesActions) {
@@ -161,7 +187,9 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
         LazyColumn(Modifier.fillMaxSize()) {
             item { Summary(state) }
             if (state.busy) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
-            state.outcome?.takeIf { state.open == null }?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
+            state.outcome
+                ?.takeIf { state.open == null }
+                ?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
             if (state.loaded && state.mints.isEmpty() && state.shared.isEmpty() && state.received.isEmpty()) {
                 item {
                     Column(Modifier.padding(16.dp)) {
@@ -177,7 +205,9 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
             }
             if (state.received.isNotEmpty()) {
                 item { ReceivedHeader() }
-                items(state.received, key = { "received:${it.id}" }) { note -> ReceivedNoteRow(note, state.showMints, amountHidden = false, onDismiss = actions.dismissReceived) }
+                items(state.received, key = { "received:${it.id}" }) { note ->
+                    ReceivedNoteRow(note, state.showMints, amountHidden = false, onDismiss = actions.dismissReceived)
+                }
             }
             if (state.shared.isNotEmpty()) {
                 item { SharedHeader() }
@@ -204,25 +234,35 @@ private fun Summary(state: NotesState) {
         if (state.noteCount > 0) {
             val parts = buildList {
                 add(pluralStringResource(R.plurals.notes_count, state.noteCount, state.noteCount))
-                if (state.showMints && state.mints.size > 1) add(pluralStringResource(R.plurals.notes_mints, state.mints.size, state.mints.size))
+                if (state.showMints && state.mints.size > 1)
+                    add(pluralStringResource(R.plurals.notes_mints, state.mints.size, state.mints.size))
             }
             Text(parts.joinToString(stringResource(R.string.notes_detail_separator)), style = MaterialTheme.typography.bodyMedium)
         }
         if (state.receivedMsat > 0) {
-            Text(stringResource(DesignR.string.received_total, formatAmount(state.receivedMsat)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(DesignR.string.received_total, formatAmount(state.receivedMsat)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         if (state.sharedMsat > 0) {
-            Text(stringResource(R.string.notes_waiting_total, formatAmount(state.sharedMsat)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(R.string.notes_waiting_total, formatAmount(state.sharedMsat)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
 /** Empty without notes, waiting while handed-out notes are out, else idle. */
-internal fun notesStatus(state: NotesState): WalletStatus = when {
-    state.noteCount == 0 && state.shared.isEmpty() && state.received.none { it.isPending } -> WalletStatus.Empty
-    state.sharedMsat > 0 -> WalletStatus.WaitingForRecipient
-    else -> WalletStatus.Idle
-}
+internal fun notesStatus(state: NotesState): WalletStatus =
+    when {
+        state.noteCount == 0 && state.shared.isEmpty() && state.received.none { it.isPending } -> WalletStatus.Empty
+        state.sharedMsat > 0 -> WalletStatus.WaitingForRecipient
+        else -> WalletStatus.Idle
+    }
 
 /** Sorting, and starting a selection. */
 @Composable
@@ -236,11 +276,20 @@ private fun Toolbar(state: NotesState, actions: NotesActions) {
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 NoteSort.entries.forEach { sort ->
-                    DropdownMenuItem(text = { Text(stringResource(sortLabel(sort))) }, onClick = { menu = false; actions.setSort(sort) })
+                    DropdownMenuItem(
+                        text = { Text(stringResource(sortLabel(sort))) },
+                        onClick = {
+                            menu = false
+                            actions.setSort(sort)
+                        },
+                    )
                 }
             }
         }
-        if (state.canSelect && !state.selecting) WalletButton(kind = ButtonKind.Text, onClick = actions.startSelecting, enabled = !state.busy) { Text(stringResource(R.string.notes_select)) }
+        if (state.canSelect && !state.selecting)
+            WalletButton(kind = ButtonKind.Text, onClick = actions.startSelecting, enabled = !state.busy) {
+                Text(stringResource(R.string.notes_select))
+            }
     }
     if (state.noteStrategy?.reshapesNotes == true && state.selecting) {
         Text(
@@ -252,18 +301,20 @@ private fun Toolbar(state: NotesState, actions: NotesActions) {
     }
 }
 
-private fun sortLabel(sort: NoteSort) = when (sort) {
-    NoteSort.Largest -> R.string.notes_sort_largest
-    NoteSort.Newest -> R.string.notes_sort_newest
-}
+private fun sortLabel(sort: NoteSort) =
+    when (sort) {
+        NoteSort.Largest -> R.string.notes_sort_largest
+        NoteSort.Newest -> R.string.notes_sort_newest
+    }
 
 /** A mint's name, labels and total, drawn by the brand; without `mints.visible` only the line between two mints' notes. */
 @Composable
 private fun MintHeader(mint: MintNotes, state: NotesState, onMoveAnyway: (String) -> Unit) {
-    val labels = listOfNotNull(
-        stringResource(R.string.notes_home_mint).takeIf { mint.isHome },
-        stringResource(R.string.notes_trusted).takeIf { mint.trusted },
-    )
+    val labels =
+        listOfNotNull(
+            stringResource(R.string.notes_home_mint).takeIf { mint.isHome },
+            stringResource(R.string.notes_trusted).takeIf { mint.trusted },
+        )
     WalletNoteGroupHeader(
         mint = mint.host.takeIf { state.showMints },
         totalMsat = mint.totalMsat,
@@ -271,17 +322,21 @@ private fun MintHeader(mint: MintNotes, state: NotesState, onMoveAnyway: (String
         trusted = mint.trusted,
         labels = labels.takeIf { it.isNotEmpty() }?.joinToString(stringResource(R.string.notes_detail_separator)),
     )
-    mint.skipped?.takeIf { NoteAction.Move in state.noteActions }?.let { skipped ->
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(R.string.notes_group_not_moved, formatAmount(skipped.feeMsat), skipped.capPercent),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            WalletButton(kind = ButtonKind.Text, onClick = { onMoveAnyway(mint.host) }, enabled = !state.busy) { Text(stringResource(R.string.notes_move_anyway)) }
+    mint.skipped
+        ?.takeIf { NoteAction.Move in state.noteActions }
+        ?.let { skipped ->
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.notes_group_not_moved, formatAmount(skipped.feeMsat), skipped.capPercent),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                WalletButton(kind = ButtonKind.Text, onClick = { onMoveAnyway(mint.host) }, enabled = !state.busy) {
+                    Text(stringResource(R.string.notes_move_anyway))
+                }
+            }
         }
-    }
 }
 
 /** The mark of a trusted mint (decorative: the "Trusted" label next to it says it in words). */
@@ -291,8 +346,8 @@ internal fun TrustedIcon() {
 }
 
 /**
- * One note, drawn by the brand: the amount and its age; a status line only when it isn't simply in the balance. The
- * row's tap, long-press and, while selecting, its checkbox state stay the app's.
+ * One note, drawn by the brand: the amount and its age; a status line only when it isn't simply in the balance. The row's tap, long-press
+ * and, while selecting, its checkbox state stay the app's.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -311,54 +366,63 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
         trusted = state.mints.any { it.host == note.host && it.trusted },
         selected = selected,
         enabled = selectable && !state.busy,
-        modifier = Modifier
-            .combinedClickable(
-                enabled = !state.busy && (selectable || !state.selecting),
-                onClick = { actions.tap(note) },
-                onLongClick = { if (selectable && state.canSelect) actions.longPress(note) },
-            )
-            .semantics {
-                if (selected != null) {
-                    role = Role.Checkbox
-                    toggleableState = ToggleableState(selected)
-                }
-            },
+        modifier =
+            Modifier.combinedClickable(
+                    enabled = !state.busy && (selectable || !state.selecting),
+                    onClick = { actions.tap(note) },
+                    onLongClick = { if (selectable && state.canSelect) actions.longPress(note) },
+                )
+                .semantics {
+                    if (selected != null) {
+                        role = Role.Checkbox
+                        toggleableState = ToggleableState(selected)
+                    }
+                },
     )
 }
 
 /** How a note in the wallet stands. */
-internal fun noteStatus(note: Note): NoteStatus = when {
-    note.state == NoteState.Paying -> NoteStatus.Paying
-    note.state == NoteState.Ambiguous -> NoteStatus.Unclear
-    note.state == NoteState.Unknown -> NoteStatus.Unknown
-    note.certificate == null -> NoteStatus.Uncertified
-    else -> NoteStatus.Ready
-}
+internal fun noteStatus(note: Note): NoteStatus =
+    when {
+        note.state == NoteState.Paying -> NoteStatus.Paying
+        note.state == NoteState.Ambiguous -> NoteStatus.Unclear
+        note.state == NoteState.Unknown -> NoteStatus.Unknown
+        note.certificate == null -> NoteStatus.Uncertified
+        else -> NoteStatus.Ready
+    }
 
 /** What's unusual about a note, in words; null when it is simply ready. */
 @Composable
-internal fun noteStatusText(status: NoteStatus): String? = when (status) {
-    NoteStatus.Paying -> stringResource(R.string.notes_state_paying)
-    NoteStatus.Unclear -> stringResource(R.string.notes_state_ambiguous)
-    NoteStatus.Uncertified -> stringResource(R.string.notes_uncertified)
-    NoteStatus.Unknown -> stringResource(R.string.notes_state_unknown)
-    else -> null
-}
+internal fun noteStatusText(status: NoteStatus): String? =
+    when (status) {
+        NoteStatus.Paying -> stringResource(R.string.notes_state_paying)
+        NoteStatus.Unclear -> stringResource(R.string.notes_state_ambiguous)
+        NoteStatus.Uncertified -> stringResource(R.string.notes_uncertified)
+        NoteStatus.Unknown -> stringResource(R.string.notes_state_unknown)
+        else -> null
+    }
 
-private fun noteStatusIcon(status: NoteStatus): Int? = when (status) {
-    NoteStatus.Paying -> DesignR.drawable.ic_pending
-    NoteStatus.Unclear -> DesignR.drawable.ic_unknown
-    NoteStatus.Uncertified -> DesignR.drawable.ic_uncertified
-    NoteStatus.Unknown -> DesignR.drawable.ic_warning
-    else -> null
-}
+private fun noteStatusIcon(status: NoteStatus): Int? =
+    when (status) {
+        NoteStatus.Paying -> DesignR.drawable.ic_pending
+        NoteStatus.Unclear -> DesignR.drawable.ic_unknown
+        NoteStatus.Uncertified -> DesignR.drawable.ic_uncertified
+        NoteStatus.Unknown -> DesignR.drawable.ic_warning
+        else -> null
+    }
 
 /** Received as links, not claimed yet: what that means for the user. */
 @Composable
 private fun ReceivedHeader() {
     HorizontalDivider()
     WalletListItem(
-        headlineContent = { Text(stringResource(DesignR.string.received_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() }) },
+        headlineContent = {
+            Text(
+                stringResource(DesignR.string.received_title),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() },
+            )
+        },
         supportingContent = { Text(stringResource(DesignR.string.received_hint)) },
     )
 }
@@ -367,7 +431,13 @@ private fun ReceivedHeader() {
 private fun SharedHeader() {
     HorizontalDivider()
     WalletListItem(
-        headlineContent = { Text(stringResource(R.string.notes_shared_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() }) },
+        headlineContent = {
+            Text(
+                stringResource(R.string.notes_shared_title),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() },
+            )
+        },
         supportingContent = { Text(stringResource(R.string.notes_shared_hint)) },
     )
 }
@@ -400,10 +470,21 @@ private fun SelectionBar(state: NotesState, actions: NotesActions, modifier: Mod
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 val offered = state.noteActions
-                if (NoteAction.Combine in offered) WalletButton(kind = ButtonKind.Text, onClick = actions.combine, enabled = state.canCombine) { Text(stringResource(R.string.notes_combine)) }
-                if (NoteAction.Move in offered) WalletButton(kind = ButtonKind.Text, onClick = actions.openMove, enabled = state.canAct) { Text(stringResource(R.string.notes_move)) }
-                if (NoteAction.Recheck in offered) WalletButton(kind = ButtonKind.Text, onClick = actions.recheckSelected, enabled = state.canAct) { Text(stringResource(R.string.notes_recheck)) }
-                WalletButton(kind = ButtonKind.Text, onClick = actions.stopSelecting, enabled = !state.busy) { Text(stringResource(R.string.notes_cancel)) }
+                if (NoteAction.Combine in offered)
+                    WalletButton(kind = ButtonKind.Text, onClick = actions.combine, enabled = state.canCombine) {
+                        Text(stringResource(R.string.notes_combine))
+                    }
+                if (NoteAction.Move in offered)
+                    WalletButton(kind = ButtonKind.Text, onClick = actions.openMove, enabled = state.canAct) {
+                        Text(stringResource(R.string.notes_move))
+                    }
+                if (NoteAction.Recheck in offered)
+                    WalletButton(kind = ButtonKind.Text, onClick = actions.recheckSelected, enabled = state.canAct) {
+                        Text(stringResource(R.string.notes_recheck))
+                    }
+                WalletButton(kind = ButtonKind.Text, onClick = actions.stopSelecting, enabled = !state.busy) {
+                    Text(stringResource(R.string.notes_cancel))
+                }
             }
         }
     }
@@ -423,26 +504,38 @@ internal fun Outcome(outcome: NotesOutcome, showMints: Boolean, onDismiss: () ->
 }
 
 private val NotesOutcome.isProblem: Boolean
-    get() = this is NotesOutcome.Failed || this is NotesOutcome.KeyChanged || this is NotesOutcome.AlreadySpent ||
-        (this is NotesOutcome.Checked && (gone > 0 || unknown > 0 || unreachable.isNotEmpty()))
+    get() =
+        this is NotesOutcome.Failed ||
+            this is NotesOutcome.KeyChanged ||
+            this is NotesOutcome.AlreadySpent ||
+            (this is NotesOutcome.Checked && (gone > 0 || unknown > 0 || unreachable.isNotEmpty()))
 
 @Composable
-private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String = when (outcome) {
-    is NotesOutcome.Combined -> stringResource(R.string.notes_combined, formatAmount(outcome.amountMsat))
-    is NotesOutcome.Split -> stringResource(R.string.notes_split_done, formatAmount(outcome.firstMsat), formatAmount(outcome.secondMsat))
-    is NotesOutcome.Moved -> stringResource(R.string.notes_moved, formatAmount(outcome.arrivedMsat), outcome.host)
-    is NotesOutcome.Renewed -> stringResource(R.string.notes_renewed, formatAmount(outcome.amountMsat))
-    is NotesOutcome.Checked -> buildList {
-        if (outcome.gone > 0) add(pluralStringResource(R.plurals.notes_checked_gone, outcome.gone, outcome.gone))
-        if (outcome.unknown > 0) add(pluralStringResource(R.plurals.notes_checked_unknown, outcome.unknown, outcome.unknown))
-        if (outcome.gone == 0 && outcome.unknown == 0 && outcome.unreachable.isEmpty()) add(pluralStringResource(R.plurals.notes_checked_ok, outcome.ok, outcome.ok))
-        if (outcome.unreachable.isNotEmpty()) {
-            add(if (showMints) stringResource(R.string.notes_checked_unreachable, ListFormatter.getInstance().format(outcome.unreachable)) else stringResource(R.string.notes_checked_no_answer))
-        }
-    }.joinToString(" ")
-    is NotesOutcome.KeyChanged -> stringResource(R.string.notes_key_changed, outcome.host)
-    NotesOutcome.AlreadySpent -> stringResource(R.string.notes_already_spent)
-    is NotesOutcome.Settled -> stringResource(if (outcome.landed) R.string.notes_settled_landed else R.string.notes_settled_back)
-    NotesOutcome.Pending -> stringResource(R.string.notes_pending)
-    is NotesOutcome.Failed -> problemText(outcome.problem)
-}
+private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String =
+    when (outcome) {
+        is NotesOutcome.Combined -> stringResource(R.string.notes_combined, formatAmount(outcome.amountMsat))
+        is NotesOutcome.Split ->
+            stringResource(R.string.notes_split_done, formatAmount(outcome.firstMsat), formatAmount(outcome.secondMsat))
+        is NotesOutcome.Moved -> stringResource(R.string.notes_moved, formatAmount(outcome.arrivedMsat), outcome.host)
+        is NotesOutcome.Renewed -> stringResource(R.string.notes_renewed, formatAmount(outcome.amountMsat))
+        is NotesOutcome.Checked ->
+            buildList {
+                    if (outcome.gone > 0) add(pluralStringResource(R.plurals.notes_checked_gone, outcome.gone, outcome.gone))
+                    if (outcome.unknown > 0) add(pluralStringResource(R.plurals.notes_checked_unknown, outcome.unknown, outcome.unknown))
+                    if (outcome.gone == 0 && outcome.unknown == 0 && outcome.unreachable.isEmpty())
+                        add(pluralStringResource(R.plurals.notes_checked_ok, outcome.ok, outcome.ok))
+                    if (outcome.unreachable.isNotEmpty()) {
+                        add(
+                            if (showMints)
+                                stringResource(R.string.notes_checked_unreachable, ListFormatter.getInstance().format(outcome.unreachable))
+                            else stringResource(R.string.notes_checked_no_answer)
+                        )
+                    }
+                }
+                .joinToString(" ")
+        is NotesOutcome.KeyChanged -> stringResource(R.string.notes_key_changed, outcome.host)
+        NotesOutcome.AlreadySpent -> stringResource(R.string.notes_already_spent)
+        is NotesOutcome.Settled -> stringResource(if (outcome.landed) R.string.notes_settled_landed else R.string.notes_settled_back)
+        NotesOutcome.Pending -> stringResource(R.string.notes_pending)
+        is NotesOutcome.Failed -> problemText(outcome.problem)
+    }

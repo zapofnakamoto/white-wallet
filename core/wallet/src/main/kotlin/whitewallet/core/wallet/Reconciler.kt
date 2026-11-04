@@ -15,11 +15,11 @@ import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
 
 /**
- * Settles mutations whose outcome is unknown by looking up their outputs and inputs by `p`, which never discloses
- * a spend. An output of ours that exists means the mutation landed; inputs that are all still outstanding mean it did
- * not. Someone else's output (an internal transfer) proves nothing: another payer's note may sit at that key. Only
- * this wallet can spend its own inputs, so for such a mutation inputs that are all gone mean it landed. A received
- * note's input can be spent by whoever made its link: gone, with our output missing, it never landed.
+ * Settles mutations whose outcome is unknown by looking up their outputs and inputs by `p`, which never discloses a spend. An output of
+ * ours that exists means the mutation landed; inputs that are all still outstanding mean it did not. Someone else's output (an internal
+ * transfer) proves nothing: another payer's note may sit at that key. Only this wallet can spend its own inputs, so for such a mutation
+ * inputs that are all gone mean it landed. A received note's input can be spent by whoever made its link: gone, with our output missing, it
+ * never landed.
  */
 internal class Reconciler(private val wallet: Wallet) {
     suspend fun reconcileAll() {
@@ -43,8 +43,22 @@ internal class Reconciler(private val wallet: Wallet) {
                 landed = true
                 val cert = info.certificate?.takeIf { Certificates.verify(it, q, info.mintPubkey) }
                 if (wallet.store.note(output.q) == null) {
-                    wallet.store.upsertNotes(listOf(Note(output.q, output.accountId, entry.host, NoteKind.KeyPath, output.purpose, output.index,
-                        info.maxWithdrawableMsat, cert?.encode(), NoteState.Outstanding, wallet.now())))
+                    wallet.store.upsertNotes(
+                        listOf(
+                            Note(
+                                output.q,
+                                output.accountId,
+                                entry.host,
+                                NoteKind.KeyPath,
+                                output.purpose,
+                                output.index,
+                                info.maxWithdrawableMsat,
+                                cert?.encode(),
+                                NoteState.Outstanding,
+                                wallet.now(),
+                            )
+                        )
+                    )
                 }
             }
             if (!landed) {
@@ -52,19 +66,26 @@ internal class Reconciler(private val wallet: Wallet) {
                 if (live.all { it }) {
                     // It never landed: the inputs are spendable again.
                     for (id in entry.inputIds) {
-                        wallet.store.note(id)?.takeIf { it.state == NoteState.Ambiguous }
-                            ?.let { wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now()))) }
+                        wallet.store
+                            .note(id)
+                            ?.takeIf { it.state == NoteState.Ambiguous }
+                            ?.let {
+                                wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now())))
+                            }
                     }
                     return finish(entry, JournalStatus.Rejected)
                 }
                 // A note received as a link: whoever made the link could spend it too, so its input gone and our
                 // output missing means someone else claimed it first. It never landed.
-                if (live.none { it } && entry.inputIds.any { wallet.store.receivedNote(it) != null }) return finish(entry, JournalStatus.Rejected)
+                if (live.none { it } && entry.inputIds.any { wallet.store.receivedNote(it) != null })
+                    return finish(entry, JournalStatus.Rejected)
                 // The payee may have moved the note on already, so its key can't tell; the burned inputs can.
                 landed = live.none { it } && entry.outputs.any { it.isExternal }
             }
             if (landed) {
-                for (id in entry.inputIds) wallet.store.note(id)?.let { wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = wallet.now()))) }
+                for (id in entry.inputIds) wallet.store.note(id)?.let {
+                    wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = wallet.now())))
+                }
                 return finish(entry, JournalStatus.Confirmed)
             }
         } catch (e: IOException) {
@@ -72,7 +93,8 @@ internal class Reconciler(private val wallet: Wallet) {
         } catch (e: ProtocolViolation) {
             // Same.
         }
-        if (entry.status == JournalStatus.Prepared) wallet.store.putJournal(entry.copy(status = JournalStatus.Unknown, updatedAtMillis = wallet.now()))
+        if (entry.status == JournalStatus.Prepared)
+            wallet.store.putJournal(entry.copy(status = JournalStatus.Unknown, updatedAtMillis = wallet.now()))
         return JournalStatus.Unknown
     }
 
@@ -83,12 +105,14 @@ internal class Reconciler(private val wallet: Wallet) {
     }
 
     /** The note's info, or null if the mint says it is unknown or spent. Other refusals are rethrown as IOException. */
-    private suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo? = try {
-        wallet.client.lookup(withdrawUrl, q)
-    } catch (e: NoteLookupError) {
-        when (e.kind) {
-            RejectionKind.Spent, RejectionKind.NoteUnknown -> null
-            else -> throw IOException(e.reason)
+    private suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo? =
+        try {
+            wallet.client.lookup(withdrawUrl, q)
+        } catch (e: NoteLookupError) {
+            when (e.kind) {
+                RejectionKind.Spent,
+                RejectionKind.NoteUnknown -> null
+                else -> throw IOException(e.reason)
+            }
         }
-    }
 }

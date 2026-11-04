@@ -2,7 +2,6 @@
 
 package whitewallet.core.wallet
 
-import whitewallet.lnurlcash.RevealsNoteSecret
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.secp256k1.Hex
 import kotlin.test.Test
@@ -15,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.Profile
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.testkit.MockMint
@@ -23,25 +23,36 @@ import whitewallet.testkit.MockMint
 class MintTrustTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
-    private fun withMints(brand: (home: String, other: String, otherKey: String) -> List<MintKey> = { _, _, _ -> emptyList() }, test: suspend (Wallet, InMemoryWalletStore, MockMint, MockMint) -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
-        MockMint.start().use { home ->
-            MockMint.start().use { other ->
-                // Learn the other mint's key first, for a brand list.
-                val probe = InMemoryWalletStore()
-                val scout = Wallet(probe, InMemorySeedStore(), LnurlcashClient())
-                assertIs<ConnectResult.Connected>(scout.connectMint(other.host))
-                val otherKey = probe.mintMap.getValue(other.host).mintPubkey!!
+    private fun withMints(
+        brand: (home: String, other: String, otherKey: String) -> List<MintKey> = { _, _, _ -> emptyList() },
+        test: suspend (Wallet, InMemoryWalletStore, MockMint, MockMint) -> Unit,
+    ) =
+        runBlocking<Unit> {
+            assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
+            MockMint.start().use { home ->
+                MockMint.start().use { other ->
+                    // Learn the other mint's key first, for a brand list.
+                    val probe = InMemoryWalletStore()
+                    val scout = Wallet(probe, InMemorySeedStore(), LnurlcashClient())
+                    assertIs<ConnectResult.Connected>(scout.connectMint(other.host))
+                    val otherKey = probe.mintMap.getValue(other.host).mintPubkey!!
 
-                val store = InMemoryWalletStore()
-                val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID),
-                    trust = MintTrustStore.InMemory(), brandTrusted = brand(home.host, other.host, otherKey))
-                store.addAccount("a", "Main", Profile("alice", home.host), host = home.host)
-                assertIs<ConnectResult.Connected>(wallet.connectMint(home.host))
-                test(wallet, store, home, other)
+                    val store = InMemoryWalletStore()
+                    val wallet =
+                        Wallet(
+                            store,
+                            InMemorySeedStore(mapOf("a" to words)),
+                            LnurlcashClient(),
+                            policies = NotePolicies.InMemory(ManualStrategy.ID),
+                            trust = MintTrustStore.InMemory(),
+                            brandTrusted = brand(home.host, other.host, otherKey),
+                        )
+                    store.addAccount("a", "Main", Profile("alice", home.host), host = home.host)
+                    assertIs<ConnectResult.Connected>(wallet.connectMint(home.host))
+                    test(wallet, store, home, other)
+                }
             }
         }
-    }
 
     private suspend fun Wallet.info(host: String) = mints.first().single { it.host == host }
 
@@ -80,17 +91,19 @@ class MintTrustTest {
     }
 
     @Test
-    fun `a brand's mint is trusted with the key it ships, not with another`() = withMints({ _, other, key -> listOf(MintKey(other, key)) }) { wallet, _, _, other ->
-        wallet.addMint(other.host)
-        assertEquals(TrustDefault.Brand, wallet.info(other.host).trustedByDefault)
-        assertTrue(wallet.info(other.host).trusted)
-    }
+    fun `a brand's mint is trusted with the key it ships, not with another`() =
+        withMints({ _, other, key -> listOf(MintKey(other, key)) }) { wallet, _, _, other ->
+            wallet.addMint(other.host)
+            assertEquals(TrustDefault.Brand, wallet.info(other.host).trustedByDefault)
+            assertTrue(wallet.info(other.host).trusted)
+        }
 
     @Test
-    fun `a brand entry with a different key trusts nothing`() = withMints({ _, other, _ -> listOf(MintKey(other, "02" + "22".repeat(32))) }) { wallet, _, _, other ->
-        wallet.addMint(other.host)
-        assertFalse(wallet.info(other.host).trusted)
-    }
+    fun `a brand entry with a different key trusts nothing`() =
+        withMints({ _, other, _ -> listOf(MintKey(other, "02" + "22".repeat(32))) }) { wallet, _, _, other ->
+            wallet.addMint(other.host)
+            assertFalse(wallet.info(other.host).trusted)
+        }
 
     @Test
     fun `a mint without a key can't be trusted`() = withMints { wallet, _, _, _ ->
@@ -100,7 +113,10 @@ class MintTrustTest {
     @Test
     fun `the brand list parses host with port, and rejects anything else`() {
         val key = "02" + "ab".repeat(32)
-        assertEquals(listOf(MintKey("localhost:8111", key), MintKey("mint.example", key)), TrustedMints.parse(" localhost:8111:$key, Mint.Example:${key.uppercase()} "))
+        assertEquals(
+            listOf(MintKey("localhost:8111", key), MintKey("mint.example", key)),
+            TrustedMints.parse(" localhost:8111:$key, Mint.Example:${key.uppercase()} "),
+        )
         assertEquals(emptyList(), TrustedMints.parse(""))
         assertFailsWith<IllegalArgumentException> { TrustedMints.parse("mint.example") }
         assertFailsWith<IllegalArgumentException> { TrustedMints.parse("mint.example:abcd") }

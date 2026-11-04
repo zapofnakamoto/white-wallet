@@ -2,7 +2,6 @@
 
 package whitewallet.core.wallet
 
-import whitewallet.lnurlcash.RevealsNoteSecret
 import fr.acinq.bitcoin.MnemonicCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -15,6 +14,7 @@ import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.testkit.MockMint
 
@@ -24,18 +24,26 @@ class KeyIndexTest {
 
     private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: CashBranch)
 
-    private fun withMint(test: suspend Fixture.() -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
-        MockMint.start().use { mint ->
-            val store = InMemoryWalletStore()
-            val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
-            store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-            Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+    private fun withMint(test: suspend Fixture.() -> Unit) =
+        runBlocking<Unit> {
+            assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
+            MockMint.start().use { mint ->
+                val store = InMemoryWalletStore()
+                val wallet =
+                    Wallet(
+                        store,
+                        InMemorySeedStore(mapOf("a" to words)),
+                        LnurlcashClient(),
+                        policies = NotePolicies.InMemory(ManualStrategy.ID),
+                    )
+                store.addAccount("a", "Main", Profile("alice", mint.host))
+                assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
+                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+            }
         }
-    }
 
-    private fun Fixture.credit(purpose: NotePurpose, index: Long, msat: Long) = mint.credit(Cp1.encode(branch.notePubkey(purpose, index)), msat)
+    private fun Fixture.credit(purpose: NotePurpose, index: Long, msat: Long) =
+        mint.credit(Cp1.encode(branch.notePubkey(purpose, index)), msat)
 
     @Test
     fun `rotate all still works after the wallet counter was forced back to 0`() = withMint {
@@ -56,7 +64,8 @@ class KeyIndexTest {
     /** A second wallet on the same seed (another device): its own fresh store, same keys. */
     private suspend fun Fixture.otherDevice(): Pair<InMemoryWalletStore, Wallet> {
         val store2 = InMemoryWalletStore()
-        val wallet2 = Wallet(store2, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
+        val wallet2 =
+            Wallet(store2, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
         store2.addAccount("a", "Main", Profile("alice", mint.host))
         assertIs<ConnectResult.Connected>(wallet2.connectMint(mint.host))
         return store2 to wallet2

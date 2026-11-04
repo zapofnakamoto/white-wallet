@@ -14,21 +14,23 @@ public object Lnurl {
     public fun decodeBech32(value: String): String? = runCatching {
         val (hrp, data, encoding) = Bech32.decodeBytes(value)
         if (hrp != "lnurl" || encoding != Bech32.Encoding.Bech32 || data.isEmpty()) null else data.decodeToString()
-    }.getOrNull()
+    }
+        .getOrNull()
 
     /** Encodes [url] as an uppercase bech32 LNURL (uppercase keeps QR codes compact). */
-    public fun encodeBech32(url: String): String =
-        Bech32.encodeBytes("lnurl", url.encodeToByteArray(), Bech32.Encoding.Bech32).uppercase()
+    public fun encodeBech32(url: String): String = Bech32.encodeBytes("lnurl", url.encodeToByteArray(), Bech32.Encoding.Bech32).uppercase()
 
     /**
-     * Resolves user input (an https URL, a LUD-17 scheme, a bech32 LNURL, a Lightning Address, optionally behind
-     * `lightning:`) to the URL to GET. Cleartext http is only allowed for onion and loopback hosts.
+     * Resolves user input (an https URL, a LUD-17 scheme, a bech32 LNURL, a Lightning Address, optionally behind `lightning:`) to the URL
+     * to GET. Cleartext http is only allowed for onion and loopback hosts.
      */
     public fun resolve(input: String): String? {
         var value = input.trim()
         if (value.startsWith("lightning:", ignoreCase = true)) value = value.substring("lightning:".length)
         if (value.isEmpty()) return null
-        lightningAddressUrl(value)?.let { return it }
+        lightningAddressUrl(value)?.let {
+            return it
+        }
         if (value.startsWith("lnurl1", ignoreCase = true)) return decodeBech32(value)?.let(::resolveUrl)
         return resolveUrl(value)
     }
@@ -45,8 +47,7 @@ public object Lnurl {
         WELL_KNOWN_LNURLP.matchEntire(payUrl)?.destructured?.let { (base, name) -> "$base/.well-known/lnurlw/$name" }
 
     /** The Lightning Address username a pay URL is published under, or null. */
-    public fun lightningAddressUsername(payUrl: String): String? =
-        WELL_KNOWN_LNURLP.matchEntire(payUrl)?.groupValues?.get(2)
+    public fun lightningAddressUsername(payUrl: String): String? = WELL_KNOWN_LNURLP.matchEntire(payUrl)?.groupValues?.get(2)
 
     /** Appends query parameters to [url], keeping any it already carries. Repeated keys are kept in order. */
     public fun withQuery(url: String, params: List<Pair<String, String>>): String {
@@ -60,10 +61,13 @@ public object Lnurl {
     /** Parses a query string into ordered key/value pairs, decoding percent-escapes. */
     public fun queryParams(url: String): List<Pair<String, String>> {
         val query = runCatching { URI(url).rawQuery }.getOrNull() ?: return emptyList()
-        return query.split('&').filter { it.isNotEmpty() }.map {
-            val (k, v) = it.split('=', limit = 2).let { p -> p[0] to p.getOrElse(1) { "" } }
-            decode(k) to decode(v)
-        }
+        return query
+            .split('&')
+            .filter { it.isNotEmpty() }
+            .map {
+                val (k, v) = it.split('=', limit = 2).let { p -> p[0] to p.getOrElse(1) { "" } }
+                decode(k) to decode(v)
+            }
     }
 
     public fun host(url: String): String? = runCatching { URI(url).rawAuthority }.getOrNull()
@@ -88,5 +92,6 @@ public object Lnurl {
         host.endsWith(".onion") || host == "localhost" || host.startsWith("127.") || host == "[::1]" || host == "::1"
 
     private fun encode(s: String) = URLEncoder.encode(s, Charsets.UTF_8).replace("+", "%20")
+
     private fun decode(s: String) = java.net.URLDecoder.decode(s, Charsets.UTF_8)
 }

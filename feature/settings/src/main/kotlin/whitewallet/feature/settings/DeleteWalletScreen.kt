@@ -22,20 +22,20 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import whitewallet.core.designsystem.PrimaryButton
-import whitewallet.core.designsystem.ScreenColumn
-import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.core.designsystem.formatAmount
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Tone
+import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.formatAmount
 
 /**
- * Deletes the wallet from this device, following the Bitcoin Design Guide (Settings > Security): an explanation
- * screen in plain language, then a second, final confirmation. The phone's lock is asked for before deleting.
+ * Deletes the wallet from this device, following the Bitcoin Design Guide (Settings > Security): an explanation screen in plain language,
+ * then a second, final confirmation. The phone's lock is asked for before deleting.
  */
 @Composable
 fun DeleteWalletRoute(
@@ -100,7 +100,11 @@ fun DeleteWalletScreen(
                 Text(stringResource(R.string.delete_backed_up), modifier = Modifier.fillMaxWidth())
             }
             if (state.unresolved > 0) {
-                Text(pluralStringResource(R.plurals.delete_unresolved, state.unresolved, state.unresolved), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                Text(
+                    pluralStringResource(R.plurals.delete_unresolved, state.unresolved, state.unresolved),
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                )
             }
 
             WalletButton(
@@ -109,7 +113,9 @@ fun DeleteWalletScreen(
                 enabled = state.canContinue,
                 tone = Tone.Danger,
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.delete_continue)) }
+            ) {
+                Text(stringResource(R.string.delete_continue))
+            }
         }
     }
     if (state.confirming) {
@@ -122,7 +128,9 @@ fun DeleteWalletScreen(
                     Text(stringResource(R.string.delete_confirm_action))
                 }
             },
-            dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismissConfirm) { Text(stringResource(R.string.backup_cancel)) } },
+            dismissButton = {
+                WalletButton(kind = ButtonKind.Text, onClick = onDismissConfirm) { Text(stringResource(R.string.backup_cancel)) }
+            },
         )
     }
 }

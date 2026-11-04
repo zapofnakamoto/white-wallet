@@ -26,11 +26,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
@@ -42,8 +42,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * A camera preview that reports the first QR code it reads, then stops. Asks for the camera permission first and
- * explains when it is refused (paste still works).
+ * A camera preview that reports the first QR code it reads, then stops. Asks for the camera permission first and explains when it is
+ * refused (paste still works).
  */
 @Composable
 fun QrScanner(onScanned: (String) -> Unit, modifier: Modifier = Modifier) {
@@ -52,20 +52,22 @@ fun QrScanner(onScanned: (String) -> Unit, modifier: Modifier = Modifier) {
         mutableStateOf(context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
     var refused by remember { mutableStateOf(false) }
-    val request = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        granted = ok
-        refused = !ok
-    }
+    val request =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+            granted = ok
+            refused = !ok
+        }
     LaunchedEffect(Unit) { if (!granted) request.launch(Manifest.permission.CAMERA) }
     Box(modifier, contentAlignment = Alignment.Center) {
         when {
             granted -> CameraPreview(onScanned, Modifier.fillMaxSize())
-            refused -> Text(
-                stringResource(R.string.scan_no_camera),
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(24.dp),
-            )
+            refused ->
+                Text(
+                    stringResource(R.string.scan_no_camera),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(24.dp),
+                )
         }
     }
 }
@@ -80,24 +82,26 @@ private fun CameraPreview(onScanned: (String) -> Unit, modifier: Modifier) {
     DisposableEffect(lifecycleOwner) {
         val done = AtomicBoolean(false)
         val providerFuture = ProcessCameraProvider.getInstance(context)
-        providerFuture.addListener({
-            val provider = providerFuture.get()
-            val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
-            val analysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-            val reader = MultiFormatReader().apply {
-                setHints(mapOf(DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE), DecodeHintType.TRY_HARDER to true))
-            }
-            analysis.setAnalyzer(executor) { image ->
-                val text = image.use { decode(reader, it) }
-                if (text != null && done.compareAndSet(false, true)) {
-                    context.mainExecutor.execute { callback(text) }
+        providerFuture.addListener(
+            {
+                val provider = providerFuture.get()
+                val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
+                val analysis = ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
+                val reader =
+                    MultiFormatReader().apply {
+                        setHints(mapOf(DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE), DecodeHintType.TRY_HARDER to true))
+                    }
+                analysis.setAnalyzer(executor) { image ->
+                    val text = image.use { decode(reader, it) }
+                    if (text != null && done.compareAndSet(false, true)) {
+                        context.mainExecutor.execute { callback(text) }
+                    }
                 }
-            }
-            provider.unbindAll()
-            provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
-        }, context.mainExecutor)
+                provider.unbindAll()
+                provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+            },
+            context.mainExecutor,
+        )
         onDispose {
             runCatching { providerFuture.get().unbindAll() }
             executor.shutdown()

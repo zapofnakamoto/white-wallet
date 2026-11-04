@@ -1,12 +1,12 @@
 package whitewallet.brand
 
 /**
- * A way of keeping an account's notes: which shape the notes on one mint should have. The wallet asks [plan] for
- * the next steps, runs them, and asks again with the new notes, until the plan is empty.
+ * A way of keeping an account's notes: which shape the notes on one mint should have. The wallet asks [plan] for the next steps, runs them,
+ * and asks again with the new notes, until the plan is empty.
  *
- * A strategy only proposes. The wallet checks every step, runs it with its usual safeguards, skips what doesn't apply
- * (unknown notes, impossible amounts) and stops when a mint doesn't answer. Money never leaves the account: a
- * strategy can combine, split and rotate notes on one mint, nothing else.
+ * A strategy only proposes. The wallet checks every step, runs it with its usual safeguards, skips what doesn't apply (unknown notes,
+ * impossible amounts) and stops when a mint doesn't answer. Money never leaves the account: a strategy can combine, split and rotate notes
+ * on one mint, nothing else.
  *
  * Register one in a brand's code module (Hilt `@IntoSet`) and name its [id] in brand.properties `notes.strategies`.
  */
@@ -21,22 +21,25 @@ interface NoteStrategy {
     val description: Int
 
     /**
-     * True if the strategy also moves notes off address keys, so the separate auto-rotate switch is included in it.
-     * Rotating breaks the link between an address payment and the note it became.
+     * True if the strategy also moves notes off address keys, so the separate auto-rotate switch is included in it. Rotating breaks the
+     * link between an address payment and the note it became.
      */
-    val rotatesAddressNotes: Boolean get() = false
+    val rotatesAddressNotes: Boolean
+        get() = false
 
     /**
-     * True if the strategy reshapes notes, so it would undo a combine or split done by hand. Before one, the notes
-     * page switches the account to the `manual` strategy (if the brand offers it).
+     * True if the strategy reshapes notes, so it would undo a combine or split done by hand. Before one, the notes page switches the
+     * account to the `manual` strategy (if the brand offers it).
      */
-    val reshapesNotes: Boolean get() = true
+    val reshapesNotes: Boolean
+        get() = true
 
     /**
-     * String resource: what the home screen says while this strategy's steps run, e.g. "Getting small change
-     * ready…". Null: the step's own words ("Combining your notes…").
+     * String resource: what the home screen says while this strategy's steps run, e.g. "Getting small change ready…". Null: the step's own
+     * words ("Combining your notes…").
      */
-    val workingText: Int? get() = null
+    val workingText: Int?
+        get() = null
 
     /** The next steps for one mint's notes; empty once they have the shape this strategy wants. */
     fun plan(mint: MintNotes): List<NoteStep>
@@ -49,7 +52,8 @@ data class MintNotes(
     /** The mint's fee per operation that creates notes (split), in millisatoshi; merges and rotations are free. */
     val feeBaseMsat: Long,
 ) {
-    val totalMsat: Long get() = notes.sumOf { it.amountMsat }
+    val totalMsat: Long
+        get() = notes.sumOf { it.amountMsat }
 }
 
 data class StrategyNote(
@@ -65,8 +69,8 @@ sealed interface NoteStep {
     data class Combine(val noteIds: List<String>) : NoteStep
 
     /**
-     * Split a note in two: one worth [firstMsat], the other the rest minus the mint's fee. [firstMsat] must leave
-     * at least 1 msat after the fee (`1 <= firstMsat <= amount - feeBaseMsat - 1`).
+     * Split a note in two: one worth [firstMsat], the other the rest minus the mint's fee. [firstMsat] must leave at least 1 msat after the
+     * fee (`1 <= firstMsat <= amount - feeBaseMsat - 1`).
      */
     data class Split(val noteId: String, val firstMsat: Long) : NoteStep
 

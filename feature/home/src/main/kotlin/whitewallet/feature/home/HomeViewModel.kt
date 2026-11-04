@@ -21,6 +21,8 @@ import whitewallet.brand.WalletTask
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.Profile
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
@@ -31,8 +33,6 @@ import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
-import whitewallet.core.model.ReceivedNote
-import whitewallet.core.model.ReceivedState
 
 data class HomeState(
     /** The wallet's figures have been read; until then Home shows none (rather than a balance of nothing). */
@@ -78,19 +78,22 @@ data class HomeState(
     val received: List<ReceivedNote> = emptyList(),
 ) {
     /** What [received] notes not claimed yet are worth, as far as known: not in [balanceMsat]. */
-    val incomingMsat: Long get() = received.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
+    val incomingMsat: Long
+        get() = received.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
 
     /** The mint whose changed signing key the user should look at: one the last refresh found, or a received note's. */
-    val keyChangedMint: String? get() = keyChangedHost ?: received.firstOrNull { it.state == ReceivedState.KeyChanged }?.host
+    val keyChangedMint: String?
+        get() = keyChangedHost ?: received.firstOrNull { it.state == ReceivedState.KeyChanged }?.host
 
     /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */
     val status: WalletStatus
-        get() = when {
-            activeAccountId == null -> WalletStatus.None
-            error != null -> WalletStatus.Problem(ProblemKind.Offline)
-            balanceMsat > 0 || received.any { it.isPending } -> WalletStatus.Idle
-            else -> WalletStatus.Empty
-        }
+        get() =
+            when {
+                activeAccountId == null -> WalletStatus.None
+                error != null -> WalletStatus.Problem(ProblemKind.Offline)
+                balanceMsat > 0 || received.any { it.isPending } -> WalletStatus.Idle
+                else -> WalletStatus.Empty
+            }
 }
 
 @HiltViewModel
@@ -100,36 +103,56 @@ class HomeViewModel(
     private val defaults: AppDefaults,
     private val clock: () -> Long,
 ) : ViewModel() {
-    @Inject constructor(wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults) : this(wallet, preferences, defaults, System::currentTimeMillis)
+    @Inject
+    constructor(
+        wallet: Wallet,
+        preferences: AppPreferences,
+        defaults: AppDefaults,
+    ) : this(wallet, preferences, defaults, System::currentTimeMillis)
 
-    private val status = MutableStateFlow(HomeState(historyFilter = defaults.historyFilter, notesVisible = defaults.notesView != NotesView.Hidden, mintsVisible = defaults.showMints))
+    private val status =
+        MutableStateFlow(
+            HomeState(
+                historyFilter = defaults.historyFilter,
+                notesVisible = defaults.notesView != NotesView.Hidden,
+                mintsVisible = defaults.showMints,
+            )
+        )
 
     /** Whether Home is on screen, as the screen says ([setVisible]). */
     private var visible = false
 
     private val walletFlags = combine(wallet.backupVerified, wallet.addressStatus, preferences.balanceHidden, ::Triple)
-    private val work = combine(wallet.task, wallet.noteStrategy) { task, strategy ->
-        task to strategy.workingText?.takeIf { task is WalletTask.Maintaining && task.strategyId == strategy.id }
-    }
+    private val work =
+        combine(wallet.task, wallet.noteStrategy) { task, strategy ->
+            task to strategy.workingText?.takeIf { task is WalletTask.Maintaining && task.strategyId == strategy.id }
+        }
     private val accountInfo = combine(wallet.accounts, wallet.activeAccount, work, ::Triple)
 
-    val state: StateFlow<HomeState> = combine(accountInfo, wallet.profile, wallet.activity, walletFlags, status) { (accounts, active, work), profile, activity, (backedUp, address, hidden), s ->
-        val balance = active?.balanceMsat ?: 0
-        s.copy(
-            task = work.first,
-            strategyText = work.second,
-            accounts = accounts,
-            activeAccountId = active?.account?.id,
-            addressInactive = address == AddressStatus.Taken || address == AddressStatus.Available,
-            balanceMsat = balance,
-            profile = profile,
-            activity = activity,
-            showBackupPrompt = balance > 0 && !backedUp && !s.backupPromptDismissed,
-            balanceHidden = hidden,
-            canAddAccount = accounts.size < wallet.maxAccounts,
-            showAccounts = wallet.maxAccounts > 1 || accounts.size > 1,
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState(loaded = false))
+    val state: StateFlow<HomeState> =
+        combine(accountInfo, wallet.profile, wallet.activity, walletFlags, status) {
+                (accounts, active, work),
+                profile,
+                activity,
+                (backedUp, address, hidden),
+                s ->
+                val balance = active?.balanceMsat ?: 0
+                s.copy(
+                    task = work.first,
+                    strategyText = work.second,
+                    accounts = accounts,
+                    activeAccountId = active?.account?.id,
+                    addressInactive = address == AddressStatus.Taken || address == AddressStatus.Available,
+                    balanceMsat = balance,
+                    profile = profile,
+                    activity = activity,
+                    showBackupPrompt = balance > 0 && !backedUp && !s.backupPromptDismissed,
+                    balanceHidden = hidden,
+                    canAddAccount = accounts.size < wallet.maxAccounts,
+                    showAccounts = wallet.maxAccounts > 1 || accounts.size > 1,
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState(loaded = false))
 
     fun switchAccount(id: String) {
         viewModelScope.launch {
@@ -150,7 +173,9 @@ class HomeViewModel(
     init {
         refresh()
         viewModelScope.launch { collectNotices() }
-        viewModelScope.launch { wallet.accountMints.collect { mints -> status.update { it.copy(unknownNotes = mints.filter { m -> m.unknownCount > 0 }) } } }
+        viewModelScope.launch {
+            wallet.accountMints.collect { mints -> status.update { it.copy(unknownNotes = mints.filter { m -> m.unknownCount > 0 }) } }
+        }
         viewModelScope.launch {
             wallet.receivedNotes.collect { notes -> status.update { it.copy(received = ReceivedNote.shown(notes)) } }
         }
@@ -177,10 +202,9 @@ class HomeViewModel(
     }
 
     /**
-     * Turns the note policies' runs into messages for the user, as the brand and the user want them. A run while
-     * Home is on screen is told; one while another screen is up (claiming a note, receiving a payment, which say what
-     * happened themselves) only if it changed the balance, then once Home is back. Runs from before this screen, or
-     * of another account than the one switched to, are no news.
+     * Turns the note policies' runs into messages for the user, as the brand and the user want them. A run while Home is on screen is told;
+     * one while another screen is up (claiming a note, receiving a payment, which say what happened themselves) only if it changed the
+     * balance, then once Home is back. Runs from before this screen, or of another account than the one switched to, are no news.
      */
     private suspend fun collectNotices() {
         val notesVisible = defaults.notesView != NotesView.Hidden
@@ -214,16 +238,19 @@ class HomeViewModel(
         status.update { it.copy(refreshing = true, error = null) }
         viewModelScope.launch {
             var keyChanged: String? = null
-            val error = try {
-                wallet.refresh()
-                null
-            } catch (e: IOException) {
-                e.message ?: "network error"
-            } catch (e: MintKeyChangedException) {
-                keyChanged = e.host
-                null
+            val error =
+                try {
+                    wallet.refresh()
+                    null
+                } catch (e: IOException) {
+                    e.message ?: "network error"
+                } catch (e: MintKeyChangedException) {
+                    keyChanged = e.host
+                    null
+                }
+            status.update {
+                it.copy(refreshing = false, error = error, keyChangedHost = keyChanged, unresolved = wallet.unresolvedOperations())
             }
-            status.update { it.copy(refreshing = false, error = error, keyChangedHost = keyChanged, unresolved = wallet.unresolvedOperations()) }
         }
     }
 }

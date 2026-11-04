@@ -50,7 +50,10 @@ class ScriptSpendTest {
         val note = ScriptNote(cltv(t, key))
         assertFalse(note.spend(domain, key, lockTime = t - 1).verify(domain))
         assertFalse(note.spend(domain, key, lockTime = 0).verify(domain))
-        assertFalse(note.spend(domain, key, lockTime = t, sequence = CanonicalSpend.DEFAULT_SEQUENCE).verify(domain), "a final sequence disables the lock")
+        assertFalse(
+            note.spend(domain, key, lockTime = t, sequence = CanonicalSpend.DEFAULT_SEQUENCE).verify(domain),
+            "a final sequence disables the lock",
+        )
     }
 
     @Test
@@ -109,10 +112,17 @@ class ScriptSpendTest {
     }
 
     private fun leaf(vararg ops: ScriptElt): ByteVector = Script.write(ops.toList()).byteVector()
+
     private fun checksig(k: PrivateKey) = leaf(OP_PUSHDATA(k.xOnlyPublicKey()), OP_CHECKSIG)
-    private fun cltv(t: Long, k: PrivateKey) = leaf(OP_PUSHDATA(Script.encodeNumber(t)), OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_PUSHDATA(k.xOnlyPublicKey()), OP_CHECKSIG)
-    private fun cltvReordered(t: Long, k: PrivateKey) = leaf(OP_PUSHDATA(k.xOnlyPublicKey()), OP_CHECKSIGVERIFY, OP_PUSHDATA(Script.encodeNumber(t)), OP_CHECKLOCKTIMEVERIFY)
-    private fun csv(s: Long, k: PrivateKey) = leaf(OP_PUSHDATA(Script.encodeNumber(s)), OP_CHECKSEQUENCEVERIFY, OP_DROP, OP_PUSHDATA(k.xOnlyPublicKey()), OP_CHECKSIG)
+
+    private fun cltv(t: Long, k: PrivateKey) =
+        leaf(OP_PUSHDATA(Script.encodeNumber(t)), OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_PUSHDATA(k.xOnlyPublicKey()), OP_CHECKSIG)
+
+    private fun cltvReordered(t: Long, k: PrivateKey) =
+        leaf(OP_PUSHDATA(k.xOnlyPublicKey()), OP_CHECKSIGVERIFY, OP_PUSHDATA(Script.encodeNumber(t)), OP_CHECKLOCKTIMEVERIFY)
+
+    private fun csv(s: Long, k: PrivateKey) =
+        leaf(OP_PUSHDATA(Script.encodeNumber(s)), OP_CHECKSEQUENCEVERIFY, OP_DROP, OP_PUSHDATA(k.xOnlyPublicKey()), OP_CHECKSIG)
 
     /** A note of one or two leaves under [internal] (NUMS by default), and signed spends of its leaves. */
     private class ScriptNote(vararg val leaves: ByteVector, val internal: XonlyPublicKey = XonlyPublicKey(BearerNote.NUMS)) {
@@ -121,11 +131,20 @@ class ScriptSpendTest {
         val q: ByteVector32 = output.first.value
 
         /** A spend of leaf [leaf] signed by [signer], claiming [lockTime] and [sequence] (below final, so a lock is checked). */
-        fun spend(domain: String, signer: PrivateKey, leaf: Int = 0, lockTime: Long = 0, sequence: Long = CanonicalSpend.DEFAULT_SEQUENCE - 1): Spend.Script {
-            val sig = CanonicalSpend.transaction(domain, lockTime, sequence)
-                .signInputTaprootScriptPath(signer, 0, listOf(CanonicalSpend.spentOutput(q)), SigHash.SIGHASH_DEFAULT, hashes[leaf])
+        fun spend(
+            domain: String,
+            signer: PrivateKey,
+            leaf: Int = 0,
+            lockTime: Long = 0,
+            sequence: Long = CanonicalSpend.DEFAULT_SEQUENCE - 1,
+        ): Spend.Script {
+            val sig =
+                CanonicalSpend.transaction(domain, lockTime, sequence)
+                    .signInputTaprootScriptPath(signer, 0, listOf(CanonicalSpend.spentOutput(q)), SigHash.SIGHASH_DEFAULT, hashes[leaf])
             val siblings = hashes.filterIndexed { i, _ -> i != leaf }.flatMap { it.toByteArray().toList() }.toByteArray()
-            val control = (byteArrayOf((BearerNote.LEAF_VERSION or if (output.second) 1 else 0).toByte()) + internal.value.toByteArray() + siblings).byteVector()
+            val control =
+                (byteArrayOf((BearerNote.LEAF_VERSION or if (output.second) 1 else 0).toByte()) + internal.value.toByteArray() + siblings)
+                    .byteVector()
             val spend = assertIs<Spend.Script>(Spend.parse(Cw1(lockTime, sequence, leaves[leaf], control, listOf(sig)).encode()))
             assertEquals(q, spend.q)
             return spend

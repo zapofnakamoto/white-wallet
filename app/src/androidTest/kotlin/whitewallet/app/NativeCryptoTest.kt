@@ -16,7 +16,8 @@ import whitewallet.lnurlcash.NotePurpose
 /** The native secp256k1 the app ships (secp256k1-kmp-jni-android) signs and verifies like the JVM build in unit tests. */
 @RunWith(AndroidJUnit4::class)
 class NativeCryptoTest {
-    private val seed = MnemonicCode.toSeed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", "")
+    private val seed =
+        MnemonicCode.toSeed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", "")
 
     /** The platform's PBKDF2-HMAC-SHA512 gives the seed bitcoin-kmp does, so restores find the same keys. */
     @Test

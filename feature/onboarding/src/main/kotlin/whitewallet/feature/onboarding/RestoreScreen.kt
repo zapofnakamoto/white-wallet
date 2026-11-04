@@ -19,18 +19,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
-import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.core.wallet.PhraseCheck
-import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletTextField
+import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.wallet.PhraseCheck
 
 /**
- * Restores an account from its recovery phrase on a chosen mint. [onRestored] gets the host, where the account's
- * address is picked next (addresses aren't part of the phrase).
+ * Restores an account from its recovery phrase on a chosen mint. [onRestored] gets the host, where the account's address is picked next
+ * (addresses aren't part of the phrase).
  */
 @Composable
 fun RestoreRoute(
@@ -47,8 +47,13 @@ fun RestoreRoute(
     // The phrase is on screen: keep it out of screenshots and the recent-apps preview.
     SecureScreen {
         RestoreScreen(
-            state, onBack, viewModel::onPhraseChange, viewModel::onAccountNameChange,
-            MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange), viewModel::restore, viewModel::useTestPhrase,
+            state,
+            onBack,
+            viewModel::onPhraseChange,
+            viewModel::onAccountNameChange,
+            MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange),
+            viewModel::restore,
+            viewModel::useTestPhrase,
         )
     }
 }
@@ -79,7 +84,9 @@ fun RestoreScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             if (state.developerMode) {
-                WalletButton(kind = ButtonKind.Secondary, onClick = onUseTestPhrase, enabled = !state.busy) { Text(stringResource(R.string.restore_test_phrase)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = onUseTestPhrase, enabled = !state.busy) {
+                    Text(stringResource(R.string.restore_test_phrase))
+                }
             }
             if (state.askAccountName) {
                 WalletTextField(
@@ -93,12 +100,14 @@ fun RestoreScreen(
             }
             if (state.showMintPicker) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, mint)
             state.error?.let { error ->
-                val message = when (error) {
-                    is RestoreError.AlreadyInWallet -> stringResource(R.string.restore_error_already, error.accountName)
-                    is RestoreError.AccountLimit -> pluralStringResource(R.plurals.restore_error_account_limit, error.limit, error.limit)
-                    RestoreError.Mint -> stringResource(R.string.restore_error_mint)
-                    RestoreError.Network -> stringResource(R.string.restore_error_network)
-                }
+                val message =
+                    when (error) {
+                        is RestoreError.AlreadyInWallet -> stringResource(R.string.restore_error_already, error.accountName)
+                        is RestoreError.AccountLimit ->
+                            pluralStringResource(R.plurals.restore_error_account_limit, error.limit, error.limit)
+                        RestoreError.Mint -> stringResource(R.string.restore_error_mint)
+                        RestoreError.Network -> stringResource(R.string.restore_error_network)
+                    }
                 Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             }
             PrimaryButton(stringResource(R.string.restore_start), onRestore, enabled = state.canSubmit, busy = state.busy)
@@ -124,17 +133,19 @@ fun RestoreScreen(
 @Composable
 private fun PhraseHint(state: RestoreState) {
     val hint = state.hint
-    val text = when (val check = hint) {
-        is PhraseCheck.Valid -> stringResource(R.string.restore_phrase_valid)
-        is PhraseCheck.UnknownWords -> stringResource(R.string.restore_phrase_unknown, check.words.first())
-        PhraseCheck.BadChecksum -> stringResource(R.string.restore_phrase_checksum)
-        is PhraseCheck.WrongCount -> if (check.count == 0) return else pluralStringResource(R.plurals.restore_phrase_count, check.count, check.count)
-    }
-    val color = when (hint) {
-        is PhraseCheck.Valid -> MaterialTheme.colorScheme.primary
-        is PhraseCheck.WrongCount -> MaterialTheme.colorScheme.onSurfaceVariant
-        else -> MaterialTheme.colorScheme.error
-    }
+    val text =
+        when (val check = hint) {
+            is PhraseCheck.Valid -> stringResource(R.string.restore_phrase_valid)
+            is PhraseCheck.UnknownWords -> stringResource(R.string.restore_phrase_unknown, check.words.first())
+            PhraseCheck.BadChecksum -> stringResource(R.string.restore_phrase_checksum)
+            is PhraseCheck.WrongCount ->
+                if (check.count == 0) return else pluralStringResource(R.plurals.restore_phrase_count, check.count, check.count)
+        }
+    val color =
+        when (hint) {
+            is PhraseCheck.Valid -> MaterialTheme.colorScheme.primary
+            is PhraseCheck.WrongCount -> MaterialTheme.colorScheme.onSurfaceVariant
+            else -> MaterialTheme.colorScheme.error
+        }
     Text(text, color = color)
 }
-

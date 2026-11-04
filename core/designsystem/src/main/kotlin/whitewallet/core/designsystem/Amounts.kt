@@ -12,9 +12,9 @@ import whitewallet.core.model.AmountUnit
 val LocalAmountUnit = staticCompositionLocalOf { AmountUnit.Bitcoin }
 
 /**
- * An amount in the current [LocalAmountUnit], as a whole number of the smallest unit with the locale's digit
- * grouping: "₿12,450" (BIP-177) or "12,450 sats". Sub-sat amounts are rounded down. Where the symbol goes, and the
- * plural of "sats", come from string resources, so each language can follow its own custom.
+ * An amount in the current [LocalAmountUnit], as a whole number of the smallest unit with the locale's digit grouping: "₿12,450" (BIP-177)
+ * or "12,450 sats". Sub-sat amounts are rounded down. Where the symbol goes, and the plural of "sats", come from string resources, so each
+ * language can follow its own custom.
  */
 @Composable
 @ReadOnlyComposable
@@ -42,12 +42,13 @@ fun spokenAmount(msat: Long): String {
 /** The label of a field where an amount is typed (whole numbers of the smallest unit, in either unit). */
 @Composable
 @ReadOnlyComposable
-fun amountInputLabel(): String = stringResource(
-    when (LocalAmountUnit.current) {
-        AmountUnit.Bitcoin -> R.string.amount_input_bitcoin
-        AmountUnit.Sats -> R.string.amount_input_sats
-    },
-)
+fun amountInputLabel(): String =
+    stringResource(
+        when (LocalAmountUnit.current) {
+            AmountUnit.Bitcoin -> R.string.amount_input_bitcoin
+            AmountUnit.Sats -> R.string.amount_input_sats
+        }
+    )
 
 /** Plural rules take an Int; larger amounts use the form for a large count. */
 private fun quantity(sats: Long): Int = sats.coerceIn(0, Int.MAX_VALUE.toLong()).toInt()

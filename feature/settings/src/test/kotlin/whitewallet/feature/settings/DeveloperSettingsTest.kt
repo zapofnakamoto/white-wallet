@@ -13,14 +13,21 @@ import whitewallet.lnurlcash.client.NetworkConditions
 
 @RunWith(RobolectricTestRunner::class)
 class DeveloperSettingsTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     @Test
     fun aDeveloperPicksABadConnection() {
         var chosen: NetworkConditions.Profile? = null
         compose.setContent {
-            DeveloperSettingsScreen(true, emptyList(), onBack = {}, onToggle = {}, onOpenPage = {}, network = NetworkConditions.Profile.Slow, onNetwork = { chosen = it })
+            DeveloperSettingsScreen(
+                true,
+                emptyList(),
+                onBack = {},
+                onToggle = {},
+                onOpenPage = {},
+                network = NetworkConditions.Profile.Slow,
+                onNetwork = { chosen = it },
+            )
         }
         compose.onNodeWithText(text(R.string.developer_network_slow_hint)).assertExists()
         compose.onNodeWithText(text(R.string.developer_network_flaky)).performScrollTo().performClick()
@@ -29,7 +36,16 @@ class DeveloperSettingsTest {
 
     @Test
     fun withoutDeveloperModeThereIsNoNetworkChoice() {
-        compose.setContent { DeveloperSettingsScreen(false, emptyList(), onBack = {}, onToggle = {}, onOpenPage = {}, network = NetworkConditions.Profile.Normal) }
+        compose.setContent {
+            DeveloperSettingsScreen(
+                false,
+                emptyList(),
+                onBack = {},
+                onToggle = {},
+                onOpenPage = {},
+                network = NetworkConditions.Profile.Normal,
+            )
+        }
         compose.onNodeWithText(text(R.string.developer_network)).assertDoesNotExist()
     }
 

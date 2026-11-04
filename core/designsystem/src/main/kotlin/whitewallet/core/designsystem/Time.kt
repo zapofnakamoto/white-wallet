@@ -17,10 +17,11 @@ fun recentTime(millis: Long, now: Long = System.currentTimeMillis()): String {
     val then = Calendar.getInstance().apply { timeInMillis = millis }
     val today = Calendar.getInstance().apply { timeInMillis = now }
     val sameYear = then.get(Calendar.YEAR) == today.get(Calendar.YEAR)
-    val skeleton = when {
-        sameYear && then.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR) -> "jm"
-        sameYear -> "dMMMjm"
-        else -> "yMMMdjm"
-    }
+    val skeleton =
+        when {
+            sameYear && then.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR) -> "jm"
+            sameYear -> "dMMMjm"
+            else -> "yMMMdjm"
+        }
     return localTime(millis, skeleton)
 }

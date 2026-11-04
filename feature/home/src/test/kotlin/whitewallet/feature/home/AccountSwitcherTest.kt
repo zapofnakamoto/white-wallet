@@ -1,5 +1,6 @@
 package whitewallet.feature.home
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
@@ -7,7 +8,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.assertIsDisplayed
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -18,8 +18,7 @@ import whitewallet.core.model.AccountSummary
 
 @RunWith(RobolectricTestRunner::class)
 class AccountSwitcherTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     private fun summary(id: String, name: String) = AccountSummary(Account(id, name, 0, "mint.example"), null, 0)
 

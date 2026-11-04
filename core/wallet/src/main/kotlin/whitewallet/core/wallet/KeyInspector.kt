@@ -25,9 +25,8 @@ data class DerivedKey(
 )
 
 /**
- * The one state a derived key is in. The wallet's own (persisted) note decides first, since every lookup keeps
- * it in line with the mint; the mint's last saved answer fills in keys the wallet holds no note for; the
- * tab's index tells handed-out keys from free ones.
+ * The one state a derived key is in. The wallet's own (persisted) note decides first, since every lookup keeps it in line with the mint;
+ * the mint's last saved answer fills in keys the wallet holds no note for; the tab's index tells handed-out keys from free ones.
  */
 sealed interface KeyStatus {
     /** The wallet holds an unspent note on this key. */
@@ -52,32 +51,34 @@ sealed interface KeyStatus {
     data object Free : KeyStatus
 
     companion object {
-        fun of(index: Long, tabIndex: Long, note: Note?, probe: KeyProbe?): KeyStatus = when {
-            note?.state == NoteState.Outstanding -> Funded(note.amountMsat)
-            note?.state == NoteState.Ambiguous || note?.state == NoteState.Paying -> Confirming
-            note?.state == NoteState.Spent || probe is KeyProbe.Spent -> Spent
-            index < tabIndex -> if (probe is KeyProbe.Unused) Skipped else HandedOut
-            index == tabIndex -> Next
-            else -> Free
-        }
+        fun of(index: Long, tabIndex: Long, note: Note?, probe: KeyProbe?): KeyStatus =
+            when {
+                note?.state == NoteState.Outstanding -> Funded(note.amountMsat)
+                note?.state == NoteState.Ambiguous || note?.state == NoteState.Paying -> Confirming
+                note?.state == NoteState.Spent || probe is KeyProbe.Spent -> Spent
+                index < tabIndex -> if (probe is KeyProbe.Unused) Skipped else HandedOut
+                index == tabIndex -> Next
+                else -> Free
+            }
     }
 }
 
 /**
- * The local derivation indexes for one account and mint: the next unused index for purposes 0 (wallet) and
- * 1 (change), and the index the next Lightning address scan (purpose 2) starts from.
+ * The local derivation indexes for one account and mint: the next unused index for purposes 0 (wallet) and 1 (change), and the index the
+ * next Lightning address scan (purpose 2) starts from.
  */
 data class KeyIndexes(val wallet: Long, val change: Long, val addressScanFrom: Long) {
-    fun of(purpose: Int): Long = when (purpose) {
-        NotePurpose.Wallet.value -> wallet
-        NotePurpose.Change.value -> change
-        else -> addressScanFrom
-    }
+    fun of(purpose: Int): Long =
+        when (purpose) {
+            NotePurpose.Wallet.value -> wallet
+            NotePurpose.Change.value -> change
+            else -> addressScanFrom
+        }
 }
 
 /**
- * One scan over keys [from] until [until] (exclusive; where it actually ended, since a scan runs on past every used
- * key it finds); [indexAfter] is the tab's index once it finished.
+ * One scan over keys [from] until [until] (exclusive; where it actually ended, since a scan runs on past every used key it finds);
+ * [indexAfter] is the tab's index once it finished.
  */
 data class KeyScanResult(
     val from: Long,
@@ -107,11 +108,12 @@ internal class KeyInspector(private val wallet: Wallet) {
         return (listOfNotNull(profileHost) + noteHosts + wallet.store.counterHosts(accountId)).distinct()
     }
 
-    suspend fun indexes(accountId: String, host: String) = KeyIndexes(
-        wallet = wallet.store.currentIndex(accountId, host, NotePurpose.Wallet.value),
-        change = wallet.store.currentIndex(accountId, host, NotePurpose.Change.value),
-        addressScanFrom = wallet.store.addressScanFrom(accountId, host),
-    )
+    suspend fun indexes(accountId: String, host: String) =
+        KeyIndexes(
+            wallet = wallet.store.currentIndex(accountId, host, NotePurpose.Wallet.value),
+            change = wallet.store.currentIndex(accountId, host, NotePurpose.Change.value),
+            addressScanFrom = wallet.store.addressScanFrom(accountId, host),
+        )
 
     /** The tab's one index: the purpose 0/1 counter, or where the address scan (purpose 2) starts. */
     suspend fun index(accountId: String, host: String, purpose: Int): Long = indexes(accountId, host).of(purpose)
@@ -135,7 +137,16 @@ internal class KeyInspector(private val wallet: Wallet) {
             val note = wallet.store.note(q.toHex())
             val probe = probes[id]
             val failure = failures[id]?.takeIf { it.checkedAtMillis >= (probe?.checkedAtMillis ?: Long.MIN_VALUE) }
-            DerivedKey(id, q.toHex(), Cp1.encode(q), probe, failure, note?.state, note?.amountMsat, KeyStatus.of(index, tabIndex, note, probe))
+            DerivedKey(
+                id,
+                q.toHex(),
+                Cp1.encode(q),
+                probe,
+                failure,
+                note?.state,
+                note?.amountMsat,
+                KeyStatus.of(index, tabIndex, note, probe),
+            )
         }
     }
 
@@ -150,12 +161,11 @@ internal class KeyInspector(private val wallet: Wallet) {
         scan(accountId, host, purpose, 0, index(accountId, host, purpose) + gap, gap)
 
     /**
-     * Looks up keys from [from], at least until [until] and then on until [gap] unused keys in a row follow the last
-     * used key found, moving the index past it. Stops early if the mint stops answering or after [MAX_SCAN] keys.
+     * Looks up keys from [from], at least until [until] and then on until [gap] unused keys in a row follow the last used key found, moving
+     * the index past it. Stops early if the mint stops answering or after [MAX_SCAN] keys.
      */
     private suspend fun scan(accountId: String, host: String, purpose: Int, from: Long, until: Long, gap: Int): KeyScanResult {
-        val mint = wallet.store.mint(host)
-            ?: return KeyScanResult(from, until, 0, 0, 0, "unknown host", index(accountId, host, purpose))
+        val mint = wallet.store.mint(host) ?: return KeyScanResult(from, until, 0, 0, 0, "unknown host", index(accountId, host, purpose))
         var end = until
         var checked = 0
         var outstanding = 0
@@ -164,13 +174,23 @@ internal class KeyInspector(private val wallet: Wallet) {
         var stopped: String? = null
         var index = from
         while (index < end) {
-            if (checked == MAX_SCAN) { stopped = "stopped after $MAX_SCAN keys"; break }
+            if (checked == MAX_SCAN) {
+                stopped = "stopped after $MAX_SCAN keys"
+                break
+            }
             val probe = prober.probe(KeyId(accountId, host, purpose, index), mint)
             checked++
             when (probe) {
-                is KeyProbe.Outstanding -> { outstanding++; if (probe.imported) imported++; lastUsed = index }
+                is KeyProbe.Outstanding -> {
+                    outstanding++
+                    if (probe.imported) imported++
+                    lastUsed = index
+                }
                 is KeyProbe.Spent -> lastUsed = index
-                is KeyProbe.Failed -> { stopped = probe.reason; break }
+                is KeyProbe.Failed -> {
+                    stopped = probe.reason
+                    break
+                }
                 else -> Unit
             }
             if (lastUsed == index) end = maxOf(end, index + 1 + gap)

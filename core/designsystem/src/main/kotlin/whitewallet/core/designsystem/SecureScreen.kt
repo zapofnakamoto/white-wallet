@@ -6,8 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 
 /**
- * Blocks screenshots and screen recording, and blanks the Recents thumbnail, while [content] is shown.
- * Use around anything that displays secrets such as the recovery phrase.
+ * Blocks screenshots and screen recording, and blanks the Recents thumbnail, while [content] is shown. Use around anything that displays
+ * secrets such as the recovery phrase.
  */
 @Composable
 fun SecureScreen(content: @Composable () -> Unit) {

@@ -16,8 +16,8 @@ public data class NoteInfo(
 ) {
     public companion object {
         /**
-         * Validates an informational response. [queriedK1] is the spend sent as `k1`, or null for a lookup by `p`.
-         * Throws [ProtocolViolation] for anything a wallet must not trust; returns the service's error as [NoteLookupError].
+         * Validates an informational response. [queriedK1] is the spend sent as `k1`, or null for a lookup by `p`. Throws
+         * [ProtocolViolation] for anything a wallet must not trust; returns the service's error as [NoteLookupError].
          */
         public fun from(response: LnurlResponse, queriedK1: String?): NoteInfo {
             if (response is LnurlResponse.Error) throw NoteLookupError(response.reason)
@@ -25,8 +25,8 @@ public data class NoteInfo(
             if (queriedK1 != null && !queriedK1.equals(w.k1, ignoreCase = true)) {
                 throw ProtocolViolation("the server echoed a different k1 than the one queried")
             }
-            val mintPubkey = w.raw.string("mintPubkey")?.let(::parseMintPubkey)
-                ?: throw ProtocolViolation("withdrawRequest has no valid mintPubkey")
+            val mintPubkey =
+                w.raw.string("mintPubkey")?.let(::parseMintPubkey) ?: throw ProtocolViolation("withdrawRequest has no valid mintPubkey")
             val certificate = (w.raw.string("c") ?: w.raw.string("sig"))?.let(Cs1::decode)
             return NoteInfo(w.callback, w.maxWithdrawable, mintPubkey, certificate)
         }
@@ -35,5 +35,6 @@ public data class NoteInfo(
 
 /** The service answered a note lookup with `{"status":"ERROR"}`: the note is unknown, spent, pending or rate limited. */
 public class NoteLookupError(public val reason: String?) : Exception(reason ?: "note lookup refused") {
-    public val kind: RejectionKind get() = RejectionKind.fromReason(reason)
+    public val kind: RejectionKind
+        get() = RejectionKind.fromReason(reason)
 }

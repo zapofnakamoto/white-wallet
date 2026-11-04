@@ -14,7 +14,8 @@ public data class NoteLink(
     val certificate: String?,
 ) {
     /** The host the note lives on, exactly as written (port included). */
-    val host: String get() = checkNotNull(Lnurl.host(withdrawUrl))
+    val host: String
+        get() = checkNotNull(Lnurl.host(withdrawUrl))
 
     /** The link itself, spend included: what the user hands over. */
     @RevealsNoteSecret

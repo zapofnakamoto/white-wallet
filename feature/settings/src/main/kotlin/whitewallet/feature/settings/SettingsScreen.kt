@@ -22,23 +22,23 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.ChevronIcon
 import whitewallet.core.designsystem.LocalAmountUnit
 import whitewallet.core.designsystem.R as DesignR
-import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.brand.ui.Tone
-import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletListIcon
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTextField
+import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.wallet.AddressStatus
 
 @Composable
 fun SettingsRoute(
@@ -56,10 +56,7 @@ fun SettingsRoute(
 /** A page of the brand's own, listed in Settings above About (see docs/WHITE_LABEL.md, "Design"). Null [icon]: a generic one. */
 data class BrandPage(@StringRes val title: Int, val route: String, @DrawableRes val icon: Int? = null)
 
-/**
- * The settings hub: a short list of pages, each with a live one-line summary, and a search over every setting
- * (see [SettingsSearch]).
- */
+/** The settings hub: a short list of pages, each with a live one-line summary, and a search over every setting (see [SettingsSearch]). */
 @Composable
 fun SettingsScreen(
     state: SettingsState,
@@ -83,7 +80,10 @@ fun SettingsScreen(
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { query = "" }) {
-                            Icon(painterResource(DesignR.drawable.ic_close), contentDescription = stringResource(R.string.settings_search_clear))
+                            Icon(
+                                painterResource(DesignR.drawable.ic_close),
+                                contentDescription = stringResource(R.string.settings_search_clear),
+                            )
                         }
                     }
                 },
@@ -99,7 +99,13 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget) -> Unit, brandPages: List<BrandPage>, openRoute: (String) -> Unit) {
+private fun Hub(
+    state: SettingsState,
+    versionName: String,
+    open: (SettingsTarget) -> Unit,
+    brandPages: List<BrandPage>,
+    openRoute: (String) -> Unit,
+) {
     // Only links: the account's own page first, the app-wide pages below (Design Guide: multiple wallets).
     state.accountName?.let { name ->
         val (status, color) = addressSummary(state.addressStatus)
@@ -107,10 +113,13 @@ private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget
             { WalletAccountMark(name, state.accountPlace) },
             stringResource(R.string.settings_account_section, name),
             state.profile?.address ?: stringResource(R.string.settings_account_contents),
-            extra = state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) }
-                ?: status.takeIf { color == MaterialTheme.colorScheme.error },
+            extra =
+                state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) }
+                    ?: status.takeIf { color == MaterialTheme.colorScheme.error },
             extraColor = MaterialTheme.colorScheme.error,
-        ) { open(SettingsTarget.Account) }
+        ) {
+            open(SettingsTarget.Account)
+        }
         HorizontalDivider()
     }
     if (SettingsTarget.Mints !in state.hidden) {
@@ -118,22 +127,30 @@ private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget
             pageIcon(SettingsTarget.Mints),
             stringResource(R.string.settings_mints),
             pluralStringResource(R.plurals.settings_mints_summary, state.mintCount, state.mintCount, state.trustedCount),
-        ) { open(SettingsTarget.Mints) }
+        ) {
+            open(SettingsTarget.Mints)
+        }
     }
     SummaryRow(
         pageIcon(SettingsTarget.Security),
         stringResource(R.string.security_title),
         stringResource(if (state.appLock) R.string.settings_app_lock_on else R.string.settings_app_lock_off),
-    ) { open(SettingsTarget.Security) }
+    ) {
+        open(SettingsTarget.Security)
+    }
     if (SettingsTarget.Display !in state.hidden) {
-        SummaryRow(pageIcon(SettingsTarget.Display), stringResource(R.string.settings_amounts), unitExample(LocalAmountUnit.current)) { open(SettingsTarget.Display) }
+        SummaryRow(pageIcon(SettingsTarget.Display), stringResource(R.string.settings_amounts), unitExample(LocalAmountUnit.current)) {
+            open(SettingsTarget.Display)
+        }
     }
     if (SettingsTarget.Developer !in state.hidden) {
         SummaryRow(
             pageIcon(SettingsTarget.Developer),
             stringResource(R.string.settings_developer),
             stringResource(if (state.developerMode) R.string.settings_on else R.string.settings_off),
-        ) { open(SettingsTarget.Developer) }
+        ) {
+            open(SettingsTarget.Developer)
+        }
     }
     brandPages.forEach { page ->
         WalletListItem(
@@ -143,7 +160,9 @@ private fun Hub(state: SettingsState, versionName: String, open: (SettingsTarget
             modifier = Modifier.clickable { openRoute(page.route) },
         )
     }
-    SummaryRow(pageIcon(SettingsTarget.About), stringResource(R.string.about_title), stringResource(R.string.about_version, versionName)) { open(SettingsTarget.About) }
+    SummaryRow(pageIcon(SettingsTarget.About), stringResource(R.string.about_title), stringResource(R.string.about_version, versionName)) {
+        open(SettingsTarget.About)
+    }
 }
 
 /** Shown above everything while the account's recovery phrase isn't backed up: one level down, it would be missed. */
@@ -167,7 +186,8 @@ fun AccountSettingsRoute(onBack: () -> Unit, onOpen: (SettingsTarget) -> Unit, v
 /** Everything that belongs to the active account: its recovery phrase, addresses, home mint, notes, and deleting it. */
 @Composable
 fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (SettingsTarget) -> Unit) {
-    val title = state.accountName?.let { stringResource(R.string.settings_account_section, it) } ?: stringResource(R.string.settings_account)
+    val title =
+        state.accountName?.let { stringResource(R.string.settings_account_section, it) } ?: stringResource(R.string.settings_account)
     Scaffold(topBar = { WalletTopBar(title, onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             SummaryRow(
@@ -175,24 +195,60 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
                 stringResource(R.string.settings_recovery_phrase),
                 stringResource(if (state.backupVerified) R.string.settings_backed_up else R.string.settings_not_backed_up),
                 if (state.backupVerified) Color.Unspecified else MaterialTheme.colorScheme.error,
-            ) { open(SettingsTarget.Backup) }
+            ) {
+                open(SettingsTarget.Backup)
+            }
             val profile = state.profile
             if (profile != null) {
                 val (status, color) = addressSummary(state.addressStatus)
-                val summary = if (state.otherAddresses > 0) {
-                    pluralStringResource(R.plurals.settings_address_with_more, state.otherAddresses, profile.address, state.otherAddresses)
-                } else {
-                    profile.address
+                val summary =
+                    if (state.otherAddresses > 0) {
+                        pluralStringResource(
+                            R.plurals.settings_address_with_more,
+                            state.otherAddresses,
+                            profile.address,
+                            state.otherAddresses,
+                        )
+                    } else {
+                        profile.address
+                    }
+                SummaryRow(
+                    pageIcon(SettingsTarget.Addresses),
+                    stringResource(R.string.addresses_title),
+                    summary,
+                    extra = status,
+                    extraColor = color,
+                ) {
+                    open(SettingsTarget.Addresses)
                 }
-                SummaryRow(pageIcon(SettingsTarget.Addresses), stringResource(R.string.addresses_title), summary, extra = status, extraColor = color) { open(SettingsTarget.Addresses) }
             } else if (state.accountName != null) {
-                SummaryRow(pageIcon(SettingsTarget.Addresses), stringResource(R.string.addresses_title), stringResource(R.string.settings_no_address)) { open(SettingsTarget.Addresses) }
+                SummaryRow(
+                    pageIcon(SettingsTarget.Addresses),
+                    stringResource(R.string.addresses_title),
+                    stringResource(R.string.settings_no_address),
+                ) {
+                    open(SettingsTarget.Addresses)
+                }
             }
-            state.homeHost?.takeIf { SettingsTarget.AccountMints !in state.hidden }?.let { host ->
-                SummaryRow(pageIcon(SettingsTarget.AccountMints), stringResource(R.string.settings_account_mints), stringResource(R.string.addresses_home_mint, host)) { open(SettingsTarget.AccountMints) }
-            }
+            state.homeHost
+                ?.takeIf { SettingsTarget.AccountMints !in state.hidden }
+                ?.let { host ->
+                    SummaryRow(
+                        pageIcon(SettingsTarget.AccountMints),
+                        stringResource(R.string.settings_account_mints),
+                        stringResource(R.string.addresses_home_mint, host),
+                    ) {
+                        open(SettingsTarget.AccountMints)
+                    }
+                }
             if (SettingsTarget.NoteList !in state.hidden) {
-                SummaryRow(pageIcon(SettingsTarget.NoteList), stringResource(R.string.settings_note_list), stringResource(R.string.settings_note_list_hint)) { open(SettingsTarget.NoteList) }
+                SummaryRow(
+                    pageIcon(SettingsTarget.NoteList),
+                    stringResource(R.string.settings_note_list),
+                    stringResource(R.string.settings_note_list_hint),
+                ) {
+                    open(SettingsTarget.NoteList)
+                }
             }
             if (SettingsTarget.Notes !in state.hidden) {
                 SummaryRow(
@@ -201,7 +257,9 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
                     notesSummary(state),
                     extra = state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) },
                     extraColor = MaterialTheme.colorScheme.error,
-                ) { open(SettingsTarget.Notes) }
+                ) {
+                    open(SettingsTarget.Notes)
+                }
             }
             HorizontalDivider()
             SummaryRow(
@@ -209,7 +267,9 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
                 stringResource(R.string.settings_delete),
                 stringResource(R.string.settings_delete_hint),
                 titleColor = MaterialTheme.colorScheme.error,
-            ) { open(SettingsTarget.Delete) }
+            ) {
+                open(SettingsTarget.Delete)
+            }
         }
     }
 }
@@ -224,15 +284,16 @@ private fun SearchResults(
     brandPages: List<BrandPage>,
 ) {
     val entries = SettingsSearch.entries.filterNot { (it.destination as? SearchDestination.Page)?.target in hidden }
-    val items = (entries + SettingsSearch.developerEntries(developerPages) + SettingsSearch.brandEntries(brandPages)).map { entry ->
-        SearchItem(
-            title = stringResource(entry.title),
-            location = stringResource(locationOf(entry.destination)),
-            keywords = entry.keywords?.let { stringResource(it) } ?: "",
-            destination = entry.destination,
-            developerOnly = entry.developerOnly,
-        )
-    }
+    val items =
+        (entries + SettingsSearch.developerEntries(developerPages) + SettingsSearch.brandEntries(brandPages)).map { entry ->
+            SearchItem(
+                title = stringResource(entry.title),
+                location = stringResource(locationOf(entry.destination)),
+                keywords = entry.keywords?.let { stringResource(it) } ?: "",
+                destination = entry.destination,
+                developerOnly = entry.developerOnly,
+            )
+        }
     val results = SettingsSearch.search(items, query, developerMode)
     if (results.isEmpty()) {
         Text(
@@ -252,50 +313,56 @@ private fun SearchResults(
     }
 }
 
-private fun locationOf(destination: SearchDestination): Int = when (destination) {
-    // Developer pages live under developer/; anything else (a brand's page) is listed on the settings page itself.
-    is SearchDestination.Route -> if (destination.route.startsWith("developer/")) R.string.developer_title else R.string.settings_title
-    is SearchDestination.Page -> when (destination.target) {
-        SettingsTarget.Account -> R.string.settings_account
-        SettingsTarget.Backup -> R.string.settings_recovery_phrase
-        SettingsTarget.Addresses -> R.string.addresses_title
-        SettingsTarget.Notes -> R.string.settings_notes
-        SettingsTarget.NoteList -> R.string.settings_note_list
-        SettingsTarget.Mints -> R.string.settings_mints
-        SettingsTarget.Delete -> R.string.settings_delete
-        SettingsTarget.Display -> R.string.settings_amounts
-        SettingsTarget.AccountMints -> R.string.settings_account_mints
-        SettingsTarget.Security -> R.string.security_title
-        SettingsTarget.About -> R.string.about_title
-        SettingsTarget.Developer -> R.string.developer_title
+private fun locationOf(destination: SearchDestination): Int =
+    when (destination) {
+        // Developer pages live under developer/; anything else (a brand's page) is listed on the settings page itself.
+        is SearchDestination.Route -> if (destination.route.startsWith("developer/")) R.string.developer_title else R.string.settings_title
+        is SearchDestination.Page ->
+            when (destination.target) {
+                SettingsTarget.Account -> R.string.settings_account
+                SettingsTarget.Backup -> R.string.settings_recovery_phrase
+                SettingsTarget.Addresses -> R.string.addresses_title
+                SettingsTarget.Notes -> R.string.settings_notes
+                SettingsTarget.NoteList -> R.string.settings_note_list
+                SettingsTarget.Mints -> R.string.settings_mints
+                SettingsTarget.Delete -> R.string.settings_delete
+                SettingsTarget.Display -> R.string.settings_amounts
+                SettingsTarget.AccountMints -> R.string.settings_account_mints
+                SettingsTarget.Security -> R.string.security_title
+                SettingsTarget.About -> R.string.about_title
+                SettingsTarget.Developer -> R.string.developer_title
+            }
     }
-}
 
 /** The mark of a page, the same in the hub, on the account's page and in search results. */
 @DrawableRes
-private fun iconOf(target: SettingsTarget): Int = when (target) {
-    SettingsTarget.Account -> DesignR.drawable.ic_account
-    SettingsTarget.Backup -> DesignR.drawable.ic_key
-    SettingsTarget.Addresses -> DesignR.drawable.ic_address
-    SettingsTarget.Notes -> DesignR.drawable.ic_tune
-    SettingsTarget.NoteList -> DesignR.drawable.ic_notes
-    SettingsTarget.Mints, SettingsTarget.AccountMints -> DesignR.drawable.ic_mint
-    SettingsTarget.Delete -> DesignR.drawable.ic_delete
-    SettingsTarget.Display -> DesignR.drawable.ic_amounts
-    SettingsTarget.Security -> DesignR.drawable.ic_lock
-    SettingsTarget.About -> DesignR.drawable.ic_info
-    SettingsTarget.Developer -> DesignR.drawable.ic_developer
-}
+private fun iconOf(target: SettingsTarget): Int =
+    when (target) {
+        SettingsTarget.Account -> DesignR.drawable.ic_account
+        SettingsTarget.Backup -> DesignR.drawable.ic_key
+        SettingsTarget.Addresses -> DesignR.drawable.ic_address
+        SettingsTarget.Notes -> DesignR.drawable.ic_tune
+        SettingsTarget.NoteList -> DesignR.drawable.ic_notes
+        SettingsTarget.Mints,
+        SettingsTarget.AccountMints -> DesignR.drawable.ic_mint
+        SettingsTarget.Delete -> DesignR.drawable.ic_delete
+        SettingsTarget.Display -> DesignR.drawable.ic_amounts
+        SettingsTarget.Security -> DesignR.drawable.ic_lock
+        SettingsTarget.About -> DesignR.drawable.ic_info
+        SettingsTarget.Developer -> DesignR.drawable.ic_developer
+    }
 
 @DrawableRes
-private fun iconOf(destination: SearchDestination, brandPages: List<BrandPage>): Int = when (destination) {
-    is SearchDestination.Page -> iconOf(destination.target)
-    is SearchDestination.Route -> if (destination.route.startsWith("developer/")) {
-        DesignR.drawable.ic_developer
-    } else {
-        brandPages.firstOrNull { it.route == destination.route }?.icon ?: DesignR.drawable.ic_page
+private fun iconOf(destination: SearchDestination, brandPages: List<BrandPage>): Int =
+    when (destination) {
+        is SearchDestination.Page -> iconOf(destination.target)
+        is SearchDestination.Route ->
+            if (destination.route.startsWith("developer/")) {
+                DesignR.drawable.ic_developer
+            } else {
+                brandPages.firstOrNull { it.route == destination.route }?.icon ?: DesignR.drawable.ic_page
+            }
     }
-}
 
 /** A page's icon as a [SummaryRow]'s leading mark. */
 private fun pageIcon(@DrawableRes icon: Int, tone: Tone = Tone.Neutral): @Composable () -> Unit = { WalletListIcon(icon, tone = tone) }
@@ -332,15 +399,18 @@ private fun SummaryRow(
 private fun notesSummary(state: SettingsState): String {
     val strategy = state.noteStrategy ?: return ""
     val title = stringResource(strategy.title)
-    val withRotate = if (state.autoRotate && !strategy.rotatesAddressNotes) stringResource(R.string.settings_notes_with_renew, title) else title
+    val withRotate =
+        if (state.autoRotate && !strategy.rotatesAddressNotes) stringResource(R.string.settings_notes_with_renew, title) else title
     val home = state.homeHost
     return if (state.collectAtHome && home != null) stringResource(R.string.settings_notes_with_collect, withRotate, home) else withRotate
 }
 
 @Composable
-private fun addressSummary(status: AddressStatus?): Pair<String?, Color> = when (status) {
-    AddressStatus.Ours -> stringResource(R.string.settings_address_active) to MaterialTheme.colorScheme.primary
-    AddressStatus.Unconfirmed -> stringResource(R.string.settings_address_unconfirmed) to Color.Unspecified
-    AddressStatus.Taken, AddressStatus.Available -> stringResource(R.string.settings_address_inactive) to MaterialTheme.colorScheme.error
-    else -> null to Color.Unspecified
-}
+private fun addressSummary(status: AddressStatus?): Pair<String?, Color> =
+    when (status) {
+        AddressStatus.Ours -> stringResource(R.string.settings_address_active) to MaterialTheme.colorScheme.primary
+        AddressStatus.Unconfirmed -> stringResource(R.string.settings_address_unconfirmed) to Color.Unspecified
+        AddressStatus.Taken,
+        AddressStatus.Available -> stringResource(R.string.settings_address_inactive) to MaterialTheme.colorScheme.error
+        else -> null to Color.Unspecified
+    }

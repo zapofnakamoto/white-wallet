@@ -3,9 +3,8 @@ package whitewallet.core.wallet
 import java.security.SecureRandom
 
 /**
- * The recovery phrase check: the user taps the words, shown shuffled, in their original order.
- * A wrong tap resets progress so the check cannot be passed by trial and error.
- * Words are tracked by position, so a phrase that repeats a word still works.
+ * The recovery phrase check: the user taps the words, shown shuffled, in their original order. A wrong tap resets progress so the check
+ * cannot be passed by trial and error. Words are tracked by position, so a phrase that repeats a word still works.
  */
 class BackupQuiz(private val words: List<String>, random: SecureRandom = SecureRandom()) {
     /** Original positions in display order. */
@@ -15,7 +14,8 @@ class BackupQuiz(private val words: List<String>, random: SecureRandom = SecureR
     var progress: List<Int> = emptyList()
         private set
 
-    val isComplete: Boolean get() = progress.size == words.size
+    val isComplete: Boolean
+        get() = progress.size == words.size
 
     fun word(position: Int): String = words[position]
 
@@ -34,6 +34,7 @@ class BackupQuiz(private val words: List<String>, random: SecureRandom = SecureR
 
     sealed interface Result {
         data object Correct : Result
+
         data object Complete : Result
 
         /** [expectedNumber] is the 1-based number of the word that was due. */

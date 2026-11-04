@@ -15,15 +15,17 @@ import whitewallet.core.wallet.ManualStrategy
 /** The switch for being told what the wallet did to the notes by itself, on the notes page. */
 @RunWith(RobolectricTestRunner::class)
 class NoticeSettingsTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     private val manual = ManualStrategy(title = R.string.settings_strategy_manual, description = R.string.settings_strategy_manual_hint)
 
     private fun show(offered: Boolean, on: Boolean, onNotices: (Boolean) -> Unit = {}) = compose.setContent {
         NotesSettingsScreen(
             NotesSettingsState(noteStrategy = manual, strategies = listOf(manual), noticesOffered = offered, notices = on),
-            onBack = {}, onNoteStrategy = {}, onAutoRotate = {}, onNotices = onNotices,
+            onBack = {},
+            onNoteStrategy = {},
+            onAutoRotate = {},
+            onNotices = onNotices,
         )
     }
 

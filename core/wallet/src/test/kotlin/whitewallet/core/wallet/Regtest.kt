@@ -20,9 +20,8 @@ import whitewallet.core.model.NoteState
 import whitewallet.lnurlcash.client.LnurlcashClient
 
 /**
- * The local regtest stack (dev/regtest): two real reference mints on regtest Lightning, and the user's LND node that
- * pays and invoices from outside. Tests using it call [requireStack] first; they are skipped unless
- * LNURLCASH_REGTEST=1.
+ * The local regtest stack (dev/regtest): two real reference mints on regtest Lightning, and the user's LND node that pays and invoices from
+ * outside. Tests using it call [requireStack] first; they are skipped unless LNURLCASH_REGTEST=1.
  */
 internal object Regtest {
     const val HOST = "localhost:8111"
@@ -42,7 +41,9 @@ internal object Regtest {
     fun run(vararg args: String): String {
         val process = ProcessBuilder(listOf(script.path) + args).redirectErrorStream(true).start()
         val output = process.inputStream.bufferedReader().readText()
-        check(process.waitFor(120, TimeUnit.SECONDS) && process.exitValue() == 0) { "regtest.sh ${args.joinToString(" ")} failed:\n$output" }
+        check(process.waitFor(120, TimeUnit.SECONDS) && process.exitValue() == 0) {
+            "regtest.sh ${args.joinToString(" ")} failed:\n$output"
+        }
         return output.trim().lines().last()
     }
 
@@ -61,8 +62,8 @@ internal object Regtest {
     fun note3(sats: Long): String = run("note", "$sats", "--mint3")
 
     /**
-     * Gives the third mint a new signing key, as a mint does that changes its key: it moves to the other Lightning
-     * node, keeping its notes. Returns the new key.
+     * Gives the third mint a new signing key, as a mint does that changes its key: it moves to the other Lightning node, keeping its notes.
+     * Returns the new key.
      */
     fun rotateMint3(): String = run("rotate-mint3")
 
@@ -74,7 +75,8 @@ internal object Regtest {
 
     /** An invoice from user-lnd committing to [descriptionHashHex], or with a plain memo when it is null. */
     fun invoice(amountMsat: Long, descriptionHashHex: String?): String {
-        val description = if (descriptionHashHex != null) arrayOf("--description_hash", descriptionHashHex) else arrayOf("--memo", "regtest test")
+        val description =
+            if (descriptionHashHex != null) arrayOf("--description_hash", descriptionHashHex) else arrayOf("--memo", "regtest test")
         val out = lncliUser("addinvoice", "--amt_msat", "$amountMsat", *description)
         return checkNotNull(Regex("\"payment_request\":\\s*\"([^\"]+)\"").find(out)) { out }.groupValues[1]
     }
@@ -82,12 +84,14 @@ internal object Regtest {
     /** Whether [invoice] (of user-lnd, or of mint-lnd from [invoiceForMint3]) has been paid. */
     fun settled(invoice: String): Boolean {
         val hash = checkNotNull(whitewallet.lnurl.Bolt11.decode(invoice)).paymentHashHex
-        return listOf("lncli-user", "lncli-mint").any { node -> runCatching { "\"SETTLED\"" in lncli(node, "lookupinvoice", hash) }.getOrDefault(false) }
+        return listOf("lncli-user", "lncli-mint").any { node ->
+            runCatching { "\"SETTLED\"" in lncli(node, "lookupinvoice", hash) }.getOrDefault(false)
+        }
     }
 
     /**
-     * An invoice the third mint can pay: of the node it doesn't run on now, since LND can't pay its own invoices and
-     * [rotateMint3] moves it between the two.
+     * An invoice the third mint can pay: of the node it doesn't run on now, since LND can't pay its own invoices and [rotateMint3] moves it
+     * between the two.
      */
     suspend fun invoiceForMint3(sats: Long): String {
         val mintLnd = Regex("\"identity_pubkey\":\\s*\"([0-9a-f]{66})\"").find(lncliMint("getinfo"))!!.groupValues[1]
@@ -97,8 +101,8 @@ internal object Regtest {
     }
 
     /**
-     * An invoice on user-lnd whose payment stays in flight until [HoldInvoice.settle] or [HoldInvoice.cancel]: how a
-     * test makes a Lightning payment pending, or fail.
+     * An invoice on user-lnd whose payment stays in flight until [HoldInvoice.settle] or [HoldInvoice.cancel]: how a test makes a Lightning
+     * payment pending, or fail.
      */
     fun holdInvoice(sats: Long): HoldInvoice {
         val preimage = ByteArray(32).also(random::nextBytes)
@@ -142,8 +146,16 @@ internal object Regtest {
         now: () -> Long = System::currentTimeMillis,
     ): Phone {
         val store = InMemoryWalletStore()
-        val wallet = Wallet(store, InMemorySeedStore(), client, policies = NotePolicies.InMemory(strategy), collectDefaults = collectDefaults,
-            onWaitingForNetwork = onWaitingForNetwork, now = now)
+        val wallet =
+            Wallet(
+                store,
+                InMemorySeedStore(),
+                client,
+                policies = NotePolicies.InMemory(strategy),
+                collectDefaults = collectDefaults,
+                onWaitingForNetwork = onWaitingForNetwork,
+                now = now,
+            )
         val name = name()
         assertIs<OnboardResult.Ready>(wallet.onboard(name, host))
         return Phone(store, wallet, "$name@$host")
@@ -162,8 +174,8 @@ internal object Regtest {
         suspend fun balance() = wallet.balanceMsat.first()
 
         /**
-         * Refreshes until [settled] holds, for at most [timeoutMillis]: a mint learns a Lightning payment's outcome on
-         * its own schedule, so the refresh right after it may still see it in flight.
+         * Refreshes until [settled] holds, for at most [timeoutMillis]: a mint learns a Lightning payment's outcome on its own schedule, so
+         * the refresh right after it may still see it in flight.
          */
         suspend fun refreshUntil(timeoutMillis: Long = 30_000, settled: suspend () -> Boolean) {
             val until = System.currentTimeMillis() + timeoutMillis
@@ -176,8 +188,8 @@ internal object Regtest {
     }
 
     /**
-     * A client whose requests to the mints go through [intercept]: to drop a request before it reaches the mint, lose
-     * an answer after the mint acted on it, or tamper with a response.
+     * A client whose requests to the mints go through [intercept]: to drop a request before it reaches the mint, lose an answer after the
+     * mint acted on it, or tamper with a response.
      */
     fun client(intercept: Interceptor): LnurlcashClient =
         LnurlcashClient(http = LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor(intercept).build())
@@ -189,8 +201,14 @@ internal object Regtest {
     fun lost(): Nothing = throw IOException("connection dropped before the answer arrived")
 
     /** Answers the request with [json] on the mint's behalf; the mint never sees it. */
-    fun answer(chain: Interceptor.Chain, json: String): Response = Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200)
-        .message("OK").body(json.toResponseBody("application/json".toMediaType())).build()
+    fun answer(chain: Interceptor.Chain, json: String): Response =
+        Response.Builder()
+            .request(chain.request())
+            .protocol(Protocol.HTTP_1_1)
+            .code(200)
+            .message("OK")
+            .body(json.toResponseBody("application/json".toMediaType()))
+            .build()
 
     /** A valid key no mint signs with (the generator point): what a mint whose key changed presents here. */
     const val OTHER_KEY = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
@@ -203,13 +221,15 @@ internal object Regtest {
 }
 
 /**
- * A Lightning address `carol@payee.example` that is no mint: its LUD-16 pay link is answered on the wire (it never
- * reaches a server), and its invoices come from user-lnd, so paying it is a real Lightning payment. [invoiceFor] makes
- * the invoice for an amount; by default it commits to the pay link's metadata.
+ * A Lightning address `carol@payee.example` that is no mint: its LUD-16 pay link is answered on the wire (it never reaches a server), and
+ * its invoices come from user-lnd, so paying it is a real Lightning payment. [invoiceFor] makes the invoice for an amount; by default it
+ * commits to the pay link's metadata.
  */
-internal class LightningAddressPayee(private val invoiceFor: (amountMsat: Long, metadata: String) -> String = { amount, metadata ->
-    Regtest.invoice(amount, Payer.sha256Hex(metadata))
-}) : Interceptor {
+internal class LightningAddressPayee(
+    private val invoiceFor: (amountMsat: Long, metadata: String) -> String = { amount, metadata ->
+        Regtest.invoice(amount, Payer.sha256Hex(metadata))
+    }
+) : Interceptor {
     val address = "carol@payee.example"
     val metadata = """[["text/plain","Pay Carol"],["text/identifier","carol@payee.example"]]"""
     var lastComment: String? = null
@@ -218,25 +238,41 @@ internal class LightningAddressPayee(private val invoiceFor: (amountMsat: Long, 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         if (request.url.host != "payee.example") return chain.proceed(request)
-        val body = when (request.url.encodedPath) {
-            "/.well-known/lnurlp/carol" -> """{"tag":"payRequest","callback":"https://payee.example/cb","minSendable":1000,"maxSendable":100000000,""" +
-                """"metadata":${JsonPrimitive(metadata)},"commentAllowed":140}"""
-            "/cb" -> {
-                lastComment = request.url.queryParameter("comment")
-                val invoice = invoiceFor(request.url.queryParameter("amount")!!.toLong(), metadata).also { lastInvoice = it }
-                """{"pr":"$invoice","routes":[]}"""
+        val body =
+            when (request.url.encodedPath) {
+                "/.well-known/lnurlp/carol" ->
+                    """{"tag":"payRequest","callback":"https://payee.example/cb","minSendable":1000,"maxSendable":100000000,""" +
+                        """"metadata":${JsonPrimitive(metadata)},"commentAllowed":140}"""
+                "/cb" -> {
+                    lastComment = request.url.queryParameter("comment")
+                    val invoice = invoiceFor(request.url.queryParameter("amount")!!.toLong(), metadata).also { lastInvoice = it }
+                    """{"pr":"$invoice","routes":[]}"""
+                }
+                else ->
+                    return Response.Builder()
+                        .request(request)
+                        .protocol(Protocol.HTTP_1_1)
+                        .code(404)
+                        .message("Not Found")
+                        .body("".toResponseBody())
+                        .build()
             }
-            else -> return Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(404).message("Not Found").body("".toResponseBody()).build()
-        }
-        return Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(200).message("OK")
-            .body(body.toResponseBody("application/json".toMediaType())).build()
+        return Response.Builder()
+            .request(request)
+            .protocol(Protocol.HTTP_1_1)
+            .code(200)
+            .message("OK")
+            .body(body.toResponseBody("application/json".toMediaType()))
+            .build()
     }
 }
 
 /** A note-changing request (rotate, merge, split, melt) rather than a lookup, info or pay request. */
-internal val HttpUrl.isMutation: Boolean get() = queryParameter("k1") != null && (queryParameter("p1") != null || queryParameter("pr") != null)
+internal val HttpUrl.isMutation: Boolean
+    get() = queryParameter("k1") != null && (queryParameter("p1") != null || queryParameter("pr") != null)
 
 /** A melt: a note paying an invoice. */
-internal val HttpUrl.isMelt: Boolean get() = queryParameter("k1") != null && queryParameter("pr") != null
+internal val HttpUrl.isMelt: Boolean
+    get() = queryParameter("k1") != null && queryParameter("pr") != null
 
 private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }

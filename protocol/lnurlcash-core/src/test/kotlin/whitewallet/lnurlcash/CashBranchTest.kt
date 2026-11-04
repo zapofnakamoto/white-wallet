@@ -7,9 +7,9 @@ import kotlin.test.assertNotNull
 
 class CashBranchTest {
     /**
-     * The purpose only enters the non-hardened per-note tweak, so the one cx1 an address registration hands the mint
-     * (and the mint publishes as text/cpub) derives every wallet and change key of the branch too. Flip this when the
-     * purpose gets a hardened step of its own.
+     * The purpose only enters the non-hardened per-note tweak, so the one cx1 an address registration hands the mint (and the mint
+     * publishes as text/cpub) derives every wallet and change key of the branch too. Flip this when the purpose gets a hardened step of its
+     * own.
      */
     @Test
     fun `a branch's cx1 derives its wallet and change keys, but can't spend them`() {

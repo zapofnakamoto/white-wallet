@@ -48,8 +48,8 @@ public sealed interface HttpResult {
 }
 
 /**
- * The outcome of a rotate, split, merge or melt. The dangerous case is not an error but [Ambiguous]:
- * the input may already be burned, which makes the wallet's fresh output secrets the only copy of the money.
+ * The outcome of a rotate, split, merge or melt. The dangerous case is not an error but [Ambiguous]: the input may already be burned, which
+ * makes the wallet's fresh output secrets the only copy of the money.
  */
 public sealed interface MutationOutcome {
     /** Confirmed. For a melt this means "payment in flight", not "spent". */
@@ -65,16 +65,22 @@ public sealed interface MutationOutcome {
     public data class Ambiguous(val cause: String) : MutationOutcome
 }
 
-public enum class MutationType { Rotate, Split, Merge, Melt }
+public enum class MutationType {
+    Rotate,
+    Split,
+    Merge,
+    Melt,
+}
 
 public object MutationClassifier {
     /** Classifies [result]. Every output this wallet names is a `cp1`, so rotate/split/merge owe certificates. */
     public fun classify(type: MutationType, result: HttpResult): MutationOutcome {
-        val response = when (result) {
-            is HttpResult.TransportFailure -> return MutationOutcome.Ambiguous(result.message)
-            is HttpResult.Response -> LnurlResponse.parse(result.body)
-                ?: return MutationOutcome.Ambiguous("unparseable response (HTTP ${result.status})")
-        }
+        val response =
+            when (result) {
+                is HttpResult.TransportFailure -> return MutationOutcome.Ambiguous(result.message)
+                is HttpResult.Response ->
+                    LnurlResponse.parse(result.body) ?: return MutationOutcome.Ambiguous("unparseable response (HTTP ${result.status})")
+            }
         return when (response) {
             is LnurlResponse.Error -> MutationOutcome.Rejected(RejectionKind.fromReason(response.reason), response.reason)
             is LnurlResponse.Ok -> confirmed(type, response.raw)
@@ -85,11 +91,13 @@ public object MutationClassifier {
     private fun confirmed(type: MutationType, raw: JsonObject): MutationOutcome {
         val c = raw.string("c") ?: raw.string("sig")
         val c2 = raw.string("c2")
-        val missing = when (type) {
-            MutationType.Melt -> false
-            MutationType.Split -> c == null || c2 == null
-            MutationType.Rotate, MutationType.Merge -> c == null
-        }
+        val missing =
+            when (type) {
+                MutationType.Melt -> false
+                MutationType.Split -> c == null || c2 == null
+                MutationType.Rotate,
+                MutationType.Merge -> c == null
+            }
         return if (missing) MutationOutcome.Unverifiable(c, c2, raw) else MutationOutcome.Confirmed(c, c2, raw)
     }
 }

@@ -1,7 +1,6 @@
 package whitewallet.feature.notes
 
 import androidx.compose.material3.Text
-import whitewallet.core.designsystem.R as DesignR
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -12,6 +11,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
@@ -22,15 +22,12 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import whitewallet.core.model.ReceivedNote
-import whitewallet.core.model.ReceivedState
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -45,9 +42,12 @@ import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteGroupParams
 import whitewallet.brand.ui.NoteStatus
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.NoteAction
 import whitewallet.core.wallet.NoteProblem
@@ -55,8 +55,7 @@ import whitewallet.core.wallet.SimulatedFailure
 
 @RunWith(RobolectricTestRunner::class)
 class NotesScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     private fun note(id: String, host: String, sats: Long, state: NoteState = NoteState.Outstanding, certified: Boolean = true) =
         Note(id, "a", host, NoteKind.KeyPath, 0, id.hashCode().toLong() and 0xff, sats * 1000, if (certified) "cs1" else null, state, 0)
@@ -65,11 +64,12 @@ class NotesScreenTest {
     private val other = listOf(note("o1", "other.example", 2_000), note("o2", "other.example", 430, certified = false))
 
     private fun state(vararg changes: (NotesState) -> NotesState): NotesState {
-        val base = NotesState(
-            loaded = true,
-            mints = listOf(MintNotes("home.example", true, home), MintNotes("other.example", false, other)),
-            knownHosts = listOf("home.example", "other.example"),
-        )
+        val base =
+            NotesState(
+                loaded = true,
+                mints = listOf(MintNotes("home.example", true, home), MintNotes("other.example", false, other)),
+                knownHosts = listOf("home.example", "other.example"),
+            )
         return changes.fold(base) { s, change -> change(s) }
     }
 
@@ -87,7 +87,15 @@ class NotesScreenTest {
     @Test
     fun aTrustedMintIsMarkedOnItsGroupAndInTheNote() {
         compose.setContent {
-            NotesContent(state({ it.copy(mints = listOf(MintNotes("home.example", true, home, trusted = true), MintNotes("other.example", false, other)), open = "h1") }), NotesActions())
+            NotesContent(
+                state({
+                    it.copy(
+                        mints = listOf(MintNotes("home.example", true, home, trusted = true), MintNotes("other.example", false, other)),
+                        open = "h1",
+                    )
+                }),
+                NotesActions(),
+            )
         }
         compose.onNodeWithText("Home mint · Trusted").assertExists()
         compose.onNodeWithText(text(R.string.notes_trusted)).assertExists()
@@ -103,7 +111,9 @@ class NotesScreenTest {
     fun tappingANoteOpensItsActions() {
         var shared: String? = null
         var renewed: String? = null
-        compose.setContent { NotesContent(state({ it.copy(open = "h2") }), NotesActions(share = { shared = it }, renew = { renewed = it })) }
+        compose.setContent {
+            NotesContent(state({ it.copy(open = "h2") }), NotesActions(share = { shared = it }, renew = { renewed = it }))
+        }
         compose.onNodeWithText(text(DesignR.string.received_on, "home.example · "), substring = true).assertExists()
         compose.onNodeWithText(text(R.string.notes_share)).performClick()
         compose.onNodeWithText(text(R.string.notes_renew)).performClick()
@@ -123,8 +133,15 @@ class NotesScreenTest {
         var chosen: SimulatedFailure.Kind? = null
         var armed by mutableStateOf<SimulatedFailure.Kind?>(null)
         compose.setContent {
-            NotesContent(state({ it.copy(open = "h2", developerMode = true, failuresOffered = true, simulatedFailure = armed) }),
-                NotesActions(simulateFailure = { chosen = it; armed = it }))
+            NotesContent(
+                state({ it.copy(open = "h2", developerMode = true, failuresOffered = true, simulatedFailure = armed) }),
+                NotesActions(
+                    simulateFailure = {
+                        chosen = it
+                        armed = it
+                    }
+                ),
+            )
         }
         compose.onNodeWithText(text(R.string.notes_dev_section)).assertExists()
         compose.onNodeWithText(text(R.string.notes_dev_fail_lost)).performClick()
@@ -169,7 +186,10 @@ class NotesScreenTest {
         val confirming = note("c", "home.example", 1_000, NoteState.Ambiguous)
         var rechecked: String? = null
         compose.setContent {
-            NotesContent(state({ it.copy(mints = listOf(MintNotes("home.example", true, listOf(confirming))), open = "c") }), NotesActions(recheck = { rechecked = it }))
+            NotesContent(
+                state({ it.copy(mints = listOf(MintNotes("home.example", true, listOf(confirming))), open = "c") }),
+                NotesActions(recheck = { rechecked = it }),
+            )
         }
         compose.onNodeWithText(text(R.string.notes_share)).assertIsNotEnabled()
         compose.onNodeWithText(text(R.string.notes_renew)).assertIsNotEnabled()
@@ -206,7 +226,9 @@ class NotesScreenTest {
         val skipped = NotCollected.Reason.FeeTooHigh(feeMsat = 2_000, capPercent = 2)
         compose.setContent {
             NotesContent(
-                state({ it.copy(mints = listOf(MintNotes("home.example", true, home), MintNotes("other.example", false, other, skipped))) }),
+                state({
+                    it.copy(mints = listOf(MintNotes("home.example", true, home), MintNotes("other.example", false, other, skipped)))
+                }),
                 NotesActions(moveAnyway = { moved = it }),
             )
         }
@@ -231,15 +253,17 @@ class NotesScreenTest {
     @Test
     fun aBrandDrawsHandedOutNotesLikeTheOthers() {
         val faces = mutableListOf<Triple<NoteFaceSize, NoteStatus, NoteFacePlace>>()
-        val design = object : BrandDesign {
-            override val components = object : BrandComponents {
-                @Composable
-                override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
-                    faces += Triple(params.size, params.status, params.place)
-                    Text("zap ${params.amount} ${params.mint}", modifier)
-                }
+        val design =
+            object : BrandDesign {
+                override val components =
+                    object : BrandComponents {
+                        @Composable
+                        override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                            faces += Triple(params.size, params.status, params.place)
+                            Text("zap ${params.amount} ${params.mint}", modifier)
+                        }
+                    }
             }
-        }
         var opened: String? = null
         val shared = note("s", "home.example", 3_333, NoteState.Shared)
         compose.setContent {
@@ -256,10 +280,17 @@ class NotesScreenTest {
 
     @Test
     fun checkingReportsNotesThatAreGone() {
-        compose.setContent { NotesContent(state({ it.copy(outcome = NotesOutcome.Checked(ok = 3, gone = 1, unreachable = listOf("other.example"))) }), NotesActions()) }
-        compose.onNodeWithText(
-            "1 note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone. No answer from other.example. Try again later.",
-        ).assertExists()
+        compose.setContent {
+            NotesContent(
+                state({ it.copy(outcome = NotesOutcome.Checked(ok = 3, gone = 1, unreachable = listOf("other.example"))) }),
+                NotesActions(),
+            )
+        }
+        compose
+            .onNodeWithText(
+                "1 note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone. No answer from other.example. Try again later."
+            )
+            .assertExists()
     }
 
     @Test
@@ -274,7 +305,9 @@ class NotesScreenTest {
 
     @Test
     fun aNoteOffersOnlyTheActionsTheBrandAllows() {
-        compose.setContent { NotesContent(state({ it.copy(open = "h2", noteActions = setOf(NoteAction.Share, NoteAction.Renew)) }), NotesActions()) }
+        compose.setContent {
+            NotesContent(state({ it.copy(open = "h2", noteActions = setOf(NoteAction.Share, NoteAction.Renew)) }), NotesActions())
+        }
         compose.onNodeWithText(text(R.string.notes_share)).assertExists()
         compose.onNodeWithText(text(R.string.notes_renew)).assertExists()
         compose.onNodeWithText(text(R.string.notes_split)).assertDoesNotExist()
@@ -286,7 +319,12 @@ class NotesScreenTest {
     @Test
     fun withoutAnActionOnSeveralNotesThereIsNoSelecting() {
         var pressed: Note? = null
-        compose.setContent { NotesContent(state({ it.copy(noteActions = setOf(NoteAction.Share, NoteAction.Split)) }), NotesActions(longPress = { pressed = it })) }
+        compose.setContent {
+            NotesContent(
+                state({ it.copy(noteActions = setOf(NoteAction.Share, NoteAction.Split)) }),
+                NotesActions(longPress = { pressed = it }),
+            )
+        }
         compose.onNodeWithText(text(R.string.notes_select)).assertDoesNotExist()
         compose.onNodeWithText("₿30,000").performTouchInput { longClick() }
         assertEquals(null, pressed)
@@ -295,7 +333,10 @@ class NotesScreenTest {
     @Test
     fun theSelectionBarOffersOnlyTheAllowedBulkActions() {
         compose.setContent {
-            NotesContent(state({ it.copy(selecting = true, selected = setOf("h1"), noteActions = setOf(NoteAction.Recheck)) }), NotesActions())
+            NotesContent(
+                state({ it.copy(selecting = true, selected = setOf("h1"), noteActions = setOf(NoteAction.Recheck)) }),
+                NotesActions(),
+            )
         }
         compose.onNodeWithText(text(R.string.notes_recheck)).assertIsEnabled()
         compose.onNodeWithText(text(R.string.notes_combine)).assertDoesNotExist()
@@ -305,7 +346,10 @@ class NotesScreenTest {
     @Test
     fun withoutMintsOneMintsNotesAreAPlainList() {
         compose.setContent {
-            NotesContent(state({ it.copy(mints = listOf(MintNotes("home.example", true, home, trusted = true)), showMints = false, open = "h2") }), NotesActions())
+            NotesContent(
+                state({ it.copy(mints = listOf(MintNotes("home.example", true, home, trusted = true)), showMints = false, open = "h2") }),
+                NotesActions(),
+            )
         }
         compose.onNodeWithText("2 notes").assertExists()
         compose.onNodeWithText("home.example", substring = true).assertDoesNotExist()
@@ -317,7 +361,9 @@ class NotesScreenTest {
     fun withoutMintsSeveralMintsAreSeparatedButNotNamed() {
         compose.setContent {
             NotesContent(
-                state({ it.copy(showMints = false, outcome = NotesOutcome.Checked(ok = 3, gone = 0, unreachable = listOf("other.example"))) }),
+                state({
+                    it.copy(showMints = false, outcome = NotesOutcome.Checked(ok = 3, gone = 0, unreachable = listOf("other.example")))
+                }),
                 NotesActions(),
             )
         }
@@ -328,19 +374,21 @@ class NotesScreenTest {
     }
 
     /** A brand that draws notes and their headers its own way: only the texts it's given, in its own layout. */
-    private val bills = object : BrandDesign {
-        override val components = object : BrandComponents {
-            @Composable
-            override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
-                Text("bill ${params.amount} ${params.status}${if (params.selected == true) " ✓" else ""}", modifier)
-            }
+    private val bills =
+        object : BrandDesign {
+            override val components =
+                object : BrandComponents {
+                    @Composable
+                    override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                        Text("bill ${params.amount} ${params.status}${if (params.selected == true) " ✓" else ""}", modifier)
+                    }
 
-            @Composable
-            override fun NoteGroupHeader(params: NoteGroupParams, modifier: Modifier) {
-                Text("bank ${params.mint} ${params.total}", modifier)
-            }
+                    @Composable
+                    override fun NoteGroupHeader(params: NoteGroupParams, modifier: Modifier) {
+                        Text("bank ${params.mint} ${params.total}", modifier)
+                    }
+                }
         }
-    }
 
     @Test
     fun aBrandDrawsTheNotesAndTheAppKeepsWhatTheyDo() {
@@ -356,19 +404,24 @@ class NotesScreenTest {
 
         // Selecting: the app says which are selected, whatever the brand draws.
         s = state({ it.copy(selecting = true, selected = setOf("h1")) })
-        compose.onNodeWithText("bill ₿30,000 Ready ✓").assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
-        compose.onNodeWithText("bill ₿15,000 Ready").assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.Off))
+        compose
+            .onNodeWithText("bill ₿30,000 Ready ✓")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
+        compose
+            .onNodeWithText("bill ₿15,000 Ready")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.Off))
     }
 
     @Test
     fun aBrandDecoratesTheTopOfTheNotesAndAnEmptyView() {
         val seen = mutableListOf<Pair<Anchor, WalletStatus>>()
-        val design = object : BrandDesign {
-            @Composable
-            override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
-                if (anchor == Anchor.NotesHeader || anchor == Anchor.NotesEmpty) seen += anchor to context.status
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    if (anchor == Anchor.NotesHeader || anchor == Anchor.NotesEmpty) seen += anchor to context.status
+                }
             }
-        }
         val mint = MintNotes("mint.example", true, listOf(note("a", "mint.example", 1_000)), trusted = true)
         var state by mutableStateOf(NotesState(loaded = true))
         compose.setContent { CompositionLocalProvider(LocalBrandDesign provides design) { NotesContent(state, NotesActions()) } }
@@ -388,7 +441,23 @@ class NotesScreenTest {
 
     @Test
     fun receivedNotesAreListedApartWithWhereTheyStand() {
-        val locked = ReceivedNote("r".repeat(64), "a", "mint.example", "w", "k1", null, null, 4_000_000, 1_893_456_000_000, null, ReceivedState.Locked, null, 1, 1)
+        val locked =
+            ReceivedNote(
+                "r".repeat(64),
+                "a",
+                "mint.example",
+                "w",
+                "k1",
+                null,
+                null,
+                4_000_000,
+                1_893_456_000_000,
+                null,
+                ReceivedState.Locked,
+                null,
+                1,
+                1,
+            )
         compose.setContent { NotesContent(NotesState(loaded = true, received = listOf(locked)), NotesActions()) }
         compose.onNodeWithText(text(DesignR.string.received_total, "₿4,000")).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_title)).assertExists()

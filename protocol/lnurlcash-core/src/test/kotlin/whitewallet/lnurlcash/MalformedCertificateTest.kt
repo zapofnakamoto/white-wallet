@@ -18,7 +18,15 @@ class MalformedCertificateTest {
 
     @Test
     fun `a certificate that isn't one is none`() {
-        for (value in listOf("", "cs1", "xyz", Bech32m.encode("cs10n", ByteArray(64)), Bech32m.encode("cw10n", signature), Bech32m.encode("cs", signature))) {
+        for (value in
+            listOf(
+                "",
+                "cs1",
+                "xyz",
+                Bech32m.encode("cs10n", ByteArray(64)),
+                Bech32m.encode("cw10n", signature),
+                Bech32m.encode("cs", signature),
+            )) {
             assertNull(runCatching { Cs1.decode(value) }.getOrElse { throw AssertionError("'$value' threw $it", it) }, value)
         }
     }

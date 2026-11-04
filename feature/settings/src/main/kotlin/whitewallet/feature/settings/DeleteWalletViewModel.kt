@@ -29,8 +29,11 @@ data class DeleteWalletState(
     val otherAccountRemains: Boolean = false,
 ) {
     /** Money would be lost for good: there is a balance and no verified backup. */
-    val atRisk: Boolean get() = balanceMsat > 0 && !backupVerified
-    val canContinue: Boolean get() = !deleting && (!atRisk || acknowledged)
+    val atRisk: Boolean
+        get() = balanceMsat > 0 && !backupVerified
+
+    val canContinue: Boolean
+        get() = !deleting && (!atRisk || acknowledged)
 }
 
 private data class Local(
@@ -46,9 +49,22 @@ private data class Local(
 class DeleteWalletViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
     private val local = MutableStateFlow(Local())
 
-    val state: StateFlow<DeleteWalletState> = combine(wallet.activeAccount, wallet.balanceMsat, wallet.backupVerified, local) { account, balance, backedUp, l ->
-        DeleteWalletState(account?.profile, account?.account?.host, balance, backedUp, l.unresolved, l.acknowledged, l.confirming, l.deleting, l.deleted, l.otherAccountRemains)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeleteWalletState())
+    val state: StateFlow<DeleteWalletState> =
+        combine(wallet.activeAccount, wallet.balanceMsat, wallet.backupVerified, local) { account, balance, backedUp, l ->
+                DeleteWalletState(
+                    account?.profile,
+                    account?.account?.host,
+                    balance,
+                    backedUp,
+                    l.unresolved,
+                    l.acknowledged,
+                    l.confirming,
+                    l.deleting,
+                    l.deleted,
+                    l.otherAccountRemains,
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeleteWalletState())
 
     init {
         viewModelScope.launch { local.update { it.copy(unresolved = wallet.unresolvedOperations()) } }

@@ -3,6 +3,7 @@ package whitewallet.feature.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,18 +11,20 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.PhraseCheck
 import whitewallet.core.wallet.RecoveryPhrase
 import whitewallet.core.wallet.RestoreResult
 import whitewallet.core.wallet.Wallet
-import java.io.IOException
-import whitewallet.core.wallet.MintKeyChangedException
 
 /** Why a restore didn't happen; each maps to a full string resource. */
 sealed interface RestoreError {
     data class AlreadyInWallet(val accountName: String) : RestoreError
+
     data class AccountLimit(val limit: Int) : RestoreError
+
     data object Mint : RestoreError
+
     data object Network : RestoreError
 }
 
@@ -41,17 +44,25 @@ data class RestoreState(
     /** Set once restored: the host the account was restored on (its address is picked there next). */
     val restoredOn: String? = null,
 ) {
-    val check: PhraseCheck get() = RecoveryPhrase.check(phrase)
+    val check: PhraseCheck
+        get() = RecoveryPhrase.check(phrase)
 
     /** What to tell the user while they type (see [RecoveryPhrase.checkWhileTyping]). */
-    val hint: PhraseCheck get() = RecoveryPhrase.checkWhileTyping(phrase)
+    val hint: PhraseCheck
+        get() = RecoveryPhrase.checkWhileTyping(phrase)
+
     /** The mint picker: when the brand offers more than one mint or lets users type one. */
-    val showMintPicker: Boolean get() = mintOptions.hasChoice()
-    val canSubmit: Boolean get() = !busy && check is PhraseCheck.Valid && host.isNotBlank() && (!askAccountName || accountName.isNotBlank())
+    val showMintPicker: Boolean
+        get() = mintOptions.hasChoice()
+
+    val canSubmit: Boolean
+        get() = !busy && check is PhraseCheck.Valid && host.isNotBlank() && (!askAccountName || accountName.isNotBlank())
 }
 
 @HiltViewModel
-class RestoreViewModel @Inject constructor(
+class RestoreViewModel
+@Inject
+constructor(
     private val wallet: Wallet,
     private val defaults: AppDefaults,
     private val preferences: AppPreferences,
@@ -73,7 +84,10 @@ class RestoreViewModel @Inject constructor(
                     val options = mintOptions(defaults, developerMode)
                     val selected = keepSelection(options, s.mintOptions, s.selectedMint, s.host)
                     s.copy(
-                        mintOptions = options, selectedMint = selected, developerMode = developerMode, host = selected.host ?: s.host,
+                        mintOptions = options,
+                        selectedMint = selected,
+                        developerMode = developerMode,
+                        host = selected.host ?: s.host,
                         customHost = if (selected == MintOption.Custom) s.host else s.customHost,
                     )
                 }
@@ -87,8 +101,13 @@ class RestoreViewModel @Inject constructor(
     fun useTestPhrase() {
         if (_state.value.developerMode) onPhraseChange(TEST_PHRASE)
     }
+
     fun onAccountNameChange(value: String) = _state.update { it.copy(accountName = value) }
-    fun onMintSelected(option: MintOption) = _state.update { it.copy(selectedMint = option, host = option.host ?: it.customHost, error = null) }
+
+    fun onMintSelected(option: MintOption) = _state.update {
+        it.copy(selectedMint = option, host = option.host ?: it.customHost, error = null)
+    }
+
     fun onCustomHostChange(value: String) = _state.update { it.copy(customHost = value, host = value, error = null) }
 
     fun restore() {
@@ -97,26 +116,28 @@ class RestoreViewModel @Inject constructor(
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             val name = if (s.askAccountName) s.accountName.trim() else defaultAccountName
-            val result = try {
-                wallet.restore(s.phrase, s.host, name)
-            } catch (e: IOException) {
-                return@launch _state.update { it.copy(busy = false, error = RestoreError.Network) }
-            } catch (e: MintKeyChangedException) {
-                return@launch _state.update { it.copy(busy = false, error = RestoreError.Mint) }
-            }
-            val error = when (result) {
-                is RestoreResult.Restored -> {
-                    // The phrase isn't needed any more; don't keep it in memory longer than the screen.
-                    _state.update { it.copy(busy = false, phrase = "", restoredOn = s.host.trim().lowercase()) }
-                    return@launch
+            val result =
+                try {
+                    wallet.restore(s.phrase, s.host, name)
+                } catch (e: IOException) {
+                    return@launch _state.update { it.copy(busy = false, error = RestoreError.Network) }
+                } catch (e: MintKeyChangedException) {
+                    return@launch _state.update { it.copy(busy = false, error = RestoreError.Mint) }
                 }
-                is RestoreResult.AlreadyInWallet -> RestoreError.AlreadyInWallet(result.accountName)
-                is RestoreResult.AccountLimitReached -> RestoreError.AccountLimit(result.limit)
-                is RestoreResult.MintInvalid -> RestoreError.Mint
-                is RestoreResult.NetworkError -> RestoreError.Network
-                // The button is only enabled for a valid phrase.
-                is RestoreResult.InvalidPhrase -> null
-            }
+            val error =
+                when (result) {
+                    is RestoreResult.Restored -> {
+                        // The phrase isn't needed any more; don't keep it in memory longer than the screen.
+                        _state.update { it.copy(busy = false, phrase = "", restoredOn = s.host.trim().lowercase()) }
+                        return@launch
+                    }
+                    is RestoreResult.AlreadyInWallet -> RestoreError.AlreadyInWallet(result.accountName)
+                    is RestoreResult.AccountLimitReached -> RestoreError.AccountLimit(result.limit)
+                    is RestoreResult.MintInvalid -> RestoreError.Mint
+                    is RestoreResult.NetworkError -> RestoreError.Network
+                    // The button is only enabled for a valid phrase.
+                    is RestoreResult.InvalidPhrase -> null
+                }
             _state.update { it.copy(busy = false, error = error) }
         }
     }

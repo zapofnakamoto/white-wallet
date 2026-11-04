@@ -3,8 +3,8 @@ package whitewallet.lnurl
 import fr.acinq.bitcoin.Bech32
 
 /**
- * The parts of a BOLT-11 invoice a wallet shows and checks before paying. The signature is not verified here: the
- * service that pays the invoice does that, and nothing the wallet decides depends on who signed it.
+ * The parts of a BOLT-11 invoice a wallet shows and checks before paying. The signature is not verified here: the service that pays the
+ * invoice does that, and nothing the wallet decides depends on who signed it.
  */
 public data class Bolt11Invoice(
     /** The invoice as given, without a `lightning:` prefix, lowercase. */
@@ -21,7 +21,8 @@ public data class Bolt11Invoice(
     /** The payee's node id, when the invoice names it explicitly (`n`). */
     val payeeHex: String?,
 ) {
-    public val expiresAtSeconds: Long get() = timestampSeconds + expirySeconds
+    public val expiresAtSeconds: Long
+        get() = timestampSeconds + expirySeconds
 
     public fun isExpired(nowMillis: Long): Boolean = nowMillis / 1000 >= expiresAtSeconds
 }
@@ -70,8 +71,17 @@ public object Bolt11 {
             }
             i = start + length
         }
-        return Bolt11Invoice(raw, match.groupValues[1], amount.takeIf { it > 0 }, timestamp, paymentHash ?: return null,
-            description, descriptionHash, expiry, payee)
+        return Bolt11Invoice(
+            raw,
+            match.groupValues[1],
+            amount.takeIf { it > 0 },
+            timestamp,
+            paymentHash ?: return null,
+            description,
+            descriptionHash,
+            expiry,
+            payee,
+        )
     }
 
     /** The amount from the human-readable part in msat; 0 when absent, null when malformed. */

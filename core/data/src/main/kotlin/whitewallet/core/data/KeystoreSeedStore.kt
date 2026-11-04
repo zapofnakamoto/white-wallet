@@ -27,14 +27,23 @@ internal class KeystoreSeedStore(private val prefs: DataStore<Preferences>) : Se
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes, 0, IV_SIZE))
         val plain = cipher.doFinal(bytes, IV_SIZE, bytes.size - IV_SIZE)
-        return try { RecoveryPhrase.fromBytes(plain) } finally { plain.fill(0) }
+        return try {
+            RecoveryPhrase.fromBytes(plain)
+        } finally {
+            plain.fill(0)
+        }
     }
 
     override suspend fun save(accountId: String, words: List<String>) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, key())
         val plain = RecoveryPhrase.toBytes(words)
-        val encrypted = try { cipher.iv + cipher.doFinal(plain) } finally { plain.fill(0) }
+        val encrypted =
+            try {
+                cipher.iv + cipher.doFinal(plain)
+            } finally {
+                plain.fill(0)
+            }
         prefs.edit { it[seedKey(accountId)] = Base64.encodeToString(encrypted, Base64.NO_WRAP) }
     }
 
@@ -57,12 +66,15 @@ internal class KeystoreSeedStore(private val prefs: DataStore<Preferences>) : Se
 
     private fun key(): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        (keyStore.getKey(ALIAS, null) as? SecretKey)?.let { return it }
-        val spec = KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-            .setKeySize(256)
-            .build()
+        (keyStore.getKey(ALIAS, null) as? SecretKey)?.let {
+            return it
+        }
+        val spec =
+            KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setKeySize(256)
+                .build()
         return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE).apply { init(spec) }.generateKey()
     }
 

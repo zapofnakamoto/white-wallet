@@ -15,8 +15,14 @@ class LimitsTest {
     private val phrase = "legal winner thank year wave sausage worth useful legal winner thank yellow"
 
     private fun wallet(store: InMemoryWalletStore, maxAccounts: Int) =
-        Wallet(store, InMemorySeedStore(mapOf("a" to "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "))),
-            LnurlcashClient(), maxAccounts = maxAccounts)
+        Wallet(
+            store,
+            InMemorySeedStore(
+                mapOf("a" to "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "))
+            ),
+            LnurlcashClient(),
+            maxAccounts = maxAccounts,
+        )
 
     @Test
     fun `no account beyond the limit is created or restored`() = runBlocking {

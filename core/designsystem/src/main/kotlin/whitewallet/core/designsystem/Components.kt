@@ -42,8 +42,8 @@ fun ChevronIcon() {
 }
 
 /**
- * A large amount, such as the balance. With [onToggleHidden], tapping it hides or shows the figure (Design Guide:
- * units and symbols); while [hidden], only dots are shown and read out.
+ * A large amount, such as the balance. With [onToggleHidden], tapping it hides or shows the figure (Design Guide: units and symbols); while
+ * [hidden], only dots are shown and read out.
  */
 @Composable
 fun AmountText(msat: Long, modifier: Modifier = Modifier, hidden: Boolean = false, onToggleHidden: (() -> Unit)? = null) {
@@ -58,13 +58,21 @@ fun AmountText(msat: Long, modifier: Modifier = Modifier, hidden: Boolean = fals
 }
 
 /**
- * Which build is running ([LocalBuildLabel]), for developers; nothing in a release build. Plain text, not a brand
- * component. Where it doesn't fit, shortened from the start, so the commit and `-dirty` stay.
+ * Which build is running ([LocalBuildLabel]), for developers; nothing in a release build. Plain text, not a brand component. Where it
+ * doesn't fit, shortened from the start, so the commit and `-dirty` stay.
  */
 @Composable
 fun WalletBuildLabel(modifier: Modifier = Modifier) {
     val label = LocalBuildLabel.current ?: return
-    Text(label, modifier, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false, overflow = TextOverflow.StartEllipsis)
+    Text(
+        label,
+        modifier,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.labelMedium,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.StartEllipsis,
+    )
 }
 
 /** A full-width primary action that shows a spinner while [busy]. */
@@ -111,8 +119,8 @@ fun QrCode(content: String, modifier: Modifier = Modifier, size: Dp = 260.dp, de
 }
 
 /**
- * Stands in for a secret QR code until the user taps it ([onReveal]), so nobody nearby can scan it by chance: as large
- * as the code, so nothing moves when it shows. The brand draws it (`QrCodeCover`); [label] says what a tap does.
+ * Stands in for a secret QR code until the user taps it ([onReveal]), so nobody nearby can scan it by chance: as large as the code, so
+ * nothing moves when it shows. The brand draws it (`QrCodeCover`); [label] says what a tap does.
  */
 @Composable
 fun QrCodeCover(label: String, onReveal: () -> Unit, modifier: Modifier = Modifier, size: Dp = 260.dp) {
@@ -139,5 +147,7 @@ fun ScreenColumn(modifier: Modifier = Modifier, content: @Composable () -> Unit)
         modifier = modifier.fillMaxWidth().padding(horizontal = spacing.screen, vertical = spacing.gap),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(spacing.gap),
-    ) { content() }
+    ) {
+        content()
+    }
 }

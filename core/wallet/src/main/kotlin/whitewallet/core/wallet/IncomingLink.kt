@@ -5,8 +5,8 @@ import whitewallet.lnurl.Lnurl
 import whitewallet.lnurlcash.protocol.NoteLink
 
 /**
- * What text from outside the app (a deep link, shared text, an NFC tag, a scanned code) is for, decided offline:
- * a note to claim, or something to pay. The screen it opens checks it properly.
+ * What text from outside the app (a deep link, shared text, an NFC tag, a scanned code) is for, decided offline: a note to claim, or
+ * something to pay. The screen it opens checks it properly.
  */
 sealed interface IncomingLink {
     val text: String

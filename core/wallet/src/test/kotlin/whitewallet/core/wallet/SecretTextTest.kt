@@ -5,6 +5,10 @@ package whitewallet.core.wallet
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.PrivateKey
 import fr.acinq.bitcoin.PublicKey
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.OperationType
@@ -15,10 +19,6 @@ import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.Requests
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /** Debug text (`toString`, so logs, crash reports, failed assertions) shows a note's key, never its secret. */
 class SecretTextTest {
@@ -30,11 +30,13 @@ class SecretTextTest {
     private val spends: List<Spend> = listOf(keyPath, bearer, bearerCw1, script)
 
     /** The parts of [spend] that are secret, as they could show up in text. */
-    private fun secrets(spend: Spend): List<String> = listOf(spend.k1) + when (spend) {
-        is Spend.KeyPath -> listOf(spend.signature.toHex())
-        is Spend.Bearer -> listOf(spend.preimage.toHex())
-        is Spend.Script -> spend.cw1.witness.map { it.toHex() }
-    }
+    private fun secrets(spend: Spend): List<String> =
+        listOf(spend.k1) +
+            when (spend) {
+                is Spend.KeyPath -> listOf(spend.signature.toHex())
+                is Spend.Bearer -> listOf(spend.preimage.toHex())
+                is Spend.Script -> spend.cw1.witness.map { it.toHex() }
+            }
 
     private fun assertHidden(text: String, spend: Spend) {
         assertTrue(spend.q.toHex() in text, "the key is shown: $text")
@@ -57,14 +59,43 @@ class SecretTextTest {
     @Test
     fun `a received note, a journal entry and a shared note show their keys, not their spends`() {
         for (spend in spends) {
-            val received = ReceivedNote(spend.q.toHex(), "acc", domain, "https://$domain/w", spend.k1, null, null, 1_000, null, null,
-                ReceivedState.Waiting, null, 1, 1)
+            val received =
+                ReceivedNote(
+                    spend.q.toHex(),
+                    "acc",
+                    domain,
+                    "https://$domain/w",
+                    spend.k1,
+                    null,
+                    null,
+                    1_000,
+                    null,
+                    null,
+                    ReceivedState.Waiting,
+                    null,
+                    1,
+                    1,
+                )
             assertHidden(received.toString(), spend)
             assertHidden(ClaimResult.Kept(received).toString(), spend)
 
             val url = Requests.rotate("https://$domain/cb", spend.k1, keyPath.q)
-            val entry = JournalEntry("j", "acc", OperationType.Rotate, domain, "https://$domain/w", listOf(spend.q.toHex()), listOf(spend.k1),
-                emptyList(), url, JournalStatus.Prepared, null, 1, 1)
+            val entry =
+                JournalEntry(
+                    "j",
+                    "acc",
+                    OperationType.Rotate,
+                    domain,
+                    "https://$domain/w",
+                    listOf(spend.q.toHex()),
+                    listOf(spend.k1),
+                    emptyList(),
+                    url,
+                    JournalStatus.Prepared,
+                    null,
+                    1,
+                    1,
+                )
             assertHidden(entry.toString(), spend)
 
             val link = NoteLink("https://$domain/w", spend, 1_000, null).encode()

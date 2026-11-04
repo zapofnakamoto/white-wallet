@@ -9,7 +9,8 @@ import whitewallet.core.wallet.SplitLimits
 /** Where the split amount starts, and when there is nothing to split. */
 class SplitAmountTest {
     /** As the wallet gives them: [noteSats] less the [feeSats], at least one msat each side. */
-    private fun dialog(noteSats: Long, feeSats: Long) = NotesDialog.Split("n", SplitLimits(1, noteSats * 1000 - feeSats * 1000 - 1, feeSats * 1000))
+    private fun dialog(noteSats: Long, feeSats: Long) =
+        NotesDialog.Split("n", SplitLimits(1, noteSats * 1000 - feeSats * 1000 - 1, feeSats * 1000))
 
     @Test
     fun startsAtHalfOfWhatIsLeftAfterTheFee() {

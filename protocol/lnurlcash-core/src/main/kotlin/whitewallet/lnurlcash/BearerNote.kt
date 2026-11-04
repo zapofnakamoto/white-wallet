@@ -13,8 +13,7 @@ public object BearerNote {
     public const val LEAF_VERSION: Int = 0xc0
 
     /** BIP-341's nothing-up-my-sleeve point, so a bearer note has no key path. */
-    public val NUMS: ByteVector32 =
-        ByteVector32("50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0")
+    public val NUMS: ByteVector32 = ByteVector32("50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0")
 
     public fun leaf(h: ByteVector32): ByteVector = (byteArrayOf(0xa8.toByte(), 0x20) + h.toByteArray() + 0x87.toByte()).byteVector()
 
@@ -28,11 +27,12 @@ public object BearerNote {
     /** BIP-341's leaf hash: the script's length as a compact size, so a leaf of any length is a leaf. */
     public fun tapleafHash(script: ByteVector, leafVersion: Int = LEAF_VERSION): ByteVector32 {
         val len = script.size()
-        val size = when {
-            len < 0xfd -> byteArrayOf(len.toByte())
-            len <= 0xffff -> byteArrayOf(0xfd.toByte(), len.toByte(), (len ushr 8).toByte())
-            else -> byteArrayOf(0xfe.toByte(), len.toByte(), (len ushr 8).toByte(), (len ushr 16).toByte(), (len ushr 24).toByte())
-        }
+        val size =
+            when {
+                len < 0xfd -> byteArrayOf(len.toByte())
+                len <= 0xffff -> byteArrayOf(0xfd.toByte(), len.toByte(), (len ushr 8).toByte())
+                else -> byteArrayOf(0xfe.toByte(), len.toByte(), (len ushr 8).toByte(), (len ushr 16).toByte(), (len ushr 24).toByte())
+            }
         return Crypto.taggedHash(byteArrayOf(leafVersion.toByte()) + size + script.toByteArray(), "TapLeaf")
     }
 
@@ -58,6 +58,5 @@ public object BearerNote {
     }
 
     /** Resolves a `cp1` or the `cp1` short form (hex `h`) to `Q`. */
-    public fun parseOutput(value: String): ByteVector32? =
-        if (isShortForm(value)) q(ByteVector32(Hex.decode(value))) else Cp1.decode(value)
+    public fun parseOutput(value: String): ByteVector32? = if (isShortForm(value)) q(ByteVector32(Hex.decode(value))) else Cp1.decode(value)
 }

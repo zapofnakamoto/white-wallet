@@ -21,7 +21,10 @@ public object Requests {
     @RevealsNoteSecret
     public fun split(callback: String, k1s: List<String>, amountMsat: Long, p1: ByteVector32, p2: ByteVector32): String {
         require(k1s.isNotEmpty()) { "nothing to burn" }
-        return Lnurl.withQuery(callback, k1s.map { "k1" to it } + listOf("amount" to amountMsat.toString(), "p1" to Cp1.encode(p1), "p2" to Cp1.encode(p2)))
+        return Lnurl.withQuery(
+            callback,
+            k1s.map { "k1" to it } + listOf("amount" to amountMsat.toString(), "p1" to Cp1.encode(p1), "p2" to Cp1.encode(p2)),
+        )
     }
 
     @RevealsNoteSecret
@@ -32,8 +35,7 @@ public object Requests {
 
     /** Melt: pay [invoice] from one note. Never retried. */
     @RevealsNoteSecret
-    public fun melt(callback: String, k1: String, invoice: String): String =
-        Lnurl.withQuery(callback, listOf("k1" to k1, "pr" to invoice))
+    public fun melt(callback: String, k1: String, invoice: String): String = Lnurl.withQuery(callback, listOf("k1" to k1, "pr" to invoice))
 
     /** The discovery URLs for a service's own identity (`_`). */
     public fun servicePayUrl(host: String): String = checkNotNull(Lnurl.lightningAddressUrl("_@$host")) { "invalid host $host" }
@@ -41,8 +43,8 @@ public object Requests {
     public fun serviceWithdrawDiscoveryUrl(host: String): String = checkNotNull(Lnurl.withdrawUrlForPayUrl(servicePayUrl(host)))
 
     /**
-     * Username registration: `POST <service>/p/<username>?cx1=&sig=`.
-     * Not specified by LUD-26; this is the endpoint both reference mints implement (see protocol/SPEC.md).
+     * Username registration: `POST <service>/p/<username>?cx1=&sig=`. Not specified by LUD-26; this is the endpoint both reference mints
+     * implement (see protocol/SPEC.md).
      */
     public fun register(host: String, username: String, cx1: String, signatureHex: String): String {
         val base = servicePayUrl(host).substringBefore("/.well-known/")

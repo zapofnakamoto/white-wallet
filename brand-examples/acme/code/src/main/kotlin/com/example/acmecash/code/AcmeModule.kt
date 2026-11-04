@@ -15,17 +15,12 @@ import whitewallet.brand.ui.BrandScreen
 @Module
 @InstallIn(SingletonComponent::class)
 object AcmeModule {
-    @Provides
-    @IntoSet
-    fun combineSmallNotes(): NoteStrategy = CombineSmallNotes()
+    @Provides @IntoSet fun combineSmallNotes(): NoteStrategy = CombineSmallNotes()
 
     /** Acme's look in code (its colours and corners are in res/). */
-    @Provides
-    fun design(): BrandDesign = AcmeDesign
+    @Provides fun design(): BrandDesign = AcmeDesign
 
-    @Provides
-    @IntoSet
-    fun aboutAcme(): BrandScreen = AboutAcme()
+    @Provides @IntoSet fun aboutAcme(): BrandScreen = AboutAcme()
 
     /** Acme's own release notes, newest first, in place of White Wallet's. */
     @Provides

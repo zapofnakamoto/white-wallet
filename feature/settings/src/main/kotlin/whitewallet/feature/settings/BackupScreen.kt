@@ -28,16 +28,16 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.SensitiveClipboard
-import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletSuggestionChip
+import whitewallet.core.designsystem.WalletTopBar
 
 @Composable
 fun BackupRoute(onDone: () -> Unit, viewModel: BackupViewModel = hiltViewModel()) {
@@ -91,16 +91,25 @@ fun BackupScreen(
 @Composable
 private fun Intro(onShow: () -> Unit, onNotNow: () -> Unit) {
     listOf(
-        R.string.backup_intro_next, R.string.backup_intro_what, R.string.backup_intro_purpose,
-        R.string.backup_intro_loss, R.string.backup_intro_share, R.string.backup_intro_handling,
-    ).forEach { Text(stringResource(it), modifier = Modifier.fillMaxWidth()) }
+            R.string.backup_intro_next,
+            R.string.backup_intro_what,
+            R.string.backup_intro_purpose,
+            R.string.backup_intro_loss,
+            R.string.backup_intro_share,
+            R.string.backup_intro_handling,
+        )
+        .forEach { Text(stringResource(it), modifier = Modifier.fillMaxWidth()) }
     PrimaryButton(stringResource(R.string.backup_show), onShow)
     WalletButton(kind = ButtonKind.Text, onClick = onNotNow) { Text(stringResource(R.string.backup_not_now)) }
 }
 
 @Composable
 private fun NoScreenLock(onContinue: () -> Unit, onCancel: () -> Unit) {
-    Text(stringResource(R.string.backup_no_lock_title), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.error)
+    Text(
+        stringResource(R.string.backup_no_lock_title),
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.error,
+    )
     Text(stringResource(R.string.backup_no_lock_body), textAlign = TextAlign.Center)
     WalletButton(kind = ButtonKind.Secondary, onClick = onContinue) { Text(stringResource(R.string.backup_continue_anyway)) }
     WalletButton(kind = ButtonKind.Text, onClick = onCancel) { Text(stringResource(R.string.backup_not_now)) }
@@ -117,7 +126,9 @@ private fun Display(words: List<String>, addresses: List<String>, onCopy: (List<
         Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
             listOf(0 until half, half until words.size).forEach { range ->
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    range.forEach { i -> Text("${i + 1}. ${words[i]}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.titleMedium) }
+                    range.forEach { i ->
+                        Text("${i + 1}. ${words[i]}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.titleMedium)
+                    }
                 }
             }
         }
@@ -139,13 +150,20 @@ private fun Display(words: List<String>, addresses: List<String>, onCopy: (List<
             title = { Text(stringResource(R.string.backup_copy_title)) },
             text = { Text(stringResource(R.string.backup_copy_body)) },
             confirmButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = {
-                    onCopy(words)
-                    copied = true
-                    confirmCopy = false
-                }) { Text(stringResource(R.string.backup_copy_confirm)) }
+                WalletButton(
+                    kind = ButtonKind.Text,
+                    onClick = {
+                        onCopy(words)
+                        copied = true
+                        confirmCopy = false
+                    },
+                ) {
+                    Text(stringResource(R.string.backup_copy_confirm))
+                }
             },
-            dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = { confirmCopy = false }) { Text(stringResource(R.string.backup_cancel)) } },
+            dismissButton = {
+                WalletButton(kind = ButtonKind.Text, onClick = { confirmCopy = false }) { Text(stringResource(R.string.backup_cancel)) }
+            },
         )
     }
 }
@@ -156,14 +174,20 @@ private fun Verify(step: BackupStep.Verify, alreadyVerified: Boolean, onTap: (In
     Text(stringResource(R.string.backup_verify_title), style = MaterialTheme.typography.titleLarge)
     Text(stringResource(R.string.backup_verify_body), textAlign = TextAlign.Center)
     WalletCard(Modifier.fillMaxWidth()) {
-        FlowRow(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             step.words.indices.forEach { slot ->
                 val word = step.progress.getOrNull(slot)?.let { step.words[it] } ?: "____"
                 Text("${slot + 1}. $word", fontFamily = FontFamily.Monospace)
             }
         }
     }
-    step.wrongNumber?.let { Text(stringResource(R.string.backup_verify_wrong, it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
+    step.wrongNumber?.let {
+        Text(stringResource(R.string.backup_verify_wrong, it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+    }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         step.choices.forEach { position ->
             WalletSuggestionChip(

@@ -1,22 +1,22 @@
 package whitewallet.feature.claim
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.bitcoin.PublicKey
+import fr.acinq.secp256k1.Hex
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import fr.acinq.bitcoin.ByteVector32
-import fr.acinq.bitcoin.PublicKey
-import fr.acinq.secp256k1.Hex
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.ClaimPreview
@@ -28,18 +28,26 @@ import whitewallet.lnurlcash.protocol.NoteLink
 
 @RunWith(RobolectricTestRunner::class)
 class ClaimScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     private fun show(state: ClaimState, onCheck: () -> Unit = {}, onTakeBack: () -> Unit = {}) = compose.setContent {
         ClaimScreen(state, onBack = {}, onInputChange = {}, onCheck = onCheck, onClaim = {}, onTakeBack = onTakeBack)
     }
 
-    private val ready = ClaimPreview.Ready(
-        NoteLink("https://other.example/w", Spend.Bearer(ByteVector32(Hex.decode("66".repeat(32)))), 5_000_000, null),
-        NoteInfo("https://other.example/cb", 5_000_000, PublicKey(Hex.decode("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")), null),
-        amountMsat = 5_000_000, certified = true, isOwnMint = false, trusted = true,
-    )
+    private val ready =
+        ClaimPreview.Ready(
+            NoteLink("https://other.example/w", Spend.Bearer(ByteVector32(Hex.decode("66".repeat(32)))), 5_000_000, null),
+            NoteInfo(
+                "https://other.example/cb",
+                5_000_000,
+                PublicKey(Hex.decode("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")),
+                null,
+            ),
+            amountMsat = 5_000_000,
+            certified = true,
+            isOwnMint = false,
+            trusted = true,
+        )
 
     @Test
     fun aCheckedNoteSaysWhereItIsAndWhetherItsMintIsTrusted() {
@@ -118,7 +126,14 @@ class ClaimScreenTest {
     private val link = ready.link
 
     private fun showKeep(preview: ClaimPreview, onKeep: () -> Unit = {}) = compose.setContent {
-        ClaimScreen(ClaimState(input = "x", preview = preview), onBack = {}, onInputChange = {}, onCheck = {}, onClaim = {}, onKeep = onKeep)
+        ClaimScreen(
+            ClaimState(input = "x", preview = preview),
+            onBack = {},
+            onInputChange = {},
+            onCheck = {},
+            onClaim = {},
+            onKeep = onKeep,
+        )
     }
 
     @Test
@@ -168,7 +183,8 @@ class ClaimScreenTest {
 
     @Test
     fun aNoteKeptForAChangedKeySaysWhatClaimsIt() {
-        val note = ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.KeyChanged, null, 1, 1)
+        val note =
+            ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.KeyChanged, null, 1, 1)
         show(ClaimState(result = ClaimResult.Kept(note)))
         compose.onNodeWithText(text(R.string.claim_kept_key_changed)).assertExists()
     }

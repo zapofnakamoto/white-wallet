@@ -1,5 +1,6 @@
 package whitewallet.core.wallet
 
+import fr.acinq.bitcoin.ByteVector32
 import java.io.IOException
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
@@ -13,22 +14,20 @@ import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
-import fr.acinq.bitcoin.ByteVector32
 
 /**
- * Notes received as links (see [ReceivedNote]): kept with their spend from the moment the user keeps or claims one,
- * claimed as soon as their mint can be reached and any lock has passed, and settled with their journal entry when a
- * claim's outcome was unknown. Once claimed, the money is one of the wallet's own notes.
+ * Notes received as links (see [ReceivedNote]): kept with their spend from the moment the user keeps or claims one, claimed as soon as
+ * their mint can be reached and any lock has passed, and settled with their journal entry when a claim's outcome was unknown. Once claimed,
+ * the money is one of the wallet's own notes.
  */
 internal class ReceivedNotes(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
     private val log = ActivityLog(wallet)
 
     /**
-     * Keeps [link] for [accountId]: as [found] when the preview found why it can't be claimed now (locked, or its
-     * mint's key changed); otherwise locked if its spend claims a time still ahead, else waiting. [amountMsat] is what
-     * its mint or a verified certificate says, if known. A note already kept keeps its place; one being claimed or
-     * settled is left as it is.
+     * Keeps [link] for [accountId]: as [found] when the preview found why it can't be claimed now (locked, or its mint's key changed);
+     * otherwise locked if its spend claims a time still ahead, else waiting. [amountMsat] is what its mint or a verified certificate says,
+     * if known. A note already kept keeps its place; one being claimed or settled is left as it is.
      */
     suspend fun keep(link: NoteLink, accountId: String, amountMsat: Long?, found: ReceivedState? = null): ReceivedNote {
         val spend = link.spend
@@ -40,48 +39,80 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         val state = found ?: if (until != null && until > now) ReceivedState.Locked else ReceivedState.Waiting
         // Stored with its spend: the seed can't derive it again.
         @OptIn(RevealsNoteSecret::class)
-        val note = ReceivedNote(spend.q.toHex(), accountId, link.host, link.withdrawUrl, spend.k1, link.certificate, link.declaredAmountMsat,
-            amountMsat ?: existing?.amountMsat, until, script?.lockedForSeconds, state, null, existing?.receivedAtMillis ?: now, now)
+        val note =
+            ReceivedNote(
+                spend.q.toHex(),
+                accountId,
+                link.host,
+                link.withdrawUrl,
+                spend.k1,
+                link.certificate,
+                link.declaredAmountMsat,
+                amountMsat ?: existing?.amountMsat,
+                until,
+                script?.lockedForSeconds,
+                state,
+                null,
+                existing?.receivedAtMillis ?: now,
+                now,
+            )
         wallet.store.putReceivedNote(note)
         if (state == ReceivedState.Waiting) wallet.syncWhenOnline()
         return note
     }
 
     /**
-     * Claims [note] into its account now. [info] is its mint's answer for the note when the caller has one ([certified]
-     * if its certificate verified); otherwise the mint is asked here, by the note's key alone. The spend goes out only
-     * with the claim itself, and only to a mint that presents the key pinned for it: whoever gets the spend can claim
-     * the note. The key check catches a mint presenting another key; one relaying the mint's answers is TLS's to stop.
+     * Claims [note] into its account now. [info] is its mint's answer for the note when the caller has one ([certified] if its certificate
+     * verified); otherwise the mint is asked here, by the note's key alone. The spend goes out only with the claim itself, and only to a
+     * mint that presents the key pinned for it: whoever gets the spend can claim the note. The key check catches a mint presenting another
+     * key; one relaying the mint's answers is TLS's to stop.
      */
     suspend fun claim(note: ReceivedNote, info: NoteInfo? = null, certified: Boolean = false): ClaimResult {
-        @OptIn(RevealsNoteSecret::class)
-        val spend = note.k1?.let(Spend::parse) ?: return ClaimResult.Failed(RejectionKind.Other, null)
-        val answer = info ?: try {
-            wallet.client.lookup(note.withdrawUrl, spend.q)
-        } catch (e: NoteLookupError) {
-            return refused(note, spend, e.kind, e.reason)
-        } catch (e: ProtocolViolation) {
-            return waiting(note)
-        } catch (e: IOException) {
-            return waiting(note)
-        }
+        @OptIn(RevealsNoteSecret::class) val spend = note.k1?.let(Spend::parse) ?: return ClaimResult.Failed(RejectionKind.Other, null)
+        val answer =
+            info
+                ?: try {
+                    wallet.client.lookup(note.withdrawUrl, spend.q)
+                } catch (e: NoteLookupError) {
+                    return refused(note, spend, e.kind, e.reason)
+                } catch (e: ProtocolViolation) {
+                    return waiting(note)
+                } catch (e: IOException) {
+                    return waiting(note)
+                }
         if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
         val pinned = wallet.store.mint(note.host)?.mintPubkey
-        if (pinned != null && pinned != answer.mintPubkey.toHex()) return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, refusedSinceMillis = null)))
+        if (pinned != null && pinned != answer.mintPubkey.toHex())
+            return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, refusedSinceMillis = null)))
         val result = mutator.rotateIn(note.accountId, note.host, note.withdrawUrl, answer, spend, answer.maxWithdrawableMsat)
         return when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single()
                 val amount = out.amountMsat.takeIf { it > 0 } ?: answer.maxWithdrawableMsat
-                log.record("claim:${result.journalId}", note.accountId, ActivityKind.Claimed, amount, note.host, certified = out.certificate != null || certified)
+                log.record(
+                    "claim:${result.journalId}",
+                    note.accountId,
+                    ActivityKind.Claimed,
+                    amount,
+                    note.host,
+                    certified = out.certificate != null || certified,
+                )
                 update(note.copy(state = ReceivedState.Claimed, k1 = null, amountMsat = amount, journalId = result.journalId))
                 if (wallet.store.mint(note.host) == null) Onboarding(wallet).connectMint(note.host)
                 ClaimResult.Claimed(amount, out.certificate != null)
             }
             // Either the rotate landed or the note is back where it was once reconciled; then it is tried again.
             is MutationResult.Pending -> {
-                log.record("claim:${result.journalId}", note.accountId, ActivityKind.Claimed, answer.maxWithdrawableMsat, note.host, ActivityStatus.Pending,
-                    certified = certified, journalId = result.journalId)
+                log.record(
+                    "claim:${result.journalId}",
+                    note.accountId,
+                    ActivityKind.Claimed,
+                    answer.maxWithdrawableMsat,
+                    note.host,
+                    ActivityStatus.Pending,
+                    certified = certified,
+                    journalId = result.journalId,
+                )
                 update(note.copy(state = ReceivedState.Claiming, amountMsat = answer.maxWithdrawableMsat, journalId = result.journalId))
                 ClaimResult.Pending
             }
@@ -91,9 +122,9 @@ internal class ReceivedNotes(private val wallet: Wallet) {
     }
 
     /**
-     * On every refresh: settles claims whose outcome was unknown, then claims every kept note whose mint may take it
-     * now (a lock by date once the date has passed; a wait after crediting is only known to the mint, so it is asked;
-     * a changed key is asked about again, and once the user accepted it the note is claimed).
+     * On every refresh: settles claims whose outcome was unknown, then claims every kept note whose mint may take it now (a lock by date
+     * once the date has passed; a wait after crediting is only known to the mint, so it is asked; a changed key is asked about again, and
+     * once the user accepted it the note is claimed).
      */
     suspend fun retryAll() {
         for (note in wallet.store.receivedNotes(setOf(ReceivedState.Claiming))) settle(note)
@@ -117,26 +148,30 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 val out = entry.outputs.firstOrNull()?.let { wallet.store.note(it.q) }
                 update(note.copy(state = ReceivedState.Claimed, k1 = null, amountMsat = out?.amountMsat ?: note.amountMsat))
             }
-            JournalStatus.Rejected, null -> {
-                val live = try {
-                    isLive(note)
-                } catch (e: IOException) {
-                    return
-                }
-                if (live) update(note.copy(state = ReceivedState.Waiting, journalId = null)) else update(note.copy(state = ReceivedState.Gone, k1 = null))
+            JournalStatus.Rejected,
+            null -> {
+                val live =
+                    try {
+                        isLive(note)
+                    } catch (e: IOException) {
+                        return
+                    }
+                if (live) update(note.copy(state = ReceivedState.Waiting, journalId = null))
+                else update(note.copy(state = ReceivedState.Gone, k1 = null))
             }
             else -> Unit
         }
     }
 
     /** Whether its mint still holds [note], asked by its key alone. Throws [IOException] when it can't tell. */
-    private suspend fun isLive(note: ReceivedNote): Boolean = try {
-        wallet.client.lookup(note.withdrawUrl, ByteVector32(note.id)).maxWithdrawableMsat > 0
-    } catch (e: NoteLookupError) {
-        if (e.kind in UnknownNotes.GONE) false else throw IOException(e.reason)
-    } catch (e: ProtocolViolation) {
-        throw IOException(e.message)
-    }
+    private suspend fun isLive(note: ReceivedNote): Boolean =
+        try {
+            wallet.client.lookup(note.withdrawUrl, ByteVector32(note.id)).maxWithdrawableMsat > 0
+        } catch (e: NoteLookupError) {
+            if (e.kind in UnknownNotes.GONE) false else throw IOException(e.reason)
+        } catch (e: ProtocolViolation) {
+            throw IOException(e.message)
+        }
 
     /** A refusal: gone if the mint doesn't hold the note; locked if its spend claims a time (the mint's clock decides); else waiting. */
     private suspend fun refused(note: ReceivedNote, spend: Spend, kind: RejectionKind, reason: String?): ClaimResult {

@@ -33,6 +33,8 @@ that section to the version and tags `v<version>`; CI turns the section into the
 
 ## Project rules
 
+- **Code is formatted by ktfmt** (kotlinlang style, 140 wide): run `just format` before committing; `just check` and
+  CI fail on code that isn't formatted.
 - **Every text works in other languages.** Use plural resources, whole sentences with placeholders, and no English
   built in Kotlin. A new string needs its German translation too; lint fails without one.
 - **The words for the custodian and its notes** ("mint", "note") appear only in the strings marked *Brand terms*.

@@ -51,8 +51,8 @@ private const val PRINTED_MAX_WIDTH_POINTS = 425f
 private const val PRINT_DENSITY = 4f
 
 /**
- * While [printing], draws [page] for paper, unseen: in the brand's light theme on white, at a fixed size and print
- * density, with no semantics (it is not on screen). Once drawn, it hands the picture to [onPrinted], once.
+ * While [printing], draws [page] for paper, unseen: in the brand's light theme on white, at a fixed size and print density, with no
+ * semantics (it is not on screen). Once drawn, it hands the picture to [onPrinted], once.
  */
 @Composable
 fun PrintPage(printing: Boolean, onPrinted: (Bitmap) -> Unit, page: @Composable ColumnScope.() -> Unit) {
@@ -63,14 +63,13 @@ fun PrintPage(printing: Boolean, onPrinted: (Bitmap) -> Unit, page: @Composable 
     Box(Modifier.size(0.dp).clearAndSetSemantics {}) {
         CompositionLocalProvider(LocalDensity provides Density(PRINT_DENSITY, fontScale = 1f)) {
             Box(
-                Modifier
-                    .wrapContentSize(Alignment.TopStart, unbounded = true)
+                Modifier.wrapContentSize(Alignment.TopStart, unbounded = true)
                     .requiredWidth(PAGE_WIDTH)
                     // Recorded, not drawn: nothing shows on screen.
                     .drawWithContent {
                         layer.record { this@drawWithContent.drawContent() }
                         drawn.trySend(Unit)
-                    },
+                    }
             ) {
                 LightWalletTheme {
                     CompositionLocalProvider(LocalContentColor provides Color.Black) {
@@ -101,23 +100,35 @@ fun printBitmap(context: Context, jobName: String, bitmap: Bitmap) {
 private class BitmapDocument(private val context: Context, private val name: String, private val bitmap: Bitmap) : PrintDocumentAdapter() {
     private var attributes: PrintAttributes? = null
 
-    override fun onLayout(old: PrintAttributes?, new: PrintAttributes, cancel: CancellationSignal, callback: LayoutResultCallback, extras: Bundle?) {
+    override fun onLayout(
+        old: PrintAttributes?,
+        new: PrintAttributes,
+        cancel: CancellationSignal,
+        callback: LayoutResultCallback,
+        extras: Bundle?,
+    ) {
         if (cancel.isCanceled) return callback.onLayoutCancelled()
         attributes = new
         val info = PrintDocumentInfo.Builder("$name.pdf").setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT).setPageCount(1).build()
         callback.onLayoutFinished(info, new != old)
     }
 
-    override fun onWrite(pages: Array<out PageRange>, destination: ParcelFileDescriptor, cancel: CancellationSignal, callback: WriteResultCallback) {
+    override fun onWrite(
+        pages: Array<out PageRange>,
+        destination: ParcelFileDescriptor,
+        cancel: CancellationSignal,
+        callback: WriteResultCallback,
+    ) {
         val pdf = PrintedPdfDocument(context, attributes ?: return callback.onWriteFailed(null))
         try {
             val page = pdf.startPage(0)
             val box = page.info.contentRect
             val scale = min(min(box.width().toFloat(), PRINTED_MAX_WIDTH_POINTS) / bitmap.width, box.height().toFloat() / bitmap.height)
-            val matrix = Matrix().apply {
-                postScale(scale, scale)
-                postTranslate(box.left + (box.width() - bitmap.width * scale) / 2, box.top.toFloat())
-            }
+            val matrix =
+                Matrix().apply {
+                    postScale(scale, scale)
+                    postTranslate(box.left + (box.width() - bitmap.width * scale) / 2, box.top.toFloat())
+                }
             page.canvas.drawBitmap(bitmap, matrix, Paint(Paint.FILTER_BITMAP_FLAG))
             pdf.finishPage(page)
             if (cancel.isCanceled) return callback.onWriteCancelled()

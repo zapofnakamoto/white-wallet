@@ -25,10 +25,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletSwitch
+import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.wallet.AppPreferences
 
 @HiltViewModel
 class SecuritySettingsViewModel @Inject constructor(private val preferences: AppPreferences) : ViewModel() {
@@ -49,7 +49,13 @@ fun SecuritySettingsRoute(onBack: () -> Unit, viewModel: SecuritySettingsViewMod
     val subtitle = stringResource(R.string.security_confirm)
     SecuritySettingsScreen(appLock, available, onBack) { enabled ->
         // Both ways ask for the phone's lock: whoever holds the unlocked phone can't quietly switch it off.
-        DeviceAuth.authenticate(activity ?: return@SecuritySettingsScreen, title, subtitle, onSuccess = { viewModel.setAppLock(enabled) }, onCancel = {})
+        DeviceAuth.authenticate(
+            activity ?: return@SecuritySettingsScreen,
+            title,
+            subtitle,
+            onSuccess = { viewModel.setAppLock(enabled) },
+            onCancel = {},
+        )
     }
 }
 

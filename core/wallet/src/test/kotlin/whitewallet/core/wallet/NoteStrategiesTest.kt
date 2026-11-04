@@ -1,18 +1,19 @@
 package whitewallet.core.wallet
 
-import whitewallet.brand.MintNotes
-import whitewallet.brand.NoteStep
-import whitewallet.brand.NoteStrategy
-import whitewallet.brand.StrategyNote
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import whitewallet.brand.MintNotes
+import whitewallet.brand.NoteStep
+import whitewallet.brand.NoteStrategy
+import whitewallet.brand.StrategyNote
 
 class NoteStrategiesTest {
     private class Named(override val id: String) : NoteStrategy {
         override val title = 0
         override val description = 0
+
         override fun plan(mint: MintNotes): List<NoteStep> = emptyList()
     }
 
@@ -41,7 +42,9 @@ class NoteStrategiesTest {
     @Test
     fun `a misconfigured brand fails with the problem named`() {
         assertTrue("keep-big" in assertFailsWith<IllegalStateException> { NoteStrategies(all, listOf("keep-big"), "keep-big") }.message!!)
-        assertTrue("notes.strategy.default" in assertFailsWith<IllegalStateException> { NoteStrategies(all, listOf("single"), "manual") }.message!!)
+        assertTrue(
+            "notes.strategy.default" in assertFailsWith<IllegalStateException> { NoteStrategies(all, listOf("single"), "manual") }.message!!
+        )
         assertFailsWith<IllegalStateException> { NoteStrategies(all + Named("single"), listOf("single"), "single") }
         assertFailsWith<IllegalStateException> { NoteStrategies(all + Named("Keep Big"), listOf("single"), "single") }
     }

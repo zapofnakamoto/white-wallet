@@ -7,13 +7,20 @@ import kotlin.test.assertTrue
 class SettingsSearchTest {
     private val notes = SearchDestination.Page(SettingsTarget.Notes)
     private val backup = SearchDestination.Page(SettingsTarget.Backup)
-    private val items = listOf(
-        SearchItem("Recovery phrase", "Recovery phrase", "seed, words, mnemonic", backup),
-        SearchItem("Note strategy", "Notes", "combine, merge, rotate", notes),
-        SearchItem("Auto-rotate incoming notes", "Notes", "privacy, fresh key", notes),
-        SearchItem("Derived keys", "Developer options", "Note keys, indexes, rotate", SearchDestination.Route("developer/keys"), developerOnly = true),
-        SearchItem("Clé de récupération", "Sécurité", "", backup),
-    )
+    private val items =
+        listOf(
+            SearchItem("Recovery phrase", "Recovery phrase", "seed, words, mnemonic", backup),
+            SearchItem("Note strategy", "Notes", "combine, merge, rotate", notes),
+            SearchItem("Auto-rotate incoming notes", "Notes", "privacy, fresh key", notes),
+            SearchItem(
+                "Derived keys",
+                "Developer options",
+                "Note keys, indexes, rotate",
+                SearchDestination.Route("developer/keys"),
+                developerOnly = true,
+            ),
+            SearchItem("Clé de récupération", "Sécurité", "", backup),
+        )
 
     private fun titles(query: String, developer: Boolean = false) = SettingsSearch.search(items, query, developer).map { it.title }
 

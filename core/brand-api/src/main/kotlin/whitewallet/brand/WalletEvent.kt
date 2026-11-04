@@ -1,8 +1,8 @@
 package whitewallet.brand
 
 /**
- * Something that just happened in the wallet, for a brand to react to (a sound, a vibration, a motion), wherever the
- * user is in the app. Events carry amounts and kinds only, never notes, keys or addresses.
+ * Something that just happened in the wallet, for a brand to react to (a sound, a vibration, a motion), wherever the user is in the app.
+ * Events carry amounts and kinds only, never notes, keys or addresses.
  *
  * New events may be added in later releases: a brand's `when` needs an `else` branch.
  */
@@ -29,10 +29,10 @@ sealed interface WalletEvent {
     data class NoteTakenBack(val amountMsat: Long) : WalletEvent
 
     /**
-     * The wallet looked after the notes by itself, in one run: its note strategy combined [combined] notes and made
-     * [split] splits, auto-renew renewed [renewed] notes, and collecting moved [movedHomeMsat] to the home mint. In all,
-     * [notesReplaced] notes were spent for [notesMade] new ones. [balanceChangeMsat] is positive when the mint paid fees
-     * back, negative for fees paid, and null while an outcome is still open.
+     * The wallet looked after the notes by itself, in one run: its note strategy combined [combined] notes and made [split] splits,
+     * auto-renew renewed [renewed] notes, and collecting moved [movedHomeMsat] to the home mint. In all, [notesReplaced] notes were spent
+     * for [notesMade] new ones. [balanceChangeMsat] is positive when the mint paid fees back, negative for fees paid, and null while an
+     * outcome is still open.
      */
     data class NoteMaintenance(
         val combined: Int,
@@ -46,8 +46,8 @@ sealed interface WalletEvent {
 }
 
 /**
- * Called on the main thread for every [WalletEvent] while the app runs. Register one in a brand's code module (Hilt
- * `@IntoSet`). Keep it quick: it must not block.
+ * Called on the main thread for every [WalletEvent] while the app runs. Register one in a brand's code module (Hilt `@IntoSet`). Keep it
+ * quick: it must not block.
  */
 fun interface WalletEventListener {
     fun onEvent(event: WalletEvent)

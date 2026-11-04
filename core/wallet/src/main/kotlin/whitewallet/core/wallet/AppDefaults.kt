@@ -25,18 +25,21 @@ enum class DeveloperOptions {
 }
 
 /**
- * The brand's `app.releaseStage`: `alpha`, `beta` or `stable` as set, or `auto` (the default) for beta while [versionName]
- * is below 1.0.0 and stable from then on.
+ * The brand's `app.releaseStage`: `alpha`, `beta` or `stable` as set, or `auto` (the default) for beta while [versionName] is below 1.0.0
+ * and stable from then on.
  */
-fun releaseStageFromConfig(value: String, versionName: String): ReleaseStage = when (val v = value.trim().lowercase()) {
-    "auto" -> {
-        val major = versionName.substringBefore('.').toIntOrNull()
-            ?: error("app.releaseStage=auto needs an app.version.name that starts with a number, not '$versionName'")
-        if (major < 1) ReleaseStage.Beta else ReleaseStage.Stable
+fun releaseStageFromConfig(value: String, versionName: String): ReleaseStage =
+    when (val v = value.trim().lowercase()) {
+        "auto" -> {
+            val major =
+                versionName.substringBefore('.').toIntOrNull()
+                    ?: error("app.releaseStage=auto needs an app.version.name that starts with a number, not '$versionName'")
+            if (major < 1) ReleaseStage.Beta else ReleaseStage.Stable
+        }
+        else ->
+            ReleaseStage.entries.firstOrNull { it.name.lowercase() == v }
+                ?: error("app.releaseStage must be auto, alpha, beta or stable, not '$value'")
     }
-    else -> ReleaseStage.entries.firstOrNull { it.name.lowercase() == v }
-        ?: error("app.releaseStage must be auto, alpha, beta or stable, not '$value'")
-}
 
 /** Where the notes view lives (brand `notes.view`). */
 enum class NotesView {
@@ -73,7 +76,7 @@ enum class HistoryFilterOption {
 /** What users can do with their notes in the notes view, and with a handed-out one (brand `notes.actions`). */
 enum class NoteAction(
     /** Done on several selected notes at once; without any such action there is no selection. */
-    val bulk: Boolean,
+    val bulk: Boolean
 ) {
     /** Hand the whole note out as a QR code. */
     Share(bulk = false),
@@ -94,12 +97,13 @@ enum class NoteAction(
 
     companion object {
         /**
-         * The brand's comma-separated list ([value] null when unset: all, without [Move] when mints are hidden). An
-         * empty list leaves the notes to look at. Fails on an unknown action, and on `move` with [showMints] false.
+         * The brand's comma-separated list ([value] null when unset: all, without [Move] when mints are hidden). An empty list leaves the
+         * notes to look at. Fails on an unknown action, and on `move` with [showMints] false.
          */
         fun fromConfig(value: String?, showMints: Boolean): Set<NoteAction> {
             if (value == null) return entries.filter { showMints || it != Move }.toSet()
-            val actions = value.split(',').map(String::trim).filter(String::isNotEmpty).map { configEnum<NoteAction>("notes.actions", it) }.toSet()
+            val actions =
+                value.split(',').map(String::trim).filter(String::isNotEmpty).map { configEnum<NoteAction>("notes.actions", it) }.toSet()
             check(showMints || Move !in actions) { "notes.actions can't include move with mints.visible=false: it names the mint" }
             return actions
         }
@@ -124,8 +128,8 @@ enum class AddressPolicy {
 
 data class AppDefaults(
     /**
-     * The mints offered at setup and restore (brand `mints.suggestions`), the first preselected; empty when users bring
-     * their own. Without [customMints], also the only mints that can be a home, hold an address or receive moved money.
+     * The mints offered at setup and restore (brand `mints.suggestions`), the first preselected; empty when users bring their own. Without
+     * [customMints], also the only mints that can be a home, hold an address or receive moved money.
      */
     val mintSuggestions: List<String>,
     /** Whether users may change their mint after setup (brand `mints.changeable`): addresses elsewhere, a new home, moving money. */
@@ -135,8 +139,8 @@ data class AppDefaults(
     /** The local regtest mints, offered in developer mode in debug builds; empty in release builds. */
     val localDevMints: List<String> = emptyList(),
     /**
-     * Debug builds: developer mode offers making a note action fail on purpose ([SimulatedFailure]) and a bad
-     * connection to the mints (`NetworkConditions`); never in release builds.
+     * Debug builds: developer mode offers making a note action fail on purpose ([SimulatedFailure]) and a bad connection to the mints
+     * (`NetworkConditions`); never in release builds.
      */
     val simulatedFailures: Boolean = false,
     /** How amounts are shown until the user picks a unit (brand `amounts.unit.default`). */
@@ -156,8 +160,8 @@ data class AppDefaults(
     /** Whether users are told what the wallet did to their notes by itself (brand `notes.maintenance.notices`). */
     val maintenanceNotices: MaintenanceNoticeDefaults = MaintenanceNoticeDefaults(),
     /**
-     * Whether users see mints at all (brand `mints.visible`): Settings → Mints, the home mint's page, which mint a claimed
-     * note is on and whether it's trusted. Without, the app is just a wallet; the mints work the same underneath.
+     * Whether users see mints at all (brand `mints.visible`): Settings → Mints, the home mint's page, which mint a claimed note is on and
+     * whether it's trusted. Without, the app is just a wallet; the mints work the same underneath.
      */
     val showMints: Boolean = true,
     /** What users can do with their notes in the notes view (brand `notes.actions`). */
@@ -172,11 +176,12 @@ data class AppDefaults(
     }
 
     /** The mint preselected at setup and restore; empty when users bring their own. */
-    val defaultMintHost: String get() = mintSuggestions.firstOrNull().orEmpty()
+    val defaultMintHost: String
+        get() = mintSuggestions.firstOrNull().orEmpty()
 
     /**
-     * Whether [host] may be a home, hold an address or receive moved money: any mint with [customMints], else only the
-     * suggested ones (and the local regtest mints, which only debug builds have). Notes on any mint can still be claimed.
+     * Whether [host] may be a home, hold an address or receive moved money: any mint with [customMints], else only the suggested ones (and
+     * the local regtest mints, which only debug builds have). Notes on any mint can still be claimed.
      */
     fun mintAllowed(host: String): Boolean {
         if (customMints) return true
@@ -193,14 +198,15 @@ data class AppDefaults(
 
     /**
      * Whether Developer options (and with them developer mode) are reachable: always with [DeveloperOptions.Shown]; with
-     * [DeveloperOptions.Unlock] once the user unlocked them in About, or while developer mode is on (debug builds start
-     * with it on); never with [DeveloperOptions.Hidden].
+     * [DeveloperOptions.Unlock] once the user unlocked them in About, or while developer mode is on (debug builds start with it on); never
+     * with [DeveloperOptions.Hidden].
      */
-    fun developerOptionsVisible(developerMode: Boolean, unlocked: Boolean): Boolean = when (developerOptions) {
-        DeveloperOptions.Shown -> true
-        DeveloperOptions.Unlock -> unlocked || developerMode
-        DeveloperOptions.Hidden -> false
-    }
+    fun developerOptionsVisible(developerMode: Boolean, unlocked: Boolean): Boolean =
+        when (developerOptions) {
+            DeveloperOptions.Shown -> true
+            DeveloperOptions.Unlock -> unlocked || developerMode
+            DeveloperOptions.Hidden -> false
+        }
 
     /** The unit amounts are shown in: the user's [chosen] one if the brand lets them choose, else the brand's. */
     fun amountUnit(chosen: AmountUnit?): AmountUnit = chosen?.takeIf { allowUnitChange } ?: defaultAmountUnit

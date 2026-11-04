@@ -43,12 +43,18 @@ class LnurlTest {
     @Test
     fun `well-known paths`() {
         for (c in resolution.objects("mintAddressUrl")) assertEquals(c.strOrNull("expect"), Lnurl.withdrawUrlForPayUrl(c.str("payUrl")))
-        for (c in resolution.objects("lightningAddressUsername")) assertEquals(c.strOrNull("expect"), Lnurl.lightningAddressUsername(c.str("payUrl")))
+        for (c in resolution.objects("lightningAddressUsername")) assertEquals(
+            c.strOrNull("expect"),
+            Lnurl.lightningAddressUsername(c.str("payUrl")),
+        )
     }
 
     @Test
     fun `query building keeps existing parameters`() {
-        assertEquals("https://m.example/w/cb?token=abc&k1=a&k1=b", Lnurl.withQuery("https://m.example/w/cb?token=abc", listOf("k1" to "a", "k1" to "b")))
+        assertEquals(
+            "https://m.example/w/cb?token=abc&k1=a&k1=b",
+            Lnurl.withQuery("https://m.example/w/cb?token=abc", listOf("k1" to "a", "k1" to "b")),
+        )
         assertEquals("https://m.example/p?comment=a%20b", Lnurl.withQuery("https://m.example/p", listOf("comment" to "a b")))
         assertEquals(listOf("token" to "abc", "k1" to "a", "k1" to "b"), Lnurl.queryParams("https://m.example/w/cb?token=abc&k1=a&k1=b"))
     }
@@ -57,8 +63,17 @@ class LnurlTest {
     fun `withdraw responses are parsed strictly`() {
         val v = Vectors.conformance("withdraw-info")
         for (c in v.objects("accepted")) assertIs<LnurlResponse.WithdrawRequest>(LnurlResponse.parse(c.obj("body")), c.str("name"))
-        val structural = setOf("wrong tag", "no callback", "no maxWithdrawable", "maxWithdrawable is a string", "negative maxWithdrawable",
-            "fractional maxWithdrawable", "maxWithdrawable past 2^63", "minWithdrawable above maxWithdrawable")
+        val structural =
+            setOf(
+                "wrong tag",
+                "no callback",
+                "no maxWithdrawable",
+                "maxWithdrawable is a string",
+                "negative maxWithdrawable",
+                "fractional maxWithdrawable",
+                "maxWithdrawable past 2^63",
+                "minWithdrawable above maxWithdrawable",
+            )
         for (c in v.objects("rejected").filter { it.str("name") in structural }) {
             val parsed = LnurlResponse.parse(c.obj("body"))
             assert(parsed !is LnurlResponse.WithdrawRequest) { "${c.str("name")} should not parse" }

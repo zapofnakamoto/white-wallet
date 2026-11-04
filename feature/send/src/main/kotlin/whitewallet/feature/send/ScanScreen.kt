@@ -22,8 +22,8 @@ import whitewallet.core.scanner.QrScanner
 import whitewallet.core.wallet.IncomingLink
 
 /**
- * Scan anything from Home: a note opens Claim, an invoice, Lightning address or pay link opens Send ([onScanned]).
- * A code that is neither says so, and the camera stays on.
+ * Scan anything from Home: a note opens Claim, an invoice, Lightning address or pay link opens Send ([onScanned]). A code that is neither
+ * says so, and the camera stays on.
  */
 @Composable
 fun ScanRoute(onBack: () -> Unit, onScanned: (IncomingLink) -> Unit) {
@@ -32,7 +32,11 @@ fun ScanRoute(onBack: () -> Unit, onScanned: (IncomingLink) -> Unit) {
 }
 
 @Composable
-fun ScanScreen(onBack: () -> Unit, onScanned: (IncomingLink) -> Unit, scanner: @Composable (Modifier, (String) -> Unit) -> Unit = { m, f -> QrScanner(f, m) }) {
+fun ScanScreen(
+    onBack: () -> Unit,
+    onScanned: (IncomingLink) -> Unit,
+    scanner: @Composable (Modifier, (String) -> Unit) -> Unit = { m, f -> QrScanner(f, m) },
+) {
     var unknown by remember { mutableStateOf(false) }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.scan_title), onBack) }) { padding ->
         ScreenColumn(Modifier.padding(padding)) {

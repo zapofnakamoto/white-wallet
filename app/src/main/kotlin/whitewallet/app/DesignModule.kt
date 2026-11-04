@@ -27,28 +27,25 @@ import whitewallet.core.wallet.WalletEvents
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DesignModule {
-    @BindsOptionalOf
-    abstract fun design(): BrandDesign
+    @BindsOptionalOf abstract fun design(): BrandDesign
 
-    @Multibinds
-    abstract fun eventListeners(): Set<WalletEventListener>
+    @Multibinds abstract fun eventListeners(): Set<WalletEventListener>
 
-    @Multibinds
-    abstract fun screens(): Set<BrandScreen>
+    @Multibinds abstract fun screens(): Set<BrandScreen>
 
     companion object {
-        @Provides
-        @Singleton
-        fun walletEvents(wallet: Wallet): WalletEvents = WalletEvents(wallet)
+        @Provides @Singleton fun walletEvents(wallet: Wallet): WalletEvents = WalletEvents(wallet)
     }
 }
 
 /**
- * Hands every [WalletEvent] to the brand's listeners and to the UI ([events]), for as long as the app runs. Listeners
- * are called on the main thread; one that throws is the brand's bug and must not take the wallet down with it.
+ * Hands every [WalletEvent] to the brand's listeners and to the UI ([events]), for as long as the app runs. Listeners are called on the
+ * main thread; one that throws is the brand's bug and must not take the wallet down with it.
  */
 @Singleton
-class WalletEventHub @Inject constructor(
+class WalletEventHub
+@Inject
+constructor(
     private val source: WalletEvents,
     private val listeners: Set<@JvmSuppressWildcards WalletEventListener>,
 ) {
@@ -67,10 +64,11 @@ class WalletEventHub @Inject constructor(
 
 /** The brand's `app.appearance`: light or dark whatever the system says, or following it. */
 internal fun applyAppearance(context: Context) {
-    val mode = when (BuildConfig.APPEARANCE) {
-        "light" -> UiModeManager.MODE_NIGHT_NO
-        "dark" -> UiModeManager.MODE_NIGHT_YES
-        else -> UiModeManager.MODE_NIGHT_AUTO
-    }
+    val mode =
+        when (BuildConfig.APPEARANCE) {
+            "light" -> UiModeManager.MODE_NIGHT_NO
+            "dark" -> UiModeManager.MODE_NIGHT_YES
+            else -> UiModeManager.MODE_NIGHT_AUTO
+        }
     context.getSystemService(UiModeManager::class.java).setApplicationNightMode(mode)
 }

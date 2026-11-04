@@ -32,30 +32,39 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import whitewallet.core.designsystem.WalletStatusScope
-import whitewallet.core.designsystem.BrandDecoration
-import whitewallet.brand.ui.Anchor
-import whitewallet.brand.WalletStatus
 import whitewallet.brand.ProblemKind
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.PrimaryButton
-import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessScreen
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletStatusScope
+import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceStatus
-import whitewallet.brand.ui.ButtonKind
-import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletTextField
 
 @Composable
 fun ReceiveRoute(onBack: () -> Unit, onClaim: () -> Unit, viewModel: ReceiveViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     ReceiveScreen(
-        state, onBack, onClaim,
-        InvoiceActions(viewModel::requestAmount, viewModel::onAmountChange, viewModel::createInvoice, viewModel::newInvoice, viewModel::receiveMore, viewModel::payFromFaucet),
+        state,
+        onBack,
+        onClaim,
+        InvoiceActions(
+            viewModel::requestAmount,
+            viewModel::onAmountChange,
+            viewModel::createInvoice,
+            viewModel::newInvoice,
+            viewModel::receiveMore,
+            viewModel::payFromFaucet,
+        ),
     )
 }
 
@@ -77,8 +86,15 @@ fun ReceiveScreen(state: ReceiveState, onBack: () -> Unit, onClaim: () -> Unit, 
         val arrived = state.arrivedMsat
         if (arrived != null) {
             SuccessScreen(
-                Anchor.ReceiveSuccess, WalletStatus.PaymentReceived(arrived), stringResource(R.string.receive_success_title), arrived,
-                stringResource(R.string.receive_done), onBack, stringResource(R.string.receive_more), invoice.onReceiveMore, Modifier.padding(padding),
+                Anchor.ReceiveSuccess,
+                WalletStatus.PaymentReceived(arrived),
+                stringResource(R.string.receive_success_title),
+                arrived,
+                stringResource(R.string.receive_done),
+                onBack,
+                stringResource(R.string.receive_more),
+                invoice.onReceiveMore,
+                Modifier.padding(padding),
             )
             return@Scaffold
         }
@@ -112,9 +128,18 @@ private fun receiveStatus(state: ReceiveState): WalletStatus {
 /** Developer mode with a local regtest mint: the faucet pays the address or the invoice, as `regtest.sh pay` would. */
 @Composable
 private fun FaucetButton(faucet: FaucetState, invoice: Boolean, onPay: () -> Unit) {
-    val label = if (invoice) stringResource(R.string.receive_faucet_invoice) else stringResource(R.string.receive_faucet_address, formatAmount(FAUCET_SATS * 1_000))
+    val label =
+        if (invoice) stringResource(R.string.receive_faucet_invoice)
+        else stringResource(R.string.receive_faucet_address, formatAmount(FAUCET_SATS * 1_000))
     WalletButton(kind = ButtonKind.Secondary, onClick = onPay, busy = faucet.busy) { Text(label) }
-    faucet.error?.let { Text(stringResource(R.string.receive_faucet_failed, it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall) }
+    faucet.error?.let {
+        Text(
+            stringResource(R.string.receive_faucet_failed, it),
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
 }
 
 @Composable
@@ -140,14 +165,21 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions) {
         modifier = Modifier.fillMaxWidth(),
     )
     state.problem?.let { problem ->
-        val message = when (problem) {
-            is InvoiceProblem.OutOfRange -> stringResource(R.string.receive_invoice_range, formatAmount(problem.minMsat), formatAmount(problem.maxMsat))
-            InvoiceProblem.Unreachable -> stringResource(R.string.receive_invoice_unreachable)
-            InvoiceProblem.Refused -> stringResource(R.string.receive_invoice_refused)
-        }
+        val message =
+            when (problem) {
+                is InvoiceProblem.OutOfRange ->
+                    stringResource(R.string.receive_invoice_range, formatAmount(problem.minMsat), formatAmount(problem.maxMsat))
+                InvoiceProblem.Unreachable -> stringResource(R.string.receive_invoice_unreachable)
+                InvoiceProblem.Refused -> stringResource(R.string.receive_invoice_refused)
+            }
         Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
     }
-    PrimaryButton(stringResource(R.string.receive_invoice_create), actions.onCreate, enabled = state.amountMsat != null, busy = state.creating)
+    PrimaryButton(
+        stringResource(R.string.receive_invoice_create),
+        actions.onCreate,
+        enabled = state.amountMsat != null,
+        busy = state.creating,
+    )
 }
 
 @Composable
@@ -165,12 +197,20 @@ private fun InvoiceContent(shown: ShownInvoice, onDone: () -> Unit, onNewInvoice
             Text(formatAmount(request.amountMsat), style = MaterialTheme.typography.headlineSmall)
             if (request.expectedMsat < request.amountMsat) {
                 Text(
-                    stringResource(R.string.receive_invoice_fee, formatAmount(request.expectedMsat), formatAmount(request.amountMsat - request.expectedMsat)),
+                    stringResource(
+                        R.string.receive_invoice_fee,
+                        formatAmount(request.expectedMsat),
+                        formatAmount(request.amountMsat - request.expectedMsat),
+                    ),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            Text(stringResource(R.string.receive_invoice_waiting), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(R.string.receive_invoice_waiting),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             CopyShare(request.invoice, stringResource(R.string.receive_invoice_copied))
             WalletButton(kind = ButtonKind.Text, onClick = onNewInvoice) { Text(stringResource(R.string.receive_invoice_other_amount)) }
         }
@@ -184,14 +224,24 @@ private fun CopyShare(text: String, copiedMessage: String) {
     val scope = rememberCoroutineScope()
     var copied by remember(text) { mutableStateOf(false) }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        WalletButton(kind = ButtonKind.Secondary, onClick = {
-            scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("lightning", text))) }
-            copied = true
-        }) { Text(stringResource(R.string.receive_copy)) }
-        WalletButton(kind = ButtonKind.Secondary, onClick = {
-            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-            context.startActivity(Intent.createChooser(send, null))
-        }) { Text(stringResource(R.string.receive_share)) }
+        WalletButton(
+            kind = ButtonKind.Secondary,
+            onClick = {
+                scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("lightning", text))) }
+                copied = true
+            },
+        ) {
+            Text(stringResource(R.string.receive_copy))
+        }
+        WalletButton(
+            kind = ButtonKind.Secondary,
+            onClick = {
+                val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+                context.startActivity(Intent.createChooser(send, null))
+            },
+        ) {
+            Text(stringResource(R.string.receive_share))
+        }
     }
     if (copied) Text(copiedMessage, style = MaterialTheme.typography.bodySmall)
 }

@@ -13,33 +13,40 @@ enum class NoteState {
     /** Burned at the mint. */
     Spent,
 
-    /** Being melted: the mint is paying an invoice from it. Not in the balance; burned once the payment settles, outstanding again if it fails. */
+    /**
+     * Being melted: the mint is paying an invoice from it. Not in the balance; burned once the payment settles, outstanding again if it
+     * fails.
+     */
     Paying,
 
     /** Handed out as a link (sent as a note). Not in the balance; spent once someone claims it, or once taken back. */
     Shared,
 
     /**
-     * Handed out as a link while its mint couldn't be asked, so not confirmed to be there. Like [Shared] in every way;
-     * the first lookup by its key makes it [Shared], or [Spent].
+     * Handed out as a link while its mint couldn't be asked, so not confirmed to be there. Like [Shared] in every way; the first lookup by
+     * its key makes it [Shared], or [Spent].
      */
     SharedUnconfirmed,
 
     /**
-     * Held by this wallet, but its mint says it doesn't know the note (a mint that lost its records, or misbehaves).
-     * Not in the balance and never spent; kept with its certificate, and outstanding again once the mint knows it.
+     * Held by this wallet, but its mint says it doesn't know the note (a mint that lost its records, or misbehaves). Not in the balance and
+     * never spent; kept with its certificate, and outstanding again once the mint knows it.
      */
     Unknown,
 }
 
 /** Handed out as a link, confirmed by its mint or not yet. */
-val NoteState.isShared: Boolean get() = this == NoteState.Shared || this == NoteState.SharedUnconfirmed
+val NoteState.isShared: Boolean
+    get() = this == NoteState.Shared || this == NoteState.SharedUnconfirmed
 
-enum class NoteKind { KeyPath, Bearer }
+enum class NoteKind {
+    KeyPath,
+    Bearer,
+}
 
 /**
- * One account: its own recovery phrase, home mint ([host]), notes, and Lightning addresses (none, if the brand
- * doesn't require one). The primary address, when there is one, is always on [host].
+ * One account: its own recovery phrase, home mint ([host]), notes, and Lightning addresses (none, if the brand doesn't require one). The
+ * primary address, when there is one, is always on [host].
  */
 data class Account(val id: String, val name: String, val createdAtMillis: Long, val host: String)
 
@@ -75,8 +82,8 @@ enum class ReceivedState {
     Locked,
 
     /**
-     * Its mint presents another signing key than the one pinned for it: the spend isn't sent there until the user
-     * accepts the new key (the mint's details). Asked again, by the note's key alone, on every refresh.
+     * Its mint presents another signing key than the one pinned for it: the spend isn't sent there until the user accepts the new key (the
+     * mint's details). Asked again, by the note's key alone, on every refresh.
      */
     KeyChanged,
 
@@ -90,11 +97,10 @@ enum class ReceivedState {
     Gone,
 
     /**
-     * Its mint kept refusing it for another reason than spent, unknown or locked, for a week since the first refusal:
-     * no longer tried. Its spend is kept until the user removes it.
+     * Its mint kept refusing it for another reason than spent, unknown or locked, for a week since the first refusal: no longer tried. Its
+     * spend is kept until the user removes it.
      */
-    Refused,
-    ;
+    Refused;
 
     companion object {
         /** Not the wallet's yet, and may still become it. */
@@ -103,9 +109,9 @@ enum class ReceivedState {
 }
 
 /**
- * A note received as a link, kept from the moment the user keeps or claims it until it is one of the wallet's own
- * notes. Unlike a [Note], its secret can't be derived from the seed: [k1], from the link, is the only copy, so until
- * it is claimed the recovery phrase doesn't cover it, and whoever made the link can still spend it.
+ * A note received as a link, kept from the moment the user keeps or claims it until it is one of the wallet's own notes. Unlike a [Note],
+ * its secret can't be derived from the seed: [k1], from the link, is the only copy, so until it is claimed the recovery phrase doesn't
+ * cover it, and whoever made the link can still spend it.
  */
 data class ReceivedNote(
     /** Lowercase hex of `Q`. */
@@ -134,7 +140,8 @@ data class ReceivedNote(
     val refusedSinceMillis: Long? = null,
 ) {
     /** Not the wallet's yet, and may still become it. */
-    val isPending: Boolean get() = state in ReceivedState.PENDING
+    val isPending: Boolean
+        get() = state in ReceivedState.PENDING
 
     /** Debug text without the spend. */
     @OptIn(RevealsNoteSecret::class)
@@ -163,19 +170,24 @@ data class Mint(
 )
 
 data class Profile(val username: String, val host: String) {
-    val address: String get() = "$username@$host"
+    val address: String
+        get() = "$username@$host"
 }
 
 /**
- * A Lightning address registered to an account. An account can hold several on a mint; all of them pay into the
- * same note keys (LUD-26 purpose 2). The account's [Profile] is the primary one, shown on Home and Receive.
+ * A Lightning address registered to an account. An account can hold several on a mint; all of them pay into the same note keys (LUD-26
+ * purpose 2). The account's [Profile] is the primary one, shown on Home and Receive.
  */
 data class RegisteredAddress(val username: String, val host: String, val addedAtMillis: Long) {
-    val address: String get() = "$username@$host"
+    val address: String
+        get() = "$username@$host"
 }
 
 enum class OperationType {
-    Rotate, Split, Merge, Melt,
+    Rotate,
+    Split,
+    Merge,
+    Melt,
 
     /** A note minted at one of our keys by paying the mint's invoice (the receiving side of a move between mints). */
     Mint,
@@ -194,7 +206,8 @@ enum class JournalStatus {
 /** An output note named in a mutation, recorded before its `cp1` is disclosed. [accountId] owns the output's key. */
 data class OutputRef(val accountId: String, val purpose: Int, val index: Long, val q: String) {
     /** Someone else's key (an internal transfer): never recorded as a note of this wallet. */
-    val isExternal: Boolean get() = accountId.isEmpty()
+    val isExternal: Boolean
+        get() = accountId.isEmpty()
 
     companion object {
         fun external(q: String) = OutputRef("", 2, -1, q)
@@ -263,18 +276,22 @@ enum class ActivityKind(val isMaintenance: Boolean) {
 }
 
 enum class ActivityStatus {
-    Pending, Done, Failed,
+    Pending,
+    Done,
+    Failed,
 
     /** Called off by the user before it completed (a sent note taken back). */
     Cancelled,
 }
 
 /**
- * One entry of an account's history: something that happened to its money ([ActivityKind.isMaintenance] false),
- * or note maintenance. Written when it happens; notes themselves are an implementation detail.
+ * One entry of an account's history: something that happened to its money ([ActivityKind.isMaintenance] false), or note maintenance.
+ * Written when it happens; notes themselves are an implementation detail.
  */
 data class Activity(
-    /** Stable, so a re-scan or retry never adds a second row: `recv:<Q>`, `claim:<journal id>`, `move:<journal id>:out`, `op:<journal id>`. */
+    /**
+     * Stable, so a re-scan or retry never adds a second row: `recv:<Q>`, `claim:<journal id>`, `move:<journal id>:out`, `op:<journal id>`.
+     */
     val id: String,
     val accountId: String,
     val kind: ActivityKind,
@@ -307,7 +324,8 @@ enum class AmountUnit {
 
     companion object {
         /** Parses a brand config value: `bitcoin` or `sats`, ignoring case. */
-        fun fromConfig(value: String): AmountUnit = entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) }
-            ?: error("amounts.unit.default must be bitcoin or sats, not '$value'")
+        fun fromConfig(value: String): AmountUnit =
+            entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) }
+                ?: error("amounts.unit.default must be bitcoin or sats, not '$value'")
     }
 }

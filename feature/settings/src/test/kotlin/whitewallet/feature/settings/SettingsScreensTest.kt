@@ -23,18 +23,18 @@ import whitewallet.core.wallet.MintInfo
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsScreensTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
-    private val mint = Mint(
-        host = "mint.example",
-        withdrawUrl = "https://mint.example/w",
-        mintPubkey = "02" + "ab".repeat(32),
-        minSendableMsat = 1_000,
-        maxSendableMsat = 1_000_000_000,
-        feeBaseMsat = 1_000,
-        feePpm = 0,
-    )
+    private val mint =
+        Mint(
+            host = "mint.example",
+            withdrawUrl = "https://mint.example/w",
+            mintPubkey = "02" + "ab".repeat(32),
+            minSendableMsat = 1_000,
+            maxSendableMsat = 1_000_000_000,
+            feeBaseMsat = 1_000,
+            feePpm = 0,
+        )
 
     private fun details(reachability: MintDetails.Reachability) =
         MintDetails("mint.example", mint, reachability, "A test mint", 999_000, 1, isHome = true)
@@ -44,8 +44,16 @@ class SettingsScreensTest {
         compose.setContent {
             var show by remember { mutableStateOf(false) }
             MintDetailsScreen(
-                MintDetailsState(details(MintDetails.Reachability.Reachable), loading = false, watchOnlyKey = "cx1test", showWatchOnly = show),
-                onBack = {}, onRefresh = {}, onToggleWatchOnly = { show = !show }, onCopyWatchOnly = {},
+                MintDetailsState(
+                    details(MintDetails.Reachability.Reachable),
+                    loading = false,
+                    watchOnlyKey = "cx1test",
+                    showWatchOnly = show,
+                ),
+                onBack = {},
+                onRefresh = {},
+                onToggleWatchOnly = { show = !show },
+                onCopyWatchOnly = {},
             )
         }
         compose.onNodeWithText(text(R.string.mint_reachable)).assertExists()
@@ -71,7 +79,11 @@ class SettingsScreensTest {
         compose.setContent {
             MintDetailsScreen(
                 MintDetailsState(details(MintDetails.Reachability.KeyChanged).copy(presentedKey = presented), loading = false),
-                onBack = {}, onRefresh = {}, onToggleWatchOnly = {}, onCopyWatchOnly = {}, onAcceptKey = { accepted += it },
+                onBack = {},
+                onRefresh = {},
+                onToggleWatchOnly = {},
+                onCopyWatchOnly = {},
+                onAcceptKey = { accepted += it },
             )
         }
         compose.onNodeWithText(text(R.string.mint_key_remembered)).assertExists()
@@ -98,7 +110,11 @@ class SettingsScreensTest {
         compose.setContent {
             MintDetailsScreen(
                 MintDetailsState(details(MintDetails.Reachability.Reachable), loading = false, canChangeHome = true),
-                {}, {}, {}, {}, onChangeHome = { asked = it },
+                {},
+                {},
+                {},
+                {},
+                onChangeHome = { asked = it },
             )
         }
         compose.onNodeWithText(text(R.string.mint_change_home)).performScrollTo().performClick()
@@ -112,7 +128,11 @@ class SettingsScreensTest {
         compose.setContent {
             MintDetailsScreen(
                 MintDetailsState(details(MintDetails.Reachability.Reachable).copy(isHome = false), loading = false, canChangeHome = true),
-                {}, {}, {}, {}, onChangeHome = { asked = it },
+                {},
+                {},
+                {},
+                {},
+                onChangeHome = { asked = it },
             )
         }
         compose.onNodeWithText(text(R.string.mint_make_home)).performScrollTo().performClick()
@@ -151,12 +171,17 @@ class SettingsScreensTest {
     fun fromTheDevicesListAMintPageShowsNoAccountButWhoseHomeItIsAndRemoving() {
         var removed = false
         val removable = MintInfo("other.example", mint.mintPubkey, trusted = false, trustedByDefault = null, removable = true)
-        var state by mutableStateOf(
-            MintDetailsState(
-                details(MintDetails.Reachability.Reachable).copy(host = "other.example", isHome = false),
-                loading = false, watchOnlyKey = "cx1test", canChangeHome = true, device = true, mint = removable,
-            ),
-        )
+        var state by
+            mutableStateOf(
+                MintDetailsState(
+                    details(MintDetails.Reachability.Reachable).copy(host = "other.example", isHome = false),
+                    loading = false,
+                    watchOnlyKey = "cx1test",
+                    canChangeHome = true,
+                    device = true,
+                    mint = removable,
+                )
+            )
         compose.setContent { MintDetailsScreen(state, {}, {}, {}, {}, onRemove = { removed = true }) }
         compose.onNodeWithText("Your money").assertDoesNotExist()
         compose.onNodeWithText(text(R.string.mint_make_home)).assertDoesNotExist()
@@ -184,10 +209,11 @@ class SettingsScreensTest {
     @Test
     fun anAccountsMintsShowItsMoneyHomeFirst() {
         var opened: String? = null
-        val mints = listOf(
-            AccountMint("home.example", isHome = true, balanceMsat = 21_000, noteCount = 2, addresses = 1, trusted = true),
-            AccountMint("other.example", isHome = false, balanceMsat = 5_000, noteCount = 1, addresses = 0, trusted = false),
-        )
+        val mints =
+            listOf(
+                AccountMint("home.example", isHome = true, balanceMsat = 21_000, noteCount = 2, addresses = 1, trusted = true),
+                AccountMint("other.example", isHome = false, balanceMsat = 5_000, noteCount = 1, addresses = 0, trusted = false),
+            )
         compose.setContent { AccountMintsScreen(mints, {}, { opened = it }) }
         compose.onNodeWithText("₿21 in 2 notes").assertExists()
         compose.onNodeWithText("1 address").assertExists()

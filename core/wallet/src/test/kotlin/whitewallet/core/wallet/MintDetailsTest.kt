@@ -17,16 +17,23 @@ import whitewallet.testkit.MockMint
 class MintDetailsTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
-    private fun withWallet(test: suspend (MockMint, InMemoryWalletStore, Wallet) -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
-        MockMint.start("--baseFeeMsat=1000").use { mint ->
-            val store = InMemoryWalletStore()
-            val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
-            store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-            test(mint, store, wallet)
+    private fun withWallet(test: suspend (MockMint, InMemoryWalletStore, Wallet) -> Unit) =
+        runBlocking<Unit> {
+            assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
+            MockMint.start("--baseFeeMsat=1000").use { mint ->
+                val store = InMemoryWalletStore()
+                val wallet =
+                    Wallet(
+                        store,
+                        InMemorySeedStore(mapOf("a" to words)),
+                        LnurlcashClient(),
+                        policies = NotePolicies.InMemory(ManualStrategy.ID),
+                    )
+                store.addAccount("a", "Main", Profile("alice", mint.host))
+                assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
+                test(mint, store, wallet)
+            }
         }
-    }
 
     @Test
     fun `details show fees, limits, the pinned key and the account's money there`() = withWallet { mint, _, wallet ->

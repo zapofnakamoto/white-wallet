@@ -13,7 +13,9 @@ import whitewallet.lnurlcash.client.NetworkConditions
 class NetworkSimulation @Inject constructor(private val conditions: NetworkConditions, private val preferences: AppPreferences) {
     fun start() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            combine(preferences.developerMode, preferences.networkProfile) { on, profile -> if (on && BuildConfig.DEBUG) profile else NetworkConditions.Profile.Normal }
+            combine(preferences.developerMode, preferences.networkProfile) { on, profile ->
+                    if (on && BuildConfig.DEBUG) profile else NetworkConditions.Profile.Normal
+                }
                 .collect { conditions.profile = it }
         }
     }

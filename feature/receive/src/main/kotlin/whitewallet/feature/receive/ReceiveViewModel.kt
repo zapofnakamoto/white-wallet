@@ -23,7 +23,9 @@ import whitewallet.core.wallet.Wallet
 /** Why no invoice could be made; each maps to a full string. */
 sealed interface InvoiceProblem {
     data class OutOfRange(val minMsat: Long, val maxMsat: Long) : InvoiceProblem
+
     data object Unreachable : InvoiceProblem
+
     data object Refused : InvoiceProblem
 }
 
@@ -44,15 +46,20 @@ data class ReceiveState(
     val faucet: FaucetState? = null,
 ) {
     /** The amount form shows: always without an address, else once asked for. */
-    val showAmountForm: Boolean get() = invoice == null && (address == null || requestingAmount)
+    val showAmountForm: Boolean
+        get() = invoice == null && (address == null || requestingAmount)
 
     /** What arrived, once something did: the paid invoice, or what came to the address while the screen is open. */
-    val arrivedMsat: Long? get() = when (val status = invoice?.status) {
-        is InvoiceStatus.Paid -> status.receivedMsat
-        null -> receivedMsat.takeIf { it > 0 }
-        else -> null
-    }
-    val amountMsat: Long? get() = amountText.trim().toLongOrNull()?.takeIf { it > 0 }?.let { it * 1000 }
+    val arrivedMsat: Long?
+        get() =
+            when (val status = invoice?.status) {
+                is InvoiceStatus.Paid -> status.receivedMsat
+                null -> receivedMsat.takeIf { it > 0 }
+                else -> null
+            }
+
+    val amountMsat: Long?
+        get() = amountText.trim().toLongOrNull()?.takeIf { it > 0 }?.let { it * 1000 }
 }
 
 /** What the regtest faucet sends to the address. */
@@ -68,8 +75,8 @@ private data class ReceiveUi(
 )
 
 /**
- * Shows the Lightning address and checks for incoming payments while the screen is open; or, without an address
- * (or on request), an invoice for an amount that mints to this account (see [Wallet.requestInvoice]).
+ * Shows the Lightning address and checks for incoming payments while the screen is open; or, without an address (or on request), an invoice
+ * for an amount that mints to this account (see [Wallet.requestInvoice]).
  */
 @HiltViewModel
 class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private val faucet: RegtestFaucet) : ViewModel() {
@@ -77,9 +84,20 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
     private val ui = MutableStateFlow(ReceiveUi())
     private var watch: Job? = null
 
-    val state: StateFlow<ReceiveState> = combine(wallet.profile, received, ui, faucet.available) { profile, msat, u, canFaucet ->
-        ReceiveState(profile?.address, msat, u.requestingAmount, u.amountText, u.creating, u.problem, u.invoice, u.faucet.takeIf { canFaucet })
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState())
+    val state: StateFlow<ReceiveState> =
+        combine(wallet.profile, received, ui, faucet.available) { profile, msat, u, canFaucet ->
+                ReceiveState(
+                    profile?.address,
+                    msat,
+                    u.requestingAmount,
+                    u.amountText,
+                    u.creating,
+                    u.problem,
+                    u.invoice,
+                    u.faucet.takeIf { canFaucet },
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState())
 
     init {
         viewModelScope.launch {
@@ -100,16 +118,17 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
         if (ui.value.creating) return
         ui.update { it.copy(creating = true, problem = null) }
         viewModelScope.launch {
-            val problem = when (val result = wallet.requestInvoice(amount)) {
-                is InvoiceRequest.Ready -> {
-                    ui.update { it.copy(creating = false, invoice = ShownInvoice(result)) }
-                    watch(result.id)
-                    return@launch
+            val problem =
+                when (val result = wallet.requestInvoice(amount)) {
+                    is InvoiceRequest.Ready -> {
+                        ui.update { it.copy(creating = false, invoice = ShownInvoice(result)) }
+                        watch(result.id)
+                        return@launch
+                    }
+                    is InvoiceRequest.OutOfRange -> InvoiceProblem.OutOfRange(result.minMsat, result.maxMsat)
+                    InvoiceRequest.Unreachable -> InvoiceProblem.Unreachable
+                    InvoiceRequest.Refused -> InvoiceProblem.Refused
                 }
-                is InvoiceRequest.OutOfRange -> InvoiceProblem.OutOfRange(result.minMsat, result.maxMsat)
-                InvoiceRequest.Unreachable -> InvoiceProblem.Unreachable
-                InvoiceRequest.Refused -> InvoiceProblem.Refused
-            }
             ui.update { it.copy(creating = false, problem = problem) }
         }
     }
@@ -127,8 +146,8 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
     }
 
     /**
-     * Developer: has the regtest faucet pay the invoice on screen, or [FAUCET_SATS] to the address. A payment to the
-     * address is then looked for at once rather than at the next poll; the invoice's own watch notices it.
+     * Developer: has the regtest faucet pay the invoice on screen, or [FAUCET_SATS] to the address. A payment to the address is then looked
+     * for at once rather than at the next poll; the invoice's own watch notices it.
      */
     fun payFromFaucet() {
         val s = state.value

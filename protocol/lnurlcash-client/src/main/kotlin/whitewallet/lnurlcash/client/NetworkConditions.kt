@@ -7,12 +7,12 @@ import kotlin.random.Random
 import okhttp3.Interceptor
 
 /**
- * For developers: every request behaves as on a bad connection ([profile]), to see how the app does for people on
- * one. The delay comes before a request goes out, and a dropped request never reaches the mint, so nothing is spent
- * or changed by it: the wallet sees what it sees when the phone has no connection.
+ * For developers: every request behaves as on a bad connection ([profile]), to see how the app does for people on one. The delay comes
+ * before a request goes out, and a dropped request never reaches the mint, so nothing is spent or changed by it: the wallet sees what it
+ * sees when the phone has no connection.
  *
- * Constructed without a profile, requests wait (up to [WAIT_MILLIS]) until the first is set, so the first requests
- * after a start already behave as chosen.
+ * Constructed without a profile, requests wait (up to [WAIT_MILLIS]) until the first is set, so the first requests after a start already
+ * behave as chosen.
  */
 public class NetworkConditions(
     initial: Profile? = Profile.Normal,

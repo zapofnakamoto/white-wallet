@@ -31,9 +31,8 @@ enum class MoveFailure {
 }
 
 /**
- * Moves notes from one account to another. Notes never leave their mint: the source spends them into keys
- * derived from the target account's own recovery phrase (a rotate, merge or split), so the mint sees an
- * ordinary mutation and only split fees apply.
+ * Moves notes from one account to another. Notes never leave their mint: the source spends them into keys derived from the target account's
+ * own recovery phrase (a rotate, merge or split), so the mint sees an ordinary mutation and only split fees apply.
  */
 internal class FundsMover(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
@@ -57,9 +56,11 @@ internal class FundsMover(private val wallet: Wallet) {
         }
 
         require(amountMsat > 0) { "amount must be positive" }
-        if (byHost.values.sumOf { notes -> notes.sumOf { it.amountMsat } } < amountMsat) return MoveResult.Failed(MoveFailure.InsufficientFunds)
-        val (host, notes) = byHost.entries.firstOrNull { (_, n) -> n.sumOf { it.amountMsat } >= amountMsat }?.toPair()
-            ?: return MoveResult.Failed(MoveFailure.SplitAcrossMints)
+        if (byHost.values.sumOf { notes -> notes.sumOf { it.amountMsat } } < amountMsat)
+            return MoveResult.Failed(MoveFailure.InsufficientFunds)
+        val (host, notes) =
+            byHost.entries.firstOrNull { (_, n) -> n.sumOf { it.amountMsat } >= amountMsat }?.toPair()
+                ?: return MoveResult.Failed(MoveFailure.SplitAcrossMints)
         return movePart(fromId, toId, host, notes, amountMsat)
     }
 
@@ -70,7 +71,15 @@ internal class FundsMover(private val wallet: Wallet) {
         when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single().amountMsat
-                log.move(fromId, toId, host, out.takeIf { it > 0 } ?: inputs, ActivityLog.fee(inputs, result.outputs), ActivityStatus.Done, result.journalId)
+                log.move(
+                    fromId,
+                    toId,
+                    host,
+                    out.takeIf { it > 0 } ?: inputs,
+                    ActivityLog.fee(inputs, result.outputs),
+                    ActivityStatus.Done,
+                    result.journalId,
+                )
             }
             is MutationResult.Pending -> log.move(fromId, toId, host, inputs, null, ActivityStatus.Pending, result.journalId)
             else -> Unit
@@ -81,7 +90,11 @@ internal class FundsMover(private val wallet: Wallet) {
     private suspend fun movePart(fromId: String, toId: String, host: String, notes: List<Note>, amountMsat: Long): MoveResult {
         // Largest notes first, so as few notes as possible are touched.
         val sorted = notes.sortedByDescending { it.amountMsat }
-        sorted.firstOrNull { it.amountMsat == amountMsat }?.let { return moveAll(fromId, toId, host, listOf(it)) }
+        sorted
+            .firstOrNull { it.amountMsat == amountMsat }
+            ?.let {
+                return moveAll(fromId, toId, host, listOf(it))
+            }
         var inputs = sorted.takeWhileCovering(amountMsat)
         if (inputs.size > 1) {
             // Merge into one of our own notes first, then split that.
@@ -93,7 +106,15 @@ internal class FundsMover(private val wallet: Wallet) {
         val result = mutator.mutate(fromId, host, inputs, OperationType.Split, outputs, splitMsat = amountMsat)
         when (result) {
             is MutationResult.Done -> {
-                log.move(fromId, toId, host, amountMsat, ActivityLog.fee(inputs.sumOf { it.amountMsat }, result.outputs), ActivityStatus.Done, result.journalId)
+                log.move(
+                    fromId,
+                    toId,
+                    host,
+                    amountMsat,
+                    ActivityLog.fee(inputs.sumOf { it.amountMsat }, result.outputs),
+                    ActivityStatus.Done,
+                    result.journalId,
+                )
             }
             is MutationResult.Pending -> log.move(fromId, toId, host, amountMsat, null, ActivityStatus.Pending, result.journalId)
             else -> Unit
@@ -102,17 +123,22 @@ internal class FundsMover(private val wallet: Wallet) {
         return if (r is MoveResult.Moved) MoveResult.Moved(amountMsat) else r
     }
 
-    private fun MutationResult.toMove(): MoveResult = when (this) {
-        is MutationResult.Done -> MoveResult.Moved(outputs.firstOrNull()?.amountMsat ?: 0)
-        is MutationResult.Refused ->
-            MoveResult.Failed(if (kind == RejectionKind.InsufficientValue) MoveFailure.InsufficientFunds else MoveFailure.Refused, reason)
-        is MutationResult.Unreachable -> MoveResult.Failed(MoveFailure.Refused, reason)
-        is MutationResult.Pending -> MoveResult.Pending
-    }
+    private fun MutationResult.toMove(): MoveResult =
+        when (this) {
+            is MutationResult.Done -> MoveResult.Moved(outputs.firstOrNull()?.amountMsat ?: 0)
+            is MutationResult.Refused ->
+                MoveResult.Failed(
+                    if (kind == RejectionKind.InsufficientValue) MoveFailure.InsufficientFunds else MoveFailure.Refused,
+                    reason,
+                )
+            is MutationResult.Unreachable -> MoveResult.Failed(MoveFailure.Refused, reason)
+            is MutationResult.Pending -> MoveResult.Pending
+        }
 
     private suspend fun outstanding(accountId: String): List<Note> =
-        wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null }
-
+        wallet.store.notes(accountId).first().filter {
+            it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null
+        }
 
     private fun List<Note>.takeWhileCovering(amountMsat: Long): List<Note> {
         var sum = 0L

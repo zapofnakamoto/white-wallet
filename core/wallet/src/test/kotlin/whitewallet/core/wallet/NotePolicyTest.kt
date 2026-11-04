@@ -25,26 +25,39 @@ class NotePolicyTest {
     private val wordsB = "legal winner thank year wave sausage worth useful legal winner thank yellow".split(" ")
 
     private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val policies: NotePolicies, val wallet: Wallet) {
-        val branchA = CashBranch.fromSeed(MnemonicCode.toSeed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "), ""), mint.host)
-        val branchB = CashBranch.fromSeed(MnemonicCode.toSeed("legal winner thank year wave sausage worth useful legal winner thank yellow".split(" "), ""), mint.host)
+        val branchA =
+            CashBranch.fromSeed(
+                MnemonicCode.toSeed(
+                    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "),
+                    "",
+                ),
+                mint.host,
+            )
+        val branchB =
+            CashBranch.fromSeed(
+                MnemonicCode.toSeed("legal winner thank year wave sausage worth useful legal winner thank yellow".split(" "), ""),
+                mint.host,
+            )
     }
 
-    private fun withMint(test: suspend Fixture.() -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
-        MockMint.start().use { mint ->
-            val store = InMemoryWalletStore()
-            val policies = NotePolicies.InMemory()
-            val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient(), policies = policies)
-            store.addAccount("b", "Savings", Profile("bob", mint.host))
-            store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-            Fixture(mint, store, policies, wallet).test()
+    private fun withMint(test: suspend Fixture.() -> Unit) =
+        runBlocking<Unit> {
+            assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
+            MockMint.start().use { mint ->
+                val store = InMemoryWalletStore()
+                val policies = NotePolicies.InMemory()
+                val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient(), policies = policies)
+                store.addAccount("b", "Savings", Profile("bob", mint.host))
+                store.addAccount("a", "Main", Profile("alice", mint.host))
+                assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
+                Fixture(mint, store, policies, wallet).test()
+            }
         }
-    }
 
     /** Address payments to account "a" at indexes 0.. (found by the next refresh). */
-    private fun Fixture.pay(vararg amounts: Long, branch: CashBranch = branchA) =
-        amounts.forEachIndexed { i, msat -> mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, i.toLong())), msat) }
+    private fun Fixture.pay(vararg amounts: Long, branch: CashBranch = branchA) = amounts.forEachIndexed { i, msat ->
+        mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, i.toLong())), msat)
+    }
 
     private suspend fun Fixture.outstanding(account: String = "a") =
         store.allNotes().filter { it.accountId == account && it.state == NoteState.Outstanding }
@@ -89,7 +102,22 @@ class NotePolicyTest {
         // An existing wallet note plus three incoming payments.
         val index = store.reserveIndex("a", mint.host, 0)
         mint.credit(Cp1.encode(branchA.notePubkey(NotePurpose.Wallet, index)), 5_000)
-        store.upsertNotes(listOf(Note(branchA.notePubkey(NotePurpose.Wallet, index).toHex(), "a", mint.host, NoteKind.KeyPath, 0, index, 5_000, null, NoteState.Outstanding, 0)))
+        store.upsertNotes(
+            listOf(
+                Note(
+                    branchA.notePubkey(NotePurpose.Wallet, index).toHex(),
+                    "a",
+                    mint.host,
+                    NoteKind.KeyPath,
+                    0,
+                    index,
+                    5_000,
+                    null,
+                    NoteState.Outstanding,
+                    0,
+                )
+            )
+        )
         wallet.setNoteStrategy(SingleNoteStrategy.ID)
         pay(1_000, 2_000, 4_000)
         wallet.refresh()

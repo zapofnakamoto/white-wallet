@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
@@ -37,19 +36,18 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletSwitch
+import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ConnectResult
 import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.TrustDefault
 import whitewallet.core.wallet.Wallet
-import whitewallet.brand.ui.ButtonKind
-import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletListItem
-import whitewallet.core.designsystem.WalletSwitch
-import whitewallet.core.designsystem.WalletTextField
 
 data class MintsState(
     val mints: List<MintInfo> = emptyList(),
@@ -63,29 +61,33 @@ data class MintsState(
     val custom: Boolean = true,
 ) {
     /** Whether there is anything to add: without [custom], only while a suggested mint is missing from the list. */
-    val canAdd: Boolean get() = custom || offered.isNotEmpty()
+    val canAdd: Boolean
+        get() = custom || offered.isNotEmpty()
 }
 
 sealed interface MintsProblem {
     data object Unreachable : MintsProblem
+
     data object Invalid : MintsProblem
 }
 
 private data class MintsUi(val newHost: String = "", val adding: Boolean = false, val problem: MintsProblem? = null)
 
 /**
- * The mints this device knows, for all accounts: which of them the user trusts (by signing key), whose home each is,
- * and adding one (removing one is on its page): by its address if the brand lets users (`mints.custom`), or one of the
- * brand's suggested mints. Nothing about one account's money: see Account → Mints.
+ * The mints this device knows, for all accounts: which of them the user trusts (by signing key), whose home each is, and adding one
+ * (removing one is on its page): by its address if the brand lets users (`mints.custom`), or one of the brand's suggested mints. Nothing
+ * about one account's money: see Account → Mints.
  */
 @HiltViewModel
 class MintsViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {
     private val ui = MutableStateFlow(MintsUi())
 
-    val state: StateFlow<MintsState> = combine(wallet.mints, ui) { mints, u ->
-        val known = mints.map { it.host }
-        MintsState(mints, u.newHost, u.adding, u.problem, defaults.mintSuggestions.filter { it !in known }, defaults.customMints)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MintsState(custom = defaults.customMints))
+    val state: StateFlow<MintsState> =
+        combine(wallet.mints, ui) { mints, u ->
+                val known = mints.map { it.host }
+                MintsState(mints, u.newHost, u.adding, u.problem, defaults.mintSuggestions.filter { it !in known }, defaults.customMints)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MintsState(custom = defaults.customMints))
 
     fun setTrusted(mint: MintInfo, trusted: Boolean) {
         if (mint.pubkey == null) return
@@ -95,8 +97,8 @@ class MintsViewModel @Inject constructor(private val wallet: Wallet, private val
     fun onHost(text: String) = ui.update { it.copy(newHost = text.trim(), problem = null) }
 
     /**
-     * Connects to [host], one of the offered mints, or else the typed one (pinning its key); it then shows in the list,
-     * untrusted until switched on.
+     * Connects to [host], one of the offered mints, or else the typed one (pinning its key); it then shows in the list, untrusted until
+     * switched on.
      */
     fun add(host: String = ui.value.newHost) {
         if (host.isBlank() || ui.value.adding || !defaults.mintAllowed(host)) return
@@ -107,10 +109,11 @@ class MintsViewModel @Inject constructor(private val wallet: Wallet, private val
                 when (result) {
                     // The typed mint is done; one added from the offered ones leaves what's typed as it is.
                     is ConnectResult.Connected -> if (host == it.newHost) MintsUi() else it.copy(adding = false)
-                    is ConnectResult.Failed -> it.copy(
-                        adding = false,
-                        problem = if (result.result is OnboardResult.NetworkError) MintsProblem.Unreachable else MintsProblem.Invalid,
-                    )
+                    is ConnectResult.Failed ->
+                        it.copy(
+                            adding = false,
+                            problem = if (result.result is OnboardResult.NetworkError) MintsProblem.Unreachable else MintsProblem.Invalid,
+                        )
                 }
             }
         }
@@ -135,7 +138,9 @@ fun MintsScreen(
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_mints), onBack) }) { padding ->
         LazyColumn(Modifier.padding(padding).imePadding().fillMaxWidth()) {
-            item { Text(stringResource(R.string.mints_intro), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp)) }
+            item {
+                Text(stringResource(R.string.mints_intro), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))
+            }
             items(state.mints, key = { it.host }) { mint -> MintRow(mint, onOpen, onTrusted) }
             if (state.canAdd) item { AddMint(state, onHost, onAdd, onAddOffered) }
         }
@@ -149,9 +154,15 @@ private fun MintRow(mint: MintInfo, onOpen: (String) -> Unit, onTrusted: (MintIn
         headlineContent = { Text(mint.host) },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (mint.homeOf.isNotEmpty()) Text(stringResource(R.string.mints_home_mint_of, mint.homeOf.joinToString(", ")), style = hint, color = MaterialTheme.colorScheme.primary)
+                if (mint.homeOf.isNotEmpty())
+                    Text(
+                        stringResource(R.string.mints_home_mint_of, mint.homeOf.joinToString(", ")),
+                        style = hint,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 Text(
-                    mint.pubkey?.let { stringResource(R.string.mints_key, it.take(8) + "…" + it.takeLast(8)) } ?: stringResource(R.string.mints_no_key),
+                    mint.pubkey?.let { stringResource(R.string.mints_key, it.take(8) + "…" + it.takeLast(8)) }
+                        ?: stringResource(R.string.mints_no_key),
                     style = hint,
                     fontFamily = FontFamily.Monospace,
                 )
@@ -162,7 +173,7 @@ private fun MintRow(mint: MintInfo, onOpen: (String) -> Unit, onTrusted: (MintIn
                                 !mint.trusted -> R.string.mints_untrusted_default
                                 default == TrustDefault.Home -> R.string.mints_default_home
                                 else -> R.string.mints_default_brand
-                            },
+                            }
                         ),
                         style = hint,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -194,22 +205,28 @@ private fun AddMint(state: MintsState, onHost: (String) -> Unit, onAdd: () -> Un
         state.offered.forEach { host ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(host, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                WalletButton(kind = ButtonKind.Secondary, onClick = { onAddOffered(host) }, enabled = !state.adding) { Text(stringResource(R.string.mints_add)) }
+                WalletButton(kind = ButtonKind.Secondary, onClick = { onAddOffered(host) }, enabled = !state.adding) {
+                    Text(stringResource(R.string.mints_add))
+                }
             }
         }
-        if (state.custom) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            WalletTextField(
-                value = state.newHost,
-                onValueChange = onHost,
-                label = { Text(stringResource(R.string.mints_add_field)) },
-                singleLine = true,
-                enabled = !state.adding,
-                isError = state.problem != null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false, imeAction = ImeAction.Done),
-                modifier = Modifier.weight(1f),
-            )
-            WalletButton(kind = ButtonKind.Secondary, onClick = onAdd, enabled = state.newHost.isNotBlank() && !state.adding) { Text(stringResource(R.string.mints_add)) }
-        }
+        if (state.custom)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WalletTextField(
+                    value = state.newHost,
+                    onValueChange = onHost,
+                    label = { Text(stringResource(R.string.mints_add_field)) },
+                    singleLine = true,
+                    enabled = !state.adding,
+                    isError = state.problem != null,
+                    keyboardOptions =
+                        KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false, imeAction = ImeAction.Done),
+                    modifier = Modifier.weight(1f),
+                )
+                WalletButton(kind = ButtonKind.Secondary, onClick = onAdd, enabled = state.newHost.isNotBlank() && !state.adding) {
+                    Text(stringResource(R.string.mints_add))
+                }
+            }
         state.problem?.let {
             Text(
                 stringResource(if (it == MintsProblem.Unreachable) R.string.mints_add_unreachable else R.string.mints_add_invalid),

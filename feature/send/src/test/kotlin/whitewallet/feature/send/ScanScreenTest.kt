@@ -16,16 +16,19 @@ import whitewallet.core.wallet.IncomingLink
 
 @RunWith(RobolectricTestRunner::class)
 class ScanScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     private val scanned = mutableListOf<IncomingLink>()
 
     /** A scanner that "sees" [text] when its button is tapped. */
     private fun show(text: String) = compose.setContent {
-        ScanScreen(onBack = {}, onScanned = { scanned += it }, scanner = { modifier, onScanned ->
-            Box(modifier) { Button(onClick = { onScanned(text) }) { Text("see code") } }
-        })
+        ScanScreen(
+            onBack = {},
+            onScanned = { scanned += it },
+            scanner = { modifier, onScanned ->
+                Box(modifier) { Button(onClick = { onScanned(text) }) { Text("see code") } }
+            },
+        )
     }
 
     @Test

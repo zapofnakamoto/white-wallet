@@ -42,9 +42,9 @@ import whitewallet.core.wallet.AppPreferences
 import whitewallet.feature.settings.DeviceAuth
 
 /**
- * The optional app lock (Settings → Security): while on, the app asks for the phone's own lock when it starts and
- * when it comes back after [RELOCK_AFTER_MILLIS] in the background. The wallet stays composed underneath (so
- * navigation and incoming links survive) but is hidden, also from accessibility services, until unlocked.
+ * The optional app lock (Settings → Security): while on, the app asks for the phone's own lock when it starts and when it comes back after
+ * [RELOCK_AFTER_MILLIS] in the background. The wallet stays composed underneath (so navigation and incoming links survive) but is hidden,
+ * also from accessibility services, until unlocked.
  */
 @HiltViewModel
 class AppLockViewModel @Inject constructor(preferences: AppPreferences) : ViewModel() {
@@ -52,8 +52,8 @@ class AppLockViewModel @Inject constructor(preferences: AppPreferences) : ViewMo
     private var backgroundSince: Long? = null
 
     /** Null until the setting is known, so nothing of the wallet flashes before the lock. */
-    val locked: StateFlow<Boolean?> = combine(preferences.appLock, unlocked) { enabled, open -> enabled && !open }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val locked: StateFlow<Boolean?> =
+        combine(preferences.appLock, unlocked) { enabled, open -> enabled && !open }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun unlock() {
         unlocked.value = true
@@ -103,7 +103,9 @@ private fun LockScreen(appName: String, onUnlocked: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
         ) {
-            BrandDecoration(Anchor.AppLock) { Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null, modifier = Modifier.size(96.dp)) }
+            BrandDecoration(Anchor.AppLock) {
+                Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null, modifier = Modifier.size(96.dp))
+            }
             Text(title, style = MaterialTheme.typography.titleLarge)
             PrimaryButton(stringResource(R.string.lock_unlock), { ask() })
         }

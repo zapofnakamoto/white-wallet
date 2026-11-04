@@ -9,8 +9,8 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
-import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteLookupError
@@ -39,53 +39,83 @@ internal sealed interface MeltOutcome {
 }
 
 /**
- * LUD-25 melt of one of the wallet's own notes: journal, lock the note as [NoteState.Paying] (out of the balance),
- * send once (never retried), then wait a little for the mint to pay. [beforeSend] runs once the journal entry
- * exists, before anything is sent (to write History rows linked to it).
+ * LUD-25 melt of one of the wallet's own notes: journal, lock the note as [NoteState.Paying] (out of the balance), send once (never
+ * retried), then wait a little for the mint to pay. [beforeSend] runs once the journal entry exists, before anything is sent (to write
+ * History rows linked to it).
  */
 internal class Melter(private val wallet: Wallet) {
-    suspend fun melt(accountId: String, host: String, note: Note, invoice: String, beforeSend: suspend (journalId: String) -> Unit = {}): MeltOutcome {
+    suspend fun melt(
+        accountId: String,
+        host: String,
+        note: Note,
+        invoice: String,
+        beforeSend: suspend (journalId: String) -> Unit = {},
+    ): MeltOutcome {
         val mint = wallet.store.mint(host) ?: return MeltOutcome.Unreachable
-        val spend = wallet.branch(accountId, host).spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, spendDomain(host))
-        val info = try {
-            // Asked by the note's key alone: the spend goes out only with the melt.
-            wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id)).also { Pinning.check(wallet, mint, it.mintPubkey) }
-        } catch (e: NoteLookupError) {
-            if (e.kind in UnknownNotes.GONE && UnknownNotes(wallet).sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
-            return MeltOutcome.Unreachable
-        } catch (e: Exception) {
-            // Including a signing key other than the pinned one: nothing is paid through such a mint.
-            return MeltOutcome.Unreachable
-        }
+        val spend =
+            wallet.branch(accountId, host).spend(NotePurpose.entries.first { it.value == note.purpose }, note.index!!, spendDomain(host))
+        val info =
+            try {
+                // Asked by the note's key alone: the spend goes out only with the melt.
+                wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id)).also { Pinning.check(wallet, mint, it.mintPubkey) }
+            } catch (e: NoteLookupError) {
+                if (e.kind in UnknownNotes.GONE && UnknownNotes(wallet).sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
+                return MeltOutcome.Unreachable
+            } catch (e: Exception) {
+                // Including a signing key other than the pinned one: nothing is paid through such a mint.
+                return MeltOutcome.Unreachable
+            }
         val created = wallet.now()
         // Written into the request and the journal; it goes out only through SecretGate.
         @OptIn(RevealsNoteSecret::class)
-        val entry = JournalEntry(UUID.randomUUID().toString(), accountId, OperationType.Melt, host, mint.withdrawUrl, listOf(note.id),
-            listOf(spend.k1), emptyList(), Requests.melt(info.callback, spend.k1, invoice), JournalStatus.Prepared, null, created, created)
+        val entry =
+            JournalEntry(
+                UUID.randomUUID().toString(),
+                accountId,
+                OperationType.Melt,
+                host,
+                mint.withdrawUrl,
+                listOf(note.id),
+                listOf(spend.k1),
+                emptyList(),
+                Requests.melt(info.callback, spend.k1, invoice),
+                JournalStatus.Prepared,
+                null,
+                created,
+                created,
+            )
         wallet.store.putJournal(entry)
         wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Paying, updatedAtMillis = created)))
         beforeSend(entry.id)
 
-        val outcome = when (val released = SecretGate(wallet).release(entry, info, MutationType.Melt)) {
-            is SecretGate.Released.Sent -> released.outcome
-            is SecretGate.Released.NotSent -> {
-                wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now())))
-                wallet.store.putJournal(entry.copy(status = JournalStatus.Rejected, detail = released.reason, updatedAtMillis = wallet.now()))
-                ActivityLog(wallet).settle(entry.id, JournalStatus.Rejected)
-                return MeltOutcome.Unreachable
+        val outcome =
+            when (val released = SecretGate(wallet).release(entry, info, MutationType.Melt)) {
+                is SecretGate.Released.Sent -> released.outcome
+                is SecretGate.Released.NotSent -> {
+                    wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now())))
+                    wallet.store.putJournal(
+                        entry.copy(status = JournalStatus.Rejected, detail = released.reason, updatedAtMillis = wallet.now())
+                    )
+                    ActivityLog(wallet).settle(entry.id, JournalStatus.Rejected)
+                    return MeltOutcome.Unreachable
+                }
             }
-        }
-        val inFlight = when (outcome) {
-            is MutationOutcome.Confirmed, is MutationOutcome.Unverifiable ->
-                entry.copy(status = JournalStatus.Unknown, detail = MeltReconciler.IN_FLIGHT, updatedAtMillis = wallet.now())
-            is MutationOutcome.Rejected -> {
-                wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now())))
-                wallet.store.putJournal(entry.copy(status = JournalStatus.Rejected, detail = outcome.reason, updatedAtMillis = wallet.now()))
-                ActivityLog(wallet).settle(entry.id, JournalStatus.Rejected)
-                return MeltOutcome.Refused(entry.id, outcome.reason)
+        val inFlight =
+            when (outcome) {
+                is MutationOutcome.Confirmed,
+                is MutationOutcome.Unverifiable ->
+                    entry.copy(status = JournalStatus.Unknown, detail = MeltReconciler.IN_FLIGHT, updatedAtMillis = wallet.now())
+                is MutationOutcome.Rejected -> {
+                    wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now())))
+                    wallet.store.putJournal(
+                        entry.copy(status = JournalStatus.Rejected, detail = outcome.reason, updatedAtMillis = wallet.now())
+                    )
+                    ActivityLog(wallet).settle(entry.id, JournalStatus.Rejected)
+                    return MeltOutcome.Refused(entry.id, outcome.reason)
+                }
+                is MutationOutcome.Ambiguous ->
+                    entry.copy(status = JournalStatus.Unknown, detail = outcome.cause, updatedAtMillis = wallet.now())
             }
-            is MutationOutcome.Ambiguous -> entry.copy(status = JournalStatus.Unknown, detail = outcome.cause, updatedAtMillis = wallet.now())
-        }
         wallet.store.putJournal(inFlight)
 
         // The mint pays in the background; the note is burned once the payment settles, or restored if it fails.
@@ -111,27 +141,28 @@ internal class Melter(private val wallet: Wallet) {
 }
 
 /**
- * Settles a melt by looking its input up by `p`: burned means paid; outstanding again means the payment failed
- * (or, when the request's answer was lost, that it never arrived); `pending` means it is still in flight.
+ * Settles a melt by looking its input up by `p`: burned means paid; outstanding again means the payment failed (or, when the request's
+ * answer was lost, that it never arrived); `pending` means it is still in flight.
  */
 internal class MeltReconciler(private val wallet: Wallet) {
     /** [final]: give up waiting for an answer that was lost, if the note is still outstanding. */
     suspend fun reconcile(entry: JournalEntry, final: Boolean = false): JournalStatus {
         if (entry.status == JournalStatus.Confirmed || entry.status == JournalStatus.Rejected) return entry.status
         val q = ByteVector32(entry.inputIds.single())
-        val outstanding = try {
-            wallet.client.lookup(entry.withdrawUrl, q)
-            true
-        } catch (e: NoteLookupError) {
-            when (e.kind) {
-                RejectionKind.Spent -> false
-                else -> return JournalStatus.Unknown
+        val outstanding =
+            try {
+                wallet.client.lookup(entry.withdrawUrl, q)
+                true
+            } catch (e: NoteLookupError) {
+                when (e.kind) {
+                    RejectionKind.Spent -> false
+                    else -> return JournalStatus.Unknown
+                }
+            } catch (e: IOException) {
+                return JournalStatus.Unknown
+            } catch (e: ProtocolViolation) {
+                return JournalStatus.Unknown
             }
-        } catch (e: IOException) {
-            return JournalStatus.Unknown
-        } catch (e: ProtocolViolation) {
-            return JournalStatus.Unknown
-        }
         val note = wallet.store.note(entry.inputIds.single())
         if (!outstanding) {
             note?.let { wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = wallet.now()))) }

@@ -18,8 +18,7 @@ import whitewallet.core.wallet.PolicyRun
 /** The "collect at home mint" part of the notes page. */
 @RunWith(RobolectricTestRunner::class)
 class CollectSettingsTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     private val manual = ManualStrategy(title = R.string.settings_strategy_manual, description = R.string.settings_strategy_manual_hint)
 
@@ -27,10 +26,16 @@ class CollectSettingsTest {
         NotesSettingsScreen(state, onBack = {}, onNoteStrategy = {}, onAutoRotate = {}, collect = collect)
     }
 
-    private fun state(collect: Boolean, run: PolicyRun? = null, offered: Boolean = true) = NotesSettingsState(
-        noteStrategy = manual, strategies = listOf(manual), collectOffered = offered, collectAtHome = collect, collectFeeCap = 2,
-        homeHost = "home.example", lastPolicyRun = run,
-    )
+    private fun state(collect: Boolean, run: PolicyRun? = null, offered: Boolean = true) =
+        NotesSettingsState(
+            noteStrategy = manual,
+            strategies = listOf(manual),
+            collectOffered = offered,
+            collectAtHome = collect,
+            collectFeeCap = 2,
+            homeHost = "home.example",
+            lastPolicyRun = run,
+        )
 
     @Test
     fun theSwitchNamesTheHomeMintAndTheCapShowsWhileOn() {
@@ -50,7 +55,15 @@ class CollectSettingsTest {
 
     @Test
     fun aSkippedMintIsReportedHere() {
-        val run = PolicyRun(0, 0, 0, null, 0, notCollected = listOf(NotCollected("other.example", 50_000, NotCollected.Reason.FeeTooHigh(2_000, 2))))
+        val run =
+            PolicyRun(
+                0,
+                0,
+                0,
+                null,
+                0,
+                notCollected = listOf(NotCollected("other.example", 50_000, NotCollected.Reason.FeeTooHigh(2_000, 2))),
+            )
         show(state(collect = true, run))
         compose.onNodeWithText(text(R.string.notes_collect_fee_too_high, "₿50", "other.example", "₿2", 2)).performScrollTo().assertExists()
         compose.onNodeWithText(text(R.string.money_move_amount, "anyway")).assertDoesNotExist()

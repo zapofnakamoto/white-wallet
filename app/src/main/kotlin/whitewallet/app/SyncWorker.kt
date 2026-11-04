@@ -18,9 +18,9 @@ import java.util.concurrent.TimeUnit
 import whitewallet.core.wallet.Wallet
 
 /**
- * Background sync (brief §5 "Sync"): every 15 minutes or more, with a network, the same refresh as pull-to-refresh:
- * reconcile the journal (pending payments, moves, claims), scan the address keys for new payments, settle sent
- * notes, apply the note policies. Runs in the app's process, so it shares the wallet's lock with the UI.
+ * Background sync (brief §5 "Sync"): every 15 minutes or more, with a network, the same refresh as pull-to-refresh: reconcile the journal
+ * (pending payments, moves, claims), scan the address keys for new payments, settle sent notes, apply the note policies. Runs in the app's
+ * process, so it shares the wallet's lock with the UI.
  */
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     @EntryPoint
@@ -46,20 +46,22 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         internal const val ONCE = "sync-once"
 
         fun schedule(context: Context) {
-            val request = PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES)
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .build()
+            val request =
+                PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES)
+                    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                    .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.KEEP, request)
         }
 
         /**
-         * One sync as soon as the device has a network: a received note is waiting for its mint. Asked again while one
-         * is waiting, it stays the one.
+         * One sync as soon as the device has a network: a received note is waiting for its mint. Asked again while one is waiting, it stays
+         * the one.
          */
         fun scheduleOnce(context: Context) {
-            val request = OneTimeWorkRequestBuilder<SyncWorker>()
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .build()
+            val request =
+                OneTimeWorkRequestBuilder<SyncWorker>()
+                    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                    .build()
             WorkManager.getInstance(context).enqueueUniqueWork(ONCE, ExistingWorkPolicy.KEEP, request)
         }
     }

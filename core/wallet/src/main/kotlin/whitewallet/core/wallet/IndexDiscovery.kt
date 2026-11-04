@@ -10,23 +10,26 @@ data class DiscoveryResult(val next: Long, val checked: Int, val imported: Int, 
 /** The state of one purpose's index on one mint, for the developer key page. */
 data class IndexHealth(val next: Long, val highestUsed: Long, val lastVerifiedAtMillis: Long?) {
     /** The counter would hand out a key the wallet knows is used. */
-    val behind: Boolean get() = next <= highestUsed
+    val behind: Boolean
+        get() = next <= highestUsed
 }
 
 /**
- * Finds the right index for a purpose (LUD-26 recovery): start past the highest key the wallet knows is used, look
- * keys up by `p` until a gap limit of consecutive ones are unused (20 by default), and set the index right after the
- * last used one. Lookups import and sync notes on the way (through [KeyProber]). The index never goes back: keys
- * the wallet handed out (in an invoice, say) may be in use at the mint though a lookup calls them unknown. A lookup
- * the mint refuses stops the scan, as no answer does: the key may be used.
+ * Finds the right index for a purpose (LUD-26 recovery): start past the highest key the wallet knows is used, look keys up by `p` until a
+ * gap limit of consecutive ones are unused (20 by default), and set the index right after the last used one. Lookups import and sync notes
+ * on the way (through [KeyProber]). The index never goes back: keys the wallet handed out (in an invoice, say) may be in use at the mint
+ * though a lookup calls them unknown. A lookup the mint refuses stops the scan, as no answer does: the key may be used.
  */
 internal class IndexDiscovery(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
 
     /** The highest index of [purpose] on [host] that the wallet holds (or held) a note at, or -1. */
-    suspend fun highestKnownUsed(accountId: String, host: String, purpose: Int): Long = wallet.store.notes(accountId).first()
-        .filter { it.host == host && it.purpose == purpose && it.kind == NoteKind.KeyPath }
-        .maxOfOrNull { it.index ?: -1 } ?: -1
+    suspend fun highestKnownUsed(accountId: String, host: String, purpose: Int): Long =
+        wallet.store
+            .notes(accountId)
+            .first()
+            .filter { it.host == host && it.purpose == purpose && it.kind == NoteKind.KeyPath }
+            .maxOfOrNull { it.index ?: -1 } ?: -1
 
     suspend fun discover(accountId: String, host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): DiscoveryResult {
         val current = current(accountId, host, purpose)
@@ -40,11 +43,28 @@ internal class IndexDiscovery(private val wallet: Wallet) {
             val probe = prober.probe(KeyId(accountId, host, purpose, index), mint)
             checked++
             when (probe) {
-                is KeyProbe.Outstanding -> { lastUsed = index; unused = 0; if (probe.imported) imported++ }
-                is KeyProbe.Spent -> { lastUsed = index; unused = 0 }
-                is KeyProbe.Refused -> if (probe.pending) { lastUsed = index; unused = 0 } else {
-                    return DiscoveryResult(current(accountId, host, purpose), checked, imported, probe.reason ?: "refused", refused = true)
+                is KeyProbe.Outstanding -> {
+                    lastUsed = index
+                    unused = 0
+                    if (probe.imported) imported++
                 }
+                is KeyProbe.Spent -> {
+                    lastUsed = index
+                    unused = 0
+                }
+                is KeyProbe.Refused ->
+                    if (probe.pending) {
+                        lastUsed = index
+                        unused = 0
+                    } else {
+                        return DiscoveryResult(
+                            current(accountId, host, purpose),
+                            checked,
+                            imported,
+                            probe.reason ?: "refused",
+                            refused = true,
+                        )
+                    }
                 is KeyProbe.Unused -> unused++
                 is KeyProbe.Failed -> return DiscoveryResult(current(accountId, host, purpose), checked, imported, probe.reason)
             }
@@ -63,9 +83,9 @@ internal class IndexDiscovery(private val wallet: Wallet) {
 }
 
 /**
- * Hands out output keys for the wallet's own purposes (0 wallet, 1 change), never one it knows is used:
- * on an account's first use of a mint the index is discovered first, and keys the wallet already holds a note
- * at are skipped. Persist before disclose: each index is reserved durably before its key is named in a request.
+ * Hands out output keys for the wallet's own purposes (0 wallet, 1 change), never one it knows is used: on an account's first use of a mint
+ * the index is discovered first, and keys the wallet already holds a note at are skipped. Persist before disclose: each index is reserved
+ * durably before its key is named in a request.
  */
 internal class IndexGuard(private val wallet: Wallet) {
     private val discovery = IndexDiscovery(wallet)
@@ -84,9 +104,9 @@ internal class IndexGuard(private val wallet: Wallet) {
     }
 
     /**
-     * The mint says a key is already in use: the local index may be behind, so look the keys up again, which also
-     * finds notes another phone with the same phrase made there. Once per operation: a key held by an unpaid invoice
-     * looks unknown, so further refusals only mean taking the next key.
+     * The mint says a key is already in use: the local index may be behind, so look the keys up again, which also finds notes another phone
+     * with the same phrase made there. Once per operation: a key held by an unpaid invoice looks unknown, so further refusals only mean
+     * taking the next key.
      */
     suspend fun recover(accountId: String, host: String, purpose: NotePurpose) = discovery.discover(accountId, host, purpose.value)
 
@@ -94,8 +114,8 @@ internal class IndexGuard(private val wallet: Wallet) {
         private const val MAX_SKIPS = 10_000
 
         /**
-         * How many keys an operation tries while the mint says each is `already in use`: the gap limit, since keys
-         * the mint holds for unpaid invoices (of another phone with the same phrase) can follow each other.
+         * How many keys an operation tries while the mint says each is `already in use`: the gap limit, since keys the mint holds for
+         * unpaid invoices (of another phone with the same phrase) can follow each other.
          */
         const val IN_USE_ATTEMPTS = AddressScanner.GAP_LIMIT
     }

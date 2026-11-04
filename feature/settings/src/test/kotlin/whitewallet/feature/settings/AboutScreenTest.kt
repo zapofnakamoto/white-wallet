@@ -4,11 +4,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import kotlin.test.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.test.assertEquals
 import whitewallet.brand.ReleaseNote
 import whitewallet.brand.ReleaseStage
 import whitewallet.core.designsystem.LocalReleaseStage
@@ -16,8 +16,7 @@ import whitewallet.core.designsystem.R as DesignR
 
 @RunWith(RobolectricTestRunner::class)
 class AboutScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     @Test
     fun sevenTapsOnTheVersionUnlockDeveloperOptions() {
@@ -44,7 +43,9 @@ class AboutScreenTest {
     @Test
     fun aBetaNamesItsStageAndWhatItMeans() {
         compose.setContent {
-            CompositionLocalProvider(LocalReleaseStage provides ReleaseStage.Beta) { AboutScreen("Wallet", "0.2.0", "https://example.com", onBack = {}) }
+            CompositionLocalProvider(LocalReleaseStage provides ReleaseStage.Beta) {
+                AboutScreen("Wallet", "0.2.0", "https://example.com", onBack = {})
+            }
         }
         compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertExists()
         compose.onNodeWithText(text(DesignR.string.release_notice_beta)).assertExists()

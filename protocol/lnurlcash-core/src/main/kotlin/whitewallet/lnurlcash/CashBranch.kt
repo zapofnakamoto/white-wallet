@@ -18,16 +18,18 @@ public enum class NotePurpose(public val value: Int) {
 }
 
 /**
- * One service's note branch (LUD-26): `m/139'/d1/d2/d3/d4` with `d` from HMAC-SHA256 of the host under the
- * hashing key at `m/139'/0`. Note keys are derived non-hardened, so a `cx1` holder can enumerate but never spend.
+ * One service's note branch (LUD-26): `m/139'/d1/d2/d3/d4` with `d` from HMAC-SHA256 of the host under the hashing key at `m/139'/0`. Note
+ * keys are derived non-hardened, so a `cx1` holder can enumerate but never spend.
  */
-public class CashBranch private constructor(
+public class CashBranch
+private constructor(
     /** x-only branch key `P`. */
     public val pubkey: ByteVector32,
     public val chainCode: ByteVector32,
     private val secret: PrivateKey?,
 ) {
-    public val isWatchOnly: Boolean get() = secret == null
+    public val isWatchOnly: Boolean
+        get() = secret == null
 
     public fun cx1(): String = Cx1.encode(pubkey, chainCode)
 
@@ -69,8 +71,7 @@ public class CashBranch private constructor(
             return CashBranch(p.xOnlyPublicKey().value, node.chaincode, p)
         }
 
-        public fun fromCx1(cx1: String): CashBranch? =
-            Cx1.decode(cx1)?.let { (pubkey, chainCode) -> CashBranch(pubkey, chainCode, null) }
+        public fun fromCx1(cx1: String): CashBranch? = Cx1.decode(cx1)?.let { (pubkey, chainCode) -> CashBranch(pubkey, chainCode, null) }
 
         private fun ser32(v: Long): ByteArray = ByteArray(4) { ((v ushr (24 - 8 * it)) and 0xff).toByte() }
 
@@ -87,10 +88,12 @@ public class CashBranch private constructor(
 
 /** LUD-26 username registration proofs, signed by the branch's purpose-0 index-0 key. */
 public object AddressProof {
-    public enum class Action(public val wire: String) { Register("register"), Unregister("unregister") }
+    public enum class Action(public val wire: String) {
+        Register("register"),
+        Unregister("unregister"),
+    }
 
-    public fun message(action: Action, domain: String, username: String): String =
-        "LNURLcash:${action.wire}:$domain:$username"
+    public fun message(action: Action, domain: String, username: String): String = "LNURLcash:${action.wire}:$domain:$username"
 
     /** Returns the hex-encoded 64-byte BIP-340 signature. */
     public fun sign(branch: CashBranch, action: Action, domain: String, username: String): String {

@@ -74,24 +74,25 @@ class RestoreTest {
     }
 
     @Test
-    fun `aborting a restore before the address step removes the account and goes back to the one before`() = withMint { mint, store, wallet ->
-        store.addAccount("a", "Main", Profile("alice", mint.host))
-        seeds.save("a", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "))
-        val branch = CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
-        mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.Wallet, 0)), 1_000)
-        assertFailsWith<IllegalStateException>("an account with an address is never removed this way") { wallet.abortRestore() }
+    fun `aborting a restore before the address step removes the account and goes back to the one before`() =
+        withMint { mint, store, wallet ->
+            store.addAccount("a", "Main", Profile("alice", mint.host))
+            seeds.save("a", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "))
+            val branch = CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
+            mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.Wallet, 0)), 1_000)
+            assertFailsWith<IllegalStateException>("an account with an address is never removed this way") { wallet.abortRestore() }
 
-        val restored = assertIs<RestoreResult.Restored>(wallet.restore(phrase, mint.host, "Restored"))
-        assertEquals(1_000, restored.balanceMsat)
-        assertTrue(wallet.abortRestore(), "the earlier account remains")
-        assertEquals("a", store.currentAccountId())
-        assertEquals(listOf("a"), store.accounts.first().map { it.account.id })
-        assertEquals(setOf("a"), seeds.accountIds())
-        assertTrue(store.notes(restored.accountId).first().isEmpty())
+            val restored = assertIs<RestoreResult.Restored>(wallet.restore(phrase, mint.host, "Restored"))
+            assertEquals(1_000, restored.balanceMsat)
+            assertTrue(wallet.abortRestore(), "the earlier account remains")
+            assertEquals("a", store.currentAccountId())
+            assertEquals(listOf("a"), store.accounts.first().map { it.account.id })
+            assertEquals(setOf("a"), seeds.accountIds())
+            assertTrue(store.notes(restored.accountId).first().isEmpty())
 
-        // The money is still there: restoring again finds it.
-        assertEquals(1_000, assertIs<RestoreResult.Restored>(wallet.restore(phrase, mint.host, "Restored")).balanceMsat)
-    }
+            // The money is still there: restoring again finds it.
+            assertEquals(1_000, assertIs<RestoreResult.Restored>(wallet.restore(phrase, mint.host, "Restored")).balanceMsat)
+        }
 
     @Test
     fun `restoring a phrase that is already in the wallet is refused`() = withMint { mint, store, wallet ->
@@ -141,17 +142,29 @@ class RestoreTest {
     private fun withMint(
         answering: (host: String, p: String) -> String? = { _, _ -> null },
         test: suspend (MockMint, InMemoryWalletStore, Wallet) -> Unit,
-    ) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
-        MockMint.start().use { mint ->
-            val store = InMemoryWalletStore()
-            val http = LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor { chain ->
-                val request = chain.request()
-                val reason = request.url.queryParameter("p")?.let { answering(mint.host, it) } ?: return@addInterceptor chain.proceed(request)
-                Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(200).message("OK")
-                    .body("""{"status":"ERROR","reason":"$reason"}""".toResponseBody("application/json".toMediaType())).build()
-            }.build()
-            test(mint, store, Wallet(store, seeds, LnurlcashClient(http = http)))
+    ) =
+        runBlocking<Unit> {
+            assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
+            MockMint.start().use { mint ->
+                val store = InMemoryWalletStore()
+                val http =
+                    LnurlcashClient.defaultHttpClient()
+                        .newBuilder()
+                        .addInterceptor { chain ->
+                            val request = chain.request()
+                            val reason =
+                                request.url.queryParameter("p")?.let { answering(mint.host, it) }
+                                    ?: return@addInterceptor chain.proceed(request)
+                            Response.Builder()
+                                .request(request)
+                                .protocol(Protocol.HTTP_1_1)
+                                .code(200)
+                                .message("OK")
+                                .body("""{"status":"ERROR","reason":"$reason"}""".toResponseBody("application/json".toMediaType()))
+                                .build()
+                        }
+                        .build()
+                test(mint, store, Wallet(store, seeds, LnurlcashClient(http = http)))
+            }
         }
-    }
 }

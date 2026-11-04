@@ -11,8 +11,7 @@ import fr.acinq.bitcoin.PublicKey
 public object Certificates {
     public fun message(amountMsat: Long, q: ByteVector32): String = "LNURLcash:$amountMsat:${q.toHex()}"
 
-    public fun digest(message: String): ByteArray =
-        Crypto.sha256(Crypto.sha256("Lightning Signed Message:$message".encodeToByteArray()))
+    public fun digest(message: String): ByteArray = Crypto.sha256(Crypto.sha256("Lightning Signed Message:$message".encodeToByteArray()))
 
     /** True if [certificate] recovers to [mintPubkey] for note [q] at the certificate's own amount. */
     public fun verify(certificate: Cs1, q: ByteVector32, mintPubkey: PublicKey): Boolean {
@@ -21,7 +20,8 @@ public object Certificates {
         if (recid !in 0..3) return false
         return runCatching {
             Crypto.recoverPublicKey(ByteVector64(sig.copyOfRange(0, 64)), digest(message(certificate.amountMsat, q)), recid)
-        }.getOrNull() == mintPubkey
+        }
+            .getOrNull() == mintPubkey
     }
 
     /** Signs a certificate. Wallets never do this; it exists for the fake service used in tests. */

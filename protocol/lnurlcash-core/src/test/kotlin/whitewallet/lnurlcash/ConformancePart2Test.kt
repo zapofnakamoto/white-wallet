@@ -87,11 +87,12 @@ class ConformancePart2Test {
         }
     }
 
-    private fun decode(type: String, value: String): String? = when (type) {
-        "cp1" -> Cp1.decode(value)?.toHex()
-        "ck1" -> Ck1.decode(value)?.let { (q, sig) -> q.toHex() + sig.toHex() }
-        "cx1" -> Cx1.decode(value)?.let { (p, c) -> p.toHex() + c.toHex() }
-        "cs1" -> Cs1.decode(value)?.signature?.toHex()
-        else -> error("unknown type $type")
-    }
+    private fun decode(type: String, value: String): String? =
+        when (type) {
+            "cp1" -> Cp1.decode(value)?.toHex()
+            "ck1" -> Ck1.decode(value)?.let { (q, sig) -> q.toHex() + sig.toHex() }
+            "cx1" -> Cx1.decode(value)?.let { (p, c) -> p.toHex() + c.toHex() }
+            "cs1" -> Cs1.decode(value)?.signature?.toHex()
+            else -> error("unknown type $type")
+        }
 }

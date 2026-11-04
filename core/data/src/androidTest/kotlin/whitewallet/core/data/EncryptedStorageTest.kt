@@ -22,32 +22,37 @@ class EncryptedStorageTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun seedsRoundTripThroughTheKeystore() = runBlocking<Unit> {
-        val file = File(context.filesDir, "test-secrets-${System.nanoTime()}.preferences_pb")
-        val store = KeystoreSeedStore(PreferenceDataStoreFactory.create { file })
-        val words = "legal winner thank year wave sausage worth useful legal winner thank yellow".split(" ")
-        store.save("a", words)
-        assertEquals(words, store.load("a"))
-        assertFalse("never stored in clear", file.readText(Charsets.ISO_8859_1).contains("sausage"))
-        store.clear("a")
-        assertNull(store.load("a"))
-        file.delete()
-    }
+    fun seedsRoundTripThroughTheKeystore() =
+        runBlocking<Unit> {
+            val file = File(context.filesDir, "test-secrets-${System.nanoTime()}.preferences_pb")
+            val store = KeystoreSeedStore(PreferenceDataStoreFactory.create { file })
+            val words = "legal winner thank year wave sausage worth useful legal winner thank yellow".split(" ")
+            store.save("a", words)
+            assertEquals(words, store.load("a"))
+            assertFalse("never stored in clear", file.readText(Charsets.ISO_8859_1).contains("sausage"))
+            store.clear("a")
+            assertNull(store.load("a"))
+            file.delete()
+        }
 
     @Test
-    fun theDatabaseIsEncryptedWithAStablePassphrase() = runBlocking<Unit> {
-        val name = "test-wallet-${System.nanoTime()}.db"
-        val passphrase = DatabaseKey.passphrase(context, name)
-        assertArrayEquals(passphrase, DatabaseKey.passphrase(context, name))
+    fun theDatabaseIsEncryptedWithAStablePassphrase() =
+        runBlocking<Unit> {
+            val name = "test-wallet-${System.nanoTime()}.db"
+            val passphrase = DatabaseKey.passphrase(context, name)
+            assertArrayEquals(passphrase, DatabaseKey.passphrase(context, name))
 
-        System.loadLibrary("sqlcipher")
-        val db = Room.databaseBuilder(context, WalletDatabase::class.java, name).openHelperFactory(SupportOpenHelperFactory(passphrase)).build()
-        RoomWalletStore(db).saveAccount(Account("a", "Main", 1, "mint.example"))
-        db.close()
+            System.loadLibrary("sqlcipher")
+            val db =
+                Room.databaseBuilder(context, WalletDatabase::class.java, name)
+                    .openHelperFactory(SupportOpenHelperFactory(passphrase))
+                    .build()
+            RoomWalletStore(db).saveAccount(Account("a", "Main", 1, "mint.example"))
+            db.close()
 
-        val bytes = context.getDatabasePath(name).readBytes()
-        assertFalse("no SQLite header", String(bytes, 0, 16, Charsets.ISO_8859_1).startsWith("SQLite format 3"))
-        assertFalse("no clear text", String(bytes, Charsets.ISO_8859_1).contains("Main"))
-        context.deleteDatabase(name)
-    }
+            val bytes = context.getDatabasePath(name).readBytes()
+            assertFalse("no SQLite header", String(bytes, 0, 16, Charsets.ISO_8859_1).startsWith("SQLite format 3"))
+            assertFalse("no clear text", String(bytes, Charsets.ISO_8859_1).contains("Main"))
+            context.deleteDatabase(name)
+        }
 }

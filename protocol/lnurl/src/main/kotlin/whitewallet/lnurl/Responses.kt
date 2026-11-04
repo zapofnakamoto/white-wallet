@@ -27,12 +27,15 @@ public sealed interface LnurlResponse {
     ) : LnurlResponse {
         /** The `metadata` array as `(mime type, content)` pairs; malformed entries are skipped. */
         val metadataEntries: List<Pair<String, String>> by lazy {
-            runCatching { Json.parseToJsonElement(metadata).jsonArray }.getOrNull().orEmpty().mapNotNull { entry ->
-                val pair = entry as? JsonArray ?: return@mapNotNull null
-                val type = (pair.getOrNull(0) as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-                val content = (pair.getOrNull(1) as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-                type to content
-            }
+            runCatching { Json.parseToJsonElement(metadata).jsonArray }
+                .getOrNull()
+                .orEmpty()
+                .mapNotNull { entry ->
+                    val pair = entry as? JsonArray ?: return@mapNotNull null
+                    val type = (pair.getOrNull(0) as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                    val content = (pair.getOrNull(1) as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                    type to content
+                }
         }
     }
 

@@ -16,16 +16,15 @@ object DeviceAuth {
         BiometricManager.from(context).canAuthenticate(AUTHENTICATORS) == BiometricManager.BIOMETRIC_SUCCESS
 
     fun authenticate(activity: FragmentActivity, title: String, subtitle: String, onSuccess: () -> Unit, onCancel: () -> Unit) {
-        val callback = object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onSuccess()
-            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) = onCancel()
-        }
+        val callback =
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onSuccess()
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) = onCancel()
+            }
         val prompt = BiometricPrompt(activity, activity.mainExecutor, callback)
-        val info = BiometricPrompt.PromptInfo.Builder()
-            .setTitle(title)
-            .setSubtitle(subtitle)
-            .setAllowedAuthenticators(AUTHENTICATORS)
-            .build()
+        val info =
+            BiometricPrompt.PromptInfo.Builder().setTitle(title).setSubtitle(subtitle).setAllowedAuthenticators(AUTHENTICATORS).build()
         prompt.authenticate(info)
     }
 }

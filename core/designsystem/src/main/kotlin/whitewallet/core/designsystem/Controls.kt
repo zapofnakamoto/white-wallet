@@ -1,5 +1,6 @@
 package whitewallet.core.designsystem
 
+import android.icu.text.BreakIterator
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
@@ -7,14 +8,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import android.icu.text.BreakIterator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import java.util.Locale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -22,6 +19,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import java.util.Locale
 import whitewallet.brand.ReleaseStage
 import whitewallet.brand.ui.AccountMarkParams
 import whitewallet.brand.ui.ActivityIconParams
@@ -33,7 +33,6 @@ import whitewallet.brand.ui.ChipKind
 import whitewallet.brand.ui.ChipParams
 import whitewallet.brand.ui.DialogParams
 import whitewallet.brand.ui.ListIconParams
-import whitewallet.brand.ui.SnackbarParams
 import whitewallet.brand.ui.ListIconSize
 import whitewallet.brand.ui.ListRowParams
 import whitewallet.brand.ui.LocalBrandDesign
@@ -49,6 +48,7 @@ import whitewallet.brand.ui.ProgressKind
 import whitewallet.brand.ui.ProgressParams
 import whitewallet.brand.ui.ReleaseBadgeParams
 import whitewallet.brand.ui.SheetParams
+import whitewallet.brand.ui.SnackbarParams
 import whitewallet.brand.ui.TextFieldParams
 import whitewallet.brand.ui.ToggleKind
 import whitewallet.brand.ui.ToggleParams
@@ -96,8 +96,25 @@ fun WalletTextField(
 ) {
     LocalBrandDesign.current.components.TextField(
         TextFieldParams(
-            value, onValueChange, label, placeholder, supportingText, leadingIcon, trailingIcon, prefix, suffix, isError, enabled, readOnly,
-            singleLine, minLines, maxLines, textStyle, keyboardOptions, keyboardActions, visualTransformation,
+            value,
+            onValueChange,
+            label,
+            placeholder,
+            supportingText,
+            leadingIcon,
+            trailingIcon,
+            prefix,
+            suffix,
+            isError,
+            enabled,
+            readOnly,
+            singleLine,
+            minLines,
+            maxLines,
+            textStyle,
+            keyboardOptions,
+            keyboardActions,
+            visualTransformation,
         ),
         modifier,
     )
@@ -121,17 +138,18 @@ fun WalletListItem(
 /** A history entry's mark, drawn by the brand ([whitewallet.brand.ui.BrandComponents.ActivityIcon]) with the type's icon. */
 @Composable
 fun WalletActivityIcon(type: ActivityType, direction: MoneyDirection, automatic: Boolean, settled: Boolean, modifier: Modifier = Modifier) {
-    val icon = when (type) {
-        ActivityType.Received -> R.drawable.ic_activity_received
-        ActivityType.Claimed -> R.drawable.ic_activity_claimed
-        ActivityType.Sent -> R.drawable.ic_activity_sent
-        ActivityType.SentNote -> R.drawable.ic_activity_sent_note
-        ActivityType.MovedAccounts -> R.drawable.ic_activity_moved
-        ActivityType.MovedMints -> R.drawable.ic_activity_moved_mint
-        ActivityType.Split -> R.drawable.ic_activity_split
-        ActivityType.Combined -> R.drawable.ic_activity_combined
-        ActivityType.Renewed -> R.drawable.ic_activity_rotated
-    }
+    val icon =
+        when (type) {
+            ActivityType.Received -> R.drawable.ic_activity_received
+            ActivityType.Claimed -> R.drawable.ic_activity_claimed
+            ActivityType.Sent -> R.drawable.ic_activity_sent
+            ActivityType.SentNote -> R.drawable.ic_activity_sent_note
+            ActivityType.MovedAccounts -> R.drawable.ic_activity_moved
+            ActivityType.MovedMints -> R.drawable.ic_activity_moved_mint
+            ActivityType.Split -> R.drawable.ic_activity_split
+            ActivityType.Combined -> R.drawable.ic_activity_combined
+            ActivityType.Renewed -> R.drawable.ic_activity_rotated
+        }
     LocalBrandDesign.current.components.ActivityIcon(
         ActivityIconParams(type, direction, automatic, settled, painterResource(icon), painterResource(R.drawable.ic_activity_automatic)),
         modifier,
@@ -139,8 +157,8 @@ fun WalletActivityIcon(type: ActivityType, direction: MoneyDirection, automatic:
 }
 
 /**
- * An account's mark ([whitewallet.brand.ui.BrandComponents.AccountMark]): the first letter of [name] on the colour
- * of its [index] among the accounts (oldest first). Decorative: the name is always shown beside it.
+ * An account's mark ([whitewallet.brand.ui.BrandComponents.AccountMark]): the first letter of [name] on the colour of its [index] among the
+ * accounts (oldest first). Decorative: the name is always shown beside it.
  */
 @Composable
 fun WalletAccountMark(name: String, index: Int, modifier: Modifier = Modifier, active: Boolean = false, size: Dp = 40.dp) {
@@ -154,14 +172,17 @@ fun WalletAccountMark(name: String, index: Int, modifier: Modifier = Modifier, a
 
 /** The first grapheme of [name] (a letter with its accents, a whole emoji), upper case where its script has case. */
 internal fun firstLetter(name: String, locale: Locale): String? {
-    val trimmed = name.trim().ifEmpty { return null }
+    val trimmed =
+        name.trim().ifEmpty {
+            return null
+        }
     val breaks = BreakIterator.getCharacterInstance(locale).apply { setText(trimmed) }
     return trimmed.substring(0, breaks.next()).uppercase(locale)
 }
 
 /**
- * A note as the brand draws it ([whitewallet.brand.ui.BrandComponents.NoteFace]). [modifier] carries what the app does
- * with it (taps, selection); [NoteFaceSize.Large] is read out by its amount, like [AmountText].
+ * A note as the brand draws it ([whitewallet.brand.ui.BrandComponents.NoteFace]). [modifier] carries what the app does with it (taps,
+ * selection); [NoteFaceSize.Large] is read out by its amount, like [AmountText].
  */
 @Composable
 fun WalletNoteFace(
@@ -183,16 +204,28 @@ fun WalletNoteFace(
     val spoken = if (size == NoteFaceSize.Large) spokenAmount(amountMsat) else null
     LocalBrandDesign.current.components.NoteFace(
         NoteFaceParams(
-            size, formatAmount(amountMsat), amountMsat, status, statusText, statusIcon?.let { painterResource(it) }, age, mint, trusted,
-            selected, enabled, qrCode, place, qrCovered,
+            size,
+            formatAmount(amountMsat),
+            amountMsat,
+            status,
+            statusText,
+            statusIcon?.let { painterResource(it) },
+            age,
+            mint,
+            trusted,
+            selected,
+            enabled,
+            qrCode,
+            place,
+            qrCovered,
         ),
         if (spoken != null) modifier.semantics { contentDescription = spoken } else modifier,
     )
 }
 
 /**
- * The heading of one mint's notes ([whitewallet.brand.ui.BrandComponents.NoteGroupHeader]); a heading for screen
- * readers when it names the [mint], else only a separator.
+ * The heading of one mint's notes ([whitewallet.brand.ui.BrandComponents.NoteGroupHeader]); a heading for screen readers when it names the
+ * [mint], else only a separator.
  */
 @Composable
 fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted: Boolean, labels: String?, modifier: Modifier = Modifier) {
@@ -204,7 +237,12 @@ fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted
 
 /** A list row's leading mark ([whitewallet.brand.ui.BrandComponents.ListIcon]); decorative, the row says it in words. */
 @Composable
-fun WalletListIcon(@DrawableRes icon: Int, modifier: Modifier = Modifier, tone: Tone = Tone.Neutral, size: ListIconSize = ListIconSize.Row) {
+fun WalletListIcon(
+    @DrawableRes icon: Int,
+    modifier: Modifier = Modifier,
+    tone: Tone = Tone.Neutral,
+    size: ListIconSize = ListIconSize.Row,
+) {
     LocalBrandDesign.current.components.ListIcon(ListIconParams(painterResource(icon), tone, size), modifier)
 }
 
@@ -212,21 +250,23 @@ fun WalletListIcon(@DrawableRes icon: Int, modifier: Modifier = Modifier, tone: 
 @Composable
 fun WalletReleaseBadge(modifier: Modifier = Modifier) {
     val stage = LocalReleaseStage.current
-    val label = when (stage) {
-        ReleaseStage.Alpha -> stringResource(R.string.release_stage_alpha)
-        ReleaseStage.Beta -> stringResource(R.string.release_stage_beta)
-        ReleaseStage.Stable -> return
-    }
+    val label =
+        when (stage) {
+            ReleaseStage.Alpha -> stringResource(R.string.release_stage_alpha)
+            ReleaseStage.Beta -> stringResource(R.string.release_stage_beta)
+            ReleaseStage.Stable -> return
+        }
     LocalBrandDesign.current.components.ReleaseBadge(ReleaseBadgeParams(stage, label), modifier)
 }
 
 /** What the release stage means for the user, as a sentence; null for a stable release. */
 @Composable
-fun releaseNotice(): String? = when (LocalReleaseStage.current) {
-    ReleaseStage.Alpha -> stringResource(R.string.release_notice_alpha)
-    ReleaseStage.Beta -> stringResource(R.string.release_notice_beta)
-    ReleaseStage.Stable -> null
-}
+fun releaseNotice(): String? =
+    when (LocalReleaseStage.current) {
+        ReleaseStage.Alpha -> stringResource(R.string.release_notice_alpha)
+        ReleaseStage.Beta -> stringResource(R.string.release_notice_beta)
+        ReleaseStage.Stable -> null
+    }
 
 @Composable
 fun WalletCard(modifier: Modifier = Modifier, tone: Tone = Tone.Neutral, content: @Composable ColumnScope.() -> Unit) {
@@ -251,13 +291,16 @@ fun WalletSheet(onDismissRequest: () -> Unit, openFully: Boolean = false, conten
 }
 
 /**
- * Where [WalletSnackbarHost]'s messages appear: Material's [SnackbarHost] with each message drawn by the brand. A
- * message's action label is its button; [SnackbarHostState.showSnackbar] says whether it was tapped.
+ * Where [WalletSnackbarHost]'s messages appear: Material's [SnackbarHost] with each message drawn by the brand. A message's action label is
+ * its button; [SnackbarHostState.showSnackbar] says whether it was tapped.
  */
 @Composable
 fun WalletSnackbarHost(state: SnackbarHostState, modifier: Modifier = Modifier) {
     SnackbarHost(state, modifier) { data ->
-        LocalBrandDesign.current.components.Snackbar(SnackbarParams(data.visuals.message, data.visuals.actionLabel, data::performAction), Modifier)
+        LocalBrandDesign.current.components.Snackbar(
+            SnackbarParams(data.visuals.message, data.visuals.actionLabel, data::performAction),
+            Modifier,
+        )
     }
 }
 
@@ -273,7 +316,10 @@ fun WalletCheckbox(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modi
 
 @Composable
 fun WalletRadioButton(selected: Boolean, onClick: (() -> Unit)?, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    LocalBrandDesign.current.components.Toggle(ToggleParams(ToggleKind.Radio, selected, onClick?.let { { _: Boolean -> it() } }, enabled), modifier)
+    LocalBrandDesign.current.components.Toggle(
+        ToggleParams(ToggleKind.Radio, selected, onClick?.let { { _: Boolean -> it() } }, enabled),
+        modifier,
+    )
 }
 
 @Composable
@@ -286,7 +332,10 @@ fun WalletFilterChip(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    LocalBrandDesign.current.components.Chip(ChipParams(ChipKind.Filter, onClick, label, selected, enabled, leadingIcon, trailingIcon), modifier)
+    LocalBrandDesign.current.components.Chip(
+        ChipParams(ChipKind.Filter, onClick, label, selected, enabled, leadingIcon, trailingIcon),
+        modifier,
+    )
 }
 
 @Composable
@@ -298,7 +347,10 @@ fun WalletAssistChip(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    LocalBrandDesign.current.components.Chip(ChipParams(ChipKind.Assist, onClick, label, false, enabled, leadingIcon, trailingIcon), modifier)
+    LocalBrandDesign.current.components.Chip(
+        ChipParams(ChipKind.Assist, onClick, label, false, enabled, leadingIcon, trailingIcon),
+        modifier,
+    )
 }
 
 @Composable

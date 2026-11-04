@@ -23,9 +23,8 @@ import whitewallet.brand.ui.LocalReduceMotion
 import whitewallet.brand.ui.walletColors
 
 /**
- * Something went well, drawn: a disc in the success colour pops in, a ring goes out from it and a check mark draws
- * itself. With reduced motion it is simply there. The default at [whitewallet.brand.ui.Anchor.ReceiveSuccess] and
- * [whitewallet.brand.ui.Anchor.SendSuccess].
+ * Something went well, drawn: a disc in the success colour pops in, a ring goes out from it and a check mark draws itself. With reduced
+ * motion it is simply there. The default at [whitewallet.brand.ui.Anchor.ReceiveSuccess] and [whitewallet.brand.ui.Anchor.SendSuccess].
  */
 @Composable
 fun SuccessCheck(modifier: Modifier = Modifier, size: Dp = 112.dp) {
@@ -49,15 +48,15 @@ fun SuccessCheck(modifier: Modifier = Modifier, size: Dp = 112.dp) {
         drawCircle(color, radius * disc.value)
         if (check.value > 0f) {
             val unit = radius / 40
-            val path = Path().apply {
-                moveTo(center.x - 17 * unit, center.y + 1 * unit)
-                lineTo(center.x - 5 * unit, center.y + 13 * unit)
-                lineTo(center.x + 18 * unit, center.y - 12 * unit)
-            }
+            val path =
+                Path().apply {
+                    moveTo(center.x - 17 * unit, center.y + 1 * unit)
+                    lineTo(center.x - 5 * unit, center.y + 13 * unit)
+                    lineTo(center.x + 18 * unit, center.y - 12 * unit)
+                }
             val drawn = Path()
             PathMeasure().apply { setPath(path, false) }.let { it.getSegment(0f, it.length * check.value, drawn, true) }
             drawPath(drawn, mark, style = Stroke(width = 7 * unit, cap = StrokeCap.Round, join = StrokeJoin.Round))
         }
     }
 }
-

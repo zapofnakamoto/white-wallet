@@ -19,8 +19,8 @@ import whitewallet.brand.ReleaseNote
 import whitewallet.brand.ui.Tone
 
 /**
- * "What's new": [notes] in a sheet, newest first, important ones as warnings. "Got it" calls [onDone]; closing it
- * otherwise (swiping it away, back) calls [onDismiss].
+ * "What's new": [notes] in a sheet, newest first, important ones as warnings. "Got it" calls [onDone]; closing it otherwise (swiping it
+ * away, back) calls [onDismiss].
  */
 @Composable
 fun ReleaseNotesSheet(notes: List<ReleaseNote>, onDone: () -> Unit, onDismiss: () -> Unit = onDone) {
@@ -30,7 +30,11 @@ fun ReleaseNotesSheet(notes: List<ReleaseNote>, onDone: () -> Unit, onDismiss: (
             Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(stringResource(R.string.release_notes_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+            Text(
+                stringResource(R.string.release_notes_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
             ReleaseNoteList(notes)
             PrimaryButton(stringResource(R.string.release_notes_done), onDone)
         }

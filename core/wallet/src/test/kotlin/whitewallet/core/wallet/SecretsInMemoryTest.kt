@@ -38,11 +38,12 @@ class SecretsInMemoryTest {
     }
 
     @Test
-    fun `a forgotten prepared phrase is replaced by a new one`() = runBlocking<Unit> {
-        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
-        val name = wallet.defaultUsername("mint.example")
-        assertEquals(name, wallet.defaultUsername("mint.example"), "stable while kept")
-        wallet.forgetPreparedPhrase()
-        assertNotEquals(name, wallet.defaultUsername("mint.example"))
-    }
+    fun `a forgotten prepared phrase is replaced by a new one`() =
+        runBlocking<Unit> {
+            val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
+            val name = wallet.defaultUsername("mint.example")
+            assertEquals(name, wallet.defaultUsername("mint.example"), "stable while kept")
+            wallet.forgetPreparedPhrase()
+            assertNotEquals(name, wallet.defaultUsername("mint.example"))
+        }
 }

@@ -38,8 +38,13 @@ tasks.withType<Test>().configureEach {
     // The mock mint tests run against the conformance suite that dev/conformance.sh prepares in .conformance/; the
     // lockfile it installed from is an input, so they run again once it is there.
     val conformance = rootDir.resolve(".conformance")
-    inputs.property("conformance", providers.fileContents(
-        rootProject.layout.projectDirectory.file(".conformance/node_modules/.package-lock.prepared")).asText.orElse(""))
+    inputs.property(
+        "conformance",
+        providers
+            .fileContents(rootProject.layout.projectDirectory.file(".conformance/node_modules/.package-lock.prepared"))
+            .asText
+            .orElse(""),
+    )
     environment("LNURLCASH_CONFORMANCE", conformance.path)
     // LNURLCASH_REGTEST=1: the local regtest stack from dev/regtest is up (real mint tests). Read through a provider
     // so the configuration cache tracks it.

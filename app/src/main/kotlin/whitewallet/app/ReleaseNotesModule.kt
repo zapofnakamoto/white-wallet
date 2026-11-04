@@ -23,15 +23,22 @@ object DefaultReleaseNotes : ReleaseNotes {
 @InstallIn(SingletonComponent::class)
 abstract class ReleaseNotesModule {
     /** A brand's code module may bind its own release notes (see docs/WHITE_LABEL.md). */
-    @BindsOptionalOf
-    abstract fun brandReleaseNotes(): ReleaseNotes
+    @BindsOptionalOf abstract fun brandReleaseNotes(): ReleaseNotes
 
     companion object {
         @Provides
         @Singleton
-        fun releaseNoteTracker(@ApplicationContext context: Context, brand: Optional<ReleaseNotes>, preferences: AppPreferences): ReleaseNoteTracker {
+        fun releaseNoteTracker(
+            @ApplicationContext context: Context,
+            brand: Optional<ReleaseNotes>,
+            preferences: AppPreferences,
+        ): ReleaseNoteTracker {
             val info = context.packageManager.getPackageInfo(context.packageName, 0)
-            return ReleaseNoteTracker(brand.orElse(DefaultReleaseNotes).notes(), preferences, freshInstall = info.firstInstallTime == info.lastUpdateTime)
+            return ReleaseNoteTracker(
+                brand.orElse(DefaultReleaseNotes).notes(),
+                preferences,
+                freshInstall = info.firstInstallTime == info.lastUpdateTime,
+            )
         }
     }
 }

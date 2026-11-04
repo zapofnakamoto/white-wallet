@@ -23,16 +23,18 @@ class NoteRotatorTest {
 
     private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: CashBranch)
 
-    private fun withMint(vararg flags: String, client: LnurlcashClient = LnurlcashClient(), test: suspend Fixture.() -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
-        MockMint.start(*flags).use { mint ->
-            val store = InMemoryWalletStore()
-            val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), client, policies = NotePolicies.InMemory(ManualStrategy.ID))
-            store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-            Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+    private fun withMint(vararg flags: String, client: LnurlcashClient = LnurlcashClient(), test: suspend Fixture.() -> Unit) =
+        runBlocking<Unit> {
+            assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
+            MockMint.start(*flags).use { mint ->
+                val store = InMemoryWalletStore()
+                val wallet =
+                    Wallet(store, InMemorySeedStore(mapOf("a" to words)), client, policies = NotePolicies.InMemory(ManualStrategy.ID))
+                store.addAccount("a", "Main", Profile("alice", mint.host))
+                assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
+                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+            }
         }
-    }
 
     /** An address payment the wallet has already found (credited at the mint, then scanned in). */
     private suspend fun Fixture.received(vararg amounts: Long) {

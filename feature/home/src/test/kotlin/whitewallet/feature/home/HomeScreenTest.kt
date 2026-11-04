@@ -1,7 +1,6 @@
 package whitewallet.feature.home
 
 import androidx.compose.material3.Text
-import whitewallet.core.designsystem.R as DesignR
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -13,12 +12,10 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import org.junit.Assert.assertEquals
 import androidx.compose.ui.test.performScrollTo
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
-import whitewallet.core.model.ReceivedNote
-import whitewallet.core.model.ReceivedState
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -32,23 +29,35 @@ import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.wallet.MaintenanceNotice
 
 @RunWith(RobolectricTestRunner::class)
 class HomeScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     private fun show(state: HomeState, onOpenMint: (String) -> Unit = {}, onToggle: () -> Unit = {}) = compose.setContent {
         HomeScreen(
-            "Wallet", state, onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
-            onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = onToggle, onOpenMint = onOpenMint,
+            "Wallet",
+            state,
+            onSend = {},
+            onReceive = {},
+            onRefresh = {},
+            onSettings = {},
+            onBackup = {},
+            onDismissBackup = {},
+            onChangeAddress = {},
+            accountActions = AccountActions({}, {}, {}),
+            onToggleBalance = onToggle,
+            onOpenMint = onOpenMint,
         )
     }
 
@@ -57,8 +66,17 @@ class HomeScreenTest {
         var scans = 0
         compose.setContent {
             HomeScreen(
-                "Wallet", HomeState(balanceMsat = 845_000), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {},
-                onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onScan = { scans++ },
+                "Wallet",
+                HomeState(balanceMsat = 845_000),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onChangeAddress = {},
+                accountActions = AccountActions({}, {}, {}),
+                onScan = { scans++ },
             )
         }
         compose.onNodeWithText(text(R.string.home_scan)).performScrollTo().performClick()
@@ -76,8 +94,16 @@ class HomeScreenTest {
         compose.setContent {
             var hidden by remember { mutableStateOf(false) }
             HomeScreen(
-                "Wallet", HomeState(balanceMsat = 845_000, balanceHidden = hidden), onSend = {}, onReceive = {}, onRefresh = {},
-                onSettings = {}, onBackup = {}, onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}),
+                "Wallet",
+                HomeState(balanceMsat = 845_000, balanceHidden = hidden),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onChangeAddress = {},
+                accountActions = AccountActions({}, {}, {}),
                 onToggleBalance = { hidden = !hidden },
             )
         }
@@ -109,8 +135,17 @@ class HomeScreenTest {
         compose.setContent {
             CompositionLocalProvider(LocalReleaseStage provides ReleaseStage.Beta) {
                 HomeScreen(
-                    "Wallet", HomeState(), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
-                    onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = {},
+                    "Wallet",
+                    HomeState(),
+                    onSend = {},
+                    onReceive = {},
+                    onRefresh = {},
+                    onSettings = {},
+                    onBackup = {},
+                    onDismissBackup = {},
+                    onChangeAddress = {},
+                    accountActions = AccountActions({}, {}, {}),
+                    onToggleBalance = {},
                 )
             }
         }
@@ -122,8 +157,17 @@ class HomeScreenTest {
         compose.setContent {
             CompositionLocalProvider(LocalReleaseStage provides ReleaseStage.Beta, LocalBuildLabel provides "v0.3.0-21-gb1593f9-dirty") {
                 HomeScreen(
-                    "Wallet", HomeState(), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
-                    onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = {},
+                    "Wallet",
+                    HomeState(),
+                    onSend = {},
+                    onReceive = {},
+                    onRefresh = {},
+                    onSettings = {},
+                    onBackup = {},
+                    onDismissBackup = {},
+                    onChangeAddress = {},
+                    accountActions = AccountActions({}, {}, {}),
+                    onToggleBalance = {},
                 )
             }
         }
@@ -136,8 +180,17 @@ class HomeScreenTest {
         compose.setContent {
             CompositionLocalProvider(LocalBuildLabel provides "v1.0.0") {
                 HomeScreen(
-                    "Wallet", HomeState(), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
-                    onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = {},
+                    "Wallet",
+                    HomeState(),
+                    onSend = {},
+                    onReceive = {},
+                    onRefresh = {},
+                    onSettings = {},
+                    onBackup = {},
+                    onDismissBackup = {},
+                    onChangeAddress = {},
+                    accountActions = AccountActions({}, {}, {}),
+                    onToggleBalance = {},
                 )
             }
         }
@@ -177,8 +230,22 @@ class HomeScreenTest {
         assertEquals("mint.example", opened)
     }
 
-    private fun combined(feeMsat: Long) = Activity("op:1", "a", ActivityKind.Combined, 1_701_000, feeMsat, "mint.example", null, true, 2,
-        automatic = true, status = ActivityStatus.Done, journalId = "1", createdAtMillis = 0)
+    private fun combined(feeMsat: Long) =
+        Activity(
+            "op:1",
+            "a",
+            ActivityKind.Combined,
+            1_701_000,
+            feeMsat,
+            "mint.example",
+            null,
+            true,
+            2,
+            automatic = true,
+            status = ActivityStatus.Done,
+            journalId = "1",
+            createdAtMillis = 0,
+        )
 
     @Test
     fun aFeeTheMintPaidBackShowsAsARefund() {
@@ -199,17 +266,31 @@ class HomeScreenTest {
     }
 
     private fun row(id: String, kind: ActivityKind, automatic: Boolean = false, counterparty: String? = null) =
-        Activity(id, "a", kind, 1_000_000, null, "mint.example", counterparty, true, 2, automatic = automatic, status = ActivityStatus.Done,
-            journalId = id, createdAtMillis = 0)
+        Activity(
+            id,
+            "a",
+            kind,
+            1_000_000,
+            null,
+            "mint.example",
+            counterparty,
+            true,
+            2,
+            automatic = automatic,
+            status = ActivityStatus.Done,
+            journalId = id,
+            createdAtMillis = 0,
+        )
 
-    private val mixed = listOf(
-        row("r", ActivityKind.Received),
-        row("s", ActivityKind.Sent, counterparty = "bob@mint.example"),
-        row("n", ActivityKind.SentNote),
-        row("m", ActivityKind.MovedMint, automatic = true, counterparty = "home.example"),
-        row("c", ActivityKind.Combined, automatic = true),
-        row("x", ActivityKind.Split),
-    )
+    private val mixed =
+        listOf(
+            row("r", ActivityKind.Received),
+            row("s", ActivityKind.Sent, counterparty = "bob@mint.example"),
+            row("n", ActivityKind.SentNote),
+            row("m", ActivityKind.MovedMint, automatic = true, counterparty = "home.example"),
+            row("c", ActivityKind.Combined, automatic = true),
+            row("x", ActivityKind.Split),
+        )
 
     @Test
     fun whoDidAnEntryShowsNextToItsTitle() {
@@ -248,8 +329,12 @@ class HomeScreenTest {
 
     @Test
     fun aBrandCanOfferOnlyTheMaintenanceSwitchOrNoFilter() {
-        show(HomeState(activity = listOf(row("n", ActivityKind.SentNote), row("m", ActivityKind.MovedMint), row("x", ActivityKind.Split)),
-            historyFilter = HistoryFilterOption.Maintenance))
+        show(
+            HomeState(
+                activity = listOf(row("n", ActivityKind.SentNote), row("m", ActivityKind.MovedMint), row("x", ActivityKind.Split)),
+                historyFilter = HistoryFilterOption.Maintenance,
+            )
+        )
         compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
         compose.onNodeWithText(text(R.string.history_filter_moved)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.history_filter_maintenance)).performClick()
@@ -300,10 +385,21 @@ class HomeScreenTest {
         var shown = false
         compose.setContent {
             HomeScreen(
-                "Wallet", HomeState(activity = listOf(row("x", ActivityKind.Split), row("n", ActivityKind.SentNote)), historyFilter = HistoryFilterOption.None,
-                    notice = MaintenanceNotice.Split(1, 2, -1_000)),
-                onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {}, onChangeAddress = {},
-                accountActions = AccountActions({}, {}, {}), onNoticeShown = { shown = true },
+                "Wallet",
+                HomeState(
+                    activity = listOf(row("x", ActivityKind.Split), row("n", ActivityKind.SentNote)),
+                    historyFilter = HistoryFilterOption.None,
+                    notice = MaintenanceNotice.Split(1, 2, -1_000),
+                ),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onChangeAddress = {},
+                accountActions = AccountActions({}, {}, {}),
+                onNoticeShown = { shown = true },
             )
         }
         compose.onNodeWithText(text(R.string.notice_details)).performClick()
@@ -321,8 +417,16 @@ class HomeScreenTest {
         var state by mutableStateOf(initial)
         compose.setContent {
             HomeScreen(
-                "Wallet", state, onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
-                onChangeAddress = {}, accountActions = AccountActions({}, {}, {}),
+                "Wallet",
+                state,
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onChangeAddress = {},
+                accountActions = AccountActions({}, {}, {}),
             )
         }
         return { state = it }
@@ -401,18 +505,27 @@ class HomeScreenTest {
 
     @Test
     fun aBrandDrawsTheLoadingScreenKnowingTheTask() {
-        val design = object : BrandDesign {
-            @Composable
-            override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
-                if (anchor == Anchor.Loading) Text("brand: ${context.status}") else default()
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    if (anchor == Anchor.Loading) Text("brand: ${context.status}") else default()
+                }
             }
-        }
         compose.mainClock.autoAdvance = false
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides design) {
                 HomeScreen(
-                    "Wallet", HomeState(task = WalletTask.Updating), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {},
-                    onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}),
+                    "Wallet",
+                    HomeState(task = WalletTask.Updating),
+                    onSend = {},
+                    onReceive = {},
+                    onRefresh = {},
+                    onSettings = {},
+                    onBackup = {},
+                    onDismissBackup = {},
+                    onChangeAddress = {},
+                    accountActions = AccountActions({}, {}, {}),
                 )
             }
         }
@@ -421,12 +534,38 @@ class HomeScreenTest {
         compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
     }
 
-    private fun received(id: String, state: ReceivedState, amountMsat: Long? = 2_000_000, declaredMsat: Long? = null, lockedUntil: Long? = null) =
-        ReceivedNote(id.padEnd(64, '0'), "a", "mint.example", "w", "k1", null, declaredMsat, amountMsat, lockedUntil, null, state, null, 1, 1)
+    private fun received(
+        id: String,
+        state: ReceivedState,
+        amountMsat: Long? = 2_000_000,
+        declaredMsat: Long? = null,
+        lockedUntil: Long? = null,
+    ) =
+        ReceivedNote(
+            id.padEnd(64, '0'),
+            "a",
+            "mint.example",
+            "w",
+            "k1",
+            null,
+            declaredMsat,
+            amountMsat,
+            lockedUntil,
+            null,
+            state,
+            null,
+            1,
+            1,
+        )
 
     @Test
     fun aNoteNotClaimedYetIsShownNextToTheBalanceNotInIt() {
-        show(HomeState(activeAccountId = "a", received = listOf(received("r1", ReceivedState.Waiting), received("r2", ReceivedState.Locked, null, 1_000_000))))
+        show(
+            HomeState(
+                activeAccountId = "a",
+                received = listOf(received("r1", ReceivedState.Waiting), received("r2", ReceivedState.Locked, null, 1_000_000)),
+            )
+        )
         compose.onNodeWithText("₿0").assertExists()
         compose.onNodeWithText(text(DesignR.string.received_total, "₿3,000")).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_title)).assertExists()
@@ -450,8 +589,17 @@ class HomeScreenTest {
         val gone = received("r1", ReceivedState.Gone)
         compose.setContent {
             HomeScreen(
-                "Wallet", HomeState(activeAccountId = "a", received = listOf(gone)), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {},
-                onBackup = {}, onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onDismissReceived = { dismissed = it },
+                "Wallet",
+                HomeState(activeAccountId = "a", received = listOf(gone)),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onChangeAddress = {},
+                accountActions = AccountActions({}, {}, {}),
+                onDismissReceived = { dismissed = it },
             )
         }
         compose.onNodeWithText(text(DesignR.string.received_gone)).assertExists()
@@ -465,7 +613,9 @@ class HomeScreenTest {
         var opened: String? = null
         show(HomeState(activeAccountId = "a", received = listOf(received("r1", ReceivedState.KeyChanged))), onOpenMint = { opened = it })
         compose.onNodeWithText(text(R.string.home_key_changed_title, "mint.example")).assertExists()
-        compose.onNodeWithText("Its mint changed its signing key. Claimed once you accept the new key in the mint's details.").assertExists()
+        compose
+            .onNodeWithText("Its mint changed its signing key. Claimed once you accept the new key in the mint's details.")
+            .assertExists()
         compose.onNodeWithText(text(DesignR.string.received_total, "₿2,000")).assertExists()
         compose.onNodeWithText(text(R.string.home_key_changed_action)).performClick()
         assertEquals("mint.example", opened)
@@ -477,8 +627,17 @@ class HomeScreenTest {
         val refused = received("r1", ReceivedState.Refused)
         compose.setContent {
             HomeScreen(
-                "Wallet", HomeState(activeAccountId = "a", received = listOf(refused)), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {},
-                onBackup = {}, onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onDismissReceived = { dismissed = it },
+                "Wallet",
+                HomeState(activeAccountId = "a", received = listOf(refused)),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onChangeAddress = {},
+                accountActions = AccountActions({}, {}, {}),
+                onDismissReceived = { dismissed = it },
             )
         }
         compose.onNodeWithText(text(DesignR.string.received_refused)).assertExists()

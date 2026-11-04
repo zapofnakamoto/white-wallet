@@ -4,8 +4,8 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.lnurlcash.NotePurpose
 
 /**
- * Finds notes the mint auto-minted for Lightning address payments (LUD-26 purpose 2) by looking up each derived
- * key by `p`, stopping after [GAP_LIMIT] consecutive unused indices, or at a lookup the mint refuses or doesn't answer.
+ * Finds notes the mint auto-minted for Lightning address payments (LUD-26 purpose 2) by looking up each derived key by `p`, stopping after
+ * [GAP_LIMIT] consecutive unused indices, or at a lookup the mint refuses or doesn't answer.
  */
 internal class AddressScanner(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
@@ -33,8 +33,15 @@ internal class AddressScanner(private val wallet: Wallet) {
                     lastUsed = index
                     gap = 0
                 }
-                is KeyProbe.Spent -> { lastUsed = index; gap = 0 }
-                is KeyProbe.Refused -> if (probe.pending) { lastUsed = index; gap = 0 } else break
+                is KeyProbe.Spent -> {
+                    lastUsed = index
+                    gap = 0
+                }
+                is KeyProbe.Refused ->
+                    if (probe.pending) {
+                        lastUsed = index
+                        gap = 0
+                    } else break
                 is KeyProbe.Unused -> gap++
                 is KeyProbe.Failed -> break
             }

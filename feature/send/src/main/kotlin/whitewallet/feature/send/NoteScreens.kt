@@ -89,8 +89,11 @@ data class CreateNoteState(
     /** Set once the note exists: the screen moves on to it. */
     val createdId: String? = null,
 ) {
-    val amountMsat: Long? get() = amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
-    val canCreate: Boolean get() = !creating && !quoting && (quote as? PayQuote.Ok)?.amountMsat == amountMsat
+    val amountMsat: Long?
+        get() = amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
+
+    val canCreate: Boolean
+        get() = !creating && !quoting && (quote as? PayQuote.Ok)?.amountMsat == amountMsat
 }
 
 @HiltViewModel
@@ -162,24 +165,34 @@ fun CreateNoteScreen(state: CreateNoteState, onBack: () -> Unit, onAmountChange:
                 modifier = Modifier.fillMaxWidth(),
             )
             when (val quote = state.quote) {
-                is PayQuote.Ok -> Text(
-                    if (quote.feeMsat > 0) stringResource(R.string.send_fee, formatAmount(quote.feeMsat)) else stringResource(R.string.send_no_fee),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                is PayQuote.Unreachable -> Text(
-                    stringResource(R.string.send_not_exact, formatAmount(quote.allMsat), formatAmount(quote.maxWithChangeMsat)),
-                    color = MaterialTheme.colorScheme.error,
-                )
-                is PayQuote.Invalid -> Text(
-                    if (quote.problem == PayProblem.TooMuch && quote.limitMsat != null) stringResource(R.string.send_too_much, formatAmount(quote.limitMsat!!))
-                    else problemText(quote.problem),
-                    color = MaterialTheme.colorScheme.error,
-                )
+                is PayQuote.Ok ->
+                    Text(
+                        if (quote.feeMsat > 0) stringResource(R.string.send_fee, formatAmount(quote.feeMsat))
+                        else stringResource(R.string.send_no_fee),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                is PayQuote.Unreachable ->
+                    Text(
+                        stringResource(R.string.send_not_exact, formatAmount(quote.allMsat), formatAmount(quote.maxWithChangeMsat)),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                is PayQuote.Invalid ->
+                    Text(
+                        if (quote.problem == PayProblem.TooMuch && quote.limitMsat != null)
+                            stringResource(R.string.send_too_much, formatAmount(quote.limitMsat!!))
+                        else problemText(quote.problem),
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 null -> Unit
             }
             state.problem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
-            if (state.pending) Text(stringResource(R.string.note_create_pending), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-            Text(stringResource(R.string.note_bearer_warning), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (state.pending)
+                Text(stringResource(R.string.note_create_pending), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+            Text(
+                stringResource(R.string.note_bearer_warning),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             PrimaryButton(stringResource(R.string.note_create), onCreate, enabled = state.canCreate, busy = state.creating)
         }
     }
@@ -198,7 +211,8 @@ data class SharedNoteUiState(
 )
 
 @HiltViewModel
-class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) : ViewModel() {
+class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) :
+    ViewModel() {
     private val id: String = checkNotNull(savedState["id"])
     private val _state = MutableStateFlow(SharedNoteUiState(canPrint = NoteAction.Print in defaults.noteActions))
     val state: StateFlow<SharedNoteUiState> = _state
@@ -296,49 +310,71 @@ fun SharedNoteScreen(
             WalletNoteFace(
                 NoteFaceSize.Large,
                 note.amountMsat,
-                status = when (note.state) {
-                    SharedNoteState.Waiting -> NoteStatus.Waiting
-                    SharedNoteState.Spent -> NoteStatus.Spent
-                    SharedNoteState.Reclaimed -> NoteStatus.TakenBack
-                },
+                status =
+                    when (note.state) {
+                        SharedNoteState.Waiting -> NoteStatus.Waiting
+                        SharedNoteState.Spent -> NoteStatus.Spent
+                        SharedNoteState.Reclaimed -> NoteStatus.TakenBack
+                    },
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
-                qrCode = link?.let { l ->
-                    {
-                        if (qrShown) QrCode(l, description = qrDescription)
-                        else QrCodeCover(stringResource(R.string.note_qr_show), onReveal = { qrShown = true })
-                    }
-                },
+                qrCode =
+                    link?.let { l ->
+                        {
+                            if (qrShown) QrCode(l, description = qrDescription)
+                            else QrCodeCover(stringResource(R.string.note_qr_show), onReveal = { qrShown = true })
+                        }
+                    },
                 place = NoteFacePlace.Shared,
                 qrCovered = link != null && !qrShown,
             )
             when (note.state) {
-                SharedNoteState.Waiting -> if (link != null) {
-                    Text(stringResource(R.string.note_bearer_warning), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
-                    Text(stringResource(R.string.note_waiting), style = MaterialTheme.typography.bodyMedium)
-                    if (!note.confirmed) Text(stringResource(R.string.note_unconfirmed), style = MaterialTheme.typography.bodyMedium)
-                    note.checkedAtMillis?.let { Text(stringResource(R.string.note_checked_at, recentTime(it)), style = MaterialTheme.typography.bodySmall) }
-                    if (note.unknownToMint) Text(stringResource(R.string.note_unknown_to_mint), color = MaterialTheme.colorScheme.error)
-                    if (!note.certified) Text(stringResource(R.string.note_uncertified), style = MaterialTheme.typography.bodySmall)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        WalletButton(kind = ButtonKind.Secondary, onClick = { onShare(link) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.note_share)) }
-                        WalletButton(kind = ButtonKind.Secondary, onClick = { onCopy(link) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.note_copy)) }
-                        if (state.canPrint) {
-                            WalletButton(kind = ButtonKind.Secondary, onClick = { printing = true }, enabled = !printing, modifier = Modifier.weight(1f)) {
-                                Text(stringResource(R.string.note_print))
+                SharedNoteState.Waiting ->
+                    if (link != null) {
+                        Text(
+                            stringResource(R.string.note_bearer_warning),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Text(stringResource(R.string.note_waiting), style = MaterialTheme.typography.bodyMedium)
+                        if (!note.confirmed) Text(stringResource(R.string.note_unconfirmed), style = MaterialTheme.typography.bodyMedium)
+                        note.checkedAtMillis?.let {
+                            Text(stringResource(R.string.note_checked_at, recentTime(it)), style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (note.unknownToMint) Text(stringResource(R.string.note_unknown_to_mint), color = MaterialTheme.colorScheme.error)
+                        if (!note.certified) Text(stringResource(R.string.note_uncertified), style = MaterialTheme.typography.bodySmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            WalletButton(kind = ButtonKind.Secondary, onClick = { onShare(link) }, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.note_share))
+                            }
+                            WalletButton(kind = ButtonKind.Secondary, onClick = { onCopy(link) }, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.note_copy))
+                            }
+                            if (state.canPrint) {
+                                WalletButton(
+                                    kind = ButtonKind.Secondary,
+                                    onClick = { printing = true },
+                                    enabled = !printing,
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(stringResource(R.string.note_print))
+                                }
                             }
                         }
+                        WalletButton(kind = ButtonKind.Text, onClick = onAskReclaim, enabled = !state.reclaiming) {
+                            Text(stringResource(R.string.note_reclaim))
+                        }
+                        if (state.reclaiming) WalletCircularProgress()
                     }
-                    WalletButton(kind = ButtonKind.Text, onClick = onAskReclaim, enabled = !state.reclaiming) { Text(stringResource(R.string.note_reclaim)) }
-                    if (state.reclaiming) WalletCircularProgress()
-                }
-                SharedNoteState.Spent -> Text(
-                    stringResource(if (state.alreadySpent) R.string.note_already_spent else R.string.note_spent),
-                    textAlign = TextAlign.Center,
-                )
-                SharedNoteState.Reclaimed -> Text(
-                    stringResource(if (state.reclaimPending) R.string.note_reclaim_pending else R.string.note_reclaimed),
-                    textAlign = TextAlign.Center,
-                )
+                SharedNoteState.Spent ->
+                    Text(
+                        stringResource(if (state.alreadySpent) R.string.note_already_spent else R.string.note_spent),
+                        textAlign = TextAlign.Center,
+                    )
+                SharedNoteState.Reclaimed ->
+                    Text(
+                        stringResource(if (state.reclaimPending) R.string.note_reclaim_pending else R.string.note_reclaimed),
+                        textAlign = TextAlign.Center,
+                    )
             }
             state.problem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
             if (note.state != SharedNoteState.Waiting) PrimaryButton(stringResource(R.string.send_done), onBack)
@@ -346,7 +382,13 @@ fun SharedNoteScreen(
     }
     // On paper what the screen shows, so that whoever finds the paper knows it is money: the note and the warning.
     val printed = state.note?.takeIf { it.state == SharedNoteState.Waiting && it.link != null }
-    PrintPage(printing && printed != null, onPrinted = { printing = false; onPrint(it) }) {
+    PrintPage(
+        printing && printed != null,
+        onPrinted = {
+            printing = false
+            onPrint(it)
+        },
+    ) {
         printed?.let { note ->
             val qrDescription = stringResource(R.string.note_qr_description)
             WalletNoteFace(
@@ -366,14 +408,18 @@ fun SharedNoteScreen(
             title = { Text(stringResource(R.string.note_reclaim_title)) },
             text = { Text(stringResource(R.string.note_reclaim_body)) },
             confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = onReclaim) { Text(stringResource(R.string.note_reclaim)) } },
-            dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismissReclaim) { Text(stringResource(R.string.note_cancel)) } },
+            dismissButton = {
+                WalletButton(kind = ButtonKind.Text, onClick = onDismissReclaim) { Text(stringResource(R.string.note_cancel)) }
+            },
         )
     }
 }
 
 /** Waiting for its recipient, spent like a payment that went out, or back in the wallet once taken back. */
 private fun sharedNoteStatus(state: SharedNoteUiState, note: SharedNote): WalletStatus {
-    state.problem?.let { return WalletStatus.Problem(problemKind(it)) }
+    state.problem?.let {
+        return WalletStatus.Problem(problemKind(it))
+    }
     return when (note.state) {
         SharedNoteState.Waiting -> WalletStatus.WaitingForRecipient
         SharedNoteState.Spent -> WalletStatus.Sent(note.amountMsat)

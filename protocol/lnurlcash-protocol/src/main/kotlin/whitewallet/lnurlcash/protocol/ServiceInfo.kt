@@ -17,10 +17,11 @@ public data class MintFee(val baseMsat: Long, val ppm: Long) {
     public companion object {
         private val PATTERN = Regex("^Mint fees:\\s*(\\d+)\\s*,\\s*(\\d+)\\s*$")
 
-        public fun fromMetadata(entries: List<Pair<String, String>>): MintFee? = entries
-            .filter { it.first == "text/plain" }
-            .firstNotNullOfOrNull { PATTERN.matchEntire(it.second) }
-            ?.let { MintFee(it.groupValues[1].toLong(), it.groupValues[2].toLong()) }
+        public fun fromMetadata(entries: List<Pair<String, String>>): MintFee? =
+            entries
+                .filter { it.first == "text/plain" }
+                .firstNotNullOfOrNull { PATTERN.matchEntire(it.second) }
+                ?.let { MintFee(it.groupValues[1].toLong(), it.groupValues[2].toLong()) }
     }
 }
 
@@ -36,17 +37,18 @@ public data class MintingPayRequest(
     public companion object {
         /** Parses a payRequest that mints notes; throws [ProtocolViolation] if it does not. */
         public fun from(response: LnurlResponse): MintingPayRequest {
-            val pay = response as? LnurlResponse.PayRequest
-                ?: throw ProtocolViolation(describe(response, "payRequest"))
-            val withdrawLink = pay.raw.string("withdrawLink")
-                ?: throw ProtocolViolation("payRequest does not mint notes (no withdrawLink)")
-            val withdrawUrl = Lnurl.resolve(withdrawLink)
-                ?: throw ProtocolViolation("withdrawLink is not a usable URL")
+            val pay = response as? LnurlResponse.PayRequest ?: throw ProtocolViolation(describe(response, "payRequest"))
+            val withdrawLink = pay.raw.string("withdrawLink") ?: throw ProtocolViolation("payRequest does not mint notes (no withdrawLink)")
+            val withdrawUrl = Lnurl.resolve(withdrawLink) ?: throw ProtocolViolation("withdrawLink is not a usable URL")
             if ((pay.commentAllowed ?: 0) < 64) throw ProtocolViolation("minting payRequest must allow a 64-character comment")
-            val cpub = pay.metadataEntries.firstOrNull { it.first == "text/cpub" }?.second?.let { value ->
-                val cx1 = value.substringBeforeLast(':')
-                value.substringAfterLast(':', "").toLongOrNull()?.let { cx1 to it }
-            }
+            val cpub =
+                pay.metadataEntries
+                    .firstOrNull { it.first == "text/cpub" }
+                    ?.second
+                    ?.let { value ->
+                        val cx1 = value.substringBeforeLast(':')
+                        value.substringAfterLast(':', "").toLongOrNull()?.let { cx1 to it }
+                    }
             return MintingPayRequest(pay, withdrawUrl, MintFee.fromMetadata(pay.metadataEntries), cpub)
         }
     }
@@ -56,8 +58,7 @@ public data class MintingPayRequest(
 public data class WithdrawDiscovery(val mintPubkey: PublicKey?, val response: LnurlResponse.WithdrawRequest) {
     public companion object {
         public fun from(response: LnurlResponse): WithdrawDiscovery {
-            val w = response as? LnurlResponse.WithdrawRequest
-                ?: throw ProtocolViolation(describe(response, "withdrawRequest"))
+            val w = response as? LnurlResponse.WithdrawRequest ?: throw ProtocolViolation(describe(response, "withdrawRequest"))
             return WithdrawDiscovery(w.raw.string("mintPubkey")?.let(::parseMintPubkey), w)
         }
     }
@@ -70,7 +71,8 @@ public fun parseMintPubkey(hex: String): PublicKey? {
     return PublicKey(bytes).takeIf { it.isValid() }
 }
 
-internal fun describe(response: LnurlResponse, expected: String): String = when (response) {
-    is LnurlResponse.Error -> response.reason ?: "the server returned an error"
-    else -> "expected a $expected"
-}
+internal fun describe(response: LnurlResponse, expected: String): String =
+    when (response) {
+        is LnurlResponse.Error -> response.reason ?: "the server returned an error"
+        else -> "expected a $expected"
+    }

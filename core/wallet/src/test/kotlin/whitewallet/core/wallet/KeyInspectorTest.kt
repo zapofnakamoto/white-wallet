@@ -2,7 +2,6 @@
 
 package whitewallet.core.wallet
 
-import whitewallet.lnurlcash.RevealsNoteSecret
 import fr.acinq.bitcoin.MnemonicCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,6 +18,7 @@ import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
@@ -31,18 +31,20 @@ class KeyInspectorTest {
 
     private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: CashBranch)
 
-    private fun withMint(test: suspend Fixture.() -> Unit) = runBlocking<Unit> {
-        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
-        MockMint.start().use { mint ->
-            val store = InMemoryWalletStore()
-            val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient())
-            store.addAccount("a", "Main", Profile("alice", mint.host))
-            assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-            Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+    private fun withMint(test: suspend Fixture.() -> Unit) =
+        runBlocking<Unit> {
+            assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
+            MockMint.start().use { mint ->
+                val store = InMemoryWalletStore()
+                val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient())
+                store.addAccount("a", "Main", Profile("alice", mint.host))
+                assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
+                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+            }
         }
-    }
 
-    private fun Fixture.credit(purpose: NotePurpose, index: Long, msat: Long) = mint.credit(Cp1.encode(branch.notePubkey(purpose, index)), msat)
+    private fun Fixture.credit(purpose: NotePurpose, index: Long, msat: Long) =
+        mint.credit(Cp1.encode(branch.notePubkey(purpose, index)), msat)
 
     @Test
     fun `scanning further finds an address payment beyond the gap limit`() = withMint {
@@ -52,8 +54,11 @@ class KeyInspectorTest {
 
         // Scan ahead with a wider gap limit than the refresh uses reaches it.
         val result = wallet.scanKeysAhead(mint.host, NotePurpose.LightningAddress.value, gap = 40)
-        assertEquals(KeyScanResult(from = 0, until = 71, checked = 71, outstanding = 1, imported = 1, stoppedEarly = null, indexAfter = 31), result,
-            "it runs on until 40 unused keys follow the note at #30")
+        assertEquals(
+            KeyScanResult(from = 0, until = 71, checked = 71, outstanding = 1, imported = 1, stoppedEarly = null, indexAfter = 31),
+            result,
+            "it runs on until 40 unused keys follow the note at #30",
+        )
         assertEquals(4_000, wallet.balanceMsat.first())
         assertEquals(31, wallet.keyIndexes(mint.host).addressScanFrom)
         assertIs<KeyProbe.Outstanding>(wallet.keyProbes.first()[KeyId("a", mint.host, 2, 30)])
@@ -80,7 +85,9 @@ class KeyInspectorTest {
         val withdrawUrl = assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host)).mint.withdrawUrl
         val spend = branch.spend(NotePurpose.Wallet, 0, spendDomain(mint.host))
         val info = client.lookup(withdrawUrl, spend.q)
-        assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, branch.notePubkey(NotePurpose.Wallet, 7))))
+        assertIs<MutationOutcome.Confirmed>(
+            client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, branch.notePubkey(NotePurpose.Wallet, 7)))
+        )
 
         assertIs<KeyProbe.Spent>(wallet.recheckKey(mint.host, NotePurpose.Wallet.value, 0))
         assertEquals(0L, wallet.balanceMsat.first())
@@ -95,7 +102,9 @@ class KeyInspectorTest {
         val withdrawUrl = assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host)).mint.withdrawUrl
         val spend = branch.spend(NotePurpose.Wallet, 2, spendDomain(mint.host))
         val info = client.lookup(withdrawUrl, spend.q)
-        assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, branch.notePubkey(NotePurpose.Change, 50))))
+        assertIs<MutationOutcome.Confirmed>(
+            client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, branch.notePubkey(NotePurpose.Change, 50)))
+        )
         store.setIndex("a", mint.host, NotePurpose.Wallet.value, 4)
         assertIs<KeyProbe.Unused>(wallet.recheckKey(mint.host, NotePurpose.Wallet.value, 1))
         assertIs<KeyProbe.Spent>(wallet.recheckKey(mint.host, NotePurpose.Wallet.value, 2))
@@ -104,7 +113,10 @@ class KeyInspectorTest {
         // A new process: same saved state, nothing in memory.
         val restarted = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient())
         val keys = restarted.derivedKeys(mint.host, NotePurpose.Wallet.value)
-        assertEquals(listOf(KeyStatus.HandedOut, KeyStatus.Skipped, KeyStatus.Spent, KeyStatus.HandedOut, KeyStatus.Next), keys.take(5).map { it.status })
+        assertEquals(
+            listOf(KeyStatus.HandedOut, KeyStatus.Skipped, KeyStatus.Spent, KeyStatus.HandedOut, KeyStatus.Next),
+            keys.take(5).map { it.status },
+        )
         assertIs<KeyProbe.Unused>(keys[1].probe)
 
         // The mint stops answering: the key keeps its last answer, and the failure is shown beside it.
@@ -151,7 +163,10 @@ class KeyInspectorTest {
     fun `recheck all covers every handed out key plus the gap and never lowers the index`() = withMint {
         store.setIndex("a", mint.host, NotePurpose.Change.value, 10)
         val result = wallet.recheckAllKeys(mint.host, NotePurpose.Change.value, gap = 5)
-        assertEquals(KeyScanResult(from = 0, until = 15, checked = 15, outstanding = 0, imported = 0, stoppedEarly = null, indexAfter = 10), result)
+        assertEquals(
+            KeyScanResult(from = 0, until = 15, checked = 15, outstanding = 0, imported = 0, stoppedEarly = null, indexAfter = 10),
+            result,
+        )
         assertEquals(15, wallet.derivedKeys(mint.host, NotePurpose.Change.value, gap = 5).size, "the list follows index + gap")
     }
 
@@ -166,7 +181,11 @@ class KeyInspectorTest {
     @Test
     fun `the key list shows public keys, local notes and probe results, never spends`() = withMint {
         credit(NotePurpose.Wallet, 1, 3_000)
-        store.upsertNotes(listOf(Note(branch.notePubkey(NotePurpose.Wallet, 0).toHex(), "a", mint.host, NoteKind.KeyPath, 0, 0, 1, null, NoteState.Spent, 0)))
+        store.upsertNotes(
+            listOf(
+                Note(branch.notePubkey(NotePurpose.Wallet, 0).toHex(), "a", mint.host, NoteKind.KeyPath, 0, 0, 1, null, NoteState.Spent, 0)
+            )
+        )
         store.setIndex("a", mint.host, 0, 2)
         wallet.recheckKey(mint.host, 0, 1)
 

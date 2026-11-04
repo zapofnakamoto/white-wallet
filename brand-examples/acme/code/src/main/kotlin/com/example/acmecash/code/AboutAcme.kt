@@ -31,10 +31,12 @@ class AboutAcme : BrandScreen {
                 TopAppBar(
                     title = { Text(stringResource(title)) },
                     navigationIcon = {
-                        IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_acme_back), stringResource(R.string.about_acme_back)) }
+                        IconButton(onClick = onBack) {
+                            Icon(painterResource(R.drawable.ic_acme_back), stringResource(R.string.about_acme_back))
+                        }
                     },
                 )
-            },
+            }
         ) { padding ->
             Column(Modifier.padding(padding).padding(24.dp)) {
                 Text(stringResource(R.string.about_acme_body), style = MaterialTheme.typography.bodyLarge)

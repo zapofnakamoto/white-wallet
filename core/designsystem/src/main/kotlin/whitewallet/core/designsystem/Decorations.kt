@@ -20,8 +20,8 @@ import whitewallet.brand.ui.LocalReduceMotion
 import whitewallet.brand.ui.LocalWalletStatus
 
 /**
- * The brand's content at [anchor] (or [default] without a brand design), with the current screen's status. It is
- * decorative: screen readers skip it, as the texts around it say what it shows.
+ * The brand's content at [anchor] (or [default] without a brand design), with the current screen's status. It is decorative: screen readers
+ * skip it, as the texts around it say what it shows.
  */
 @Composable
 fun BrandDecoration(anchor: Anchor, modifier: Modifier = Modifier, default: @Composable () -> Unit = {}) {
@@ -31,27 +31,40 @@ fun BrandDecoration(anchor: Anchor, modifier: Modifier = Modifier, default: @Com
 }
 
 /**
- * A title the brand may draw itself (a wordmark) at [anchor]; [default] is the plain text. Screen readers always read
- * [title] as a heading, whatever the brand draws.
+ * A title the brand may draw itself (a wordmark) at [anchor]; [default] is the plain text. Screen readers always read [title] as a heading,
+ * whatever the brand draws.
  */
 @Composable
 fun BrandTitle(anchor: Anchor, title: String, modifier: Modifier = Modifier, default: @Composable () -> Unit) {
-    Box(modifier.clearAndSetSemantics { heading(); contentDescription = title }, contentAlignment = Alignment.Center) {
+    Box(
+        modifier.clearAndSetSemantics {
+            heading()
+            contentDescription = title
+        },
+        contentAlignment = Alignment.Center,
+    ) {
         LocalBrandDesign.current.Decoration(anchor, decorationContext(), default)
     }
 }
 
 /**
- * [title] with the release stage's badge beside it, vertically centred, whatever the brand draws as the title. [centered]: the title stays in the middle, and where the badge doesn't fit beside it, it goes below; otherwise
- * (a top bar) the badge follows the title, which gets the rest of the width. A debug build adds its [WalletBuildLabel]:
- * after the badge when centred, on a line of its own below the title and badge in a top bar; it is shortened only
- * where it is wider than the space. A stable release build shows only [title].
+ * [title] with the release stage's badge beside it, vertically centred, whatever the brand draws as the title. [centered]: the title stays
+ * in the middle, and where the badge doesn't fit beside it, it goes below; otherwise (a top bar) the badge follows the title, which gets
+ * the rest of the width. A debug build adds its [WalletBuildLabel]: after the badge when centred, on a line of its own below the title and
+ * badge in a top bar; it is shortened only where it is wider than the space. A stable release build shows only [title].
  */
 @Composable
 fun WithReleaseBadge(modifier: Modifier = Modifier, centered: Boolean = true, title: @Composable () -> Unit) {
     if (LocalReleaseStage.current == ReleaseStage.Stable && LocalBuildLabel.current == null) return Box(modifier) { title() }
     // Boxes, so both slots are there to measure when one of them draws nothing (a stable debug build has no badge).
-    Layout({ title(); Box { WalletReleaseBadge() }; Box { WalletBuildLabel() } }, modifier) { (titleMeasurable, badgeMeasurable, labelMeasurable), constraints ->
+    Layout(
+        {
+            title()
+            Box { WalletReleaseBadge() }
+            Box { WalletBuildLabel() }
+        },
+        modifier,
+    ) { (titleMeasurable, badgeMeasurable, labelMeasurable), constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
         val gap = 4.dp.roundToPx()
         fun side(width: Int) = if (width > 0) width + gap else 0

@@ -1,6 +1,5 @@
 package whitewallet.core.wallet
 
-import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.ByteVector64
 import fr.acinq.bitcoin.Crypto
 import fr.acinq.bitcoin.MnemonicCode
@@ -10,9 +9,9 @@ import fr.acinq.secp256k1.Hex
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -23,11 +22,11 @@ import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
+import whitewallet.core.model.JournalEntry
+import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.JournalEntry
-import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.AddressProof
 import whitewallet.lnurlcash.CashBranch
@@ -52,9 +51,18 @@ class OnboardingTest {
         override fun dispatch(request: RecordedRequest): MockResponse {
             val base = server.url("/").toString().trimEnd('/')
             val path = request.url.encodedPath
-            val pay = { extra: String -> MockResponse(body = """{"tag":"payRequest","callback":"$base/p/cb","minSendable":1000,"maxSendable":100000000,"metadata":"[[\"text/plain\",\"Mint fees: 1000,2000\"]$extra]","withdrawLink":"$base/w","commentAllowed":64}""") }
+            val pay = { extra: String ->
+                MockResponse(
+                    body =
+                        """{"tag":"payRequest","callback":"$base/p/cb","minSendable":1000,"maxSendable":100000000,"metadata":"[[\"text/plain\",\"Mint fees: 1000,2000\"]$extra]","withdrawLink":"$base/w","commentAllowed":64}"""
+                )
+            }
             return when {
-                path == "/.well-known/lnurlw/_" -> MockResponse(body = """{"tag":"withdrawRequest","callback":"$base/w","minWithdrawable":0,"maxWithdrawable":1000,"mintPubkey":"034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"}""")
+                path == "/.well-known/lnurlw/_" ->
+                    MockResponse(
+                        body =
+                            """{"tag":"withdrawRequest","callback":"$base/w","minWithdrawable":0,"maxWithdrawable":1000,"mintPubkey":"034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"}"""
+                    )
                 path == "/.well-known/lnurlp/_" || path == "/.well-known/lnurlp/mint" -> pay("")
                 request.method == "GET" && path.startsWith("/.well-known/lnurlp/") -> {
                     val cx1 = registered[path.substringAfterLast('/')] ?: return error("Unknown user.")
@@ -75,7 +83,8 @@ class OnboardingTest {
                     val name = path.removePrefix("/p/")
                     val cx1 = registered[name] ?: return MockResponse(code = 404, body = """{"status":"ERROR","reason":"Unknown user."}""")
                     if (!unregisterEnabled) return error("Not found")
-                    if (!validProof(cx1, name, request.url.queryParameter("sig")!!, AddressProof.Action.Unregister)) return error("Invalid ownership signature.")
+                    if (!validProof(cx1, name, request.url.queryParameter("sig")!!, AddressProof.Action.Unregister))
+                        return error("Invalid ownership signature.")
                     registered.remove(name)
                     MockResponse(body = """{"status":"OK"}""")
                 }
@@ -83,7 +92,12 @@ class OnboardingTest {
             }
         }
 
-        private fun validProof(cx1: String, name: String, sig: String, action: AddressProof.Action = AddressProof.Action.Register): Boolean {
+        private fun validProof(
+            cx1: String,
+            name: String,
+            sig: String,
+            action: AddressProof.Action = AddressProof.Action.Register,
+        ): Boolean {
             val pk0 = CashBranch.fromCx1(cx1)!!.notePubkey(NotePurpose.Wallet, 0)
             val digest = Crypto.sha256(AddressProof.message(action, "localhost", name).encodeToByteArray()).byteVector32()
             return Crypto.verifySignatureSchnorr(digest, ByteVector64(Hex.decode(sig)), XonlyPublicKey(pk0))
@@ -92,14 +106,15 @@ class OnboardingTest {
         private fun error(reason: String) = MockResponse(body = """{"status":"ERROR","reason":"$reason"}""")
     }
 
-    private fun withMint(publishCpub: Boolean = true, registrationEnabled: Boolean = true, test: suspend (FakeMint, String) -> Unit) = runBlocking<Unit> {
-        MockWebServer().use { server ->
-            val mint = FakeMint(server, publishCpub, registrationEnabled)
-            server.dispatcher = mint
-            server.start()
-            test(mint, "localhost:${server.port}")
+    private fun withMint(publishCpub: Boolean = true, registrationEnabled: Boolean = true, test: suspend (FakeMint, String) -> Unit) =
+        runBlocking<Unit> {
+            MockWebServer().use { server ->
+                val mint = FakeMint(server, publishCpub, registrationEnabled)
+                server.dispatcher = mint
+                server.start()
+                test(mint, "localhost:${server.port}")
+            }
         }
-    }
 
     private fun wallet(store: InMemoryWalletStore = InMemoryWalletStore(), seeds: InMemorySeedStore = InMemorySeedStore()) =
         Wallet(store, seeds, LnurlcashClient())
@@ -147,16 +162,18 @@ class OnboardingTest {
     }
 
     @Test
-    fun `a mint that publishes no cx1 gives an unconfirmed address`() = withMint(publishCpub = false) { _, host ->
-        val result = assertIs<OnboardResult.Ready>(wallet().onboard("alice", host))
-        assertFalse(result.confirmed)
-    }
+    fun `a mint that publishes no cx1 gives an unconfirmed address`() =
+        withMint(publishCpub = false) { _, host ->
+            val result = assertIs<OnboardResult.Ready>(wallet().onboard("alice", host))
+            assertFalse(result.confirmed)
+        }
 
     @Test
-    fun `a mint that refuses registrations is reported, not retried under another name`() = withMint(registrationEnabled = false) { mint, host ->
-        assertIs<OnboardResult.RegistrationFailed>(wallet().onboard("alice", host))
-        assertEquals(1, mint.posts)
-    }
+    fun `a mint that refuses registrations is reported, not retried under another name`() =
+        withMint(registrationEnabled = false) { mint, host ->
+            assertIs<OnboardResult.RegistrationFailed>(wallet().onboard("alice", host))
+            assertEquals(1, mint.posts)
+        }
 
     @Test
     fun `invalid names are rejected locally`() = withMint { mint, host ->
@@ -244,7 +261,11 @@ class OnboardingTest {
             val wallet = wallet()
             assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
 
-            val added = assertIs<OnboardResult.Ready>(wallet.addAddress("alice", limit = 1, host = otherHost), "the home mint's limit doesn't count there")
+            val added =
+                assertIs<OnboardResult.Ready>(
+                    wallet.addAddress("alice", limit = 1, host = otherHost),
+                    "the home mint's limit doesn't count there",
+                )
             assertTrue(added.confirmed)
             assertNotEquals(home.registered["alice"], other.registered["alice"], "each mint gets its own cx1 of the phrase")
             val entries = wallet.addresses.first()
@@ -268,77 +289,100 @@ class OnboardingTest {
         }
 
     @Test
-    fun `changing the home mint claims the name there as the primary address, and the old one stays`() = withTwoMints { home, homeHost, other, otherHost ->
-        val wallet = wallet()
-        assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
-        assertTrue(wallet.mints.first().single { it.host == homeHost }.trusted)
+    fun `changing the home mint claims the name there as the primary address, and the old one stays`() =
+        withTwoMints { home, homeHost, other, otherHost ->
+            val wallet = wallet()
+            assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+            assertTrue(wallet.mints.first().single { it.host == homeHost }.trusted)
 
-        val moved = assertIs<OnboardResult.Ready>(wallet.changeHome(otherHost, "alice"))
-        assertTrue(moved.confirmed)
-        assertEquals(otherHost, wallet.homeHost.first())
-        assertEquals("alice@$otherHost", wallet.profile.first()?.address)
-        assertEquals(listOf("alice@$homeHost" to false, "alice@$otherHost" to true), wallet.addresses.first().map { it.address.address to it.primary })
-        assertNotEquals(home.registered["alice"], other.registered["alice"], "the new home's own cx1 of the phrase")
-        val mints = wallet.mints.first()
-        assertEquals(TrustDefault.Home, mints.single { it.host == otherHost }.trustedByDefault)
-        assertTrue(mints.single { it.host == homeHost }.trusted, "the old home stays trusted")
+            val moved = assertIs<OnboardResult.Ready>(wallet.changeHome(otherHost, "alice"))
+            assertTrue(moved.confirmed)
+            assertEquals(otherHost, wallet.homeHost.first())
+            assertEquals("alice@$otherHost", wallet.profile.first()?.address)
+            assertEquals(
+                listOf("alice@$homeHost" to false, "alice@$otherHost" to true),
+                wallet.addresses.first().map { it.address.address to it.primary },
+            )
+            assertNotEquals(home.registered["alice"], other.registered["alice"], "the new home's own cx1 of the phrase")
+            val mints = wallet.mints.first()
+            assertEquals(TrustDefault.Home, mints.single { it.host == otherHost }.trustedByDefault)
+            assertTrue(mints.single { it.host == homeHost }.trusted, "the old home stays trusted")
 
-        // And back: the address there is already ours, so nothing is registered again.
-        val posts = home.posts
-        assertIs<OnboardResult.Ready>(wallet.changeHome(homeHost, "alice"))
-        assertEquals(homeHost, wallet.homeHost.first())
-        assertEquals("alice@$homeHost", wallet.profile.first()?.address)
-        assertEquals(posts, home.posts)
-    }
+            // And back: the address there is already ours, so nothing is registered again.
+            val posts = home.posts
+            assertIs<OnboardResult.Ready>(wallet.changeHome(homeHost, "alice"))
+            assertEquals(homeHost, wallet.homeHost.first())
+            assertEquals("alice@$homeHost", wallet.profile.first()?.address)
+            assertEquals(posts, home.posts)
+        }
 
     @Test
-    fun `the mints are the device's, each account's mints its own, and only an unused one can be removed`() = withTwoMints { _, homeHost, _, otherHost ->
-        val store = InMemoryWalletStore()
-        val wallet = wallet(store)
-        assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
-        val main = checkNotNull(store.currentAccountId())
-        assertIs<OnboardResult.Ready>(wallet.onboard("bob", otherHost, newAccountName = "Savings"))
-        val savings = checkNotNull(store.currentAccountId())
+    fun `the mints are the device's, each account's mints its own, and only an unused one can be removed`() =
+        withTwoMints { _, homeHost, _, otherHost ->
+            val store = InMemoryWalletStore()
+            val wallet = wallet(store)
+            assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+            val main = checkNotNull(store.currentAccountId())
+            assertIs<OnboardResult.Ready>(wallet.onboard("bob", otherHost, newAccountName = "Savings"))
+            val savings = checkNotNull(store.currentAccountId())
 
-        // Device-wide: both homes, with whose home they are; nothing about money.
-        assertEquals(listOf(homeHost to listOf("Main"), otherHost to listOf("Savings")).sortedBy { it.first }, wallet.mints.first().map { it.host to it.homeOf }.sortedBy { it.first })
-        // The active account's: only its own home.
-        assertEquals(listOf(otherHost), wallet.accountMints.first().map { it.host })
-        assertEquals(RemoveMintResult.InUse(MintUse.Home), wallet.removeMint(otherHost))
+            // Device-wide: both homes, with whose home they are; nothing about money.
+            assertEquals(
+                listOf(homeHost to listOf("Main"), otherHost to listOf("Savings")).sortedBy { it.first },
+                wallet.mints.first().map { it.host to it.homeOf }.sortedBy { it.first },
+            )
+            // The active account's: only its own home.
+            assertEquals(listOf(otherHost), wallet.accountMints.first().map { it.host })
+            assertEquals(RemoveMintResult.InUse(MintUse.Home), wallet.removeMint(otherHost))
 
-        // Savings moves home to the first mint; its address on the other one still ties it.
-        assertIs<OnboardResult.Ready>(wallet.changeHome(homeHost, "bob"))
-        assertEquals(listOf(homeHost, otherHost), wallet.accountMints.first().map { it.host }, "home first, then the old address")
-        assertEquals(RemoveMintResult.InUse(MintUse.Address), wallet.removeMint(otherHost))
-        store.deleteAddress(savings, "bob", otherHost)
+            // Savings moves home to the first mint; its address on the other one still ties it.
+            assertIs<OnboardResult.Ready>(wallet.changeHome(homeHost, "bob"))
+            assertEquals(listOf(homeHost, otherHost), wallet.accountMints.first().map { it.host }, "home first, then the old address")
+            assertEquals(RemoveMintResult.InUse(MintUse.Address), wallet.removeMint(otherHost))
+            store.deleteAddress(savings, "bob", otherHost)
 
-        // A note of another account there, unspent, ties it; spent, it doesn't.
-        val note = Note("q1", main, otherHost, NoteKind.KeyPath, 0, 1, 5_000, null, NoteState.Outstanding, 0)
-        store.upsertNotes(listOf(note))
-        assertEquals(RemoveMintResult.InUse(MintUse.Notes), wallet.removeMint(otherHost))
-        assertFalse(wallet.mints.first().single { it.host == otherHost }.removable)
-        store.upsertNotes(listOf(note.copy(state = NoteState.Spent)))
+            // A note of another account there, unspent, ties it; spent, it doesn't.
+            val note = Note("q1", main, otherHost, NoteKind.KeyPath, 0, 1, 5_000, null, NoteState.Outstanding, 0)
+            store.upsertNotes(listOf(note))
+            assertEquals(RemoveMintResult.InUse(MintUse.Notes), wallet.removeMint(otherHost))
+            assertFalse(wallet.mints.first().single { it.host == otherHost }.removable)
+            store.upsertNotes(listOf(note.copy(state = NoteState.Spent)))
 
-        // An operation there that hasn't settled ties it too.
-        val open = JournalEntry("j1", main, OperationType.Mint, otherHost, "https://$otherHost/w", emptyList(), emptyList(), emptyList(), "", JournalStatus.Prepared, null, 0, 0)
-        store.putJournal(open)
-        assertEquals(RemoveMintResult.InUse(MintUse.OpenOperation), wallet.removeMint(otherHost))
-        store.putJournal(open.copy(status = JournalStatus.Confirmed))
+            // An operation there that hasn't settled ties it too.
+            val open =
+                JournalEntry(
+                    "j1",
+                    main,
+                    OperationType.Mint,
+                    otherHost,
+                    "https://$otherHost/w",
+                    emptyList(),
+                    emptyList(),
+                    emptyList(),
+                    "",
+                    JournalStatus.Prepared,
+                    null,
+                    0,
+                    0,
+                )
+            store.putJournal(open)
+            assertEquals(RemoveMintResult.InUse(MintUse.OpenOperation), wallet.removeMint(otherHost))
+            store.putJournal(open.copy(status = JournalStatus.Confirmed))
 
-        assertTrue(wallet.mints.first().single { it.host == otherHost }.removable)
-        val key = checkNotNull(store.mint(otherHost)?.mintPubkey)
-        wallet.setMintTrusted(otherHost, true)
-        assertEquals(RemoveMintResult.Removed, wallet.removeMint(otherHost))
-        assertNull(store.mint(otherHost))
-        assertEquals(listOf(homeHost), wallet.mints.first().map { it.host })
-        assertEquals(NoteState.Spent, store.note("q1")?.state, "notes stay")
+            assertTrue(wallet.mints.first().single { it.host == otherHost }.removable)
+            val key = checkNotNull(store.mint(otherHost)?.mintPubkey)
+            wallet.setMintTrusted(otherHost, true)
+            assertEquals(RemoveMintResult.Removed, wallet.removeMint(otherHost))
+            assertNull(store.mint(otherHost))
+            assertEquals(listOf(homeHost), wallet.mints.first().map { it.host })
+            assertEquals(NoteState.Spent, store.note("q1")?.state, "notes stay")
 
-        // Added again: a first contact, untrusted until the user says otherwise.
-        assertIs<ConnectResult.Connected>(wallet.addMint(otherHost))
-        val again = wallet.mints.first().single { it.host == otherHost }
-        assertEquals(key, again.pubkey)
-        assertFalse(again.trusted)
-    }
+            // Added again: a first contact, untrusted until the user says otherwise.
+            assertIs<ConnectResult.Connected>(wallet.addMint(otherHost))
+            val again = wallet.mints.first().single { it.host == otherHost }
+            assertEquals(key, again.pubkey)
+            assertFalse(again.trusted)
+        }
 
     @Test
     fun `an address added on another mint before is taken as it is when moving there`() = withTwoMints { _, homeHost, other, otherHost ->
@@ -486,13 +530,15 @@ class OnboardingTest {
     }
 
     @Test
-    fun `a host that is not an LNURLcash mint is rejected`() = runBlocking<Unit> {
-        MockWebServer().use { server ->
-            server.dispatcher = object : Dispatcher() {
-                override fun dispatch(request: RecordedRequest) = MockResponse(code = 404, body = "<html>Not Found</html>")
+    fun `a host that is not an LNURLcash mint is rejected`() =
+        runBlocking<Unit> {
+            MockWebServer().use { server ->
+                server.dispatcher =
+                    object : Dispatcher() {
+                        override fun dispatch(request: RecordedRequest) = MockResponse(code = 404, body = "<html>Not Found</html>")
+                    }
+                server.start()
+                assertIs<OnboardResult.MintInvalid>(wallet().onboard("alice", "localhost:${server.port}"))
             }
-            server.start()
-            assertIs<OnboardResult.MintInvalid>(wallet().onboard("alice", "localhost:${server.port}"))
         }
-    }
 }

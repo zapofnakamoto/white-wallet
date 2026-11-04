@@ -1,10 +1,10 @@
 package whitewallet.core.wallet
 
+import java.io.IOException
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Mint
 import whitewallet.core.model.NoteState
 import whitewallet.lnurlcash.protocol.ProtocolViolation
-import java.io.IOException
 
 /** What the mint details page shows about one mint (brief §6): stored facts, checked live where possible. */
 data class MintDetails(
@@ -29,8 +29,8 @@ data class MintDetails(
         Invalid,
 
         /**
-         * Presents a different signing key than the one pinned on first contact: operations are blocked until the user
-         * accepts the new key ([Wallet.acceptMintKey]).
+         * Presents a different signing key than the one pinned on first contact: operations are blocked until the user accepts the new key
+         * ([Wallet.acceptMintKey]).
          */
         KeyChanged,
     }
@@ -39,26 +39,29 @@ data class MintDetails(
 internal class MintInspector(private val wallet: Wallet) {
     suspend fun details(host: String): MintDetails {
         val accountId = wallet.activeId()
-        val h = Onboarding.normalizeHost(host)
-            ?: return MintDetails(host, null, MintDetails.Reachability.Invalid, null, 0, 0, isHome = false)
+        val h =
+            Onboarding.normalizeHost(host) ?: return MintDetails(host, null, MintDetails.Reachability.Invalid, null, 0, 0, isHome = false)
         var description: String? = null
         var presented: String? = null
-        val reachability = try {
-            val pay = wallet.client.servicePayRequest(h)
-            description = pay.pay.metadataEntries.firstOrNull { it.first == "text/plain" && !it.second.startsWith("Mint fees:") }?.second
-            val pinned = wallet.store.mint(h)?.mintPubkey
-            presented = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey?.toHex() }.getOrNull()
-            if (pinned != null && presented != null && pinned != presented) {
-                MintDetails.Reachability.KeyChanged
-            } else {
-                // Stores fresh fees and limits (and pins the key if it wasn't yet).
-                if (Onboarding(wallet).connectMint(h) is ConnectResult.Connected) MintDetails.Reachability.Reachable else MintDetails.Reachability.Invalid
+        val reachability =
+            try {
+                val pay = wallet.client.servicePayRequest(h)
+                description =
+                    pay.pay.metadataEntries.firstOrNull { it.first == "text/plain" && !it.second.startsWith("Mint fees:") }?.second
+                val pinned = wallet.store.mint(h)?.mintPubkey
+                presented = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey?.toHex() }.getOrNull()
+                if (pinned != null && presented != null && pinned != presented) {
+                    MintDetails.Reachability.KeyChanged
+                } else {
+                    // Stores fresh fees and limits (and pins the key if it wasn't yet).
+                    if (Onboarding(wallet).connectMint(h) is ConnectResult.Connected) MintDetails.Reachability.Reachable
+                    else MintDetails.Reachability.Invalid
+                }
+            } catch (e: ProtocolViolation) {
+                MintDetails.Reachability.Invalid
+            } catch (e: IOException) {
+                MintDetails.Reachability.Unreachable
             }
-        } catch (e: ProtocolViolation) {
-            MintDetails.Reachability.Invalid
-        } catch (e: IOException) {
-            MintDetails.Reachability.Unreachable
-        }
         val notes = wallet.store.notes(accountId).first().filter { it.host == h && it.state == NoteState.Outstanding }
         return MintDetails(
             host = h,

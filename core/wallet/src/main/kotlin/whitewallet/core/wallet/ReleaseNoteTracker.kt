@@ -4,9 +4,9 @@ import kotlinx.coroutines.flow.first
 import whitewallet.brand.ReleaseNote
 
 /**
- * Which release notes the user still has to see. The first time it is asked, it records what counts as seen already:
- * on a [freshInstall] the ordinary notes (they tell what changed since a version this user never had), after an
- * update from a version without release notes nothing, so they see every note.
+ * Which release notes the user still has to see. The first time it is asked, it records what counts as seen already: on a [freshInstall]
+ * the ordinary notes (they tell what changed since a version this user never had), after an update from a version without release notes
+ * nothing, so they see every note.
  */
 class ReleaseNoteTracker(
     /** Newest first. */

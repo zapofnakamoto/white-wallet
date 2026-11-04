@@ -26,18 +26,20 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.core.designsystem.LocalAmountUnit
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletRadioButton
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
-import whitewallet.core.designsystem.WalletListItem
-import whitewallet.core.designsystem.WalletRadioButton
 
 @HiltViewModel
 class DisplaySettingsViewModel @Inject constructor(private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
-    val unit: StateFlow<AmountUnit> = preferences.amountUnit.map(defaults::amountUnit)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), defaults.defaultAmountUnit)
+    val unit: StateFlow<AmountUnit> =
+        preferences.amountUnit
+            .map(defaults::amountUnit)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), defaults.defaultAmountUnit)
 
     fun setUnit(unit: AmountUnit) {
         viewModelScope.launch { preferences.setAmountUnit(unit) }
@@ -78,10 +80,11 @@ fun DisplaySettingsScreen(unit: AmountUnit, onBack: () -> Unit, onUnit: (AmountU
     }
 }
 
-internal fun unitTitle(unit: AmountUnit): Int = when (unit) {
-    AmountUnit.Bitcoin -> R.string.settings_unit_bitcoin
-    AmountUnit.Sats -> R.string.settings_unit_sats
-}
+internal fun unitTitle(unit: AmountUnit): Int =
+    when (unit) {
+        AmountUnit.Bitcoin -> R.string.settings_unit_bitcoin
+        AmountUnit.Sats -> R.string.settings_unit_sats
+    }
 
 /** A sample amount in [unit], whatever unit the rest of the app currently uses. */
 @Composable

@@ -32,21 +32,24 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.Wallet
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.ProtocolViolation
-import whitewallet.brand.ui.ButtonKind
-import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletCard
 
 sealed interface LocalMintStatus {
     data object Checking : LocalMintStatus
-    data class Reachable(val minMsat: Long, val maxMsat: Long, val feeBaseMsat: Long?, val feePpm: Long?, val mintPubkey: String?) : LocalMintStatus
+
+    data class Reachable(val minMsat: Long, val maxMsat: Long, val feeBaseMsat: Long?, val feePpm: Long?, val mintPubkey: String?) :
+        LocalMintStatus
+
     data class Unreachable(val reason: String) : LocalMintStatus
 }
 
@@ -62,14 +65,17 @@ data class LocalMint(
 data class LocalRegtestState(val mints: List<LocalMint> = emptyList())
 
 @HiltViewModel
-class LocalRegtestViewModel @Inject constructor(
+class LocalRegtestViewModel
+@Inject
+constructor(
     private val client: LnurlcashClient,
     private val wallet: Wallet,
     defaults: AppDefaults,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(
-        LocalRegtestState(defaults.localDevMints.mapIndexed { i, host -> LocalMint(host, if (i == 0) "" else " --mint${i + 1}") }),
-    )
+    private val _state =
+        MutableStateFlow(
+            LocalRegtestState(defaults.localDevMints.mapIndexed { i, host -> LocalMint(host, if (i == 0) "" else " --mint${i + 1}") })
+        )
     val state: StateFlow<LocalRegtestState> = _state
 
     init {
@@ -82,20 +88,23 @@ class LocalRegtestViewModel @Inject constructor(
             viewModelScope.launch {
                 val status = status(mint.host)
                 val address = wallet.addresses.first().map { it.address }.firstOrNull { it.host == mint.host }?.address
-                _state.update { s -> s.copy(mints = s.mints.map { if (it.host == mint.host) it.copy(status = status, address = address) else it }) }
+                _state.update { s ->
+                    s.copy(mints = s.mints.map { if (it.host == mint.host) it.copy(status = status, address = address) else it })
+                }
             }
         }
     }
 
-    private suspend fun status(host: String): LocalMintStatus = try {
-        val pay = client.servicePayRequest(host)
-        val key = runCatching { client.withdrawDiscovery(host).mintPubkey?.toHex() }.getOrNull()
-        LocalMintStatus.Reachable(pay.pay.minSendable, pay.pay.maxSendable, pay.fee?.baseMsat, pay.fee?.ppm, key)
-    } catch (e: IOException) {
-        LocalMintStatus.Unreachable(e.message ?: "connection failed")
-    } catch (e: ProtocolViolation) {
-        LocalMintStatus.Unreachable(e.message ?: "not an LNURLcash server")
-    }
+    private suspend fun status(host: String): LocalMintStatus =
+        try {
+            val pay = client.servicePayRequest(host)
+            val key = runCatching { client.withdrawDiscovery(host).mintPubkey?.toHex() }.getOrNull()
+            LocalMintStatus.Reachable(pay.pay.minSendable, pay.pay.maxSendable, pay.fee?.baseMsat, pay.fee?.ppm, key)
+        } catch (e: IOException) {
+            LocalMintStatus.Unreachable(e.message ?: "connection failed")
+        } catch (e: ProtocolViolation) {
+            LocalMintStatus.Unreachable(e.message ?: "not an LNURLcash server")
+        }
 }
 
 @Composable
@@ -105,8 +114,8 @@ fun LocalRegtestRoute(onBack: () -> Unit, onAddAccount: (host: String) -> Unit, 
 }
 
 /**
- * Developer page: the local regtest mints (dev/regtest: two, to try notes on several mints), their status, and the
- * commands to drive them from the computer.
+ * Developer page: the local regtest mints (dev/regtest: two, to try notes on several mints), their status, and the commands to drive them
+ * from the computer.
  */
 @Composable
 fun LocalRegtestScreen(state: LocalRegtestState, onBack: () -> Unit, onRecheck: () -> Unit, onAddAccount: (host: String) -> Unit) {
@@ -146,20 +155,25 @@ private fun MintCard(mint: LocalMint, onRecheck: () -> Unit, onAddAccount: () ->
 
 @Composable
 private fun StatusCard(host: String, status: LocalMintStatus, onRecheck: () -> Unit) {
-    val (tone, title) = when (status) {
-        LocalMintStatus.Checking -> Tone.Neutral to stringResource(R.string.regtest_checking)
-        is LocalMintStatus.Reachable -> Tone.Positive to
-            stringResource(R.string.regtest_reachable, host)
-        is LocalMintStatus.Unreachable -> Tone.Danger to
-            stringResource(R.string.regtest_unreachable, host)
-    }
+    val (tone, title) =
+        when (status) {
+            LocalMintStatus.Checking -> Tone.Neutral to stringResource(R.string.regtest_checking)
+            is LocalMintStatus.Reachable -> Tone.Positive to stringResource(R.string.regtest_reachable, host)
+            is LocalMintStatus.Unreachable -> Tone.Danger to stringResource(R.string.regtest_unreachable, host)
+        }
     WalletCard(tone = tone, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             when (status) {
                 is LocalMintStatus.Reachable -> {
-                    Text(stringResource(R.string.regtest_limits, formatAmount(status.minMsat), formatAmount(status.maxMsat)), style = MaterialTheme.typography.bodySmall)
-                    Text(stringResource(R.string.regtest_fee, status.feeBaseMsat ?: 0, status.feePpm ?: 0), style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        stringResource(R.string.regtest_limits, formatAmount(status.minMsat), formatAmount(status.maxMsat)),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        stringResource(R.string.regtest_fee, status.feeBaseMsat ?: 0, status.feePpm ?: 0),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                     status.mintPubkey?.let { Text(it, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall) }
                 }
                 is LocalMintStatus.Unreachable -> Text(status.reason, style = MaterialTheme.typography.bodySmall)
@@ -175,8 +189,16 @@ private fun Command(text: String) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     Row(Modifier.fillMaxWidth()) {
-        Text(text, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f).padding(top = 12.dp))
-        WalletButton(kind = ButtonKind.Text, onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("command", text))) } }) {
+        Text(
+            text,
+            fontFamily = FontFamily.Monospace,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f).padding(top = 12.dp),
+        )
+        WalletButton(
+            kind = ButtonKind.Text,
+            onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("command", text))) } },
+        ) {
             Text(stringResource(R.string.logs_copy))
         }
     }

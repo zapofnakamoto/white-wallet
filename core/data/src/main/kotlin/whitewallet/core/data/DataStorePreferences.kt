@@ -12,14 +12,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.wallet.AppPreferences
-import whitewallet.lnurlcash.client.NetworkConditions
 import whitewallet.core.wallet.MintKey
 import whitewallet.core.wallet.MintTrustStore
 import whitewallet.core.wallet.NotePolicies
+import whitewallet.lnurlcash.client.NetworkConditions
 
 /**
- * App-wide preferences and per-account note policies, in the `settings` DataStore. Developer mode starts as
- * [developerModeByDefault] (on in debug builds) until the user sets it.
+ * App-wide preferences and per-account note policies, in the `settings` DataStore. Developer mode starts as [developerModeByDefault] (on in
+ * debug builds) until the user sets it.
  */
 internal class DataStorePreferences(
     private val prefs: DataStore<Preferences>,
@@ -44,13 +44,16 @@ internal class DataStorePreferences(
     }
 
     override val networkProfile: Flow<NetworkConditions.Profile> =
-        prefs.data.map { p -> NetworkConditions.Profile.entries.firstOrNull { it.name == p[NETWORK_PROFILE] } ?: NetworkConditions.Profile.Normal }
+        prefs.data.map { p ->
+            NetworkConditions.Profile.entries.firstOrNull { it.name == p[NETWORK_PROFILE] } ?: NetworkConditions.Profile.Normal
+        }
 
     override suspend fun setNetworkProfile(profile: NetworkConditions.Profile) {
         prefs.edit { it[NETWORK_PROFILE] = profile.name }
     }
 
-    override val amountUnit: Flow<AmountUnit?> = prefs.data.map { p -> p[AMOUNT_UNIT]?.let { name -> AmountUnit.entries.firstOrNull { it.name == name } } }
+    override val amountUnit: Flow<AmountUnit?> =
+        prefs.data.map { p -> p[AMOUNT_UNIT]?.let { name -> AmountUnit.entries.firstOrNull { it.name == name } } }
 
     override suspend fun setAmountUnit(unit: AmountUnit) {
         prefs.edit { it[AMOUNT_UNIT] = unit.name }
@@ -155,10 +158,15 @@ internal class DataStorePreferences(
         private val TRUSTED = stringSetPreferencesKey("trusted_mints")
         private val UNTRUSTED = stringSetPreferencesKey("untrusted_mints")
         private val SEEN_RELEASE_NOTES = stringSetPreferencesKey("seen_release_notes")
+
         private fun autoRotateKey(accountId: String) = booleanPreferencesKey("auto_rotate_$accountId")
+
         private fun strategyKey(accountId: String) = stringPreferencesKey("note_strategy_$accountId")
+
         private fun collectKey(accountId: String) = booleanPreferencesKey("collect_at_home_$accountId")
+
         private fun feeCapKey(accountId: String) = intPreferencesKey("collect_fee_cap_$accountId")
+
         private fun noticesKey(accountId: String) = booleanPreferencesKey("maintenance_notices_$accountId")
 
         /** Keys renamed since v0.3.0: an installed app keeps the value under the new name. */
@@ -170,10 +178,14 @@ internal class DataStorePreferences(
 private class RenamedKey<T>(private val old: Preferences.Key<T>, private val new: Preferences.Key<T>) : DataMigration<Preferences> {
     override suspend fun shouldMigrate(currentData: Preferences) = old in currentData
 
-    override suspend fun migrate(currentData: Preferences): Preferences = currentData.toMutablePreferences().apply {
-        val value = remove(old)
-        if (new !in this && value != null) this[new] = value
-    }.toPreferences()
+    override suspend fun migrate(currentData: Preferences): Preferences =
+        currentData
+            .toMutablePreferences()
+            .apply {
+                val value = remove(old)
+                if (new !in this && value != null) this[new] = value
+            }
+            .toPreferences()
 
     override suspend fun cleanUp() = Unit
 }

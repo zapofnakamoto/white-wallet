@@ -42,13 +42,9 @@ object DataModule {
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
             .build()
 
-    @Provides
-    @Singleton
-    internal fun walletStore(db: WalletDatabase): WalletStore = RoomWalletStore(db)
+    @Provides @Singleton internal fun walletStore(db: WalletDatabase): WalletStore = RoomWalletStore(db)
 
-    @Provides
-    @Singleton
-    fun seedStore(@ApplicationContext context: Context): SeedStore = KeystoreSeedStore(context.secretsDataStore)
+    @Provides @Singleton fun seedStore(@ApplicationContext context: Context): SeedStore = KeystoreSeedStore(context.secretsDataStore)
 
     @Provides
     @Singleton
@@ -58,12 +54,9 @@ object DataModule {
         return DataStorePreferences(context.settingsDataStore, developerModeByDefault = debuggable)
     }
 
-    @Provides
-    internal fun appPreferences(preferences: DataStorePreferences): AppPreferences = preferences
+    @Provides internal fun appPreferences(preferences: DataStorePreferences): AppPreferences = preferences
 
-    @Provides
-    internal fun notePolicies(preferences: DataStorePreferences): NotePolicies = preferences
+    @Provides internal fun notePolicies(preferences: DataStorePreferences): NotePolicies = preferences
 
-    @Provides
-    internal fun mintTrust(preferences: DataStorePreferences): MintTrustStore = preferences
+    @Provides internal fun mintTrust(preferences: DataStorePreferences): MintTrustStore = preferences
 }

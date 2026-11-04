@@ -19,8 +19,7 @@ import whitewallet.core.wallet.AddressStatus
 /** Addresses on the home mint and on other mints. */
 @RunWith(RobolectricTestRunner::class)
 class AddressesScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
     private val home = AddressEntry(RegisteredAddress("alice", "home.example", 0), primary = true, status = AddressStatus.Ours)
     private val other = AddressEntry(RegisteredAddress("alice", "other.example", 1), primary = false, status = AddressStatus.Ours)

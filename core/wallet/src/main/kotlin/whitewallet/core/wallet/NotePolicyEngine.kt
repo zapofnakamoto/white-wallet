@@ -33,15 +33,24 @@ data class PolicyRun(
     val notesMade: Int = 0,
     val notesMadeMsat: Long = 0,
     /**
-     * What the run did to the balance: positive when the mint paid fees back (a merge), negative for fees paid (a split,
-     * a move). Null while a step's outcome is still open, as that money is out of the balance until it settles.
+     * What the run did to the balance: positive when the mint paid fees back (a merge), negative for fees paid (a split, a move). Null
+     * while a step's outcome is still open, as that money is out of the balance until it settles.
      */
     val balanceChangeMsat: Long? = null,
 ) {
-    val didSomething: Boolean get() = rotated > 0 || merged > 0 || split > 0 || failed > 0 || stoppedEarly != null || collected.isNotEmpty() || notCollected.isNotEmpty()
+    val didSomething: Boolean
+        get() =
+            rotated > 0 ||
+                merged > 0 ||
+                split > 0 ||
+                failed > 0 ||
+                stoppedEarly != null ||
+                collected.isNotEmpty() ||
+                notCollected.isNotEmpty()
 
     /** The run changed the account's notes (combined, split, renewed or moved them), not only tried. */
-    val maintained: Boolean get() = rotated > 0 || merged > 0 || split > 0 || collected.isNotEmpty()
+    val maintained: Boolean
+        get() = rotated > 0 || merged > 0 || split > 0 || collected.isNotEmpty()
 }
 
 /** A move to the home mint: [arrivedMsat] (expected, if still [pending]) for [feeMsat]. */
@@ -85,13 +94,14 @@ data class CollectDefaults(
         val FEE_CAPS = listOf(1, 2, 5, 10)
 
         /** `notes.collect.atHomeMint` = `hidden`, `off`, `on` or `always`. */
-        fun fromConfig(value: String, feeCapPercent: Int): CollectDefaults = when (value.trim().lowercase()) {
-            "hidden" -> CollectDefaults(offered = false, enabled = false, feeCapPercent = feeCapPercent)
-            "off" -> CollectDefaults(offered = true, enabled = false, feeCapPercent = feeCapPercent)
-            "on" -> CollectDefaults(offered = true, enabled = true, feeCapPercent = feeCapPercent)
-            "always" -> CollectDefaults(offered = false, enabled = true, feeCapPercent = feeCapPercent, always = true)
-            else -> error("notes.collect.atHomeMint must be hidden, off, on or always, not '$value'")
-        }
+        fun fromConfig(value: String, feeCapPercent: Int): CollectDefaults =
+            when (value.trim().lowercase()) {
+                "hidden" -> CollectDefaults(offered = false, enabled = false, feeCapPercent = feeCapPercent)
+                "off" -> CollectDefaults(offered = true, enabled = false, feeCapPercent = feeCapPercent)
+                "on" -> CollectDefaults(offered = true, enabled = true, feeCapPercent = feeCapPercent)
+                "always" -> CollectDefaults(offered = false, enabled = true, feeCapPercent = feeCapPercent, always = true)
+                else -> error("notes.collect.atHomeMint must be hidden, off, on or always, not '$value'")
+            }
     }
 }
 
@@ -100,14 +110,12 @@ internal data class CollectPolicy(val homeHost: String, val feeCapPercent: Int)
 
 /**
  * Brings an account to the state its note policies describe, per mint:
- * - the note strategy (see [NoteStrategy]) proposes steps, which run here with the usual safeguards, round after round
- *   until it proposes none. Steps that don't apply are skipped; notes the mint refused are left out of later
- *   rounds; a mint that doesn't answer (or an outcome still pending) ends the run;
- * - auto-rotate: no outstanding note on an address key (purpose 2); each is rotated onto the next wallet key. Part of
- *   strategies that rotate themselves.
- * Before that, with "collect at home mint", every other mint's notes are moved to the home mint (see [collect]), so
- * the strategy then shapes them there.
- * Idempotent: anything that failed is simply retried the next time it runs.
+ * - the note strategy (see [NoteStrategy]) proposes steps, which run here with the usual safeguards, round after round until it proposes
+ *   none. Steps that don't apply are skipped; notes the mint refused are left out of later rounds; a mint that doesn't answer (or an
+ *   outcome still pending) ends the run;
+ * - auto-rotate: no outstanding note on an address key (purpose 2); each is rotated onto the next wallet key. Part of strategies that
+ *   rotate themselves. Before that, with "collect at home mint", every other mint's notes are moved to the home mint (see [collect]), so
+ *   the strategy then shapes them there. Idempotent: anything that failed is simply retried the next time it runs.
  */
 internal class NotePolicyEngine(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
@@ -131,12 +139,17 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         // A step whose outcome is open took its notes out of the balance until it settles: no change to tell yet.
         val settled = ambiguous(accountId) == unsettled && run.collected.none { it.pending }
         val made = after.filter { note -> before.none { it.id == note.id } }
-        return run.copy(notesReplaced = before.count { note -> after.none { it.id == note.id } }, notesMade = made.size, notesMadeMsat = made.sumOf { it.amountMsat },
-            balanceChangeMsat = (after.sumOf { it.amountMsat } - before.sumOf { it.amountMsat }).takeIf { settled })
+        return run.copy(
+            notesReplaced = before.count { note -> after.none { it.id == note.id } },
+            notesMade = made.size,
+            notesMadeMsat = made.sumOf { it.amountMsat },
+            balanceChangeMsat = (after.sumOf { it.amountMsat } - before.sumOf { it.amountMsat }).takeIf { settled },
+        )
     }
 
     /** The notes the balance is made of. */
-    private suspend fun balance(accountId: String): List<Note> = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
+    private suspend fun balance(accountId: String): List<Note> =
+        wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
 
     private suspend fun ambiguous(accountId: String): Set<String> =
         wallet.store.notes(accountId).first().filter { it.state == NoteState.Ambiguous }.map { it.id }.toSet()
@@ -150,19 +163,35 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             val steps = strategy.plan(MintNotes(host, notes.values.map { it.forStrategy() }, fee))
             // One step per round: the first that applies. Later steps may name notes it spends, so the strategy plans
             // again with the notes as they are then. Refused notes are left out, so every round changes something.
-            val outcome = steps.firstNotNullOfOrNull { step ->
-                when (step) {
-                    is NoteStep.Combine -> step.noteIds.distinct().mapNotNull { notes[it] }.takeIf { it.size >= 2 }?.let {
-                        wallet.working(WalletTask.Maintaining(MaintenanceStep.Combining, strategy.id)) { combine(accountId, host, it.take(MAX_MERGE)) }
+            val outcome =
+                steps.firstNotNullOfOrNull { step ->
+                    when (step) {
+                        is NoteStep.Combine ->
+                            step.noteIds
+                                .distinct()
+                                .mapNotNull { notes[it] }
+                                .takeIf { it.size >= 2 }
+                                ?.let {
+                                    wallet.working(WalletTask.Maintaining(MaintenanceStep.Combining, strategy.id)) {
+                                        combine(accountId, host, it.take(MAX_MERGE))
+                                    }
+                                }
+                        is NoteStep.Split ->
+                            notes[step.noteId]
+                                ?.takeIf { step.firstMsat in 1..it.amountMsat - fee - 1 }
+                                ?.let {
+                                    wallet.working(WalletTask.Maintaining(MaintenanceStep.Splitting, strategy.id)) {
+                                        split(accountId, it, step.firstMsat, fee)
+                                    }
+                                }
+                        is NoteStep.Rotate ->
+                            notes[step.noteId]
+                                ?.takeIf { it.purpose == NotePurpose.LightningAddress.value }
+                                ?.let {
+                                    wallet.working(WalletTask.Maintaining(MaintenanceStep.Renewing, strategy.id)) { rotate(accountId, it) }
+                                }
                     }
-                    is NoteStep.Split -> notes[step.noteId]?.takeIf { step.firstMsat in 1..it.amountMsat - fee - 1 }?.let {
-                        wallet.working(WalletTask.Maintaining(MaintenanceStep.Splitting, strategy.id)) { split(accountId, it, step.firstMsat, fee) }
-                    }
-                    is NoteStep.Rotate -> notes[step.noteId]?.takeIf { it.purpose == NotePurpose.LightningAddress.value }?.let {
-                        wallet.working(WalletTask.Maintaining(MaintenanceStep.Renewing, strategy.id)) { rotate(accountId, it) }
-                    }
-                }
-            } ?: return run
+                } ?: return run
             run = outcome.addTo(run)
             when (outcome) {
                 is Outcome.Done -> Unit
@@ -177,7 +206,8 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         fun addTo(run: PolicyRun): PolicyRun
 
         data class Done(val merged: Int = 0, val split: Int = 0, val rotated: Int = 0) : Outcome {
-            override fun addTo(run: PolicyRun) = run.copy(merged = run.merged + merged, split = run.split + split, rotated = run.rotated + rotated)
+            override fun addTo(run: PolicyRun) =
+                run.copy(merged = run.merged + merged, split = run.split + split, rotated = run.rotated + rotated)
         }
 
         data class Refused(val noteIds: List<String>) : Outcome {
@@ -195,16 +225,34 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         return when (val r = mutator.mutate(accountId, host, batch, OperationType.Merge, listOf(target))) {
             is MutationResult.Done -> {
                 val out = r.outputs.single()
-                log.record("op:${r.journalId}", accountId, ActivityKind.Combined, out.amountMsat.takeIf { it > 0 } ?: inputs, host,
-                    feeMsat = ActivityLog.fee(inputs, r.outputs), noteCount = batch.size, automatic = true, journalId = r.journalId)
+                log.record(
+                    "op:${r.journalId}",
+                    accountId,
+                    ActivityKind.Combined,
+                    out.amountMsat.takeIf { it > 0 } ?: inputs,
+                    host,
+                    feeMsat = ActivityLog.fee(inputs, r.outputs),
+                    noteCount = batch.size,
+                    automatic = true,
+                    journalId = r.journalId,
+                )
                 Outcome.Done(merged = batch.size)
             }
             // Notes the mint doesn't know are set aside; the others are combined in the next round.
             is MutationResult.Refused -> Outcome.Refused(r.setAside.ifEmpty { batch.map { it.id } })
             is MutationResult.Unreachable -> Outcome.Stop(r.reason ?: "no answer", failed = true)
             is MutationResult.Pending -> {
-                log.record("op:${r.journalId}", accountId, ActivityKind.Combined, inputs, host, ActivityStatus.Pending,
-                    noteCount = batch.size, automatic = true, journalId = r.journalId)
+                log.record(
+                    "op:${r.journalId}",
+                    accountId,
+                    ActivityKind.Combined,
+                    inputs,
+                    host,
+                    ActivityStatus.Pending,
+                    noteCount = batch.size,
+                    automatic = true,
+                    journalId = r.journalId,
+                )
                 Outcome.Stop("waiting for confirmation", failed = false)
             }
         }
@@ -214,15 +262,33 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         val outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet), OutputSpec.Own(accountId, NotePurpose.Change))
         return when (val r = mutator.mutate(accountId, note.host, listOf(note), OperationType.Split, outputs, splitMsat = firstMsat)) {
             is MutationResult.Done -> {
-                log.record("op:${r.journalId}", accountId, ActivityKind.Split, note.amountMsat, note.host,
-                    feeMsat = fee.takeIf { it > 0 }, noteCount = 2, automatic = true, journalId = r.journalId)
+                log.record(
+                    "op:${r.journalId}",
+                    accountId,
+                    ActivityKind.Split,
+                    note.amountMsat,
+                    note.host,
+                    feeMsat = fee.takeIf { it > 0 },
+                    noteCount = 2,
+                    automatic = true,
+                    journalId = r.journalId,
+                )
                 Outcome.Done(split = 1)
             }
             is MutationResult.Refused -> Outcome.Refused(listOf(note.id))
             is MutationResult.Unreachable -> Outcome.Stop(r.reason ?: "no answer", failed = true)
             is MutationResult.Pending -> {
-                log.record("op:${r.journalId}", accountId, ActivityKind.Split, note.amountMsat, note.host, ActivityStatus.Pending,
-                    noteCount = 2, automatic = true, journalId = r.journalId)
+                log.record(
+                    "op:${r.journalId}",
+                    accountId,
+                    ActivityKind.Split,
+                    note.amountMsat,
+                    note.host,
+                    ActivityStatus.Pending,
+                    noteCount = 2,
+                    automatic = true,
+                    journalId = r.journalId,
+                )
                 Outcome.Stop("waiting for confirmation", failed = false)
             }
         }
@@ -231,24 +297,26 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     private suspend fun rotate(accountId: String, note: Note): Outcome =
         when (val r = rotator.rotate(accountId, note.host, note.purpose!!, note.index!!, automatic = true)) {
             is RotateResult.Rotated -> Outcome.Done(rotated = 1)
-            is RotateResult.Failed -> if (r.noAnswer) Outcome.Stop(r.reason ?: "no answer", failed = true) else Outcome.Refused(listOf(note.id))
+            is RotateResult.Failed ->
+                if (r.noAnswer) Outcome.Stop(r.reason ?: "no answer", failed = true) else Outcome.Refused(listOf(note.id))
             RotateResult.Pending -> Outcome.Stop("waiting for confirmation", failed = false)
             is RotateResult.NotRotatable -> Outcome.Refused(listOf(note.id))
         }
 
     private suspend fun rotateAddressNotes(accountId: String, host: String, run: PolicyRun): PolicyRun {
         if (outstanding(accountId).none { it.host == host && it.purpose == NotePurpose.LightningAddress.value }) return run
-        val r = wallet.working(WalletTask.Maintaining(MaintenanceStep.Renewing)) {
-            rotator.rotateAll(accountId, host, NotePurpose.LightningAddress.value, automatic = true)
-        }
+        val r =
+            wallet.working(WalletTask.Maintaining(MaintenanceStep.Renewing)) {
+                rotator.rotateAll(accountId, host, NotePurpose.LightningAddress.value, automatic = true)
+            }
         return run.copy(rotated = run.rotated + r.rotated, failed = run.failed + r.failed, stoppedEarly = r.stoppedEarly)
     }
 
     /**
-     * Moves each other mint's outstanding notes to the home mint when the move costs at most the fee cap (what leaves
-     * that mint minus what arrives at home, against what leaves). Skipped, without sending anything: a mint with a
-     * payment of the account still unsettled (a melt there, or any move's mint at home), and one whose last move
-     * failed less than [COLLECT_COOLDOWN_MILLIS] ago (never a retried payment in a loop).
+     * Moves each other mint's outstanding notes to the home mint when the move costs at most the fee cap (what leaves that mint minus what
+     * arrives at home, against what leaves). Skipped, without sending anything: a mint with a payment of the account still unsettled (a
+     * melt there, or any move's mint at home), and one whose last move failed less than [COLLECT_COOLDOWN_MILLIS] ago (never a retried
+     * payment in a loop).
      */
     private suspend fun collect(accountId: String, policy: CollectPolicy, start: PolicyRun): PolicyRun {
         var run = start
@@ -260,36 +328,46 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             if (open.any { it.type == OperationType.Melt && it.host == host }) continue
             if (wallet.collectBlockedUntil(accountId, host) > wallet.now()) continue
             var refused: NotCollected.Reason? = null
-            val result = wallet.working(WalletTask.Maintaining(MaintenanceStep.MovingHome)) {
-                NoteManager(wallet).move(accountId, notes.map { it.id }, policy.homeHost, automatic = true) { quote, notesMsat ->
-                    val fee = notesMsat - quote.expectedMsat
-                    (fee * 100 <= policy.feeCapPercent.toLong() * notesMsat).also { ok -> if (!ok) refused = NotCollected.Reason.FeeTooHigh(fee, policy.feeCapPercent) }
-                }
-            }
-            val total = notes.sumOf { it.amountMsat }
-            run = when (result) {
-                is MintMoveResult.Moved -> run.copy(collected = run.collected + Collected(host, result.arrivedMsat, result.feeMsat))
-                MintMoveResult.Pending -> run.copy(collected = run.collected + Collected(host, 0, 0, pending = true))
-                is MintMoveResult.Failed -> {
-                    val reason = refused ?: when (result.problem) {
-                        NoteProblem.BelowMinimum -> NotCollected.Reason.TooSmall(result.limitMsat)
-                        else -> NotCollected.Reason.Failed(result.problem).also {
-                            // A payment attempt that failed (or a refusal) waits; an unreachable mint is just asked again,
-                            // and so is one that refused a note it doesn't know (set aside now: the others can go).
-                            val setAside = notes.any { wallet.store.note(it.id)?.state == NoteState.Unknown }
-                            if (result.problem != NoteProblem.Unreachable && !setAside) wallet.blockCollect(accountId, host, wallet.now() + COLLECT_COOLDOWN_MILLIS)
+            val result =
+                wallet.working(WalletTask.Maintaining(MaintenanceStep.MovingHome)) {
+                    NoteManager(wallet).move(accountId, notes.map { it.id }, policy.homeHost, automatic = true) { quote, notesMsat ->
+                        val fee = notesMsat - quote.expectedMsat
+                        (fee * 100 <= policy.feeCapPercent.toLong() * notesMsat).also { ok ->
+                            if (!ok) refused = NotCollected.Reason.FeeTooHigh(fee, policy.feeCapPercent)
                         }
                     }
-                    run.copy(notCollected = run.notCollected + NotCollected(host, total, reason))
                 }
-            }
+            val total = notes.sumOf { it.amountMsat }
+            run =
+                when (result) {
+                    is MintMoveResult.Moved -> run.copy(collected = run.collected + Collected(host, result.arrivedMsat, result.feeMsat))
+                    MintMoveResult.Pending -> run.copy(collected = run.collected + Collected(host, 0, 0, pending = true))
+                    is MintMoveResult.Failed -> {
+                        val reason =
+                            refused
+                                ?: when (result.problem) {
+                                    NoteProblem.BelowMinimum -> NotCollected.Reason.TooSmall(result.limitMsat)
+                                    else ->
+                                        NotCollected.Reason.Failed(result.problem).also {
+                                            // A payment attempt that failed (or a refusal) waits; an unreachable mint is just asked again,
+                                            // and so is one that refused a note it doesn't know (set aside now: the others can go).
+                                            val setAside = notes.any { wallet.store.note(it.id)?.state == NoteState.Unknown }
+                                            if (result.problem != NoteProblem.Unreachable && !setAside)
+                                                wallet.blockCollect(accountId, host, wallet.now() + COLLECT_COOLDOWN_MILLIS)
+                                        }
+                                }
+                        run.copy(notCollected = run.notCollected + NotCollected(host, total, reason))
+                    }
+                }
             if (result == MintMoveResult.Pending) break
         }
         return run
     }
 
-    private suspend fun outstanding(accountId: String): List<Note> = wallet.store.notes(accountId).first()
-        .filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.purpose != null && it.index != null }
+    private suspend fun outstanding(accountId: String): List<Note> =
+        wallet.store.notes(accountId).first().filter {
+            it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.purpose != null && it.index != null
+        }
 
     private fun Note.forStrategy() = StrategyNote(id, amountMsat, purpose == NotePurpose.LightningAddress.value, updatedAtMillis)
 

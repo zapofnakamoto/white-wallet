@@ -15,11 +15,14 @@ import whitewallet.core.wallet.Wallet
 /** The steps of the recovery phrase backup, following the Bitcoin Design Guide's manual backup flow. */
 sealed interface BackupStep {
     data object Intro : BackupStep
+
     data object NoScreenLock : BackupStep
+
     data class Display(val words: List<String>) : BackupStep
 
     /** [choices] are original positions in display order; [progress] the positions tapped correctly so far. */
     data class Verify(val words: List<String>, val choices: List<Int>, val progress: List<Int>, val wrongNumber: Int?) : BackupStep
+
     data object Success : BackupStep
 }
 
@@ -63,7 +66,8 @@ class BackupViewModel @Inject constructor(private val wallet: Wallet) : ViewMode
         when (val result = q.tap(position)) {
             BackupQuiz.Result.Complete -> complete()
             BackupQuiz.Result.Correct -> _state.update { it.copy(step = step.copy(progress = q.progress, wrongNumber = null)) }
-            is BackupQuiz.Result.Wrong -> _state.update { it.copy(step = step.copy(progress = q.progress, wrongNumber = result.expectedNumber)) }
+            is BackupQuiz.Result.Wrong ->
+                _state.update { it.copy(step = step.copy(progress = q.progress, wrongNumber = result.expectedNumber)) }
         }
     }
 

@@ -12,6 +12,7 @@ class PayPlannerTest {
     private fun notes(vararg sats: Long) = sats.mapIndexed { i, s ->
         Note("q$i", "a", "h", NoteKind.KeyPath, 0, i.toLong(), s * 1000, null, NoteState.Outstanding, 0)
     }
+
     private val fee = 1_000L
 
     @Test

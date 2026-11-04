@@ -24,8 +24,8 @@ public data class LogEntry(
 )
 
 /**
- * In-memory log of the most recent requests, newest first. Nothing is written to disk, and entries are redacted
- * before they are stored (see [Redaction]), so the log never holds a bearer secret.
+ * In-memory log of the most recent requests, newest first. Nothing is written to disk, and entries are redacted before they are stored (see
+ * [Redaction]), so the log never holds a bearer secret.
  */
 public class RequestLog(private val capacity: Int = 200, private val now: () -> Long = System::currentTimeMillis) {
     private val ids = AtomicLong()
@@ -37,7 +37,8 @@ public class RequestLog(private val capacity: Int = 200, private val now: () -> 
     }
 
     internal fun record(method: String, url: String, status: Int?, durationMillis: Long, body: String?, error: String?) {
-        val entry = LogEntry(ids.incrementAndGet(), now(), method, Redaction.url(url), status, durationMillis, body?.let(Redaction::body), error)
+        val entry =
+            LogEntry(ids.incrementAndGet(), now(), method, Redaction.url(url), status, durationMillis, body?.let(Redaction::body), error)
         _entries.update { (listOf(entry) + it).take(capacity) }
     }
 
@@ -46,12 +47,13 @@ public class RequestLog(private val capacity: Int = 200, private val now: () -> 
         val request = chain.request()
         val started = System.nanoTime()
         val elapsed = { (System.nanoTime() - started) / 1_000_000 }
-        val response: Response = try {
-            chain.proceed(request)
-        } catch (e: IOException) {
-            record(request.method, request.url.toString(), null, elapsed(), null, e.message ?: e.javaClass.simpleName)
-            throw e
-        }
+        val response: Response =
+            try {
+                chain.proceed(request)
+            } catch (e: IOException) {
+                record(request.method, request.url.toString(), null, elapsed(), null, e.message ?: e.javaClass.simpleName)
+                throw e
+            }
         val body = runCatching { response.peekBody(MAX_BODY_BYTES).string() }.getOrNull()
         record(request.method, request.url.toString(), response.code, elapsed(), body, null)
         response

@@ -19,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -38,16 +37,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import whitewallet.core.designsystem.localTime
-import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.lnurlcash.client.LogEntry
-import whitewallet.lnurlcash.client.RequestLog
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.localTime
+import whitewallet.lnurlcash.client.LogEntry
+import whitewallet.lnurlcash.client.RequestLog
 
 @HiltViewModel
 class RequestLogViewModel @Inject constructor(private val log: RequestLog) : ViewModel() {
     val entries: StateFlow<List<LogEntry>> = log.entries
+
     fun clear() = log.clear()
 }
 
@@ -62,14 +62,28 @@ fun RequestLogRoute(onBack: () -> Unit, viewModel: RequestLogViewModel = hiltVie
 fun RequestLogScreen(entries: List<LogEntry>, onBack: () -> Unit, onClear: () -> Unit) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
-    Scaffold(topBar = {
-        WalletTopBar(stringResource(R.string.logs_title), onBack) {
-            WalletButton(kind = ButtonKind.Text, onClick = {
-                scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("request log", entries.joinToString("\n\n") { it.asText() }))) }
-            }, enabled = entries.isNotEmpty()) { Text(stringResource(R.string.logs_copy)) }
-            WalletButton(kind = ButtonKind.Text, onClick = onClear, enabled = entries.isNotEmpty()) { Text(stringResource(R.string.logs_clear)) }
+    Scaffold(
+        topBar = {
+            WalletTopBar(stringResource(R.string.logs_title), onBack) {
+                WalletButton(
+                    kind = ButtonKind.Text,
+                    onClick = {
+                        scope.launch {
+                            clipboard.setClipEntry(
+                                ClipEntry(ClipData.newPlainText("request log", entries.joinToString("\n\n") { it.asText() }))
+                            )
+                        }
+                    },
+                    enabled = entries.isNotEmpty(),
+                ) {
+                    Text(stringResource(R.string.logs_copy))
+                }
+                WalletButton(kind = ButtonKind.Text, onClick = onClear, enabled = entries.isNotEmpty()) {
+                    Text(stringResource(R.string.logs_clear))
+                }
+            }
         }
-    }) { padding ->
+    ) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {
             item {
                 Text(stringResource(R.string.logs_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))
@@ -122,8 +136,10 @@ private fun LogRow(entry: LogEntry) {
 
 private val prettyJson = Json { prettyPrint = true }
 
-private fun pretty(body: String): String =
-    runCatching { prettyJson.encodeToString(JsonElement.serializer(), Json.parseToJsonElement(body)) }.getOrDefault(body)
+private fun pretty(body: String): String = runCatching {
+    prettyJson.encodeToString(JsonElement.serializer(), Json.parseToJsonElement(body))
+}
+    .getOrDefault(body)
 
 private fun time(millis: Long): String = localTime(millis, "jms")
 

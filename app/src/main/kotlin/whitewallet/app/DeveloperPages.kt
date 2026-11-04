@@ -31,19 +31,23 @@ object DeveloperPages {
     const val DERIVED_KEYS = "developer/keys"
     const val LOCAL_REGTEST = "developer/regtest"
 
-    val all: List<DeveloperPage> = listOf(
-        DeveloperPage(SettingsR.string.logs_title, SettingsR.string.logs_description, REQUEST_LOG),
-        DeveloperPage(SettingsR.string.keys_title, SettingsR.string.keys_description, DERIVED_KEYS),
-        DeveloperPage(SettingsR.string.regtest_title, SettingsR.string.regtest_description, LOCAL_REGTEST),
-    )
+    val all: List<DeveloperPage> =
+        listOf(
+            DeveloperPage(SettingsR.string.logs_title, SettingsR.string.logs_description, REQUEST_LOG),
+            DeveloperPage(SettingsR.string.keys_title, SettingsR.string.keys_description, DERIVED_KEYS),
+            DeveloperPage(SettingsR.string.regtest_title, SettingsR.string.regtest_description, LOCAL_REGTEST),
+        )
 }
 
 @HiltViewModel
 class DeveloperGateViewModel @Inject constructor(preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
     /** Developer mode is on and the brand lets users reach it; null until loaded. */
-    val enabled: StateFlow<Boolean?> = combine(preferences.developerMode, preferences.developerOptionsUnlocked) { mode, unlocked ->
-        mode && defaults.developerOptionsVisible(mode, unlocked)
-    }.map<Boolean, Boolean?> { it }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val enabled: StateFlow<Boolean?> =
+        combine(preferences.developerMode, preferences.developerOptionsUnlocked) { mode, unlocked ->
+                mode && defaults.developerOptionsVisible(mode, unlocked)
+            }
+            .map<Boolean, Boolean?> { it }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 }
 
 /** A destination that only renders while developer mode is on; otherwise it calls [onLocked] (usually: go back). */

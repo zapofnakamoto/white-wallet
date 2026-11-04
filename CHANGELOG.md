@@ -57,6 +57,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   is kept. Claimed in another account of the same wallet it is received there, and its own account finds it spent.
   New strings: `claim_own_shared` and `claim_own_offline` (brand terms), `claim_take_back`, `claim_taken_back`,
   `claim_take_back_failed`.
+- Code is formatted by ktfmt (kotlinlang style, 140 wide) through Spotless: `just format` formats, and `just check`
+  and CI fail on code that isn't formatted. A brand's code in `brand/code` is formatted with the rest.
 - Brand API: `WalletEvent.NoteRedeemed` is now `WalletEvent.NoteSpent`, and `NoteStatus.Redeemed` is now
   `NoteStatus.Spent`; a brand's code that uses them needs the new names.
 

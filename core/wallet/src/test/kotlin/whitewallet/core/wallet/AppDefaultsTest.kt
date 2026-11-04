@@ -30,7 +30,9 @@ class AppDefaultsTest {
     fun `users bring their own mint, but there must be one`() {
         val own = AppDefaults(mintSuggestions = emptyList(), allowMintChange = true)
         assertEquals("", own.defaultMintHost)
-        assertFailsWith<IllegalArgumentException> { AppDefaults(mintSuggestions = emptyList(), allowMintChange = true, customMints = false) }
+        assertFailsWith<IllegalArgumentException> {
+            AppDefaults(mintSuggestions = emptyList(), allowMintChange = true, customMints = false)
+        }
     }
 
     @Test

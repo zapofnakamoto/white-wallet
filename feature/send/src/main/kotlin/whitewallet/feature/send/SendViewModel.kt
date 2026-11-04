@@ -13,11 +13,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.core.wallet.FaucetState
+import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
-import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
 
@@ -45,12 +45,17 @@ data class SendState(
     val claim: String? = null,
 ) {
     /** The amount to pay in msat, or null while none is entered. */
-    val amountMsat: Long? get() = preview?.fixedAmountMsat ?: amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
-    val canPay: Boolean get() = !paying && !quoting && quote is PayQuote.Ok && quote.amountMsat == amountMsat
+    val amountMsat: Long?
+        get() = preview?.fixedAmountMsat ?: amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
+
+    val canPay: Boolean
+        get() = !paying && !quoting && quote is PayQuote.Ok && quote.amountMsat == amountMsat
 }
 
 @HiltViewModel
-class SendViewModel @Inject constructor(
+class SendViewModel
+@Inject
+constructor(
     private val wallet: Wallet,
     private val faucet: RegtestFaucet,
     savedState: SavedStateHandle,
@@ -72,6 +77,7 @@ class SendViewModel @Inject constructor(
     fun onInputChange(value: String) = _state.update { it.copy(input = value, problem = null) }
 
     fun startScan() = _state.update { it.copy(scanning = true, problem = null) }
+
     fun stopScan() = _state.update { it.copy(scanning = false) }
 
     /** A scanned or pasted destination is checked right away. */
@@ -81,15 +87,17 @@ class SendViewModel @Inject constructor(
     }
 
     /**
-     * Developer: has the regtest faucet make an invoice for [FAUCET_SATS] that this account's mint can pay, and checks
-     * it as if it was pasted, so the rest is the usual flow.
+     * Developer: has the regtest faucet make an invoice for [FAUCET_SATS] that this account's mint can pay, and checks it as if it was
+     * pasted, so the rest is the usual flow.
      */
     fun invoiceFromFaucet() {
         if (_state.value.faucet?.busy != false) return
         _state.update { it.copy(faucet = FaucetState(busy = true)) }
         viewModelScope.launch {
             val invoice = runCatching { faucet.invoice(FAUCET_SATS, wallet.homeHost.first() ?: error("no account")) }
-            _state.update { it.copy(faucet = FaucetState(error = invoice.exceptionOrNull()?.let { e -> e.message ?: e.javaClass.simpleName })) }
+            _state.update {
+                it.copy(faucet = FaucetState(error = invoice.exceptionOrNull()?.let { e -> e.message ?: e.javaClass.simpleName }))
+            }
             invoice.getOrNull()?.let(::onScanned)
         }
     }
@@ -105,7 +113,9 @@ class SendViewModel @Inject constructor(
         viewModelScope.launch {
             when (val preview = wallet.previewPayment(input)) {
                 is PayPreview.Ready -> {
-                    _state.update { it.copy(checking = false, preview = preview, amountText = "", comment = "", quote = null, result = null) }
+                    _state.update {
+                        it.copy(checking = false, preview = preview, amountText = "", comment = "", quote = null, result = null)
+                    }
                     if (preview.fixedAmountMsat != null) requote(immediately = true)
                 }
                 is PayPreview.Invalid -> _state.update { it.copy(checking = false, problem = preview.problem) }

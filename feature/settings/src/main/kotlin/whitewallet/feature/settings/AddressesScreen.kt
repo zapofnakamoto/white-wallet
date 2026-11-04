@@ -39,7 +39,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletCheckbox
+import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.AddressEntry
@@ -48,12 +54,6 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.UnregisterResult
 import whitewallet.core.wallet.Wallet
-import whitewallet.brand.ui.ButtonKind
-import whitewallet.brand.ui.Tone
-import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletCard
-import whitewallet.core.designsystem.WalletCheckbox
-import whitewallet.core.designsystem.WalletDialog
 
 data class AddressesState(
     val entries: List<AddressEntry> = emptyList(),
@@ -67,22 +67,33 @@ data class AddressesState(
     val message: AddressesMessage? = null,
     /** The account's home mint, where new addresses are added. */
     val homeHost: String? = null,
-    /** The brand lets users pick other mints (`mints.changeable`) and allows one besides the home (`mints.custom`), so addresses can be added there too. */
+    /**
+     * The brand lets users pick other mints (`mints.changeable`) and allows one besides the home (`mints.custom`), so addresses can be
+     * added there too.
+     */
     val otherMints: Boolean = false,
 ) {
     /** Addresses on the home mint (the primary address's), where new ones are added. */
-    val onPrimaryMint: Int get() = entries.count { it.address.host == homeHost }
-    val canAdd: Boolean get() = !busy && onPrimaryMint < limit
+    val onPrimaryMint: Int
+        get() = entries.count { it.address.host == homeHost }
+
+    val canAdd: Boolean
+        get() = !busy && onPrimaryMint < limit
 
     /** Addresses on other mints, per mint in the order they were added. */
-    val elsewhere: Map<String, List<AddressEntry>> get() = entries.filter { it.address.host != homeHost }.groupBy { it.address.host }
+    val elsewhere: Map<String, List<AddressEntry>>
+        get() = entries.filter { it.address.host != homeHost }.groupBy { it.address.host }
 }
 
 sealed interface AddressesMessage {
     data class Unregistered(val address: String) : AddressesMessage
+
     data class NotOurs(val address: String) : AddressesMessage
+
     data class Failed(val address: String, val reason: String) : AddressesMessage
+
     data class Unknown(val address: String, val reason: String) : AddressesMessage
+
     data class PrimaryChanged(val address: String) : AddressesMessage
 }
 
@@ -98,9 +109,20 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
     private val ui = MutableStateFlow(AddressesUi())
     private val limit = combine(preferences.developerMode, preferences.maxAddressesPerMint, defaults::addressLimit)
 
-    val state: StateFlow<AddressesState> = combine(wallet.addresses, limit, ui, wallet.homeHost) { entries, limit, ui, home ->
-        AddressesState(entries, limit, ui.checking, ui.busy, ui.confirm, ui.message, home, defaults.allowMintChange && defaults.otherMintsAllowed(home))
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState())
+    val state: StateFlow<AddressesState> =
+        combine(wallet.addresses, limit, ui, wallet.homeHost) { entries, limit, ui, home ->
+                AddressesState(
+                    entries,
+                    limit,
+                    ui.checking,
+                    ui.busy,
+                    ui.confirm,
+                    ui.message,
+                    home,
+                    defaults.allowMintChange && defaults.otherMintsAllowed(home),
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState())
 
     init {
         checkAll()
@@ -133,13 +155,14 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
         val address = ui.value.confirm ?: return
         ui.update { it.copy(confirm = null) }
         act {
-            val message = when (val r = wallet.unregisterAddress(address)) {
-                UnregisterResult.Unregistered -> AddressesMessage.Unregistered(address.address)
-                UnregisterResult.NotOurs -> AddressesMessage.NotOurs(address.address)
-                UnregisterResult.IsPrimary -> AddressesMessage.Failed(address.address, "primary")
-                is UnregisterResult.Failed -> AddressesMessage.Failed(address.address, r.reason)
-                is UnregisterResult.NetworkError -> AddressesMessage.Unknown(address.address, r.reason)
-            }
+            val message =
+                when (val r = wallet.unregisterAddress(address)) {
+                    UnregisterResult.Unregistered -> AddressesMessage.Unregistered(address.address)
+                    UnregisterResult.NotOurs -> AddressesMessage.NotOurs(address.address)
+                    UnregisterResult.IsPrimary -> AddressesMessage.Failed(address.address, "primary")
+                    is UnregisterResult.Failed -> AddressesMessage.Failed(address.address, r.reason)
+                    is UnregisterResult.NetworkError -> AddressesMessage.Unknown(address.address, r.reason)
+                }
             ui.update { it.copy(message = message) }
         }
     }
@@ -178,9 +201,15 @@ fun AddressesRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     AddressesScreen(
-        state, onBack, onAdd, onChangePrimary, viewModel::checkAll,
+        state,
+        onBack,
+        onAdd,
+        onChangePrimary,
+        viewModel::checkAll,
         AddressActions(viewModel::check, viewModel::makePrimary, viewModel::askUnregister),
-        viewModel::confirmUnregister, viewModel::dismissUnregister, onAddElsewhere,
+        viewModel::confirmUnregister,
+        viewModel::dismissUnregister,
+        onAddElsewhere,
     )
 }
 
@@ -197,11 +226,15 @@ fun AddressesScreen(
     onDismissUnregister: () -> Unit,
     onAddElsewhere: () -> Unit = {},
 ) {
-    Scaffold(topBar = {
-        WalletTopBar(stringResource(R.string.addresses_title), onBack) {
-            WalletButton(kind = ButtonKind.Text, onClick = onCheckAll, enabled = state.checking.isEmpty()) { Text(stringResource(R.string.addresses_check_all)) }
+    Scaffold(
+        topBar = {
+            WalletTopBar(stringResource(R.string.addresses_title), onBack) {
+                WalletButton(kind = ButtonKind.Text, onClick = onCheckAll, enabled = state.checking.isEmpty()) {
+                    Text(stringResource(R.string.addresses_check_all))
+                }
+            }
         }
-    }) { padding ->
+    ) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxWidth()) {
             item {
                 Text(
@@ -226,7 +259,11 @@ fun AddressesScreen(
             item { AddSection(state, onAdd, onChangePrimary) }
             state.elsewhere.forEach { (host, entries) ->
                 item(key = "host:$host") {
-                    Text(host, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp))
+                    Text(
+                        host,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                    )
                 }
                 items(entries, key = { it.address.address }) { entry -> AddressCard(entry, state, actions) }
             }
@@ -248,29 +285,47 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(a.address, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 if (entry.primary) {
-                    Text(stringResource(R.string.addresses_primary), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        stringResource(R.string.addresses_primary),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
                 }
             }
-            if (checking) Text(stringResource(R.string.addresses_checking), style = MaterialTheme.typography.bodySmall) else StatusLine(entry.status)
+            if (checking) Text(stringResource(R.string.addresses_checking), style = MaterialTheme.typography.bodySmall)
+            else StatusLine(entry.status)
             if (entry.primary && state.entries.size > 1) {
-                Text(stringResource(R.string.addresses_primary_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(R.string.addresses_primary_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                WalletButton(kind = ButtonKind.Text, onClick = { actions.onCheck(a) }, enabled = !checking) { Text(stringResource(R.string.addresses_check)) }
-                WalletButton(kind = ButtonKind.Text, onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("address", a.address))) } }) {
+                WalletButton(kind = ButtonKind.Text, onClick = { actions.onCheck(a) }, enabled = !checking) {
+                    Text(stringResource(R.string.addresses_check))
+                }
+                WalletButton(
+                    kind = ButtonKind.Text,
+                    onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("address", a.address))) } },
+                ) {
                     Text(stringResource(R.string.addresses_copy))
                 }
                 if (!entry.primary) {
                     // The primary address is always on the home mint.
                     if (a.host == state.homeHost) {
-                        WalletButton(kind = ButtonKind.Text, onClick = { actions.onMakePrimary(a) }, enabled = !state.busy) { Text(stringResource(R.string.addresses_make_primary)) }
+                        WalletButton(kind = ButtonKind.Text, onClick = { actions.onMakePrimary(a) }, enabled = !state.busy) {
+                            Text(stringResource(R.string.addresses_make_primary))
+                        }
                     }
                     WalletButton(
                         kind = ButtonKind.Text,
                         onClick = { actions.onUnregister(a) },
                         enabled = !state.busy,
                         tone = Tone.Danger,
-                    ) { Text(stringResource(R.string.addresses_unregister)) }
+                    ) {
+                        Text(stringResource(R.string.addresses_unregister))
+                    }
                 }
             }
         }
@@ -279,27 +334,30 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
 
 @Composable
 private fun StatusLine(status: AddressStatus?) {
-    val (text, color) = when (status) {
-        null -> stringResource(R.string.addresses_not_checked) to MaterialTheme.colorScheme.onSurfaceVariant
-        AddressStatus.Ours -> stringResource(R.string.settings_address_active) to MaterialTheme.colorScheme.primary
-        AddressStatus.Unconfirmed -> stringResource(R.string.settings_address_unconfirmed) to MaterialTheme.colorScheme.onSurfaceVariant
-        AddressStatus.Taken -> stringResource(R.string.addresses_status_taken) to MaterialTheme.colorScheme.error
-        AddressStatus.Available -> stringResource(R.string.addresses_status_free) to MaterialTheme.colorScheme.error
-        is AddressStatus.Invalid -> status.reason to MaterialTheme.colorScheme.error
-        is AddressStatus.CheckFailed -> stringResource(R.string.addresses_status_failed, status.reason) to MaterialTheme.colorScheme.error
-    }
+    val (text, color) =
+        when (status) {
+            null -> stringResource(R.string.addresses_not_checked) to MaterialTheme.colorScheme.onSurfaceVariant
+            AddressStatus.Ours -> stringResource(R.string.settings_address_active) to MaterialTheme.colorScheme.primary
+            AddressStatus.Unconfirmed -> stringResource(R.string.settings_address_unconfirmed) to MaterialTheme.colorScheme.onSurfaceVariant
+            AddressStatus.Taken -> stringResource(R.string.addresses_status_taken) to MaterialTheme.colorScheme.error
+            AddressStatus.Available -> stringResource(R.string.addresses_status_free) to MaterialTheme.colorScheme.error
+            is AddressStatus.Invalid -> status.reason to MaterialTheme.colorScheme.error
+            is AddressStatus.CheckFailed ->
+                stringResource(R.string.addresses_status_failed, status.reason) to MaterialTheme.colorScheme.error
+        }
     Text(text, color = color, style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
 private fun MessageText(message: AddressesMessage) {
-    val (text, error) = when (message) {
-        is AddressesMessage.Unregistered -> stringResource(R.string.addresses_unregistered, message.address) to false
-        is AddressesMessage.NotOurs -> stringResource(R.string.addresses_not_ours, message.address) to true
-        is AddressesMessage.Failed -> stringResource(R.string.addresses_unregister_failed, message.address, message.reason) to true
-        is AddressesMessage.Unknown -> stringResource(R.string.addresses_unregister_unknown, message.address, message.reason) to true
-        is AddressesMessage.PrimaryChanged -> stringResource(R.string.addresses_primary_changed, message.address) to false
-    }
+    val (text, error) =
+        when (message) {
+            is AddressesMessage.Unregistered -> stringResource(R.string.addresses_unregistered, message.address) to false
+            is AddressesMessage.NotOurs -> stringResource(R.string.addresses_not_ours, message.address) to true
+            is AddressesMessage.Failed -> stringResource(R.string.addresses_unregister_failed, message.address, message.reason) to true
+            is AddressesMessage.Unknown -> stringResource(R.string.addresses_unregister_unknown, message.address, message.reason) to true
+            is AddressesMessage.PrimaryChanged -> stringResource(R.string.addresses_primary_changed, message.address) to false
+        }
     Text(
         text,
         color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.walletColors.success,
@@ -328,10 +386,19 @@ private fun AddSection(state: AddressesState, onAdd: () -> Unit, onChangePrimary
             )
         }
         if (!first) {
-            WalletButton(kind = ButtonKind.Secondary, onClick = onChangePrimary, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+            WalletButton(
+                kind = ButtonKind.Secondary,
+                onClick = onChangePrimary,
+                enabled = !state.busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text(stringResource(R.string.addresses_change_primary))
             }
-            Text(stringResource(R.string.addresses_change_primary_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(R.string.addresses_change_primary_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -358,7 +425,9 @@ private fun UnregisterDialog(address: RegisteredAddress, onConfirm: () -> Unit, 
                 onClick = onConfirm,
                 enabled = understood,
                 tone = Tone.Danger,
-            ) { Text(stringResource(R.string.addresses_unregister)) }
+            ) {
+                Text(stringResource(R.string.addresses_unregister))
+            }
         },
         dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.addresses_keep)) } },
     )
@@ -371,6 +440,10 @@ private fun AddElsewhereSection(state: AddressesState, onAddElsewhere: () -> Uni
         WalletButton(kind = ButtonKind.Secondary, onClick = onAddElsewhere, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.addresses_add_elsewhere))
         }
-        Text(stringResource(R.string.addresses_add_elsewhere_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            stringResource(R.string.addresses_add_elsewhere_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

@@ -23,31 +23,40 @@ import whitewallet.core.wallet.NoteProblem
 
 @RunWith(RobolectricTestRunner::class)
 class MoneyMoveScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    @get:Rule val compose = createComposeRule()
 
-    private val preview = MovePreview(
-        "new.example",
-        listOf(
-            MovePreview.Line("old.example", 100_000, MovePreview.Quote.Ok(99_000, 1_000)),
-            MovePreview.Line("pricey.example", 10_000, MovePreview.Quote.Ok(9_000, 1_000)),
-        ),
-        feeCapPercent = 2,
-    )
+    private val preview =
+        MovePreview(
+            "new.example",
+            listOf(
+                MovePreview.Line("old.example", 100_000, MovePreview.Quote.Ok(99_000, 1_000)),
+                MovePreview.Line("pricey.example", 10_000, MovePreview.Quote.Ok(9_000, 1_000)),
+            ),
+            feeCapPercent = 2,
+        )
 
-    private fun review(collects: Boolean) = MoneyMoveState(
-        mode = MoneyMoveMode.ChangeHome, targets = listOf("new.example"), target = "new.example", collects = collects, preview = preview,
-    )
+    private fun review(collects: Boolean) =
+        MoneyMoveState(
+            mode = MoneyMoveMode.ChangeHome,
+            targets = listOf("new.example"),
+            target = "new.example",
+            collects = collects,
+            preview = preview,
+        )
 
     @Test
     fun withoutCollectingTheUserChoosesWhatMovesOrNothing() {
         val confirmed = mutableListOf<Boolean>()
         compose.setContent {
             var state by remember { mutableStateOf(review(collects = false)) }
-            MoneyMoveScreen(state, {}, MoneyMoveActions(
-                onToggle = { h -> state = state.copy(excluded = if (h in state.excluded) state.excluded - h else state.excluded + h) },
-                onConfirm = { confirmed += it },
-            ))
+            MoneyMoveScreen(
+                state,
+                {},
+                MoneyMoveActions(
+                    onToggle = { h -> state = state.copy(excluded = if (h in state.excluded) state.excluded - h else state.excluded + h) },
+                    onConfirm = { confirmed += it },
+                ),
+            )
         }
         compose.onNodeWithText(text(R.string.money_change_and_move, "₿110")).assertExists()
         compose.onNodeWithText(text(R.string.money_review_choose)).performClick()
@@ -69,13 +78,16 @@ class MoneyMoveScreenTest {
     @Test
     fun theResultSaysWhatDidNotMoveAndOffersAnotherTry() {
         var retried = false
-        val outcome = MoneyMoveOutcome(
-            homeChanged = true, address = "alice@new.example",
-            moved = listOf(
-                MoneyMoved("old.example", 100_000, MintMoveResult.Moved(99_000, 1_000)),
-                MoneyMoved("same.example", 3_000_000, MintMoveResult.Failed(NoteProblem.PaymentFailed)),
-            ),
-        )
+        val outcome =
+            MoneyMoveOutcome(
+                homeChanged = true,
+                address = "alice@new.example",
+                moved =
+                    listOf(
+                        MoneyMoved("old.example", 100_000, MintMoveResult.Moved(99_000, 1_000)),
+                        MoneyMoved("same.example", 3_000_000, MintMoveResult.Failed(NoteProblem.PaymentFailed)),
+                    ),
+            )
         compose.setContent {
             MoneyMoveScreen(MoneyMoveState(target = "new.example", outcome = outcome), {}, MoneyMoveActions(onRetry = { retried = true }))
         }
@@ -102,12 +114,16 @@ class MoneyMoveScreenTest {
             listOf("home.example", "mint2.example"),
             moveTargets(MoneyMoveMode.Move, known, "home.example", "learned.example", false, allowed),
         )
-        assertEquals(listOf("mint2.example", "learned.example"), moveTargets(MoneyMoveMode.ChangeHome, known, "home.example", null, false) { true })
+        assertEquals(
+            listOf("mint2.example", "learned.example"),
+            moveTargets(MoneyMoveMode.ChangeHome, known, "home.example", null, false) { true },
+        )
     }
 
     @Test
     fun movingAllMoneyHomeLetsTheUserChooseUnlessCollecting() {
-        val state = MoneyMoveState(mode = MoneyMoveMode.MoveHome, targets = listOf("new.example"), target = "new.example", preview = preview)
+        val state =
+            MoneyMoveState(mode = MoneyMoveMode.MoveHome, targets = listOf("new.example"), target = "new.example", preview = preview)
         assertEquals(true, state.canChoose)
         assertEquals(110_000L, state.chosenMsat)
         assertEquals(false, state.copy(collects = true).canChoose)

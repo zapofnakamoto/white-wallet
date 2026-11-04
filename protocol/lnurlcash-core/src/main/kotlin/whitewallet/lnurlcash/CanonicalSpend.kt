@@ -18,8 +18,7 @@ public object CanonicalSpend {
     public const val DEFAULT_SEQUENCE: Long = 0xffffffffL
 
     /** `tagged_hash("LNURLcash/mint", domain)`, used as the prevout txid in serialized byte order. */
-    public fun prevoutHash(domain: String): ByteVector32 =
-        Crypto.taggedHash(domain.lowercase().encodeToByteArray(), "LNURLcash/mint")
+    public fun prevoutHash(domain: String): ByteVector32 = Crypto.taggedHash(domain.lowercase().encodeToByteArray(), "LNURLcash/mint")
 
     public fun transaction(domain: String, lockTime: Long = 0, sequence: Long = DEFAULT_SEQUENCE): Transaction =
         Transaction(
@@ -38,7 +37,7 @@ public object CanonicalSpend {
 }
 
 /**
- * The domain a spend is bound to: the host's lowercase hostname, without scheme or port.
- * Derivation (LUD-26) hashes the host exactly as stored instead; see [CashBranch].
+ * The domain a spend is bound to: the host's lowercase hostname, without scheme or port. Derivation (LUD-26) hashes the host exactly as
+ * stored instead; see [CashBranch].
  */
 public fun spendDomain(host: String): String = host.substringBefore(':').lowercase()

@@ -1,14 +1,8 @@
 package whitewallet.app
 
-import whitewallet.core.wallet.AddressPolicy
-import whitewallet.core.wallet.AppDefaults
-import whitewallet.core.wallet.IncomingLink
-import whitewallet.core.wallet.NotesView
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.compose.runtime.LaunchedEffect
-import android.nfc.NfcAdapter
-import android.net.Uri
 import android.content.Intent
+import android.net.Uri
+import android.nfc.NfcAdapter
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,6 +11,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,66 +26,70 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.Optional
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.util.Optional
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.BrandScreen
 import whitewallet.brand.ui.BrandScreenEntry
 import whitewallet.brand.ui.DefaultBrandDesign
 import whitewallet.brand.ui.LocalWalletEvents
+import whitewallet.core.designsystem.LocalAmountUnit
 import whitewallet.core.designsystem.LocalAppName
 import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletTheme
-import whitewallet.feature.home.HomeMenuItem
-import whitewallet.feature.settings.BrandPage
-import whitewallet.core.designsystem.LocalAmountUnit
-import androidx.compose.runtime.CompositionLocalProvider
+import whitewallet.core.wallet.AddressPolicy
+import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.IncomingLink
+import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.Wallet
 import whitewallet.feature.claim.ClaimRoute
-import whitewallet.feature.send.ScanRoute
+import whitewallet.feature.home.HomeMenuItem
 import whitewallet.feature.home.HomeRoute
+import whitewallet.feature.home.MoveFundsRoute
 import whitewallet.feature.home.NotesTabSlot
 import whitewallet.feature.notes.NoteSettingsButton
 import whitewallet.feature.notes.NotesRoute
 import whitewallet.feature.notes.NotesTab
 import whitewallet.feature.notes.NotesViewModel
-import whitewallet.feature.home.MoveFundsRoute
 import whitewallet.feature.onboarding.OnboardingMode
 import whitewallet.feature.onboarding.OnboardingRoute
 import whitewallet.feature.onboarding.RestoreRoute
 import whitewallet.feature.receive.ReceiveRoute
 import whitewallet.feature.send.CreateNoteRoute
+import whitewallet.feature.send.ScanRoute
 import whitewallet.feature.send.SendRoute
 import whitewallet.feature.send.SharedNoteRoute
-import whitewallet.feature.settings.AddressesRoute
-import whitewallet.feature.settings.NotesSettingsRoute
-import whitewallet.feature.settings.SearchDestination
-import whitewallet.feature.settings.SettingsTarget
+import whitewallet.feature.settings.AboutRoute
+import whitewallet.feature.settings.AccountMintsRoute
 import whitewallet.feature.settings.AccountSettingsRoute
+import whitewallet.feature.settings.AddressesRoute
 import whitewallet.feature.settings.BackupRoute
+import whitewallet.feature.settings.BrandPage
 import whitewallet.feature.settings.DeleteWalletRoute
-import whitewallet.feature.settings.DisplaySettingsRoute
 import whitewallet.feature.settings.DerivedKeysRoute
 import whitewallet.feature.settings.DeveloperSettingsRoute
+import whitewallet.feature.settings.DisplaySettingsRoute
 import whitewallet.feature.settings.LocalRegtestRoute
-import whitewallet.feature.settings.AccountMintsRoute
+import whitewallet.feature.settings.MintDetailsRoute
 import whitewallet.feature.settings.MintsRoute
 import whitewallet.feature.settings.MoneyMoveMode
 import whitewallet.feature.settings.MoneyMoveRoute
+import whitewallet.feature.settings.NotesSettingsRoute
 import whitewallet.feature.settings.RequestLogRoute
-import whitewallet.feature.settings.SettingsRoute
+import whitewallet.feature.settings.SearchDestination
 import whitewallet.feature.settings.SecuritySettingsRoute
-import whitewallet.feature.settings.AboutRoute
-import whitewallet.feature.settings.MintDetailsRoute
+import whitewallet.feature.settings.SettingsRoute
+import whitewallet.feature.settings.SettingsTarget
 
 @AndroidEntryPoint
 // FragmentActivity because the recovery phrase screen uses BiometricPrompt.
@@ -112,9 +112,23 @@ class MainActivity : FragmentActivity() {
             val unit by display.amountUnit.collectAsStateWithLifecycle()
             val appName = stringResource(R.string.app_name)
             WalletTheme(design.orElse(DefaultBrandDesign)) {
-                CompositionLocalProvider(LocalAmountUnit provides unit, LocalAppName provides appName, LocalReleaseStage provides defaults.releaseStage, LocalBuildLabel provides BuildConfig.BUILD_LABEL.ifEmpty { null }, LocalWalletEvents provides events.events) {
+                CompositionLocalProvider(
+                    LocalAmountUnit provides unit,
+                    LocalAppName provides appName,
+                    LocalReleaseStage provides defaults.releaseStage,
+                    LocalBuildLabel provides BuildConfig.BUILD_LABEL.ifEmpty { null },
+                    LocalWalletEvents provides events.events,
+                ) {
                     Surface(Modifier.fillMaxSize()) {
-                        AppLockGate(appName) { WalletApp(incoming, BrandScreens(brandScreens), showNotesTab = defaults.notesView == NotesView.Tab, addressAfterRestore = defaults.address != AddressPolicy.None, onIncomingHandled = { incoming.value = null }) }
+                        AppLockGate(appName) {
+                            WalletApp(
+                                incoming,
+                                BrandScreens(brandScreens),
+                                showNotesTab = defaults.notesView == NotesView.Tab,
+                                addressAfterRestore = defaults.address != AddressPolicy.None,
+                                onIncomingHandled = { incoming.value = null },
+                            )
+                        }
                     }
                 }
             }
@@ -126,11 +140,13 @@ class MainActivity : FragmentActivity() {
         linkText(intent)?.let { incoming.value = it }
     }
 
-    private fun linkText(intent: Intent?): String? = when (intent?.action) {
-        Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
-        Intent.ACTION_VIEW, NfcAdapter.ACTION_NDEF_DISCOVERED -> intent.dataString
-        else -> null
-    }
+    private fun linkText(intent: Intent?): String? =
+        when (intent?.action) {
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
+            Intent.ACTION_VIEW,
+            NfcAdapter.ACTION_NDEF_DISCOVERED -> intent.dataString
+            else -> null
+        }
 }
 
 @HiltViewModel
@@ -141,12 +157,13 @@ class StartViewModel @Inject constructor(wallet: Wallet) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            _start.value = when {
-                wallet.isSetUp() -> Routes.HOME
-                // Restored, but the app closed before the address was picked.
-                wallet.needsAddress() -> Routes.RESTORE_ADDRESS
-                else -> Routes.ONBOARDING
-            }
+            _start.value =
+                when {
+                    wallet.isSetUp() -> Routes.HOME
+                    // Restored, but the app closed before the address was picked.
+                    wallet.needsAddress() -> Routes.RESTORE_ADDRESS
+                    else -> Routes.ONBOARDING
+                }
         }
     }
 }
@@ -161,14 +178,20 @@ internal object Routes {
     const val RECEIVE = "receive"
     const val SEND = "send"
     const val SEND_WITH = "send?input={input}"
+
     fun send(input: String) = "send?input=${Uri.encode(input)}"
+
     const val CREATE_NOTE = "send/note"
     const val SCAN = "scan"
     const val NOTE = "note/{id}"
+
     fun note(id: String) = "note/$id"
+
     const val CLAIM = "claim"
     const val CLAIM_WITH = "claim?input={input}"
+
     fun claim(input: String) = "claim?input=${Uri.encode(input)}"
+
     const val SETTINGS = "settings"
     const val ACCOUNT_SETTINGS = "settings/account"
     const val BACKUP = "backup"
@@ -185,13 +208,19 @@ internal object Routes {
     const val ACCOUNT_MINTS = "settings/account/mints"
     const val SECURITY = "settings/security"
     const val ABOUT = "settings/about"
+
     fun mint(host: String, device: Boolean = false) = "settings/mint?host=${Uri.encode(host)}&device=$device"
+
     const val ADD_ADDRESS = "addresses/add"
     const val ADD_ADDRESS_ELSEWHERE = "addresses/add-elsewhere"
     const val CHANGE_MINT = "settings/mint/change?host={host}"
+
     fun changeMint(host: String?) = if (host == null) "settings/mint/change" else "settings/mint/change?host=${Uri.encode(host)}"
+
     const val MOVE_MONEY = "settings/mint/move?from={from}"
+
     fun moveMoney(from: String) = "settings/mint/move?from=${Uri.encode(from)}"
+
     const val MOVE_HOME = "settings/mint/move-home"
     const val DELETE = "delete"
     const val NEW_ACCOUNT = "account/new"
@@ -199,16 +228,26 @@ internal object Routes {
     const val MOVE_FUNDS = "move"
     const val DEVELOPER = "settings/developer"
     const val BRAND = "brand/{id}"
+
     fun brand(id: String) = "brand/$id"
 }
 
 @Composable
-private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNotesTab: Boolean, addressAfterRestore: Boolean, onIncomingHandled: () -> Unit, start: StartViewModel = hiltViewModel()) {
+private fun WalletApp(
+    incoming: StateFlow<String?>,
+    brand: BrandScreens,
+    showNotesTab: Boolean,
+    addressAfterRestore: Boolean,
+    onIncomingHandled: () -> Unit,
+    start: StartViewModel = hiltViewModel(),
+) {
     val startRoute by start.start.collectAsStateWithLifecycle()
-    val first = startRoute ?: run {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { WalletCircularProgress() }
-        return
-    }
+    val first =
+        startRoute
+            ?: run {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { WalletCircularProgress() }
+                return
+            }
     val appName = stringResource(R.string.app_name)
     val nav = rememberNavController()
     // A restored account has no address yet; picking one (unless this app has none) replaces everything before it, so
@@ -236,7 +275,11 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
                 appName = appName,
                 logo = { Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null) },
                 // The brand's welcome page, if it has one, comes between setup and the wallet.
-                onDone = { nav.navigate(brand.afterOnboarding?.let { Routes.brand(it.id) } ?: Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } } },
+                onDone = {
+                    nav.navigate(brand.afterOnboarding?.let { Routes.brand(it.id) } ?: Routes.HOME) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                    }
+                },
                 onRestore = { nav.navigate(Routes.RESTORE) },
             )
         }
@@ -246,11 +289,26 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
         composable(Routes.RESTORE_ACCOUNT) {
             RestoreRoute(asNewAccount = true, onBack = { nav.popBackStack() }, onRestored = afterRestore)
         }
-        composable(Routes.RESTORE_ADDRESS_ON, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
+        composable(
+            Routes.RESTORE_ADDRESS_ON,
+            arguments =
+                listOf(
+                    navArgument("host") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) { entry ->
             OnboardingRoute(
-                appName, logo = {}, mode = OnboardingMode.RestoreAddress, presetHost = entry.arguments?.getString("host"),
+                appName,
+                logo = {},
+                mode = OnboardingMode.RestoreAddress,
+                presetHost = entry.arguments?.getString("host"),
                 onDone = { nav.navigate(Routes.HOME) { popUpTo(0) { inclusive = true } } },
-                onRestoreCancelled = { remains -> nav.navigate(if (remains) Routes.HOME else Routes.ONBOARDING) { popUpTo(0) { inclusive = true } } },
+                onRestoreCancelled = { remains ->
+                    nav.navigate(if (remains) Routes.HOME else Routes.ONBOARDING) { popUpTo(0) { inclusive = true } }
+                },
             )
         }
         composable(Routes.HOME) {
@@ -266,16 +324,40 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
                 onChangeAddress = { nav.navigate(Routes.CHANGE_ADDRESS) },
                 onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
-                menu = brand.on(BrandScreenEntry.HomeMenu).map { screen -> HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) } },
-                notesTab = if (showNotesTab) notesTab(onSettings = { nav.navigate(Routes.NOTES) }, onOpenShared = { id -> nav.navigate(Routes.note(id)) }) else null,
+                menu =
+                    brand.on(BrandScreenEntry.HomeMenu).map { screen ->
+                        HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) }
+                    },
+                notesTab =
+                    if (showNotesTab)
+                        notesTab(onSettings = { nav.navigate(Routes.NOTES) }, onOpenShared = { id -> nav.navigate(Routes.note(id)) })
+                    else null,
             )
         }
         composable(Routes.NOTE_LIST) {
-            NotesRoute(onBack = { nav.popBackStack() }, onSettings = { nav.navigate(Routes.NOTES) }, onOpenShared = { id -> nav.navigate(Routes.note(id)) })
+            NotesRoute(
+                onBack = { nav.popBackStack() },
+                onSettings = { nav.navigate(Routes.NOTES) },
+                onOpenShared = { id -> nav.navigate(Routes.note(id)) },
+            )
         }
-        composable(Routes.NEW_ACCOUNT_ON, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
+        composable(
+            Routes.NEW_ACCOUNT_ON,
+            arguments =
+                listOf(
+                    navArgument("host") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) { entry ->
             OnboardingRoute(
-                appName, logo = {}, onDone = { nav.popBackStack() }, mode = OnboardingMode.NewAccount, onBack = { nav.popBackStack() },
+                appName,
+                logo = {},
+                onDone = { nav.popBackStack() },
+                mode = OnboardingMode.NewAccount,
+                onBack = { nav.popBackStack() },
                 presetHost = entry.arguments?.getString("host"),
                 onRestore = { nav.navigate(Routes.RESTORE_ACCOUNT) },
             )
@@ -283,7 +365,17 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
         composable(Routes.MOVE_FUNDS) {
             MoveFundsRoute(onBack = { nav.popBackStack() })
         }
-        composable(Routes.SEND_WITH, arguments = listOf(navArgument("input") { type = NavType.StringType; nullable = true; defaultValue = null })) {
+        composable(
+            Routes.SEND_WITH,
+            arguments =
+                listOf(
+                    navArgument("input") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) {
             SendRoute(
                 onDone = { nav.popBackStack() },
                 onCreateNote = { nav.navigate(Routes.CREATE_NOTE) },
@@ -304,7 +396,17 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
         composable(Routes.RECEIVE) {
             ReceiveRoute(onBack = { nav.popBackStack() }, onClaim = { nav.navigate(Routes.CLAIM) { popUpTo(Routes.HOME) } })
         }
-        composable(Routes.CLAIM_WITH, arguments = listOf(navArgument("input") { type = NavType.StringType; nullable = true; defaultValue = null })) {
+        composable(
+            Routes.CLAIM_WITH,
+            arguments =
+                listOf(
+                    navArgument("input") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) {
             ClaimRoute(
                 onBack = { nav.popBackStack(Routes.HOME, inclusive = false) },
                 onPay = { nav.navigate(Routes.send(it)) { popUpTo(Routes.HOME) } },
@@ -321,7 +423,7 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
                         when (destination) {
                             is SearchDestination.Route -> destination.route
                             is SearchDestination.Page -> settingsRoute(destination.target)
-                        },
+                        }
                     )
                 },
             )
@@ -354,10 +456,18 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
         }
         composable(
             Routes.MINT,
-            arguments = listOf(
-                navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null },
-                navArgument("device") { type = NavType.BoolType; defaultValue = false },
-            ),
+            arguments =
+                listOf(
+                    navArgument("host") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("device") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    },
+                ),
         ) {
             MintDetailsRoute(
                 onBack = { nav.popBackStack() },
@@ -366,10 +476,30 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
                 onMoveAllHere = { nav.navigate(Routes.MOVE_HOME) },
             )
         }
-        composable(Routes.CHANGE_MINT, arguments = listOf(navArgument("host") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
+        composable(
+            Routes.CHANGE_MINT,
+            arguments =
+                listOf(
+                    navArgument("host") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) { entry ->
             MoneyMoveRoute(MoneyMoveMode.ChangeHome, entry.arguments?.getString("host"), onClose = { nav.popBackStack() })
         }
-        composable(Routes.MOVE_MONEY, arguments = listOf(navArgument("from") { type = NavType.StringType; nullable = true; defaultValue = null })) { entry ->
+        composable(
+            Routes.MOVE_MONEY,
+            arguments =
+                listOf(
+                    navArgument("from") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) { entry ->
             MoneyMoveRoute(MoneyMoveMode.Move, entry.arguments?.getString("from"), onClose = { nav.popBackStack() })
         }
         composable(Routes.MOVE_HOME) {
@@ -402,13 +532,31 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
             )
         }
         composable(Routes.ADD_ADDRESS) {
-            OnboardingRoute(appName, logo = {}, onDone = { nav.popBackStack() }, mode = OnboardingMode.AddAddress, onBack = { nav.popBackStack() })
+            OnboardingRoute(
+                appName,
+                logo = {},
+                onDone = { nav.popBackStack() },
+                mode = OnboardingMode.AddAddress,
+                onBack = { nav.popBackStack() },
+            )
         }
         composable(Routes.ADD_ADDRESS_ELSEWHERE) {
-            OnboardingRoute(appName, logo = {}, onDone = { nav.popBackStack() }, mode = OnboardingMode.AddAddressElsewhere, onBack = { nav.popBackStack() })
+            OnboardingRoute(
+                appName,
+                logo = {},
+                onDone = { nav.popBackStack() },
+                mode = OnboardingMode.AddAddressElsewhere,
+                onBack = { nav.popBackStack() },
+            )
         }
         composable(Routes.CHANGE_ADDRESS) {
-            OnboardingRoute(appName, logo = {}, onDone = { nav.popBackStack() }, mode = OnboardingMode.ChangeAddress, onBack = { nav.popBackStack() })
+            OnboardingRoute(
+                appName,
+                logo = {},
+                onDone = { nav.popBackStack() },
+                mode = OnboardingMode.ChangeAddress,
+                onBack = { nav.popBackStack() },
+            )
         }
         composable(Routes.BACKUP) {
             BackupRoute(onDone = { nav.popBackStack() })
@@ -422,7 +570,7 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
                     } else {
                         nav.popBackStack()
                     }
-                },
+                }
             )
         }
     }
@@ -435,7 +583,9 @@ private class BrandScreens(screens: Set<BrandScreen>) {
     init {
         screens.forEach { check(it.id.matches(Regex("[a-z0-9-]+"))) { "Brand screen id '${it.id}': use lowercase letters, digits and -" } }
         check(byId.size == screens.size) { "Two brand screens share an id: ${screens.map { it.id }}" }
-        check(screens.count { it.entry == BrandScreenEntry.AfterOnboarding } <= 1) { "More than one brand screen is shown after onboarding" }
+        check(screens.count { it.entry == BrandScreenEntry.AfterOnboarding } <= 1) {
+            "More than one brand screen is shown after onboarding"
+        }
     }
 
     val afterOnboarding: BrandScreen? = screens.firstOrNull { it.entry == BrandScreenEntry.AfterOnboarding }
@@ -455,17 +605,18 @@ private fun notesTab(onSettings: () -> Unit, onOpenShared: (String) -> Unit, vie
     )
 }
 
-private fun settingsRoute(target: SettingsTarget): String = when (target) {
-    SettingsTarget.Account -> Routes.ACCOUNT_SETTINGS
-    SettingsTarget.Backup -> Routes.BACKUP
-    SettingsTarget.Addresses -> Routes.ADDRESSES
-    SettingsTarget.Notes -> Routes.NOTES
-    SettingsTarget.NoteList -> Routes.NOTE_LIST
-    SettingsTarget.Mints -> Routes.MINTS
-    SettingsTarget.Display -> Routes.DISPLAY
-    SettingsTarget.AccountMints -> Routes.ACCOUNT_MINTS
-    SettingsTarget.Security -> Routes.SECURITY
-    SettingsTarget.About -> Routes.ABOUT
-    SettingsTarget.Delete -> Routes.DELETE
-    SettingsTarget.Developer -> Routes.DEVELOPER
-}
+private fun settingsRoute(target: SettingsTarget): String =
+    when (target) {
+        SettingsTarget.Account -> Routes.ACCOUNT_SETTINGS
+        SettingsTarget.Backup -> Routes.BACKUP
+        SettingsTarget.Addresses -> Routes.ADDRESSES
+        SettingsTarget.Notes -> Routes.NOTES
+        SettingsTarget.NoteList -> Routes.NOTE_LIST
+        SettingsTarget.Mints -> Routes.MINTS
+        SettingsTarget.Display -> Routes.DISPLAY
+        SettingsTarget.AccountMints -> Routes.ACCOUNT_MINTS
+        SettingsTarget.Security -> Routes.SECURITY
+        SettingsTarget.About -> Routes.ABOUT
+        SettingsTarget.Delete -> Routes.DELETE
+        SettingsTarget.Developer -> Routes.DEVELOPER
+    }

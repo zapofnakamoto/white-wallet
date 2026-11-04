@@ -34,18 +34,18 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,10 +63,9 @@ import androidx.compose.ui.unit.dp
 import whitewallet.brand.ReleaseStage
 
 /**
- * The building blocks every screen is made of. Each takes one parameter object (new options are added there with a
- * default, so a brand's overrides keep compiling) and a [Modifier] that the implementation must apply to its root.
- * The defaults ([DefaultComponents]) are Material 3, themed by [ThemeTokens]; a brand overrides what it restyles:
- *
+ * The building blocks every screen is made of. Each takes one parameter object (new options are added there with a default, so a brand's
+ * overrides keep compiling) and a [Modifier] that the implementation must apply to its root. The defaults ([DefaultComponents]) are
+ * Material 3, themed by [ThemeTokens]; a brand overrides what it restyles:
  * ```
  * object MyComponents : BrandComponents {
  *     @Composable override fun Button(params: ButtonParams, modifier: Modifier) { … }
@@ -95,8 +94,8 @@ interface BrandComponents {
     @Composable fun Sheet(params: SheetParams) = DefaultComponents.sheet(params)
 
     /**
-     * A short message at the bottom of the screen, gone after a few seconds: [SnackbarParams.message], and an action
-     * button if there is one. The app decides when it shows and for how long.
+     * A short message at the bottom of the screen, gone after a few seconds: [SnackbarParams.message], and an action button if there is
+     * one. The app decides when it shows and for how long.
      */
     @Composable fun Snackbar(params: SnackbarParams, modifier: Modifier) = DefaultComponents.snackbar(params, modifier)
 
@@ -114,8 +113,8 @@ interface BrandComponents {
     @Composable fun QrCode(params: QrCodeParams, modifier: Modifier) = DefaultComponents.qrCode(params, modifier)
 
     /**
-     * What stands in for a secret QR code until the user taps it: as large as the code, with [QrCodeCoverParams.label]
-     * as its text. The app's [modifier] carries the tap and what screen readers say; draw it as given.
+     * What stands in for a secret QR code until the user taps it: as large as the code, with [QrCodeCoverParams.label] as its text. The
+     * app's [modifier] carries the tap and what screen readers say; draw it as given.
      */
     @Composable fun QrCodeCover(params: QrCodeCoverParams, modifier: Modifier) = DefaultComponents.qrCodeCover(params, modifier)
 
@@ -123,8 +122,8 @@ interface BrandComponents {
     @Composable fun ActivityIcon(params: ActivityIconParams, modifier: Modifier) = DefaultComponents.activityIcon(params, modifier)
 
     /**
-     * The leading mark of a list row that says what the row is (a settings page) or how it stands (a note that's
-     * still being paid). Always decorative: the row says the same in words.
+     * The leading mark of a list row that says what the row is (a settings page) or how it stands (a note that's still being paid). Always
+     * decorative: the row says the same in words.
      */
     @Composable fun ListIcon(params: ListIconParams, modifier: Modifier) = DefaultComponents.listIcon(params, modifier)
 
@@ -135,10 +134,10 @@ interface BrandComponents {
     @Composable fun ReleaseBadge(params: ReleaseBadgeParams, modifier: Modifier) = DefaultComponents.releaseBadge(params, modifier)
 
     /**
-     * A note, the one object a brand designs once: a row in the notes list ([NoteFaceSize.Row]), and large on the
-     * note's details, the claim preview and a handed-out note's page, around its QR code ([NoteFaceSize.Large]). The app
-     * keeps what can be done with it (taps, selection, its actions and their confirmations) and the bearer warning;
-     * the face only shows the note. Draw the texts it's given with `Text`: they are what screen readers read.
+     * A note, the one object a brand designs once: a row in the notes list ([NoteFaceSize.Row]), and large on the note's details, the claim
+     * preview and a handed-out note's page, around its QR code ([NoteFaceSize.Large]). The app keeps what can be done with it (taps,
+     * selection, its actions and their confirmations) and the bearer warning; the face only shows the note. Draw the texts it's given with
+     * `Text`: they are what screen readers read.
      */
     @Composable fun NoteFace(params: NoteFaceParams, modifier: Modifier) = DefaultComponents.noteFace(params, modifier)
 
@@ -147,10 +146,20 @@ interface BrandComponents {
 }
 
 /** How prominent a button is: one [Primary] action per screen, [Secondary] and [Text] for the rest. */
-enum class ButtonKind { Primary, Tonal, Secondary, Text }
+enum class ButtonKind {
+    Primary,
+    Tonal,
+    Secondary,
+    Text,
+}
 
 /** What a button, card or text is about, beyond its kind. */
-enum class Tone { Neutral, Positive, Warning, Danger }
+enum class Tone {
+    Neutral,
+    Positive,
+    Warning,
+    Danger,
+}
 
 class ButtonParams(
     val onClick: () -> Unit,
@@ -216,15 +225,19 @@ class DialogParams(
 )
 
 /**
- * [openFully]: the sheet opens at its full height (as far as its content and the screen go) rather than at half the
- * screen first, because what comes up at its bottom, such as an action's outcome, has to be seen without dragging.
+ * [openFully]: the sheet opens at its full height (as far as its content and the screen go) rather than at half the screen first, because
+ * what comes up at its bottom, such as an action's outcome, has to be seen without dragging.
  */
 class SheetParams(val onDismissRequest: () -> Unit, val content: @Composable ColumnScope.() -> Unit, val openFully: Boolean = false)
 
 /** [actionLabel] and [onAction] come together: the message has a button, or none. */
 class SnackbarParams(val message: String, val actionLabel: String? = null, val onAction: () -> Unit = {})
 
-enum class ToggleKind { Switch, Checkbox, Radio }
+enum class ToggleKind {
+    Switch,
+    Checkbox,
+    Radio,
+}
 
 class ToggleParams(
     val kind: ToggleKind,
@@ -235,7 +248,11 @@ class ToggleParams(
 )
 
 /** [Filter]: on or off; [Assist]: a shortcut to an action; [Suggestion]: a value to fill in. */
-enum class ChipKind { Filter, Assist, Suggestion }
+enum class ChipKind {
+    Filter,
+    Assist,
+    Suggestion,
+}
 
 class ChipParams(
     val kind: ChipKind,
@@ -247,7 +264,10 @@ class ChipParams(
     val trailingIcon: (@Composable () -> Unit)? = null,
 )
 
-enum class ProgressKind { Linear, Circular }
+enum class ProgressKind {
+    Linear,
+    Circular,
+}
 
 class ProgressParams(
     val kind: ProgressKind,
@@ -264,10 +284,24 @@ class QrCodeParams(val bitmap: ImageBitmap, val size: Dp)
 class QrCodeCoverParams(val label: String, val size: Dp)
 
 /** What a history entry is. [Split], [Combined] and [Renewed] are note maintenance: the balance stays the same. */
-enum class ActivityType { Received, Claimed, Sent, SentNote, MovedAccounts, MovedMints, Split, Combined, Renewed }
+enum class ActivityType {
+    Received,
+    Claimed,
+    Sent,
+    SentNote,
+    MovedAccounts,
+    MovedMints,
+    Split,
+    Combined,
+    Renewed,
+}
 
 /** Which way the entry moved the account's money: [Within] keeps it in the account (a move between mints, maintenance). */
-enum class MoneyDirection { In, Out, Within }
+enum class MoneyDirection {
+    In,
+    Out,
+    Within,
+}
 
 class ReleaseBadgeParams(
     /** [ReleaseStage.Alpha] or [ReleaseStage.Beta]. */
@@ -277,7 +311,10 @@ class ReleaseBadgeParams(
 )
 
 /** [Row]: a row's leading mark; [Inline]: beside a line of text, at its size. */
-enum class ListIconSize { Row, Inline }
+enum class ListIconSize {
+    Row,
+    Inline,
+}
 
 class ListIconParams(
     /** The icon (a brand may replace the drawable, or draw its own). */
@@ -303,23 +340,39 @@ class AccountMarkParams(
 )
 
 /** [Row]: one line of the notes list; [Large]: the note on a page of its own. */
-enum class NoteFaceSize { Row, Large }
+enum class NoteFaceSize {
+    Row,
+    Large,
+}
 
 /**
- * Where a note is drawn: in the user's own [Wallet] (the notes list, a note's details), on the claim preview before
- * the user takes someone's note ([Claim]), handed out ([Shared]: its page, and its row in the notes view, under the
- * handed-out heading), or on the page printed from there ([Paper]: white, the brand's light theme, the QR code never
- * covered).
+ * Where a note is drawn: in the user's own [Wallet] (the notes list, a note's details), on the claim preview before the user takes
+ * someone's note ([Claim]), handed out ([Shared]: its page, and its row in the notes view, under the handed-out heading), or on the page
+ * printed from there ([Paper]: white, the brand's light theme, the QR code never covered).
  */
-enum class NoteFacePlace { Wallet, Claim, Shared, Paper }
+enum class NoteFacePlace {
+    Wallet,
+    Claim,
+    Shared,
+    Paper,
+}
 
 /**
- * How a note stands. In the wallet: [Ready] to use, [Paying] (being spent), [Unclear] (a payment whose outcome isn't
- * known yet), [Uncertified] (its amount isn't certified), [Unknown] (its mint says it doesn't know it: set aside, out
- * of the balance, until the mint knows it again). Handed out: [Waiting] for its recipient, [Spent] by them,
- * [TakenBack]. New statuses may be added in later releases: a brand's `when` needs an `else` branch.
+ * How a note stands. In the wallet: [Ready] to use, [Paying] (being spent), [Unclear] (a payment whose outcome isn't known yet),
+ * [Uncertified] (its amount isn't certified), [Unknown] (its mint says it doesn't know it: set aside, out of the balance, until the mint
+ * knows it again). Handed out: [Waiting] for its recipient, [Spent] by them, [TakenBack]. New statuses may be added in later releases: a
+ * brand's `when` needs an `else` branch.
  */
-enum class NoteStatus { Ready, Paying, Unclear, Uncertified, Waiting, Spent, TakenBack, Unknown }
+enum class NoteStatus {
+    Ready,
+    Paying,
+    Unclear,
+    Uncertified,
+    Waiting,
+    Spent,
+    TakenBack,
+    Unknown,
+}
 
 class NoteFaceParams(
     val size: NoteFaceSize,
@@ -342,10 +395,9 @@ class NoteFaceParams(
     /** False when it can't be selected or acted on right now (it is being paid, or the wallet is busy). */
     val enabled: Boolean = true,
     /**
-     * The note's QR code while it waits for its recipient, on a handed-out note's page and on paper, drawn by the app:
-     * place and frame it, never alter or cover it. On the page it holds the app's cover until the user taps it
-     * ([qrCovered]). On [NoteFaceSize.Large] the app writes the status, age and mint below the face; use them for its
-     * look, not to repeat them.
+     * The note's QR code while it waits for its recipient, on a handed-out note's page and on paper, drawn by the app: place and frame it,
+     * never alter or cover it. On the page it holds the app's cover until the user taps it ([qrCovered]). On [NoteFaceSize.Large] the app
+     * writes the status, age and mint below the face; use them for its look, not to repeat them.
      */
     val qrCode: (@Composable () -> Unit)? = null,
     val place: NoteFacePlace = NoteFacePlace.Wallet,
@@ -391,28 +443,46 @@ object DefaultComponents : BrandComponents {
         val danger = params.tone == Tone.Danger
         val error = MaterialTheme.colorScheme.error
         when (params.kind) {
-            ButtonKind.Primary -> Button(
-                params.onClick, modifier, enabled,
-                colors = if (danger) ButtonDefaults.buttonColors(containerColor = error, contentColor = MaterialTheme.colorScheme.onError) else ButtonDefaults.buttonColors(),
-                content = content,
-            )
+            ButtonKind.Primary ->
+                Button(
+                    params.onClick,
+                    modifier,
+                    enabled,
+                    colors =
+                        if (danger) ButtonDefaults.buttonColors(containerColor = error, contentColor = MaterialTheme.colorScheme.onError)
+                        else ButtonDefaults.buttonColors(),
+                    content = content,
+                )
             ButtonKind.Tonal -> FilledTonalButton(params.onClick, modifier, enabled, content = content)
-            ButtonKind.Secondary -> OutlinedButton(
-                params.onClick, modifier, enabled,
-                colors = if (danger) ButtonDefaults.outlinedButtonColors(contentColor = error) else ButtonDefaults.outlinedButtonColors(),
-                content = content,
-            )
-            ButtonKind.Text -> TextButton(
-                params.onClick, modifier, enabled,
-                colors = if (danger) ButtonDefaults.textButtonColors(contentColor = error) else ButtonDefaults.textButtonColors(),
-                content = content,
-            )
+            ButtonKind.Secondary ->
+                OutlinedButton(
+                    params.onClick,
+                    modifier,
+                    enabled,
+                    colors =
+                        if (danger) ButtonDefaults.outlinedButtonColors(contentColor = error) else ButtonDefaults.outlinedButtonColors(),
+                    content = content,
+                )
+            ButtonKind.Text ->
+                TextButton(
+                    params.onClick,
+                    modifier,
+                    enabled,
+                    colors = if (danger) ButtonDefaults.textButtonColors(contentColor = error) else ButtonDefaults.textButtonColors(),
+                    content = content,
+                )
         }
     }
 
     @Composable
     fun amount(params: AmountParams, modifier: Modifier) {
-        Text(params.text, modifier, color = MaterialTheme.walletColors.amount, style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
+        Text(
+            params.text,
+            modifier,
+            color = MaterialTheme.walletColors.amount,
+            style = MaterialTheme.typography.displaySmall,
+            textAlign = TextAlign.Center,
+        )
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -461,12 +531,16 @@ object DefaultComponents : BrandComponents {
 
     @Composable
     fun card(params: CardParams, modifier: Modifier) {
-        val colors = when (params.tone) {
-            Tone.Neutral -> CardDefaults.cardColors()
-            Tone.Positive -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-            Tone.Warning -> MaterialTheme.walletColors.let { CardDefaults.cardColors(containerColor = it.warningContainer, contentColor = it.onWarningContainer) }
-            Tone.Danger -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-        }
+        val colors =
+            when (params.tone) {
+                Tone.Neutral -> CardDefaults.cardColors()
+                Tone.Positive -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                Tone.Warning ->
+                    MaterialTheme.walletColors.let {
+                        CardDefaults.cardColors(containerColor = it.warningContainer, contentColor = it.onWarningContainer)
+                    }
+                Tone.Danger -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            }
         Card(modifier, colors = colors, content = params.content)
     }
 
@@ -487,7 +561,9 @@ object DefaultComponents : BrandComponents {
         Snackbar(
             modifier = modifier.padding(12.dp),
             action = params.actionLabel?.let { label -> { TextButton(onClick = params.onAction) { Text(label) } } },
-        ) { Text(params.message) }
+        ) {
+            Text(params.message)
+        }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -505,21 +581,33 @@ object DefaultComponents : BrandComponents {
         when (params.kind) {
             ToggleKind.Switch -> Switch(params.checked, params.onCheckedChange, modifier, enabled = params.enabled)
             ToggleKind.Checkbox -> Checkbox(params.checked, params.onCheckedChange, modifier, enabled = params.enabled)
-            ToggleKind.Radio -> RadioButton(params.checked, params.onCheckedChange?.let { { it(true) } }, modifier, enabled = params.enabled)
+            ToggleKind.Radio ->
+                RadioButton(params.checked, params.onCheckedChange?.let { { it(true) } }, modifier, enabled = params.enabled)
         }
     }
 
     @Composable
     fun chip(params: ChipParams, modifier: Modifier) {
         when (params.kind) {
-            ChipKind.Filter -> FilterChip(
-                params.selected, params.onClick, params.label, modifier, params.enabled,
-                leadingIcon = params.leadingIcon, trailingIcon = params.trailingIcon,
-            )
-            ChipKind.Assist -> AssistChip(
-                params.onClick, params.label, modifier, params.enabled,
-                leadingIcon = params.leadingIcon, trailingIcon = params.trailingIcon,
-            )
+            ChipKind.Filter ->
+                FilterChip(
+                    params.selected,
+                    params.onClick,
+                    params.label,
+                    modifier,
+                    params.enabled,
+                    leadingIcon = params.leadingIcon,
+                    trailingIcon = params.trailingIcon,
+                )
+            ChipKind.Assist ->
+                AssistChip(
+                    params.onClick,
+                    params.label,
+                    modifier,
+                    params.enabled,
+                    leadingIcon = params.leadingIcon,
+                    trailingIcon = params.trailingIcon,
+                )
             ChipKind.Suggestion -> SuggestionChip(params.onClick, params.label, modifier, params.enabled, icon = params.leadingIcon)
         }
     }
@@ -529,7 +617,8 @@ object DefaultComponents : BrandComponents {
         val progress = params.progress
         when (params.kind) {
             ProgressKind.Linear -> if (progress != null) LinearProgressIndicator(progress, modifier) else LinearProgressIndicator(modifier)
-            ProgressKind.Circular -> if (progress != null) CircularProgressIndicator(progress, modifier) else CircularProgressIndicator(modifier)
+            ProgressKind.Circular ->
+                if (progress != null) CircularProgressIndicator(progress, modifier) else CircularProgressIndicator(modifier)
         }
     }
 
@@ -550,7 +639,10 @@ object DefaultComponents : BrandComponents {
     fun qrCodeCover(params: QrCodeCoverParams, modifier: Modifier) {
         // Clipped before the app's modifier, so the tap's ripple keeps the rounded corners.
         Box(
-            Modifier.size(params.size).clip(MaterialTheme.shapes.medium).then(modifier).background(MaterialTheme.colorScheme.surfaceVariant),
+            Modifier.size(params.size)
+                .clip(MaterialTheme.shapes.medium)
+                .then(modifier)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -568,49 +660,69 @@ object DefaultComponents : BrandComponents {
     fun releaseBadge(params: ReleaseBadgeParams, modifier: Modifier) {
         Text(
             params.label,
-            modifier.background(MaterialTheme.walletColors.warningContainer, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 2.dp),
+            modifier
+                .background(MaterialTheme.walletColors.warningContainer, RoundedCornerShape(50))
+                .padding(horizontal = 10.dp, vertical = 2.dp),
             color = MaterialTheme.walletColors.onWarningContainer,
             style = MaterialTheme.typography.labelMedium,
         )
     }
 
     /**
-     * [NoteFaceSize.Row]: a list row with the amount, the status beside its mark, the age, and a checkbox while
-     * selecting. [NoteFaceSize.Large]: the amount as on the wallet tab, and the QR code below it. Drawn through the
-     * brand's own [ListRow], [Toggle], [ListIcon] and [Amount], so restyling those restyles notes too.
+     * [NoteFaceSize.Row]: a list row with the amount, the status beside its mark, the age, and a checkbox while selecting.
+     * [NoteFaceSize.Large]: the amount as on the wallet tab, and the QR code below it. Drawn through the brand's own [ListRow], [Toggle],
+     * [ListIcon] and [Amount], so restyling those restyles notes too.
      */
     @Composable
     fun noteFace(params: NoteFaceParams, modifier: Modifier) {
         val components = LocalBrandDesign.current.components
         when (params.size) {
-            NoteFaceSize.Row -> components.ListRow(
-                ListRowParams(
-                    headline = { Text(params.amount, style = MaterialTheme.typography.bodyLarge) },
-                    supporting = params.statusText?.let { text ->
-                        {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                params.statusIcon?.let { components.ListIcon(ListIconParams(it, size = ListIconSize.Inline), Modifier) }
-                                Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            NoteFaceSize.Row ->
+                components.ListRow(
+                    ListRowParams(
+                        headline = { Text(params.amount, style = MaterialTheme.typography.bodyLarge) },
+                        supporting =
+                            params.statusText?.let { text ->
+                                {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        params.statusIcon?.let {
+                                            components.ListIcon(ListIconParams(it, size = ListIconSize.Inline), Modifier)
+                                        }
+                                        Text(
+                                            text,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
                             }
-                        }
-                    }
-                        // A handed-out note has no mint header above it, so its row names the mint.
-                        ?: params.mint?.takeIf { params.place == NoteFacePlace.Shared }?.let { mint -> { Text(mint) } },
-                    leading = params.selected?.let { selected ->
-                        { components.Toggle(ToggleParams(ToggleKind.Checkbox, selected, onCheckedChange = null, enabled = params.enabled), Modifier) }
-                    },
-                    trailing = params.age?.let { age -> { Text(age, style = MaterialTheme.typography.bodySmall) } },
-                ),
-                modifier,
-            )
-            NoteFaceSize.Large -> Column(
-                modifier,
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(MaterialTheme.walletSpacing.gap),
-            ) {
-                components.Amount(AmountParams(params.amount), Modifier.fillMaxWidth())
-                params.qrCode?.invoke()
-            }
+                                // A handed-out note has no mint header above it, so its row names the mint.
+                                ?: params.mint?.takeIf { params.place == NoteFacePlace.Shared }?.let { mint -> { Text(mint) } },
+                        leading =
+                            params.selected?.let { selected ->
+                                {
+                                    components.Toggle(
+                                        ToggleParams(ToggleKind.Checkbox, selected, onCheckedChange = null, enabled = params.enabled),
+                                        Modifier,
+                                    )
+                                }
+                            },
+                        trailing = params.age?.let { age -> { Text(age, style = MaterialTheme.typography.bodySmall) } },
+                    ),
+                    modifier,
+                )
+            NoteFaceSize.Large ->
+                Column(
+                    modifier,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(MaterialTheme.walletSpacing.gap),
+                ) {
+                    components.Amount(AmountParams(params.amount), Modifier.fillMaxWidth())
+                    params.qrCode?.invoke()
+                }
         }
     }
 
@@ -624,7 +736,10 @@ object DefaultComponents : BrandComponents {
                 ListRowParams(
                     headline = { Text(mint, style = MaterialTheme.typography.titleSmall) },
                     supporting = params.labels?.let { labels -> { Text(labels) } },
-                    leading = if (params.trusted) ({ Icon(params.trustedIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }) else null,
+                    leading =
+                        if (params.trusted)
+                            ({ Icon(params.trustedIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) })
+                        else null,
                     trailing = { Text(params.total, style = MaterialTheme.typography.titleSmall) },
                 ),
                 Modifier,
@@ -635,16 +750,18 @@ object DefaultComponents : BrandComponents {
     /** The icon in the secondary text colour, or the tone's colour. */
     @Composable
     fun listIcon(params: ListIconParams, modifier: Modifier) {
-        val tint = when (params.tone) {
-            Tone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
-            Tone.Positive -> MaterialTheme.colorScheme.primary
-            Tone.Warning -> MaterialTheme.walletColors.warning
-            Tone.Danger -> MaterialTheme.colorScheme.error
-        }
-        val size = when (params.size) {
-            ListIconSize.Row -> 24.dp
-            ListIconSize.Inline -> 16.dp
-        }
+        val tint =
+            when (params.tone) {
+                Tone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
+                Tone.Positive -> MaterialTheme.colorScheme.primary
+                Tone.Warning -> MaterialTheme.walletColors.warning
+                Tone.Danger -> MaterialTheme.colorScheme.error
+            }
+        val size =
+            when (params.size) {
+                ListIconSize.Row -> 24.dp
+                ListIconSize.Inline -> 16.dp
+            }
         Icon(params.icon, contentDescription = null, modifier = modifier.size(size), tint = tint)
     }
 
@@ -652,11 +769,12 @@ object DefaultComponents : BrandComponents {
     @Composable
     fun accountMark(params: AccountMarkParams, modifier: Modifier) {
         // Tertiary second: secondary is often a shade of primary, and the first two accounts should differ most.
-        val (container, content) = when (params.index.mod(3)) {
-            0 -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-            1 -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-            else -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        }
+        val (container, content) =
+            when (params.index.mod(3)) {
+                0 -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+                1 -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+                else -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+            }
         Box(modifier.size(params.size)) {
             Box(Modifier.size(params.size).background(container, CircleShape), contentAlignment = Alignment.Center) {
                 val letter = params.letter
@@ -671,10 +789,18 @@ object DefaultComponents : BrandComponents {
                 // Half outside the circle, clear of the letter.
                 val badge = params.size * 0.45f
                 Box(
-                    Modifier.align(Alignment.BottomEnd).offset(badge * 0.3f, badge * 0.3f).size(badge).background(MaterialTheme.colorScheme.surface, CircleShape),
+                    Modifier.align(Alignment.BottomEnd)
+                        .offset(badge * 0.3f, badge * 0.3f)
+                        .size(badge)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(params.activeBadge, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(badge * 0.85f))
+                    Icon(
+                        params.activeBadge,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(badge * 0.85f),
+                    )
                 }
             }
         }
@@ -684,12 +810,13 @@ object DefaultComponents : BrandComponents {
     @Composable
     fun activityIcon(params: ActivityIconParams, modifier: Modifier) {
         val maintenance = params.type == ActivityType.Split || params.type == ActivityType.Combined || params.type == ActivityType.Renewed
-        val tint = when {
-            maintenance || !params.settled -> MaterialTheme.colorScheme.onSurfaceVariant
-            params.direction == MoneyDirection.In -> MaterialTheme.walletColors.incoming
-            params.direction == MoneyDirection.Out -> MaterialTheme.walletColors.outgoing
-            else -> MaterialTheme.colorScheme.onSurface
-        }
+        val tint =
+            when {
+                maintenance || !params.settled -> MaterialTheme.colorScheme.onSurfaceVariant
+                params.direction == MoneyDirection.In -> MaterialTheme.walletColors.incoming
+                params.direction == MoneyDirection.Out -> MaterialTheme.walletColors.outgoing
+                else -> MaterialTheme.colorScheme.onSurface
+            }
         Box(modifier.size(40.dp)) {
             Box(Modifier.size(40.dp).background(tint.copy(alpha = 0.12f), CircleShape), contentAlignment = Alignment.Center) {
                 Icon(params.icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))

@@ -43,6 +43,9 @@ jobs:
       - name: Screens draw through the brand's design
         run: dev/check-design.sh
 
+      - name: Formatting
+        run: ./gradlew spotlessCheck
+
       - name: Unit and integration tests, lint, debug build
         run: ./gradlew test :feature:settings:testDebugUnitTest :app:lintDebug :app:assembleDebug
 

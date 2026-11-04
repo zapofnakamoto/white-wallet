@@ -29,8 +29,7 @@ internal data class AccountEntity(@PrimaryKey val id: String, val name: String, 
 }
 
 /** Single row holding app-wide state. */
-@Entity(tableName = "app_state")
-internal data class AppStateEntity(@PrimaryKey val id: Int = 0, val activeAccountId: String?)
+@Entity(tableName = "app_state") internal data class AppStateEntity(@PrimaryKey val id: Int = 0, val activeAccountId: String?)
 
 /** One row of the account switcher: an account with its address and outstanding balance. */
 internal data class AccountSummaryRow(
@@ -58,10 +57,36 @@ internal data class NoteEntity(
     val updatedAtMillis: Long,
     val checkedAtMillis: Long? = null,
 ) {
-    fun toModel() = Note(id, accountId, host, NoteKind.valueOf(kind), purpose, noteIndex, amountMsat, certificate, NoteState.valueOf(state), updatedAtMillis, checkedAtMillis)
+    fun toModel() =
+        Note(
+            id,
+            accountId,
+            host,
+            NoteKind.valueOf(kind),
+            purpose,
+            noteIndex,
+            amountMsat,
+            certificate,
+            NoteState.valueOf(state),
+            updatedAtMillis,
+            checkedAtMillis,
+        )
 
     companion object {
-        fun from(n: Note) = NoteEntity(n.id, n.accountId, n.host, n.kind.name, n.purpose, n.index, n.amountMsat, n.certificate, n.state.name, n.updatedAtMillis, n.checkedAtMillis)
+        fun from(n: Note) =
+            NoteEntity(
+                n.id,
+                n.accountId,
+                n.host,
+                n.kind.name,
+                n.purpose,
+                n.index,
+                n.amountMsat,
+                n.certificate,
+                n.state.name,
+                n.updatedAtMillis,
+                n.checkedAtMillis,
+            )
     }
 }
 
@@ -102,9 +127,8 @@ internal data class CounterEntity(val accountId: String, val host: String, val p
 internal data class AddressScanEntity(val accountId: String, val host: String, val next: Long)
 
 /**
- * The last answer the mint gave for one derived key (public lookup by `p`, never by spend). Failed lookups are
- * not saved. [result] is the [KeyProbe] subtype; [amountMsat], [certified] and [imported] belong to `Outstanding`,
- * [reason] to `Refused`.
+ * The last answer the mint gave for one derived key (public lookup by `p`, never by spend). Failed lookups are not saved. [result] is the
+ * [KeyProbe] subtype; [amountMsat], [certified] and [imported] belong to `Outstanding`, [reason] to `Refused`.
  */
 @Entity(tableName = "key_checks", primaryKeys = ["accountId", "host", "purpose", "keyIndex"])
 internal data class KeyCheckEntity(
@@ -121,13 +145,14 @@ internal data class KeyCheckEntity(
 ) {
     fun id() = KeyId(accountId, host, purpose, keyIndex)
 
-    fun toModel(): KeyProbe? = when (result) {
-        UNUSED -> KeyProbe.Unused(checkedAtMillis)
-        OUTSTANDING -> KeyProbe.Outstanding(amountMsat ?: 0, certified, imported, checkedAtMillis)
-        SPENT -> KeyProbe.Spent(checkedAtMillis)
-        REFUSED -> KeyProbe.Refused(reason, checkedAtMillis)
-        else -> null
-    }
+    fun toModel(): KeyProbe? =
+        when (result) {
+            UNUSED -> KeyProbe.Unused(checkedAtMillis)
+            OUTSTANDING -> KeyProbe.Outstanding(amountMsat ?: 0, certified, imported, checkedAtMillis)
+            SPENT -> KeyProbe.Spent(checkedAtMillis)
+            REFUSED -> KeyProbe.Refused(reason, checkedAtMillis)
+            else -> null
+        }
 
     companion object {
         private const val UNUSED = "Unused"
@@ -137,16 +162,25 @@ internal data class KeyCheckEntity(
 
         /** Null for a failed lookup, which is not saved. */
         fun from(id: KeyId, p: KeyProbe): KeyCheckEntity? {
-            val (result, outstanding) = when (p) {
-                is KeyProbe.Unused -> UNUSED to null
-                is KeyProbe.Outstanding -> OUTSTANDING to p
-                is KeyProbe.Spent -> SPENT to null
-                is KeyProbe.Refused -> REFUSED to null
-                is KeyProbe.Failed -> return null
-            }
+            val (result, outstanding) =
+                when (p) {
+                    is KeyProbe.Unused -> UNUSED to null
+                    is KeyProbe.Outstanding -> OUTSTANDING to p
+                    is KeyProbe.Spent -> SPENT to null
+                    is KeyProbe.Refused -> REFUSED to null
+                    is KeyProbe.Failed -> return null
+                }
             return KeyCheckEntity(
-                id.accountId, id.host, id.purpose, id.index, result, outstanding?.amountMsat, outstanding?.certified ?: false,
-                outstanding?.imported ?: false, (p as? KeyProbe.Refused)?.reason, p.checkedAtMillis,
+                id.accountId,
+                id.host,
+                id.purpose,
+                id.index,
+                result,
+                outstanding?.amountMsat,
+                outstanding?.certified ?: false,
+                outstanding?.imported ?: false,
+                (p as? KeyProbe.Refused)?.reason,
+                p.checkedAtMillis,
             )
         }
     }
@@ -170,19 +204,41 @@ internal data class JournalEntity(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 ) {
-    fun toModel() = JournalEntry(
-        id, accountId, OperationType.valueOf(type), host, withdrawUrl, inputIds.split(), inputK1s.split(),
-        outputs.split().map { it.split(':').let { (a, p, i, q) -> OutputRef(a, p.toInt(), i.toLong(), q) } },
-        requestUrl, JournalStatus.valueOf(status), detail, createdAtMillis, updatedAtMillis,
-    )
+    fun toModel() =
+        JournalEntry(
+            id,
+            accountId,
+            OperationType.valueOf(type),
+            host,
+            withdrawUrl,
+            inputIds.split(),
+            inputK1s.split(),
+            outputs.split().map { it.split(':').let { (a, p, i, q) -> OutputRef(a, p.toInt(), i.toLong(), q) } },
+            requestUrl,
+            JournalStatus.valueOf(status),
+            detail,
+            createdAtMillis,
+            updatedAtMillis,
+        )
 
     companion object {
         @OptIn(RevealsNoteSecret::class) // stored in the encrypted database
-        fun from(e: JournalEntry) = JournalEntity(
-            e.id, e.accountId, e.type.name, e.host, e.withdrawUrl, e.inputIds.joinToString(","), e.inputK1s.joinToString(","),
-            e.outputs.joinToString(",") { "${it.accountId}:${it.purpose}:${it.index}:${it.q}" }, e.requestUrl, e.status.name, e.detail,
-            e.createdAtMillis, e.updatedAtMillis,
-        )
+        fun from(e: JournalEntry) =
+            JournalEntity(
+                e.id,
+                e.accountId,
+                e.type.name,
+                e.host,
+                e.withdrawUrl,
+                e.inputIds.joinToString(","),
+                e.inputK1s.joinToString(","),
+                e.outputs.joinToString(",") { "${it.accountId}:${it.purpose}:${it.index}:${it.q}" },
+                e.requestUrl,
+                e.status.name,
+                e.detail,
+                e.createdAtMillis,
+                e.updatedAtMillis,
+            )
 
         private fun String.split(): List<String> = if (isEmpty()) emptyList() else split(',')
     }
@@ -205,12 +261,40 @@ internal data class ActivityEntity(
     val journalId: String?,
     val createdAtMillis: Long,
 ) {
-    fun toModel() = Activity(id, accountId, ActivityKind.valueOf(kind), amountMsat, feeMsat, host, counterparty, certified, noteCount, automatic,
-        ActivityStatus.valueOf(status), journalId, createdAtMillis)
+    fun toModel() =
+        Activity(
+            id,
+            accountId,
+            ActivityKind.valueOf(kind),
+            amountMsat,
+            feeMsat,
+            host,
+            counterparty,
+            certified,
+            noteCount,
+            automatic,
+            ActivityStatus.valueOf(status),
+            journalId,
+            createdAtMillis,
+        )
 
     companion object {
-        fun from(a: Activity) = ActivityEntity(a.id, a.accountId, a.kind.name, a.amountMsat, a.feeMsat, a.host, a.counterparty, a.certified,
-            a.noteCount, a.automatic, a.status.name, a.journalId, a.createdAtMillis)
+        fun from(a: Activity) =
+            ActivityEntity(
+                a.id,
+                a.accountId,
+                a.kind.name,
+                a.amountMsat,
+                a.feeMsat,
+                a.host,
+                a.counterparty,
+                a.certified,
+                a.noteCount,
+                a.automatic,
+                a.status.name,
+                a.journalId,
+                a.createdAtMillis,
+            )
     }
 }
 
@@ -233,12 +317,44 @@ internal data class ReceivedNoteEntity(
     val updatedAtMillis: Long,
     val refusedSinceMillis: Long?,
 ) {
-    fun toModel() = ReceivedNote(id, accountId, host, withdrawUrl, k1, certificate, declaredMsat, amountMsat, lockedUntilMillis, lockedForSeconds,
-        ReceivedState.valueOf(state), journalId, receivedAtMillis, updatedAtMillis, refusedSinceMillis)
+    fun toModel() =
+        ReceivedNote(
+            id,
+            accountId,
+            host,
+            withdrawUrl,
+            k1,
+            certificate,
+            declaredMsat,
+            amountMsat,
+            lockedUntilMillis,
+            lockedForSeconds,
+            ReceivedState.valueOf(state),
+            journalId,
+            receivedAtMillis,
+            updatedAtMillis,
+            refusedSinceMillis,
+        )
 
     companion object {
         @OptIn(RevealsNoteSecret::class) // stored in the encrypted database: the seed can't derive it again
-        fun from(n: ReceivedNote) = ReceivedNoteEntity(n.id, n.accountId, n.host, n.withdrawUrl, n.k1, n.certificate, n.declaredMsat, n.amountMsat,
-            n.lockedUntilMillis, n.lockedForSeconds, n.state.name, n.journalId, n.receivedAtMillis, n.updatedAtMillis, n.refusedSinceMillis)
+        fun from(n: ReceivedNote) =
+            ReceivedNoteEntity(
+                n.id,
+                n.accountId,
+                n.host,
+                n.withdrawUrl,
+                n.k1,
+                n.certificate,
+                n.declaredMsat,
+                n.amountMsat,
+                n.lockedUntilMillis,
+                n.lockedForSeconds,
+                n.state.name,
+                n.journalId,
+                n.receivedAtMillis,
+                n.updatedAtMillis,
+                n.refusedSinceMillis,
+            )
     }
 }

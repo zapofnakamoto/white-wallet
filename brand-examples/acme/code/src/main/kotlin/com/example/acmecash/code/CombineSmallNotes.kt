@@ -5,8 +5,8 @@ import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
 
 /**
- * Acme's note strategy: small notes are combined once a few have piled up (free), large ones are left alone, so paying
- * small amounts never needs a split of a big note first. Incoming notes are rotated off their address keys.
+ * Acme's note strategy: small notes are combined once a few have piled up (free), large ones are left alone, so paying small amounts never
+ * needs a split of a big note first. Incoming notes are rotated off their address keys.
  */
 class CombineSmallNotes : NoteStrategy {
     override val id = "combine-small"

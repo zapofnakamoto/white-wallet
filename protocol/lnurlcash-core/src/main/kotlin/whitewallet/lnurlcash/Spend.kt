@@ -17,14 +17,14 @@ public sealed interface Spend {
     public val q: ByteVector32
 
     /** The exact string to send as `k1`. */
-    @RevealsNoteSecret
-    public val k1: String
+    @RevealsNoteSecret public val k1: String
 
     /** A `ck1`: BIP-340 signature by `Q` over the canonical spend sighash for one domain. */
     @OptIn(RevealsNoteSecret::class)
     public data class KeyPath(override val q: ByteVector32, @property:RevealsNoteSecret val signature: ByteVector64) : Spend {
         @RevealsNoteSecret
-        override val k1: String get() = Ck1.encode(q, signature)
+        override val k1: String
+            get() = Ck1.encode(q, signature)
 
         public fun verify(domain: String): Boolean =
             Crypto.verifySignatureSchnorr(CanonicalSpend.keyPathSighash(domain, q), signature, XonlyPublicKey(q))
@@ -36,18 +36,23 @@ public sealed interface Spend {
     /** A plain bearer note, sent in its `k1` short form (hex preimage) or as the equivalent `cw1`. */
     @OptIn(RevealsNoteSecret::class)
     public data class Bearer(@property:RevealsNoteSecret val preimage: ByteVector32, val asCw1: Boolean = false) : Spend {
-        val h: ByteVector32 get() = BearerNote.hash(preimage)
-        override val q: ByteVector32 get() = BearerNote.q(h)
+        val h: ByteVector32
+            get() = BearerNote.hash(preimage)
+
+        override val q: ByteVector32
+            get() = BearerNote.q(h)
+
         @RevealsNoteSecret
-        override val k1: String get() = if (asCw1) BearerNote.cw1(preimage).encode() else preimage.toHex()
+        override val k1: String
+            get() = if (asCw1) BearerNote.cw1(preimage).encode() else preimage.toHex()
 
         /** Debug text without the secret. */
         override fun toString(): String = "Bearer(q=$q, h=$h, k1=${Redaction.mask(k1)})"
     }
 
     /**
-     * Any other script-path spend. What its script means is open-ended, so nothing here reads it: the spend is
-     * checked as a whole ([verify]), and the time it claims is read from the spend, which a leaf signature commits to.
+     * Any other script-path spend. What its script means is open-ended, so nothing here reads it: the spend is checked as a whole
+     * ([verify]), and the time it claims is read from the spend, which a leaf signature commits to.
      */
     @OptIn(RevealsNoteSecret::class)
     public data class Script(
@@ -56,23 +61,27 @@ public sealed interface Spend {
         @property:RevealsNoteSecret override val k1: String,
     ) : Spend {
         /** The Unix time the spend claims (`nLockTime`); the mint refuses it until then. Null if it claims none. */
-        val lockedUntilSeconds: Long? get() = cw1.lockTime.takeIf { it != 0L }
+        val lockedUntilSeconds: Long?
+            get() = cw1.lockTime.takeIf { it != 0L }
 
         /**
-         * The wait the spend claims (`nSequence`, BIP-68), counted from when the mint last credited the note (by mint,
-         * rotate, split or merge), which only the mint knows. Null if it claims none.
+         * The wait the spend claims (`nSequence`, BIP-68), counted from when the mint last credited the note (by mint, rotate, split or
+         * merge), which only the mint knows. Null if it claims none.
          */
-        val lockedForSeconds: Long? get() = Timelock.relativeSeconds(cw1.sequence)
+        val lockedForSeconds: Long?
+            get() = Timelock.relativeSeconds(cw1.sequence)
 
         /** False for a time the mint must refuse to honour: a block height, or a wait counted in blocks. */
-        val isValidLockClaim: Boolean get() = Timelock.isValid(cw1.lockTime, cw1.sequence)
+        val isValidLockClaim: Boolean
+            get() = Timelock.isValid(cw1.lockTime, cw1.sequence)
 
         /** The note may be spent another way too: it has other leaves, or an internal key that isn't the NUMS point. */
-        val hasOtherPaths: Boolean get() = ScriptPath.hasOtherPaths(cw1)
+        val hasOtherPaths: Boolean
+            get() = ScriptPath.hasOtherPaths(cw1)
 
         /**
-         * Whether the spend satisfies its note's script at [domain], as the mint checks it (BIP-341/342 on the canonical
-         * spend transaction). Independent of the clock: the claimed time is checked against the script, not against now.
+         * Whether the spend satisfies its note's script at [domain], as the mint checks it (BIP-341/342 on the canonical spend
+         * transaction). Independent of the clock: the claimed time is checked against the script, not against now.
          */
         public fun verify(domain: String): Boolean = ScriptPath.verify(cw1, q, domain)
 
@@ -92,14 +101,21 @@ public sealed interface Spend {
         /** Parses a `k1`: a `ck1`, a `cw1`, or a 64-hex bearer preimage. Returns null for anything else. */
         public fun parse(k1: String): Spend? {
             if (isShortForm(k1)) return Bearer(ByteVector32(Hex.decode(k1)))
-            Ck1.decode(k1)?.let { (q, sig) -> return KeyPath(q, sig) }
+            Ck1.decode(k1)?.let { (q, sig) ->
+                return KeyPath(q, sig)
+            }
             val cw1 = Cw1.decode(k1) ?: return null
             val q = ScriptPath.outputKey(cw1) ?: return null
             val h = BearerNote.hashOf(cw1.script)
             val preimage = cw1.witness.singleOrNull()
-            val isPlainBearer = h != null && preimage != null && preimage.size() == 32 &&
-                cw1.lockTime == 0L && cw1.sequence == CanonicalSpend.DEFAULT_SEQUENCE &&
-                BearerNote.hash(preimage.toByteArray().byteVector32()) == h && BearerNote.q(h) == q
+            val isPlainBearer =
+                h != null &&
+                    preimage != null &&
+                    preimage.size() == 32 &&
+                    cw1.lockTime == 0L &&
+                    cw1.sequence == CanonicalSpend.DEFAULT_SEQUENCE &&
+                    BearerNote.hash(preimage.toByteArray().byteVector32()) == h &&
+                    BearerNote.q(h) == q
             return if (isPlainBearer) {
                 Bearer(preimage.toByteArray().byteVector32(), asCw1 = true)
             } else {
@@ -135,14 +151,20 @@ internal object ScriptPath {
     }
 
     /** Every consensus flag LUD-25 names for a spend. */
-    private const val FLAGS = ScriptFlags.SCRIPT_VERIFY_P2SH or ScriptFlags.SCRIPT_VERIFY_WITNESS or ScriptFlags.SCRIPT_VERIFY_TAPROOT or
-        ScriptFlags.SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY or ScriptFlags.SCRIPT_VERIFY_CHECKSEQUENCEVERIFY or
-        ScriptFlags.SCRIPT_VERIFY_DERSIG or ScriptFlags.SCRIPT_VERIFY_NULLDUMMY
+    private const val FLAGS =
+        ScriptFlags.SCRIPT_VERIFY_P2SH or
+            ScriptFlags.SCRIPT_VERIFY_WITNESS or
+            ScriptFlags.SCRIPT_VERIFY_TAPROOT or
+            ScriptFlags.SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY or
+            ScriptFlags.SCRIPT_VERIFY_CHECKSEQUENCEVERIFY or
+            ScriptFlags.SCRIPT_VERIFY_DERSIG or
+            ScriptFlags.SCRIPT_VERIFY_NULLDUMMY
 
     @OptIn(RevealsNoteSecret::class)
     fun verify(cw1: Cw1, q: ByteVector32, domain: String): Boolean {
-        val tx = CanonicalSpend.transaction(domain, cw1.lockTime, cw1.sequence)
-            .updateWitness(0, ScriptWitness(cw1.witness + cw1.script + cw1.controlBlock))
+        val tx =
+            CanonicalSpend.transaction(domain, cw1.lockTime, cw1.sequence)
+                .updateWitness(0, ScriptWitness(cw1.witness + cw1.script + cw1.controlBlock))
         return try {
             Transaction.correctlySpends(tx, mapOf(tx.txIn[0].outPoint to CanonicalSpend.spentOutput(q)), FLAGS)
             true

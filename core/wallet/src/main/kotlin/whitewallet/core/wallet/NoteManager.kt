@@ -14,11 +14,9 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.lnurl.Bolt11
-import whitewallet.lnurl.LnurlResponse
-import whitewallet.lnurl.string
-import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.protocol.MintingPayRequest
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
@@ -83,7 +81,8 @@ sealed interface MintMoveQuote {
         /** What should arrive on [toHost], after its mint fee; the new note's certified value is authoritative. */
         val expectedMsat: Long,
     ) : MintMoveQuote {
-        val feeMsat: Long get() = amountMsat - expectedMsat
+        val feeMsat: Long
+            get() = amountMsat - expectedMsat
     }
 
     data class Invalid(val problem: NoteProblem, val limitMsat: Long? = null) : MintMoveQuote
@@ -100,11 +99,10 @@ sealed interface MintMoveResult {
 }
 
 /**
- * What the notes page does with notes: combine (merge) and split them on their mint, and move them to another
- * mint. A move melts the notes (merged into one first) into an invoice from the target's own minting payRequest
- * whose comment names a fresh key of this account there (LUD-25 minting), so the target mints the note to us.
- * Both sides are journaled: the melt, and a [OperationType.Mint] entry for the note expected on the target, linked
- * by its detail to the melt and settled by [MintReconciler].
+ * What the notes page does with notes: combine (merge) and split them on their mint, and move them to another mint. A move melts the notes
+ * (merged into one first) into an invoice from the target's own minting payRequest whose comment names a fresh key of this account there
+ * (LUD-25 minting), so the target mints the note to us. Both sides are journaled: the melt, and a [OperationType.Mint] entry for the note
+ * expected on the target, linked by its detail to the melt and settled by [MintReconciler].
  */
 internal class NoteManager(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
@@ -113,21 +111,40 @@ internal class NoteManager(private val wallet: Wallet) {
 
     suspend fun combine(ids: Collection<String>): NoteActionResult {
         val accountId = wallet.activeId()
-        val notes = when (val selected = select(accountId, ids)) {
-            is Selected.Ok -> selected.notes
-            is Selected.Problem -> return NoteActionResult.Failed(selected.problem)
-        }
+        val notes =
+            when (val selected = select(accountId, ids)) {
+                is Selected.Ok -> selected.notes
+                is Selected.Problem -> return NoteActionResult.Failed(selected.problem)
+            }
         if (notes.size < 2) return NoteActionResult.Failed(NoteProblem.TooFewNotes)
         val host = notes.first().host
         val result = mutator.mutate(accountId, host, notes, OperationType.Merge, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))
         val inputs = notes.sumOf { it.amountMsat }
         when (result) {
-            is MutationResult.Done -> result.outputs.single().let { out ->
-                log.record("op:${result.journalId}", accountId, ActivityKind.Combined, out.amountMsat.takeIf { it > 0 } ?: inputs, host,
-                    feeMsat = ActivityLog.fee(inputs, result.outputs), noteCount = notes.size, journalId = result.journalId)
-            }
-            is MutationResult.Pending -> log.record("op:${result.journalId}", accountId, ActivityKind.Combined, inputs, host, ActivityStatus.Pending,
-                noteCount = notes.size, journalId = result.journalId)
+            is MutationResult.Done ->
+                result.outputs.single().let { out ->
+                    log.record(
+                        "op:${result.journalId}",
+                        accountId,
+                        ActivityKind.Combined,
+                        out.amountMsat.takeIf { it > 0 } ?: inputs,
+                        host,
+                        feeMsat = ActivityLog.fee(inputs, result.outputs),
+                        noteCount = notes.size,
+                        journalId = result.journalId,
+                    )
+                }
+            is MutationResult.Pending ->
+                log.record(
+                    "op:${result.journalId}",
+                    accountId,
+                    ActivityKind.Combined,
+                    inputs,
+                    host,
+                    ActivityStatus.Pending,
+                    noteCount = notes.size,
+                    journalId = result.journalId,
+                )
             else -> Unit
         }
         return result.toAction()
@@ -141,35 +158,55 @@ internal class NoteManager(private val wallet: Wallet) {
 
     suspend fun split(id: String, amountMsat: Long): NoteActionResult {
         val accountId = wallet.activeId()
-        val note = when (val selected = select(accountId, listOf(id))) {
-            is Selected.Ok -> selected.notes.single()
-            is Selected.Problem -> return NoteActionResult.Failed(selected.problem)
-        }
+        val note =
+            when (val selected = select(accountId, listOf(id))) {
+                is Selected.Ok -> selected.notes.single()
+                is Selected.Problem -> return NoteActionResult.Failed(selected.problem)
+            }
         val limits = splitLimits(id) ?: return NoteActionResult.Failed(NoteProblem.InvalidAmount)
         if (amountMsat !in limits.minMsat..limits.maxMsat) return NoteActionResult.Failed(NoteProblem.InvalidAmount)
         val outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet), OutputSpec.Own(accountId, NotePurpose.Change))
         val result = mutator.mutate(accountId, note.host, listOf(note), OperationType.Split, outputs, splitMsat = amountMsat)
         when (result) {
-            is MutationResult.Done -> log.record("op:${result.journalId}", accountId, ActivityKind.Split, note.amountMsat, note.host,
-                feeMsat = limits.feeMsat.takeIf { it > 0 }, noteCount = 2, journalId = result.journalId)
-            is MutationResult.Pending -> log.record("op:${result.journalId}", accountId, ActivityKind.Split, note.amountMsat, note.host,
-                ActivityStatus.Pending, noteCount = 2, journalId = result.journalId)
+            is MutationResult.Done ->
+                log.record(
+                    "op:${result.journalId}",
+                    accountId,
+                    ActivityKind.Split,
+                    note.amountMsat,
+                    note.host,
+                    feeMsat = limits.feeMsat.takeIf { it > 0 },
+                    noteCount = 2,
+                    journalId = result.journalId,
+                )
+            is MutationResult.Pending ->
+                log.record(
+                    "op:${result.journalId}",
+                    accountId,
+                    ActivityKind.Split,
+                    note.amountMsat,
+                    note.host,
+                    ActivityStatus.Pending,
+                    noteCount = 2,
+                    journalId = result.journalId,
+                )
             else -> Unit
         }
         return result.toAction()
     }
 
-    suspend fun quoteMove(ids: Collection<String>, toHost: String): MintMoveQuote = when (val q = prepareMove(wallet.activeId(), ids, toHost)) {
-        is PreparedMove.Ready -> q.quote
-        is PreparedMove.Problem -> MintMoveQuote.Invalid(q.problem, q.limitMsat)
-    }
+    suspend fun quoteMove(ids: Collection<String>, toHost: String): MintMoveQuote =
+        when (val q = prepareMove(wallet.activeId(), ids, toHost)) {
+            is PreparedMove.Ready -> q.quote
+            is PreparedMove.Problem -> MintMoveQuote.Invalid(q.problem, q.limitMsat)
+        }
 
-    suspend fun move(ids: Collection<String>, toHost: String): MintMoveResult = move(wallet.activeId(), ids, toHost, automatic = false) { _, _ -> true }
+    suspend fun move(ids: Collection<String>, toHost: String): MintMoveResult =
+        move(wallet.activeId(), ids, toHost, automatic = false) { _, _ -> true }
 
     /**
-     * Moves [ids] of [accountId] to [toHost] if [accept] agrees with the quote (asked once, before anything is sent;
-     * a refusal returns [MintMoveResult.Failed] with [NoteProblem.Declined]). [automatic] marks the History row as
-     * done by the note policies.
+     * Moves [ids] of [accountId] to [toHost] if [accept] agrees with the quote (asked once, before anything is sent; a refusal returns
+     * [MintMoveResult.Failed] with [NoteProblem.Declined]). [automatic] marks the History row as done by the note policies.
      */
     suspend fun move(
         accountId: String,
@@ -178,17 +215,27 @@ internal class NoteManager(private val wallet: Wallet) {
         automatic: Boolean,
         accept: (quote: MintMoveQuote.Ready, notesMsat: Long) -> Boolean,
     ): MintMoveResult {
-        val prepared = when (val q = prepareMove(accountId, ids, toHost)) {
-            is PreparedMove.Ready -> q
-            is PreparedMove.Problem -> return MintMoveResult.Failed(q.problem, q.limitMsat)
-        }
+        val prepared =
+            when (val q = prepareMove(accountId, ids, toHost)) {
+                is PreparedMove.Ready -> q
+                is PreparedMove.Problem -> return MintMoveResult.Failed(q.problem, q.limitMsat)
+            }
         if (!accept(prepared.quote, prepared.notes.sumOf { it.amountMsat })) return MintMoveResult.Failed(NoteProblem.Declined)
         val quote = prepared.quote
         var notes = prepared.notes
 
         // One note pays one invoice: merge first. If anything later fails, the notes are just combined.
         if (notes.size > 1) {
-            when (val merged = mutator.mutate(accountId, quote.fromHost, notes, OperationType.Merge, listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)))) {
+            when (
+                val merged =
+                    mutator.mutate(
+                        accountId,
+                        quote.fromHost,
+                        notes,
+                        OperationType.Merge,
+                        listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)),
+                    )
+            ) {
                 is MutationResult.Done -> notes = merged.outputs
                 is MutationResult.Pending -> return MintMoveResult.Pending
                 is MutationResult.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)
@@ -204,7 +251,11 @@ internal class NoteManager(private val wallet: Wallet) {
         for (attempt in 0 until IndexGuard.IN_USE_ATTEMPTS) {
             val reserved = guard.reserve(accountId, quote.toHost, NotePurpose.Wallet)
             when (val fetched = MintInvoice.fetch(wallet, prepared.pay, amount, reserved.key)) {
-                is MintInvoice.Ok -> { output = reserved; invoice = fetched.invoice; break }
+                is MintInvoice.Ok -> {
+                    output = reserved
+                    invoice = fetched.invoice
+                    break
+                }
                 is MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, quote.toHost, NotePurpose.Wallet)
                 is MintInvoice.Unreachable -> return MintMoveResult.Failed(NoteProblem.Unreachable)
                 is MintInvoice.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)
@@ -216,18 +267,45 @@ internal class NoteManager(private val wallet: Wallet) {
         val target = wallet.store.mint(quote.toHost) ?: return MintMoveResult.Failed(NoteProblem.MintInvalid)
         val mintId = UUID.randomUUID().toString()
         val expected = quote.expectedMsat
-        val melted = Melter(wallet).melt(accountId, quote.fromHost, note, invoice) { meltId ->
-            val now = wallet.now()
-            wallet.store.putJournal(JournalEntry(mintId, accountId, OperationType.Mint, quote.toHost, target.withdrawUrl, emptyList(), emptyList(),
-                listOf(output.ref), invoice, JournalStatus.Prepared, meltId, now, now))
-            log.record("mint:$mintId", accountId, ActivityKind.MovedMint, expected, quote.fromHost, ActivityStatus.Pending,
-                (amount - expected).takeIf { it > 0 }, quote.toHost, automatic = automatic, journalId = mintId)
-        }
+        val melted =
+            Melter(wallet).melt(accountId, quote.fromHost, note, invoice) { meltId ->
+                val now = wallet.now()
+                wallet.store.putJournal(
+                    JournalEntry(
+                        mintId,
+                        accountId,
+                        OperationType.Mint,
+                        quote.toHost,
+                        target.withdrawUrl,
+                        emptyList(),
+                        emptyList(),
+                        listOf(output.ref),
+                        invoice,
+                        JournalStatus.Prepared,
+                        meltId,
+                        now,
+                        now,
+                    )
+                )
+                log.record(
+                    "mint:$mintId",
+                    accountId,
+                    ActivityKind.MovedMint,
+                    expected,
+                    quote.fromHost,
+                    ActivityStatus.Pending,
+                    (amount - expected).takeIf { it > 0 },
+                    quote.toHost,
+                    automatic = automatic,
+                    journalId = mintId,
+                )
+            }
         val mints = MintReconciler(wallet)
         return when (melted) {
             is MeltOutcome.Paid -> awaitMint(mints, mintId, output.ref.q, amount, expected)
             is MeltOutcome.Pending -> MintMoveResult.Pending
-            is MeltOutcome.PaymentFailed, is MeltOutcome.Refused -> {
+            is MeltOutcome.PaymentFailed,
+            is MeltOutcome.Refused -> {
                 mints.entry(mintId)?.let { mints.reconcile(it) }
                 MintMoveResult.Failed(if (melted is MeltOutcome.Refused) NoteProblem.Refused else NoteProblem.PaymentFailed)
             }
@@ -254,14 +332,16 @@ internal class NoteManager(private val wallet: Wallet) {
 
     private sealed interface PreparedMove {
         data class Ready(val quote: MintMoveQuote.Ready, val notes: List<Note>, val pay: MintingPayRequest) : PreparedMove
+
         data class Problem(val problem: NoteProblem, val limitMsat: Long? = null) : PreparedMove
     }
 
     private suspend fun prepareMove(accountId: String, ids: Collection<String>, toHost: String): PreparedMove {
-        val notes = when (val selected = select(accountId, ids)) {
-            is Selected.Ok -> selected.notes
-            is Selected.Problem -> return PreparedMove.Problem(selected.problem)
-        }
+        val notes =
+            when (val selected = select(accountId, ids)) {
+                is Selected.Ok -> selected.notes
+                is Selected.Problem -> return PreparedMove.Problem(selected.problem)
+            }
         val fromHost = notes.first().host
         val host = Onboarding.normalizeHost(toHost) ?: return PreparedMove.Problem(NoteProblem.MintInvalid)
         if (host == fromHost) return PreparedMove.Problem(NoteProblem.SameMint)
@@ -269,24 +349,27 @@ internal class NoteManager(private val wallet: Wallet) {
         if (wallet.store.mint(fromHost) == null) {
             when (val source = Onboarding(wallet).connectMint(fromHost)) {
                 is ConnectResult.Connected -> Unit
-                is ConnectResult.Failed -> return PreparedMove.Problem(
-                    if (source.result is OnboardResult.NetworkError) NoteProblem.Unreachable else NoteProblem.MintInvalid,
-                )
+                is ConnectResult.Failed ->
+                    return PreparedMove.Problem(
+                        if (source.result is OnboardResult.NetworkError) NoteProblem.Unreachable else NoteProblem.MintInvalid
+                    )
             }
         }
-        val pay = try {
-            wallet.client.servicePayRequest(host)
-        } catch (e: ProtocolViolation) {
-            return PreparedMove.Problem(NoteProblem.MintInvalid)
-        } catch (e: IOException) {
-            return PreparedMove.Problem(NoteProblem.Unreachable)
-        }
+        val pay =
+            try {
+                wallet.client.servicePayRequest(host)
+            } catch (e: ProtocolViolation) {
+                return PreparedMove.Problem(NoteProblem.MintInvalid)
+            } catch (e: IOException) {
+                return PreparedMove.Problem(NoteProblem.Unreachable)
+            }
         // Pins the target's signing key and stores it as one of the account's mints.
         when (val connected = Onboarding(wallet).connectMint(host)) {
             is ConnectResult.Connected -> Unit
-            is ConnectResult.Failed -> return PreparedMove.Problem(
-                if (connected.result is OnboardResult.NetworkError) NoteProblem.Unreachable else NoteProblem.MintInvalid,
-            )
+            is ConnectResult.Failed ->
+                return PreparedMove.Problem(
+                    if (connected.result is OnboardResult.NetworkError) NoteProblem.Unreachable else NoteProblem.MintInvalid
+                )
         }
         val amount = PayPlanner.max(notes, baseFee(fromHost))
         if (amount < pay.pay.minSendable) return PreparedMove.Problem(NoteProblem.BelowMinimum, pay.pay.minSendable)
@@ -298,15 +381,19 @@ internal class NoteManager(private val wallet: Wallet) {
 
     private sealed interface Selected {
         data class Ok(val notes: List<Note>) : Selected
+
         data class Problem(val problem: NoteProblem) : Selected
     }
 
     /** The account's outstanding key-path notes with [ids], all on one mint. */
     private suspend fun select(accountId: String, ids: Collection<String>): Selected {
         if (ids.isEmpty()) return Selected.Problem(NoteProblem.NotFound)
-        val byId = wallet.store.notes(accountId).first()
-            .filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null }
-            .associateBy { it.id }
+        val byId =
+            wallet.store
+                .notes(accountId)
+                .first()
+                .filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null }
+                .associateBy { it.id }
         val notes = ids.distinct().map { byId[it] ?: return Selected.Problem(NoteProblem.NotFound) }
         if (notes.map { it.host }.distinct().size > 1) return Selected.Problem(NoteProblem.DifferentMints)
         return Selected.Ok(notes.sortedByDescending { it.amountMsat })
@@ -314,17 +401,19 @@ internal class NoteManager(private val wallet: Wallet) {
 
     private suspend fun baseFee(host: String): Long = wallet.store.mint(host)?.feeBaseMsat ?: 0
 
-    private fun MutationResult.toAction(): NoteActionResult = when (this) {
-        is MutationResult.Done -> NoteActionResult.Done(outputs)
-        is MutationResult.Pending -> NoteActionResult.Pending
-        is MutationResult.Refused -> NoteActionResult.Failed(if (kind == RejectionKind.InsufficientValue) NoteProblem.InvalidAmount else NoteProblem.Refused)
-        is MutationResult.Unreachable -> NoteActionResult.Failed(NoteProblem.Unreachable)
-    }
+    private fun MutationResult.toAction(): NoteActionResult =
+        when (this) {
+            is MutationResult.Done -> NoteActionResult.Done(outputs)
+            is MutationResult.Pending -> NoteActionResult.Pending
+            is MutationResult.Refused ->
+                NoteActionResult.Failed(if (kind == RejectionKind.InsufficientValue) NoteProblem.InvalidAmount else NoteProblem.Refused)
+            is MutationResult.Unreachable -> NoteActionResult.Failed(NoteProblem.Unreachable)
+        }
 }
 
 /**
- * Settles the receiving side of a move between mints: the note expected at one of our keys on the target.
- * Found (by `p`) means it arrived; if the linked melt failed, nothing will arrive; otherwise keep waiting.
+ * Settles the receiving side of a move between mints: the note expected at one of our keys on the target. Found (by `p`) means it arrived;
+ * if the linked melt failed, nothing will arrive; otherwise keep waiting.
  */
 internal class MintReconciler(private val wallet: Wallet) {
     suspend fun entry(id: String): JournalEntry? = wallet.store.journal(JournalStatus.entries.toSet()).firstOrNull { it.id == id }
@@ -337,15 +426,37 @@ internal class MintReconciler(private val wallet: Wallet) {
             val info = wallet.client.lookup(entry.withdrawUrl, q)
             val cert = info.certificate?.takeIf { Certificates.verify(it, q, info.mintPubkey) }
             if (wallet.store.note(output.q) == null) {
-                wallet.store.upsertNotes(listOf(Note(output.q, output.accountId, entry.host, NoteKind.KeyPath, output.purpose, output.index,
-                    info.maxWithdrawableMsat, cert?.encode(), NoteState.Outstanding, wallet.now())))
+                wallet.store.upsertNotes(
+                    listOf(
+                        Note(
+                            output.q,
+                            output.accountId,
+                            entry.host,
+                            NoteKind.KeyPath,
+                            output.purpose,
+                            output.index,
+                            info.maxWithdrawableMsat,
+                            cert?.encode(),
+                            NoteState.Outstanding,
+                            wallet.now(),
+                        )
+                    )
+                )
                 // An invoice of this wallet that was paid (a move's mint has its own row, settled below).
                 if (entry.detail == null) {
                     // A mint's request is the invoice it paid: no spend in it.
-                    @OptIn(RevealsNoteSecret::class)
-                    val paid = Bolt11.decode(entry.requestUrl)?.amountMsat
-                    ActivityLog(wallet).record("invoice:${entry.id}", output.accountId, ActivityKind.Received, info.maxWithdrawableMsat, entry.host,
-                        feeMsat = paid?.let { it - info.maxWithdrawableMsat }?.takeIf { it > 0 }, certified = cert != null, journalId = entry.id)
+                    @OptIn(RevealsNoteSecret::class) val paid = Bolt11.decode(entry.requestUrl)?.amountMsat
+                    ActivityLog(wallet)
+                        .record(
+                            "invoice:${entry.id}",
+                            output.accountId,
+                            ActivityKind.Received,
+                            info.maxWithdrawableMsat,
+                            entry.host,
+                            feeMsat = paid?.let { it - info.maxWithdrawableMsat }?.takeIf { it > 0 },
+                            certified = cert != null,
+                            journalId = entry.id,
+                        )
                 }
             }
             return finish(entry, JournalStatus.Confirmed)
@@ -361,10 +472,13 @@ internal class MintReconciler(private val wallet: Wallet) {
         // An invoice nobody paid: once it has expired (with a margin for a payment in flight), nothing will come.
         @OptIn(RevealsNoteSecret::class) // a mint's request is its invoice: no spend in it
         val invoice = entry.requestUrl
-        if (entry.detail == null && Bolt11.decode(invoice)?.let { wallet.now() > it.expiresAtSeconds * 1000 + EXPIRY_GRACE_MILLIS } == true) {
+        if (
+            entry.detail == null && Bolt11.decode(invoice)?.let { wallet.now() > it.expiresAtSeconds * 1000 + EXPIRY_GRACE_MILLIS } == true
+        ) {
             return finish(entry, JournalStatus.Rejected)
         }
-        if (entry.status == JournalStatus.Prepared) wallet.store.putJournal(entry.copy(status = JournalStatus.Unknown, updatedAtMillis = wallet.now()))
+        if (entry.status == JournalStatus.Prepared)
+            wallet.store.putJournal(entry.copy(status = JournalStatus.Unknown, updatedAtMillis = wallet.now()))
         return JournalStatus.Unknown
     }
 

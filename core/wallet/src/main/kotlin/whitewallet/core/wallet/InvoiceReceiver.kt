@@ -18,17 +18,21 @@ import whitewallet.lnurlcash.protocol.Requests
 /** The outcome of [Wallet.requestInvoice]. */
 sealed interface InvoiceRequest {
     /** Paying [invoice] mints a note worth [expectedMsat] (the amount less the mint's fee) to this account. */
-    data class Ready(val id: String, val invoice: String, val amountMsat: Long, val expectedMsat: Long, val expiresAtMillis: Long) : InvoiceRequest
+    data class Ready(val id: String, val invoice: String, val amountMsat: Long, val expectedMsat: Long, val expiresAtMillis: Long) :
+        InvoiceRequest
 
     /** The mint takes payments between [minMsat] and [maxMsat] (and more than its fee). */
     data class OutOfRange(val minMsat: Long, val maxMsat: Long) : InvoiceRequest
+
     data object Unreachable : InvoiceRequest
+
     data object Refused : InvoiceRequest
 }
 
 /** Where an invoice from [Wallet.requestInvoice] stands. */
 sealed interface InvoiceStatus {
     data object Waiting : InvoiceStatus
+
     data class Paid(val receivedMsat: Long) : InvoiceStatus
 
     /** It expired unpaid (or the request is unknown). */
@@ -41,7 +45,9 @@ internal sealed interface MintInvoice {
 
     /** The key was used before: recover the index and try a fresh one. */
     data object InUse : MintInvoice
+
     data object Unreachable : MintInvoice
+
     data object Refused : MintInvoice
 
     /** The invoice isn't for the amount asked, or describes something else. */
@@ -50,13 +56,14 @@ internal sealed interface MintInvoice {
     companion object {
         /** An invoice from [pay] for [amountMsat] whose comment names [key]; checked like any LUD-06 invoice. */
         suspend fun fetch(wallet: Wallet, pay: MintingPayRequest, amountMsat: Long, key: ByteVector32): MintInvoice {
-            val response = try {
-                wallet.client.get(Requests.mintInvoice(pay.pay.callback, amountMsat, key))
-            } catch (e: IOException) {
-                return Unreachable
-            } catch (e: ProtocolViolation) {
-                return Unreachable
-            }
+            val response =
+                try {
+                    wallet.client.get(Requests.mintInvoice(pay.pay.callback, amountMsat, key))
+                } catch (e: IOException) {
+                    return Unreachable
+                } catch (e: ProtocolViolation) {
+                    return Unreachable
+                }
             if (response is LnurlResponse.Error) {
                 return if (RejectionKind.fromReason(response.reason) == RejectionKind.AlreadyInUse) InUse else Refused
             }
@@ -71,10 +78,10 @@ internal sealed interface MintInvoice {
 }
 
 /**
- * Receiving by invoice, for accounts without (or besides) a Lightning address: the home mint's minting payRequest
- * issues an invoice whose note goes to a fresh wallet key of the account. The key is reserved and the expected note
- * journaled ([OperationType.Mint], no melt) before the invoice is shown; [MintReconciler] picks the note up once
- * paid, records it in History, and drops the entry once the invoice expired unpaid.
+ * Receiving by invoice, for accounts without (or besides) a Lightning address: the home mint's minting payRequest issues an invoice whose
+ * note goes to a fresh wallet key of the account. The key is reserved and the expected note journaled ([OperationType.Mint], no melt)
+ * before the invoice is shown; [MintReconciler] picks the note up once paid, records it in History, and drops the entry once the invoice
+ * expired unpaid.
  */
 internal class InvoiceReceiver(private val wallet: Wallet) {
     private val guard = IndexGuard(wallet)
@@ -82,13 +89,14 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
     suspend fun request(amountMsat: Long): InvoiceRequest {
         val accountId = wallet.activeId()
         val host = wallet.store.account(accountId)?.host ?: return InvoiceRequest.Unreachable
-        val pay = try {
-            wallet.client.servicePayRequest(host)
-        } catch (e: IOException) {
-            return InvoiceRequest.Unreachable
-        } catch (e: ProtocolViolation) {
-            return InvoiceRequest.Unreachable
-        }
+        val pay =
+            try {
+                wallet.client.servicePayRequest(host)
+            } catch (e: IOException) {
+                return InvoiceRequest.Unreachable
+            } catch (e: ProtocolViolation) {
+                return InvoiceRequest.Unreachable
+            }
         val expected = pay.fee?.noteValue(amountMsat) ?: amountMsat
         if (amountMsat < pay.pay.minSendable || amountMsat > pay.pay.maxSendable || expected <= 0) {
             return InvoiceRequest.OutOfRange(pay.pay.minSendable, pay.pay.maxSendable)
@@ -100,13 +108,29 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
                 is MintInvoice.Ok -> {
                     val id = UUID.randomUUID().toString()
                     val now = wallet.now()
-                    wallet.store.putJournal(JournalEntry(id, accountId, OperationType.Mint, host, mint.withdrawUrl, emptyList(), emptyList(),
-                        listOf(reserved.ref), fetched.invoice, JournalStatus.Prepared, null, now, now))
+                    wallet.store.putJournal(
+                        JournalEntry(
+                            id,
+                            accountId,
+                            OperationType.Mint,
+                            host,
+                            mint.withdrawUrl,
+                            emptyList(),
+                            emptyList(),
+                            listOf(reserved.ref),
+                            fetched.invoice,
+                            JournalStatus.Prepared,
+                            null,
+                            now,
+                            now,
+                        )
+                    )
                     return InvoiceRequest.Ready(id, fetched.invoice, amountMsat, expected, fetched.expiresAtMillis)
                 }
                 MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, host, NotePurpose.Wallet)
                 MintInvoice.Unreachable -> return InvoiceRequest.Unreachable
-                MintInvoice.Refused, MintInvoice.Mismatch -> return InvoiceRequest.Refused
+                MintInvoice.Refused,
+                MintInvoice.Mismatch -> return InvoiceRequest.Refused
             }
         }
         return InvoiceRequest.Refused

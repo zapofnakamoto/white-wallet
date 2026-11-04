@@ -31,6 +31,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.brand.NoteStrategy
+import whitewallet.core.designsystem.WalletFilterChip
+import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletRadioButton
+import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.AppDefaults
@@ -38,11 +43,6 @@ import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
-import whitewallet.core.designsystem.WalletFilterChip
-import whitewallet.core.designsystem.WalletLinearProgress
-import whitewallet.core.designsystem.WalletListItem
-import whitewallet.core.designsystem.WalletRadioButton
-import whitewallet.core.designsystem.WalletSwitch
 
 data class NotesSettingsState(
     /** The account's note strategy; null until loaded. */
@@ -72,13 +72,27 @@ class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet, pri
     private val home = combine(wallet.homeHost, wallet.maintenanceNoticesChoice.map(defaults.maintenanceNotices::active), ::Pair)
 
     val state: StateFlow<NotesSettingsState> =
-        combine(wallet.noteStrategy, wallet.autoRotate, wallet.lastPolicyRun, applying, combine(collect, home, ::Pair)) { strategy, rotate, run, busy, (collect, home) ->
-            NotesSettingsState(
-                noteStrategy = strategy, strategies = wallet.noteStrategies, autoRotate = rotate, lastPolicyRun = run, applyingPolicy = busy,
-                collectOffered = wallet.collectDefaults.offered, collectAtHome = collect.first, collectFeeCap = collect.second, homeHost = home.first,
-                noticesOffered = defaults.maintenanceNotices.offered, notices = home.second,
-            )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesSettingsState())
+        combine(wallet.noteStrategy, wallet.autoRotate, wallet.lastPolicyRun, applying, combine(collect, home, ::Pair)) {
+                strategy,
+                rotate,
+                run,
+                busy,
+                (collect, home) ->
+                NotesSettingsState(
+                    noteStrategy = strategy,
+                    strategies = wallet.noteStrategies,
+                    autoRotate = rotate,
+                    lastPolicyRun = run,
+                    applyingPolicy = busy,
+                    collectOffered = wallet.collectDefaults.offered,
+                    collectAtHome = collect.first,
+                    collectFeeCap = collect.second,
+                    homeHost = home.first,
+                    noticesOffered = defaults.maintenanceNotices.offered,
+                    notices = home.second,
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesSettingsState())
 
     fun setNoteStrategy(strategy: NoteStrategy) = applyPolicy { wallet.setNoteStrategy(strategy.id) }
 
@@ -109,7 +123,10 @@ class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet, pri
 fun NotesSettingsRoute(onBack: () -> Unit, viewModel: NotesSettingsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     NotesSettingsScreen(
-        state, onBack, viewModel::setNoteStrategy, viewModel::setAutoRotate,
+        state,
+        onBack,
+        viewModel::setNoteStrategy,
+        viewModel::setAutoRotate,
         CollectActions(viewModel::setCollectAtHome, viewModel::setCollectFeeCap),
         viewModel::setNotices,
     )
@@ -121,8 +138,8 @@ class CollectActions(
 )
 
 /**
- * Note settings: the note strategy, collecting at the home mint, auto-rotate, whether to be told what the wallet did by
- * itself, and what the last automatic run did.
+ * Note settings: the note strategy, collecting at the home mint, auto-rotate, whether to be told what the wallet did by itself, and what
+ * the last automatic run did.
  */
 @Composable
 fun NotesSettingsScreen(
@@ -162,7 +179,13 @@ private fun NotePolicySettings(state: NotesSettingsState, onNoteStrategy: (NoteS
         )
         state.strategies.forEach { strategy ->
             WalletListItem(
-                leadingContent = { WalletRadioButton(selected = current.id == strategy.id, onClick = { onNoteStrategy(strategy) }, enabled = !state.applyingPolicy) },
+                leadingContent = {
+                    WalletRadioButton(
+                        selected = current.id == strategy.id,
+                        onClick = { onNoteStrategy(strategy) },
+                        enabled = !state.applyingPolicy,
+                    )
+                },
                 headlineContent = { Text(stringResource(strategy.title)) },
                 supportingContent = { Text(stringResource(strategy.description)) },
                 modifier = Modifier.clickable(enabled = !state.applyingPolicy) { onNoteStrategy(strategy) },
@@ -173,10 +196,17 @@ private fun NotePolicySettings(state: NotesSettingsState, onNoteStrategy: (NoteS
     WalletListItem(
         headlineContent = { Text(stringResource(R.string.settings_auto_renew)) },
         supportingContent = {
-            Text(if (included) stringResource(R.string.settings_auto_renew_included, stringResource(current.title)) else stringResource(R.string.settings_auto_renew_hint))
+            Text(
+                if (included) stringResource(R.string.settings_auto_renew_included, stringResource(current.title))
+                else stringResource(R.string.settings_auto_renew_hint)
+            )
         },
         trailingContent = {
-            WalletSwitch(checked = included || state.autoRotate, onCheckedChange = onAutoRotate, enabled = !included && !state.applyingPolicy)
+            WalletSwitch(
+                checked = included || state.autoRotate,
+                onCheckedChange = onAutoRotate,
+                enabled = !included && !state.applyingPolicy,
+            )
         },
     )
 }
@@ -190,7 +220,9 @@ private fun CollectSettings(state: NotesSettingsState, actions: CollectActions) 
     WalletListItem(
         headlineContent = { Text(stringResource(R.string.notes_collect_title, home)) },
         supportingContent = { Text(stringResource(R.string.notes_collect_hint)) },
-        trailingContent = { WalletSwitch(checked = state.collectAtHome, onCheckedChange = actions.onCollect, enabled = !state.applyingPolicy) },
+        trailingContent = {
+            WalletSwitch(checked = state.collectAtHome, onCheckedChange = actions.onCollect, enabled = !state.applyingPolicy)
+        },
     )
     if (state.collectAtHome) {
         Column(Modifier.padding(horizontal = 16.dp)) {
@@ -230,14 +262,25 @@ private fun LastRun(state: NotesSettingsState) {
         }
         run.notCollected.forEach { n ->
             when (val reason = n.reason) {
-                is NotCollected.Reason.FeeTooHigh -> Text(
-                    stringResource(R.string.notes_collect_fee_too_high, formatAmount(n.amountMsat), n.host, formatAmount(reason.feeMsat), reason.capPercent),
-                    style = small,
-                )
-                is NotCollected.Reason.TooSmall -> Text(stringResource(R.string.notes_collect_too_small, formatAmount(n.amountMsat), n.host), style = small)
-                is NotCollected.Reason.Failed -> Text(stringResource(R.string.notes_collect_failed, formatAmount(n.amountMsat), n.host), style = small)
+                is NotCollected.Reason.FeeTooHigh ->
+                    Text(
+                        stringResource(
+                            R.string.notes_collect_fee_too_high,
+                            formatAmount(n.amountMsat),
+                            n.host,
+                            formatAmount(reason.feeMsat),
+                            reason.capPercent,
+                        ),
+                        style = small,
+                    )
+                is NotCollected.Reason.TooSmall ->
+                    Text(stringResource(R.string.notes_collect_too_small, formatAmount(n.amountMsat), n.host), style = small)
+                is NotCollected.Reason.Failed ->
+                    Text(stringResource(R.string.notes_collect_failed, formatAmount(n.amountMsat), n.host), style = small)
             }
         }
-        run.stoppedEarly?.let { Text(stringResource(R.string.settings_policy_stopped, it), style = small, color = MaterialTheme.colorScheme.error) }
+        run.stoppedEarly?.let {
+            Text(stringResource(R.string.settings_policy_stopped, it), style = small, color = MaterialTheme.colorScheme.error)
+        }
     }
 }
