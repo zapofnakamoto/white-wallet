@@ -86,8 +86,8 @@ import whitewallet.feature.settings.MoneyMoveMode
 import whitewallet.feature.settings.MoneyMoveRoute
 import whitewallet.feature.settings.NotesSettingsRoute
 import whitewallet.feature.settings.RequestLogRoute
-import whitewallet.feature.settings.SearchDestination
 import whitewallet.feature.settings.SecuritySettingsRoute
+import whitewallet.feature.settings.SettingsDestination
 import whitewallet.feature.settings.SettingsRoute
 import whitewallet.feature.settings.SettingsTarget
 
@@ -415,14 +415,13 @@ private fun WalletApp(
         composable(Routes.SETTINGS) {
             SettingsRoute(
                 versionName = BuildConfig.VERSION_NAME,
-                developerPages = DeveloperPages.all,
                 brandPages = brand.on(BrandScreenEntry.Settings).map { BrandPage(it.title, Routes.brand(it.id), it.icon) },
                 onBack = { nav.popBackStack() },
                 onNavigate = { destination ->
                     nav.navigate(
                         when (destination) {
-                            is SearchDestination.Route -> destination.route
-                            is SearchDestination.Page -> settingsRoute(destination.target)
+                            is SettingsDestination.Route -> destination.route
+                            is SettingsDestination.Page -> settingsRoute(destination.target)
                         }
                     )
                 },

@@ -119,9 +119,9 @@ class BrandDirectoryTest(unittest.TestCase):
 
     def test_only_brand_terms_name_the_mint_or_the_note(self):
         # A new string that needs either word goes into its module's brand-term block, so a brand's list stays complete.
-        # Developer options and search keywords may name them anyway.
+        # Developer options may name them anyway.
         words = {"values": r"\b(mints?|notes?)\b", "values-de": r"\b(Mint|Mints|Schein\w*)\b"}
-        allowed = re.compile(r"^(keys_|regtest_|search_kw_|logs_hint$|onboarding_mint_local$)")
+        allowed = re.compile(r"^(keys_|regtest_|logs_hint$|onboarding_mint_local$)")
         terms = {name for name, _ in nb.brand_terms("values")}
         for qualifier, word in words.items():
             for strings in sorted(nb.ROOT.glob(f"feature/*/src/main/res/{qualifier}/strings.xml")):

@@ -1,10 +1,8 @@
 package whitewallet.feature.settings
 
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import kotlin.test.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -23,8 +21,8 @@ class SettingsHubTest {
     fun theHubOnlyLinksToPages() {
         val opened = mutableListOf<SettingsTarget>()
         compose.setContent {
-            SettingsScreen(SettingsState(accountName = "Main", profile = profile, backupVerified = true), "1.0", emptyList(), {}) {
-                opened += (it as SearchDestination.Page).target
+            SettingsScreen(SettingsState(accountName = "Main", profile = profile, backupVerified = true), "1.0", {}) {
+                opened += (it as SettingsDestination.Page).target
             }
         }
         compose.onNodeWithText(text(R.string.settings_backup_now)).assertDoesNotExist()
@@ -39,8 +37,8 @@ class SettingsHubTest {
     fun aMissingBackupIsWarnedAboutOnTop() {
         val opened = mutableListOf<SettingsTarget>()
         compose.setContent {
-            SettingsScreen(SettingsState(accountName = "Main", profile = profile), "1.0", emptyList(), {}) {
-                opened += (it as SearchDestination.Page).target
+            SettingsScreen(SettingsState(accountName = "Main", profile = profile), "1.0", {}) {
+                opened += (it as SettingsDestination.Page).target
             }
         }
         compose.onNodeWithText(text(R.string.settings_backup_now)).performClick()
@@ -48,7 +46,7 @@ class SettingsHubTest {
     }
 
     @Test
-    fun hiddenPagesHaveNoRowAndNoSearchResult() {
+    fun hiddenPagesHaveNoRowOnTheAccountPage() {
         val hidden = setOf(SettingsTarget.Mints, SettingsTarget.AccountMints, SettingsTarget.Notes, SettingsTarget.NoteList)
         val state =
             SettingsState(accountName = "Main", profile = profile, backupVerified = true, homeHost = "mint.example", hidden = hidden)
@@ -60,7 +58,7 @@ class SettingsHubTest {
     }
 
     @Test
-    fun hiddenPagesAreLeftOutOfTheHubAndSearch() {
+    fun hiddenPagesAreLeftOutOfTheHub() {
         val state =
             SettingsState(
                 accountName = "Main",
@@ -68,12 +66,10 @@ class SettingsHubTest {
                 backupVerified = true,
                 hidden = setOf(SettingsTarget.Mints, SettingsTarget.Notes, SettingsTarget.Display, SettingsTarget.Developer),
             )
-        compose.setContent { SettingsScreen(state, "1.0", emptyList(), {}) {} }
+        compose.setContent { SettingsScreen(state, "1.0", {}) {} }
         compose.onNodeWithText(text(R.string.settings_mints)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_developer)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_amounts)).assertDoesNotExist()
-        compose.onNode(hasSetTextAction()).performTextInput("trusted")
-        compose.onNodeWithText(text(R.string.settings_mints)).assertDoesNotExist()
     }
 
     @Test

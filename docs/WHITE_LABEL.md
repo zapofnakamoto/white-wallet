@@ -66,7 +66,7 @@ Three keys decide it. At setup and restore, the mint picker shows only when ther
 
 ### Naming the custodian and its notes, in any language
 
-The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. A brand made with `just new-brand` gets all of them, in every language, as a commented-out override in its own strings. Developer options and search keywords are not brand terms.
+The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. A brand made with `just new-brand` gets all of them, in every language, as a commented-out override in its own strings. Developer options are not brand terms.
 
 #### The mint
 
@@ -99,7 +99,6 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `settings_strategy_single_hint` | Combine all notes into one per mint. Free. |
 | `mint_title` | Mint |
 | `about_body` | A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device. |
-| `notes_collect_search` | Move everything to the home mint |
 | `mints_intro` | Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted. |
 | `mints_add_field` | Mint, e.g. example.com |
 | `notice_moved_home` | Moved %1$s to your home mint |

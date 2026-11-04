@@ -58,8 +58,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   New strings: `claim_own_shared` and `claim_own_offline` (brand terms), `claim_take_back`, `claim_taken_back`,
   `claim_take_back_failed`.
 - The auto-renew setting says what it renews: notes paid to your Lightning address. Notes on wallet and change keys
-  were never renewed and still aren't; tests now prove it. Strings `settings_auto_renew`, `settings_auto_renew_hint`
-  and `search_kw_auto_renew` say it differently; a brand that overrode them should update its wording.
+  were never renewed and still aren't; tests now prove it. Strings `settings_auto_renew` and
+  `settings_auto_renew_hint` say it differently; a brand that overrode them should update its wording.
+- Settings has no search any more: the hub's few pages are quicker to scan, and every setting needed keywords in
+  every language that brands would have had to override to match their own words. Strings `settings_search`,
+  `settings_search_clear`, `settings_search_empty`, `notes_collect_search` and all `search_kw_*` are gone (a brand
+  can drop its overrides). Code: `SearchDestination` is now `SettingsDestination`, and `SettingsRoute` and
+  `SettingsScreen` no longer take `developerPages`.
 - Code is formatted by ktfmt (kotlinlang style, 140 wide) through Spotless: `just format` formats, and `just check`
   and CI fail on code that isn't formatted. A brand's code in `brand/code` is formatted with the rest.
 - Brand API: `WalletEvent.NoteRedeemed` is now `WalletEvent.NoteSpent`, and `NoteStatus.Redeemed` is now
