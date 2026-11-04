@@ -1,6 +1,6 @@
 # Local regtest stack for developing the wallet: bitcoind, two LND nodes and the reference LNURLcash mint.
 # Use ./regtest.sh rather than docker compose directly; it also bootstraps the chain and the channel.
-# Only the mints (127.0.0.1:8111-8113) and the faucet (8114) are exposed. Everything here is regtest: no real funds.
+# Only the mints (127.0.0.1:8111-8113, 8115) and the faucet (8114) are exposed. Everything here is regtest: no real funds.
 name: whitewallet-regtest
 
 x-lnd: &lnd
@@ -180,6 +180,44 @@ services:
       - user-lnd:/user-lnd:ro
       - mint3:/data
 
+  # A fourth mint that starts on the legacy protocol (LUD-25/26 draft 2f17578, lnurl-mint 0.12.2) and is upgraded in
+  # place: `regtest.sh upgrade-mint4` swaps its image for MINT4_UPGRADE (regtest.sh), keeping its database, as a
+  # production mint upgrades. The version it runs is kept in .mint4-version (git-ignored), so `up` never downgrades it.
+  mint4:
+    image: lnurlcash/lnurl-mint:${MINT4_VERSION:-0.12.2}
+    restart: unless-stopped
+    depends_on: [mint-lnd]
+    # LND writes its macaroon readable by root only; this dev stack runs the mint as root to read the shared volume.
+    user: root
+    ports:
+      - "127.0.0.1:8115:8115"
+    environment:
+      BASE_URL: http://localhost:8115
+      USERNAME: mint
+      DATABASE_PATH: /data/mint4.db
+      FUNDINGSOURCE_BACKEND: lnd
+      FUNDINGSOURCE_URL: https://mint-lnd:8080
+      FUNDINGSOURCE_CERT_PATH: /lnd/tls.cert
+      MIN_SENDABLE_MSAT: "1000"
+      MIN_MINT_MSAT: "1000"
+      BASE_FEE_MSAT: "1000"
+      FEE_PERCENT_PPM: "0"
+      USERNAME_REGISTRATION_ENABLED: "true"
+      TITLE: White Wallet regtest mint 4
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        macaroon=/lnd/data/chain/bitcoin/regtest/admin.macaroon
+        echo "waiting for $$macaroon"
+        until [ -f "$$macaroon" ] && [ -f /lnd/tls.cert ]; do sleep 1; done
+        export FUNDINGSOURCE_MACAROON=$$(python -c 'import sys; print(open(sys.argv[1], "rb").read().hex())' "$$macaroon")
+        echo "waiting for mint-lnd to answer"
+        until python -c 'import os, ssl, urllib.request; urllib.request.urlopen(urllib.request.Request("https://mint-lnd:8080/v1/getinfo", headers={"Grpc-Metadata-macaroon": os.environ["FUNDINGSOURCE_MACAROON"]}), context=ssl.create_default_context(cafile="/lnd/tls.cert"), timeout=5)' 2>/dev/null; do sleep 2; done
+        exec uvicorn lnurl_mint.server:app --host 0.0.0.0 --port 8115
+    volumes:
+      - mint-lnd:/lnd:ro
+      - mint4:/data
+
   # Pays an address or invoice from user-lnd on request (faucet.py), so a debug build can receive without a terminal.
   faucet:
     image: lnurlcash/lnurl-mint:0.12.2
@@ -202,3 +240,4 @@ volumes:
   mint:
   mint2:
   mint3:
+  mint4:

@@ -28,7 +28,7 @@ import whitewallet.testkit.strOrNull
 class ProtocolVectorsTest {
     @Test
     fun `mutation responses are classified`() {
-        for (c in Vectors.conformance("responses").objects("cases")) {
+        for (c in Vectors.legacyConformance("responses").objects("cases")) {
             val type =
                 when (c.str("op")) {
                     "split" -> MutationType.Split
@@ -72,7 +72,7 @@ class ProtocolVectorsTest {
 
     @Test
     fun `minting pay requests`() {
-        val v = Vectors.conformance("pay-request")
+        val v = Vectors.legacyConformance("pay-request")
         for (c in v.objects("accepted")) {
             val response = LnurlResponse.parse(c.obj("body"))
             val expectedLink = c.strOrNull("withdrawLink")
@@ -95,7 +95,7 @@ class ProtocolVectorsTest {
 
     @Test
     fun `note info`() {
-        val v = Vectors.conformance("withdraw-info")
+        val v = Vectors.legacyConformance("withdraw-info")
         val queried = "a".repeat(64)
         for (c in v.objects("accepted")) {
             val info = NoteInfo.from(LnurlResponse.parse(c.obj("body")), queried)
@@ -124,7 +124,7 @@ class ProtocolVectorsTest {
 
     @Test
     fun `note links`() {
-        val bearer = Vectors.spec("25-vectors.json").obj("bearer_note")
+        val bearer = Vectors.legacySpec("25-vectors.json").obj("bearer_note")
         val link = assertNotNull(NoteLink.parse(bearer.str("note_url")))
         assertEquals("https://mint.example/w", link.withdrawUrl)
         assertIs<Spend.Bearer>(link.spend)
@@ -132,10 +132,10 @@ class ProtocolVectorsTest {
         assertEquals(bearer.str("note_url"), link.encode())
         assertEquals("mint.example", link.host)
 
-        val ck1 = Vectors.spec("25-vectors.json").obj("key_path_spend").str("ck1")
+        val ck1 = Vectors.legacySpec("25-vectors.json").obj("key_path_spend").str("ck1")
         assertIs<Spend.KeyPath>(assertNotNull(NoteLink.parse("lightning:lnurlw://localhost:3338/w?k1=$ck1")).spend)
 
-        for (c in Vectors.conformance("input-resolution").objects("note")) {
+        for (c in Vectors.legacyConformance("input-resolution").objects("note")) {
             val parsed = NoteLink.parse(c.str("input"))
             if (c.strOrNull("expect") == null) assertNull(parsed, c.str("input")) else assertNotNull(parsed, c.str("input"))
         }

@@ -22,8 +22,8 @@ import whitewallet.testkit.str
 
 /** LUD-25/26 vectors published in the spec PR itself. */
 class SpecVectorsTest {
-    private val lud25 = Vectors.spec("25-vectors.json")
-    private val lud26 = Vectors.spec("26-vectors.json")
+    private val lud25 = Vectors.legacySpec("25-vectors.json")
+    private val lud26 = Vectors.legacySpec("26-vectors.json")
 
     @Test
     fun `key path spend`() {

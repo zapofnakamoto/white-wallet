@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prepares the LNURLcash conformance suite in .conformance/ (git-ignored) at the commit pinned in protocol/SPEC.md:
+# Prepares the LNURLcash conformance suite in .conformance/ (git-ignored) at the mock mint commit pinned in protocol/SPEC.md:
 # clones it, checks the commit out and runs npm ci, each only when needed. The mock-mint tests run against it; the
 # build finds it there (build-logic, whitewallet.jvm-library). Needs git, node and npm; the network only when the
 # pinned commit or its packages aren't there yet. `just test` and CI run this.
@@ -8,8 +8,8 @@ cd "$(dirname "$0")/.."
 
 repo=https://github.com/lnurlcash/lnurlcash-conformance
 dir=.conformance
-pin="$(grep -F '[lnurlcash-conformance]' protocol/SPEC.md | grep -oE '\b[0-9a-f]{40}\b' | head -1)"
-[[ -n "$pin" ]] || { echo "No lnurlcash-conformance commit in protocol/SPEC.md." >&2; exit 1; }
+pin="$(grep -F '| Mock mint (' protocol/SPEC.md | grep -oE '\b[0-9a-f]{40}\b' | head -1)"
+[[ -n "$pin" ]] || { echo "No mock mint commit in protocol/SPEC.md." >&2; exit 1; }
 
 [[ -d "$dir/.git" ]] || git clone --quiet "$repo" "$dir"
 if [[ "$(git -C "$dir" rev-parse HEAD)" != "$pin" ]]; then

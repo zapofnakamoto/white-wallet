@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local regtest environment for White Wallet: bitcoind, two LND nodes and three reference LNURLcash mints.
+# Local regtest environment for White Wallet: bitcoind, two LND nodes and four reference LNURLcash mints.
 # Everything is regtest: no real funds. See README.md.
 set -euo pipefail
 
@@ -12,6 +12,14 @@ MINT2_PORT=8112
 MINT3_URL="http://localhost:8113"
 MINT3_PORT=8113
 FAUCET_PORT=8114
+MINT4_URL="http://localhost:8115"
+MINT4_PORT=8115
+# mint4 starts on the legacy protocol and `upgrade-mint4` moves it to this image, keeping its database.
+MINT4_LEGACY=0.12.2
+MINT4_UPGRADE=0.13.1
+MINT4_VERSION_FILE="$DIR/.mint4-version"
+MINT4_VERSION="$(cat "$MINT4_VERSION_FILE" 2>/dev/null || echo "$MINT4_LEGACY")"
+export MINT4_VERSION
 ADB="${ADB:-$(command -v adb || echo "$HOME/Android/Sdk/platform-tools/adb")}"
 
 log() { printf '\033[1m==>\033[0m %s\n' "$*" >&2; }
@@ -65,6 +73,7 @@ adb_reverse() {
         "$ADB" reverse "tcp:$MINT_PORT" "tcp:$MINT_PORT" >/dev/null && log "adb reverse tcp:$MINT_PORT -> this machine (device: $("$ADB" get-serialno))"
         "$ADB" reverse "tcp:$MINT2_PORT" "tcp:$MINT2_PORT" >/dev/null && log "adb reverse tcp:$MINT2_PORT (second mint) -> this machine"
         "$ADB" reverse "tcp:$MINT3_PORT" "tcp:$MINT3_PORT" >/dev/null && log "adb reverse tcp:$MINT3_PORT (third mint) -> this machine"
+        "$ADB" reverse "tcp:$MINT4_PORT" "tcp:$MINT4_PORT" >/dev/null && log "adb reverse tcp:$MINT4_PORT (fourth mint) -> this machine"
         "$ADB" reverse "tcp:$FAUCET_PORT" "tcp:$FAUCET_PORT" >/dev/null && log "adb reverse tcp:$FAUCET_PORT (faucet) -> this machine"
     else
         log "no Android device or emulator connected; run '$0 connect' once one is"
@@ -136,6 +145,7 @@ cmd_up() {
     log "waiting for the mint"
     wait_for "the mint at $MINT_URL" 120 mint_reachable
     wait_for "the third mint at $MINT3_URL" 120 mint_key "$MINT3_URL"
+    wait_for "the fourth mint at $MINT4_URL" 120 mint_reachable "$MINT4_URL"
     adb_reverse
     cmd_summary
 }
@@ -330,6 +340,26 @@ cmd_rotate_mint3() {
     echo "$key"
 }
 
+# Upgrades mint4 in place to MINT4_UPGRADE, as a production mint upgrades: same database, notes and addresses.
+cmd_upgrade_mint4() {
+    [[ "$MINT4_VERSION" == "$MINT4_UPGRADE" ]] && { log "mint4 already runs $MINT4_UPGRADE"; return; }
+    log "upgrading mint4 from $MINT4_VERSION to $MINT4_UPGRADE, keeping its database"
+    echo "$MINT4_UPGRADE" >"$MINT4_VERSION_FILE"
+    MINT4_VERSION="$MINT4_UPGRADE" "${COMPOSE[@]}" up -d mint4
+    wait_for "the fourth mint at $MINT4_URL" 120 mint_reachable "$MINT4_URL"
+    log "mint4 runs $MINT4_UPGRADE"
+}
+
+# Puts mint4 back on the legacy protocol with an empty database.
+cmd_reset_mint4() {
+    log "resetting mint4 to $MINT4_LEGACY with an empty database"
+    rm -f "$MINT4_VERSION_FILE"
+    "${COMPOSE[@]}" rm -sf mint4 >/dev/null
+    docker volume rm -f whitewallet-regtest_mint4 >/dev/null
+    MINT4_VERSION="$MINT4_LEGACY" "${COMPOSE[@]}" up -d mint4
+    wait_for "the fourth mint at $MINT4_URL" 120 mint_reachable "$MINT4_URL"
+}
+
 cmd_invoice() {
     local sats="${1:?usage: $0 invoice <sats> [memo]}" memo="${2:-regtest}"
     lncli_user addinvoice --amt "$sats" --memo "$memo" | jq -r '.payment_request'
@@ -343,6 +373,7 @@ cmd_status() {
     if mint_reachable; then echo "mint:          reachable at $MINT_URL"; else echo "mint:          NOT reachable at $MINT_URL"; fi
     if curl -sf "$MINT2_URL/.well-known/lnurlp/_" | jq -e '.withdrawLink' >/dev/null; then echo "mint2:         reachable at $MINT2_URL (on user-lnd)"; else echo "mint2:         NOT reachable at $MINT2_URL"; fi
     if mint_reachable "$MINT3_URL"; then echo "mint3:         reachable at $MINT3_URL (key $(mint_key "$MINT3_URL" || echo '?'))"; else echo "mint3:         NOT reachable at $MINT3_URL"; fi
+    if mint_reachable "$MINT4_URL"; then echo "mint4:         reachable at $MINT4_URL (lnurl-mint $MINT4_VERSION)"; else echo "mint4:         NOT reachable at $MINT4_URL"; fi
 }
 
 usage() {
@@ -359,8 +390,10 @@ usage: $0 <command>
                            --bech32 prints it as an uppercase LNURL1... instead of lnurlw://;
                            --type also types it into the focused field on the device
   rotate-mint3             give the third mint (localhost:8113) a new signing key: move it to the other LND node
+  upgrade-mint4            upgrade the fourth mint (localhost:8115) in place from lnurl-mint $MINT4_LEGACY to $MINT4_UPGRADE
+  reset-mint4              put the fourth mint back on $MINT4_LEGACY with an empty database
   mine [n]                 mine n blocks (default 1)
-  connect                  adb reverse tcp:8111 and tcp:8112 again (after replugging a device)
+  connect                  adb reverse the mint and faucet ports again (after replugging a device)
   status                   containers, height, balances, mint reachability
   logs [service]           follow logs (bitcoind, mint-lnd, user-lnd, mint)
   lncli-user ... / lncli-mint ...   run lncli on a node
@@ -374,6 +407,8 @@ case "${1:-}" in
     pay) shift; cmd_pay "$@" ;;
     invoice) shift; cmd_invoice "$@" ;;
     rotate-mint3) cmd_rotate_mint3 ;;
+    upgrade-mint4) cmd_upgrade_mint4 ;;
+    reset-mint4) cmd_reset_mint4 ;;
     note) shift; cmd_note "$@" ;;
     mine) mine "${2:-1}"; log "mined ${2:-1} block(s); height $(btc getblockcount)" ;;
     connect) adb_reverse ;;
@@ -382,6 +417,6 @@ case "${1:-}" in
     lncli-user) shift; lncli_user "$@" ;;
     lncli-mint) shift; lncli_mint "$@" ;;
     down) "${COMPOSE[@]}" stop ;;
-    reset) "${COMPOSE[@]}" down -v ;;
+    reset) "${COMPOSE[@]}" down -v; rm -f "$MINT4_VERSION_FILE" ;;
     *) usage; [[ -z "${1:-}" ]] || exit 1 ;;
 esac

@@ -22,7 +22,7 @@ import whitewallet.testkit.str
 
 /** lnurlcash-conformance `part2.json`: key-path notes, certificates, address proofs and encodings. */
 class ConformancePart2Test {
-    private val v = Vectors.conformance("part2")
+    private val v = Vectors.legacyConformance("part2")
 
     @Test
     fun branches() {

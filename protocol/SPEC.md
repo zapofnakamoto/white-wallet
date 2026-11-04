@@ -6,10 +6,15 @@ The `protocol/*` modules implement LNURLcash, which is still a **draft**. This f
 
 | Source | Commit | Vendored at |
 |---|---|---|
-| LUD-25/26 draft, [lnurl/luds#301](https://github.com/lnurl/luds/pull/301) | `2f17578c3f4d29ec337a0fdbb5a0e480eb309050` (PR head on 2026-10-23) | `lnurlcash-testkit/src/main/resources/vectors/spec/` (`25.md`, `26.md`, `25-vectors.json`, `26-vectors.json`) |
-| [lnurlcash-conformance](https://github.com/lnurlcash/lnurlcash-conformance) (MIT) | `82295e59f92d3eb1f7684560ad118a5e7c4dcb4a` | `lnurlcash-testkit/src/main/resources/vectors/conformance/` |
+| LUD-25/26 draft, [lnurl/luds#301](https://github.com/lnurl/luds/pull/301) | `92e430f686ee5bed6010282a185aa31fe4f76dd4` (PR head on 2026-11-05) | `lnurlcash-testkit/src/main/resources/vectors/spec/` (`25.md`, `26.md`, `25-vectors.json`, `26-vectors.json`) |
+| [lnurlcash-conformance](https://github.com/lnurlcash/lnurlcash-conformance) (MIT) | `571833bf992b97107c14259770b077bc2a4161a0` (v0.16.2) | `lnurlcash-testkit/src/main/resources/vectors/conformance/` |
+| Legacy: LUD-25/26 draft `2f17578` | `2f17578c3f4d29ec337a0fdbb5a0e480eb309050` (PR head on 2026-10-23) | `vectors/spec-2f17578/` |
+| Legacy: lnurlcash-conformance for draft `2f17578` | `82295e59f92d3eb1f7684560ad118a5e7c4dcb4a` | `vectors/conformance-2f17578/` |
+| Mock mint (`dev/conformance.sh` checks it out in `.conformance/`) | `82295e59f92d3eb1f7684560ad118a5e7c4dcb4a` | Still the legacy one: it moves to the conformance commit above once the client speaks `92e430f` |
 
-The conformance `spec-vectors.json` was transcribed from luds `50d740a`. Every value in the PR-head vectors also appears in it, so the two agree.
+The `25-vectors.json` and `26-vectors.json` at `92e430f` are identical to the conformance suite's `tools/luds/` copies at `571833b`.
+
+**Migration in progress (branch `lud26-92e430f`).** The wallet still implements the legacy draft `2f17578`, and its tests read the `*-2f17578` vectors. It moves to `92e430f` milestone by milestone (see the commits), keeping the legacy draft for mints that still run it (`mint.lnurlcash.com` on 2026-11-05) and for notes and addresses made under it.
 
 ## Tested against a real mint
 

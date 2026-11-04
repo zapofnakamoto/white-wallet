@@ -15,11 +15,18 @@ import kotlinx.serialization.json.long
  *
  * - `spec/`: the LUD-25/26 vectors published in the PR itself (authoritative).
  * - `conformance/`: lnurlcash-conformance vectors (MIT); some files describe superseded drafts.
+ * - `spec-2f17578/`, `conformance-2f17578/`: the same for the legacy draft 2f17578, for the legacy tests.
  */
 public object Vectors {
     public fun spec(name: String): JsonObject = load("vectors/spec/$name")
 
     public fun conformance(name: String): JsonObject = load("vectors/conformance/$name.json")
+
+    /** Legacy: LUD-25/26 draft 2f17578. */
+    public fun legacySpec(name: String): JsonObject = load("vectors/spec-2f17578/$name")
+
+    /** Legacy: the conformance vectors that matched LUD-25/26 draft 2f17578. */
+    public fun legacyConformance(name: String): JsonObject = load("vectors/conformance-2f17578/$name.json")
 
     private fun load(path: String): JsonObject {
         val stream = Vectors::class.java.classLoader.getResourceAsStream(path) ?: error("missing test vector resource $path")
