@@ -45,6 +45,8 @@ data class HomeChanged<R>(val result: R, val moved: List<MoneyMoved> = emptyList
  * one, over Lightning ([move], see [NoteManager.move]).
  */
 internal class MoneyMove(private val wallet: Wallet) {
+    private val manager = NoteManager(wallet)
+
     suspend fun preview(accountId: String, toHost: String, fromHost: String?, feeCapPercent: Int): MovePreview {
         val lines =
             movable(accountId)
@@ -69,14 +71,14 @@ internal class MoneyMove(private val wallet: Wallet) {
         val notes = movable(accountId).filter { it.host == line.host }
         if (notes.isEmpty()) return@map MoneyMoved(line.host, line.amountMsat, MintMoveResult.Failed(NoteProblem.NotFound))
         val result =
-            NoteManager(wallet).move(accountId, notes.map { it.id }, toHost, automatic = false) { quote, notesMsat ->
+            manager.move(accountId, notes.map { it.id }, toHost, automatic = false) { quote, notesMsat ->
                 notesMsat - quote.expectedMsat <= confirmed.feeMsat
             }
         MoneyMoved(line.host, notes.sumOf { it.amountMsat }, result)
     }
 
     private suspend fun quote(ids: List<String>, toHost: String, total: Long): MovePreview.Quote =
-        when (val q = NoteManager(wallet).quoteMove(ids, toHost)) {
+        when (val q = manager.quoteMove(ids, toHost)) {
             is MintMoveQuote.Ready -> MovePreview.Quote.Ok(q.expectedMsat, total - q.expectedMsat)
             is MintMoveQuote.Invalid ->
                 if (q.problem == NoteProblem.BelowMinimum) MovePreview.Quote.TooSmall(q.limitMsat)

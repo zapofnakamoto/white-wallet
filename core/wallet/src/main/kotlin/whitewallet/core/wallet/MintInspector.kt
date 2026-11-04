@@ -37,6 +37,8 @@ data class MintDetails(
 }
 
 internal class MintInspector(private val wallet: Wallet) {
+    private val onboarding = Onboarding(wallet)
+
     suspend fun details(host: String): MintDetails {
         val accountId = wallet.activeId()
         val h =
@@ -63,7 +65,7 @@ internal class MintInspector(private val wallet: Wallet) {
                     MintDetails.Reachability.KeyChanged
                 } else {
                     // Stores fresh fees and limits (and pins the key if it wasn't yet).
-                    if (Onboarding(wallet).connectMint(h) is ConnectResult.Connected) MintDetails.Reachability.Reachable
+                    if (onboarding.connectMint(h) is ConnectResult.Connected) MintDetails.Reachability.Reachable
                     else MintDetails.Reachability.Invalid
                 }
             } catch (e: ProtocolViolation) {

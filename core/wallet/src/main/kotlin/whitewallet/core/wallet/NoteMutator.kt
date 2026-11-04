@@ -61,6 +61,8 @@ internal sealed interface MutationResult {
  */
 internal class NoteMutator(private val wallet: Wallet) {
     private val guard = IndexGuard(wallet)
+    private val unknownNotes = UnknownNotes(wallet)
+    private val reconciler = Reconciler(wallet)
 
     /**
      * Journals and sends one mutation of [fromId]'s [inputs], then records its outputs (in [outputs] order): a rotate or merge into one
@@ -103,7 +105,7 @@ internal class NoteMutator(private val wallet: Wallet) {
 
     /** A refusal that may be about some of [inputs]: those the mint doesn't know (or burned) are set aside. */
     private suspend fun refused(inputs: List<Note>, kind: RejectionKind, reason: String?): MutationResult.Refused =
-        MutationResult.Refused(kind, reason, UnknownNotes(wallet).sortOut(inputs))
+        MutationResult.Refused(kind, reason, unknownNotes.sortOut(inputs))
 
     /**
      * Rotates a note handed over by a link ([spend], worth [amountMsat] as [info] says) into a fresh wallet key of [accountId]. The mint's
@@ -296,7 +298,7 @@ internal class NoteMutator(private val wallet: Wallet) {
                 val unknown = entry.copy(status = JournalStatus.Unknown, detail = outcome.cause, updatedAtMillis = wallet.now())
                 wallet.store.putJournal(unknown)
                 // A simulated lost answer can't be asked about right away either: it stays open until a refresh.
-                when (if (lost) JournalStatus.Unknown else Reconciler(wallet).reconcile(unknown)) {
+                when (if (lost) JournalStatus.Unknown else reconciler.reconcile(unknown)) {
                     JournalStatus.Confirmed ->
                         MutationResult.Done(
                             outputs.map { out ->

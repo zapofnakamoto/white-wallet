@@ -121,6 +121,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
     private val rotator = NoteRotator(wallet)
     private val log = ActivityLog(wallet)
+    private val manager = NoteManager(wallet)
 
     suspend fun apply(accountId: String, strategy: NoteStrategy, autoRotate: Boolean, collect: CollectPolicy? = null): PolicyRun {
         val start = balance(accountId)
@@ -342,7 +343,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             var refused: NotCollected.Reason? = null
             val result =
                 wallet.working(WalletTask.Maintaining(MaintenanceStep.MovingHome)) {
-                    NoteManager(wallet).move(accountId, notes.map { it.id }, policy.homeHost, automatic = true) { quote, notesMsat ->
+                    manager.move(accountId, notes.map { it.id }, policy.homeHost, automatic = true) { quote, notesMsat ->
                         val fee = notesMsat - quote.expectedMsat
                         (fee * 100 <= policy.feeCapPercent.toLong() * notesMsat).also { ok ->
                             if (!ok) refused = NotCollected.Reason.FeeTooHigh(fee, policy.feeCapPercent)

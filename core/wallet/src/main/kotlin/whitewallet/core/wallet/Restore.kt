@@ -31,6 +31,7 @@ sealed interface RestoreResult {
  */
 internal class Restore(private val wallet: Wallet) {
     private val discovery = IndexDiscovery(wallet)
+    private val onboarding = Onboarding(wallet)
 
     suspend fun restore(phrase: String, host: String, accountName: String): RestoreResult {
         val words =
@@ -43,7 +44,7 @@ internal class Restore(private val wallet: Wallet) {
             if (wallet.seeds.load(summary.account.id) == words) return RestoreResult.AlreadyInWallet(summary.account.name)
         }
         if (accounts.size >= wallet.maxAccounts) return RestoreResult.AccountLimitReached(wallet.maxAccounts)
-        when (val connected = Onboarding(wallet).connectMint(host)) {
+        when (val connected = onboarding.connectMint(host)) {
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
                 return when (val r = connected.result) {

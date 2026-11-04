@@ -22,11 +22,15 @@ import whitewallet.lnurlcash.protocol.RejectionKind
  * never landed.
  */
 internal class Reconciler(private val wallet: Wallet) {
+    private val log = ActivityLog(wallet)
+    private val melts = MeltReconciler(wallet)
+    private val mints = MintReconciler(wallet)
+
     suspend fun reconcileAll() {
         for (entry in wallet.store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown))) {
             when (entry.type) {
-                OperationType.Melt -> MeltReconciler(wallet).reconcile(entry)
-                OperationType.Mint -> MintReconciler(wallet).reconcile(entry)
+                OperationType.Melt -> melts.reconcile(entry)
+                OperationType.Mint -> mints.reconcile(entry)
                 else -> reconcile(entry)
             }
         }
@@ -100,7 +104,7 @@ internal class Reconciler(private val wallet: Wallet) {
 
     private suspend fun finish(entry: JournalEntry, status: JournalStatus): JournalStatus {
         wallet.store.putJournal(entry.copy(status = status, updatedAtMillis = wallet.now()))
-        ActivityLog(wallet).settle(entry.id, status)
+        log.settle(entry.id, status)
         return status
     }
 

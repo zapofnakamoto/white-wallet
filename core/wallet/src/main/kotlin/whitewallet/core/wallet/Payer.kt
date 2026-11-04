@@ -134,6 +134,7 @@ sealed interface PayResult {
 internal class Payer(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
     private val log = ActivityLog(wallet)
+    private val melter = Melter(wallet)
 
     suspend fun preview(input: String): PayPreview {
         val text = input.trim().let(::unwrapBip21)
@@ -365,7 +366,7 @@ internal class Payer(private val wallet: Wallet) {
     ): PayResult? {
         val amount = note.amountMsat.takeIf { it > 0 } ?: invoice.amountMsat!!
         val outcome =
-            Melter(wallet).melt(accountId, host, note, invoice.raw) { journalId ->
+            melter.melt(accountId, host, note, invoice.raw) { journalId ->
                 log.record(
                     id = "pay:$journalId",
                     accountId,

@@ -23,6 +23,7 @@ import whitewallet.lnurlcash.protocol.RejectionKind
 internal class ReceivedNotes(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
     private val log = ActivityLog(wallet)
+    private val onboarding = Onboarding(wallet)
 
     /**
      * Keeps [link] for [accountId]: as [found] when the preview found why it can't be claimed now (locked, or its mint's key changed);
@@ -99,7 +100,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     certified = out.certificate != null || certified,
                 )
                 update(note.copy(state = ReceivedState.Claimed, k1 = null, amountMsat = amount, journalId = result.journalId))
-                if (wallet.store.mint(note.host) == null) Onboarding(wallet).connectMint(note.host)
+                if (wallet.store.mint(note.host) == null) onboarding.connectMint(note.host)
                 ClaimResult.Claimed(amount, out.certificate != null)
             }
             // Either the rotate landed or the note is back where it was once reconciled; then it is tried again.

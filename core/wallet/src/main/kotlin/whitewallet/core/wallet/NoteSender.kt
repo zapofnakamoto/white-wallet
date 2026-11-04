@@ -102,6 +102,8 @@ sealed interface ReclaimResult {
 internal class NoteSender(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
     private val mutator = NoteMutator(wallet)
+    private val payer = Payer(wallet)
+    private val unknownNotes = UnknownNotes(wallet)
 
     /** The most a single note can be made worth from one mint's notes. */
     suspend fun availableMsat(): Long =
@@ -134,7 +136,7 @@ internal class NoteSender(private val wallet: Wallet) {
                 PayPlanner.plan(notes, amountMsat, baseFee(host))?.let { host to it }
             } ?: return CreateNoteResult.Failed(PayProblem.TooMuch)
         val note =
-            when (val made = Payer(wallet).exact(accountId, host, plan, amountMsat, OutputSpec.Own(accountId, NotePurpose.Wallet))) {
+            when (val made = payer.exact(accountId, host, plan, amountMsat, OutputSpec.Own(accountId, NotePurpose.Wallet))) {
                 is MutationResult.Done -> made.outputs.first()
                 is MutationResult.Pending -> return CreateNoteResult.Pending
                 is MutationResult.Refused -> return CreateNoteResult.Failed(PayProblem.Refused)
@@ -177,7 +179,7 @@ internal class NoteSender(private val wallet: Wallet) {
                 Check.Offline -> NoteState.SharedUnconfirmed
                 Check.Spent -> return ShareNoteResult.AlreadySpent
                 Check.UnknownToMint -> {
-                    UnknownNotes(wallet).sortOut(listOf(note))
+                    unknownNotes.sortOut(listOf(note))
                     return ShareNoteResult.UnknownToMint
                 }
                 Check.Unreadable -> return ShareNoteResult.Unreachable

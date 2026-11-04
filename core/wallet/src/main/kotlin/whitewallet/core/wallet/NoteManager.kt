@@ -108,6 +108,8 @@ internal class NoteManager(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
     private val guard = IndexGuard(wallet)
     private val log = ActivityLog(wallet)
+    private val melter = Melter(wallet)
+    private val onboarding = Onboarding(wallet)
 
     suspend fun combine(ids: Collection<String>): NoteActionResult {
         val accountId = wallet.activeId()
@@ -283,7 +285,7 @@ internal class NoteManager(private val wallet: Wallet) {
         val mintId = UUID.randomUUID().toString()
         val expected = quote.expectedMsat
         val melted =
-            Melter(wallet).melt(accountId, quote.fromHost, note, invoice) { meltId ->
+            melter.melt(accountId, quote.fromHost, note, invoice) { meltId ->
                 val now = wallet.now()
                 wallet.store.putJournal(
                     JournalEntry(
@@ -362,7 +364,7 @@ internal class NoteManager(private val wallet: Wallet) {
         if (host == fromHost) return PreparedMove.Problem(NoteProblem.SameMint)
         // Notes claimed from a mint before its record was kept: paying out of it needs the record.
         if (wallet.store.mint(fromHost) == null) {
-            when (val source = Onboarding(wallet).connectMint(fromHost)) {
+            when (val source = onboarding.connectMint(fromHost)) {
                 is ConnectResult.Connected -> Unit
                 is ConnectResult.Failed ->
                     return PreparedMove.Problem(
@@ -379,7 +381,7 @@ internal class NoteManager(private val wallet: Wallet) {
                 return PreparedMove.Problem(NoteProblem.Unreachable)
             }
         // Pins the target's signing key and stores it as one of the account's mints.
-        when (val connected = Onboarding(wallet).connectMint(host)) {
+        when (val connected = onboarding.connectMint(host)) {
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
                 return PreparedMove.Problem(
@@ -431,6 +433,8 @@ internal class NoteManager(private val wallet: Wallet) {
  * if the linked melt failed, nothing will arrive; otherwise keep waiting.
  */
 internal class MintReconciler(private val wallet: Wallet) {
+    private val log = ActivityLog(wallet)
+
     suspend fun entry(id: String): JournalEntry? = wallet.store.journal(JournalStatus.entries.toSet()).firstOrNull { it.id == id }
 
     suspend fun reconcile(entry: JournalEntry): JournalStatus {
@@ -461,17 +465,16 @@ internal class MintReconciler(private val wallet: Wallet) {
                 if (entry.detail == null) {
                     // A mint's request is the invoice it paid: no spend in it.
                     @OptIn(RevealsNoteSecret::class) val paid = Bolt11.decode(entry.requestUrl)?.amountMsat
-                    ActivityLog(wallet)
-                        .record(
-                            "invoice:${entry.id}",
-                            output.accountId,
-                            ActivityKind.Received,
-                            info.maxWithdrawableMsat,
-                            entry.host,
-                            feeMsat = paid?.let { it - info.maxWithdrawableMsat }?.takeIf { it > 0 },
-                            certified = cert != null,
-                            journalId = entry.id,
-                        )
+                    log.record(
+                        "invoice:${entry.id}",
+                        output.accountId,
+                        ActivityKind.Received,
+                        info.maxWithdrawableMsat,
+                        entry.host,
+                        feeMsat = paid?.let { it - info.maxWithdrawableMsat }?.takeIf { it > 0 },
+                        certified = cert != null,
+                        journalId = entry.id,
+                    )
                 }
             }
             return finish(entry, JournalStatus.Confirmed)
@@ -499,7 +502,7 @@ internal class MintReconciler(private val wallet: Wallet) {
 
     private suspend fun finish(entry: JournalEntry, status: JournalStatus): JournalStatus {
         wallet.store.putJournal(entry.copy(status = status, updatedAtMillis = wallet.now()))
-        ActivityLog(wallet).settle(entry.id, status)
+        log.settle(entry.id, status)
         return status
     }
 

@@ -44,6 +44,9 @@ internal sealed interface MeltOutcome {
  * History rows linked to it).
  */
 internal class Melter(private val wallet: Wallet) {
+    private val log = ActivityLog(wallet)
+    private val unknownNotes = UnknownNotes(wallet)
+
     suspend fun melt(
         accountId: String,
         host: String,
@@ -59,7 +62,7 @@ internal class Melter(private val wallet: Wallet) {
                 // Asked by the note's key alone: the spend goes out only with the melt.
                 wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id)).also { Pinning.check(wallet, mint, it.mintPubkey) }
             } catch (e: NoteLookupError) {
-                if (e.kind in UnknownNotes.GONE && UnknownNotes(wallet).sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
+                if (e.kind in UnknownNotes.GONE && unknownNotes.sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
                 return MeltOutcome.Unreachable
             } catch (e: Exception) {
                 // Including a signing key other than the pinned one: nothing is paid through such a mint.
@@ -96,7 +99,7 @@ internal class Melter(private val wallet: Wallet) {
                     wallet.store.putJournal(
                         entry.copy(status = JournalStatus.Rejected, detail = released.reason, updatedAtMillis = wallet.now())
                     )
-                    ActivityLog(wallet).settle(entry.id, JournalStatus.Rejected)
+                    log.settle(entry.id, JournalStatus.Rejected)
                     return MeltOutcome.Unreachable
                 }
             }
@@ -110,7 +113,7 @@ internal class Melter(private val wallet: Wallet) {
                     wallet.store.putJournal(
                         entry.copy(status = JournalStatus.Rejected, detail = outcome.reason, updatedAtMillis = wallet.now())
                     )
-                    ActivityLog(wallet).settle(entry.id, JournalStatus.Rejected)
+                    log.settle(entry.id, JournalStatus.Rejected)
                     return MeltOutcome.Refused(entry.id, outcome.reason)
                 }
                 is MutationOutcome.Ambiguous ->
@@ -145,6 +148,8 @@ internal class Melter(private val wallet: Wallet) {
  * answer was lost, that it never arrived); `pending` means it is still in flight.
  */
 internal class MeltReconciler(private val wallet: Wallet) {
+    private val log = ActivityLog(wallet)
+
     /** [final]: give up waiting for an answer that was lost, if the note is still outstanding. */
     suspend fun reconcile(entry: JournalEntry, final: Boolean = false): JournalStatus {
         if (entry.status == JournalStatus.Confirmed || entry.status == JournalStatus.Rejected) return entry.status
@@ -180,7 +185,7 @@ internal class MeltReconciler(private val wallet: Wallet) {
 
     private suspend fun finish(entry: JournalEntry, status: JournalStatus): JournalStatus {
         wallet.store.putJournal(entry.copy(status = status, updatedAtMillis = wallet.now()))
-        ActivityLog(wallet).settle(entry.id, status)
+        log.settle(entry.id, status)
         return status
     }
 
