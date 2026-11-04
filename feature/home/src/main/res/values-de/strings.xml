@@ -135,4 +135,5 @@
 
     <!-- Home's loading screen: what the wallet is doing, shown instead of figures about to change. -->
     <string name="home_working_updating">Dein Guthaben wird aktualisiert …</string>
+    <string name="home_scan">QR-Code scannen</string>
 </resources>

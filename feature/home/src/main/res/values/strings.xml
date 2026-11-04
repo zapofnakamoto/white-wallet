@@ -149,4 +149,5 @@
 
     <!-- Home's loading screen: what the wallet is doing, shown instead of figures about to change. -->
     <string name="home_working_updating">Updating your balance…</string>
+    <string name="home_scan">Scan a QR code</string>
 </resources>

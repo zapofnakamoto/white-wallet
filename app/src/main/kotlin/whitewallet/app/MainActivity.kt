@@ -55,6 +55,7 @@ import whitewallet.core.designsystem.LocalAmountUnit
 import androidx.compose.runtime.CompositionLocalProvider
 import whitewallet.core.wallet.Wallet
 import whitewallet.feature.claim.ClaimRoute
+import whitewallet.feature.send.ScanRoute
 import whitewallet.feature.home.HomeRoute
 import whitewallet.feature.home.NotesTabSlot
 import whitewallet.feature.notes.NoteSettingsButton
@@ -162,6 +163,7 @@ internal object Routes {
     const val SEND_WITH = "send?input={input}"
     fun send(input: String) = "send?input=${Uri.encode(input)}"
     const val CREATE_NOTE = "send/note"
+    const val SCAN = "scan"
     const val NOTE = "note/{id}"
     fun note(id: String) = "note/$id"
     const val CLAIM = "claim"
@@ -255,6 +257,7 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
             HomeRoute(
                 appName,
                 onSend = { nav.navigate(Routes.SEND) },
+                onScan = { nav.navigate(Routes.SCAN) },
                 onOpenNote = { id -> nav.navigate(Routes.note(id)) },
                 onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
                 onReceive = { nav.navigate(Routes.RECEIVE) },
@@ -286,6 +289,11 @@ private fun WalletApp(incoming: StateFlow<String?>, brand: BrandScreens, showNot
                 onCreateNote = { nav.navigate(Routes.CREATE_NOTE) },
                 onClaim = { nav.navigate(Routes.claim(it)) { popUpTo(Routes.HOME) } },
             )
+        }
+        composable(Routes.SCAN) {
+            ScanRoute(onBack = { nav.popBackStack() }) { link ->
+                nav.navigate(if (link is IncomingLink.Claim) Routes.claim(link.text) else Routes.send(link.text)) { popUpTo(Routes.HOME) }
+            }
         }
         composable(Routes.CREATE_NOTE) {
             CreateNoteRoute(onBack = { nav.popBackStack() }, onCreated = { id -> nav.navigate(Routes.note(id)) { popUpTo(Routes.HOME) } })

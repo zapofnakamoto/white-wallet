@@ -114,6 +114,8 @@ fun HomeRoute(
     notesTab: NotesTabSlot? = null,
     /** The brand's own pages, in the top bar's menu. */
     menu: List<HomeMenuItem> = emptyList(),
+    /** Scan any QR code: a note to claim or something to pay. Null hides the button. */
+    onScan: (() -> Unit)? = null,
     viewModel: HomeViewModel = hiltViewModel(),
     releaseNotes: ReleaseNotesViewModel = hiltViewModel(),
 ) {
@@ -127,7 +129,7 @@ fun HomeRoute(
     HomeScreen(
         appName, state, onSend, onReceive, viewModel::refresh, onSettings, onBackup, viewModel::dismissBackupPrompt, onChangeAddress,
         AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds), onOpenNote, viewModel::toggleBalanceHidden, onOpenMint, notesTab, menu,
-        viewModel::noticeShown, viewModel::recheckUnknown, viewModel::dismissReceived,
+        viewModel::noticeShown, viewModel::recheckUnknown, viewModel::dismissReceived, onScan,
     )
 }
 
@@ -169,6 +171,7 @@ fun HomeScreen(
     onNoticeShown: () -> Unit = {},
     onRecheckUnknown: () -> Unit = {},
     onDismissReceived: (String) -> Unit = {},
+    onScan: (() -> Unit)? = null,
 ) {
     var saved by rememberSaveable { mutableStateOf(HomeTab.Wallet) }
     val tab = saved.takeIf { it != HomeTab.Notes || notesTab != null } ?: HomeTab.Wallet
@@ -237,7 +240,7 @@ fun HomeScreen(
                 else -> when (tab) {
                     HomeTab.Wallet -> WalletTab(
                         state, onSend, onReceive, { showAccounts = true }, onBackup, onDismissBackup, onChangeAddress, onToggleBalance, onOpenMint, onRecheckUnknown,
-                        onDismissReceived, onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
+                        onDismissReceived, onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null, onScan = onScan,
                     )
                     HomeTab.Notes -> notesTab?.content?.invoke()
                     HomeTab.History -> HistoryTab(state.activity, state.historyFilter, historyFilters, { historyFilters = it }, onOpenNote)
@@ -376,6 +379,7 @@ private fun WalletTab(
     onDismissReceived: (String) -> Unit,
     /** Opens the notes view, where received notes are listed too; null without one (the card below lists them). */
     onOpenIncoming: (() -> Unit)?,
+    onScan: (() -> Unit)? = null,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(
@@ -422,6 +426,9 @@ private fun WalletTab(
                     modifier = Modifier.weight(1f).semantics { if (onSend == null) stateDescription = soon },
                 )
                 PrimaryButton(stringResource(R.string.home_receive), onReceive, Modifier.weight(1f))
+            }
+            onScan?.let { scan ->
+                WalletButton(onClick = scan, kind = ButtonKind.Secondary, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.home_scan)) }
             }
             state.error?.let { Text(stringResource(R.string.home_refresh_failed, it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
             if (state.unresolved > 0) {

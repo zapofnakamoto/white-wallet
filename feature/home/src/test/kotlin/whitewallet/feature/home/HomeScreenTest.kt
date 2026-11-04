@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Rule
 import org.junit.Test
 import whitewallet.core.model.ReceivedNote
@@ -48,6 +49,25 @@ class HomeScreenTest {
             "Wallet", state, onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {}, onDismissBackup = {},
             onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onToggleBalance = onToggle, onOpenMint = onOpenMint,
         )
+    }
+
+    @Test
+    fun homeOffersToScanAnyQrCode() {
+        var scans = 0
+        compose.setContent {
+            HomeScreen(
+                "Wallet", HomeState(balanceMsat = 845_000), onSend = {}, onReceive = {}, onRefresh = {}, onSettings = {}, onBackup = {},
+                onDismissBackup = {}, onChangeAddress = {}, accountActions = AccountActions({}, {}, {}), onScan = { scans++ },
+            )
+        }
+        compose.onNodeWithText("Scan a QR code").performScrollTo().performClick()
+        assertEquals(1, scans)
+    }
+
+    @Test
+    fun withoutAScanHomeShowsNoScanButton() {
+        show(HomeState(balanceMsat = 845_000))
+        compose.onNodeWithText("Scan a QR code").assertDoesNotExist()
     }
 
     @Test

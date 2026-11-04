@@ -86,4 +86,7 @@
     <string name="send_faucet">Entwickler: eine Regtest-Rechnung über %1$s bezahlen</string>
     <!-- %1$s: der Fehler des Faucets oder der Verbindung, wie er kam -->
     <string name="send_faucet_failed">Der Regtest-Faucet hat keine Rechnung erstellt: %1$s. Läuft dev/regtest und ist es verbunden?</string>
+    <string name="scan_title">Scannen</string>
+    <string name="scan_hint">Richte die Kamera auf einen QR-Code, um zu bezahlen oder einen Schein einzulösen.</string>
+    <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Schein.</string>
 </resources>
