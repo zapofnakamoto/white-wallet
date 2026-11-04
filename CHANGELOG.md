@@ -23,7 +23,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   a date, or for a while after its mint last credited it, says so on the claim screen and can be kept; the wallet
   claims it once the lock has passed. A note that may be spent another way (other script paths) is marked as such.
   A script of any length is read; one over 252 bytes used to crash the claim screen.
-- New strings: `claim_not_spendable` and `claim_other_paths` (brand terms, which a brand that renames the note
+- A whole note can be handed out offline (Notes → Share as QR): its link comes from the recovery phrase, not the
+  mint. The note screen says its mint hasn't confirmed it yet; the first refresh online confirms it, or finds it
+  spent. A shared note is never taken back on its own, only when the user does it.
+- New strings: `note_unconfirmed`, `note_unknown_to_mint`, `claim_not_spendable` and `claim_other_paths` (brand terms, which a brand that renames the note
   overrides), `claim_offline`, `claim_amount_certified`, `claim_amount_declared`, `claim_locked_until`,
   `claim_locked_for`, `claim_duration_minutes`, `claim_duration_hours`, `claim_duration_days`, `claim_keep`,
   `claim_kept`, `claim_kept_until`, `claim_kept_locked`, `claim_kept_key_changed`, `claim_kept_hint`,
@@ -32,6 +35,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `received_on`, `received_waiting`, `received_locked_until`, `received_locked`, `received_key_changed`,
   `received_claiming`, `received_claimed`, `received_gone`, `received_refused`, `received_dismiss`. `claim_network`
   is gone.
+
+### Changed
+
+- A shared note found spent says "Spent", not "Redeemed": usually the recipient took it, but another device with the
+  same recovery phrase may have. Strings `note_redeemed`, `note_already_redeemed` and `activity_note_redeemed` are
+  now `note_spent`, `note_already_spent` and `activity_note_spent`; a brand that overrode them needs to rename them.
 
 ### Fixed
 
@@ -48,6 +57,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   note is checked by its key, and a spend goes out only with the operation that spends it, to the mint's own host,
   after its signing key is compared with the pinned one.
 - The claim screen blocks screenshots and the Recents thumbnail, like the other screens that show a note's link.
+- A wallet's own note, opened in it offline and claimed by a later refresh, is taken back as it is online. It used to
+  show as received from someone, while the note it had handed out stayed waiting.
 
 ## [0.6.3]
 
