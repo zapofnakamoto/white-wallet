@@ -2,12 +2,12 @@ package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.PublicKey
 import java.io.IOException
-import whitewallet.core.model.isShared
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.Spend

@@ -16,11 +16,11 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import whitewallet.brand.NoteStrategy
-import whitewallet.core.model.isShared
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.isShared
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.ManualStrategy
@@ -64,7 +64,7 @@ data class NotesState(
     val loaded: Boolean = false,
     /** Notes in the balance or on their way, per mint: the home mint first, then the others by name. */
     val mints: List<MintNotes> = emptyList(),
-    /** Notes handed out as links that nobody has redeemed yet. */
+    /** Notes handed out as links that nobody has claimed yet. */
     val shared: List<Note> = emptyList(),
     /** Notes received as links, not claimed yet or no longer claimable: not in the balance. */
     val received: List<ReceivedNote> = emptyList(),

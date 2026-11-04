@@ -23,7 +23,7 @@ import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.testkit.MockMint
 
-/** Sending a note as a link: made exact, out of the balance while shared, redeemed by someone else, or taken back. */
+/** Sending a note as a link: made exact, out of the balance while shared, claimed by someone else, or taken back. */
 class SendNoteTest {
     private val alice = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
     private val bob = "legal winner thank year wave sausage worth useful legal winner thank yellow".split(" ")
@@ -61,7 +61,7 @@ class SendNoteTest {
     }
 
     @Test
-    fun `a note is split off, shared out of the balance, and redeemed by someone else`() = withMint("--baseFeeMsat=1000", strategy = SingleNoteStrategy.ID) {
+    fun `a note is split off, shared out of the balance, and claimed by someone else`() = withMint("--baseFeeMsat=1000", strategy = SingleNoteStrategy.ID) {
         fund(100)
         assertEquals(PayQuote.Ok(30_000, 1_000), wallet.quoteNote(30_000))
         val created = assertIs<CreateNoteResult.Created>(wallet.createNote(30_000))
@@ -91,10 +91,10 @@ class SendNoteTest {
         wallet.refresh()
         assertEquals(emptyList(), notes(NoteState.Shared))
         assertEquals(ActivityStatus.Done, sentRow().status)
-        val redeemed = assertNotNull(wallet.sharedNote(note.id))
-        assertEquals(SharedNoteState.Redeemed, redeemed.state)
-        assertNull(redeemed.link, "a redeemed note's link is no longer shown")
-        assertIs<ReclaimResult.AlreadyRedeemed>(wallet.reclaimNote(note.id))
+        val spent = assertNotNull(wallet.sharedNote(note.id))
+        assertEquals(SharedNoteState.Spent, spent.state)
+        assertNull(spent.link, "a spent note's link is no longer shown")
+        assertIs<ReclaimResult.AlreadySpent>(wallet.reclaimNote(note.id))
     }
 
     @Test
@@ -107,7 +107,7 @@ class SendNoteTest {
     }
 
     @Test
-    fun `a shared note nobody redeemed is taken back into the balance`() = withMint {
+    fun `a shared note nobody claimed is taken back into the balance`() = withMint {
         fund(40)
         val note = assertIs<CreateNoteResult.Created>(wallet.createNote(15_000)).note
         assertEquals(25_000, wallet.balanceMsat.first())

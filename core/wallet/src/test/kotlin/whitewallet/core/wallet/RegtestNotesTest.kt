@@ -157,7 +157,7 @@ class RegtestNotesTest {
     }
 
     @Test
-    fun `a sent note redeemed before it is taken back stays redeemed, and nothing comes back`() = runBlocking<Unit> {
+    fun `a sent note claimed before it is taken back stays spent, and nothing comes back`() = runBlocking<Unit> {
         val alice = Regtest.phone()
         alice.fund(3000)
         val sent = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note
@@ -166,10 +166,10 @@ class RegtestNotesTest {
 
         // Alice hasn't refreshed: she still sees it waiting, and only the mint can tell her.
         val before = alice.balance()
-        assertEquals(ReclaimResult.AlreadyRedeemed, alice.wallet.reclaimNote(sent.id))
+        assertEquals(ReclaimResult.AlreadySpent, alice.wallet.reclaimNote(sent.id))
         assertEquals(before, alice.balance())
-        assertEquals(SharedNoteState.Redeemed, alice.wallet.sharedNote(sent.id)?.state)
-        assertEquals(ReclaimResult.AlreadyRedeemed, alice.wallet.reclaimNote(sent.id), "and again, from what it knows now")
+        assertEquals(SharedNoteState.Spent, alice.wallet.sharedNote(sent.id)?.state)
+        assertEquals(ReclaimResult.AlreadySpent, alice.wallet.reclaimNote(sent.id), "and again, from what it knows now")
         assertEquals(1_000_000, bob.balance(), "claiming is free")
     }
 

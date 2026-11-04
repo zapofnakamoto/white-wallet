@@ -58,12 +58,10 @@ internal data class NoteEntity(
     val updatedAtMillis: Long,
     val checkedAtMillis: Long? = null,
 ) {
-    fun toModel() = Note(id, accountId, host, NoteKind.valueOf(kind), purpose, noteIndex, amountMsat, certificate, NoteState.valueOf(state), updatedAtMillis,
-        checkedAtMillis)
+    fun toModel() = Note(id, accountId, host, NoteKind.valueOf(kind), purpose, noteIndex, amountMsat, certificate, NoteState.valueOf(state), updatedAtMillis, checkedAtMillis)
 
     companion object {
-        fun from(n: Note) = NoteEntity(n.id, n.accountId, n.host, n.kind.name, n.purpose, n.index, n.amountMsat, n.certificate, n.state.name, n.updatedAtMillis,
-            n.checkedAtMillis)
+        fun from(n: Note) = NoteEntity(n.id, n.accountId, n.host, n.kind.name, n.purpose, n.index, n.amountMsat, n.certificate, n.state.name, n.updatedAtMillis, n.checkedAtMillis)
     }
 }
 

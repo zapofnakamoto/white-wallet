@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import whitewallet.core.model.isShared
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.model.Activity
 import whitewallet.core.model.AccountSummary
@@ -39,6 +38,7 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.Mint
+import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.NotePurpose
@@ -456,10 +456,10 @@ class Wallet(
     /** Makes a note worth exactly [amountMsat] and hands it out as a link (out of the balance until taken back). */
     suspend fun createNote(amountMsat: Long): CreateNoteResult = lock.withLock { sender.create(amountMsat) }
 
-    /** A sent note of the active account, with its link while nobody has redeemed it. */
+    /** A sent note of the active account, with its link while nobody has claimed it. */
     suspend fun sharedNote(id: String): SharedNote? = sender.sharedNote(id)
 
-    /** Takes back a sent note nobody has redeemed yet. */
+    /** Takes back a sent note nobody has claimed yet. */
     suspend fun reclaimNote(id: String): ReclaimResult = lock.withLock {
         val accountId = activeId()
         sender.reclaim(id).also { applyPolicies(accountId) }
@@ -698,7 +698,7 @@ class Wallet(
         rotator.rotate(note.accountId, note.host, note.purpose!!, note.index!!)
     }
 
-    /** Checks whether sent note [id] has been redeemed (on top of the check every refresh does). */
+    /** Checks whether sent note [id] has been spent (on top of the check every refresh does). */
     suspend fun checkSharedNote(id: String): SharedNote? = lock.withLock {
         val unknown = sender.reconcile(activeId())
         sender.sharedNote(id, unknownToMint = id in unknown)

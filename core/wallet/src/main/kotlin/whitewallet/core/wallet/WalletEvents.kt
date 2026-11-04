@@ -65,10 +65,10 @@ class WalletEvents(private val wallet: Wallet, private val clock: () -> Long = S
                     ActivityStatus.Failed -> WalletEvent.Problem(ProblemKind.Other)
                     else -> null
                 }
-                // A note handed out has left the wallet's hands once it is shared, whether redeemed yet or not.
+                // A note handed out has left the wallet's hands once it is shared, whether claimed yet or not.
                 ActivityKind.SentNote -> when {
                     old == null -> WalletEvent.PaymentSent(new.amountMsat)
-                    new.status == ActivityStatus.Done -> WalletEvent.NoteRedeemed(new.amountMsat)
+                    new.status == ActivityStatus.Done -> WalletEvent.NoteSpent(new.amountMsat)
                     new.status == ActivityStatus.Cancelled -> WalletEvent.NoteTakenBack(new.amountMsat)
                     else -> null
                 }

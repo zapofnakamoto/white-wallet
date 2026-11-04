@@ -94,7 +94,7 @@ class RegtestSharedNotesTest {
 
         wire.offline = false
         alice.wallet.refresh()
-        assertEquals(SharedNoteState.Redeemed, alice.wallet.sharedNote(note.id)?.state)
+        assertEquals(SharedNoteState.Spent, alice.wallet.sharedNote(note.id)?.state)
         assertEquals(ActivityStatus.Done, alice.sentRow(note.id).status)
         assertEquals(NoteState.Spent, alice.store.note(note.id)?.state)
     }

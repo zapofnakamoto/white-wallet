@@ -19,7 +19,7 @@ sealed interface WalletStatus {
     /** The user is showing an address or invoice and waits for a payment. */
     data object AwaitingPayment : WalletStatus
 
-    /** The user handed out a note (its QR code or link) and waits for someone to redeem it. */
+    /** The user handed out a note (its QR code or link) and waits for someone to claim it. */
     data object WaitingForRecipient : WalletStatus
 
     /** A payment (or a claimed note) just arrived. */
@@ -28,7 +28,7 @@ sealed interface WalletStatus {
     /** A payment is on its way out. */
     data object Sending : WalletStatus
 
-    /** A payment went out (or a note was handed out, or redeemed by its recipient). */
+    /** A payment went out (or a note was handed out, or claimed by its recipient). */
     data class Sent(val amountMsat: Long) : WalletStatus
 
     /** The wallet works on [task] for a while; the screen shows that rather than figures about to change. */

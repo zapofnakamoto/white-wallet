@@ -1,10 +1,10 @@
 package whitewallet.core.wallet
 
-import whitewallet.core.model.isShared
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.protocol.NoteLookupError
@@ -58,7 +58,7 @@ internal class KeyProber(private val wallet: Wallet) {
             if (existing == null || existing.state == NoteState.Spent || existing.state == NoteState.Unknown || existing.amountMsat != info.maxWithdrawableMsat) {
                 wallet.store.upsertNotes(listOf(Note(noteId, id.accountId, id.host, NoteKind.KeyPath, id.purpose, id.index,
                     info.maxWithdrawableMsat, certificate?.encode() ?: existing?.certificate,
-                    // A note handed out as a link stays out of the balance until it is redeemed or taken back.
+                    // A note handed out as a link stays out of the balance until it is spent or taken back.
                     existing?.state?.takeIf { it.isShared } ?: NoteState.Outstanding, now)))
             }
             if (existing == null) ensureCounterPast(id)

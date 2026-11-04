@@ -106,7 +106,7 @@ fun HomeRoute(
     onMoveFunds: () -> Unit,
     /** Null until sending exists; the Send button shows disabled. */
     onSend: (() -> Unit)? = null,
-    /** Opens a sent note (its QR code while nobody has redeemed it). */
+    /** Opens a sent note (its QR code while nobody has claimed it). */
     onOpenNote: (String) -> Unit = {},
     /** Opens a mint's details (from the changed-signing-key warning). */
     onOpenMint: (String) -> Unit = {},

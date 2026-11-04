@@ -52,6 +52,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A shared note found spent says "Spent", not "Redeemed": usually the recipient took it, but another device with the
   same recovery phrase may have. Strings `note_redeemed`, `note_already_redeemed` and `activity_note_redeemed` are
   now `note_spent`, `note_already_spent` and `activity_note_spent`; a brand that overrode them needs to rename them.
+- Brand API: `WalletEvent.NoteRedeemed` is now `WalletEvent.NoteSpent`, and `NoteStatus.Redeemed` is now
+  `NoteStatus.Spent`; a brand's code that uses them needs the new names.
 
 ### Fixed
 

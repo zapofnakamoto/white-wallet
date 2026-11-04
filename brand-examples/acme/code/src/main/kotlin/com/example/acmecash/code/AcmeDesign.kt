@@ -94,7 +94,7 @@ private object AcmeComponents : BrandComponents {
     /**
      * A banknote: in the list a small bill beside the amount, on a note's own page the whole bill, with the provider as
      * its issuer, the amount as its denomination and the QR code (drawn by the app) in its middle. A bill that is out
-     * of use (being paid, unclear, redeemed or taken back) is printed faded. The app's texts are drawn as `Text`.
+     * of use (being paid, unclear, spent or taken back) is printed faded. The app's texts are drawn as `Text`.
      */
     @Composable
     override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
@@ -130,7 +130,7 @@ private object AcmeComponents : BrandComponents {
 }
 
 private val NoteStatus.outOfUse: Boolean
-    get() = this == NoteStatus.Paying || this == NoteStatus.Unclear || this == NoteStatus.Redeemed || this == NoteStatus.TakenBack || this == NoteStatus.Unknown
+    get() = this == NoteStatus.Paying || this == NoteStatus.Unclear || this == NoteStatus.Spent || this == NoteStatus.TakenBack || this == NoteStatus.Unknown
 
 /** The paper of a bill: tinted, a double border and a round seal in each corner. Decorative. */
 @Composable

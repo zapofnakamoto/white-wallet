@@ -141,7 +141,7 @@ says where each is enforced.
 5. **Received notes are rotated immediately** into the wallet's own seed-derived keys, including notes minted by
    paying the mint's own invoice: whoever saw that invoice may know the preimage.
 6. **Never accept a mint-generated secret.**
-7. **A shared note stays the wallet's until redeemed.** It is `Shared` until a lookup shows it burned, and can be
+7. **A shared note stays the wallet's until spent.** It is `Shared` until a lookup shows it burned, and can be
    taken back (rotated to a fresh key) until then.
 8. **A note the mint doesn't know is set aside, never dropped.** A mint that lost its records (or misbehaves) may say
    `Unknown note.` about a note the wallet holds. When a mint refuses to spend notes as unknown or spent (a merge with

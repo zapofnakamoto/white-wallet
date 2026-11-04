@@ -41,15 +41,15 @@ class WalletEventsTest {
     fun `a shared note is sent once, when it is handed out`() {
         val shared = snapshot(row("n", ActivityKind.SentNote, ActivityStatus.Pending))
         assertEquals(listOf<WalletEvent>(WalletEvent.PaymentSent(1_000)), WalletEvents.changes(snapshot(), shared))
-        // Redeemed later, it is no second payment.
-        assertEquals(listOf<WalletEvent>(WalletEvent.NoteRedeemed(1_000)), WalletEvents.changes(shared, snapshot(row("n", ActivityKind.SentNote))))
+        // Spent later, it is no second payment.
+        assertEquals(listOf<WalletEvent>(WalletEvent.NoteSpent(1_000)), WalletEvents.changes(shared, snapshot(row("n", ActivityKind.SentNote))))
     }
 
     @Test
-    fun `a handed-out note is redeemed or taken back later`() {
+    fun `a handed-out note is spent or taken back later`() {
         val shared = snapshot(row("r", ActivityKind.SentNote, ActivityStatus.Pending), row("t", ActivityKind.SentNote, ActivityStatus.Pending))
         val now = snapshot(row("r", ActivityKind.SentNote), row("t", ActivityKind.SentNote, ActivityStatus.Cancelled))
-        assertEquals(listOf(WalletEvent.NoteRedeemed(1_000), WalletEvent.NoteTakenBack(1_000)), WalletEvents.changes(shared, now))
+        assertEquals(listOf(WalletEvent.NoteSpent(1_000), WalletEvent.NoteTakenBack(1_000)), WalletEvents.changes(shared, now))
     }
 
     @Test

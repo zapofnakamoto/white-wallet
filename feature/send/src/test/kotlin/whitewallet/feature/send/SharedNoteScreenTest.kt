@@ -90,7 +90,7 @@ class SharedNoteScreenTest {
 
     @Test
     fun aSpentNoteDoesntClaimWhoSpentIt() {
-        show(note(SharedNoteState.Redeemed))
+        show(note(SharedNoteState.Spent))
         compose.onNodeWithText("Spent, usually by the recipient", substring = true).assertExists()
     }
 
@@ -102,7 +102,7 @@ class SharedNoteScreenTest {
     }
 
     @Test
-    fun theBrandSeesTheNoteWaitBeRedeemedOrComeBack() {
+    fun theBrandSeesTheNoteWaitBeSpentOrComeBack() {
         val statuses = mutableListOf<WalletStatus>()
         val design = object : BrandDesign {
             @Composable
@@ -122,7 +122,7 @@ class SharedNoteScreenTest {
         compose.onNodeWithText("brand mark", useUnmergedTree = true).assertExists()
         assertEquals(WalletStatus.WaitingForRecipient, statuses.last())
 
-        state = state.copy(note = note(SharedNoteState.Redeemed))
+        state = state.copy(note = note(SharedNoteState.Spent))
         compose.waitForIdle()
         assertEquals(WalletStatus.Sent(1_000_000), statuses.last())
 
@@ -309,9 +309,9 @@ class SharedNoteScreenTest {
         compose.onNodeWithText("Tap to show the QR code").performClick()
         compose.waitForIdle()
         assertEquals(NoteFacePlace.Shared to false, seen.last())
-        // Once redeemed there is no code, so nothing is covered either.
+        // Once spent there is no code, so nothing is covered either.
         compose.onNodeWithText("Tap to show the QR code").assertDoesNotExist()
-        state = state.copy(note = note(SharedNoteState.Redeemed))
+        state = state.copy(note = note(SharedNoteState.Spent))
         compose.waitForIdle()
         assertEquals(NoteFacePlace.Shared to false, seen.last())
     }
@@ -331,7 +331,7 @@ class SharedNoteScreenTest {
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides card) {
                 SharedNoteScreen(
-                    SharedNoteUiState(note = note(SharedNoteState.Redeemed), loading = false),
+                    SharedNoteUiState(note = note(SharedNoteState.Spent), loading = false),
                     onBack = {}, onShare = {}, onCopy = {}, onAskReclaim = {}, onDismissReclaim = {}, onReclaim = {},
                 )
             }

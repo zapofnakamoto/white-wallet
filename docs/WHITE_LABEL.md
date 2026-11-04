@@ -183,7 +183,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `note_uncertified` | The amount of this note isn't certified. |
 | `note_share_title` | Share note |
 | `note_reclaim_title` | Take this note back? |
-| `note_already_redeemed` | Too late: someone already redeemed this note. |
+| `note_already_spent` | Too late: this note has already been spent. |
 | `note_not_found` | This note isn't in this account. |
 | `mint_key_changed` | %1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn't send or receive there. Your notes there are unchanged. |
 | `settings_notes` | Note settings |
@@ -314,7 +314,7 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   (the notes list and a note's details), `Claim` (someone's note before the user claims it), `Shared` (a
   handed-out note: its page, and its row in the notes view, under the handed-out heading) or `Paper` (printed). `params` has the amount
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
-  `Redeemed`, `TakenBack`, `Unknown`; give a `when` an `else`), its words and mark, the age, the mint (null with
+  `Spent`, `TakenBack`, `Unknown`; give a `when` an `else`), its words and mark, the age, the mint (null with
   `mints.visible=false`), whether it is trusted, and `selected` while the user selects (null otherwise).
   `NoteGroupHeader` heads one mint's notes; its `mint` is null with `mints.visible=false`, and then it only separates
   them. The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
@@ -339,7 +339,7 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   | `SendHeader` | above a payment's review, its progress and a result that isn't a success | nothing |
   | `SendSuccess` | the screen after a payment went out (status `Sent`) | a check mark that draws itself |
   | `ClaimResult` | above a claimed note's result | nothing |
-  | `NoteShared` | above a handed-out note's amount (status `WaitingForRecipient`, `Sent` once redeemed, `Idle` once taken back) | nothing |
+  | `NoteShared` | above a handed-out note's amount (status `WaitingForRecipient`, `Sent` once spent, `Idle` once taken back) | nothing |
   | `NotesHeader` | above the notes view's total (status `Empty` without notes, `WaitingForRecipient` while handed-out notes wait, else `Idle`) | nothing |
   | `NotesEmpty` | above the text of an empty notes view | nothing |
   | `AppLock` | the app lock screen | `ic_brand_logo` |
@@ -347,11 +347,11 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
 
 - **Status and events:** `context.status` (also `LocalWalletStatus`) is what the screen is about: `None`, `Idle`
   (money, nothing happening), `Empty`, `AwaitingPayment`, `WaitingForRecipient` (a handed-out note nobody has
-  redeemed yet), `PaymentReceived`, `Sending`, `Sent`, `Working` (with a `WalletTask`: `Updating`, asking the mints
+  claimed yet), `PaymentReceived`, `Sending`, `Sent`, `Working` (with a `WalletTask`: `Updating`, asking the mints
   what changed; `CheckingNotes`, with how many are checked of how many; `Maintaining`, with its `MaintenanceStep`,
   `Combining`, `Splitting`, `Renewing` or `MovingHome`, and the note strategy's id when the step is the strategy's),
   `Problem` (`NotEnoughFunds`, `Offline`, `Other`). `WalletEvent`s (`PaymentReceived`, `PaymentSent`, `Problem`,
-  `BackupDone`, `AccountCreated`, `NoteRedeemed` and `NoteTakenBack` for a handed-out note, whose `PaymentSent` came
+  `BackupDone`, `AccountCreated`, `NoteSpent` and `NoteTakenBack` for a handed-out note, whose `PaymentSent` came
   when it was handed out, and `NoteMaintenance` when a note strategy, auto-renew or collecting at the home mint looked
   after the notes by itself, once per run however many notes, with what it did and what that did to the balance) say what just happened anywhere in the app: collect `LocalWalletEvents` in a
   composable, or register a `WalletEventListener` (called on the main thread). Both carry amounts and kinds only.

@@ -7,7 +7,7 @@ package whitewallet.brand
  * New tasks may be added in later releases: a brand's `when` needs an `else` branch.
  */
 sealed interface WalletTask {
-    /** Asking the mints what changed: payments that arrived, outcomes still open, handed-out notes redeemed. */
+    /** Asking the mints what changed: payments that arrived, outcomes still open, handed-out notes spent. */
     data object Updating : WalletTask
 
     /** Asking the mints about every note, one after the other: [checked] of [total] so far. */

@@ -221,7 +221,7 @@ The **Notes** tab (`feature/notes`; brand `notes.view`, default `tab`) shows the
 - **Tap a note** for a sheet: **Share as QR** hands the whole note over (`Wallet.shareNote`: looked up by `p` first, so a note spent elsewhere is never handed out; offline, its link still derives from the seed and it is handed out as `SharedUnconfirmed` until the first lookup online; then `Shared` with a `SentNote` History row, exactly like a note made under Send, and the shared-note screen takes over); **Split**; **Recheck** (`Wallet.recheckNote`: a lookup by `p`, which also notices a note spent with the same phrase on another phone; on a confirming note, whose change got no answer, the one action still enabled: it settles that change now with `Reconciler.reconcile` instead of on the next refresh, `NoteCheck.Landed` or `NotLanded`); **Renew** (`Wallet.rotateNote`: a free rotate onto a fresh wallet key). In developer mode the sheet also shows the key's purpose, index and `Q`.
 - **Long-press** (or Select) picks notes on one mint for **Combine**, **Move** or **Recheck**.
 - **Pull to refresh** runs `Wallet.recheckNotes`: the usual refresh, then a lookup of every outstanding note; a mint that doesn't answer is skipped for the rest of the run. It only reports when a note is gone or a mint didn't answer.
-- **Shared, not redeemed yet** lists notes handed out as links; tapping one opens its QR code again, or takes it back.
+- **Shared, not claimed yet** lists notes handed out as links; tapping one opens its QR code again, or takes it back.
 - A mint that collecting at the home mint skipped (fee over the limit) says so on its group, with **Move anyway**.
 
 Tests: `NoteToolsTest` (share, recheck, renew against the mock mint, including a second phone with the same phrase) and `NotesScreenTest`.
@@ -254,7 +254,7 @@ Send → "Create a note" (`feature/send/NoteScreens.kt`, `NoteSender` via `Walle
 - Take back: lookup first (too late if burned), then a rotate to a fresh wallet key; the History row becomes `Cancelled` ("Taken back"), and the note strategy runs, so under keep-one-note the note is merged back at once. Claiming the note through its own link does the same: a claim and a take-back are both a rotate in through `NoteMutator` (`mutate` for the wallet's own notes, `rotateIn` for a link's), and a shared note claimed into its own account counts as taken back, also when its link was kept offline and claimed by a later refresh (`ReceivedNotes.claim`).
 - History: one `SentNote` row per note, `note:<Q>` (`Activity.sentNoteId`); tapping it opens the note screen again (show the QR code again, or take it back).
 
-Tests: `SendNoteTest` (mock mint: split and share under keep-one-note, redeemed by a second wallet, exact note without fee, take back, impossible amounts) `RegtestE2ETest` (redeemed by another wallet and taken back on the real mint) and `RegtestSharedNotesTest` (handed out offline and confirmed, then taken back; spent meanwhile on another device; the wallet's own link kept offline and taken back; note maintenance leaves shared notes alone).
+Tests: `SendNoteTest` (mock mint: split and share under keep-one-note, claimed by a second wallet, exact note without fee, take back, impossible amounts) `RegtestE2ETest` (claimed by another wallet and taken back on the real mint) and `RegtestSharedNotesTest` (handed out offline and confirmed, then taken back; spent meanwhile on another device; the wallet's own link kept offline and taken back; note maintenance leaves shared notes alone).
 
 ## Receiving a note
 

@@ -316,10 +316,10 @@ enum class NoteFacePlace { Wallet, Claim, Shared, Paper }
 /**
  * How a note stands. In the wallet: [Ready] to use, [Paying] (being spent), [Unclear] (a payment whose outcome isn't
  * known yet), [Uncertified] (its amount isn't certified), [Unknown] (its mint says it doesn't know it: set aside, out
- * of the balance, until the mint knows it again). Handed out: [Waiting] for its recipient, [Redeemed] by them,
+ * of the balance, until the mint knows it again). Handed out: [Waiting] for its recipient, [Spent] by them,
  * [TakenBack]. New statuses may be added in later releases: a brand's `when` needs an `else` branch.
  */
-enum class NoteStatus { Ready, Paying, Unclear, Uncertified, Waiting, Redeemed, TakenBack, Unknown }
+enum class NoteStatus { Ready, Paying, Unclear, Uncertified, Waiting, Spent, TakenBack, Unknown }
 
 class NoteFaceParams(
     val size: NoteFaceSize,

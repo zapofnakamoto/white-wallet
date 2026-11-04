@@ -50,7 +50,7 @@ value class Anchor(val id: String) {
 
         /**
          * Above a handed-out note's amount: while it waits for its recipient (status
-         * [whitewallet.brand.WalletStatus.WaitingForRecipient]), once redeemed ([whitewallet.brand.WalletStatus.Sent])
+         * [whitewallet.brand.WalletStatus.WaitingForRecipient]), once spent ([whitewallet.brand.WalletStatus.Sent])
          * and once taken back ([whitewallet.brand.WalletStatus.Idle]). Default: nothing.
          */
         val NoteShared = Anchor("note.shared")

@@ -191,7 +191,7 @@ data class SharedNoteUiState(
     val confirmReclaim: Boolean = false,
     val reclaiming: Boolean = false,
     val reclaimPending: Boolean = false,
-    val alreadyRedeemed: Boolean = false,
+    val alreadySpent: Boolean = false,
     val problem: PayProblem? = null,
     /** Whether the brand lets users print it (`notes.actions`). */
     val canPrint: Boolean = false,
@@ -206,7 +206,7 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
     init {
         viewModelScope.launch {
             _state.update { it.copy(note = wallet.sharedNote(id), loading = false) }
-            // While the screen is open, notice when the recipient redeems it.
+            // While the screen is open, notice when the recipient claims it.
             while (_state.value.note?.state == SharedNoteState.Waiting) {
                 delay(CHECK_EVERY_MILLIS)
                 if (_state.value.reclaiming) continue
@@ -228,7 +228,7 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
             _state.update {
                 when (result) {
                     is ReclaimResult.Reclaimed -> it.copy(reclaiming = false, note = note)
-                    ReclaimResult.AlreadyRedeemed -> it.copy(reclaiming = false, note = note, alreadyRedeemed = true)
+                    ReclaimResult.AlreadySpent -> it.copy(reclaiming = false, note = note, alreadySpent = true)
                     ReclaimResult.Pending -> it.copy(reclaiming = false, note = note, reclaimPending = true)
                     is ReclaimResult.Failed -> it.copy(reclaiming = false, problem = result.problem)
                 }
@@ -241,7 +241,7 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
     }
 }
 
-/** A sent note: its QR code and link while nobody has redeemed it (share, copy, take back), else where it ended up. */
+/** A sent note: its QR code and link while nobody has claimed it (share, copy, take back), else where it ended up. */
 @Composable
 fun SharedNoteRoute(onBack: () -> Unit, viewModel: SharedNoteViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -298,7 +298,7 @@ fun SharedNoteScreen(
                 note.amountMsat,
                 status = when (note.state) {
                     SharedNoteState.Waiting -> NoteStatus.Waiting
-                    SharedNoteState.Redeemed -> NoteStatus.Redeemed
+                    SharedNoteState.Spent -> NoteStatus.Spent
                     SharedNoteState.Reclaimed -> NoteStatus.TakenBack
                 },
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
@@ -331,8 +331,8 @@ fun SharedNoteScreen(
                     WalletButton(kind = ButtonKind.Text, onClick = onAskReclaim, enabled = !state.reclaiming) { Text(stringResource(R.string.note_reclaim)) }
                     if (state.reclaiming) WalletCircularProgress()
                 }
-                SharedNoteState.Redeemed -> Text(
-                    stringResource(if (state.alreadyRedeemed) R.string.note_already_spent else R.string.note_spent),
+                SharedNoteState.Spent -> Text(
+                    stringResource(if (state.alreadySpent) R.string.note_already_spent else R.string.note_spent),
                     textAlign = TextAlign.Center,
                 )
                 SharedNoteState.Reclaimed -> Text(
@@ -371,12 +371,12 @@ fun SharedNoteScreen(
     }
 }
 
-/** Waiting for its recipient, redeemed like a payment that went out, or back in the wallet once taken back. */
+/** Waiting for its recipient, spent like a payment that went out, or back in the wallet once taken back. */
 private fun sharedNoteStatus(state: SharedNoteUiState, note: SharedNote): WalletStatus {
     state.problem?.let { return WalletStatus.Problem(problemKind(it)) }
     return when (note.state) {
         SharedNoteState.Waiting -> WalletStatus.WaitingForRecipient
-        SharedNoteState.Redeemed -> WalletStatus.Sent(note.amountMsat)
+        SharedNoteState.Spent -> WalletStatus.Sent(note.amountMsat)
         SharedNoteState.Reclaimed -> if (state.reclaimPending) WalletStatus.None else WalletStatus.Idle
     }
 }

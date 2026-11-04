@@ -22,8 +22,8 @@ sealed interface WalletEvent {
     /** A new account was created or restored. */
     data object AccountCreated : WalletEvent
 
-    /** Someone redeemed a note the user handed out (its [PaymentSent] came when it was handed out). */
-    data class NoteRedeemed(val amountMsat: Long) : WalletEvent
+    /** A note the user handed out was spent, usually by its recipient (its [PaymentSent] came when it was handed out). */
+    data class NoteSpent(val amountMsat: Long) : WalletEvent
 
     /** The user took a handed-out note back: the money is in the wallet again. */
     data class NoteTakenBack(val amountMsat: Long) : WalletEvent

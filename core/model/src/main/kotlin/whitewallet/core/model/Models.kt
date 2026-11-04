@@ -16,7 +16,7 @@ enum class NoteState {
     /** Being melted: the mint is paying an invoice from it. Not in the balance; burned once the payment settles, outstanding again if it fails. */
     Paying,
 
-    /** Handed out as a link (sent as a note). Not in the balance; spent once someone redeems it, or once taken back. */
+    /** Handed out as a link (sent as a note). Not in the balance; spent once someone claims it, or once taken back. */
     Shared,
 
     /**
@@ -252,7 +252,7 @@ enum class ActivityKind(val isMaintenance: Boolean) {
     /** One note split in two from the notes page. */
     Split(true),
 
-    /** A note handed out as a link: pending until redeemed, cancelled if taken back. */
+    /** A note handed out as a link: pending until spent, cancelled if taken back. */
     SentNote(false),
 
     /** Note maintenance: several of the account's notes merged into one. The balance stays the same (less any fee). */

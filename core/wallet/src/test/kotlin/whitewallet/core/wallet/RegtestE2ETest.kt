@@ -78,7 +78,7 @@ class RegtestE2ETest {
     }
 
     @Test
-    fun `a note sent as a link is redeemed by another wallet, and another one taken back`() = runBlocking<Unit> {
+    fun `a note sent as a link is claimed by another wallet, and another one taken back`() = runBlocking<Unit> {
         val phone = Regtest.phone(strategy = ManualStrategy.ID)
         phone.fund(3000)
         val wallet = phone.wallet
@@ -86,7 +86,7 @@ class RegtestE2ETest {
         val sent = assertIs<CreateNoteResult.Created>(wallet.createNote(1_000_000)).note
         val other = Regtest.phone(strategy = ManualStrategy.ID).wallet
         assertIs<ClaimResult.Claimed>(other.claim(assertIs<ClaimPreview.Ready>(other.previewClaim(sent.link!!))))
-        assertEquals(SharedNoteState.Redeemed, wallet.checkSharedNote(sent.id)?.state)
+        assertEquals(SharedNoteState.Spent, wallet.checkSharedNote(sent.id)?.state)
 
         val kept = assertIs<CreateNoteResult.Created>(wallet.createNote(500_000)).note
         assertEquals(ReclaimResult.Reclaimed(500_000), wallet.reclaimNote(kept.id))
