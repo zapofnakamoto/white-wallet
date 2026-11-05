@@ -73,6 +73,19 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 
 Durations are a whole number with its unit: `500ms`, `30s`, `15m`, `1h`, `7d`. Each key has a range, and a value outside it, or one without a unit, fails the build with the key's name and its limits. The defaults are what White Wallet ships with; shorter polling means quicker updates on screen and more requests to the mint. What the wallet must keep to stay safe and restorable (the gaps a restore scans, how long a lost payment answer is waited for, that mutations are never resent) is not configurable.
 
+### Recovery limits
+
+How far the wallet looks for what a recovery phrase used. Each is a whole number. To set one for a single build without editing `brand.properties`, use `-Precovery.keys.gap=30` or the environment variable `WW_RECOVERY_KEYS_GAP=30`, in that order of preference. They are read when the app is built: a phone has no environment. A value out of range fails the build.
+
+| Key | What it does | Default | Range |
+|---|---|---|---|
+| `recovery.keys.gap` | Unused keys in a row that end a scan of a chain or an address's share. Also how many keys an operation tries while the mint says each is already in use | `20` | 1–1000 |
+| `recovery.shares.gap` | Unused shares in a row that end a restore's look at an account. An address that was never paid leaves its share unused. Each one costs `recovery.keys.gap` lookups | `20` | 1–1000 |
+| `recovery.shares.ahead` | Shares past those handed out that an ownership check tries. Each is a write request to the mint, on every check, so keep it small | `3` | 0–100 |
+| `recovery.shares.attempts` | Shares a registration tries while the mint says each was registered before | `5` | 1–100 |
+| `recovery.accounts.gap` | Unused accounts in a row that end a restore. `1` is the BIP-44 rule | `1` | 1–100 |
+| `recovery.accounts.max` | Accounts a restore looks at, whatever `accounts.max` allows | `100` | 1–1000 |
+
 ### Which mints users can use
 
 Three keys decide it. At setup and restore, the mint picker shows only when there is a choice: several suggestions, or "Custom…" (`mints.custom=true`); in debug builds, developer mode adds the local regtest mints. After setup, users choose among the mints they know: the suggestions, mints added under Settings → Mints, and mints they learned of from notes they received. Without `mints.custom`, only the suggested ones of those can become a home, hold an address or receive moved money; money can always move away from a mint.

@@ -79,7 +79,7 @@ internal class AddressCheck(private val wallet: Wallet) {
      */
     private suspend fun candidates(accountId: String, host: String): List<Long> {
         val handedOut = wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0
-        return (0 until handedOut + RESTORE_SHARES).toList()
+        return (0 until handedOut + wallet.limits.sharesAhead).toList()
     }
 
     private suspend fun proveOwner(name: String, host: String, accountId: String, shares: List<Long>): Ownership {
@@ -105,10 +105,5 @@ internal class AddressCheck(private val wallet: Wallet) {
             }
         }
         return Ownership(AddressStatus.Taken)
-    }
-
-    companion object {
-        /** Shares a restored account asks about before it knows how many it handed out: one per seed-derived name. */
-        const val RESTORE_SHARES = DefaultAddress.CANDIDATES.toLong()
     }
 }

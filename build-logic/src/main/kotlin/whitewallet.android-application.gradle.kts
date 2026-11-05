@@ -127,6 +127,13 @@ android {
         buildConfigField("long", "ADDRESS_FEE_MAX_SATS", "${brand.getProperty("addresses.fee.max", "0").trim()}L")
         buildConfigField("String", "NOTE_STRATEGIES", "\"${brand.getProperty("notes.strategies", "single,manual").trim()}\"")
         buildConfigField("String", "DEFAULT_NOTE_STRATEGY", "\"${brand.getProperty("notes.strategy.default", "manual").trim()}\"")
+        // How far scans and restores look (see "Recovery limits" in docs/WHITE_LABEL.md).
+        buildConfigField("int", "RECOVERY_KEYS_GAP", "${brandCount(brand, "recovery.keys.gap", 20, 1..1000)}")
+        buildConfigField("int", "RECOVERY_SHARES_GAP", "${brandCount(brand, "recovery.shares.gap", 20, 1..1000)}")
+        buildConfigField("int", "RECOVERY_SHARES_AHEAD", "${brandCount(brand, "recovery.shares.ahead", 3, 0..100)}")
+        buildConfigField("int", "RECOVERY_SHARES_ATTEMPTS", "${brandCount(brand, "recovery.shares.attempts", 5, 1..100)}")
+        buildConfigField("int", "RECOVERY_ACCOUNTS_GAP", "${brandCount(brand, "recovery.accounts.gap", 1, 1..100)}")
+        buildConfigField("int", "RECOVERY_ACCOUNTS_MAX", "${brandCount(brand, "recovery.accounts.max", 100, 1..1000)}")
         // Timings, in milliseconds (see "Timings" in docs/WHITE_LABEL.md).
         buildConfigField("long", "CONNECT_TIMEOUT_MILLIS", "${brand.brandDuration("network.timeout.connect", "15s", "1s", "2m")}L")
         buildConfigField("long", "READ_TIMEOUT_MILLIS", "${brand.brandDuration("network.timeout.read", "30s", "1s", "5m")}L")

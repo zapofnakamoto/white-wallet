@@ -263,7 +263,7 @@ internal class NoteManager(private val wallet: Wallet) {
         // The target mints to a fresh key of ours: reserve it (persist before disclose), then ask for its invoice.
         var output: ReservedOutput? = null
         var invoice: String? = null
-        for (attempt in 0 until IndexGuard.IN_USE_ATTEMPTS) {
+        for (attempt in 0 until wallet.limits.keyGap) {
             val reserved = guard.reserve(accountId, quote.toHost, KeySet.Wallet)
             when (val fetched = MintInvoice.fetch(wallet, prepared.pay, amount, reserved.key)) {
                 is MintInvoice.Ok -> {

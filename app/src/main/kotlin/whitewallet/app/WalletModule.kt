@@ -28,6 +28,7 @@ import whitewallet.core.wallet.NotePolicies
 import whitewallet.core.wallet.NoteStrategies
 import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.RegtestFaucet
+import whitewallet.core.wallet.ScanLimits
 import whitewallet.core.wallet.SeedStore
 import whitewallet.core.wallet.SingleNoteStrategy
 import whitewallet.core.wallet.Timings
@@ -97,6 +98,15 @@ object WalletModule {
             onWaitingForNetwork = { SyncWorker.scheduleOnce(context) },
             payWaitMillis = BuildConfig.SYNC_PAYMENT_WAIT_MILLIS,
             receivedGiveUpMillis = BuildConfig.RECEIVED_GIVE_UP_MILLIS,
+            limits =
+                ScanLimits(
+                    keyGap = BuildConfig.RECOVERY_KEYS_GAP,
+                    shareGap = BuildConfig.RECOVERY_SHARES_GAP,
+                    sharesAhead = BuildConfig.RECOVERY_SHARES_AHEAD,
+                    shareAttempts = BuildConfig.RECOVERY_SHARES_ATTEMPTS,
+                    accountGap = BuildConfig.RECOVERY_ACCOUNTS_GAP,
+                    maxAccounts = BuildConfig.RECOVERY_ACCOUNTS_MAX,
+                ),
         )
 
     /** dev/regtest's faucet in debug builds; without a host (release) it pays nothing. */

@@ -30,6 +30,19 @@ internal fun Properties.brandDuration(key: String, default: String, min: String,
     return millis
 }
 
+/**
+ * A whole number in [range]: `-P[key]`, else the environment's `WW_<KEY>` (`recovery.keys.gap` is `WW_RECOVERY_KEYS_GAP`), else
+ * brand.properties, else [default]. Read at build time: a phone has no environment.
+ */
+internal fun Project.brandCount(brand: Properties, key: String, default: Int, range: IntRange): Int {
+    val env = "WW_" + key.uppercase().replace('.', '_')
+    val value =
+        providers.gradleProperty(key).orElse(providers.environmentVariable(env)).orNull ?: brand.getProperty(key, default.toString())
+    val count = value.trim().toIntOrNull()
+    check(count != null && count in range) { "$key must be a whole number from ${range.first} to ${range.last}, not '$value'" }
+    return count
+}
+
 /** [Properties.getProperty] as one of [allowed], [default] when unset. */
 internal fun Properties.brandChoice(key: String, default: String, vararg allowed: String): String {
     val value = getProperty(key, default).trim()

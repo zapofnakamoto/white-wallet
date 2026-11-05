@@ -70,19 +70,22 @@ internal class Restore(private val wallet: Wallet) {
             is Scan.Failed -> return failed(first.failure)
             is Scan.Done -> Unit
         }
-        // The phrase's further accounts, up to the first that was never used (BIP-44).
-        for (index in 1L until minOf(wallet.maxAccounts, MAX_ACCOUNTS).toLong()) {
+        // The phrase's further accounts, up to a gap of ones never used (BIP-44); those before a used one stay, to keep its index.
+        val unused = mutableListOf<String>()
+        for (index in 1L until minOf(wallet.maxAccounts, wallet.limits.maxAccounts).toLong()) {
             val id = UUID.randomUUID().toString()
             wallet.store.saveAccount(Account(id, "$accountName ${index + 1}", wallet.now(), h, walletId = accountId, index = index))
             when (val found = scan(id, h, emptyList())) {
                 is Scan.Failed -> return failed(found.failure)
                 is Scan.Done ->
-                    if (!found.used) {
-                        wallet.store.deleteAccount(id)
-                        break
+                    if (found.used) unused.clear()
+                    else {
+                        unused += id
+                        if (unused.size >= wallet.limits.accountGap) break
                     }
             }
         }
+        unused.forEach { wallet.store.deleteAccount(it) }
         wallet.activeBeforeRestore = wallet.store.currentAccountId()
         wallet.store.setActiveAccount(accountId)
         val notes = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
@@ -111,11 +114,12 @@ internal class Restore(private val wallet: Wallet) {
             }
             used = used || found.next > 0
         }
-        // Address payments, one share per address: shares are handed out in order, so the scan ends after a few unused ones.
+        // Address payments, one share per address: shares are handed out in order, and an address may never have been paid, so the scan
+        // ends after a gap of unused ones.
         var share = 0L
         var unused = 0
         var last = -1L
-        while (unused < AddressCheck.RESTORE_SHARES) {
+        while (unused < wallet.limits.shareGap) {
             val found = discovery.discover(accountId, h, KeySet.share(share))
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))
@@ -128,10 +132,5 @@ internal class Restore(private val wallet: Wallet) {
         }
         if (last >= 0) wallet.store.setKeyIndex(accountId, spendDomain(h), KeyCounter.Shares, last + 1)
         return Scan.Done(used || last >= 0)
-    }
-
-    private companion object {
-        /** Past this a restore stops looking for further accounts, whatever the brand allows. */
-        const val MAX_ACCOUNTS = 100
     }
 }

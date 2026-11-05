@@ -2,10 +2,12 @@ package whitewallet.core.wallet
 
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.KeyCounter
+import whitewallet.lnurlcash.spendDomain
 
 /**
  * Finds notes the mint auto-minted for Lightning address payments (LUD-26: a share's notes; legacy 2f17578: purpose 2) by looking up each
- * derived key by `p`, stopping after [GAP_LIMIT] consecutive unused indices, or at a lookup the mint refuses or doesn't answer.
+ * derived key by `p`, stopping after [ScanLimits.keyGap] consecutive unused indices, or at a lookup the mint refuses or doesn't answer.
  */
 internal class AddressScanner(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
@@ -17,7 +19,9 @@ internal class AddressScanner(private val wallet: Wallet) {
      */
     suspend fun scanAll(accountId: String, host: String): RefreshResult {
         val addresses = wallet.store.addresses(accountId).first().filter { it.host == host }
-        val sets = addresses.mapNotNull { it.share }.distinct().map(KeySet::share).toMutableList()
+        // Every share handed out, not only those of known addresses: a restored phone doesn't know its names, and they still get paid.
+        val handedOut = wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0
+        val sets = (addresses.mapNotNull { it.share } + (0 until handedOut)).distinct().map(KeySet::share).toMutableList()
         sets += wallet.legacy.addressSets(accountId, addresses)
         return sets.fold(RefreshResult(0, 0)) { total, set ->
             val r = scan(accountId, host, set)
@@ -34,7 +38,7 @@ internal class AddressScanner(private val wallet: Wallet) {
         var lastUsed = start - 1
         var found = 0
         var received = 0L
-        while (gap < GAP_LIMIT) {
+        while (gap < wallet.limits.keyGap) {
             when (val probe = prober.probe(set.key(accountId, host, index), mint)) {
                 is KeyProbe.Outstanding -> {
                     if (probe.imported) {
@@ -70,9 +74,5 @@ internal class AddressScanner(private val wallet: Wallet) {
         }
         if (lastUsed + 1 > start) wallet.store.setIndexOf(accountId, host, set, lastUsed + 1)
         return RefreshResult(found, received)
-    }
-
-    companion object {
-        const val GAP_LIMIT = 20
     }
 }

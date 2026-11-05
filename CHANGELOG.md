@@ -27,8 +27,16 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Fixed
 
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.
+- After a restore, new payments to an address were only found once its name was entered again. Every share the account
+  handed out is now scanned on a refresh, on its home mint, whether or not the phone knows the name.
+- A restore stopped after 3 unused shares, so money on an address after three that were never paid was missed. It now
+  stops after 20.
 
 ### For brands
+
+- `recovery.*` sets how far the wallet looks for what a phrase used: unused keys, shares and accounts in a row, and how
+  much it tries (see "Recovery limits" in `docs/WHITE_LABEL.md`). One build can override them with `-Precovery.keys.gap=30`
+  or `WW_RECOVERY_KEYS_GAP=30`.
 
 - New keys: `wallets.max`, `addresses.fee.onboarding` (`ask`, `reserve` or `skip`), `addresses.fee.max`.
 - `accounts.max` now counts accounts per recovery phrase, not per app. A brand that wants one account in all sets

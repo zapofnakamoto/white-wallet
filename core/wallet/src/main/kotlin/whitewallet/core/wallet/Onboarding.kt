@@ -295,7 +295,7 @@ internal class Onboarding(private val wallet: Wallet) {
     ): OnboardResult {
         val domain = spendDomain(h)
         val keys = wallet.keys(accountId, h)
-        for (attempt in 0 until SHARE_ATTEMPTS) {
+        for (attempt in 0 until wallet.limits.shareAttempts) {
             val n = wallet.store.reserveKeyIndex(accountId, domain, KeyCounter.Shares)
             val share = keys.share(n)
             when (val outcome = wallet.client.register(h, name, share.cx1(), AddressProof.register(share, domain, name))) {
@@ -459,9 +459,6 @@ internal class Onboarding(private val wallet: Wallet) {
 
     companion object {
         const val DEFAULT_ACCOUNT_NAME = "Main"
-
-        /** Shares a registration tries while the mint says each was registered before (by another phone with the same phrase). */
-        private const val SHARE_ATTEMPTS = 5
         const val USERNAME_RULE = "use 1-32 lowercase letters, digits, '.', '-' or '_'"
         private val USERNAME = Regex("^[a-z0-9._-]{1,32}$")
         private val HOST = Regex("^[a-z0-9.-]+(:[0-9]{1,5})?$")

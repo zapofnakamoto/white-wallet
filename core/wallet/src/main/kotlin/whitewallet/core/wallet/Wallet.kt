@@ -88,6 +88,8 @@ class Wallet(
     payWaitMillis: Long = 30_000L,
     /** How long a received note its mint refuses is tried again before it counts as refused (brand `notes.received.giveUpAfter`). */
     internal val receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
+    /** How far scans and restores look (brand `recovery.*`). */
+    internal val limits: ScanLimits = ScanLimits(),
 ) {
     private val lock = Mutex()
 
@@ -869,12 +871,10 @@ class Wallet(
         for (summary in store.accounts.first()) {
             val id = summary.account.id
             unknownNotes.recheckDue(id)
-            // Without an address there's nothing to check or scan; notes arrive by claim or invoice.
             // First: a held address that was paid may be the account's primary one now.
             store.addresses(id).first().filter { it.feeInvoice != null }.forEach { onboarding.settleHeld(id, it) }
             legacy.migration.run(id)
             val profile = store.currentProfile(id)
-            if (profile == null && requireAddress) continue
             if (profile != null) {
                 addressCheck.check(profile.username, profile.host, id).let { status ->
                     if (status !is AddressStatus.CheckFailed) setAddressStatus(id, profile.address, status)
@@ -882,8 +882,10 @@ class Wallet(
                 val scanned = scanner.scanAll(id, profile.host)
                 if (id == active) result = scanned
             }
-            // Addresses on other mints (same recovery phrase, that mint's own keys) are paid there.
-            for (host in store.addresses(id).first().map { it.host }.distinct() - setOfNotNull(profile?.host)) {
+            // Addresses on other mints (same recovery phrase, that mint's own keys) are paid there, and a restored account's on its home
+            // mint before the phone knows their names.
+            val hosts = store.addresses(id).first().map { it.host } + listOfNotNull(store.account(id)?.host)
+            for (host in hosts.distinct() - setOfNotNull(profile?.host)) {
                 val scanned = scanner.scanAll(id, host)
                 if (id == active) result = RefreshResult(result.newNotes + scanned.newNotes, result.receivedMsat + scanned.receivedMsat)
             }
@@ -981,11 +983,11 @@ class Wallet(
     suspend fun keyIndexes(host: String): Map<KeySet, Long> = store.indexesFlow(activeId(), host).first()
 
     /** Keys 0 until index + [gap] of [set] on [host]. */
-    suspend fun derivedKeys(host: String, set: KeySet, gap: Int = AddressScanner.GAP_LIMIT): List<DerivedKey> =
+    suspend fun derivedKeys(host: String, set: KeySet, gap: Int = limits.keyGap): List<DerivedKey> =
         activeId().let { id -> inspector.keys(id, host, set, gap, store.keyChecks(id).first(), failedProbes.value) }
 
     /** Looks up keys index until index + [gap], importing notes and moving the index past any used key found. */
-    suspend fun scanKeysAhead(host: String, set: KeySet, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult = lock.withLock {
+    suspend fun scanKeysAhead(host: String, set: KeySet, gap: Int = limits.keyGap): KeyScanResult = lock.withLock {
         inspector.scanAhead(activeId(), host, set, gap)
     }
 
@@ -994,7 +996,7 @@ class Wallet(
     }
 
     /** Finds the right index for [set] on [host] (lookups past the highest used key, gap limit 20) and sets it. */
-    suspend fun findKeyIndex(host: String, set: KeySet, gap: Int = AddressScanner.GAP_LIMIT): DiscoveryResult = lock.withLock {
+    suspend fun findKeyIndex(host: String, set: KeySet, gap: Int = limits.keyGap): DiscoveryResult = lock.withLock {
         discovery.discover(activeId(), host, set, gap)
     }
 
@@ -1008,7 +1010,7 @@ class Wallet(
     }
 
     /** Looks up keys 0 until index + [gap] of [set] on [host] and syncs the wallet with the answers. */
-    suspend fun recheckAllKeys(host: String, set: KeySet, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult = lock.withLock {
+    suspend fun recheckAllKeys(host: String, set: KeySet, gap: Int = limits.keyGap): KeyScanResult = lock.withLock {
         inspector.recheckAll(activeId(), host, set, gap)
     }
 

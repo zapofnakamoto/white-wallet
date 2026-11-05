@@ -8,9 +8,11 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
+import whitewallet.lnurlcash.spendDomain
 
 /** Several accounts `S/a'` under one recovery phrase: their own money and addresses, backed up, restored and deleted as one wallet. */
 class RegtestWalletAccountsTest {
@@ -90,6 +92,49 @@ class RegtestWalletAccountsTest {
             assertTrue(other.abortRestore())
             assertEquals(listOf(0L), store.accounts.first().map { it.account.index })
             assertEquals(phone.wallet.recoveryPhrase(), other.recoveryPhrase())
+        }
+
+    @Test
+    fun `a wallet of three accounts with two addresses each comes back from its phrase, and each address goes on being paid to its account`() =
+        runBlocking<Unit> {
+            Regtest.requireStack(MintDialect.Current)
+            val phone = phone()
+            val names = mutableListOf(phone.address.substringBefore('@'))
+            suspend fun second() {
+                names += Regtest.name()
+                assertIs<OnboardResult.Ready>(phone.wallet.addAddress(names.last(), limit = 5))
+            }
+            second()
+            for (account in listOf("Savings", "Spare")) {
+                names += Regtest.name()
+                assertIs<OnboardResult.Ready>(phone.wallet.onboard(names.last(), HOST, account, inActiveWallet = true))
+                second()
+            }
+            names.forEachIndexed { i, name -> Regtest.pay("$name@$HOST", 1000L * (i + 1)) }
+
+            val store = InMemoryWalletStore()
+            val other = restored(store)
+            assertIs<RestoreResult.Restored>(other.restore(phone.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
+            val paid = mapOf(0L to 999_000L + 1_999_000, 1L to 2_999_000L + 3_999_000, 2L to 4_999_000L + 5_999_000)
+            assertEquals(paid, other.balances())
+            val ids = store.accounts.first().associate { it.account.index to it.account.id }
+            assertEquals(
+                mapOf(0L to 2L, 1L to 2L, 2L to 2L),
+                ids.mapValues { store.keyIndexOrNull(it.value, spendDomain(HOST), KeyCounter.Shares) },
+            )
+
+            // Paid again before the phone knows any of the names: each lands in its own account.
+            names.forEach { Regtest.pay("$it@$HOST", 1000) }
+            for (id in ids.values) {
+                other.switchAccount(id)
+                other.refresh()
+            }
+            assertEquals(paid.mapValues { it.value + 2 * 999_000 }, other.balances())
+
+            // The account proves a name it held, on the share it was on.
+            other.switchAccount(ids.getValue(1))
+            assertTrue(assertIs<OnboardResult.Ready>(other.onboard(names[3], HOST)).confirmed)
+            assertEquals(1L, store.addresses(ids.getValue(1)).first().single { it.username == names[3] }.share)
         }
 
     @Test

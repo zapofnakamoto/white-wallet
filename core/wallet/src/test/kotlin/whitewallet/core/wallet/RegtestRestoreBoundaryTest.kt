@@ -13,10 +13,10 @@ class RegtestRestoreBoundaryTest : RestoreBoundaryTest() {
     override val host = Regtest.HOST
 
     /** Asks the mint for an invoice minting to the key (LUD-25 minting), pays it from user-lnd, and waits until the note is there. */
-    override suspend fun credit(words: List<String>, set: KeySet, index: Long, sats: Long): Long {
+    override suspend fun credit(words: List<String>, set: KeySet, index: Long, sats: Long, account: Long): Long {
         val client = client()
         val pay = client.servicePayRequest(host)
-        val key = keys(words).pubkey(set, index)
+        val key = keys(words, account).pubkey(set, index)
         val asker = Wallet(InMemoryWalletStore(), InMemorySeedStore(), client)
         Regtest.pay(assertIs<MintInvoice.Ok>(MintInvoice.fetch(asker, pay, sats * 1000, key)).invoice, sats)
         repeat(30) {

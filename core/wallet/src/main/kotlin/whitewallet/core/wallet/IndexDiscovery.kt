@@ -27,7 +27,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
     suspend fun highestKnownUsed(accountId: String, host: String, set: KeySet): Long =
         wallet.store.notes(accountId).first().filter { set.holds(it, host) }.maxOfOrNull { it.index ?: -1 } ?: -1
 
-    suspend fun discover(accountId: String, host: String, set: KeySet, gap: Int = AddressScanner.GAP_LIMIT): DiscoveryResult {
+    suspend fun discover(accountId: String, host: String, set: KeySet, gap: Int = wallet.limits.keyGap): DiscoveryResult {
         val current = wallet.store.indexOf(accountId, host, set)
         val mint = wallet.store.mint(host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
         var lastUsed = highestKnownUsed(accountId, host, set)
@@ -105,11 +105,5 @@ internal class IndexGuard(private val wallet: Wallet) {
 
     companion object {
         private const val MAX_SKIPS = 10_000
-
-        /**
-         * How many keys an operation tries while the mint says each is `already in use`: the gap limit, since keys the mint holds for
-         * unpaid invoices (of another phone with the same phrase) can follow each other.
-         */
-        const val IN_USE_ATTEMPTS = AddressScanner.GAP_LIMIT
     }
 }
