@@ -4,7 +4,17 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMPOSE=(docker compose -f "$DIR/docker-compose.yml")
+# Which stack: legacy runs every mint on lnurl-mint 0.12.2 (LUD-25/26 draft 2f17578), current on 0.13.1 (luds 92e430f).
+# Each is its own compose project with its own volumes (the legacy one keeps the stack's original name and state), on the
+# same ports, so `up` stops the other one first.
+PROTOCOL="${REGTEST_PROTOCOL:-legacy}"
+case "$PROTOCOL" in
+    legacy) PROJECT=whitewallet-regtest; OTHER_PROJECT=whitewallet-regtest-current; MINT_VERSION=0.12.2 ;;
+    current) PROJECT=whitewallet-regtest-current; OTHER_PROJECT=whitewallet-regtest; MINT_VERSION=0.13.1 ;;
+    *) echo "REGTEST_PROTOCOL must be legacy or current, not $PROTOCOL" >&2; exit 1 ;;
+esac
+export MINT_VERSION
+COMPOSE=(docker compose -p "$PROJECT" -f "$DIR/docker-compose.yml")
 MINT_URL="http://localhost:8111"
 MINT_PORT=8111
 MINT2_URL="http://localhost:8112"
@@ -17,7 +27,7 @@ MINT4_PORT=8115
 # mint4 starts on the legacy protocol and `upgrade-mint4` moves it to this image, keeping its database.
 MINT4_LEGACY=0.12.2
 MINT4_UPGRADE=0.13.1
-MINT4_VERSION_FILE="$DIR/.mint4-version"
+MINT4_VERSION_FILE="$DIR/.mint4-version-$PROTOCOL"
 MINT4_VERSION="$(cat "$MINT4_VERSION_FILE" 2>/dev/null || echo "$MINT4_LEGACY")"
 export MINT4_VERSION
 ADB="${ADB:-$(command -v adb || echo "$HOME/Android/Sdk/platform-tools/adb")}"
@@ -81,7 +91,11 @@ adb_reverse() {
 }
 
 cmd_up() {
-    log "starting containers"
+    if [[ -n "$(docker compose -p "$OTHER_PROJECT" -f "$DIR/docker-compose.yml" ps -q 2>/dev/null)" ]]; then
+        log "stopping the other stack ($OTHER_PROJECT), which uses the same ports"
+        docker compose -p "$OTHER_PROJECT" -f "$DIR/docker-compose.yml" stop >/dev/null
+    fi
+    log "starting the $PROTOCOL stack ($PROJECT, lnurl-mint $MINT_VERSION)"
     "${COMPOSE[@]}" up -d
     wait_for "bitcoind" 60 btc getblockchaininfo
 
@@ -355,7 +369,7 @@ cmd_reset_mint4() {
     log "resetting mint4 to $MINT4_LEGACY with an empty database"
     rm -f "$MINT4_VERSION_FILE"
     "${COMPOSE[@]}" rm -sf mint4 >/dev/null
-    docker volume rm -f whitewallet-regtest_mint4 >/dev/null
+    docker volume rm -f "${PROJECT}_mint4" >/dev/null
     MINT4_VERSION="$MINT4_LEGACY" "${COMPOSE[@]}" up -d mint4
     wait_for "the fourth mint at $MINT4_URL" 120 mint_reachable "$MINT4_URL"
 }
@@ -366,6 +380,7 @@ cmd_invoice() {
 }
 
 cmd_status() {
+    echo "stack:         $PROTOCOL ($PROJECT, lnurl-mint $MINT_VERSION)"
     "${COMPOSE[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.Status}}'
     echo
     echo "block height:  $(btc getblockcount 2>/dev/null || echo '?')"
@@ -378,7 +393,9 @@ cmd_status() {
 
 usage() {
     cat <<USAGE
-usage: $0 <command>
+usage: [REGTEST_PROTOCOL=legacy|current] $0 <command>
+
+  REGTEST_PROTOCOL picks the stack: legacy (default) runs the mints on lnurl-mint 0.12.2, current on 0.13.1.
 
   up                       start and bootstrap the stack (idempotent), then adb reverse
   pay <target> [sats]      pay an invoice (lnbcrt...), a Lightning address (alice@localhost:8111, or :8112 on mint2)

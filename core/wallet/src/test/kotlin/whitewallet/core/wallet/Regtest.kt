@@ -18,6 +18,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.NoteState
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.client.MintDialect
 
 /**
  * The local regtest stack (dev/regtest): two real reference mints on regtest Lightning, and the user's LND node that pays and invoices from
@@ -36,6 +37,16 @@ internal object Regtest {
     private val random = SecureRandom()
 
     fun requireStack() = assumeTrue(System.getenv("LNURLCASH_REGTEST") == "1", "LNURLCASH_REGTEST not set")
+
+    /** Which stack is up (dev/regtest, REGTEST_PROTOCOL): its mints run the legacy draft 2f17578 or the current protocol. */
+    val protocol: MintDialect
+        get() = if (System.getenv("REGTEST_PROTOCOL") == "current") MintDialect.Current else MintDialect.Legacy
+
+    /** [requireStack], for a test that only means something against mints speaking [dialect]; skipped on the other stack. */
+    fun requireStack(dialect: MintDialect) {
+        requireStack()
+        assumeTrue(protocol == dialect, "needs the ${dialect.name.lowercase()} regtest stack")
+    }
 
     /** Runs regtest.sh with [args]; its result is the last line of the output (log lines are merged in). */
     fun run(vararg args: String): String {

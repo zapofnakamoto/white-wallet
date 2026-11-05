@@ -21,4 +21,4 @@ __pycache__/
 .env
 
 # regtest: which lnurl-mint version mint4 runs (dev/regtest/regtest.sh upgrade-mint4)
-dev/regtest/.mint4-version
+dev/regtest/.mint4-version-*

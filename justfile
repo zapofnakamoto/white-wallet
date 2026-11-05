@@ -94,8 +94,16 @@ test *gradle_args:
 # The tests, including those against the local regtest stack (started if it isn't running; stop it with `just regtest down`)
 [group('checks')]
 test-regtest *gradle_args:
-    dev/regtest/regtest.sh up >/dev/null
-    LNURLCASH_REGTEST=1 just test {{ gradle_args }}
+    #!/usr/bin/env bash
+    # Every regtest test runs on both stacks: the legacy mints (lnurl-mint 0.12.2) and the current ones (0.13.1).
+    set -uo pipefail
+    failed=()
+    for protocol in legacy current; do
+        echo "==> regtest tests on the $protocol stack"
+        REGTEST_PROTOCOL=$protocol dev/regtest/regtest.sh up >/dev/null || { failed+=("$protocol (stack)"); continue; }
+        REGTEST_PROTOCOL=$protocol LNURLCASH_REGTEST=1 just test {{ gradle_args }} || failed+=("$protocol")
+    done
+    (( ${#failed[@]} == 0 )) || { echo "regtest tests failed on: ${failed[*]}" >&2; exit 1; }
 
 # Line and branch coverage of the protocol and wallet modules, regtest tests included (<module>/build/reports/jacoco/test/html)
 [group('checks')]

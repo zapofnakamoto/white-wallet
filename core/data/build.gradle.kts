@@ -40,6 +40,10 @@ tasks.withType<Test>().configureEach {
     val regtest = providers.environmentVariable("LNURLCASH_REGTEST")
     inputs.property("LNURLCASH_REGTEST", regtest.orElse(""))
     regtest.orNull?.let { environment("LNURLCASH_REGTEST", it) }
+    // REGTEST_PROTOCOL=current|legacy: which mint stack is up (dev/regtest/regtest.sh), so protocol-bound tests know.
+    val protocol = providers.environmentVariable("REGTEST_PROTOCOL")
+    inputs.property("REGTEST_PROTOCOL", protocol.orElse(""))
+    protocol.orNull?.let { environment("REGTEST_PROTOCOL", it) }
     // Robolectric reaches into JDK internals for file descriptors.
     jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED")
 }
