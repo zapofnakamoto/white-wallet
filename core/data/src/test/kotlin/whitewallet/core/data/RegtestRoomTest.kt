@@ -92,6 +92,8 @@ class RegtestRoomTest {
     @Test
     fun `a payment left in flight when the app died is settled from the stored journal after the restart, paid once`() =
         runBlocking<Unit> {
+            // An internal transfer: on a LUD-26 mint from milestone 7 (luds 92e430f upgrade).
+            assumeTrue("on a LUD-26 mint from milestone 7", System.getenv("REGTEST_PROTOCOL") != "current")
             val bob = start()
             val bobName = name()
             assertIs<OnboardResult.Ready>(bob.onboard(bobName, host))

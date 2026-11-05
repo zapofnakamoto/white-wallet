@@ -57,6 +57,7 @@ class RegtestE2ETest {
     @Test
     fun `pay a Lightning invoice and another user's address on the same mint`() =
         runBlocking<Unit> {
+            Regtest.legacyUntil("milestone 7, internal transfer")
             val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
             alice.fund(5000)
             val start = alice.balance()
@@ -253,10 +254,10 @@ class RegtestE2ETest {
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
 
-            // 1. The reference mint accepts the registration proof and publishes our cx1 for the name.
+            // 1. The reference mint accepts the registration proof, and then the account's proof of the name.
             val alice = Regtest.name("e2e")
             val first = assertIs<OnboardResult.Ready>(wallet.onboard(alice, HOST), "onboarding")
-            assertTrue(first.confirmed, "address confirmed through text/cpub")
+            assertTrue(first.confirmed, "address confirmed")
             val accountA = assertNotNull(store.currentAccountId())
 
             // 2. A payment to the address is auto-minted onto our branch; refresh finds it, certified.
@@ -298,11 +299,11 @@ class RegtestE2ETest {
             // 5. The next payment to the address lands on the next index; refresh scans past the used one.
             Regtest.pay("$alice@$HOST", 1000)
             assertEquals(1, wallet.refresh().newNotes)
-            assertEquals(1, store.addressScanFrom(accountA, HOST) - 1, "two address notes: indexes 0 and 1")
+            assertEquals(2, wallet.keyIndex(HOST, Regtest.addressSet), "two address notes: indexes 0 and 1")
 
             // 6. Rotating that address note onto a wallet key is free on the real mint too.
             val before = wallet.balanceMsat.first()
-            assertIs<RotateResult.Rotated>(wallet.rotateKey(HOST, KeySet.LegacyAddress, 1))
+            assertIs<RotateResult.Rotated>(wallet.rotateKey(HOST, Regtest.addressSet, 1))
             assertEquals(before, wallet.balanceMsat.first())
 
             // 7. Even with the wallet counter forced back to 0, rotate all works: used keys are skipped or rediscovered.
@@ -335,6 +336,7 @@ class RegtestE2ETest {
     @Test
     fun `a payment to a user on the same mint that drops while someone else pays them is not taken as paid`() =
         runBlocking<Unit> {
+            Regtest.legacyUntil("milestone 7, internal transfer")
             val bob = Regtest.phone(strategy = SingleNoteStrategy.ID)
             val carol = Regtest.phone(strategy = SingleNoteStrategy.ID)
             carol.fund(3000)
@@ -385,6 +387,7 @@ class RegtestE2ETest {
     @Test
     fun `a combine the mint pays fees back for shows the refund`() =
         runBlocking<Unit> {
+            Regtest.legacyUntil("milestone 7, internal transfer")
             val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
             alice.fund(5000)
             val bob = Regtest.phone(strategy = SingleNoteStrategy.ID)

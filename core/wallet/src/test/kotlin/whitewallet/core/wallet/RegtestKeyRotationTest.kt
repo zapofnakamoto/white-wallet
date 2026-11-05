@@ -17,7 +17,6 @@ import whitewallet.core.wallet.Regtest.HOST3
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyCertificates
 
 /**
  * A mint that really changes its signing key (the third mint, moved to another Lightning node with its notes): notes signed with the old
@@ -104,16 +103,16 @@ class RegtestKeyRotationTest {
             val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
             val certificate = assertNotNull(preview.link.certificate?.let(Cs1::decode), "the link carries a certificate")
             assertTrue(
-                LegacyCertificates.verify(certificate, preview.link.spend.q, PublicKey.fromHex(oldKey)),
+                certifies(certificate, HOST3, preview.link.spend.q, PublicKey.fromHex(oldKey)),
                 "a genuine one, of the old key",
             )
             assertEquals(preview.info.mintPubkey, newKey)
             assertEquals(
                 false,
-                LegacyCertificates.verify(certificate, preview.link.spend.q, newKey),
+                certifies(certificate, HOST3, preview.link.spend.q, newKey),
                 "it doesn't count: the mint signs with another key now",
             )
-            assertTrue(LegacyCertificates.verify(assertNotNull(preview.info.certificate), preview.link.spend.q, newKey))
+            assertTrue(certifies(assertNotNull(preview.info.certificate), HOST3, preview.link.spend.q, newKey))
             assertEquals(true, preview.certified, "by the mint's own certificate")
 
             // Claiming still works, and the note lands at Bob's own key, signed with the new key; the link is known as claimed.

@@ -261,6 +261,37 @@ cmd_pay() {
         log "paying $sats sats to $target"
     fi
     pay_invoice "$invoice"
+    [[ -n "$url" ]] && await_credited "$url" "$invoice"
+    return 0
+}
+
+# A mint on lnurl-mint 0.13 credits an address payment only when its settlement poll sees it (LUD-26 Crediting: no lookup
+# names the note before). Waits until the mint behind [url] has minted [invoice], so a refresh right after finds it. Only
+# 0.13 records an invoice's username: a 0.12 mint settles on lookup, keeps minted = 0 until then, and is not waited for.
+await_credited() {
+    local url="$1" invoice="$2" service hash
+    local db
+    case "$url" in
+        http://localhost:8111/*) service=mint db=mint ;;
+        http://localhost:8112/*) service=mint2 db=mint2 ;;
+        http://localhost:8113/*) service=mint3 db=mint3 ;;
+        http://localhost:8115/*) service=mint4 db=mint4 ;;
+        *) return 0 ;;
+    esac
+    hash="$(lncli_user decodepayreq "$invoice" | jq -r '.payment_hash')"
+    for _ in $(seq 1 60); do
+        case "$("${COMPOSE[@]}" exec -T "$service" python3 -c '
+import sqlite3, sys
+try:
+    row = sqlite3.connect(sys.argv[2]).execute("SELECT minted FROM mints WHERE payment_hash = ? AND username IS NOT NULL", (sys.argv[1],)).fetchone()
+except sqlite3.Error:
+    row = None
+print("pending" if row is not None and row[0] == 0 else "done")' "$hash" "/data/$db.db" 2>/dev/null)" in
+            done) return 0 ;;
+        esac
+        sleep 0.5
+    done
+    die "the mint did not credit the payment to $url within 30 s"
 }
 
 # Pays a BOLT-11 invoice and dies unless it succeeded. Pays from user-lnd, except invoices of user-lnd itself (those of

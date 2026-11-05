@@ -43,6 +43,13 @@ internal object Regtest {
         get() = if (System.getenv("REGTEST_PROTOCOL") == "current") MintDialect.Current else MintDialect.Legacy
 
     /** [requireStack], for a test that only means something against mints speaking [dialect]; skipped on the other stack. */
+    /** The keys a payment to a phone's first address lands on: its share 0 on a LUD-26 mint, the legacy purpose 2 on a 2f17578 one. */
+    val addressSet: KeySet
+        get() = if (protocol == MintDialect.Current) KeySet.share(0) else KeySet.LegacyAddress
+
+    /** Skips on the current stack what the wallet does only on a legacy mint until [milestone] (luds 92e430f upgrade). */
+    fun legacyUntil(milestone: String) = assumeTrue(protocol == MintDialect.Legacy, "on a LUD-26 mint from $milestone")
+
     fun requireStack(dialect: MintDialect) {
         requireStack()
         assumeTrue(protocol == dialect, "needs the ${dialect.name.lowercase()} regtest stack")

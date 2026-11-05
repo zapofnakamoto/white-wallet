@@ -82,6 +82,8 @@ services:
       BASE_URL: http://localhost:8111
       USERNAME: mint
       DATABASE_PATH: /data/mint.db
+      # lnurl-mint 0.13 credits an address payment when a settlement poll sees it (LUD-26 Crediting); poll often here.
+      ZAP_POLL_INTERVAL_SECONDS: "1"
       FUNDINGSOURCE_BACKEND: lnd
       FUNDINGSOURCE_URL: https://mint-lnd:8080
       FUNDINGSOURCE_CERT_PATH: /lnd/tls.cert
@@ -120,6 +122,7 @@ services:
       BASE_URL: http://localhost:8112
       USERNAME: mint
       DATABASE_PATH: /data/mint2.db
+      ZAP_POLL_INTERVAL_SECONDS: "1"
       FUNDINGSOURCE_BACKEND: lnd
       FUNDINGSOURCE_URL: https://user-lnd:8080
       FUNDINGSOURCE_CERT_PATH: /lnd/tls.cert
@@ -157,6 +160,7 @@ services:
       BASE_URL: http://localhost:8113
       USERNAME: mint
       DATABASE_PATH: /data/mint3.db
+      ZAP_POLL_INTERVAL_SECONDS: "1"
       FUNDINGSOURCE_BACKEND: lnd
       MIN_SENDABLE_MSAT: "1000"
       MIN_MINT_MSAT: "1000"
@@ -196,6 +200,7 @@ services:
       BASE_URL: http://localhost:8115
       USERNAME: mint
       DATABASE_PATH: /data/mint4.db
+      ZAP_POLL_INTERVAL_SECONDS: "1"
       FUNDINGSOURCE_BACKEND: lnd
       FUNDINGSOURCE_URL: https://mint-lnd:8080
       FUNDINGSOURCE_CERT_PATH: /lnd/tls.cert

@@ -1,5 +1,6 @@
 package whitewallet.core.wallet
 
+import kotlinx.coroutines.flow.first
 import whitewallet.core.model.ActivityKind
 
 /**
@@ -9,6 +10,20 @@ import whitewallet.core.model.ActivityKind
 internal class AddressScanner(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
     private val log = ActivityLog(wallet)
+
+    /**
+     * Every address key set of the account on [host]: the share of each of its addresses there, and the legacy purpose 2 while any address
+     * is still on the legacy branch, or the account has none (tag: keys).
+     */
+    suspend fun scanAll(accountId: String, host: String): RefreshResult {
+        val addresses = wallet.store.addresses(accountId).first().filter { it.host == host }
+        val sets = addresses.mapNotNull { it.share }.distinct().map(KeySet::share).toMutableList()
+        if (addresses.isEmpty() || addresses.any { it.share == null }) sets += LEGACY_ADDRESSES
+        return sets.fold(RefreshResult(0, 0)) { total, set ->
+            val r = scan(accountId, host, set)
+            RefreshResult(total.newNotes + r.newNotes, total.receivedMsat + r.receivedMsat)
+        }
+    }
 
     suspend fun scan(accountId: String, host: String, set: KeySet = LEGACY_ADDRESSES): RefreshResult {
         require(set.isAddress)

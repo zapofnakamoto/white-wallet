@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.client.RegistrationOutcome
 import whitewallet.lnurlcash.client.legacy.legacyRegister
 import whitewallet.lnurlcash.legacy.LegacyAddressProof
@@ -62,8 +63,9 @@ class RegtestMultiAddressTest {
     private fun pay(name: String, sats: Long) = Regtest.pay("$name@$host", sats)
 
     @Test
-    fun `several addresses on one cx1 share one sequence of address keys, and the wallet finds every payment`() =
+    fun `legacy 2f17578 - several addresses on one cx1 share one sequence of address keys, and the wallet finds every payment`() =
         runBlocking<Unit> {
+            Regtest.requireStack(MintDialect.Legacy)
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(), client, policies = NotePolicies.InMemory(ManualStrategy.ID))
 

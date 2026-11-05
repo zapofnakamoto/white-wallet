@@ -5,10 +5,14 @@ import java.security.SecureRandom
 import java.util.UUID
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Account
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.lnurlcash.AddressProof
+import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.client.RegistrationOutcome
+import whitewallet.lnurlcash.client.RegistrationRejection
 import whitewallet.lnurlcash.client.legacy.legacyRegister
 import whitewallet.lnurlcash.client.legacy.legacyUnregister
 import whitewallet.lnurlcash.legacy.LegacyAddressProof
@@ -142,9 +146,12 @@ internal class Onboarding(private val wallet: Wallet) {
     suspend fun unregister(accountId: String, address: RegisteredAddress): UnregisterResult {
         val primary = wallet.store.currentProfile(accountId)
         if (primary?.username == address.username && primary.host == address.host) return UnregisterResult.IsPrimary
-        val branch = wallet.branch(accountId, address.host)
-        val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Unregister, spendDomain(address.host), address.username)
-        val outcome = wallet.client.legacyUnregister(address.host, address.username, sig)
+        val outcome =
+            try {
+                unregisterAt(accountId, address)
+            } catch (e: IOException) {
+                return UnregisterResult.NetworkError(e.message ?: "network error")
+            }
         val remove = suspend {
             wallet.store.deleteAddress(accountId, address.username, address.host)
             wallet.setAddressStatus(accountId, address.address, null)
@@ -168,6 +175,26 @@ internal class Onboarding(private val wallet: Wallet) {
         }
     }
 
+    /** Sends the unregistration [address]'s mint speaks; a lookup afterwards decides what happened. */
+    private suspend fun unregisterAt(accountId: String, address: RegisteredAddress): RegistrationOutcome {
+        val h = address.host
+        val domain = spendDomain(h)
+        val keys = wallet.keys(accountId, h)
+        return when (wallet.dialect(h)) {
+            MintDialect.Current -> {
+                val sig =
+                    address.share?.let { AddressProof.unregister(keys.share(it), domain, address.username) }
+                        // Still on the legacy branch: the key on file is the branch key (tag: keys).
+                        ?: AddressProof.sign(AddressProof.unregisterMessage(domain, address.username), keys.legacy.branchKey())
+                wallet.client.unregister(h, address.username, sig)
+            }
+            MintDialect.Legacy -> {
+                val sig = LegacyAddressProof.sign(keys.legacy, LegacyAddressProof.Action.Unregister, domain, address.username)
+                wallet.client.legacyUnregister(h, address.username, sig)
+            }
+        }
+    }
+
     private suspend fun claim(
         name: String,
         h: String,
@@ -180,22 +207,81 @@ internal class Onboarding(private val wallet: Wallet) {
             is ConnectResult.Failed -> return connected.result
             is ConnectResult.Connected -> Unit
         }
-        val ready = suspend { confirmed: Boolean -> ready(accountId, creating, accountName, name, host = h, confirmed, primary) }
-
-        // Check first: the name may already be ours (an earlier attempt whose answer was lost) or someone else's.
-        when (val before = addresses.check(name, h, accountId)) {
-            AddressStatus.Ours -> return ready(true)
-            AddressStatus.Taken,
-            AddressStatus.Unconfirmed -> return taken(name, accountId, h)
-            is AddressStatus.Invalid -> return OnboardResult.UsernameInvalid(before.reason)
-            is AddressStatus.CheckFailed -> return OnboardResult.NetworkError(before.reason)
-            AddressStatus.Available -> Unit
+        val ready = suspend { confirmed: Boolean, share: Long? ->
+            ready(accountId, creating, accountName, name, host = h, confirmed, primary, share)
         }
 
+        // Check first: the name may already be ours (an earlier attempt whose answer was lost) or someone else's.
+        val before = addresses.ownership(name, h, accountId)
+        when (before.status) {
+            AddressStatus.Ours -> return ready(true, before.share)
+            AddressStatus.Taken,
+            AddressStatus.Unconfirmed -> return taken(name, accountId, h)
+            is AddressStatus.Invalid -> return OnboardResult.UsernameInvalid(before.status.reason)
+            is AddressStatus.CheckFailed -> return OnboardResult.NetworkError(before.status.reason)
+            AddressStatus.Available -> Unit
+        }
+        val dialect =
+            try {
+                wallet.dialect(h)
+            } catch (e: IOException) {
+                return OnboardResult.NetworkError(e.message ?: "network error")
+            }
+        return when (dialect) {
+            MintDialect.Current -> claimShare(name, h, accountId, ready)
+            MintDialect.Legacy -> legacyClaim(name, h, accountId, ready)
+        }
+    }
+
+    /**
+     * Registers [name] for the account's next share (LUD-26 POST). The share is reserved durably before its `cx1` goes out, so a lost
+     * answer is settled by asking the mint about that share.
+     */
+    private suspend fun claimShare(
+        name: String,
+        h: String,
+        accountId: String,
+        ready: suspend (Boolean, Long?) -> OnboardResult,
+    ): OnboardResult {
+        val domain = spendDomain(h)
+        val keys = wallet.keys(accountId, h)
+        for (attempt in 0 until SHARE_ATTEMPTS) {
+            val n = wallet.store.reserveKeyIndex(accountId, domain, KeyCounter.Shares)
+            val share = keys.share(n)
+            when (val outcome = wallet.client.register(h, name, share.cx1(), AddressProof.register(share, domain, name))) {
+                is RegistrationOutcome.Rejected ->
+                    when (outcome.kind) {
+                        // Another phone with this phrase registered that share already: take the next one.
+                        RegistrationRejection.Cx1AlreadyUsed -> continue
+                        else ->
+                            return if (addresses.check(name, h, accountId) == AddressStatus.Taken) taken(name, accountId, h)
+                            else OnboardResult.RegistrationFailed(outcome.reason)
+                    }
+                is RegistrationOutcome.AwaitingFee -> return OnboardResult.RegistrationFailed("the mint asks an address fee")
+                // The answer may have been lost; the lookup below shows whether it landed.
+                is RegistrationOutcome.Ambiguous,
+                RegistrationOutcome.Registered -> {
+                    val after = addresses.ownership(name, h, accountId, also = n)
+                    return settle(after.status, name, h, accountId) { confirmed -> ready(confirmed, after.share ?: n) }
+                }
+            }
+        }
+        return OnboardResult.RegistrationFailed("no free share")
+    }
+
+    /** Legacy 2f17578 (tag: mint): registers [name] for the account's branch `cx1` at `/p/`. */
+    private suspend fun legacyClaim(
+        name: String,
+        h: String,
+        accountId: String,
+        ready: suspend (Boolean, Long?) -> OnboardResult,
+    ): OnboardResult {
         val branch = wallet.branch(accountId, h)
         val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Register, spendDomain(h), name)
         when (val outcome = wallet.client.legacyRegister(h, name, branch.cx1(), sig)) {
             is RegistrationOutcome.Rejected -> {
+                // The mint may have moved to LUD-26 since it was asked; ask it again next time.
+                wallet.forgetDialect(h)
                 // Lost a race for the name, or the mint refuses registrations. Look again to tell which.
                 return if (addresses.check(name, h, accountId) == AddressStatus.Taken) taken(name, accountId, h)
                 else OnboardResult.RegistrationFailed(outcome.reason)
@@ -206,7 +292,18 @@ internal class Onboarding(private val wallet: Wallet) {
             RegistrationOutcome.Registered -> Unit
         }
 
-        return when (val after = addresses.check(name, h, accountId)) {
+        return settle(addresses.check(name, h, accountId), name, h, accountId) { confirmed -> ready(confirmed, null) }
+    }
+
+    /** What a registration came to, by the lookup after it. */
+    private suspend fun settle(
+        after: AddressStatus,
+        name: String,
+        h: String,
+        accountId: String,
+        ready: suspend (confirmed: Boolean) -> OnboardResult,
+    ): OnboardResult =
+        when (after) {
             AddressStatus.Ours -> ready(true)
             AddressStatus.Unconfirmed -> ready(false)
             AddressStatus.Taken -> taken(name, accountId, h)
@@ -214,7 +311,6 @@ internal class Onboarding(private val wallet: Wallet) {
             is AddressStatus.Invalid -> OnboardResult.UsernameInvalid(after.reason)
             is AddressStatus.CheckFailed -> OnboardResult.NetworkError(after.reason)
         }
-    }
 
     suspend fun connectMint(host: String): ConnectResult {
         val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid("not a valid host"))
@@ -253,16 +349,23 @@ internal class Onboarding(private val wallet: Wallet) {
         host: String,
         confirmed: Boolean,
         primary: Boolean,
+        share: Long?,
     ): OnboardResult.Ready {
         if (creating) wallet.store.saveAccount(Account(accountId, accountName, wallet.now(), host))
         val profile = Profile(name, host)
+        val known = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == host }
+        if (known == null || (share != null && known.share != share)) {
+            wallet.store.saveAddress(accountId, RegisteredAddress(name, host, known?.addedAtMillis ?: wallet.now(), share))
+        }
+        // A restored account learns how many shares it handed out from the ones it proves.
+        if (share != null && (wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0) <= share) {
+            wallet.store.setKeyIndex(accountId, spendDomain(host), KeyCounter.Shares, share + 1)
+        }
         if (primary) {
             // A primary address on another mint moves the account's home there.
             wallet.store.account(accountId)?.takeIf { it.host != host }?.let { wallet.store.saveAccount(it.copy(host = host)) }
             wallet.store.saveProfile(accountId, profile)
             wallet.store.setActiveAccount(accountId)
-        } else if (wallet.store.addresses(accountId).first().none { it.username == name && it.host == host }) {
-            wallet.store.saveAddress(accountId, RegisteredAddress(name, host, wallet.now()))
         }
         wallet.setAddressStatus(accountId, profile.address, if (confirmed) AddressStatus.Ours else AddressStatus.Unconfirmed)
         return OnboardResult.Ready(profile, confirmed)
@@ -277,6 +380,9 @@ internal class Onboarding(private val wallet: Wallet) {
 
     companion object {
         const val DEFAULT_ACCOUNT_NAME = "Main"
+
+        /** Shares a registration tries while the mint says each was registered before (by another phone with the same phrase). */
+        private const val SHARE_ATTEMPTS = 5
         const val USERNAME_RULE = "use 1-32 lowercase letters, digits, '.', '-' or '_'"
         private val USERNAME = Regex("^[a-z0-9._-]{1,32}$")
         private val HOST = Regex("^[a-z0-9.-]+(:[0-9]{1,5})?$")

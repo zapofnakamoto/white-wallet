@@ -177,7 +177,9 @@ class RegtestPayTest {
             assertEquals(false, preview.internal, "Alice has no notes on Carol's mint")
             val paid = assertIs<PayResult.Paid>(alice.wallet.pay(preview, 1_000_000))
             assertEquals(4_999_000 - 1_000_000 - paid.feeMsat, alice.balance())
-            assertEquals(1_000_000 - 2_000, carol.wallet.refresh().receivedMsat, "less the second mint's 2 sat fee")
+            // A LUD-26 mint credits the payment when its settlement poll sees it.
+            carol.refreshUntil { carol.balance() > 0 }
+            assertEquals(1_000_000 - 2_000, carol.balance(), "less the second mint's 2 sat fee")
         }
 
     @Test

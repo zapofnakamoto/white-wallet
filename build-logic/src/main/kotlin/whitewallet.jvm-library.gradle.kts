@@ -51,6 +51,11 @@ tasks.withType<Test>().configureEach {
     val regtest = providers.environmentVariable("LNURLCASH_REGTEST")
     inputs.property("LNURLCASH_REGTEST", regtest.orElse(""))
     regtest.orNull?.let { environment("LNURLCASH_REGTEST", it) }
+    // A regtest result is about the running stack, which Gradle can't see: never reuse one.
+    if (regtest.isPresent) {
+        outputs.upToDateWhen { false }
+        outputs.doNotCacheIf("regtest tests depend on the running stack") { true }
+    }
     // REGTEST_PROTOCOL=current|legacy: which mint stack is up (dev/regtest/regtest.sh), so protocol-bound tests know.
     val protocol = providers.environmentVariable("REGTEST_PROTOCOL")
     inputs.property("REGTEST_PROTOCOL", protocol.orElse(""))

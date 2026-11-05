@@ -23,7 +23,9 @@ class RegtestFaucetTest {
             for (host in listOf(HOST, HOST2)) {
                 val alice = Regtest.phone(host = host)
                 assertEquals(1000, faucet.pay(alice.address, 1000))
-                assertTrue(alice.wallet.refresh().receivedMsat > 990_000, "on $host")
+                // A LUD-26 mint credits the payment when its settlement poll sees it.
+                alice.refreshUntil { alice.balance() > 990_000 }
+                assertTrue(alice.balance() > 990_000, "on $host")
             }
         }
 

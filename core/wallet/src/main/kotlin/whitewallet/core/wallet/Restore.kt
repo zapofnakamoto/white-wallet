@@ -1,9 +1,13 @@
 package whitewallet.core.wallet
 
+import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Account
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.NoteState
+import whitewallet.lnurlcash.client.MintDialect
+import whitewallet.lnurlcash.spendDomain
 
 sealed interface RestoreResult {
     /** The account exists and is active, with every note found on the mint; it has no address yet. */
@@ -59,15 +63,44 @@ internal class Restore(private val wallet: Wallet) {
         // The user had the phrase written down; no need to ask them to back it up again.
         wallet.seeds.setBackupVerified(accountId)
         wallet.store.saveAccount(Account(accountId, accountName, wallet.now(), h))
-        // The account's LUD-26 chains, then the legacy 2f17578 purposes (tag: keys), which hold what it had before the upgrade.
-        for (set in listOf(KeySet.Wallet, KeySet.Change) + KeySet.LEGACY) {
-            val found = discovery.discover(accountId, h, set)
+        val stopped: suspend (DiscoveryResult) -> RestoreResult? = { found ->
             found.stoppedEarly?.let { reason ->
                 wallet.store.deleteAccount(accountId)
                 wallet.discardSeed(accountId)
-                return if (found.refused) RestoreResult.MintInvalid(reason) else RestoreResult.NetworkError(reason)
+                if (found.refused) RestoreResult.MintInvalid(reason) else RestoreResult.NetworkError(reason)
             }
         }
+        // The account's LUD-26 chains, then the legacy 2f17578 purposes (tag: keys), which hold what it had before the upgrade.
+        for (set in listOf(KeySet.Wallet, KeySet.Change) + KeySet.LEGACY) {
+            stopped(discovery.discover(accountId, h, set))?.let {
+                return it
+            }
+        }
+        // Address payments, one share per address: shares are handed out in order, so the scan ends after a few unused ones. A legacy
+        // mint never registered one (tag: mint).
+        val dialect =
+            try {
+                wallet.dialect(h)
+            } catch (e: IOException) {
+                wallet.store.deleteAccount(accountId)
+                wallet.discardSeed(accountId)
+                return RestoreResult.NetworkError(e.message ?: "network error")
+            }
+        var share = 0L
+        var unused = if (dialect == MintDialect.Legacy) AddressCheck.RESTORE_SHARES.toInt() else 0
+        var used = -1L
+        while (unused < AddressCheck.RESTORE_SHARES) {
+            val found = discovery.discover(accountId, h, KeySet.share(share))
+            stopped(found)?.let {
+                return it
+            }
+            if (found.next > 0) {
+                used = share
+                unused = 0
+            } else unused++
+            share++
+        }
+        if (used >= 0) wallet.store.setKeyIndex(accountId, spendDomain(h), KeyCounter.Shares, used + 1)
         wallet.activeBeforeRestore = wallet.store.currentAccountId()
         wallet.store.setActiveAccount(accountId)
         val notes = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }

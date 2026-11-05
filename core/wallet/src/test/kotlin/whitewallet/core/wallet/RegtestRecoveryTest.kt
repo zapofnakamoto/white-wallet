@@ -90,6 +90,7 @@ class RegtestRecoveryTest {
     @Test
     fun `a payment to a user on the same mint that loses the connection is pending, then settled as paid once`() =
         runBlocking<Unit> {
+            Regtest.legacyUntil("milestone 7, internal transfer")
             val bob = Regtest.phone()
             val outage = Outage()
             val alice = Regtest.phone(client = outage.client)
@@ -346,7 +347,10 @@ class RegtestRecoveryTest {
                 InMemorySeedStore(),
                 Regtest.client { chain ->
                     if (chain.request().url.queryParameter("p") != null) lookups++
-                    chain.proceed(chain.request()).also { if ("in use" in it.peekBody(4096).string()) inUse++ }
+                    // A held key, refused at the pay callback (a lookup of a burned note also says "already in use", LUD-26).
+                    chain.proceed(chain.request()).also {
+                        if (chain.request().url.encodedPath.endsWith("/cb") && "in use" in it.peekBody(4096).string()) inUse++
+                    }
                 },
                 policies = NotePolicies.InMemory(ManualStrategy.ID),
             )

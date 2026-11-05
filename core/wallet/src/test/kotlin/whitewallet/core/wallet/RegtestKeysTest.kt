@@ -17,7 +17,7 @@ class RegtestKeysTest {
     @Test
     fun `the key tools find the index, refuse a used one, and see what the same phrase did on another phone`() =
         runBlocking<Unit> {
-            // Phone 1: an address note (purpose 2, key 0) and two claims (wallet keys 0 and 1).
+            // Phone 1: an address note (key 0 of its address keys) and two claims (wallet keys 0 and 1).
             val phone1 = Regtest.phone()
             phone1.fund(1000)
             repeat(2) {
@@ -47,7 +47,7 @@ class RegtestKeysTest {
             assertEquals(before, phone1.balance())
 
             // Rotating by hand from the key page shows as manual note maintenance.
-            assertIs<RotateResult.Rotated>(phone1.wallet.rotateKey(HOST, KeySet.LegacyAddress, 0))
+            assertIs<RotateResult.Rotated>(phone1.wallet.rotateKey(HOST, Regtest.addressSet, 0))
             val row = phone1.wallet.activity.first().single { it.kind == ActivityKind.Rotated }
             assertEquals(false, row.automatic)
             assertEquals(before, phone1.balance())

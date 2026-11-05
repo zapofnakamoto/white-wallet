@@ -12,6 +12,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.client.MintDialect
 
 /** Money coming in: by invoice, and at the address, on the real mint. */
 class RegtestReceiveTest {
@@ -126,8 +127,26 @@ class RegtestReceiveTest {
         }
 
     @Test
-    fun `an address payment beyond the gap is found by scanning further, and receiving goes on after it`() =
+    fun `unpaid invoices of an address take no keys, so the payment after them is found by a refresh`() =
         runBlocking<Unit> {
+            Regtest.requireStack(MintDialect.Current)
+            val alice = Regtest.phone()
+            // A LUD-26 mint picks an address payment's note when it settles: invoices nobody pays leave no gap.
+            val name = alice.address.substringBefore('@')
+            val callback =
+                Regex("\"callback\":\\s*\"([^\"]+)\"")
+                    .find(URI("http://$HOST/.well-known/lnurlp/$name").toURL().readText())!!
+                    .groupValues[1]
+            repeat(25) { URI("$callback${if ('?' in callback) '&' else '?'}amount=1000000").toURL().readText() }
+            Regtest.pay(alice.address, 1000)
+            assertEquals(999_000, alice.wallet.refresh().receivedMsat)
+            assertEquals(1, alice.wallet.keyIndex(HOST, Regtest.addressSet))
+        }
+
+    @Test
+    fun `legacy 2f17578 - an address payment beyond the gap is found by scanning further, and receiving goes on after it`() =
+        runBlocking<Unit> {
+            Regtest.requireStack(MintDialect.Legacy)
             val alice = Regtest.phone()
             // Every invoice the address hands out takes the next address key, paid or not: 25 unpaid ones leave the next
             // payment past the 20-key gap a refresh looks at.

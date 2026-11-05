@@ -39,7 +39,9 @@ import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.ServiceRoot
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.protocol.ProtocolViolation
 
 /**
  * The wallet's entry point. It holds several accounts, each with its own recovery phrase; everything except account management acts on the
@@ -84,6 +86,7 @@ class Wallet(
     /** See the constructor; tests shorten it. */
     internal var payWaitMillis = payWaitMillis
     private val keySets = ConcurrentHashMap<Pair<String, String>, AccountKeys>()
+    private val dialects = ConcurrentHashMap<String, MintDialect>()
     /** The last check of each address, by (account id, address). In memory; see [refresh] and [checkAddresses]. */
     private val addressStatuses = MutableStateFlow<Map<Pair<String, String>, AddressStatus>>(emptyMap())
 
@@ -833,12 +836,12 @@ class Wallet(
                 addressCheck.check(profile.username, profile.host, id).let { status ->
                     if (status !is AddressStatus.CheckFailed) setAddressStatus(id, profile.address, status)
                 }
-                val scanned = scanner.scan(id, profile.host)
+                val scanned = scanner.scanAll(id, profile.host)
                 if (id == active) result = scanned
             }
             // Addresses on other mints (same recovery phrase, that mint's own keys) are paid there.
             for (host in store.addresses(id).first().map { it.host }.distinct() - setOfNotNull(profile?.host)) {
-                val scanned = scanner.scan(id, host)
+                val scanned = scanner.scanAll(id, host)
                 if (id == active) result = RefreshResult(result.newNotes + scanned.newNotes, result.receivedMsat + scanned.receivedMsat)
             }
             sender.reconcile(id)
@@ -1074,6 +1077,25 @@ class Wallet(
         if (accountId == null) return null
         if (keySets[accountId to host] == null && seeds.load(store.account(accountId)?.walletId ?: accountId) == null) return null
         return keys(accountId, host)
+    }
+
+    /**
+     * Which protocol the mint at [host] speaks, asked once per process with a request that changes nothing (see LnurlcashClient.dialect). A
+     * mint that answers neither way is taken for a legacy one: only a LUD-26 mint answers the probe in LNURL form. Throws IOException when
+     * the mint can't be reached.
+     */
+    internal suspend fun dialect(host: String): MintDialect =
+        dialects[host]
+            ?: (try {
+                    client.dialect(host)
+                } catch (_: ProtocolViolation) {
+                    MintDialect.Legacy
+                })
+                .also { dialects[host] = it }
+
+    /** Asks [host] again next time, e.g. after a request of the other protocol was refused: the mint may have been upgraded. */
+    internal fun forgetDialect(host: String) {
+        dialects.remove(host)
     }
 
     /** Legacy 2f17578 (tag: keys): the account's branch on [host]. */

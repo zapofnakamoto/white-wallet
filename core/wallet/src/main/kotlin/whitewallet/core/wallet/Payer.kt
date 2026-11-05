@@ -163,10 +163,13 @@ internal class Payer(private val wallet: Wallet) {
             LegacyCpub.from(pay)
                 ?.let { (cx1, next) -> LegacyBranch.fromCx1(cx1)?.let { InternalTransfer(it, next) } }
                 ?.takeIf { payeeHost != null && outstanding(accountId).any { it.host == payeeHost } }
+        // One of the account's own addresses, as recorded, or (legacy 2f17578, tag: mint) as the mint publishes its branch.
+        val own = wallet.store.addresses(accountId).first().any { Lnurl.lightningAddressUrl(it.address) == url }
         if (
-            transfer != null &&
-                payeeHost != null &&
-                transfer.branch.cx1().equals(wallet.branch(accountId, payeeHost).cx1(), ignoreCase = true)
+            own ||
+                transfer != null &&
+                    payeeHost != null &&
+                    transfer.branch.cx1().equals(wallet.branch(accountId, payeeHost).cx1(), ignoreCase = true)
         ) {
             return PayPreview.Invalid(PayProblem.OwnAddress)
         }
