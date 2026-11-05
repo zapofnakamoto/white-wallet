@@ -41,6 +41,8 @@ val NoteState.isShared: Boolean
 
 enum class NoteKind {
     KeyPath,
+
+    /** Nothing assigns this today: a link waits among the received notes, and its claim makes a [KeyPath] note. */
     Bearer,
 }
 

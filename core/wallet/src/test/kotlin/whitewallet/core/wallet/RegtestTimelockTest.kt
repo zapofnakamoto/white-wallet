@@ -73,6 +73,8 @@ class RegtestTimelockTest {
             assertEquals(ReceivedState.Locked, kept.state)
             assertEquals(1_999_000, alice.wallet.incomingMsat.first())
             assertEquals(0, alice.balance())
+            val bob = Regtest.phone()
+            assertEquals(PayPreview.Invalid(PayProblem.NoFunds), alice.wallet.previewPayment(bob.address), "a kept note can't pay")
 
             alice.wallet.refresh()
             assertEquals(ReceivedState.Locked, alice.wallet.receivedNotes.first().single().state, "not tried before the date")

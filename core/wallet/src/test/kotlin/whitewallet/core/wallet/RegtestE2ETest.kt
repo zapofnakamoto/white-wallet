@@ -82,6 +82,37 @@ class RegtestE2ETest {
         }
 
     @Test
+    fun `a payment to a user on the same mint from merged notes needs no split`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(2000, 3000)
+            assertEquals(listOf(1_999_000L, 2_999_000L), alice.notes().map { it.amountMsat }.sorted())
+            val bob = Regtest.phone()
+
+            // Both notes, plus the base fee the merge pays back: exactly one note, and no change.
+            val preview = assertIs<PayPreview.Ready>(alice.wallet.previewPayment(bob.address))
+            assertTrue(preview.internal)
+            assertIs<PayResult.Paid>(alice.wallet.pay(preview, 4_999_000))
+            assertEquals(0, alice.balance())
+            assertEquals(4_999_000, bob.wallet.refresh().receivedMsat)
+        }
+
+    @Test
+    fun `a payment to a user on the same mint from merged notes leaves the change`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(2000, 3000)
+            val bob = Regtest.phone()
+
+            val preview = assertIs<PayPreview.Ready>(alice.wallet.previewPayment(bob.address))
+            assertTrue(preview.internal)
+            assertIs<PayResult.Paid>(alice.wallet.pay(preview, 3_500_000))
+            // The merge pays a base fee back and the split takes one, from the change.
+            assertEquals(listOf(1_498_000L), alice.notes().map { it.amountMsat })
+            assertEquals(3_500_000, bob.wallet.refresh().receivedMsat)
+        }
+
+    @Test
     fun `a note sent as a link is claimed by another wallet, and another one taken back`() =
         runBlocking<Unit> {
             val phone = Regtest.phone(strategy = ManualStrategy.ID)

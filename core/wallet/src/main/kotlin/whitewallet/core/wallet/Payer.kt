@@ -141,8 +141,8 @@ sealed interface PayResult {
 /**
  * Pays an invoice, Lightning address or pay link from the active account's notes. A note pays exactly one amount, so the notes are first
  * merged and split into one worth exactly that (see [PayPlanner]); then either that note is melted into the invoice (LUD-25), or, for a
- * payee on the same mint, the last merge/split names the payee's key as its output (LUD-26 internal transfer). Every step is journaled; a
- * melt is never retried.
+ * payee on the same mint, it is spent to the payee's pay callback (LUD-26 internal transfer; on a legacy mint the last merge/split/rotate
+ * names the payee's key as its output instead). Every step is journaled; a melt or transfer is never retried.
  */
 internal class Payer(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
@@ -401,6 +401,7 @@ internal class Payer(private val wallet: Wallet) {
 
     private suspend fun baseFee(host: String): Long = wallet.store.mint(host)?.feeBaseMsat ?: 0
 
+    /** What can pay: notes on the wallet's own keys, so every spend is a `ck1`. A note held as a link is claimed onto them first. */
     private suspend fun outstanding(accountId: String): List<Note> =
         wallet.store.notes(accountId).first().filter {
             it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null

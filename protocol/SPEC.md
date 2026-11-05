@@ -55,7 +55,7 @@ The `Regtest*Test` classes in `core/wallet` run against **`lnurlcash/lnurl-mint`
 | Registration proof: Schnorr by the share's key; an update carries `sig` by the key on file and `newsig` by the new share | `SpecVectorsTest.registration proofs`, `ConformancePart2Test.address proofs`, `RegtestSharesTest` |
 | Legacy 2f17578: registration proof by the purpose-0 index-0 key over `sha256("LNURLcash:<action>:<domain>:<username>")` | `SpecVectorsTest.legacy 2f17578 - registration proofs`, `ConformancePart2Test.legacy 2f17578 - address proofs` |
 | A mint may charge for an address: POST answers `pr` and holds the name, unpublished, until paid | `RegtestAddressFeeTest` |
-| An internal transfer spends a note of the exact amount to the payee's pay callback with `amount` and `k1`; the spend goes only to the mint's own origin | `SecretGateTest`, `RegtestE2ETest`, `RegtestRecoveryTest` |
+| An internal transfer spends a note of the exact amount to the payee's pay callback with `amount` and `k1`; the spend goes only to the mint's own origin. The wallet sends only `ck1`, never `cw1` or a bearer preimage ("Deliberately left out" in docs/DEVELOPMENT.md) | `SecretGateTest`, `RegtestE2ETest`, `RegtestRecoveryTest`, `RegtestTimelockTest` |
 | Minting payRequest needs `withdrawLink` and `commentAllowed` ≥ 64 | `ProtocolVectorsTest.minting pay requests` |
 | Informational response must echo the queried `k1` and carry a valid `mintPubkey` (parsing only: the wallet never sends `?k1=` there) | `ProtocolVectorsTest.note info` |
 | Outputs are wallet-generated `p1`/`p2`; the service never generates a secret | `Requests` (no API exists to accept one) |
