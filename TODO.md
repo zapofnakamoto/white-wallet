@@ -126,3 +126,9 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    refused. Wanted: tell the user why, and offer to move the money while whole notes still can. Open: how a wallet
    learns of it (the mint doesn't announce it today), and a regtest stack with a mint in this mode, since none runs
    it yet. See "What a mint refuses" in docs/DEVELOPMENT.md.
+16. **Better note selection for payments.** `PayPlanner` takes the largest notes in order and never tries other
+   combinations, so it can split where a merge would do: with no fees and notes of 5, 3 and 2, paying 7 merges 5 + 3
+   and splits, though 5 + 2 needs no split. That costs a base fee, on melts and internal transfers alike. Explore
+   selection strategies: largest first (today), oldest first, an exact combination before any split, fewest requests,
+   lowest fee. Open: what each does to the notes left behind, whether a brand or the note strategy should choose, and
+   how many combinations are worth trying on a wallet of many notes.
