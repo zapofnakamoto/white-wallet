@@ -243,9 +243,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     private suspend fun combine(accountId: String, host: String, batch: List<Note>): Outcome {
         val inputs = batch.sumOf { it.amountMsat }
         val target = OutputSpec.Own(accountId, KeySet.Wallet)
-        return when (
-            val r = mutator.mutate(fromId = accountId, host, inputs = batch, type = OperationType.Merge, outputs = listOf(target))
-        ) {
+        return when (val r = mutator.merge(accountId, host, batch, target)) {
             is MutationResult.Done -> {
                 val out = r.outputs.single()
                 log.record(
@@ -285,11 +283,10 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         val outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet), OutputSpec.Own(accountId, KeySet.Change))
         return when (
             val r =
-                mutator.mutate(
+                mutator.split(
                     fromId = accountId,
                     note.host,
                     inputs = listOf(note),
-                    type = OperationType.Split,
                     outputs,
                     splitMsat = firstMsat,
                 )

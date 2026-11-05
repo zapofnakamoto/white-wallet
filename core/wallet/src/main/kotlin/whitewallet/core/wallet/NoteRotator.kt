@@ -6,7 +6,6 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.OperationType
 
 sealed interface RotateResult {
     /** The note now lives at wallet key (purpose 0) [toIndex]. */
@@ -77,11 +76,10 @@ internal class NoteRotator(private val wallet: Wallet) {
 
     private suspend fun rotate(accountId: String, note: Note, automatic: Boolean, quiet: Boolean = false): RotateResult {
         val result =
-            mutator.mutate(
+            mutator.rotate(
                 fromId = accountId,
                 note.host,
                 inputs = listOf(note),
-                type = OperationType.Rotate,
                 outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
             )
         return when (result) {

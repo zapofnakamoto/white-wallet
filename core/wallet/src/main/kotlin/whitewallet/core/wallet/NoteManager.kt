@@ -118,14 +118,7 @@ internal class NoteManager(private val wallet: Wallet) {
             }
         if (notes.size < 2) return NoteActionResult.Failed(NoteProblem.TooFewNotes)
         val host = notes.first().host
-        val result =
-            mutator.mutate(
-                fromId = accountId,
-                host,
-                inputs = notes,
-                type = OperationType.Merge,
-                outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
-            )
+        val result = mutator.merge(accountId, host, notes, OutputSpec.Own(accountId, KeySet.Wallet))
         val inputs = notes.sumOf { it.amountMsat }
         when (result) {
             is MutationResult.Done ->
@@ -174,11 +167,10 @@ internal class NoteManager(private val wallet: Wallet) {
         if (amountMsat !in limits.minMsat..limits.maxMsat) return NoteActionResult.Failed(NoteProblem.InvalidAmount)
         val outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet), OutputSpec.Own(accountId, KeySet.Change))
         val result =
-            mutator.mutate(
+            mutator.split(
                 fromId = accountId,
                 note.host,
                 inputs = listOf(note),
-                type = OperationType.Split,
                 outputs,
                 splitMsat = amountMsat,
             )
@@ -241,16 +233,7 @@ internal class NoteManager(private val wallet: Wallet) {
 
         // One note pays one invoice: merge first. If anything later fails, the notes are just combined.
         if (notes.size > 1) {
-            when (
-                val merged =
-                    mutator.mutate(
-                        fromId = accountId,
-                        host = quote.fromHost,
-                        inputs = notes,
-                        type = OperationType.Merge,
-                        outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
-                    )
-            ) {
+            when (val merged = mutator.merge(accountId, quote.fromHost, notes, OutputSpec.Own(accountId, KeySet.Wallet))) {
                 is MutationResult.Done -> notes = merged.outputs
                 is MutationResult.Pending -> return MintMoveResult.Pending
                 is MutationResult.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)

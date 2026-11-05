@@ -19,7 +19,6 @@ import java.security.SecureRandom
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.BearerNote
 import whitewallet.lnurlcash.CanonicalSpend
 import whitewallet.lnurlcash.Cw1
@@ -113,8 +112,6 @@ private constructor(private val leaf: ByteVector, private val lockTime: Long, pr
 
 /** Renews the phone's one note on [host] to [q], someone else's key: the money leaves the balance. */
 internal suspend fun Regtest.Phone.lockTo(q: ByteVector32, host: String = Regtest.HOST) {
-    val result =
-        NoteMutator(wallet)
-            .mutate(wallet.activeId(), host, listOf(notes(host).single()), OperationType.Rotate, listOf(OutputSpec.External { q }))
+    val result = NoteMutator(wallet).rotate(wallet.activeId(), host, listOf(notes(host).single()), listOf(OutputSpec.External { q }))
     assertIs<MutationResult.Done>(result)
 }

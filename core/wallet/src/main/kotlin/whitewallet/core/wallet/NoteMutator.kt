@@ -62,13 +62,21 @@ internal class NoteMutator(private val wallet: Wallet) {
     private val unknownNotes = UnknownNotes(wallet)
     private val reconciler = Reconciler(wallet)
 
+    /** [inputs] as [outputs] of the same worth: renews a note, or hands it to a key of someone else. */
+    suspend fun rotate(fromId: String, host: String, inputs: List<Note>, outputs: List<OutputSpec>): MutationResult =
+        mutate(fromId, host, inputs, OperationType.Rotate, outputs)
+
+    /** [inputs] as [outputs], the first worth [splitMsat] and the second the change. */
+    suspend fun split(fromId: String, host: String, inputs: List<Note>, outputs: List<OutputSpec>, splitMsat: Long): MutationResult =
+        mutate(fromId, host, inputs, OperationType.Split, outputs, splitMsat)
+
     /**
      * Journals and sends one mutation of [fromId]'s [inputs], then records its outputs (in [outputs] order): a rotate or merge into one
      * output, or a split, whose first output gets [splitMsat]. If the mint says an output key is `already in use`, the mutation is retried
      * with fresh output keys, up to [WalletSettings.newNoteMaxKeysTriedWhileInUse] keys in all; after the first refusal the index is
      * rediscovered.
      */
-    suspend fun mutate(
+    private suspend fun mutate(
         fromId: String,
         host: String,
         inputs: List<Note>,
@@ -100,6 +108,22 @@ internal class NoteMutator(private val wallet: Wallet) {
             run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputMsat = inputs.sumOf { it.amountMsat }, type, outputs, splitMsat)
         return if (result is MutationResult.Refused && result.kind in UnknownNotes.GONE) refused(inputs, result.kind, result.reason)
         else result
+    }
+
+    /**
+     * [inputs] as one note at [target], in as many merges as a request's limit asks for: only the last goes to [target], so if a merge
+     * before it fails the notes merged so far are still [fromId]'s, on its own keys.
+     */
+    suspend fun merge(fromId: String, host: String, inputs: List<Note>, target: OutputSpec): MutationResult {
+        val max = wallet.settings.noteMergeMaxNotesPerRequest
+        var notes = inputs
+        while (notes.size > max) {
+            val own = listOf(OutputSpec.Own(fromId, KeySet.Wallet))
+            val merged = mutate(fromId, host, notes.take(max), OperationType.Merge, own)
+            if (merged !is MutationResult.Done) return merged
+            notes = merged.outputs + notes.drop(max)
+        }
+        return mutate(fromId, host, notes, OperationType.Merge, listOf(target))
     }
 
     /** A refusal that may be about some of [inputs]: those the mint doesn't know (or burned) are set aside. */

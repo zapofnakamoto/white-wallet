@@ -29,6 +29,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.
 - After a restore, new payments to an address were only found once its name was entered again. Every share the account
   handed out is now scanned on a refresh, on its home mint, whether or not the phone knows the name.
+- A payment, a move or a combine of more than 100 notes was refused by the mint: all their notes went into one request.
+  They now merge 10 notes per request.
 - A restore stopped after 3 unused shares, so money on an address after three that were never paid was missed. It now
   stops after 20.
 

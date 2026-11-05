@@ -9,7 +9,6 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.OperationType
 import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.Redaction
 import whitewallet.lnurlcash.RevealsNoteSecret
@@ -239,11 +238,10 @@ internal class NoteSender(private val wallet: Wallet) {
             Check.Waiting -> Unit
         }
         val result =
-            mutator.mutate(
+            mutator.rotate(
                 fromId = accountId,
                 note.host,
                 inputs = listOf(note),
-                type = OperationType.Rotate,
                 outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
             )
         return when (result) {

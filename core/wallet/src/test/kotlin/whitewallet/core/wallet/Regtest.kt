@@ -205,6 +205,7 @@ internal object Regtest {
         onWaitingForNetwork: () -> Unit = {},
         now: () -> Long = System::currentTimeMillis,
         receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
+        settings: WalletSettings = WalletSettings(),
     ): Phone {
         val store = InMemoryWalletStore()
         val wallet =
@@ -217,6 +218,7 @@ internal object Regtest {
                 onWaitingForNetwork = onWaitingForNetwork,
                 now = now,
                 receivedGiveUpMillis = receivedGiveUpMillis,
+                settings = settings,
             )
         val name = name()
         assertIs<OnboardResult.Ready>(wallet.onboard(name, host))

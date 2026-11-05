@@ -8,7 +8,6 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.OperationType
 import whitewallet.core.wallet.legacy.LegacyTransfer
 import whitewallet.core.wallet.legacy.payAtKey
 import whitewallet.lnurl.Bolt11
@@ -317,19 +316,18 @@ internal class Payer(private val wallet: Wallet) {
         var inputs = plan.inputs
         if (!plan.merge && !plan.split) {
             if (target is OutputSpec.Own) return MutationResult.Done(inputs, journalId = "")
-            return mutator.mutate(fromId = accountId, host, inputs, type = OperationType.Rotate, outputs = listOf(target))
+            return mutator.rotate(fromId = accountId, host, inputs, outputs = listOf(target))
         }
         if (plan.merge) {
             val mergeTarget = if (plan.split) OutputSpec.Own(accountId, KeySet.Wallet) else target
-            val merged = mutator.mutate(fromId = accountId, host, inputs, type = OperationType.Merge, outputs = listOf(mergeTarget))
+            val merged = mutator.merge(accountId, host, inputs, mergeTarget)
             if (!plan.split || merged !is MutationResult.Done) return merged
             inputs = merged.outputs
         }
-        return mutator.mutate(
+        return mutator.split(
             fromId = accountId,
             host,
             inputs,
-            type = OperationType.Split,
             outputs = listOf(target, OutputSpec.Own(accountId, KeySet.Change)),
             splitMsat = amountMsat,
         )

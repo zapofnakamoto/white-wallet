@@ -14,7 +14,6 @@ import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.ActivityKind
-import whitewallet.core.model.OperationType
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -54,13 +53,7 @@ class RegtestNotesTest {
             // Asked anyway, the mint refuses to count one note twice.
             val result =
                 NoteMutator(alice.wallet)
-                    .mutate(
-                        alice.wallet.activeId(),
-                        HOST,
-                        listOf(note, note),
-                        OperationType.Merge,
-                        listOf(OutputSpec.Own(alice.wallet.activeId(), KeySet.Wallet)),
-                    )
+                    .merge(alice.wallet.activeId(), HOST, listOf(note, note), OutputSpec.Own(alice.wallet.activeId(), KeySet.Wallet))
             // It says the second k1 is spent; the note is not, so the wallet keeps it.
             val refused = assertIs<MutationResult.Refused>(result, "the same k1 twice in a merge")
             assertEquals(RejectionKind.Spent, refused.kind)
