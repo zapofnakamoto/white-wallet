@@ -51,6 +51,8 @@ class RegtestSharesTest {
             assertEquals(AddressStatus.Taken, bob.wallet.checkAddress(name, HOST))
             assertEquals(AddressStatus.Taken, alice.wallet.checkAddress(name, HOST, forNewAccount = true))
             assertEquals(AddressStatus.Available, bob.wallet.checkAddress(Regtest.name(), HOST))
+            assertEquals(AddressStatus.Unconfirmed, bob.wallet.checkAddress("mint", HOST), "the mint's own name is nobody's to claim")
+            assertIs<OnboardResult.UsernameTaken>(bob.wallet.addAddress("mint", limit = 5))
             // Asking changed nothing: the address is still alice's, on its share, and still paid there.
             Regtest.pay(alice.address, 1000)
             alice.wallet.refresh()

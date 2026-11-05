@@ -250,7 +250,10 @@ class InMemoryWalletStore : WalletStore {
     /** Creates an account with [profile] (on [host], its home mint) and makes it active, as a successful onboarding would. */
     suspend fun addAccount(id: String, name: String, profile: Profile?, host: String = profile?.host ?: "mint.example") {
         saveAccount(Account(id, name, accountMap.value.size.toLong(), host))
-        profile?.let { saveProfile(id, it) }
+        profile?.let {
+            saveProfile(id, it)
+            saveAddress(id, RegisteredAddress(it.username, it.host, 0, share = 0))
+        }
         setActiveAccount(id)
     }
 }

@@ -17,7 +17,6 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 /** The notes page: combine, split, and move notes to another mint. */
@@ -28,7 +27,7 @@ class NotesTest {
         var next = 0L
 
         suspend fun fund(vararg sats: Long) {
-            sats.forEach { mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, next++)), it * 1000) }
+            sats.forEach { mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), next++)), it * 1000) }
             wallet.refresh()
         }
 
@@ -103,7 +102,7 @@ class NotesTest {
                 assertEquals(emptyList(), on(mint.host))
                 assertEquals(listOf(49_000L), on(target.host))
                 val arrived = outstanding().single()
-                assertEquals(LegacyPurpose.Wallet.value, arrived.purpose, "a wallet key of this account on the target")
+                assertEquals(KeySet.Wallet.purpose, arrived.purpose, "a wallet key of this account on the target")
                 assertEquals(arrived.id, target.mintedTo)
                 val moved = history().single { it.kind == ActivityKind.MovedMint }
                 assertEquals(ActivityStatus.Done, moved.status)
@@ -161,12 +160,12 @@ class NotesTest {
                         val base = "http://$host"
                         val url = request.url
                         return when (url.encodedPath) {
-                            "/.well-known/lnurlp/_" ->
+                            "/.well-known/lnurlp/mint" ->
                                 MockResponse(
                                     body =
                                         """{"tag":"payRequest","callback":"$base/p/cb","minSendable":1000,"maxSendable":100000000,"metadata":"${metadata.replace("\"", "\\\"")}","withdrawLink":"$base/w","commentAllowed":64}"""
                                 )
-                            "/.well-known/lnurlw/_" ->
+                            "/.well-known/lnurlw/mint" ->
                                 MockResponse(
                                     body =
                                         """{"tag":"withdrawRequest","callback":"$base/w/cb","minWithdrawable":0,"maxWithdrawable":1000,"mintPubkey":"$pubkey"}"""

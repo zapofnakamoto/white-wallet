@@ -20,6 +20,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   names the accounts it takes with it. A restore finds a wallet's accounts on that mint, up to the first unused one.
   On a legacy mint only a wallet's first account can have an address. Database version 5.
 
+- The seed-derived default address of a new account comes from its first share, so each account of a wallet has its
+  own; those made before are still found by a restore. The watch-only key on a mint's page is the key of the first
+  address there, and says so.
+
+### Fixed
+
+- A mint's own name (`mint`) was offered as free on a LUD-26 mint.
+
 ### For brands
 
 - New keys: `wallets.max`, `addresses.fee.onboarding` (`ask`, `reserve` or `skip`), `addresses.fee.max`.
@@ -28,6 +36,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   still add wallets.
 - `Wallet.onboard` and `createAccount` take `inActiveWallet`; `OnboardResult` has `AwaitingFee`, `FeeRefused` and
   `MintTooOld`, so an exhaustive `when` over it needs them. `deleteActiveAccount` deletes the whole wallet.
+- `KeySet.LegacyWallet`, `LegacyChange`, `LegacyAddress` and `LEGACY` moved to `whitewallet.core.wallet.legacy`.
+  `Note` and `OutputRef` default to `KeyScheme.Bip32`; `Requests.servicePayUrl` asks for `mint`, not `_`.
 - New strings, for brands that word their own: `address_fee_*`, `onboarding_error_fee*`,
   `onboarding_error_mint_too_old`, `money_error_mint_too_old`, `accounts_wallet`, `accounts_add_wallet`,
   `delete_accounts`. `delete_what` and `accounts_separate_backups` say something new.

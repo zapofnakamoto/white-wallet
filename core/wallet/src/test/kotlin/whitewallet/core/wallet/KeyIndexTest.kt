@@ -44,9 +44,9 @@ class KeyIndexTest {
     @Test
     fun `rotate all still works after the wallet counter was forced back to 0`() = withMint {
         // Three address payments, rotated onto wallet keys #0..#2.
-        (0L..2L).forEach { credit(KeySet.LegacyAddress, it, 1_000 * (it + 1)) }
+        (0L..2L).forEach { credit(KeySet.share(0), it, 1_000 * (it + 1)) }
         wallet.refresh()
-        assertEquals(3, wallet.rotateAllKeys(mint.host, KeySet.LegacyAddress).rotated)
+        assertEquals(3, wallet.rotateAllKeys(mint.host, KeySet.share(0)).rotated)
         assertEquals(listOf(0L, 1L, 2L), store.allNotes().filter { it.purpose == 0 }.mapNotNull { it.index }.sorted())
 
         store.setIndexOf("a", mint.host, KeySet.Wallet, 0) // what "Reset index" used to do
@@ -78,11 +78,11 @@ class KeyIndexTest {
         wallet2.rotateKey(mint.host, KeySet.Wallet, 1)
 
         // This device only knows one incoming address note, and its counter says 0 (it has used #0 before).
-        credit(KeySet.LegacyAddress, 0, 7_000)
+        credit(KeySet.share(0), 0, 7_000)
         wallet.refresh()
         store.setIndexOf("a", mint.host, KeySet.Wallet, 0)
 
-        val rotated = assertIs<RotateResult.Rotated>(wallet.rotateKey(mint.host, KeySet.LegacyAddress, 0))
+        val rotated = assertIs<RotateResult.Rotated>(wallet.rotateKey(mint.host, KeySet.share(0), 0))
         assertEquals(5, rotated.toIndex, "the first free wallet key after the other device's #0..#4")
         assertEquals(7_000 + 3_000, wallet.balanceMsat.first(), "discovery imported the other device's outstanding notes")
         assertEquals(6, wallet.keyIndex(mint.host, KeySet.Wallet))

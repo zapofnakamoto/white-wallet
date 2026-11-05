@@ -16,9 +16,8 @@ import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.RevealsNoteSecret
+import whitewallet.lnurlcash.ServiceRoot
 import whitewallet.lnurlcash.Spend
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteLink
@@ -40,18 +39,18 @@ class MockMintIntegrationTest {
             MockMint.start().use { mint ->
                 val client = LnurlcashClient()
                 val pay = client.servicePayRequest(mint.host)
-                val branch = LegacyBranch.fromSeed(seed, mint.host)
-                val q0 = branch.notePubkey(LegacyPurpose.Wallet, 0)
+                val account = ServiceRoot.fromSeed(seed, mint.host).account(0)
+                val q0 = account.walletKey(0).xOnlyPublicKey().value
                 mint.credit(Cp1.encode(q0), 21_000)
 
                 val looked = client.lookup(pay.withdrawUrl, q0)
                 assertEquals(21_000, looked.maxWithdrawableMsat)
                 assertTrue(Certificates.verify(assertNotNull(looked.certificate), spendDomain(mint.host), q0, looked.mintPubkey))
 
-                val spend = branch.spend(LegacyPurpose.Wallet, 0, spendDomain(mint.host))
+                val spend = Spend.keyPath(account.walletKey(0), spendDomain(mint.host))
                 val info = looked
 
-                val q1 = branch.notePubkey(LegacyPurpose.Wallet, 1)
+                val q1 = account.walletKey(1).xOnlyPublicKey().value
                 val outcome = client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, q1))
                 val confirmed = assertIs<MutationOutcome.Confirmed>(outcome)
                 val cert = assertNotNull(Cs1.decode(assertNotNull(confirmed.certificate)))
@@ -63,7 +62,7 @@ class MockMintIntegrationTest {
                 assertEquals(21_000, client.lookup(pay.withdrawUrl, q1).maxWithdrawableMsat)
 
                 // Naming an output that is already outstanding is refused, and nothing is burned.
-                val spend1 = branch.spend(LegacyPurpose.Wallet, 1, spendDomain(mint.host))
+                val spend1 = Spend.keyPath(account.walletKey(1), spendDomain(mint.host))
                 val reused = client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend1.k1, q1))
                 assertEquals(RejectionKind.AlreadyInUse, assertIs<MutationOutcome.Rejected>(reused).kind)
             }
@@ -75,12 +74,12 @@ class MockMintIntegrationTest {
             MockMint.start().use { mint ->
                 val client = LnurlcashClient()
                 val pay = client.servicePayRequest(mint.host)
-                val branch = LegacyBranch.fromSeed(seed, mint.host)
-                mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.Wallet, 0)), 21_000)
-                val spend = branch.spend(LegacyPurpose.Wallet, 0, spendDomain(mint.host))
+                val account = ServiceRoot.fromSeed(seed, mint.host).account(0)
+                mint.credit(Cp1.encode(account.walletKey(0).xOnlyPublicKey().value), 21_000)
+                val spend = Spend.keyPath(account.walletKey(0), spendDomain(mint.host))
                 val info = client.lookup(pay.withdrawUrl, spend.q)
-                val p1 = branch.notePubkey(LegacyPurpose.Wallet, 1)
-                val p2 = branch.notePubkey(LegacyPurpose.Change, 0)
+                val p1 = account.walletKey(1).xOnlyPublicKey().value
+                val p2 = account.changeKey(0).xOnlyPublicKey().value
                 val outcome =
                     assertIs<MutationOutcome.Confirmed>(
                         client.mutate(MutationType.Split, Requests.split(info.callback, listOf(spend.k1), 5_000, p1, p2))
@@ -94,25 +93,25 @@ class MockMintIntegrationTest {
     fun `a dropped connection is ambiguous, and a byte-identical replay recovers the original success`() =
         runBlocking<Unit> {
             MockMint.start("--dropAfterMutation").use { mint ->
-                val branch = LegacyBranch.fromSeed(seed, mint.host)
+                val account = ServiceRoot.fromSeed(seed, mint.host).account(0)
                 val domain = spendDomain(mint.host)
                 val withdrawUrl = LnurlcashClient().servicePayRequest(mint.host).withdrawUrl
-                mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.Wallet, 0)), 21_000)
-                val spend = branch.spend(LegacyPurpose.Wallet, 0, domain)
+                mint.credit(Cp1.encode(account.walletKey(0).xOnlyPublicKey().value), 21_000)
+                val spend = Spend.keyPath(account.walletKey(0), domain)
                 val info = LnurlcashClient().lookup(withdrawUrl, spend.q)
-                val url = Requests.rotate(info.callback, spend.k1, branch.notePubkey(LegacyPurpose.Wallet, 1))
+                val url = Requests.rotate(info.callback, spend.k1, account.walletKey(1).xOnlyPublicKey().value)
 
                 val noReplay = LnurlcashClient(mutationReplays = 0).mutate(MutationType.Rotate, url)
                 assertIs<MutationOutcome.Ambiguous>(noReplay)
                 // The rotate landed even though the answer was lost: the input is burned.
                 val gone = assertFailsWith<NoteLookupError> { LnurlcashClient().lookup(withdrawUrl, spend.q) }
                 assertEquals(RejectionKind.Spent, gone.kind)
-                assertEquals(21_000, LnurlcashClient().lookup(withdrawUrl, branch.notePubkey(LegacyPurpose.Wallet, 1)).maxWithdrawableMsat)
+                assertEquals(21_000, LnurlcashClient().lookup(withdrawUrl, account.walletKey(1).xOnlyPublicKey().value).maxWithdrawableMsat)
 
                 // With the default single replay, the same lost answer resolves into the original success.
-                mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.Wallet, 2)), 7_000)
-                val spend2 = branch.spend(LegacyPurpose.Wallet, 2, domain)
-                val url2 = Requests.rotate(info.callback, spend2.k1, branch.notePubkey(LegacyPurpose.Wallet, 3))
+                mint.credit(Cp1.encode(account.walletKey(2).xOnlyPublicKey().value), 7_000)
+                val spend2 = Spend.keyPath(account.walletKey(2), domain)
+                val url2 = Requests.rotate(info.callback, spend2.k1, account.walletKey(3).xOnlyPublicKey().value)
                 val replayed = assertIs<MutationOutcome.Confirmed>(LnurlcashClient().mutate(MutationType.Rotate, url2))
                 assertEquals(7_000, Cs1.decode(replayed.certificate!!)!!.amountMsat)
             }
@@ -129,7 +128,7 @@ class MockMintIntegrationTest {
                 mint.credit(bearer.h.toHex(), 10_000)
                 val link = assertNotNull(NoteLink.parse("lnurlw://${mint.host}/w?k1=${bearer.k1}"))
                 val info = client.lookup(link.withdrawUrl, link.spend.q)
-                val target = LegacyBranch.fromSeed(seed, mint.host).notePubkey(LegacyPurpose.Wallet, 0)
+                val target = ServiceRoot.fromSeed(seed, mint.host).account(0).walletKey(0).xOnlyPublicKey().value
                 assertIs<MutationOutcome.Confirmed>(
                     client.mutate(MutationType.Rotate, Requests.rotate(info.callback, link.spend.k1, target))
                 )

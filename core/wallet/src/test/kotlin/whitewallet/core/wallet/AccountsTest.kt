@@ -17,7 +17,6 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.spendDomain
 import whitewallet.testkit.MockMint
 
@@ -106,9 +105,7 @@ class AccountsTest {
         assertEquals(MoveResult.Moved(5_000), wallet.moveFunds("b", 5_000))
         assertEquals(16_000, balance("a"))
         assertEquals(5_000, balance("b"))
-        assertTrue(
-            store.allNotes().any { it.accountId == "a" && it.purpose == LegacyPurpose.Change.value && it.state == NoteState.Outstanding }
-        )
+        assertTrue(store.allNotes().any { it.accountId == "a" && it.purpose == KeySet.Change.purpose && it.state == NoteState.Outstanding })
     }
 
     @Test

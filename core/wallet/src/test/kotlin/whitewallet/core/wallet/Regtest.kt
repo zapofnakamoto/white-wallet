@@ -19,6 +19,7 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.NoteState
+import whitewallet.core.wallet.legacy.LegacyAddress
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -87,7 +88,8 @@ internal object Regtest {
     suspend fun mintTo(host: String, q: ByteVector32, sats: Long) {
         val client = LnurlcashClient()
         val mint = client.servicePayRequest(host)
-        val quote = URI(Lnurl.withQuery(mint.pay.callback, listOf("amount" to "${sats * 1000}", "comment" to Cp1.encode(q)))).toURL().readText()
+        val quote =
+            URI(Lnurl.withQuery(mint.pay.callback, listOf("amount" to "${sats * 1000}", "comment" to Cp1.encode(q)))).toURL().readText()
         pay(checkNotNull(Regex("\"pr\":\\s*\"([^\"]+)\"").find(quote)) { quote }.groupValues[1], sats)
         repeat(30) {
             if (runCatching { client.lookup(mint.withdrawUrl, q) }.isSuccess) return

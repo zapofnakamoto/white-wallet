@@ -1,12 +1,10 @@
 package whitewallet.core.wallet
 
-import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Account
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.NoteState
-import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.spendDomain
 
 sealed interface RestoreResult {
@@ -68,7 +66,7 @@ internal class Restore(private val wallet: Wallet) {
             wallet.discardSeed(accountId)
             if (failure.refused) RestoreResult.MintInvalid(failure.reason) else RestoreResult.NetworkError(failure.reason)
         }
-        when (val first = scan(accountId, h, legacy = true)) {
+        when (val first = scan(accountId, h, wallet.legacy.restoreSets)) {
             is Scan.Failed -> return failed(first.failure)
             is Scan.Done -> Unit
         }
@@ -76,7 +74,7 @@ internal class Restore(private val wallet: Wallet) {
         for (index in 1L until minOf(wallet.maxAccounts, MAX_ACCOUNTS).toLong()) {
             val id = UUID.randomUUID().toString()
             wallet.store.saveAccount(Account(id, "$accountName ${index + 1}", wallet.now(), h, walletId = accountId, index = index))
-            when (val found = scan(id, h, legacy = false)) {
+            when (val found = scan(id, h, emptyList())) {
                 is Scan.Failed -> return failed(found.failure)
                 is Scan.Done ->
                     if (!found.used) {
@@ -104,25 +102,18 @@ internal class Restore(private val wallet: Wallet) {
      * Finds what [accountId] holds on [h]. The legacy 2f17578 purposes (tag: keys) hold what the wallet's first account had before the
      * upgrade.
      */
-    private suspend fun scan(accountId: String, h: String, legacy: Boolean): Scan {
+    private suspend fun scan(accountId: String, h: String, older: List<KeySet>): Scan {
         var used = false
-        for (set in listOf(KeySet.Wallet, KeySet.Change) + if (legacy) KeySet.LEGACY else emptyList()) {
+        for (set in listOf(KeySet.Wallet, KeySet.Change) + older) {
             val found = discovery.discover(accountId, h, set)
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))
             }
             used = used || found.next > 0
         }
-        // Address payments, one share per address: shares are handed out in order, so the scan ends after a few unused ones. A legacy
-        // mint never registered one (tag: mint).
-        val dialect =
-            try {
-                wallet.dialect(h)
-            } catch (e: IOException) {
-                return Scan.Failed(Failure(e.message ?: "network error", refused = false))
-            }
+        // Address payments, one share per address: shares are handed out in order, so the scan ends after a few unused ones.
         var share = 0L
-        var unused = if (dialect == MintDialect.Legacy) AddressCheck.RESTORE_SHARES.toInt() else 0
+        var unused = 0
         var last = -1L
         while (unused < AddressCheck.RESTORE_SHARES) {
             val found = discovery.discover(accountId, h, KeySet.share(share))

@@ -18,14 +18,14 @@ internal class AddressScanner(private val wallet: Wallet) {
     suspend fun scanAll(accountId: String, host: String): RefreshResult {
         val addresses = wallet.store.addresses(accountId).first().filter { it.host == host }
         val sets = addresses.mapNotNull { it.share }.distinct().map(KeySet::share).toMutableList()
-        if ((addresses.isEmpty() || addresses.any { it.share == null }) && wallet.ownsLegacyKeys(accountId)) sets += LEGACY_ADDRESSES
+        sets += wallet.legacy.addressSets(accountId, addresses)
         return sets.fold(RefreshResult(0, 0)) { total, set ->
             val r = scan(accountId, host, set)
             RefreshResult(total.newNotes + r.newNotes, total.receivedMsat + r.receivedMsat)
         }
     }
 
-    suspend fun scan(accountId: String, host: String, set: KeySet = LEGACY_ADDRESSES): RefreshResult {
+    suspend fun scan(accountId: String, host: String, set: KeySet): RefreshResult {
         require(set.isAddress)
         val mint = wallet.store.mint(host) ?: return RefreshResult(0, 0)
         val start = wallet.store.indexOf(accountId, host, set)
@@ -74,8 +74,5 @@ internal class AddressScanner(private val wallet: Wallet) {
 
     companion object {
         const val GAP_LIMIT = 20
-
-        /** Legacy 2f17578 (tag: keys): every address of an account on a mint shares purpose 2. */
-        val LEGACY_ADDRESSES = KeySet.LegacyAddress
     }
 }

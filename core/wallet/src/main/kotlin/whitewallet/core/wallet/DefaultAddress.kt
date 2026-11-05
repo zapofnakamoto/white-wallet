@@ -1,7 +1,6 @@
 package whitewallet.core.wallet
 
 import java.security.MessageDigest
-import whitewallet.lnurlcash.legacy.LegacyBranch
 
 /**
  * The seed-derived default address. A mint maps names to keys but has no lookup from a key to its names, so a restored wallet can't ask
@@ -12,11 +11,14 @@ import whitewallet.lnurlcash.legacy.LegacyBranch
 internal object DefaultAddress {
     const val CANDIDATES = 3
 
-    /** The derived names for [branch]'s mint, in the order onboarding offers them. */
-    fun names(branch: LegacyBranch): List<String> =
+    /** The derived names for [keys]' mint: of the account's first share, so each account of a wallet has its own. */
+    fun names(keys: AccountKeys): List<String> = names(keys.share(0).cx1())
+
+    /** The derived names for a `cx1`, in the order onboarding offers them. */
+    fun names(cx1: String): List<String> =
         (0 until CANDIDATES).map { k ->
             UsernameSuggestions.derived(
-                MessageDigest.getInstance("SHA-256").digest("white-wallet/default-address/$k/${branch.cx1()}".encodeToByteArray())
+                MessageDigest.getInstance("SHA-256").digest("white-wallet/default-address/$k/$cx1".encodeToByteArray())
             )
         }
 }

@@ -43,21 +43,21 @@ class KeyInspectorTest {
 
     @Test
     fun `scanning further finds an address payment beyond the gap limit`() = withMint {
-        credit(KeySet.LegacyAddress, 30, 4_000)
+        credit(KeySet.share(0), 30, 4_000)
         assertEquals(0, wallet.refresh().newNotes, "a normal refresh stops after 20 unused keys")
-        assertEquals(0, wallet.keyIndex(mint.host, KeySet.LegacyAddress))
+        assertEquals(0, wallet.keyIndex(mint.host, KeySet.share(0)))
 
         // Scan ahead with a wider gap limit than the refresh uses reaches it.
-        val result = wallet.scanKeysAhead(mint.host, KeySet.LegacyAddress, gap = 40)
+        val result = wallet.scanKeysAhead(mint.host, KeySet.share(0), gap = 40)
         assertEquals(
             KeyScanResult(from = 0, until = 71, checked = 71, outstanding = 1, imported = 1, stoppedEarly = null, indexAfter = 31),
             result,
             "it runs on until 40 unused keys follow the note at #30",
         )
         assertEquals(4_000, wallet.balanceMsat.first())
-        assertEquals(31, wallet.keyIndex(mint.host, KeySet.LegacyAddress))
-        assertIs<KeyProbe.Outstanding>(wallet.keyProbes.first()[KeySet.LegacyAddress.key("a", mint.host, 30)])
-        assertIs<KeyProbe.Unused>(wallet.keyProbes.first()[KeySet.LegacyAddress.key("a", mint.host, 29)])
+        assertEquals(31, wallet.keyIndex(mint.host, KeySet.share(0)))
+        assertIs<KeyProbe.Outstanding>(wallet.keyProbes.first()[KeySet.share(0).key("a", mint.host, 30)])
+        assertIs<KeyProbe.Unused>(wallet.keyProbes.first()[KeySet.share(0).key("a", mint.host, 29)])
     }
 
     @Test
@@ -124,22 +124,22 @@ class KeyInspectorTest {
 
     @Test
     fun `scan ahead always starts at the index`() = withMint {
-        wallet.recheckKey(mint.host, KeySet.LegacyAddress, 40) // a lookup far ahead (unused)
-        val result = wallet.scanKeysAhead(mint.host, KeySet.LegacyAddress, gap = 5)
+        wallet.recheckKey(mint.host, KeySet.share(0), 40) // a lookup far ahead (unused)
+        val result = wallet.scanKeysAhead(mint.host, KeySet.share(0), gap = 5)
         assertEquals(0L until 5L, result.from until result.until)
         assertEquals(5, result.checked)
     }
 
     @Test
     fun `scan ahead moves the index past a used key it finds and keeps going past it`() = withMint {
-        store.setAddressScanFrom("a", mint.host, 20)
-        credit(KeySet.LegacyAddress, 25, 1_000)
-        credit(KeySet.LegacyAddress, 44, 1_000) // beyond the first window (#20–#39), within 20 of #25
-        val result = wallet.scanKeysAhead(mint.host, KeySet.LegacyAddress)
+        store.setShareScanFrom("a", mint.host, 0, 20)
+        credit(KeySet.share(0), 25, 1_000)
+        credit(KeySet.share(0), 44, 1_000) // beyond the first window (#20–#39), within 20 of #25
+        val result = wallet.scanKeysAhead(mint.host, KeySet.share(0))
         assertEquals(20L until 65L, result.from until result.until, "20 unused keys after the last find (#44)")
         assertEquals(2, result.outstanding)
         assertEquals(45, result.indexAfter)
-        assertEquals(45, wallet.keyIndex(mint.host, KeySet.LegacyAddress))
+        assertEquals(45, wallet.keyIndex(mint.host, KeySet.share(0)))
         assertEquals(2_000, wallet.balanceMsat.first())
     }
 

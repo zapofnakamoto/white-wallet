@@ -27,7 +27,7 @@ class PayTest {
 
         /** Notes as address payments (keys 0, 1, ...), found by a refresh. */
         suspend fun fund(vararg sats: Long) {
-            sats.forEach { mint.credit(Cp1.encode(mine.pubkey(KeySet.LegacyAddress, next++)), it * 1000) }
+            sats.forEach { mint.credit(Cp1.encode(mine.pubkey(KeySet.share(0), next++)), it * 1000) }
             wallet.refresh()
         }
 

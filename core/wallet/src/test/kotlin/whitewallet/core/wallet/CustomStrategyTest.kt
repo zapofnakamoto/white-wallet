@@ -63,7 +63,7 @@ class CustomStrategyTest {
         withMint(Chunks(10_000)) {
             assertEquals("chunks", wallet.noteStrategy.first().id, "the brand's default")
             val fee = assertNotNull(store.mint(mint.host)).feeBaseMsat ?: 0
-            mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 0)), 35_000 + 3 * fee)
+            mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 0)), 35_000 + 3 * fee)
             wallet.refresh()
             val amounts = outstanding().map { it.amountMsat }.sortedDescending()
             assertEquals(listOf(10_000L, 10_000, 10_000, 5_000), amounts)
@@ -73,8 +73,8 @@ class CustomStrategyTest {
     @Test
     fun `steps that can't apply are skipped and the run ends`() =
         withMint(Nonsense) {
-            mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 0)), 5_000)
-            mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 1)), 7_000)
+            mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 0)), 5_000)
+            mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 1)), 7_000)
             wallet.refresh()
             assertEquals(listOf(5_000L, 7_000), outstanding().map { it.amountMsat }.sorted())
             // Rotating an incoming note is allowed, so Nonsense rotates both; then nothing it proposes applies.
@@ -86,7 +86,7 @@ class CustomStrategyTest {
     fun `a user can still choose another offered strategy`() =
         withMint(Chunks(10_000)) {
             wallet.setNoteStrategy(ManualStrategy.ID)
-            mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 0)), 35_000)
+            mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 0)), 35_000)
             wallet.refresh()
             assertEquals(listOf(35_000L), outstanding().map { it.amountMsat })
             assertEquals(listOf("manual", "chunks"), wallet.noteStrategies.map { it.id })

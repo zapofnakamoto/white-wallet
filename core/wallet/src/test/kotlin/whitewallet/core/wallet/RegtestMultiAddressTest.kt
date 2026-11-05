@@ -9,6 +9,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import whitewallet.core.wallet.legacy.LegacyAddress
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
@@ -72,7 +73,7 @@ class RegtestMultiAddressTest {
             val alice = name()
             assertIs<OnboardResult.Ready>(wallet.onboard(alice, host))
             val account = assertNotNull(store.currentAccountId())
-            val branch = wallet.branch(account, host)
+            val branch = wallet.keys(account, host).legacy.branch
             val withdrawUrl = assertNotNull(store.mint(host)).withdrawUrl
             suspend fun register(name: String) {
                 val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Register, spendDomain(host), name)

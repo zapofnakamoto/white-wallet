@@ -40,10 +40,11 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.isShared
+import whitewallet.core.wallet.legacy.Legacy
+import whitewallet.core.wallet.legacy.LegacyKeys
 import whitewallet.lnurlcash.ServiceRoot
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
-import whitewallet.lnurlcash.legacy.LegacyBranch
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 
 /**
@@ -106,7 +107,7 @@ class Wallet(
     private val mover = FundsMover(this)
     private val inspector = KeyInspector(this)
     private val rotator = NoteRotator(this)
-    internal val migration = LegacyMigration(this, scanner, addressCheck, rotator)
+    internal val legacy = Legacy(this, scanner, addressCheck, rotator)
     private val discovery = IndexDiscovery(this)
     private val indexVerifiedAt = MutableStateFlow<Map<Triple<String, String, KeySet>, Long>>(emptyMap())
     private val policyEngine = NotePolicyEngine(this)
@@ -474,7 +475,7 @@ class Wallet(
         return withContext(Dispatchers.Default) {
                 val seed = RecoveryPhrase.seed(words)
                 try {
-                    DefaultAddress.names(LegacyBranch.fromSeed(seed, h)).first()
+                    DefaultAddress.names(ServiceRoot.fromSeed(seed, h).account(0).share(0).cx1()).first()
                 } finally {
                     seed.fill(0)
                 }
@@ -489,15 +490,9 @@ class Wallet(
     suspend fun recoverableUsername(host: String): String? {
         val accountId = activeId()
         val h = Onboarding.normalizeHost(host) ?: return null
-        val branch = keysIfSeeded(accountId, h)?.legacy ?: return null
-        return DefaultAddress.names(branch).firstOrNull { name ->
-            when (addressCheck.check(name, h, accountId)) {
-                AddressStatus.Ours -> true
-                // Registered before the mint moved to LUD-26: the branch key on file proves it by moving it (tag: keys).
-                AddressStatus.Taken -> dialect(h) == MintDialect.Current && migration.move(accountId, name, h) != null
-                else -> false
-            }
-        }
+        val keys = keysIfSeeded(accountId, h) ?: return null
+        return DefaultAddress.names(keys).firstOrNull { addressCheck.check(it, h, accountId) == AddressStatus.Ours }
+            ?: legacy.recoverableUsername(accountId, h)
     }
 
     /** The active account's addresses a restore can't find by itself (not seed-derived): to be written down. */
@@ -507,8 +502,8 @@ class Wallet(
             .addresses(accountId)
             .first()
             .filter { address ->
-                val branch = keysIfSeeded(accountId, address.host)?.legacy ?: return@filter true
-                address.username !in DefaultAddress.names(branch)
+                val keys = keysIfSeeded(accountId, address.host) ?: return@filter true
+                address.username !in DefaultAddress.names(keys) + legacy.names(accountId, address.host)
             }
             .map { it.address }
     }
@@ -517,10 +512,14 @@ class Wallet(
     suspend fun mintDetails(host: String): MintDetails = mintInspector.details(host)
 
     /**
-     * The active account's watch-only key (`cx1`) on [host]: it lets someone see the account's notes there and pay it directly, but never
-     * spend. Null if the account has no recovery phrase on this device.
+     * The watch-only key (`cx1`) of the active account's first address on [host]: it lets someone see the notes paid to that address, but
+     * never spend. Null if the account has no address there, or no recovery phrase on this device.
      */
-    suspend fun watchOnlyKey(host: String): String? = keysIfSeeded(activeId(), host)?.legacy?.cx1()
+    suspend fun watchOnlyKey(host: String): String? {
+        val accountId = activeId()
+        val share = store.addresses(accountId).first().firstOrNull { it.host == host && it.share != null }?.share
+        return share?.let { keysIfSeeded(accountId, host)?.share(it)?.cx1() } ?: legacy.watchOnlyKey(accountId, host)
+    }
 
     /** The most one note can be sent as, from the active account's notes. */
     suspend fun sendableNoteMsat(): Long = sender.availableMsat()
@@ -873,7 +872,7 @@ class Wallet(
             // Without an address there's nothing to check or scan; notes arrive by claim or invoice.
             // First: a held address that was paid may be the account's primary one now.
             store.addresses(id).first().filter { it.feeInvoice != null }.forEach { onboarding.settleHeld(id, it) }
-            migration.run(id)
+            legacy.migration.run(id)
             val profile = store.currentProfile(id)
             if (profile == null && requireAddress) continue
             if (profile != null) {
@@ -1115,7 +1114,7 @@ class Wallet(
         val seed = RecoveryPhrase.seed(words)
         return try {
             keySets.getOrPut(accountId to host) {
-                AccountKeys(ServiceRoot.fromSeed(seed, host).account(account?.index ?: 0), LegacyBranch.fromSeed(seed, host))
+                AccountKeys(ServiceRoot.fromSeed(seed, host).account(account?.index ?: 0), LegacyKeys.fromSeed(seed, host))
             }
         } finally {
             seed.fill(0)
@@ -1132,16 +1131,10 @@ class Wallet(
     /** An account being set up in an existing wallet: its keys are needed before it is saved. */
     internal var forming: Account? = null
 
-    private suspend fun accountOf(accountId: String): Account? = store.account(accountId) ?: forming?.takeIf { it.id == accountId }
+    internal suspend fun accountOf(accountId: String): Account? = store.account(accountId) ?: forming?.takeIf { it.id == accountId }
 
     /** The wallet (recovery phrase) of [accountId]. An account not saved yet is its own wallet's first. */
     internal suspend fun walletOf(accountId: String): String = accountOf(accountId)?.walletId ?: accountId
-
-    /**
-     * Whether the wallet's legacy 2f17578 keys are [accountId]'s (tag: keys). They derive from the phrase alone, so all its accounts would
-     * reach the same notes: they are the first account's, the one that was there before wallets held several.
-     */
-    internal suspend fun ownsLegacyKeys(accountId: String): Boolean = (accountOf(accountId)?.index ?: 0L) == 0L
 
     /** The accounts sharing [accountId]'s wallet, it included. */
     internal suspend fun siblings(accountId: String): List<Account> {
@@ -1167,9 +1160,6 @@ class Wallet(
     internal fun forgetDialect(host: String) {
         dialects.remove(host)
     }
-
-    /** Legacy 2f17578 (tag: keys): the account's branch on [host]. */
-    internal suspend fun branch(accountId: String, host: String): LegacyBranch = keys(accountId, host).legacy
 
     internal fun setAddressStatus(accountId: String, address: String, status: AddressStatus?) = addressStatuses.update {
         if (status == null) it - (accountId to address) else it + ((accountId to address) to status)

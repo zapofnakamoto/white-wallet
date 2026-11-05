@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-allowed='Text|Icon|IconButton|MaterialTheme|Scaffold|Surface|HorizontalDivider|ExperimentalMaterial3Api|LocalContentColor|LocalTextStyle|DropdownMenu|DropdownMenuItem|ExposedDropdownMenuBox|ExposedDropdownMenuDefaults|ExposedDropdownMenuAnchorType|PrimaryTabRow|Tab|pulltorefresh\.PullToRefreshBox|SnackbarHostState|SnackbarDuration|SnackbarResult'
+allowed='Text|Icon|IconButton|MaterialTheme|Scaffold|Surface|HorizontalDivider|ExperimentalMaterial3Api|LocalContentColor|LocalTextStyle|DropdownMenu|DropdownMenuItem|ExposedDropdownMenuBox|ExposedDropdownMenuDefaults|ExposedDropdownMenuAnchorType|PrimaryTabRow|PrimaryScrollableTabRow|Tab|pulltorefresh\.PullToRefreshBox|SnackbarHostState|SnackbarDuration|SnackbarResult'
 if hits=$(grep -rnE --include='*.kt' '^import androidx\.compose\.material3\.' feature/*/src/main app/src/main | grep -vE "material3\.($allowed)$"); then
   echo "Material components used directly; use the designsystem's instead (core/designsystem Controls.kt):"
   echo "$hits" | sed 's/^/  /'

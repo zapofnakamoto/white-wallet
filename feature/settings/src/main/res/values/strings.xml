@@ -40,7 +40,7 @@
         <item quantity="one">%1$s in %2$d note</item>
         <item quantity="other">%1$s in %2$d notes</item>
     </plurals>
-    <string name="mint_watch_only_hint">Lets another app see this account\'s notes here and receive to it, but never spend.</string>
+    <string name="mint_watch_only_hint">Lets another app see the notes paid to your address here and receive to it, but never spend.</string>
     <string name="notes_collect_hint">Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too.</string>
     <string name="notes_collect_pending">Moving the notes from %1$s; they arrive shortly.</string>
     <string name="mints_add_invalid">That address can\'t hold notes.</string>

@@ -45,11 +45,8 @@ public object Requests {
     public fun transfer(callback: String, amountMsat: Long, k1: String): String =
         Lnurl.withQuery(callback, listOf("amount" to amountMsat.toString(), "k1" to k1))
 
-    /**
-     * The discovery URLs for a mint's own identity, `_@<host>`. LUD-26 names `mint@<domain>` for it, which lnurl-mint answers too, but the
-     * legacy 2f17578 mock mint only knows `_`; move to [MINT_USERNAME] with the mock mint's pin.
-     */
-    public fun servicePayUrl(host: String): String = addressUrl(host, "_")
+    /** The discovery URLs for a mint's own identity, `mint@<host>` (LUD-26). */
+    public fun servicePayUrl(host: String): String = addressUrl(host, MINT_USERNAME)
 
     public fun serviceWithdrawDiscoveryUrl(host: String): String = checkNotNull(Lnurl.withdrawUrlForPayUrl(servicePayUrl(host)))
 

@@ -154,7 +154,7 @@ class ClientTest {
         }
 
     @Test
-    fun `the dialect probe tells the two protocols apart`() =
+    fun `legacy 2f17578 - the dialect probe tells the two protocols apart`() =
         runBlocking<Unit> {
             MockWebServer().use { server ->
                 server.enqueue(MockResponse(body = """{"status":"ERROR","reason":"Missing cx1."}"""))

@@ -303,7 +303,7 @@ internal data class JournalEntity(
             return if (parts.size == 4) {
                 // Written before LUD-26 at 92e430f: a legacy key.
                 val (a, p, i, q) = parts
-                OutputRef(a, p.toInt(), i.toLong(), q)
+                OutputRef(a, p.toInt(), i.toLong(), q, KeyScheme.Legacy)
             } else {
                 val (a, scheme, p, share) = parts
                 OutputRef(a, p.toInt(), parts[4].toLong(), parts[5], KeyScheme.of(scheme.toInt()), share.toLongOrNull())

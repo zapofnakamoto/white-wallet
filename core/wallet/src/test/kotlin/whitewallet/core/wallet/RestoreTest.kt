@@ -15,6 +15,8 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.Profile
+import whitewallet.core.wallet.legacy.LegacyChange
+import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.legacy.LegacyBranch
@@ -57,8 +59,8 @@ class RestoreTest {
         mint.credit(Cp1.encode(keys.pubkey(KeySet.Wallet, 0)), 1_000)
         mint.credit(Cp1.encode(keys.pubkey(KeySet.Wallet, 1)), 2_000)
         mint.credit(Cp1.encode(keys.pubkey(KeySet.Change, 0)), 3_000)
-        mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 0)), 4_000)
-        mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 5)), 5_000)
+        mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 0)), 4_000)
+        mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 5)), 5_000)
 
         val restored = assertIs<RestoreResult.Restored>(wallet.restore(words.joinToString(" "), mint.host, "Restored"))
         assertEquals(5, restored.notes)
@@ -67,7 +69,7 @@ class RestoreTest {
         assertEquals(restored.accountId, store.currentAccountId())
         assertEquals(2, store.indexOf(restored.accountId, mint.host, KeySet.Wallet), "never hands out a used key")
         assertEquals(1, store.indexOf(restored.accountId, mint.host, KeySet.Change))
-        assertEquals(6, store.addressScanFrom(restored.accountId, mint.host))
+        assertEquals(6, store.indexOf(restored.accountId, mint.host, KeySet.share(0)))
         assertTrue(wallet.backupVerified.first(), "the user already has the phrase written down")
         assertTrue(wallet.needsAddress(), "addresses can't be recovered from the seed")
         assertTrue(wallet.activity.first().isEmpty(), "no history is invented")

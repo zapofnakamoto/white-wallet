@@ -10,7 +10,6 @@ import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.client.RegistrationOutcome
 import whitewallet.lnurlcash.client.RegistrationRejection
 import whitewallet.lnurlcash.protocol.ProtocolViolation
-import whitewallet.lnurlcash.protocol.legacy.LegacyCpub
 import whitewallet.lnurlcash.spendDomain
 
 /** Whether a Lightning address on a mint points at an account's keys. */
@@ -62,7 +61,7 @@ internal class AddressCheck(private val wallet: Wallet) {
                 ?: return Ownership(
                     if (response is LnurlResponse.Error) AddressStatus.Available else AddressStatus.CheckFailed("unexpected response")
                 )
-        if (dialect == MintDialect.Legacy) return Ownership(legacyStatus(pay, h, accountId))
+        if (dialect == MintDialect.Legacy) return Ownership(wallet.legacy.status(pay, h, accountId))
         if (accountId == null || wallet.keysIfSeeded(accountId, h) == null) return Ownership(AddressStatus.Taken)
         val recorded = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == h }
         // Moved to a share once this wallet migrates it (tag: keys); until then the mint can't be asked without moving it.
@@ -94,7 +93,8 @@ internal class AddressCheck(private val wallet: Wallet) {
                     when (outcome.kind) {
                         RegistrationRejection.Cx1AlreadyUsed -> return Ownership(AddressStatus.Ours, n)
                         RegistrationRejection.InvalidSignature -> continue
-                        RegistrationRejection.UnknownUser -> return Ownership(AddressStatus.Available)
+                        // Published, yet not a registration: one of the mint's own names.
+                        RegistrationRejection.UnknownUser -> return Ownership(AddressStatus.Unconfirmed)
                         RegistrationRejection.RateLimited -> return Ownership(AddressStatus.CheckFailed(outcome.reason ?: "rate limited"))
                         else -> return Ownership(AddressStatus.Unconfirmed)
                     }
@@ -105,13 +105,6 @@ internal class AddressCheck(private val wallet: Wallet) {
             }
         }
         return Ownership(AddressStatus.Taken)
-    }
-
-    /** Legacy 2f17578 (tag: mint): the published `text/cpub` names the account's branch, or not. */
-    private suspend fun legacyStatus(pay: LnurlResponse.PayRequest, host: String, accountId: String?): AddressStatus {
-        val cpub = LegacyCpub.cx1(pay) ?: return AddressStatus.Unconfirmed
-        val ours = accountId?.takeIf { wallet.ownsLegacyKeys(it) }?.let { wallet.keysIfSeeded(it, host)?.legacy?.cx1() }
-        return if (ours != null && cpub.equals(ours, ignoreCase = true)) AddressStatus.Ours else AddressStatus.Taken
     }
 
     companion object {

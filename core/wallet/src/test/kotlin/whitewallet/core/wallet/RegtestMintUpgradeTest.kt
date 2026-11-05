@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.KeyScheme
 import whitewallet.core.wallet.Regtest.HOST4
+import whitewallet.core.wallet.legacy.LegacyChange
+import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.protocol.NoteLookupError

@@ -35,7 +35,7 @@ class MintDetailsTest {
     @Test
     fun `details show fees, limits, the pinned key and the account's money there`() = withWallet { mint, _, wallet ->
         val keys = testKeys(words, mint.host)
-        mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 0)), 21_000)
+        mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 0)), 21_000)
         wallet.refresh()
         val details = wallet.mintDetails(mint.host)
         assertEquals(MintDetails.Reachability.Reachable, details.reachability)
@@ -44,7 +44,7 @@ class MintDetailsTest {
         assertEquals(21_000, details.balanceMsat)
         assertEquals(1, details.noteCount)
         assertEquals(true, details.isHome)
-        assertEquals(keys.legacy.cx1(), wallet.watchOnlyKey(mint.host))
+        assertEquals(keys.share(0).cx1(), wallet.watchOnlyKey(mint.host))
     }
 
     @Test

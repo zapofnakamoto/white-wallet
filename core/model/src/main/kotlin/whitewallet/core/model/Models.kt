@@ -102,7 +102,7 @@ data class Note(
     val updatedAtMillis: Long,
     /** When its mint last answered a lookup for it; kept for shared notes, so their screen can say how fresh it is. */
     val checkedAtMillis: Long? = null,
-    val scheme: KeyScheme = KeyScheme.Legacy,
+    val scheme: KeyScheme = KeyScheme.Bip32,
     /** The share a chain-2 note is on (LUD-26 `S/a'/2/n'`). */
     val share: Long? = null,
 )
@@ -251,7 +251,7 @@ data class OutputRef(
     val purpose: Int,
     val index: Long,
     val q: String,
-    val scheme: KeyScheme = KeyScheme.Legacy,
+    val scheme: KeyScheme = KeyScheme.Bip32,
     val share: Long? = null,
 ) {
     /** Someone else's key (an internal transfer): never recorded as a note of this wallet. */
@@ -259,7 +259,7 @@ data class OutputRef(
         get() = accountId.isEmpty()
 
     companion object {
-        fun external(q: String) = OutputRef("", 2, -1, q)
+        fun external(q: String) = OutputRef("", 2, -1, q, KeyScheme.Legacy)
     }
 }
 

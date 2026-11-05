@@ -123,7 +123,7 @@ class ProtocolVectorsTest {
         val split = Requests.split("https://mint.example/w/cb", listOf("a", "b"), 5000, p1, p2)
         assertEquals(listOf("k1" to "a", "k1" to "b", "amount" to "5000"), whitewallet.lnurl.Lnurl.queryParams(split).take(3))
         assertFailsWith<IllegalArgumentException> { Requests.merge("https://mint.example/w/cb", listOf("a"), p1) }
-        assertEquals("http://localhost:3338/.well-known/lnurlw/_", Requests.serviceWithdrawDiscoveryUrl("localhost:3338"))
+        assertEquals("http://localhost:3338/.well-known/lnurlw/mint", Requests.serviceWithdrawDiscoveryUrl("localhost:3338"))
         val transfer = Requests.transfer("https://mint.example/p/bob", 21_000, "ck1abc")
         assertEquals("https://mint.example/p/bob?amount=21000&k1=ck1abc", transfer)
     }

@@ -99,11 +99,6 @@ class ConformancePart2Test {
             assertTrue(Certificates.verify(cs1, domain, q, mintPubkey))
             assertEquals(c.str("cs1"), Certificates.sign(domain, cs1.amountMsat, q, mintKey).encode())
         }
-        for (c in v.objects("legacyCertificates")) {
-            val q = ByteVector32(c.str("notePubkey"))
-            val cs1 = assertNotNull(Cs1.decode(c.str("cs1")))
-            assertTrue(LegacyCertificates.verify(cs1, q, mintPubkey), "a superseded certificate still verifies as legacy")
-        }
     }
 
     @Test
@@ -146,6 +141,16 @@ class ConformancePart2Test {
                 val spend = branch.spend(purpose, i, domain)
                 assertEquals(n.str("ck1"), spend.k1)
             }
+        }
+    }
+
+    @Test
+    fun `legacy 2f17578 - a superseded certificate of the current vectors still verifies as legacy`() {
+        val mintPubkey = PublicKey.fromHex(v.obj("mint").str("mintPubkey"))
+        for (c in v.objects("legacyCertificates")) {
+            val q = ByteVector32(c.str("notePubkey"))
+            val cs1 = assertNotNull(Cs1.decode(c.str("cs1")))
+            assertTrue(LegacyCertificates.verify(cs1, q, mintPubkey))
         }
     }
 

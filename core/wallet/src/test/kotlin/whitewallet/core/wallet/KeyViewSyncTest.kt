@@ -42,13 +42,13 @@ class KeyViewSyncTest {
                 val before = changes.size
 
                 val keys = testKeys(words, mint.host)
-                mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 0)), 2_000)
+                mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 0)), 2_000)
                 wallet.refresh() // not one of the page's actions
                 delay(200)
 
                 assertTrue(changes.size > before, "the key view was told something changed")
-                assertEquals(mapOf(KeySet.Wallet to 1L, KeySet.LegacyAddress to 1L), indexes.last(), "the index flow shows the rotate")
-                val address = wallet.derivedKeys(mint.host, KeySet.LegacyAddress).first()
+                assertEquals(mapOf(KeySet.Wallet to 1L, KeySet.share(0) to 1L), indexes.last(), "the index flow shows the rotate")
+                val address = wallet.derivedKeys(mint.host, KeySet.share(0)).first()
                 val walletKey = wallet.derivedKeys(mint.host, KeySet.Wallet).first()
                 assertEquals(NoteState.Spent, address.noteState)
                 assertEquals(NoteState.Outstanding, walletKey.noteState)

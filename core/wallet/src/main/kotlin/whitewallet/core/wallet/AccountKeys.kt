@@ -7,11 +7,10 @@ import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
+import whitewallet.core.wallet.legacy.LegacyKeys
 import whitewallet.lnurlcash.NoteAccount
 import whitewallet.lnurlcash.Share
 import whitewallet.lnurlcash.Spend
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.spendDomain
 
 /**
@@ -50,17 +49,6 @@ data class KeySet(val scheme: KeyScheme, val purpose: Int, val share: Long? = nu
 
         fun share(n: Long) = KeySet(KeyScheme.Bip32, ADDRESS, n)
 
-        /** Legacy 2f17578 (tag: keys). */
-        fun legacy(purpose: LegacyPurpose) = KeySet(KeyScheme.Legacy, purpose.value)
-
-        /** Legacy 2f17578 (tag: keys). */
-        val LegacyWallet = legacy(LegacyPurpose.Wallet)
-        val LegacyChange = legacy(LegacyPurpose.Change)
-        val LegacyAddress = legacy(LegacyPurpose.LightningAddress)
-
-        /** Legacy 2f17578 (tag: keys): every purpose, as restore scans them. */
-        val LEGACY = listOf(LegacyWallet, LegacyChange, LegacyAddress)
-
         /** Where a note's key is. */
         fun of(note: Note): KeySet = KeySet(note.scheme, checkNotNull(note.purpose) { "not a key-path note" }, note.share)
     }
@@ -77,7 +65,7 @@ val KeyId.set: KeySet
  * One account's keys at one mint: account `a` of its wallet's LUD-26 root for the mint's domain, and the legacy 2f17578 branch for the host
  * as stored (tag: keys). Holds secret keys: kept for the life of the process, like the branch was, never written anywhere.
  */
-internal class AccountKeys(private val account: NoteAccount, val legacy: LegacyBranch) {
+internal class AccountKeys(private val account: NoteAccount, val legacy: LegacyKeys) {
     private val shares = ConcurrentHashMap<Long, Share>()
 
     fun share(n: Long): Share = shares.getOrPut(n) { account.share(n) }
@@ -86,7 +74,7 @@ internal class AccountKeys(private val account: NoteAccount, val legacy: LegacyB
         when (set.scheme) {
             KeyScheme.Bip32 ->
                 if (set.isAddress) share(checkNotNull(set.share)).notePubkey(index) else secretKey(set, index).xOnlyPublicKey().value
-            KeyScheme.Legacy -> legacy.notePubkey(legacyPurpose(set.purpose), index)
+            KeyScheme.Legacy -> legacy.pubkey(set, index)
         }
 
     fun pubkey(id: KeyId): ByteVector32 = pubkey(id.set, id.index)
@@ -97,7 +85,7 @@ internal class AccountKeys(private val account: NoteAccount, val legacy: LegacyB
         val index = checkNotNull(note.index) { "not a key-path note" }
         return when (set.scheme) {
             KeyScheme.Bip32 -> Spend.keyPath(secretKey(set, index), domain)
-            KeyScheme.Legacy -> legacy.spend(legacyPurpose(set.purpose), index, domain)
+            KeyScheme.Legacy -> legacy.spend(set, index, domain)
         }
     }
 
@@ -107,8 +95,6 @@ internal class AccountKeys(private val account: NoteAccount, val legacy: LegacyB
             set.purpose == 0 -> account.walletKey(index)
             else -> account.changeKey(index)
         }
-
-    private fun legacyPurpose(value: Int) = LegacyPurpose.entries.first { it.value == value }
 }
 
 /**

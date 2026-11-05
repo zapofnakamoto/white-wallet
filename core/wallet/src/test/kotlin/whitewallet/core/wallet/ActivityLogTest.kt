@@ -48,7 +48,7 @@ class ActivityLogTest {
         }
 
     private fun Fixture.pay(vararg amounts: Long, from: Long = 0) = amounts.forEachIndexed { i, msat ->
-        mint.credit(Cp1.encode(keysA.pubkey(KeySet.LegacyAddress, from + i)), msat)
+        mint.credit(Cp1.encode(keysA.pubkey(KeySet.share(0), from + i)), msat)
     }
 
     private suspend fun Fixture.history(account: String = "a"): List<Activity> = store.activities(account).first()
@@ -117,7 +117,7 @@ class ActivityLogTest {
         wallet.setNoteStrategy(ManualStrategy.ID)
         pay(4_000)
         wallet.refresh()
-        assertIs<RotateResult.Rotated>(wallet.rotateKey(mint.host, KeySet.LegacyAddress, 0))
+        assertIs<RotateResult.Rotated>(wallet.rotateKey(mint.host, KeySet.share(0), 0))
         val rotated = history().single { it.kind == ActivityKind.Rotated }
         assertEquals(4_000, rotated.amountMsat)
         assertEquals(false, rotated.automatic)

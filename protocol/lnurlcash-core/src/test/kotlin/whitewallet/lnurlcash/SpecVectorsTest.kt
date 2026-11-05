@@ -78,7 +78,6 @@ class SpecVectorsTest {
             assertTrue(Certificates.verify(cs1, domain, q, mintPubkey))
             assertFalse(Certificates.verify(cs1.copy(amountMsat = amount + 1), domain, q, mintPubkey))
             assertFalse(Certificates.verify(cs1, "other.example", q, mintPubkey), "a certificate names one mint")
-            assertFalse(LegacyCertificates.verify(cs1, q, mintPubkey), "nor is it a legacy certificate")
             assertEquals(c.str("cs1"), Certificates.sign(domain, amount, q, mintKey).encode())
         }
     }

@@ -139,6 +139,7 @@ check: test
     ./gradlew :app:assembleDebug :app:assembleRelease :app:lintDebug
     for b in brand brand-examples/*/; do dev/check-brand.sh "${b%/}"; done
     dev/check-design.sh
+    dev/check-legacy.sh
     python3 -m unittest discover -s dev -p 'test_*.py'
     ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme
 

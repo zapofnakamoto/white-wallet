@@ -66,12 +66,12 @@ class WalletMockMintTest {
                 val wallet = wallet(mint, store)
                 val keys = testKeys(words, mint.host)
                 for ((index, amount) in listOf(0L to 1_000L, 1L to 2_000L, 5L to 4_000L)) {
-                    mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, index)), amount)
+                    mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), index)), amount)
                 }
                 val result = wallet.refresh()
                 assertEquals(3, result.newNotes)
                 assertEquals(7_000, wallet.balanceMsat.first())
-                assertEquals(6, store.scanFrom[ACCOUNT to mint.host])
+                assertEquals(6, store.indexOf(ACCOUNT, mint.host, KeySet.share(0)))
                 assertTrue(store.allNotes().all { it.certificate != null }, "certificates verified and kept")
                 assertEquals(0, wallet.refresh().newNotes)
             }

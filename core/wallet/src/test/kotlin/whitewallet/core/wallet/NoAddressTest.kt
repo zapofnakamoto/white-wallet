@@ -147,12 +147,12 @@ class NoAddressTest {
                             val base = "http://$host"
                             val url = request.url
                             when (url.encodedPath) {
-                                "/.well-known/lnurlp/_" ->
+                                "/.well-known/lnurlp/mint" ->
                                     MockResponse(
                                         body =
                                             """{"tag":"payRequest","callback":"$base/p/cb","minSendable":1000,"maxSendable":100000000,"metadata":"${metadata.replace("\"", "\\\"")}","withdrawLink":"$base/w","commentAllowed":64}"""
                                     )
-                                "/.well-known/lnurlw/_" ->
+                                "/.well-known/lnurlw/mint" ->
                                     MockResponse(
                                         body =
                                             """{"tag":"withdrawRequest","callback":"$base/w/cb","minWithdrawable":0,"maxWithdrawable":1000,"mintPubkey":"$pubkey"}"""

@@ -9,17 +9,16 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
+import whitewallet.core.wallet.legacy.LegacyTransfer
+import whitewallet.core.wallet.legacy.payAtKey
 import whitewallet.lnurl.Bolt11
 import whitewallet.lnurl.Bolt11Invoice
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurl.string
 import whitewallet.lnurlcash.client.MintDialect
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
-import whitewallet.lnurlcash.protocol.legacy.LegacyCpub
 
 /** Where a payment goes. */
 sealed interface PayDestination {
@@ -41,16 +40,10 @@ sealed interface PayDestination {
 }
 
 /** How a note reaches a payee on its own mint. */
-sealed interface InternalTransfer {
+interface InternalTransfer {
     /** At the payee's pay callback, as a whole note; the mint picks the payee's key. */
     data object ToCallback : InternalTransfer
 }
-
-/**
- * Legacy 2f17578 (tag: mint): a payee's purpose-2 branch, from their `text/cpub` (`cx1:<next index>`), the note's output named by the
- * payer.
- */
-class LegacyTransfer internal constructor(internal val branch: LegacyBranch, internal val nextIndex: Long) : InternalTransfer
 
 /** Why a payment can't be made (or wasn't). Every case maps to a full string in the app. */
 enum class PayProblem {
@@ -144,7 +137,7 @@ sealed interface PayResult {
  */
 internal class Payer(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
-    private val log = ActivityLog(wallet)
+    internal val log = ActivityLog(wallet)
     private val melter = Melter(wallet)
 
     suspend fun preview(input: String): PayPreview {
@@ -170,17 +163,11 @@ internal class Payer(private val wallet: Wallet) {
         val accountId = wallet.activeId()
         val payeeHost = Lnurl.host(url)?.lowercase()
         val holdsNotes = payeeHost != null && outstanding(accountId).any { it.host == payeeHost }
-        val legacy =
-            LegacyCpub.from(pay)?.let { (cx1, next) -> LegacyBranch.fromCx1(cx1)?.let { LegacyTransfer(it, next) } }?.takeIf { holdsNotes }
+        val legacy = LegacyTransfer.from(pay)?.takeIf { holdsNotes }
         val transfer = legacy ?: InternalTransfer.ToCallback.takeIf { holdsNotes && sharesMint(pay, payeeHost!!) }
-        // One of the account's own addresses, as recorded, or (legacy 2f17578, tag: mint) as the mint publishes its branch.
+        // One of the account's own addresses, as recorded, or as a legacy mint publishes its branch.
         val own = wallet.store.addresses(accountId).first().any { Lnurl.lightningAddressUrl(it.address) == url }
-        if (
-            own ||
-                legacy != null &&
-                    payeeHost != null &&
-                    legacy.branch.cx1().equals(wallet.branch(accountId, payeeHost).cx1(), ignoreCase = true)
-        ) {
+        if (own || legacy != null && payeeHost != null && wallet.legacy.paysOwnBranch(legacy, accountId, payeeHost)) {
             return PayPreview.Invalid(PayProblem.OwnAddress)
         }
         val destination =
@@ -246,42 +233,8 @@ internal class Payer(private val wallet: Wallet) {
         // Who was paid; an invoice's description isn't a recipient, so a bare invoice has none.
         val counterparty = preview.payee
 
-        if (destination is PayDestination.PayLink && destination.transfer is LegacyTransfer) {
-            val transfer = destination.transfer
-            val target = OutputSpec.External { attempt ->
-                transfer.branch.notePubkey(LegacyPurpose.LightningAddress, transfer.nextIndex + attempt)
-            }
-            return when (val made = exact(accountId, host, plan, amountMsat, target)) {
-                is MutationResult.Done -> {
-                    log.record(
-                        id = "pay:${made.journalId}",
-                        accountId,
-                        kind = ActivityKind.Sent,
-                        amountMsat,
-                        host,
-                        status = ActivityStatus.Done,
-                        feeMsat = plan.feeMsat.takeIf { it > 0 },
-                        counterparty,
-                        journalId = made.journalId,
-                    )
-                    PayResult.Paid(amountMsat, plan.feeMsat.coerceAtLeast(0))
-                }
-                is MutationResult.Pending -> {
-                    log.record(
-                        id = "pay:${made.journalId}",
-                        accountId,
-                        kind = ActivityKind.Sent,
-                        amountMsat,
-                        host,
-                        status = ActivityStatus.Pending,
-                        counterparty = counterparty,
-                        journalId = made.journalId,
-                    )
-                    PayResult.Pending(amountMsat)
-                }
-                is MutationResult.Refused -> if (made.setAside.isNotEmpty()) null else made.toFailure()
-                is MutationResult.Unreachable -> made.toFailure()
-            }
+        ((destination as? PayDestination.PayLink)?.transfer as? LegacyTransfer)?.let {
+            return payAtKey(it, accountId, host, plan, amountMsat, counterparty)
         }
 
         // Melt: get the invoice first, so nothing is split for a payee that refuses. A transfer needs none.
@@ -445,7 +398,7 @@ internal class Payer(private val wallet: Wallet) {
             it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null
         }
 
-    private fun MutationResult.toFailure(): PayResult.Failed =
+    internal fun MutationResult.toFailure(): PayResult.Failed =
         when (this) {
             is MutationResult.Refused ->
                 PayResult.Failed(if (kind == RejectionKind.InsufficientValue) PayProblem.TooMuch else PayProblem.Refused)

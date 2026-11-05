@@ -14,9 +14,6 @@ import whitewallet.lnurlcash.AddressProof
 import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.client.RegistrationOutcome
 import whitewallet.lnurlcash.client.RegistrationRejection
-import whitewallet.lnurlcash.client.legacy.legacyRegister
-import whitewallet.lnurlcash.client.legacy.legacyUnregister
-import whitewallet.lnurlcash.legacy.LegacyAddressProof
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.spendDomain
 
@@ -234,14 +231,10 @@ internal class Onboarding(private val wallet: Wallet) {
             MintDialect.Current -> {
                 val sig =
                     address.share?.let { AddressProof.unregister(keys.share(it), domain, address.username) }
-                        // Still on the legacy branch: the key on file is the branch key (tag: keys).
-                        ?: AddressProof.sign(AddressProof.unregisterMessage(domain, address.username), keys.legacy.branchKey())
+                        ?: wallet.legacy.unregisterProof(keys, domain, address.username)
                 wallet.client.unregister(h, address.username, sig)
             }
-            MintDialect.Legacy -> {
-                val sig = LegacyAddressProof.sign(keys.legacy, LegacyAddressProof.Action.Unregister, domain, address.username)
-                wallet.client.legacyUnregister(h, address.username, sig)
-            }
+            MintDialect.Legacy -> wallet.legacy.unregister(keys, address)
         }
     }
 
@@ -266,7 +259,8 @@ internal class Onboarding(private val wallet: Wallet) {
         when (before.status) {
             AddressStatus.Ours -> return ready(true, before.share)
             AddressStatus.Taken,
-            AddressStatus.Unconfirmed -> return takeBack(name, h, accountId)?.let { ready(true, it) } ?: taken(name, accountId, h)
+            AddressStatus.Unconfirmed ->
+                return wallet.legacy.takeBack(name, h, accountId)?.let { ready(true, it) } ?: taken(name, accountId, h)
             is AddressStatus.Invalid -> return OnboardResult.UsernameInvalid(before.status.reason)
             is AddressStatus.CheckFailed -> return OnboardResult.NetworkError(before.status.reason)
             AddressStatus.Available -> Unit
@@ -284,19 +278,9 @@ internal class Onboarding(private val wallet: Wallet) {
                 if (held != null && invoice?.amountMsat != null) return OnboardResult.AwaitingFee(held, invoice.amountMsat!!)
                 claimShare(name, h, accountId, ready) { n, pr -> hold(pr, n, name, h, accountId, creating, accountName) }
             }
-            MintDialect.Legacy -> legacyClaim(name, h, accountId, ready)
+            MintDialect.Legacy -> wallet.legacy.claim(this, name, h, accountId, ready)
         }
     }
-
-    /**
-     * Legacy 2f17578 (tag: keys): a name registered before the mint moved to LUD-26 is proven by moving it to a share; the share, or null.
-     */
-    private suspend fun takeBack(name: String, h: String, accountId: String): Long? =
-        try {
-            if (wallet.dialect(h) == MintDialect.Current) wallet.migration.move(accountId, name, h) else null
-        } catch (e: IOException) {
-            null
-        }
 
     /**
      * Registers [name] for the account's next share (LUD-26 POST). The share is reserved durably before its `cx1` goes out, so a lost
@@ -388,35 +372,8 @@ internal class Onboarding(private val wallet: Wallet) {
         }
     }
 
-    /** Legacy 2f17578 (tag: mint): registers [name] for the account's branch `cx1` at `/p/`. */
-    private suspend fun legacyClaim(
-        name: String,
-        h: String,
-        accountId: String,
-        ready: suspend (Boolean, Long?) -> OnboardResult,
-    ): OnboardResult {
-        if (!wallet.ownsLegacyKeys(accountId)) return OnboardResult.MintTooOld
-        val branch = wallet.branch(accountId, h)
-        val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Register, spendDomain(h), name)
-        when (val outcome = wallet.client.legacyRegister(h, name, branch.cx1(), sig)) {
-            is RegistrationOutcome.Rejected -> {
-                // The mint may have moved to LUD-26 since it was asked; ask it again next time.
-                wallet.forgetDialect(h)
-                // Lost a race for the name, or the mint refuses registrations. Look again to tell which.
-                return if (addresses.check(name, h, accountId) == AddressStatus.Taken) taken(name, accountId, h)
-                else OnboardResult.RegistrationFailed(outcome.reason)
-            }
-            // The answer was lost; the lookup below shows whether it landed.
-            is RegistrationOutcome.Ambiguous,
-            is RegistrationOutcome.AwaitingFee,
-            RegistrationOutcome.Registered -> Unit
-        }
-
-        return settle(addresses.check(name, h, accountId), name, h, accountId) { confirmed -> ready(confirmed, null) }
-    }
-
     /** What a registration came to, by the lookup after it. */
-    private suspend fun settle(
+    internal suspend fun settle(
         after: AddressStatus,
         name: String,
         h: String,
@@ -493,9 +450,10 @@ internal class Onboarding(private val wallet: Wallet) {
     }
 
     /** A taken seed-derived name suggests the next derived ones first, so a restore can still find the address. */
-    private suspend fun taken(name: String, accountId: String, h: String): OnboardResult {
-        val derived = wallet.keysIfSeeded(accountId, h)?.legacy?.let(DefaultAddress::names).orEmpty()
-        val next = if (name in derived) derived.dropWhile { it != name }.drop(1) else emptyList()
+    internal suspend fun taken(name: String, accountId: String, h: String): OnboardResult {
+        val derived = wallet.keysIfSeeded(accountId, h)?.let(DefaultAddress::names).orEmpty()
+        val next =
+            listOf(derived, wallet.legacy.names(accountId, h)).firstOrNull { name in it }?.dropWhile { it != name }?.drop(1).orEmpty()
         return OnboardResult.UsernameTaken((next + suggestions(name, wallet.random)).distinct().take(3))
     }
 

@@ -1,4 +1,4 @@
-package whitewallet.core.wallet
+package whitewallet.core.wallet.legacy
 
 import java.io.IOException
 import kotlinx.coroutines.flow.first
@@ -6,6 +6,12 @@ import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.wallet.AddressCheck
+import whitewallet.core.wallet.AddressScanner
+import whitewallet.core.wallet.AddressStatus
+import whitewallet.core.wallet.KeySet
+import whitewallet.core.wallet.NoteRotator
+import whitewallet.core.wallet.Wallet
 import whitewallet.lnurlcash.AddressProof
 import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.client.RegistrationOutcome
@@ -66,7 +72,7 @@ internal class LegacyMigration(
      */
     suspend fun move(accountId: String, name: String, host: String): Long? {
         // The branch key is the phrase's: a further account would take the first account's address with it.
-        if (!wallet.ownsLegacyKeys(accountId)) return null
+        if (!wallet.legacy.ownsKeys(accountId)) return null
         val domain = spendDomain(host)
         val keys = wallet.keys(accountId, host)
         val n = wallet.store.keyIndexOrNull(accountId, domain, KeyCounter.Shares) ?: 0

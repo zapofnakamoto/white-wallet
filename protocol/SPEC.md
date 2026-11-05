@@ -88,7 +88,7 @@ The `Regtest*Test` classes in `core/wallet` run against **`lnurlcash/lnurl-mint`
 | Payment to a user on the same mint | Spend to the payee's pay callback | Note made at the key the payee's `text/cpub` names |
 | Who an address belongs to | See below | `text/cpub` compared with the branch |
 
-Old keys are the first account's, as they come from the phrase alone (`Wallet.ownsLegacyKeys`). On each refresh `LegacyMigration` moves an account's addresses to shares once their mint is current, and its legacy notes to new keys, without asking.
+Old keys are the first account's, as they come from the phrase alone (`Legacy.ownsKeys`). On each refresh `LegacyMigration` moves an account's addresses to shares once their mint is current, and its legacy notes to new keys, without asking.
 
 ## How the wallet confirms a username
 
@@ -98,6 +98,7 @@ The registration response alone is not trusted. Before registering, and again af
 |---|---|
 | `{"status":"ERROR"}` (e.g. `Unknown user.`) | The name is free, or held unpaid by someone |
 | payRequest, current mint | Registered. It is ours if the mint takes our proof for one of our shares, tried by a PUT of that same share: `cx1 already used` is the holder's answer, `Invalid ownership signature.` anyone else's, and nothing is changed either way |
+| payRequest, current mint, PUT says `unknown user` | One of the mint's own names (`mint`, `_`): published, yet no registration. Counts as unverifiable, so as taken before a claim |
 | payRequest, current mint, recorded on no share yet | Ours until it has moved, unconfirmed: asking would move it |
 | payRequest, legacy mint, `text/cpub` `cx1` equals ours | Ours: payments reach this wallet |
 | payRequest, legacy mint, someone else's `cx1` | Taken |
@@ -107,25 +108,45 @@ A POST for a name someone else holds is an overwrite attempt, which the referenc
 
 ## Removing legacy 2f17578
 
-Each piece is tagged in its KDoc with what it waits for, and can go in two steps.
+Legacy lives in packages of its own, and production code reaches it only through the seams below: `Wallet.legacy` (`core/wallet/.../legacy/Legacy.kt`, the one door) and five files `dev/check-legacy.sh` allows to import it. That check runs in `just check`, so a new dependency fails there. The `*-2f17578` tests sit next to the new ones, by name.
 
-**Tag *mint*: once every mint the wallet uses runs ≥ 0.13.**
+This list has been rehearsed: on a copy with all of it done at once, the app and every test compiled, and the remaining tests passed, unit and regtest on the current stack. Tag *mint* can go before tag *keys*.
 
-- [ ] `LegacyRegistration` (client), `LegacyRequests` (protocol), `LegacyCpub`
-- [ ] `MintDialect.Legacy`, `LnurlcashClient.dialect`, `Registration.dialectProbe`, `Wallet.dialect`, `forgetDialect`
-- [ ] `Onboarding.legacyClaim`, `AddressCheck.legacyStatus`, `OnboardResult.MintTooOld` and its strings
-- [ ] `LegacyTransfer` and the published-key branch of `Payer`
-- [ ] The certificate form without the domain in `MintCertificates`
-- [ ] The legacy branch of `Restore.scan`'s share scan
-- [ ] `requireStack(MintDialect…)`, `REGTEST_PROTOCOL`, the legacy stack, `mint4` and `RegtestMintUpgradeTest`; tests named `legacy 2f17578 - …` that need a 0.12 mint
+**Delete**
 
-**Tag *keys*: once no wallet or recovery phrase can hold notes or addresses from before. This is a decision, not a date: a phrase written down in 0.7 can come back at any time.**
+- [ ] `core/wallet/.../legacy/` (`Legacy`, `LegacyKeys`, `LegacyMigration`, `LegacyTransfer`)
+- [ ] `whitewallet.lnurlcash.legacy`, `whitewallet.lnurlcash.protocol.legacy`, `whitewallet.lnurlcash.client.legacy`
+- [ ] Vectors `spec-2f17578/`, `conformance-2f17578/`
+- [ ] Tests named `legacy 2f17578 - …`, and the classes `RegtestMintUpgradeTest` and `LegacyBranchTest`
+- [ ] The legacy stack, `REGTEST_PROTOCOL`, `mint4`, `dev/check-legacy.sh`
 
-- [ ] `LegacyBranch`, `LegacyPurpose`, `LegacyEncodings`, `LegacyCertificates`
-- [ ] `AccountKeys.legacy`, `KeyScheme.Legacy`, `KeySet.LEGACY`, `LEGACY_ADDRESSES` in `AddressScanner`
-- [ ] `LegacyMigration`, `Onboarding.takeBack`, the move in `Wallet.recoverableUsername`, `Wallet.ownsLegacyKeys`
-- [ ] `RegisteredAddress.share` being nullable (a Room migration)
-- [ ] Vectors `spec-2f17578/`, `conformance-2f17578/` and the tests reading them
+**Tag *mint*: once every mint the wallet uses runs ≥ 0.13.** Each line is one call to drop.
+
+| Seam | Change |
+|---|---|
+| `Wallet.dialect`, `forgetDialect`, `LnurlcashClient.dialect`, `MintDialect`, `Registration.dialectProbe` | Delete: with one dialect the `when`s over it below are their first branch |
+| `AddressCheck.ownership` | Drop `wallet.legacy.status` |
+| `Onboarding.claim`, `unregisterAt` | Drop `wallet.legacy.claim` and `wallet.legacy.unregister` |
+| `OnboardResult.MintTooOld`, `MoneyMoveError.MintTooOld`, `OnboardingError.MintTooOld` | Delete, with `onboarding_error_mint_too_old` and `money_error_mint_too_old` |
+| `Payer.preview`, `attempt` | Drop `LegacyTransfer.from`, `paysOwnBranch` and `payAtKey`; seal `InternalTransfer` again |
+| `MintCertificates` | Drop `LegacyCertificates.verify` |
+| `OutputRef.external`, `OutputSpec.External` | Delete: only `payAtKey` names another wallet's key |
+| Tests | `FakeMint`'s `legacy` flag in `OnboardingTest`, `Regtest.addressSet` and `protocol`, the `else` in `RegtestAddressPrivacyTest` |
+
+**Tag *keys*: once no wallet or recovery phrase can hold notes or addresses from before.** This is a decision, not a date: a phrase written down in 0.7 can come back at any time, and an installed app not opened since the upgrade has not moved anything. What goes unmoved stays at the mint, out of reach of the app.
+
+| Seam | Change |
+|---|---|
+| `AccountKeys` | Drop the `legacy` parameter and the two `KeyScheme.Legacy` branches |
+| `Wallet.keys` | Drop `LegacyKeys.fromSeed` |
+| `Wallet.refresh` | Drop `legacy.migration.run` |
+| `AddressScanner.scanAll` | Drop `wallet.legacy.addressSets` |
+| `Restore` | Drop `wallet.legacy.restoreSets` and the `older` parameter |
+| `Wallet.recoverableUsername`, `addressesToWriteDown`, `Onboarding.taken` | Drop `legacy.recoverableUsername` and `legacy.names`. Default addresses from before then count as ones to write down |
+| `Wallet.watchOnlyKey` | Drop `legacy.watchOnlyKey` |
+| `Onboarding.claim`, `unregisterAt` | Drop `wallet.legacy.takeBack` and `unregisterProof`; `RegisteredAddress.share` is then never null (a Room migration) |
+| `DerivedKeysScreen` | Drop the legacy tabs and the `keys_legacy_*` strings |
+| Data, with a Room migration | `KeyScheme.Legacy`, the `counters` and `address_scan` tables and their `WalletStore` methods (`reserveIndex`, `setIndex`, `addressScanFrom`, `setAddressScanFrom`), journal outputs of four fields. Migrations 4 to 5 stay as they are: they are history |
 
 ## Updating to a new spec revision
 

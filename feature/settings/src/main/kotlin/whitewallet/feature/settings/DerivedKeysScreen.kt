@@ -71,6 +71,9 @@ import whitewallet.core.wallet.RotateAllResult
 import whitewallet.core.wallet.RotateResult
 import whitewallet.core.wallet.SetIndexResult
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.legacy.LEGACY
+import whitewallet.core.wallet.legacy.LegacyChange
+import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.core.wallet.set
 
 data class DerivedKeysState(
@@ -79,7 +82,7 @@ data class DerivedKeysState(
     val homeHost: String? = null,
     val host: String? = null,
     /** The tab: the keys one index counts. */
-    val set: KeySet = KeySet.LegacyAddress,
+    val set: KeySet = KeySet.Wallet,
     val indexes: Map<KeySet, Long> = emptyMap(),
     val keys: List<DerivedKey> = emptyList(),
     val expanded: Long? = null,

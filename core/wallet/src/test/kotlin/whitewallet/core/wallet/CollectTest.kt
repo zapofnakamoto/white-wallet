@@ -38,7 +38,7 @@ class CollectTest {
 
         /** Notes paid to the address on the mock mint, found by a refresh. */
         suspend fun fund(vararg sats: Long) {
-            sats.forEach { mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, next++)), it * 1000) }
+            sats.forEach { mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), next++)), it * 1000) }
             wallet.refresh()
         }
 

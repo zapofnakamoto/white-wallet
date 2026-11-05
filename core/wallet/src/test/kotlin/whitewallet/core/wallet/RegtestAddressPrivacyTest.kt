@@ -60,7 +60,7 @@ class RegtestAddressPrivacyTest {
             // A note on legacy wallet key #0, as the wallet made them before LUD-26 at 92e430f.
             val client = LnurlcashClient()
             val pay = client.servicePayRequest(HOST)
-            val q = phone.wallet.branch(phone.wallet.activeId(), HOST).notePubkey(LegacyPurpose.Wallet, 0)
+            val q = phone.wallet.keys(phone.wallet.activeId(), HOST).legacy.branch.notePubkey(LegacyPurpose.Wallet, 0)
             Regtest.pay(assertIs<MintInvoice.Ok>(MintInvoice.fetch(phone.wallet, pay, 3_000_000, q)).invoice, 3000)
             var amount: Long? = null
             repeat(30) {

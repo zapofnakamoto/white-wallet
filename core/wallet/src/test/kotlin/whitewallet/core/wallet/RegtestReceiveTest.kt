@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.wallet.Regtest.HOST
+import whitewallet.core.wallet.legacy.LegacyAddress
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
 

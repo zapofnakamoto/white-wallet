@@ -15,6 +15,9 @@ import okhttp3.Interceptor
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
+import whitewallet.core.wallet.legacy.LegacyAddress
+import whitewallet.core.wallet.legacy.LegacyChange
+import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -47,7 +50,7 @@ abstract class RestoreBoundaryTest {
             assertEquals(0, restored.notes)
             assertEquals(0, restored.balanceMsat)
             assertEquals(restored.accountId, phone.store.currentAccountId())
-            assertEquals(listOf(0L, 0L, 0L, 0L, 0L), phone.indexes(restored.accountId))
+            assertEquals(listOf(0L, 0L, 0L), phone.indexes(restored.accountId))
         }
 
     @Test
@@ -134,12 +137,12 @@ abstract class RestoreBoundaryTest {
     fun `each chain counts its own gap`() =
         runBlocking<Unit> {
             val words = phrase()
-            val msat = credit(words, KeySet.Change, gap - 1, SATS) + credit(words, KeySet.LegacyAddress, gap - 1, SATS)
+            val msat = credit(words, KeySet.Change, gap - 1, SATS) + credit(words, KeySet.share(0), gap - 1, SATS)
             val phone = Fresh()
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(2, restored.notes)
             assertEquals(msat, restored.balanceMsat)
-            assertEquals(listOf(0L, gap, 0L, 0L, gap), phone.indexes(restored.accountId))
+            assertEquals(listOf(0L, gap, gap), phone.indexes(restored.accountId))
         }
 
     @Test
@@ -164,7 +167,7 @@ abstract class RestoreBoundaryTest {
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(2, restored.notes)
             assertEquals(msat, restored.balanceMsat)
-            assertEquals(listOf(0L, 0L, 0L, gap, gap), phone.indexes(restored.accountId))
+            assertEquals(listOf(gap, gap), listOf(KeySet.LegacyChange, KeySet.LegacyAddress).map { phone.index(restored.accountId, it) })
         }
 
     @Test
@@ -176,7 +179,8 @@ abstract class RestoreBoundaryTest {
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(2, restored.notes)
             assertEquals(msat, restored.balanceMsat)
-            assertEquals(listOf(1L, 0L, 1L, 0L, 0L), phone.indexes(restored.accountId))
+            assertEquals(listOf(1L, 0L, 0L), phone.indexes(restored.accountId))
+            assertEquals(1L, phone.index(restored.accountId, KeySet.LegacyWallet))
         }
 
     @Test
@@ -207,7 +211,7 @@ abstract class RestoreBoundaryTest {
         suspend fun index(accountId: String, set: KeySet): Long = store.indexOf(accountId, host, set)
 
         /** The wallet and change indexes, then the legacy wallet, change and address ones. */
-        suspend fun indexes(accountId: String) = (listOf(KeySet.Wallet, KeySet.Change) + KeySet.LEGACY).map { index(accountId, it) }
+        suspend fun indexes(accountId: String) = listOf(KeySet.Wallet, KeySet.Change, KeySet.share(0)).map { index(accountId, it) }
     }
 
     /** Spends the note on that key at the mint, by rotating it to a key of another phrase. */

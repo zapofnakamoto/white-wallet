@@ -46,7 +46,7 @@ class NotePolicyTest {
 
     /** Address payments to account "a" at indexes 0.. (found by the next refresh). */
     private fun Fixture.pay(vararg amounts: Long, keys: AccountKeys = keysA) = amounts.forEachIndexed { i, msat ->
-        mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, i.toLong())), msat)
+        mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), i.toLong())), msat)
     }
 
     private suspend fun Fixture.outstanding(account: String = "a") =
@@ -81,7 +81,7 @@ class NotePolicyTest {
         assertEquals(2, assertNotNull(wallet.lastPolicyRun.first()).rotated)
 
         // A later payment is rotated by the next refresh too.
-        mint.credit(Cp1.encode(keysA.pubkey(KeySet.LegacyAddress, 2)), 4_000)
+        mint.credit(Cp1.encode(keysA.pubkey(KeySet.share(0), 2)), 4_000)
         wallet.refresh()
         assertTrue(outstanding().none { it.purpose == 2 })
         assertEquals(7_000, wallet.balanceMsat.first())
@@ -96,7 +96,7 @@ class NotePolicyTest {
         assertIs<NoteActionResult.Done>(wallet.splitNote(outstanding().single().id, 1_000))
         val kept = outstanding()
         assertEquals(listOf(0, 1), kept.mapNotNull { it.purpose }.sorted())
-        mint.credit(Cp1.encode(keysA.pubkey(KeySet.LegacyAddress, 1)), 4_000)
+        mint.credit(Cp1.encode(keysA.pubkey(KeySet.share(0), 1)), 4_000)
         wallet.refresh()
 
         wallet.setAutoRotate(true)
