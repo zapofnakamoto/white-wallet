@@ -1,7 +1,7 @@
 package whitewallet.core.wallet
 
 import whitewallet.core.model.ActivityKind
-import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /**
  * Finds notes the mint auto-minted for Lightning address payments (LUD-26 purpose 2) by looking up each derived key by `p`, stopping after
@@ -13,7 +13,7 @@ internal class AddressScanner(private val wallet: Wallet) {
 
     suspend fun scan(accountId: String, host: String): RefreshResult {
         val mint = wallet.store.mint(host) ?: return RefreshResult(0, 0)
-        val purpose = NotePurpose.LightningAddress.value
+        val purpose = LegacyPurpose.LightningAddress.value
         val start = wallet.store.addressScanFrom(accountId, host)
         var index = start
         var gap = 0
@@ -27,7 +27,7 @@ internal class AddressScanner(private val wallet: Wallet) {
                         found++
                         received += probe.amountMsat
                         // Each address key is paid once, so its note's Q identifies the payment.
-                        val q = wallet.branch(accountId, host).notePubkey(NotePurpose.LightningAddress, index).toHex()
+                        val q = wallet.branch(accountId, host).notePubkey(LegacyPurpose.LightningAddress, index).toHex()
                         log.record(
                             id = "recv:$q",
                             accountId,

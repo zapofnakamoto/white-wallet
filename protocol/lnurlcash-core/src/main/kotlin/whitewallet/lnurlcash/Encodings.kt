@@ -43,19 +43,23 @@ public object Ck1 {
     }
 }
 
-/** `cx1<P || chaincode>`: a watch-only note branch (LUD-26). */
+/** `cx1<chaincode || P>`: a share's extended public key (LUD-26), `P` compressed, in BIP-32's order; 65 bytes, 113 characters. */
 public object Cx1 {
     private const val HRP = "cx"
 
-    public fun encode(pubkey: ByteVector32, chainCode: ByteVector32): String =
-        Bech32m.encode(HRP, pubkey.toByteArray() + chainCode.toByteArray())
+    public fun encode(chainCode: ByteVector32, publicKey: ByteVector): String {
+        require(publicKey.size() == 33) { "P must be a compressed public key" }
+        return Bech32m.encode(HRP, chainCode.toByteArray() + publicKey.toByteArray())
+    }
 
-    public fun decode(value: String): Pair<ByteVector32, ByteVector32>? {
+    /** Returns `(chaincode, P)`, or null for anything but a 65-byte `cx1` whose `P` is a valid compressed key. */
+    public fun decode(value: String): Pair<ByteVector32, ByteVector>? {
         val (hrp, data) = Bech32m.decode(value) ?: return null
-        if (hrp != HRP || data.size != 64) return null
-        val pubkey = data.copyOfRange(0, 32).byteVector32()
-        if (!isValidXOnly(pubkey)) return null
-        return pubkey to data.copyOfRange(32, 64).byteVector32()
+        if (hrp != HRP || data.size != 65) return null
+        val publicKey = data.copyOfRange(32, 65)
+        if (publicKey[0] != 2.toByte() && publicKey[0] != 3.toByte()) return null
+        if (!Crypto.isPubKeyValid(publicKey)) return null
+        return data.copyOfRange(0, 32).byteVector32() to ByteVector(publicKey)
     }
 }
 
@@ -71,7 +75,8 @@ public data class Cs1(val amountMsat: Long, val signature: ByteVector) {
     public companion object {
         public fun decode(value: String): Cs1? {
             val (hrp, data) = Bech32m.decode(value) ?: return null
-            if (!hrp.startsWith("cs") || data.size != 65) return null
+            // r || s || recovery-id, and a recovery id is 0 to 3.
+            if (!hrp.startsWith("cs") || data.size != 65 || data[64].toInt() !in 0..3) return null
             val amount = Bolt11Amount.decode(hrp.removePrefix("cs")) ?: return null
             return Cs1(amount, ByteVector(data))
         }

@@ -16,10 +16,10 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
-import whitewallet.lnurlcash.CashBranch
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /**
  * When the answer doesn't come back, a request never leaves, or two phones share a phrase: the journal and reconciliation against the real
@@ -334,8 +334,8 @@ class RegtestRecoveryTest {
      */
     private suspend fun holdWalletKeys(wallet: Wallet, host: String, indexes: LongRange) {
         val pay = wallet.client.servicePayRequest(host)
-        val branch = CashBranch.fromSeed(MnemonicCode.toSeed(wallet.recoveryPhrase(), ""), host)
-        for (i in indexes) assertIs<MintInvoice.Ok>(MintInvoice.fetch(wallet, pay, 1_000_000, branch.notePubkey(NotePurpose.Wallet, i)))
+        val branch = LegacyBranch.fromSeed(MnemonicCode.toSeed(wallet.recoveryPhrase(), ""), host)
+        for (i in indexes) assertIs<MintInvoice.Ok>(MintInvoice.fetch(wallet, pay, 1_000_000, branch.notePubkey(LegacyPurpose.Wallet, i)))
     }
 
     /** A wallet restored from [phone]'s phrase, counting the mint's "already in use" answers and the lookups by key. */
@@ -372,7 +372,7 @@ class RegtestRecoveryTest {
             assertEquals(5, phone2.inUse, "each held key was refused once")
             assertEquals(5, rotated.toIndex, "the first key the mint accepts")
             assertTrue(phone2.lookups <= 30, "keys are looked up again once, not after every refusal (${phone2.lookups})")
-            assertEquals(6, phone2.store.currentIndex(phone2.store.currentAccountId()!!, HOST, NotePurpose.Wallet.value))
+            assertEquals(6, phone2.store.currentIndex(phone2.store.currentAccountId()!!, HOST, LegacyPurpose.Wallet.value))
         }
 
     @Test

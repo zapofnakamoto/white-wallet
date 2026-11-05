@@ -7,7 +7,7 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
-import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 sealed interface RotateResult {
     /** The note now lives at wallet key (purpose 0) [toIndex]. */
@@ -76,7 +76,7 @@ internal class NoteRotator(private val wallet: Wallet) {
                 note.host,
                 inputs = listOf(note),
                 type = OperationType.Rotate,
-                outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet)),
+                outputs = listOf(OutputSpec.Own(accountId, LegacyPurpose.Wallet)),
             )
         return when (result) {
             is MutationResult.Done -> {
@@ -85,7 +85,7 @@ internal class NoteRotator(private val wallet: Wallet) {
                 // Keep the developer key page current without a rescan.
                 wallet.recordProbe(KeyId(accountId, note.host, note.purpose!!, note.index!!), KeyProbe.Spent(now))
                 wallet.recordProbe(
-                    KeyId(accountId, note.host, NotePurpose.Wallet.value, out.index!!),
+                    KeyId(accountId, note.host, LegacyPurpose.Wallet.value, out.index!!),
                     KeyProbe.Outstanding(out.amountMsat, out.certificate != null, imported = false, now),
                 )
                 log.record(
@@ -118,7 +118,8 @@ internal class NoteRotator(private val wallet: Wallet) {
     }
 
     private suspend fun outstandingNote(accountId: String, host: String, purpose: Int, index: Long): Note? {
-        val q = wallet.branchIfSeeded(accountId, host)?.notePubkey(NotePurpose.entries.first { it.value == purpose }, index) ?: return null
+        val q =
+            wallet.branchIfSeeded(accountId, host)?.notePubkey(LegacyPurpose.entries.first { it.value == purpose }, index) ?: return null
         return wallet.store.note(q.toHex())?.takeIf { it.accountId == accountId && it.isRotatable() }
     }
 

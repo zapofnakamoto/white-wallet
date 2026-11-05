@@ -16,21 +16,21 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 /** The notes page: combine, split, and move notes to another mint. */
 class NotesTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: CashBranch) {
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: LegacyBranch) {
         var next = 0L
 
         suspend fun fund(vararg sats: Long) {
-            sats.forEach { mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, next++)), it * 1000) }
+            sats.forEach { mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, next++)), it * 1000) }
             wallet.refresh()
         }
 
@@ -56,7 +56,7 @@ class NotesTest {
                 wallet.payWaitMillis = 3_000
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
             }
         }
 
@@ -105,7 +105,7 @@ class NotesTest {
                 assertEquals(emptyList(), on(mint.host))
                 assertEquals(listOf(49_000L), on(target.host))
                 val arrived = outstanding().single()
-                assertEquals(NotePurpose.Wallet.value, arrived.purpose, "a wallet key of this account on the target")
+                assertEquals(LegacyPurpose.Wallet.value, arrived.purpose, "a wallet key of this account on the target")
                 assertEquals(arrived.id, target.mintedTo)
                 val moved = history().single { it.kind == ActivityKind.MovedMint }
                 assertEquals(ActivityStatus.Done, moved.status)

@@ -10,10 +10,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.lnurl.LnurlResponse
-import whitewallet.lnurlcash.AddressProof
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.RegistrationOutcome
+import whitewallet.lnurlcash.legacy.LegacyAddressProof
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.spendDomain
 
@@ -72,7 +72,7 @@ class RegtestMultiAddressTest {
             val branch = wallet.branch(account, host)
             val withdrawUrl = assertNotNull(store.mint(host)).withdrawUrl
             suspend fun register(name: String) {
-                val sig = AddressProof.sign(branch, AddressProof.Action.Register, spendDomain(host), name)
+                val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Register, spendDomain(host), name)
                 assertEquals(RegistrationOutcome.Registered, client.register(host, name, branch.cx1(), sig), "registering $name")
                 assertEquals(AddressStatus.Ours, wallet.checkAddress(name, host), "$name publishes this wallet's cx1")
             }
@@ -80,7 +80,7 @@ class RegtestMultiAddressTest {
             /** What the mint holds on purpose-2 key [index]: the note's value, or null if it holds no note there. */
             suspend fun noteAt(index: Long): Long? =
                 try {
-                    client.lookup(withdrawUrl, branch.notePubkey(NotePurpose.LightningAddress, index)).maxWithdrawableMsat
+                    client.lookup(withdrawUrl, branch.notePubkey(LegacyPurpose.LightningAddress, index)).maxWithdrawableMsat
                 } catch (_: NoteLookupError) {
                     null
                 }
@@ -115,12 +115,14 @@ class RegtestMultiAddressTest {
             assertEquals(14_995_000, wallet.balanceMsat.first())
             assertEquals(6, store.addressScanFrom(account, host))
             assertTrue(
-                wallet.recheckKey(host, NotePurpose.LightningAddress.value, 3).let { it !is KeyProbe.Outstanding && it !is KeyProbe.Spent },
+                wallet.recheckKey(host, LegacyPurpose.LightningAddress.value, 3).let {
+                    it !is KeyProbe.Outstanding && it !is KeyProbe.Spent
+                },
                 "the reserved key is not a note and does not count as used",
             )
 
             // A spent key is never reused either: spend #0, then a third name (counter 0) must land past everything.
-            assertIs<RotateResult.Rotated>(wallet.rotateKey(host, NotePurpose.LightningAddress.value, 0))
+            assertIs<RotateResult.Rotated>(wallet.rotateKey(host, LegacyPurpose.LightningAddress.value, 0))
             val carol = name()
             register(carol)
             pay(carol, 1_000)

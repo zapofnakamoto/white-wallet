@@ -20,12 +20,12 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.Profile
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 /**
@@ -36,12 +36,12 @@ class CollectTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
     private var clock = 1_800_000_000_000L
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: CashBranch) {
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: LegacyBranch) {
         var next = 0L
 
         /** Notes paid to the address on the mock mint, found by a refresh. */
         suspend fun fund(vararg sats: Long) {
-            sats.forEach { mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, next++)), it * 1000) }
+            sats.forEach { mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, next++)), it * 1000) }
             wallet.refresh()
         }
 
@@ -71,7 +71,7 @@ class CollectTest {
                 wallet.payWaitMillis = 3_000
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
             }
         }
 

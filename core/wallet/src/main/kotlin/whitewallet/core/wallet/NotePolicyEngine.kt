@@ -14,7 +14,7 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
-import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /** What one application of an account's note policies did. */
 data class PolicyRun(
@@ -208,7 +208,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
                                 }
                         is NoteStep.Rotate ->
                             notes[step.noteId]
-                                ?.takeIf { it.purpose == NotePurpose.LightningAddress.value }
+                                ?.takeIf { it.purpose == LegacyPurpose.LightningAddress.value }
                                 ?.let {
                                     wallet.working(WalletTask.Maintaining(MaintenanceStep.Renewing, strategy.id)) { rotate(accountId, it) }
                                 }
@@ -243,7 +243,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
 
     private suspend fun combine(accountId: String, host: String, batch: List<Note>): Outcome {
         val inputs = batch.sumOf { it.amountMsat }
-        val target = OutputSpec.Own(accountId, NotePurpose.Wallet)
+        val target = OutputSpec.Own(accountId, LegacyPurpose.Wallet)
         return when (
             val r = mutator.mutate(fromId = accountId, host, inputs = batch, type = OperationType.Merge, outputs = listOf(target))
         ) {
@@ -283,7 +283,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     }
 
     private suspend fun split(accountId: String, note: Note, firstMsat: Long, fee: Long): Outcome {
-        val outputs = listOf(OutputSpec.Own(accountId, NotePurpose.Wallet), OutputSpec.Own(accountId, NotePurpose.Change))
+        val outputs = listOf(OutputSpec.Own(accountId, LegacyPurpose.Wallet), OutputSpec.Own(accountId, LegacyPurpose.Change))
         return when (
             val r =
                 mutator.mutate(
@@ -338,10 +338,10 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         }
 
     private suspend fun rotateAddressNotes(accountId: String, host: String, run: PolicyRun): PolicyRun {
-        if (outstanding(accountId).none { it.host == host && it.purpose == NotePurpose.LightningAddress.value }) return run
+        if (outstanding(accountId).none { it.host == host && it.purpose == LegacyPurpose.LightningAddress.value }) return run
         val r =
             wallet.working(WalletTask.Maintaining(MaintenanceStep.Renewing)) {
-                rotator.rotateAll(accountId, host, NotePurpose.LightningAddress.value, automatic = true)
+                rotator.rotateAll(accountId, host, LegacyPurpose.LightningAddress.value, automatic = true)
             }
         return run.copy(rotated = run.rotated + r.rotated, failed = run.failed + r.failed, stoppedEarly = r.stoppedEarly)
     }
@@ -403,7 +403,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
             it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.purpose != null && it.index != null
         }
 
-    private fun Note.forStrategy() = StrategyNote(id, amountMsat, purpose == NotePurpose.LightningAddress.value, updatedAtMillis)
+    private fun Note.forStrategy() = StrategyNote(id, amountMsat, purpose == LegacyPurpose.LightningAddress.value, updatedAtMillis)
 
     private companion object {
         /** Spends per merge request; LUD-25 notes ~8-12 `ck1`s fit common URL limits. */

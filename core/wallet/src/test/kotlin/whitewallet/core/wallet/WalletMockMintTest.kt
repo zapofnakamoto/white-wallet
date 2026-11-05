@@ -18,12 +18,12 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
 import whitewallet.core.model.Profile
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.testkit.MockMint
 
@@ -64,9 +64,9 @@ class WalletMockMintTest {
             MockMint.start().use { mint ->
                 val store = InMemoryWalletStore()
                 val wallet = wallet(mint, store)
-                val branch = CashBranch.fromSeed(fr.acinq.bitcoin.MnemonicCode.toSeed(words, ""), mint.host)
+                val branch = LegacyBranch.fromSeed(fr.acinq.bitcoin.MnemonicCode.toSeed(words, ""), mint.host)
                 for ((index, amount) in listOf(0L to 1_000L, 1L to 2_000L, 5L to 4_000L)) {
-                    mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, index)), amount)
+                    mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, index)), amount)
                 }
                 val result = wallet.refresh()
                 assertEquals(3, result.newNotes)
@@ -128,7 +128,8 @@ class WalletMockMintTest {
                 val bearer = Spend.Bearer(ByteVector32(Hex.decode("44".repeat(32))))
                 mint.credit(bearer.h.toHex(), 3_000)
                 val known = assertNotNull(store.mintMap[mint.host])
-                val q = CashBranch.fromSeed(fr.acinq.bitcoin.MnemonicCode.toSeed(words, ""), mint.host).notePubkey(NotePurpose.Wallet, 0)
+                val q =
+                    LegacyBranch.fromSeed(fr.acinq.bitcoin.MnemonicCode.toSeed(words, ""), mint.host).notePubkey(LegacyPurpose.Wallet, 0)
                 store.putJournal(
                     JournalEntry(
                         "crashed",

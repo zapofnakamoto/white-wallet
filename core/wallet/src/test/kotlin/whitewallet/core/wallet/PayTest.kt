@@ -18,21 +18,21 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.lnurl.LnurlResponse
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 class PayTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: CashBranch) {
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: LegacyBranch) {
         var next = 0L
 
         /** Notes as address payments (keys 0, 1, ...), found by a refresh. */
         suspend fun fund(vararg sats: Long) {
-            sats.forEach { mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, next++)), it * 1000) }
+            sats.forEach { mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, next++)), it * 1000) }
             wallet.refresh()
         }
 
@@ -56,7 +56,7 @@ class PayTest {
                 wallet.payWaitMillis = 3_000
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
             }
         }
 
@@ -181,7 +181,7 @@ class PayTest {
             // The note sits at the payee's purpose-2 key the mint hinted at.
             val pay = assertIs<LnurlResponse.PayRequest>(LnurlcashClient().get("${mint.url}/.well-known/lnurlp/mint"))
             val cpub = pay.metadataEntries.single { it.first == "text/cpub" }.second
-            val payeeKey = CashBranch.fromCx1(cpub.substringBeforeLast(':'))!!.notePubkey(NotePurpose.LightningAddress, 0)
+            val payeeKey = LegacyBranch.fromCx1(cpub.substringBeforeLast(':'))!!.notePubkey(LegacyPurpose.LightningAddress, 0)
             val known = store.mintMap[mint.host]!!
             assertEquals(20_000, LnurlcashClient().lookup(known.withdrawUrl, payeeKey).maxWithdrawableMsat)
             assertTrue(store.notes("a").first().none { it.id == payeeKey.toHex() }, "never recorded as our note")

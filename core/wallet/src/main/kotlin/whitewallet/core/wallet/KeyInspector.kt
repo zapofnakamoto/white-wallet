@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /** A derived note key as the developer key page shows it. Only public data: never the spend. */
 data class DerivedKey(
@@ -70,8 +70,8 @@ sealed interface KeyStatus {
 data class KeyIndexes(val wallet: Long, val change: Long, val addressScanFrom: Long) {
     fun of(purpose: Int): Long =
         when (purpose) {
-            NotePurpose.Wallet.value -> wallet
-            NotePurpose.Change.value -> change
+            LegacyPurpose.Wallet.value -> wallet
+            LegacyPurpose.Change.value -> change
             else -> addressScanFrom
         }
 }
@@ -110,8 +110,8 @@ internal class KeyInspector(private val wallet: Wallet) {
 
     suspend fun indexes(accountId: String, host: String) =
         KeyIndexes(
-            wallet = wallet.store.currentIndex(accountId, host, NotePurpose.Wallet.value),
-            change = wallet.store.currentIndex(accountId, host, NotePurpose.Change.value),
+            wallet = wallet.store.currentIndex(accountId, host, LegacyPurpose.Wallet.value),
+            change = wallet.store.currentIndex(accountId, host, LegacyPurpose.Change.value),
             addressScanFrom = wallet.store.addressScanFrom(accountId, host),
         )
 
@@ -128,7 +128,7 @@ internal class KeyInspector(private val wallet: Wallet) {
         failures: Map<KeyId, KeyProbe.Failed>,
     ): List<DerivedKey> {
         val branch = wallet.branchIfSeeded(accountId, host) ?: return emptyList()
-        val p = NotePurpose.entries.first { it.value == purpose }
+        val p = LegacyPurpose.entries.first { it.value == purpose }
         val tabIndex = index(accountId, host, purpose)
         val count = (tabIndex + gap).coerceAtMost(MAX_LISTED)
         return (0 until count).map { index ->
@@ -228,7 +228,7 @@ internal class KeyInspector(private val wallet: Wallet) {
     /** Moves the tab's index just past [lastUsed] if it is not already past it. Never lowers it. */
     private suspend fun advanceIndex(accountId: String, host: String, purpose: Int, lastUsed: Long) {
         if (lastUsed + 1 <= index(accountId, host, purpose)) return
-        if (purpose == NotePurpose.LightningAddress.value) wallet.store.setAddressScanFrom(accountId, host, lastUsed + 1)
+        if (purpose == LegacyPurpose.LightningAddress.value) wallet.store.setAddressScanFrom(accountId, host, lastUsed + 1)
         else wallet.store.setIndex(accountId, host, purpose, lastUsed + 1)
     }
 

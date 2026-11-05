@@ -6,8 +6,8 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.isShared
-import whitewallet.lnurlcash.Certificates
-import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.legacy.LegacyCertificates
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
@@ -47,7 +47,7 @@ sealed interface KeyProbe {
  */
 internal class KeyProber(private val wallet: Wallet) {
     suspend fun probe(id: KeyId, mint: Mint): KeyProbe {
-        val purpose = NotePurpose.entries.first { it.value == id.purpose }
+        val purpose = LegacyPurpose.entries.first { it.value == id.purpose }
         val q = wallet.branch(id.accountId, id.host).notePubkey(purpose, id.index)
         val noteId = q.toHex()
         val now = wallet.now()
@@ -56,7 +56,7 @@ internal class KeyProber(private val wallet: Wallet) {
                 val info = wallet.client.lookup(mint.withdrawUrl, q)
                 val pinned = Pinning.check(wallet, mint, info.mintPubkey)
                 val certificate =
-                    info.certificate?.takeIf { Certificates.verify(it, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }
+                    info.certificate?.takeIf { LegacyCertificates.verify(it, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }
                 val existing = wallet.store.note(noteId)
                 if (
                     existing == null ||
@@ -120,7 +120,7 @@ internal class KeyProber(private val wallet: Wallet) {
 
     /** A used key must never be handed out again: keep the wallet's own counters past it. */
     private suspend fun ensureCounterPast(id: KeyId) {
-        if (id.purpose == NotePurpose.LightningAddress.value) return
+        if (id.purpose == LegacyPurpose.LightningAddress.value) return
         if (wallet.store.currentIndex(id.accountId, id.host, id.purpose) <= id.index) {
             wallet.store.setIndex(id.accountId, id.host, id.purpose, id.index + 1)
         }

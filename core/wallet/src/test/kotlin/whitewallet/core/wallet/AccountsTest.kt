@@ -14,10 +14,10 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 class AccountsTest {
@@ -53,7 +53,7 @@ class AccountsTest {
 
     // ---- Against the conformance mock mint
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branchA: CashBranch)
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branchA: LegacyBranch)
 
     private fun withMint(test: suspend Fixture.() -> Unit) =
         runBlocking<Unit> {
@@ -64,14 +64,14 @@ class AccountsTest {
                 store.addAccount("b", "Savings", Profile("bob", mint.host))
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(wordsA, ""), mint.host)).test()
+                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(wordsA, ""), mint.host)).test()
             }
         }
 
     /** Credits a purpose-0 note of account "a" at the mock mint and records it, as a claim would have. */
     private suspend fun Fixture.give(msat: Long) {
         val index = store.reserveIndex("a", mint.host, 0)
-        val q = branchA.notePubkey(NotePurpose.Wallet, index)
+        val q = branchA.notePubkey(LegacyPurpose.Wallet, index)
         mint.credit(Cp1.encode(q), msat)
         store.upsertNotes(listOf(note(q.toHex(), "a", msat, mint.host, 0, index)))
     }
@@ -106,7 +106,7 @@ class AccountsTest {
         assertEquals(16_000, balance("a"))
         assertEquals(5_000, balance("b"))
         assertTrue(
-            store.allNotes().any { it.accountId == "a" && it.purpose == NotePurpose.Change.value && it.state == NoteState.Outstanding }
+            store.allNotes().any { it.accountId == "a" && it.purpose == LegacyPurpose.Change.value && it.state == NoteState.Outstanding }
         )
     }
 

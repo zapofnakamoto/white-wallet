@@ -11,18 +11,18 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 /** Key indexes: guards, automatic discovery and the manual tools of the Derived keys page. */
 class KeyIndexTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: CashBranch)
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: LegacyBranch)
 
     private fun withMint(test: suspend Fixture.() -> Unit) =
         runBlocking<Unit> {
@@ -38,17 +38,17 @@ class KeyIndexTest {
                     )
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
             }
         }
 
-    private fun Fixture.credit(purpose: NotePurpose, index: Long, msat: Long) =
+    private fun Fixture.credit(purpose: LegacyPurpose, index: Long, msat: Long) =
         mint.credit(Cp1.encode(branch.notePubkey(purpose, index)), msat)
 
     @Test
     fun `rotate all still works after the wallet counter was forced back to 0`() = withMint {
         // Three address payments, rotated onto wallet keys #0..#2.
-        (0L..2L).forEach { credit(NotePurpose.LightningAddress, it, 1_000 * (it + 1)) }
+        (0L..2L).forEach { credit(LegacyPurpose.LightningAddress, it, 1_000 * (it + 1)) }
         wallet.refresh()
         assertEquals(3, wallet.rotateAllKeys(mint.host, 2).rotated)
         assertEquals(listOf(0L, 1L, 2L), store.allNotes().filter { it.purpose == 0 }.mapNotNull { it.index }.sorted())
@@ -74,7 +74,7 @@ class KeyIndexTest {
     @Test
     fun `keys used by another device are discovered when the mint says already in use`() = withMint {
         // The other device used wallet keys #0..#4: three outstanding, two spent (rotated onward to #3, #4).
-        (0L..2L).forEach { credit(NotePurpose.Wallet, it, 1_000) }
+        (0L..2L).forEach { credit(LegacyPurpose.Wallet, it, 1_000) }
         val (store2, wallet2) = otherDevice()
         store2.setIndex("a", mint.host, 0, 3)
         assertEquals(3, wallet2.recheckAllKeys(mint.host, 0).imported)
@@ -82,7 +82,7 @@ class KeyIndexTest {
         wallet2.rotateKey(mint.host, 0, 1)
 
         // This device only knows one incoming address note, and its counter says 0 (it has used #0 before).
-        credit(NotePurpose.LightningAddress, 0, 7_000)
+        credit(LegacyPurpose.LightningAddress, 0, 7_000)
         wallet.refresh()
         store.setIndex("a", mint.host, 0, 0)
 
@@ -94,7 +94,7 @@ class KeyIndexTest {
 
     @Test
     fun `a fresh store discovers the index before its first claim`() = withMint {
-        (0L..3L).forEach { credit(NotePurpose.Wallet, it, 500) }
+        (0L..3L).forEach { credit(LegacyPurpose.Wallet, it, 500) }
         val (store2, wallet2) = otherDevice()
         assertEquals(null, store2.currentIndexOrNull("a", mint.host, 0))
         val bearer = whitewallet.lnurlcash.Spend.Bearer(fr.acinq.bitcoin.ByteVector32(fr.acinq.secp256k1.Hex.decode("55".repeat(32))))
@@ -108,8 +108,8 @@ class KeyIndexTest {
 
     @Test
     fun `find index sets the frontier and marks it verified`() = withMint {
-        credit(NotePurpose.Wallet, 0, 1_000)
-        credit(NotePurpose.Wallet, 6, 1_000)
+        credit(LegacyPurpose.Wallet, 0, 1_000)
+        credit(LegacyPurpose.Wallet, 6, 1_000)
         store.setIndex("a", mint.host, 0, 0)
         val result = wallet.findKeyIndex(mint.host, 0)
         assertEquals(DiscoveryResult(next = 7, checked = 27, imported = 2, stoppedEarly = null), result)
@@ -121,8 +121,8 @@ class KeyIndexTest {
 
     @Test
     fun `set index refuses values below known used keys`() = withMint {
-        credit(NotePurpose.Wallet, 0, 1_000)
-        credit(NotePurpose.Wallet, 1, 1_000)
+        credit(LegacyPurpose.Wallet, 0, 1_000)
+        credit(LegacyPurpose.Wallet, 1, 1_000)
         wallet.findKeyIndex(mint.host, 0)
         assertEquals(SetIndexResult.BelowFloor(2), wallet.setKeyIndex(mint.host, 0, 1))
         assertEquals(2, wallet.keyIndexes(mint.host).wallet, "nothing changed")
@@ -134,8 +134,8 @@ class KeyIndexTest {
 
     @Test
     fun `recheck all syncs every listed key`() = withMint {
-        credit(NotePurpose.Wallet, 0, 1_000)
-        credit(NotePurpose.Wallet, 2, 3_000)
+        credit(LegacyPurpose.Wallet, 0, 1_000)
+        credit(LegacyPurpose.Wallet, 2, 3_000)
         store.setIndex("a", mint.host, 0, 3)
         val result = wallet.recheckAllKeys(mint.host, 0)
         assertEquals(3 + AddressScanner.GAP_LIMIT, result.checked)

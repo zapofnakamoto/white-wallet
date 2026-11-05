@@ -13,10 +13,10 @@ import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 /** A brand's own note strategy, run by the wallet (see [NoteStrategy]). Against the mock mint. */
@@ -44,7 +44,7 @@ class CustomStrategyTest {
                 mint.notes.flatMap { listOf(NoteStep.Split(it.id, it.amountMsat), NoteStep.Combine(listOf(it.id)), NoteStep.Rotate(it.id)) }
     }
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: CashBranch) {
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: LegacyBranch) {
         suspend fun outstanding() = store.allNotes().filter { it.state == NoteState.Outstanding }
     }
 
@@ -57,7 +57,7 @@ class CustomStrategyTest {
                 val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), strategies = strategies)
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
             }
         }
 
@@ -66,7 +66,7 @@ class CustomStrategyTest {
         withMint(Chunks(10_000)) {
             assertEquals("chunks", wallet.noteStrategy.first().id, "the brand's default")
             val fee = assertNotNull(store.mint(mint.host)).feeBaseMsat ?: 0
-            mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, 0)), 35_000 + 3 * fee)
+            mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 0)), 35_000 + 3 * fee)
             wallet.refresh()
             val amounts = outstanding().map { it.amountMsat }.sortedDescending()
             assertEquals(listOf(10_000L, 10_000, 10_000, 5_000), amounts)
@@ -76,8 +76,8 @@ class CustomStrategyTest {
     @Test
     fun `steps that can't apply are skipped and the run ends`() =
         withMint(Nonsense) {
-            mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, 0)), 5_000)
-            mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, 1)), 7_000)
+            mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 0)), 5_000)
+            mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 1)), 7_000)
             wallet.refresh()
             assertEquals(listOf(5_000L, 7_000), outstanding().map { it.amountMsat }.sorted())
             // Rotating an incoming note is allowed, so Nonsense rotates both; then nothing it proposes applies.
@@ -89,7 +89,7 @@ class CustomStrategyTest {
     fun `a user can still choose another offered strategy`() =
         withMint(Chunks(10_000)) {
             wallet.setNoteStrategy(ManualStrategy.ID)
-            mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, 0)), 35_000)
+            mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 0)), 35_000)
             wallet.refresh()
             assertEquals(listOf(35_000L), outstanding().map { it.amountMsat })
             assertEquals(listOf("manual", "chunks"), wallet.noteStrategies.map { it.id })

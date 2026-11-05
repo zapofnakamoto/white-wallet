@@ -15,11 +15,11 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.testkit.MockMint
 
@@ -41,8 +41,8 @@ class NoteToolsTest {
         runBlocking<Unit> {
             assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
             MockMint.start().use { mint ->
-                val branch = CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
-                mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, 0)), 21_000)
+                val branch = LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
+                mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 0)), 21_000)
                 test(mint)
             }
         }
@@ -86,7 +86,7 @@ class NoteToolsTest {
         assertEquals(21_000, rotated.amountMsat)
         val new = store.outstanding().single()
         assertNotEquals(old.id, new.id)
-        assertEquals(NotePurpose.Wallet.value, new.purpose)
+        assertEquals(LegacyPurpose.Wallet.value, new.purpose)
         assertEquals(21_000, wallet.balanceMsat.first())
     }
 

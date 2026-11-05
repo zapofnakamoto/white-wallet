@@ -13,11 +13,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import whitewallet.core.model.Mint
 import whitewallet.core.model.ReceivedState
-import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyCertificates
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.spendDomain
 
@@ -121,14 +121,17 @@ class ReceivedNotesTest {
                 assertEquals(9_000, assertIs<ClaimPreview.Offline>(preview).declaredMsat)
                 preview.certifiedMsat
             }
-            val signed = Certificates.sign(5_000, note.q, mintKey)
+            val signed = LegacyCertificates.sign(5_000, note.q, mintKey)
             assertEquals(5_000, certifiedMsat(signed.encode()), "what the certificate says, not what the link declares")
             assertNull(certifiedMsat(Cs1(6_000, signed.signature).encode()), "its amount changed")
             assertNull(
-                certifiedMsat(Certificates.sign(5_000, LockedNote.until(1_700_000_000).q, mintKey).encode()),
+                certifiedMsat(LegacyCertificates.sign(5_000, LockedNote.until(1_700_000_000).q, mintKey).encode()),
                 "signed for another note",
             )
-            assertNull(certifiedMsat(Certificates.sign(5_000, note.q, PrivateKey(ByteArray(32) { 4 })).encode()), "signed by another key")
+            assertNull(
+                certifiedMsat(LegacyCertificates.sign(5_000, note.q, PrivateKey(ByteArray(32) { 4 })).encode()),
+                "signed by another key",
+            )
             assertNull(certifiedMsat("cs1notacertificate"))
             assertNull(certifiedMsat(null))
         }

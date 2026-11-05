@@ -14,10 +14,10 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 class NotePolicyTest {
@@ -26,7 +26,7 @@ class NotePolicyTest {
 
     private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val policies: NotePolicies, val wallet: Wallet) {
         val branchA =
-            CashBranch.fromSeed(
+            LegacyBranch.fromSeed(
                 MnemonicCode.toSeed(
                     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "),
                     "",
@@ -34,7 +34,7 @@ class NotePolicyTest {
                 mint.host,
             )
         val branchB =
-            CashBranch.fromSeed(
+            LegacyBranch.fromSeed(
                 MnemonicCode.toSeed("legal winner thank year wave sausage worth useful legal winner thank yellow".split(" "), ""),
                 mint.host,
             )
@@ -55,8 +55,8 @@ class NotePolicyTest {
         }
 
     /** Address payments to account "a" at indexes 0.. (found by the next refresh). */
-    private fun Fixture.pay(vararg amounts: Long, branch: CashBranch = branchA) = amounts.forEachIndexed { i, msat ->
-        mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, i.toLong())), msat)
+    private fun Fixture.pay(vararg amounts: Long, branch: LegacyBranch = branchA) = amounts.forEachIndexed { i, msat ->
+        mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, i.toLong())), msat)
     }
 
     private suspend fun Fixture.outstanding(account: String = "a") =
@@ -91,7 +91,7 @@ class NotePolicyTest {
         assertEquals(2, assertNotNull(wallet.lastPolicyRun.first()).rotated)
 
         // A later payment is rotated by the next refresh too.
-        mint.credit(Cp1.encode(branchA.notePubkey(NotePurpose.LightningAddress, 2)), 4_000)
+        mint.credit(Cp1.encode(branchA.notePubkey(LegacyPurpose.LightningAddress, 2)), 4_000)
         wallet.refresh()
         assertTrue(outstanding().none { it.purpose == 2 })
         assertEquals(7_000, wallet.balanceMsat.first())
@@ -106,7 +106,7 @@ class NotePolicyTest {
         assertIs<NoteActionResult.Done>(wallet.splitNote(outstanding().single().id, 1_000))
         val kept = outstanding()
         assertEquals(listOf(0, 1), kept.mapNotNull { it.purpose }.sorted())
-        mint.credit(Cp1.encode(branchA.notePubkey(NotePurpose.LightningAddress, 1)), 4_000)
+        mint.credit(Cp1.encode(branchA.notePubkey(LegacyPurpose.LightningAddress, 1)), 4_000)
         wallet.refresh()
 
         wallet.setAutoRotate(true)
@@ -121,11 +121,11 @@ class NotePolicyTest {
     fun `keep only one note merges everything on the mint into one wallet note`() = withMint {
         // An existing wallet note plus three incoming payments.
         val index = store.reserveIndex("a", mint.host, 0)
-        mint.credit(Cp1.encode(branchA.notePubkey(NotePurpose.Wallet, index)), 5_000)
+        mint.credit(Cp1.encode(branchA.notePubkey(LegacyPurpose.Wallet, index)), 5_000)
         store.upsertNotes(
             listOf(
                 Note(
-                    branchA.notePubkey(NotePurpose.Wallet, index).toHex(),
+                    branchA.notePubkey(LegacyPurpose.Wallet, index).toHex(),
                     "a",
                     mint.host,
                     NoteKind.KeyPath,

@@ -2,7 +2,7 @@ package whitewallet.core.wallet
 
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.NoteKind
-import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /** [stoppedEarly] says why a scan ended before its gap; [refused] when the mint refused a lookup rather than not answering. */
 data class DiscoveryResult(val next: Long, val checked: Int, val imported: Int, val stoppedEarly: String?, val refused: Boolean = false)
@@ -71,14 +71,14 @@ internal class IndexDiscovery(private val wallet: Wallet) {
             index++
         }
         val next = maxOf(lastUsed + 1, current(accountId, host, purpose))
-        if (purpose == NotePurpose.LightningAddress.value) wallet.store.setAddressScanFrom(accountId, host, next)
+        if (purpose == LegacyPurpose.LightningAddress.value) wallet.store.setAddressScanFrom(accountId, host, next)
         else wallet.store.setIndex(accountId, host, purpose, next)
         wallet.markIndexVerified(accountId, host, purpose)
         return DiscoveryResult(next, checked, imported, null)
     }
 
     private suspend fun current(accountId: String, host: String, purpose: Int) =
-        if (purpose == NotePurpose.LightningAddress.value) wallet.store.addressScanFrom(accountId, host)
+        if (purpose == LegacyPurpose.LightningAddress.value) wallet.store.addressScanFrom(accountId, host)
         else wallet.store.currentIndex(accountId, host, purpose)
 }
 
@@ -90,7 +90,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
 internal class IndexGuard(private val wallet: Wallet) {
     private val discovery = IndexDiscovery(wallet)
 
-    suspend fun reserve(accountId: String, host: String, purpose: NotePurpose): ReservedOutput {
+    suspend fun reserve(accountId: String, host: String, purpose: LegacyPurpose): ReservedOutput {
         if (wallet.store.currentIndexOrNull(accountId, host, purpose.value) == null) discovery.discover(accountId, host, purpose.value)
         val branch = wallet.branch(accountId, host)
         repeat(MAX_SKIPS) {
@@ -108,7 +108,7 @@ internal class IndexGuard(private val wallet: Wallet) {
      * with the same phrase made there. Once per operation: a key held by an unpaid invoice looks unknown, so further refusals only mean
      * taking the next key.
      */
-    suspend fun recover(accountId: String, host: String, purpose: NotePurpose) = discovery.discover(accountId, host, purpose.value)
+    suspend fun recover(accountId: String, host: String, purpose: LegacyPurpose) = discovery.discover(accountId, host, purpose.value)
 
     companion object {
         private const val MAX_SKIPS = 10_000

@@ -14,8 +14,8 @@ import whitewallet.lnurl.Bolt11Invoice
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurl.string
-import whitewallet.lnurlcash.CashBranch
-import whitewallet.lnurlcash.NotePurpose
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
 
@@ -39,7 +39,7 @@ sealed interface PayDestination {
 }
 
 /** A payee's purpose-2 branch on the same mint, from their `text/cpub` (`cx1:<next index>`). */
-class InternalTransfer internal constructor(internal val branch: CashBranch, internal val nextIndex: Long)
+class InternalTransfer internal constructor(internal val branch: LegacyBranch, internal val nextIndex: Long)
 
 /** Why a payment can't be made (or wasn't). Every case maps to a full string in the app. */
 enum class PayProblem {
@@ -163,7 +163,7 @@ internal class Payer(private val wallet: Wallet) {
                 .firstOrNull { it.first == "text/cpub" }
                 ?.second
                 ?.let { cpub ->
-                    val branch = CashBranch.fromCx1(cpub.substringBeforeLast(':')) ?: return@let null
+                    val branch = LegacyBranch.fromCx1(cpub.substringBeforeLast(':')) ?: return@let null
                     InternalTransfer(branch, cpub.substringAfterLast(':', "0").toLongOrNull() ?: 0)
                 }
                 ?.takeIf { payeeHost != null && outstanding(accountId).any { it.host == payeeHost } }
@@ -240,7 +240,7 @@ internal class Payer(private val wallet: Wallet) {
         if (destination is PayDestination.PayLink && destination.transfer != null) {
             val transfer = destination.transfer
             val target = OutputSpec.External { attempt ->
-                transfer.branch.notePubkey(NotePurpose.LightningAddress, transfer.nextIndex + attempt)
+                transfer.branch.notePubkey(LegacyPurpose.LightningAddress, transfer.nextIndex + attempt)
             }
             return when (val made = exact(accountId, host, plan, amountMsat, target)) {
                 is MutationResult.Done -> {
@@ -287,7 +287,7 @@ internal class Payer(private val wallet: Wallet) {
             }
         if (invoice.isExpired(wallet.now())) return PayResult.Failed(PayProblem.Expired)
         val note =
-            when (val made = exact(accountId, host, plan, amountMsat, target = OutputSpec.Own(accountId, NotePurpose.Wallet))) {
+            when (val made = exact(accountId, host, plan, amountMsat, target = OutputSpec.Own(accountId, LegacyPurpose.Wallet))) {
                 is MutationResult.Done -> made.outputs.first()
                 // Nothing is paid; the merge or split itself is settled by reconciliation on a later refresh.
                 is MutationResult.Pending -> return PayResult.Failed(PayProblem.Unreachable)
@@ -340,7 +340,7 @@ internal class Payer(private val wallet: Wallet) {
             return mutator.mutate(fromId = accountId, host, inputs, type = OperationType.Rotate, outputs = listOf(target))
         }
         if (plan.merge) {
-            val mergeTarget = if (plan.split) OutputSpec.Own(accountId, NotePurpose.Wallet) else target
+            val mergeTarget = if (plan.split) OutputSpec.Own(accountId, LegacyPurpose.Wallet) else target
             val merged = mutator.mutate(fromId = accountId, host, inputs, type = OperationType.Merge, outputs = listOf(mergeTarget))
             if (!plan.split || merged !is MutationResult.Done) return merged
             inputs = merged.outputs
@@ -350,7 +350,7 @@ internal class Payer(private val wallet: Wallet) {
             host,
             inputs,
             type = OperationType.Split,
-            outputs = listOf(target, OutputSpec.Own(accountId, NotePurpose.Change)),
+            outputs = listOf(target, OutputSpec.Own(accountId, LegacyPurpose.Change)),
             splitMsat = amountMsat,
         )
     }

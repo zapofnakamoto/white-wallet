@@ -38,6 +38,6 @@ public object CanonicalSpend {
 
 /**
  * The domain a spend is bound to: the host's lowercase hostname, without scheme or port. Derivation (LUD-26) hashes the host exactly as
- * stored instead; see [CashBranch].
+ * stored instead; see [ServiceRoot].
  */
 public fun spendDomain(host: String): String = host.substringBefore(':').lowercase()

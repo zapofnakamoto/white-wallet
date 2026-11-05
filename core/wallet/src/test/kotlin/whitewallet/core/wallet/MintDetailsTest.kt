@@ -8,10 +8,10 @@ import kotlin.test.assertNotNull
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.Profile
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 class MintDetailsTest {
@@ -37,8 +37,8 @@ class MintDetailsTest {
 
     @Test
     fun `details show fees, limits, the pinned key and the account's money there`() = withWallet { mint, _, wallet ->
-        val branch = CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
-        mint.credit(Cp1.encode(branch.notePubkey(NotePurpose.LightningAddress, 0)), 21_000)
+        val branch = LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
+        mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 0)), 21_000)
         wallet.refresh()
         val details = wallet.mintDetails(mint.host)
         assertEquals(MintDetails.Reachability.Reachable, details.reachability)

@@ -37,10 +37,10 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.isShared
-import whitewallet.lnurlcash.CashBranch
-import whitewallet.lnurlcash.Certificates
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyCertificates
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /**
  * The wallet's entry point. It holds several accounts, each with its own recovery phrase; everything except account management acts on the
@@ -84,7 +84,7 @@ class Wallet(
 
     /** See the constructor; tests shorten it. */
     internal var payWaitMillis = payWaitMillis
-    private val branches = ConcurrentHashMap<Pair<String, String>, CashBranch>()
+    private val branches = ConcurrentHashMap<Pair<String, String>, LegacyBranch>()
     /** The last check of each address, by (account id, address). In memory; see [refresh] and [checkAddresses]. */
     private val addressStatuses = MutableStateFlow<Map<Pair<String, String>, AddressStatus>>(emptyMap())
 
@@ -438,7 +438,7 @@ class Wallet(
         return withContext(Dispatchers.Default) {
                 val seed = RecoveryPhrase.seed(words)
                 try {
-                    DefaultAddress.names(CashBranch.fromSeed(seed, h)).first()
+                    DefaultAddress.names(LegacyBranch.fromSeed(seed, h)).first()
                 } finally {
                     seed.fill(0)
                 }
@@ -631,7 +631,8 @@ class Wallet(
         val updated = held.mapNotNull { note ->
             val q = ByteVector32(note.id)
             val info = runCatching { client.lookup(mint.withdrawUrl, q) }.getOrNull() ?: return@mapNotNull null
-            val certificate = info.certificate?.takeIf { Certificates.verify(it, q, key) && it.amountMsat == info.maxWithdrawableMsat }
+            val certificate =
+                info.certificate?.takeIf { LegacyCertificates.verify(it, q, key) && it.amountMsat == info.maxWithdrawableMsat }
             note.copy(certificate = certificate?.encode(), updatedAtMillis = now())
         }
         if (updated.isNotEmpty()) store.upsertNotes(updated)
@@ -948,7 +949,7 @@ class Wallet(
         val id = activeId()
         val floor = discovery.highestKnownUsed(id, host, purpose) + 1
         if (index < floor) return@withLock SetIndexResult.BelowFloor(floor)
-        if (purpose == NotePurpose.LightningAddress.value) store.setAddressScanFrom(id, host, index)
+        if (purpose == LegacyPurpose.LightningAddress.value) store.setAddressScanFrom(id, host, index)
         else store.setIndex(id, host, purpose, index)
         SetIndexResult.Applied(index)
     }
@@ -995,7 +996,7 @@ class Wallet(
     suspend fun rotateAllKeys(host: String, purpose: Int): RotateAllResult = lock.withLock { rotator.rotateAll(activeId(), host, purpose) }
 
     /** The wallet key (purpose 0) index the next rotate would use; a preview, not a reservation. */
-    suspend fun nextWalletIndex(host: String): Long = store.currentIndex(activeId(), host, NotePurpose.Wallet.value)
+    suspend fun nextWalletIndex(host: String): Long = store.currentIndex(activeId(), host, LegacyPurpose.Wallet.value)
 
     /** Saves a lookup's answer; a lookup without one is only remembered for this session. */
     internal suspend fun recordProbe(id: KeyId, probe: KeyProbe) {
@@ -1048,21 +1049,21 @@ class Wallet(
      * The account's branch on [host], kept for the life of the process. The seed it comes from is not: it can derive the keys of every
      * mint, so it is made again for each new branch and zeroed straight after.
      */
-    internal suspend fun branch(accountId: String, host: String): CashBranch {
+    internal suspend fun branch(accountId: String, host: String): LegacyBranch {
         branches[accountId to host]?.let {
             return it
         }
         val words = checkNotNull(seeds.load(accountId)) { "account has no seed" }
         val seed = RecoveryPhrase.seed(words)
         return try {
-            branches.getOrPut(accountId to host) { CashBranch.fromSeed(seed, host) }
+            branches.getOrPut(accountId to host) { LegacyBranch.fromSeed(seed, host) }
         } finally {
             seed.fill(0)
         }
     }
 
     /** The branch, or null if the account has no seed (so nothing can be ours). */
-    internal suspend fun branchIfSeeded(accountId: String?, host: String): CashBranch? =
+    internal suspend fun branchIfSeeded(accountId: String?, host: String): LegacyBranch? =
         if (accountId == null || (branches[accountId to host] == null && seeds.load(accountId) == null)) null else branch(accountId, host)
 
     internal fun setAddressStatus(accountId: String, address: String, status: AddressStatus?) = addressStatuses.update {

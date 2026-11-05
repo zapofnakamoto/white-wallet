@@ -28,10 +28,10 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
-import whitewallet.lnurlcash.AddressProof
-import whitewallet.lnurlcash.CashBranch
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyAddressProof
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 class OnboardingTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
@@ -83,7 +83,7 @@ class OnboardingTest {
                     val name = path.removePrefix("/p/")
                     val cx1 = registered[name] ?: return MockResponse(code = 404, body = """{"status":"ERROR","reason":"Unknown user."}""")
                     if (!unregisterEnabled) return error("Not found")
-                    if (!validProof(cx1, name, request.url.queryParameter("sig")!!, AddressProof.Action.Unregister))
+                    if (!validProof(cx1, name, request.url.queryParameter("sig")!!, LegacyAddressProof.Action.Unregister))
                         return error("Invalid ownership signature.")
                     registered.remove(name)
                     MockResponse(body = """{"status":"OK"}""")
@@ -96,10 +96,10 @@ class OnboardingTest {
             cx1: String,
             name: String,
             sig: String,
-            action: AddressProof.Action = AddressProof.Action.Register,
+            action: LegacyAddressProof.Action = LegacyAddressProof.Action.Register,
         ): Boolean {
-            val pk0 = CashBranch.fromCx1(cx1)!!.notePubkey(NotePurpose.Wallet, 0)
-            val digest = Crypto.sha256(AddressProof.message(action, "localhost", name).encodeToByteArray()).byteVector32()
+            val pk0 = LegacyBranch.fromCx1(cx1)!!.notePubkey(LegacyPurpose.Wallet, 0)
+            val digest = Crypto.sha256(LegacyAddressProof.message(action, "localhost", name).encodeToByteArray()).byteVector32()
             return Crypto.verifySignatureSchnorr(digest, ByteVector64(Hex.decode(sig)), XonlyPublicKey(pk0))
         }
 
@@ -143,7 +143,7 @@ class OnboardingTest {
 
     @Test
     fun `a name someone else holds is reported as taken with suggestions, without registering anything`() = withMint { mint, host ->
-        mint.registered["alice"] = CashBranch.fromSeed(ByteArray(32) { 7 }, host).cx1()
+        mint.registered["alice"] = LegacyBranch.fromSeed(ByteArray(32) { 7 }, host).cx1()
         val store = InMemoryWalletStore()
         val seeds = InMemorySeedStore()
         val result = assertIs<OnboardResult.UsernameTaken>(wallet(store, seeds).onboard("alice", host))
@@ -155,7 +155,7 @@ class OnboardingTest {
 
     @Test
     fun `a name this wallet already holds is recognised without registering again`() = withMint { mint, host ->
-        mint.registered["alice"] = CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), host).cx1()
+        mint.registered["alice"] = LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), host).cx1()
         val result = assertIs<OnboardResult.Ready>(existing(words).onboard("alice", host))
         assertTrue(result.confirmed)
         assertEquals(0, mint.posts)
@@ -185,8 +185,8 @@ class OnboardingTest {
     @Test
     fun `address checks tell free, taken and ours apart`() = withMint { mint, host ->
         val wallet = existing(words)
-        mint.registered["bob"] = CashBranch.fromSeed(ByteArray(32) { 9 }, host).cx1()
-        mint.registered["carol"] = CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), host).cx1()
+        mint.registered["bob"] = LegacyBranch.fromSeed(ByteArray(32) { 9 }, host).cx1()
+        mint.registered["carol"] = LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), host).cx1()
         assertEquals(AddressStatus.Available, wallet.checkAddress("alice", host))
         assertEquals(AddressStatus.Taken, wallet.checkAddress("bob", host))
         assertEquals(AddressStatus.Unconfirmed, wallet.checkAddress("mint", host), "reserved names publish no cx1")
@@ -400,7 +400,7 @@ class OnboardingTest {
     fun `a taken name or the same mint moves nothing`() = withTwoMints { _, homeHost, other, otherHost ->
         val wallet = wallet()
         assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
-        other.registered["alice"] = CashBranch.fromSeed(ByteArray(32) { 7 }, otherHost).cx1()
+        other.registered["alice"] = LegacyBranch.fromSeed(ByteArray(32) { 7 }, otherHost).cx1()
         assertIs<OnboardResult.UsernameTaken>(wallet.changeHome(otherHost, "alice"))
         assertIs<OnboardResult.MintInvalid>(wallet.changeHome(homeHost, "alice"))
         assertEquals(homeHost, wallet.homeHost.first())
@@ -444,7 +444,7 @@ class OnboardingTest {
     fun `a name someone else holds is not added`() = withMint { mint, host ->
         val wallet = wallet()
         assertIs<OnboardResult.Ready>(wallet.onboard("alice", host))
-        mint.registered["bob"] = CashBranch.fromSeed(ByteArray(32) { 7 }, host).cx1()
+        mint.registered["bob"] = LegacyBranch.fromSeed(ByteArray(32) { 7 }, host).cx1()
         assertIs<OnboardResult.UsernameTaken>(wallet.addAddress("bob", limit = 5))
         assertEquals(1, wallet.addresses.first().size)
     }
@@ -456,7 +456,7 @@ class OnboardingTest {
         assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 3))
         assertIs<OnboardResult.Ready>(wallet.addAddress("carol", limit = 3))
         mint.registered.remove("bob") // gone at the mint
-        mint.registered["carol"] = CashBranch.fromSeed(ByteArray(32) { 7 }, host).cx1() // now someone else's
+        mint.registered["carol"] = LegacyBranch.fromSeed(ByteArray(32) { 7 }, host).cx1() // now someone else's
         wallet.checkAddresses()
         assertEquals(
             listOf(AddressStatus.Ours, AddressStatus.Available, AddressStatus.Taken),

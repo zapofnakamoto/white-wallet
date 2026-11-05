@@ -15,11 +15,11 @@ import okhttp3.Interceptor
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
-import whitewallet.lnurlcash.CashBranch
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyBranch
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.Requests
@@ -35,7 +35,7 @@ abstract class RestoreBoundaryTest {
     protected abstract val host: String
 
     /** Puts a note of [sats] on key [index] of [purpose] of [words]' branch; returns what the note is worth (a mint may take a fee). */
-    protected abstract suspend fun credit(words: List<String>, purpose: NotePurpose, index: Long, sats: Long): Long
+    protected abstract suspend fun credit(words: List<String>, purpose: LegacyPurpose, index: Long, sats: Long): Long
 
     /** A client to [host]; [intercept], if given, sees every request. */
     protected abstract fun client(intercept: Interceptor? = null): LnurlcashClient
@@ -57,26 +57,26 @@ abstract class RestoreBoundaryTest {
     fun `a note on the last key the gap limit reaches is found`() =
         runBlocking<Unit> {
             val words = phrase()
-            val msat = credit(words, NotePurpose.Wallet, gap - 1, SATS)
+            val msat = credit(words, LegacyPurpose.Wallet, gap - 1, SATS)
             val phone = Fresh()
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(1, restored.notes)
             assertEquals(msat, restored.balanceMsat)
-            assertEquals(gap, phone.index(restored.accountId, NotePurpose.Wallet))
+            assertEquals(gap, phone.index(restored.accountId, LegacyPurpose.Wallet))
         }
 
     @Test
     fun `a note one key past the gap limit is missed, and a deeper look finds it`() =
         runBlocking<Unit> {
             val words = phrase()
-            val msat = credit(words, NotePurpose.Wallet, gap, SATS)
+            val msat = credit(words, LegacyPurpose.Wallet, gap, SATS)
             val phone = Fresh()
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(0, restored.notes)
-            assertEquals(0, phone.index(restored.accountId, NotePurpose.Wallet))
+            assertEquals(0, phone.index(restored.accountId, LegacyPurpose.Wallet))
 
             // The money is not lost: a lookup one key further reaches it.
-            val found = phone.wallet.findKeyIndex(host, NotePurpose.Wallet.value, gap = AddressScanner.GAP_LIMIT + 1)
+            val found = phone.wallet.findKeyIndex(host, LegacyPurpose.Wallet.value, gap = AddressScanner.GAP_LIMIT + 1)
             assertEquals(gap + 1, found.next)
             assertEquals(1, found.imported)
             assertEquals(msat, phone.wallet.balanceMsat.first())
@@ -86,58 +86,58 @@ abstract class RestoreBoundaryTest {
     fun `notes with one key less than the gap limit between them are both found`() =
         runBlocking<Unit> {
             val words = phrase()
-            val msat = credit(words, NotePurpose.Wallet, 0, SATS) + credit(words, NotePurpose.Wallet, gap, SATS)
+            val msat = credit(words, LegacyPurpose.Wallet, 0, SATS) + credit(words, LegacyPurpose.Wallet, gap, SATS)
             val phone = Fresh()
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(2, restored.notes)
             assertEquals(msat, restored.balanceMsat)
-            assertEquals(gap + 1, phone.index(restored.accountId, NotePurpose.Wallet))
+            assertEquals(gap + 1, phone.index(restored.accountId, LegacyPurpose.Wallet))
         }
 
     @Test
     fun `notes with the gap limit between them stop the restore after the first`() =
         runBlocking<Unit> {
             val words = phrase()
-            val msat = credit(words, NotePurpose.Wallet, 0, SATS)
-            credit(words, NotePurpose.Wallet, gap + 1, SATS)
+            val msat = credit(words, LegacyPurpose.Wallet, 0, SATS)
+            credit(words, LegacyPurpose.Wallet, gap + 1, SATS)
             val phone = Fresh()
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(1, restored.notes)
             assertEquals(msat, restored.balanceMsat)
-            assertEquals(1, phone.index(restored.accountId, NotePurpose.Wallet))
+            assertEquals(1, phone.index(restored.accountId, LegacyPurpose.Wallet))
         }
 
     @Test
     fun `each note found starts the gap over, so a chain of them is found`() =
         runBlocking<Unit> {
             val words = phrase()
-            val msat = listOf(0L, gap, 2 * gap).sumOf { credit(words, NotePurpose.Wallet, it, SATS) }
+            val msat = listOf(0L, gap, 2 * gap).sumOf { credit(words, LegacyPurpose.Wallet, it, SATS) }
             val phone = Fresh()
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(3, restored.notes)
             assertEquals(msat, restored.balanceMsat)
-            assertEquals(2 * gap + 1, phone.index(restored.accountId, NotePurpose.Wallet))
+            assertEquals(2 * gap + 1, phone.index(restored.accountId, LegacyPurpose.Wallet))
         }
 
     @Test
     fun `a spent key counts as used, so the keys after it are looked up too`() =
         runBlocking<Unit> {
             val words = phrase()
-            credit(words, NotePurpose.Wallet, 0, SATS)
-            spend(words, NotePurpose.Wallet, 0)
-            val msat = credit(words, NotePurpose.Wallet, gap, SATS)
+            credit(words, LegacyPurpose.Wallet, 0, SATS)
+            spend(words, LegacyPurpose.Wallet, 0)
+            val msat = credit(words, LegacyPurpose.Wallet, gap, SATS)
             val phone = Fresh()
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(1, restored.notes)
             assertEquals(msat, restored.balanceMsat)
-            assertEquals(gap + 1, phone.index(restored.accountId, NotePurpose.Wallet))
+            assertEquals(gap + 1, phone.index(restored.accountId, LegacyPurpose.Wallet))
         }
 
     @Test
     fun `each purpose counts its own gap`() =
         runBlocking<Unit> {
             val words = phrase()
-            val msat = credit(words, NotePurpose.Change, gap - 1, SATS) + credit(words, NotePurpose.LightningAddress, gap - 1, SATS)
+            val msat = credit(words, LegacyPurpose.Change, gap - 1, SATS) + credit(words, LegacyPurpose.LightningAddress, gap - 1, SATS)
             val phone = Fresh()
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(2, restored.notes)
@@ -149,9 +149,9 @@ abstract class RestoreBoundaryTest {
     fun `a connection lost in the middle of the lookups leaves nothing behind`() =
         runBlocking<Unit> {
             val words = phrase()
-            credit(words, NotePurpose.Wallet, 0, SATS)
-            credit(words, NotePurpose.Wallet, 1, SATS)
-            val dropped = Cp1.encode(branch(words).notePubkey(NotePurpose.Wallet, 3))
+            credit(words, LegacyPurpose.Wallet, 0, SATS)
+            credit(words, LegacyPurpose.Wallet, 1, SATS)
+            val dropped = Cp1.encode(branch(words).notePubkey(LegacyPurpose.Wallet, 3))
             val phone = Fresh { chain ->
                 if (chain.request().url.queryParameter("p") == dropped) throw IOException("connection dropped")
                 chain.proceed(chain.request())
@@ -170,25 +170,25 @@ abstract class RestoreBoundaryTest {
 
         suspend fun restore(words: List<String>) = wallet.restore(words.joinToString(" "), host, "Restored")
 
-        suspend fun index(accountId: String, purpose: NotePurpose): Long =
-            if (purpose == NotePurpose.LightningAddress) store.addressScanFrom(accountId, host)
+        suspend fun index(accountId: String, purpose: LegacyPurpose): Long =
+            if (purpose == LegacyPurpose.LightningAddress) store.addressScanFrom(accountId, host)
             else store.currentIndex(accountId, host, purpose.value)
 
         /** The wallet, change and address indexes. */
-        suspend fun indexes(accountId: String) = NotePurpose.entries.map { index(accountId, it) }
+        suspend fun indexes(accountId: String) = LegacyPurpose.entries.map { index(accountId, it) }
     }
 
     /** Spends the note on that key at the mint, by rotating it to a key of another phrase. */
-    private suspend fun spend(words: List<String>, purpose: NotePurpose, index: Long) {
+    private suspend fun spend(words: List<String>, purpose: LegacyPurpose, index: Long) {
         val client = client()
         val branch = branch(words)
         val info = client.lookup(client.servicePayRequest(host).withdrawUrl, branch.notePubkey(purpose, index))
         val spend = branch.spend(purpose, index, spendDomain(host))
-        val elsewhere = branch(phrase()).notePubkey(NotePurpose.Wallet, 0)
+        val elsewhere = branch(phrase()).notePubkey(LegacyPurpose.Wallet, 0)
         assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, elsewhere)))
     }
 
-    protected fun branch(words: List<String>): CashBranch = CashBranch.fromSeed(MnemonicCode.toSeed(words, ""), host)
+    protected fun branch(words: List<String>): LegacyBranch = LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), host)
 
     private fun phrase(): List<String> = MnemonicCode.toMnemonics(ByteArray(16).also(random::nextBytes))
 
@@ -212,7 +212,7 @@ class MockMintRestoreBoundaryTest : RestoreBoundaryTest() {
 
     @AfterEach fun stop() = mint?.close() ?: Unit
 
-    override suspend fun credit(words: List<String>, purpose: NotePurpose, index: Long, sats: Long): Long {
+    override suspend fun credit(words: List<String>, purpose: LegacyPurpose, index: Long, sats: Long): Long {
         mint!!.credit(Cp1.encode(branch(words).notePubkey(purpose, index)), sats * 1000)
         return sats * 1000
     }

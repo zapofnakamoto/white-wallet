@@ -4,8 +4,8 @@ import kotlin.test.assertIs
 import kotlinx.coroutines.delay
 import okhttp3.Interceptor
 import org.junit.jupiter.api.BeforeEach
-import whitewallet.lnurlcash.NotePurpose
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /** [RestoreBoundaryTest] against the real reference mint: notes are minted to the chosen keys by paying the mint's invoices for them. */
 class RegtestRestoreBoundaryTest : RestoreBoundaryTest() {
@@ -14,7 +14,7 @@ class RegtestRestoreBoundaryTest : RestoreBoundaryTest() {
     override val host = Regtest.HOST
 
     /** Asks the mint for an invoice minting to the key (LUD-25 minting), pays it from user-lnd, and waits until the note is there. */
-    override suspend fun credit(words: List<String>, purpose: NotePurpose, index: Long, sats: Long): Long {
+    override suspend fun credit(words: List<String>, purpose: LegacyPurpose, index: Long, sats: Long): Long {
         val client = client()
         val pay = client.servicePayRequest(host)
         val key = branch(words).notePubkey(purpose, index)

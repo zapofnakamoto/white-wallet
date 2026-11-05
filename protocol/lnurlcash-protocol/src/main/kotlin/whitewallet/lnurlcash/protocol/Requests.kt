@@ -51,7 +51,7 @@ public object Requests {
         return Lnurl.withQuery("$base/p/$username", listOf("cx1" to cx1, "sig" to signatureHex))
     }
 
-    /** `DELETE` target that frees [username] again, proven by an unregister signature (see AddressProof). */
+    /** `DELETE` target that frees [username] again, proven by an unregister signature (see LegacyAddressProof). */
     public fun unregister(host: String, username: String, signatureHex: String): String {
         val base = servicePayUrl(host).substringBefore("/.well-known/")
         return Lnurl.withQuery("$base/p/$username", listOf("sig" to signatureHex))
