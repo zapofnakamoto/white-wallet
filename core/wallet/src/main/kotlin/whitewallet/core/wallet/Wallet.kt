@@ -37,10 +37,9 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.isShared
+import whitewallet.lnurlcash.ServiceRoot
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyCertificates
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /**
  * The wallet's entry point. It holds several accounts, each with its own recovery phrase; everything except account management acts on the
@@ -84,7 +83,7 @@ class Wallet(
 
     /** See the constructor; tests shorten it. */
     internal var payWaitMillis = payWaitMillis
-    private val branches = ConcurrentHashMap<Pair<String, String>, LegacyBranch>()
+    private val keySets = ConcurrentHashMap<Pair<String, String>, AccountKeys>()
     /** The last check of each address, by (account id, address). In memory; see [refresh] and [checkAddresses]. */
     private val addressStatuses = MutableStateFlow<Map<Pair<String, String>, AddressStatus>>(emptyMap())
 
@@ -98,7 +97,7 @@ class Wallet(
     private val inspector = KeyInspector(this)
     private val rotator = NoteRotator(this)
     private val discovery = IndexDiscovery(this)
-    private val indexVerifiedAt = MutableStateFlow<Map<Triple<String, String, Int>, Long>>(emptyMap())
+    private val indexVerifiedAt = MutableStateFlow<Map<Triple<String, String, KeySet>, Long>>(emptyMap())
     private val policyEngine = NotePolicyEngine(this)
     private val restorer = Restore(this)
     private val payer = Payer(this)
@@ -453,7 +452,7 @@ class Wallet(
     suspend fun recoverableUsername(host: String): String? {
         val accountId = activeId()
         val h = Onboarding.normalizeHost(host) ?: return null
-        val branch = branchIfSeeded(accountId, h) ?: return null
+        val branch = keysIfSeeded(accountId, h)?.legacy ?: return null
         return DefaultAddress.names(branch).firstOrNull { addressCheck.check(it, h, accountId) == AddressStatus.Ours }
     }
 
@@ -464,7 +463,7 @@ class Wallet(
             .addresses(accountId)
             .first()
             .filter { address ->
-                val branch = branchIfSeeded(accountId, address.host) ?: return@filter true
+                val branch = keysIfSeeded(accountId, address.host)?.legacy ?: return@filter true
                 address.username !in DefaultAddress.names(branch)
             }
             .map { it.address }
@@ -477,7 +476,7 @@ class Wallet(
      * The active account's watch-only key (`cx1`) on [host]: it lets someone see the account's notes there and pay it directly, but never
      * spend. Null if the account has no recovery phrase on this device.
      */
-    suspend fun watchOnlyKey(host: String): String? = branchIfSeeded(activeId(), host)?.cx1()
+    suspend fun watchOnlyKey(host: String): String? = keysIfSeeded(activeId(), host)?.legacy?.cx1()
 
     /** The most one note can be sent as, from the active account's notes. */
     suspend fun sendableNoteMsat(): Long = sender.availableMsat()
@@ -631,8 +630,7 @@ class Wallet(
         val updated = held.mapNotNull { note ->
             val q = ByteVector32(note.id)
             val info = runCatching { client.lookup(mint.withdrawUrl, q) }.getOrNull() ?: return@mapNotNull null
-            val certificate =
-                info.certificate?.takeIf { LegacyCertificates.verify(it, q, key) && it.amountMsat == info.maxWithdrawableMsat }
+            val certificate = info.certificate?.takeIf { certifies(it, mint.host, q, key) && it.amountMsat == info.maxWithdrawableMsat }
             note.copy(certificate = certificate?.encode(), updatedAtMillis = now())
         }
         if (updated.isNotEmpty()) store.upsertNotes(updated)
@@ -713,7 +711,7 @@ class Wallet(
         if (note.isConfirming()) return settle(note)
         val probe =
             try {
-                inspector.recheck(KeyId(note.accountId, note.host, note.purpose!!, note.index!!))
+                inspector.recheck(KeySet.of(note).key(note.accountId, note.host, note.index!!))
             } catch (e: MintKeyChangedException) {
                 return NoteCheck.KeyChanged(note.host)
             }
@@ -777,7 +775,7 @@ class Wallet(
         val note =
             store.note(id)?.takeIf { it.accountId == activeId() && it.isRecheckable() }
                 ?: return@withLock RotateResult.NotRotatable("no outstanding note $id")
-        rotator.rotate(note.accountId, note.host, note.purpose!!, note.index!!)
+        rotator.rotate(note.accountId, note.host, KeySet.of(note), note.index!!)
     }
 
     /** Checks whether sent note [id] has been spent (on top of the check every refresh does). */
@@ -911,7 +909,7 @@ class Wallet(
         policies.clear(id)
         _lastPolicyRun.update { it - id }
         collectBlocks.update { blocks -> blocks.filterKeys { it.first != id } }
-        branches.keys.removeAll { it.first == id }
+        keySets.keys.removeAll { it.first == id }
         addressStatuses.update { statuses -> statuses.filterKeys { it.first != id } }
         failedProbes.update { probes -> probes.filterKeys { it.accountId != id } }
         val remaining = store.accounts.first().map { it.account.id }
@@ -924,54 +922,57 @@ class Wallet(
 
     suspend fun keyHosts(): List<String> = inspector.hosts(activeId())
 
-    suspend fun keyIndexes(host: String): KeyIndexes = inspector.indexes(activeId(), host)
+    /** The active account's index of [set] on [host]: the next key it hands out, or where the next scan starts. */
+    suspend fun keyIndex(host: String, set: KeySet): Long = store.indexOf(activeId(), host, set)
 
-    /** Keys 0 until index + [gap] of [purpose] on [host]. */
-    suspend fun derivedKeys(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): List<DerivedKey> =
-        activeId().let { id -> inspector.keys(id, host, purpose, gap, store.keyChecks(id).first(), failedProbes.value) }
+    /** The active account's indexes on [host]: each counter or scan start that is set, by the keys it counts. */
+    suspend fun keyIndexes(host: String): Map<KeySet, Long> = store.indexesFlow(activeId(), host).first()
+
+    /** Keys 0 until index + [gap] of [set] on [host]. */
+    suspend fun derivedKeys(host: String, set: KeySet, gap: Int = AddressScanner.GAP_LIMIT): List<DerivedKey> =
+        activeId().let { id -> inspector.keys(id, host, set, gap, store.keyChecks(id).first(), failedProbes.value) }
 
     /** Looks up keys index until index + [gap], importing notes and moving the index past any used key found. */
-    suspend fun scanKeysAhead(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult = lock.withLock {
-        inspector.scanAhead(activeId(), host, purpose, gap)
+    suspend fun scanKeysAhead(host: String, set: KeySet, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult = lock.withLock {
+        inspector.scanAhead(activeId(), host, set, gap)
     }
 
-    suspend fun recheckKey(host: String, purpose: Int, index: Long): KeyProbe = lock.withLock {
-        inspector.recheck(KeyId(activeId(), host, purpose, index))
+    suspend fun recheckKey(host: String, set: KeySet, index: Long): KeyProbe = lock.withLock {
+        inspector.recheck(set.key(activeId(), host, index))
     }
 
-    /** Finds the right index for [purpose] on [host] (lookups past the highest used key, gap limit 20) and sets it. */
-    suspend fun findKeyIndex(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): DiscoveryResult = lock.withLock {
-        discovery.discover(activeId(), host, purpose, gap)
+    /** Finds the right index for [set] on [host] (lookups past the highest used key, gap limit 20) and sets it. */
+    suspend fun findKeyIndex(host: String, set: KeySet, gap: Int = AddressScanner.GAP_LIMIT): DiscoveryResult = lock.withLock {
+        discovery.discover(activeId(), host, set, gap)
     }
 
     /** Sets an index by hand; refused below the highest key the wallet knows is used (+1). */
-    suspend fun setKeyIndex(host: String, purpose: Int, index: Long): SetIndexResult = lock.withLock {
+    suspend fun setKeyIndex(host: String, set: KeySet, index: Long): SetIndexResult = lock.withLock {
         val id = activeId()
-        val floor = discovery.highestKnownUsed(id, host, purpose) + 1
+        val floor = discovery.highestKnownUsed(id, host, set) + 1
         if (index < floor) return@withLock SetIndexResult.BelowFloor(floor)
-        if (purpose == LegacyPurpose.LightningAddress.value) store.setAddressScanFrom(id, host, index)
-        else store.setIndex(id, host, purpose, index)
+        store.setIndexOf(id, host, set, index)
         SetIndexResult.Applied(index)
     }
 
-    /** Looks up keys 0 until index + [gap] of [purpose] on [host] and syncs the wallet with the answers. */
-    suspend fun recheckAllKeys(host: String, purpose: Int, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult = lock.withLock {
-        inspector.recheckAll(activeId(), host, purpose, gap)
+    /** Looks up keys 0 until index + [gap] of [set] on [host] and syncs the wallet with the answers. */
+    suspend fun recheckAllKeys(host: String, set: KeySet, gap: Int = AddressScanner.GAP_LIMIT): KeyScanResult = lock.withLock {
+        inspector.recheckAll(activeId(), host, set, gap)
     }
 
-    suspend fun keyIndexHealth(host: String, purpose: Int): IndexHealth {
+    suspend fun keyIndexHealth(host: String, set: KeySet): IndexHealth {
         val id = activeId()
-        val next = keyIndexes(host).of(purpose)
-        return IndexHealth(next, discovery.highestKnownUsed(id, host, purpose), indexVerifiedAt.value[Triple(id, host, purpose)])
+        val next = store.indexOf(id, host, set)
+        return IndexHealth(next, discovery.highestKnownUsed(id, host, set), indexVerifiedAt.value[Triple(id, host, set)])
     }
 
-    internal fun markIndexVerified(accountId: String, host: String, purpose: Int) = indexVerifiedAt.update {
-        it + (Triple(accountId, host, purpose) to now())
+    internal fun markIndexVerified(accountId: String, host: String, set: KeySet) = indexVerifiedAt.update {
+        it + (Triple(accountId, host, set) to now())
     }
 
     /** The active account's indexes on [host], updated on every change (from any screen or background refresh). */
-    fun keyIndexesFlow(host: String): Flow<KeyIndexes> =
-        ofActive(KeyIndexes(0, 0, 0)) { id -> store.indexesFlow(id, host) }.distinctUntilChanged()
+    fun keyIndexesFlow(host: String): Flow<Map<KeySet, Long>> =
+        ofActive(emptyMap()) { id -> store.indexesFlow(id, host) }.distinctUntilChanged()
 
     /**
      * Emits whenever anything the developer key page shows for [host] may have changed: the active account's notes, lookup results,
@@ -987,16 +988,18 @@ class Wallet(
             indexVerifiedAt.map {},
         )
 
-    /** Rotates the active account's note at ([host], [purpose], [index]) onto the next wallet key (purpose 0). */
-    suspend fun rotateKey(host: String, purpose: Int, index: Long): RotateResult = lock.withLock {
-        rotator.rotate(activeId(), host, purpose, index)
+    /** Rotates the active account's note at ([host], [set], [index]) onto the next wallet key. */
+    suspend fun rotateKey(host: String, set: KeySet, index: Long): RotateResult = lock.withLock {
+        rotator.rotate(activeId(), host, set, index)
     }
 
-    /** Rotates every outstanding note of [purpose] on [host] onto new wallet keys, one at a time. */
-    suspend fun rotateAllKeys(host: String, purpose: Int): RotateAllResult = lock.withLock { rotator.rotateAll(activeId(), host, purpose) }
+    /** Rotates every outstanding note of [set] on [host] onto new wallet keys, one at a time. */
+    suspend fun rotateAllKeys(host: String, set: KeySet): RotateAllResult = lock.withLock {
+        rotator.rotateAll(activeId(), host, { it == set })
+    }
 
-    /** The wallet key (purpose 0) index the next rotate would use; a preview, not a reservation. */
-    suspend fun nextWalletIndex(host: String): Long = store.currentIndex(activeId(), host, LegacyPurpose.Wallet.value)
+    /** The wallet key index the next rotate would use; a preview, not a reservation. */
+    suspend fun nextWalletIndex(host: String): Long = store.indexOf(activeId(), host, KeySet.Wallet)
 
     /** Saves a lookup's answer; a lookup without one is only remembered for this session. */
     internal suspend fun recordProbe(id: KeyId, probe: KeyProbe) {
@@ -1046,25 +1049,35 @@ class Wallet(
     internal suspend fun activeId(): String = checkNotNull(store.currentAccountId()) { "no active account" }
 
     /**
-     * The account's branch on [host], kept for the life of the process. The seed it comes from is not: it can derive the keys of every
-     * mint, so it is made again for each new branch and zeroed straight after.
+     * The account's keys on [host] ([AccountKeys]), kept for the life of the process. The seed they come from is not: it can derive the
+     * keys of every mint, so it is made again for each new mint and zeroed straight after. An account not saved yet is its own wallet's
+     * first.
      */
-    internal suspend fun branch(accountId: String, host: String): LegacyBranch {
-        branches[accountId to host]?.let {
+    internal suspend fun keys(accountId: String, host: String): AccountKeys {
+        keySets[accountId to host]?.let {
             return it
         }
-        val words = checkNotNull(seeds.load(accountId)) { "account has no seed" }
+        val account = store.account(accountId)
+        val words = checkNotNull(seeds.load(account?.walletId ?: accountId)) { "account has no seed" }
         val seed = RecoveryPhrase.seed(words)
         return try {
-            branches.getOrPut(accountId to host) { LegacyBranch.fromSeed(seed, host) }
+            keySets.getOrPut(accountId to host) {
+                AccountKeys(ServiceRoot.fromSeed(seed, host).account(account?.index ?: 0), LegacyBranch.fromSeed(seed, host))
+            }
         } finally {
             seed.fill(0)
         }
     }
 
-    /** The branch, or null if the account has no seed (so nothing can be ours). */
-    internal suspend fun branchIfSeeded(accountId: String?, host: String): LegacyBranch? =
-        if (accountId == null || (branches[accountId to host] == null && seeds.load(accountId) == null)) null else branch(accountId, host)
+    /** The keys, or null if the account has no seed (so nothing can be ours). */
+    internal suspend fun keysIfSeeded(accountId: String?, host: String): AccountKeys? {
+        if (accountId == null) return null
+        if (keySets[accountId to host] == null && seeds.load(store.account(accountId)?.walletId ?: accountId) == null) return null
+        return keys(accountId, host)
+    }
+
+    /** Legacy 2f17578 (tag: keys): the account's branch on [host]. */
+    internal suspend fun branch(accountId: String, host: String): LegacyBranch = keys(accountId, host).legacy
 
     internal fun setAddressStatus(accountId: String, address: String, status: AddressStatus?) = addressStatuses.update {
         if (status == null) it - (accountId to address) else it + ((accountId to address) to status)
@@ -1116,7 +1129,7 @@ class Wallet(
     internal suspend fun discardSeed(accountId: String, keepForRetry: Boolean = false) {
         if (keepForRetry) seeds.load(accountId)?.let { prepared = PreparedPhrase(it.toMutableList()) }
         seeds.clear(accountId)
-        branches.keys.removeAll { it.first == accountId }
+        keySets.keys.removeAll { it.first == accountId }
     }
 
     private companion object {

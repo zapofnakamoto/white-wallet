@@ -28,26 +28,26 @@ class RegtestKeysTest {
             val account = phone1.store.currentAccountId()!!
 
             // With the wallet counter forced back to 0, finding the index looks the keys up and lands past the used ones.
-            phone1.store.setIndex(account, HOST, 0, 0)
-            assertEquals(2, phone1.wallet.findKeyIndex(HOST, 0).next)
-            assertEquals(SetIndexResult.BelowFloor(2), phone1.wallet.setKeyIndex(HOST, 0, 1))
-            assertIs<SetIndexResult.Applied>(phone1.wallet.setKeyIndex(HOST, 0, 5))
+            phone1.store.setIndexOf(account, HOST, KeySet.Wallet, 0)
+            assertEquals(2, phone1.wallet.findKeyIndex(HOST, KeySet.Wallet).next)
+            assertEquals(SetIndexResult.BelowFloor(2), phone1.wallet.setKeyIndex(HOST, KeySet.Wallet, 1))
+            assertIs<SetIndexResult.Applied>(phone1.wallet.setKeyIndex(HOST, KeySet.Wallet, 5))
 
             // Phone 2 (the same phrase) renews wallet key 0's note onto its next key.
             val phone2 =
                 Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
             assertIs<RestoreResult.Restored>(phone2.restore(phone1.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
-            val renewed = assertIs<RotateResult.Rotated>(phone2.rotateKey(HOST, 0, 0))
+            val renewed = assertIs<RotateResult.Rotated>(phone2.rotateKey(HOST, KeySet.Wallet, 0))
             val before = phone1.balance()
 
             // Phone 1 sees key 0 spent, and a recheck of all wallet keys picks the note up at its new key: the same money.
-            assertIs<KeyProbe.Spent>(phone1.wallet.recheckKey(HOST, 0, 0))
+            assertIs<KeyProbe.Spent>(phone1.wallet.recheckKey(HOST, KeySet.Wallet, 0))
             assertEquals(before - 1_999_000, phone1.balance())
-            assertEquals(1, phone1.wallet.recheckAllKeys(HOST, 0).imported, "the note at wallet key ${renewed.toIndex}")
+            assertEquals(1, phone1.wallet.recheckAllKeys(HOST, KeySet.Wallet).imported, "the note at wallet key ${renewed.toIndex}")
             assertEquals(before, phone1.balance())
 
             // Rotating by hand from the key page shows as manual note maintenance.
-            assertIs<RotateResult.Rotated>(phone1.wallet.rotateKey(HOST, 2, 0))
+            assertIs<RotateResult.Rotated>(phone1.wallet.rotateKey(HOST, KeySet.LegacyAddress, 0))
             val row = phone1.wallet.activity.first().single { it.kind == ActivityKind.Rotated }
             assertEquals(false, row.automatic)
             assertEquals(before, phone1.balance())

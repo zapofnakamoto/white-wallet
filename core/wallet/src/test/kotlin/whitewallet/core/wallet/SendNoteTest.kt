@@ -2,7 +2,6 @@
 
 package whitewallet.core.wallet
 
-import fr.acinq.bitcoin.MnemonicCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -18,8 +17,6 @@ import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.testkit.MockMint
 
@@ -28,11 +25,11 @@ class SendNoteTest {
     private val alice = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
     private val bob = "legal winner thank year wave sausage worth useful legal winner thank yellow".split(" ")
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: LegacyBranch) {
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val keys: AccountKeys) {
         var next = 0L
 
         suspend fun fund(vararg sats: Long) {
-            sats.forEach { mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, next++)), it * 1000) }
+            sats.forEach { mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, next++)), it * 1000) }
             wallet.refresh()
         }
 
@@ -70,7 +67,7 @@ class SendNoteTest {
                     )
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(alice, ""), mint.host)).test()
+                Fixture(mint, store, wallet, testKeys(alice, mint.host)).test()
             }
         }
 

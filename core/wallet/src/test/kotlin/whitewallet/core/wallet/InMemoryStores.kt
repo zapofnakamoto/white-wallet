@@ -11,6 +11,7 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
+import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
@@ -18,6 +19,7 @@ import whitewallet.core.model.Profile
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.lnurlcash.spendDomain
 
 class InMemoryWalletStore : WalletStore {
     private val accountMap = MutableStateFlow<Map<String, Account>>(emptyMap())
@@ -134,6 +136,7 @@ class InMemoryWalletStore : WalletStore {
         val key = Triple(accountId, domain, counter)
         val next = keyCounters[key] ?: 0
         keyCounters[key] = next + 1
+        indexVersion.value++
         return next
     }
 
@@ -142,12 +145,14 @@ class InMemoryWalletStore : WalletStore {
 
     override suspend fun setKeyIndex(accountId: String, domain: String, counter: KeyCounter, next: Long) {
         keyCounters[Triple(accountId, domain, counter)] = next
+        indexVersion.value++
     }
 
     override suspend fun shareScanFrom(accountId: String, host: String, share: Long) = shareScans[Triple(accountId, host, share)] ?: 0
 
     override suspend fun setShareScanFrom(accountId: String, host: String, share: Long, index: Long) {
         shareScans[Triple(accountId, host, share)] = index
+        indexVersion.value++
     }
 
     override suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long {
@@ -165,8 +170,19 @@ class InMemoryWalletStore : WalletStore {
         indexVersion.value++
     }
 
-    override fun indexesFlow(accountId: String, host: String): Flow<KeyIndexes> = indexVersion.map {
-        KeyIndexes(counters[Triple(accountId, host, 0)] ?: 0, counters[Triple(accountId, host, 1)] ?: 0, scanFrom[accountId to host] ?: 0)
+    override fun indexesFlow(accountId: String, host: String): Flow<Map<KeySet, Long>> = indexVersion.map {
+        buildMap {
+            val domain = spendDomain(host)
+            keyCounters.forEach { (k, next) ->
+                if (k.first == accountId && k.second == domain)
+                    put(if (k.third == KeyCounter.Wallet) KeySet.Wallet else KeySet.Change, next)
+            }
+            shareScans.forEach { (k, next) -> if (k.first == accountId && k.second == host) put(KeySet.share(k.third), next) }
+            counters.forEach { (k, next) ->
+                if (k.first == accountId && k.second == host && k.third != 2) put(KeySet(KeyScheme.Legacy, k.third), next)
+            }
+            scanFrom[accountId to host]?.let { put(KeySet(KeyScheme.Legacy, 2), it) }
+        }
     }
 
     override suspend fun addressScanFrom(accountId: String, host: String) = scanFrom[accountId to host] ?: 0

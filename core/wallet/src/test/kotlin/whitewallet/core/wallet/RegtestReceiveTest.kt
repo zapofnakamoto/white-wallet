@@ -140,7 +140,7 @@ class RegtestReceiveTest {
             Regtest.pay(alice.address, 1000)
             assertEquals(0, alice.wallet.refresh().newNotes, "out of the refresh's reach")
 
-            val scan = alice.wallet.scanKeysAhead(HOST, 2, gap = 40)
+            val scan = alice.wallet.scanKeysAhead(HOST, KeySet.LegacyAddress, gap = 40)
             assertEquals(1, scan.imported)
             assertEquals(999_000, alice.balance())
 

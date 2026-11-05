@@ -12,8 +12,6 @@ import whitewallet.core.model.OutputRef
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
-import whitewallet.lnurlcash.legacy.LegacyCertificates
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteInfo
@@ -27,8 +25,8 @@ internal class ReservedOutput(val key: ByteVector32, val ref: OutputRef)
 
 /** Where an output goes. */
 internal sealed interface OutputSpec {
-    /** A key of one of this wallet's accounts; the key itself is reserved when the request is built. */
-    data class Own(val accountId: String, val purpose: LegacyPurpose) : OutputSpec
+    /** A key of one of this wallet's accounts, on its wallet or change chain; the key itself is reserved when the request is built. */
+    data class Own(val accountId: String, val set: KeySet) : OutputSpec
 
     /**
      * Someone else's key (an internal transfer, LUD-26): [keyAt] gives the key for each attempt, since on `already in use` the next index
@@ -79,8 +77,8 @@ internal class NoteMutator(private val wallet: Wallet) {
     ): MutationResult {
         val mint = wallet.store.mint(host) ?: return MutationResult.Unreachable("unknown host $host")
         val domain = spendDomain(host)
-        val branch = wallet.branch(fromId, host)
-        val spends = inputs.map { note -> branch.spend(LegacyPurpose.entries.first { it.value == note.purpose }, note.index!!, domain) }
+        val keys = wallet.keys(fromId, host)
+        val spends = inputs.map { note -> keys.spend(note, domain) }
         if (SimulatedFailure.take(SimulatedFailure.Kind.Unreachable)) return MutationResult.Unreachable("simulated: no answer")
         // Asked by the first note's key alone (LUD-25 "Checking a note without exposing it"): spends go out only with the mutation.
         val info = runCatching {
@@ -128,7 +126,7 @@ internal class NoteMutator(private val wallet: Wallet) {
             inputs = emptyList(),
             inputMsat = amountMsat,
             type = OperationType.Rotate,
-            outputs = listOf(OutputSpec.Own(accountId, LegacyPurpose.Wallet)),
+            outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
             splitMsat = null,
         )
 
@@ -149,7 +147,7 @@ internal class NoteMutator(private val wallet: Wallet) {
         while (true) {
             val reserved = outputs.map { spec ->
                 when (spec) {
-                    is OutputSpec.Own -> guard.reserve(spec.accountId, host, spec.purpose)
+                    is OutputSpec.Own -> guard.reserve(spec.accountId, host, spec.set)
                     is OutputSpec.External -> spec.keyAt(attempt).let { ReservedOutput(it, OutputRef.external(it.toHex())) }
                 }
             }
@@ -168,7 +166,7 @@ internal class NoteMutator(private val wallet: Wallet) {
                 )
             if (result is MutationResult.Refused && result.kind == RejectionKind.AlreadyInUse && attempt + 1 < IndexGuard.IN_USE_ATTEMPTS) {
                 if (attempt == 0)
-                    outputs.filterIsInstance<OutputSpec.Own>().distinct().forEach { guard.recover(it.accountId, host, it.purpose) }
+                    outputs.filterIsInstance<OutputSpec.Own>().distinct().forEach { guard.recover(it.accountId, host, it.set) }
                 attempt++
                 continue
             }
@@ -266,7 +264,7 @@ internal class NoteMutator(private val wallet: Wallet) {
                         is MutationOutcome.Unverifiable -> outcome.certificate to outcome.changeCertificate
                     }
                 val notes = outputs.mapIndexed { i, out ->
-                    val cert = (if (i == 0) c else c2)?.let(Cs1::decode)?.takeIf { LegacyCertificates.verify(it, out.key, info.mintPubkey) }
+                    val cert = (if (i == 0) c else c2)?.let(Cs1::decode)?.takeIf { certifies(it, host, out.key, info.mintPubkey) }
                     // Without a certificate, fall back to what the inputs imply (fees may make this approximate).
                     val amount = cert?.amountMsat ?: if (outputs.size == 1) inputMsat else 0L
                     Note(
@@ -280,6 +278,8 @@ internal class NoteMutator(private val wallet: Wallet) {
                         certificate = cert?.encode(),
                         state = NoteState.Outstanding,
                         updatedAtMillis = wallet.now(),
+                        scheme = out.ref.scheme,
+                        share = out.ref.share,
                     )
                 }
                 // Someone else's outputs are reported to the caller but never stored as this wallet's notes.
@@ -314,6 +314,8 @@ internal class NoteMutator(private val wallet: Wallet) {
                                         certificate = null,
                                         state = NoteState.Outstanding,
                                         updatedAtMillis = wallet.now(),
+                                        scheme = out.ref.scheme,
+                                        share = out.ref.share,
                                     )
                             },
                             entry.id,

@@ -9,7 +9,6 @@ import whitewallet.core.model.OperationType
 import whitewallet.lnurl.Bolt11
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurl.string
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.MintingPayRequest
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
@@ -103,7 +102,7 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
         }
         val mint = wallet.store.mint(host) ?: return InvoiceRequest.Unreachable
         repeat(IndexGuard.IN_USE_ATTEMPTS) { attempt ->
-            val reserved = guard.reserve(accountId, host, LegacyPurpose.Wallet)
+            val reserved = guard.reserve(accountId, host, KeySet.Wallet)
             when (val fetched = MintInvoice.fetch(wallet, pay, amountMsat, reserved.key)) {
                 is MintInvoice.Ok -> {
                     val id = UUID.randomUUID().toString()
@@ -127,7 +126,7 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
                     )
                     return InvoiceRequest.Ready(id, fetched.invoice, amountMsat, expected, fetched.expiresAtMillis)
                 }
-                MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, host, LegacyPurpose.Wallet)
+                MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, host, KeySet.Wallet)
                 MintInvoice.Unreachable -> return InvoiceRequest.Unreachable
                 MintInvoice.Refused,
                 MintInvoice.Mismatch -> return InvoiceRequest.Refused

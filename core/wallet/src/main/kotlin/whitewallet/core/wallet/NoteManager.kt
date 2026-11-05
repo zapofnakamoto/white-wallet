@@ -15,8 +15,6 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.lnurl.Bolt11
 import whitewallet.lnurlcash.RevealsNoteSecret
-import whitewallet.lnurlcash.legacy.LegacyCertificates
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.MintingPayRequest
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
@@ -126,7 +124,7 @@ internal class NoteManager(private val wallet: Wallet) {
                 host,
                 inputs = notes,
                 type = OperationType.Merge,
-                outputs = listOf(OutputSpec.Own(accountId, LegacyPurpose.Wallet)),
+                outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
             )
         val inputs = notes.sumOf { it.amountMsat }
         when (result) {
@@ -174,7 +172,7 @@ internal class NoteManager(private val wallet: Wallet) {
             }
         val limits = splitLimits(id) ?: return NoteActionResult.Failed(NoteProblem.InvalidAmount)
         if (amountMsat !in limits.minMsat..limits.maxMsat) return NoteActionResult.Failed(NoteProblem.InvalidAmount)
-        val outputs = listOf(OutputSpec.Own(accountId, LegacyPurpose.Wallet), OutputSpec.Own(accountId, LegacyPurpose.Change))
+        val outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet), OutputSpec.Own(accountId, KeySet.Change))
         val result =
             mutator.mutate(
                 fromId = accountId,
@@ -250,7 +248,7 @@ internal class NoteManager(private val wallet: Wallet) {
                         host = quote.fromHost,
                         inputs = notes,
                         type = OperationType.Merge,
-                        outputs = listOf(OutputSpec.Own(accountId, LegacyPurpose.Wallet)),
+                        outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
                     )
             ) {
                 is MutationResult.Done -> notes = merged.outputs
@@ -266,14 +264,14 @@ internal class NoteManager(private val wallet: Wallet) {
         var output: ReservedOutput? = null
         var invoice: String? = null
         for (attempt in 0 until IndexGuard.IN_USE_ATTEMPTS) {
-            val reserved = guard.reserve(accountId, quote.toHost, LegacyPurpose.Wallet)
+            val reserved = guard.reserve(accountId, quote.toHost, KeySet.Wallet)
             when (val fetched = MintInvoice.fetch(wallet, prepared.pay, amount, reserved.key)) {
                 is MintInvoice.Ok -> {
                     output = reserved
                     invoice = fetched.invoice
                     break
                 }
-                is MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, quote.toHost, LegacyPurpose.Wallet)
+                is MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, quote.toHost, KeySet.Wallet)
                 is MintInvoice.Unreachable -> return MintMoveResult.Failed(NoteProblem.Unreachable)
                 is MintInvoice.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)
                 is MintInvoice.Mismatch -> return MintMoveResult.Failed(NoteProblem.InvoiceMismatch)
@@ -443,7 +441,7 @@ internal class MintReconciler(private val wallet: Wallet) {
         val q = ByteVector32(output.q)
         try {
             val info = wallet.client.lookup(entry.withdrawUrl, q)
-            val cert = info.certificate?.takeIf { LegacyCertificates.verify(it, q, info.mintPubkey) }
+            val cert = info.certificate?.takeIf { certifies(it, entry.host, q, info.mintPubkey) }
             if (wallet.store.note(output.q) == null) {
                 wallet.store.upsertNotes(
                     listOf(
@@ -458,6 +456,8 @@ internal class MintReconciler(private val wallet: Wallet) {
                             certificate = cert?.encode(),
                             state = NoteState.Outstanding,
                             updatedAtMillis = wallet.now(),
+                            scheme = output.scheme,
+                            share = output.share,
                         )
                     )
                 )

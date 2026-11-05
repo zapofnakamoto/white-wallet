@@ -25,11 +25,11 @@ class RegtestIdleTest {
 
             delay(7_000) // longer than the server's keep-alive
 
-            val result = phone.wallet.rotateAllKeys(HOST, 2)
+            val result = phone.wallet.rotateAllKeys(HOST, KeySet.LegacyAddress)
             assertEquals(RotateAllResult(rotated = 2, failed = 0, pending = 0, totalMsat = 2_998_000, stoppedEarly = null), result)
             assertEquals(2_998_000, phone.balance())
 
             delay(7_000)
-            assertIs<RotateResult.Rotated>(phone.wallet.rotateKey(HOST, 0, 0), "a single rotate after another idle pause")
+            assertIs<RotateResult.Rotated>(phone.wallet.rotateKey(HOST, KeySet.Wallet, 0), "a single rotate after another idle pause")
         }
 }

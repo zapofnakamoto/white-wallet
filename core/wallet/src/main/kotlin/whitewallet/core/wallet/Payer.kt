@@ -283,7 +283,7 @@ internal class Payer(private val wallet: Wallet) {
             }
         if (invoice.isExpired(wallet.now())) return PayResult.Failed(PayProblem.Expired)
         val note =
-            when (val made = exact(accountId, host, plan, amountMsat, target = OutputSpec.Own(accountId, LegacyPurpose.Wallet))) {
+            when (val made = exact(accountId, host, plan, amountMsat, target = OutputSpec.Own(accountId, KeySet.Wallet))) {
                 is MutationResult.Done -> made.outputs.first()
                 // Nothing is paid; the merge or split itself is settled by reconciliation on a later refresh.
                 is MutationResult.Pending -> return PayResult.Failed(PayProblem.Unreachable)
@@ -336,7 +336,7 @@ internal class Payer(private val wallet: Wallet) {
             return mutator.mutate(fromId = accountId, host, inputs, type = OperationType.Rotate, outputs = listOf(target))
         }
         if (plan.merge) {
-            val mergeTarget = if (plan.split) OutputSpec.Own(accountId, LegacyPurpose.Wallet) else target
+            val mergeTarget = if (plan.split) OutputSpec.Own(accountId, KeySet.Wallet) else target
             val merged = mutator.mutate(fromId = accountId, host, inputs, type = OperationType.Merge, outputs = listOf(mergeTarget))
             if (!plan.split || merged !is MutationResult.Done) return merged
             inputs = merged.outputs
@@ -346,7 +346,7 @@ internal class Payer(private val wallet: Wallet) {
             host,
             inputs,
             type = OperationType.Split,
-            outputs = listOf(target, OutputSpec.Own(accountId, LegacyPurpose.Change)),
+            outputs = listOf(target, OutputSpec.Own(accountId, KeySet.Change)),
             splitMsat = amountMsat,
         )
     }

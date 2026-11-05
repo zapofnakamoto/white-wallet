@@ -44,7 +44,7 @@ internal class AddressCheck(private val wallet: Wallet) {
             response as? LnurlResponse.PayRequest
                 ?: return if (response is LnurlResponse.Error) AddressStatus.Available else AddressStatus.CheckFailed("unexpected response")
         val cpub = LegacyCpub.cx1(pay) ?: return AddressStatus.Unconfirmed
-        val ours = wallet.branchIfSeeded(accountId, h)?.cx1()
+        val ours = wallet.keysIfSeeded(accountId, h)?.legacy?.cx1()
         return if (ours != null && cpub.equals(ours, ignoreCase = true)) AddressStatus.Ours else AddressStatus.Taken
     }
 }

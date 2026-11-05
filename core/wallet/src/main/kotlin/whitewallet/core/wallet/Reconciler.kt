@@ -8,7 +8,6 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
-import whitewallet.lnurlcash.legacy.LegacyCertificates
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
@@ -45,7 +44,7 @@ internal class Reconciler(private val wallet: Wallet) {
                 val q = ByteVector32(output.q)
                 val info = lookup(entry.withdrawUrl, q) ?: continue
                 landed = true
-                val cert = info.certificate?.takeIf { LegacyCertificates.verify(it, q, info.mintPubkey) }
+                val cert = info.certificate?.takeIf { certifies(it, entry.host, q, info.mintPubkey) }
                 if (wallet.store.note(output.q) == null) {
                     wallet.store.upsertNotes(
                         listOf(
@@ -60,6 +59,8 @@ internal class Reconciler(private val wallet: Wallet) {
                                 certificate = cert?.encode(),
                                 state = NoteState.Outstanding,
                                 updatedAtMillis = wallet.now(),
+                                scheme = output.scheme,
+                                share = output.share,
                             )
                         )
                     )

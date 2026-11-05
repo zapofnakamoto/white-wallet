@@ -4,7 +4,6 @@ import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.lnurlcash.Cp1
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /** A derived note key as the developer key page shows it. Only public data: never the spend. */
 data class DerivedKey(
@@ -64,19 +63,6 @@ sealed interface KeyStatus {
 }
 
 /**
- * The local derivation indexes for one account and mint: the next unused index for purposes 0 (wallet) and 1 (change), and the index the
- * next Lightning address scan (purpose 2) starts from.
- */
-data class KeyIndexes(val wallet: Long, val change: Long, val addressScanFrom: Long) {
-    fun of(purpose: Int): Long =
-        when (purpose) {
-            LegacyPurpose.Wallet.value -> wallet
-            LegacyPurpose.Change.value -> change
-            else -> addressScanFrom
-        }
-}
-
-/**
  * One scan over keys [from] until [until] (exclusive; where it actually ended, since a scan runs on past every used key it finds);
  * [indexAfter] is the tab's index once it finished.
  */
@@ -108,32 +94,24 @@ internal class KeyInspector(private val wallet: Wallet) {
         return (listOfNotNull(profileHost) + noteHosts + wallet.store.counterHosts(accountId)).distinct()
     }
 
-    suspend fun indexes(accountId: String, host: String) =
-        KeyIndexes(
-            wallet = wallet.store.currentIndex(accountId, host, LegacyPurpose.Wallet.value),
-            change = wallet.store.currentIndex(accountId, host, LegacyPurpose.Change.value),
-            addressScanFrom = wallet.store.addressScanFrom(accountId, host),
-        )
+    /** The tab's one index: the wallet or change counter, or where the scan of a share or legacy purpose starts. */
+    suspend fun index(accountId: String, host: String, set: KeySet): Long = wallet.store.indexOf(accountId, host, set)
 
-    /** The tab's one index: the purpose 0/1 counter, or where the address scan (purpose 2) starts. */
-    suspend fun index(accountId: String, host: String, purpose: Int): Long = indexes(accountId, host).of(purpose)
-
-    /** Keys 0 until index + [gap] for one purpose (capped). */
+    /** Keys 0 until index + [gap] of one key set (capped). */
     suspend fun keys(
         accountId: String,
         host: String,
-        purpose: Int,
+        set: KeySet,
         gap: Int,
         probes: Map<KeyId, KeyProbe>,
         failures: Map<KeyId, KeyProbe.Failed>,
     ): List<DerivedKey> {
-        val branch = wallet.branchIfSeeded(accountId, host) ?: return emptyList()
-        val p = LegacyPurpose.entries.first { it.value == purpose }
-        val tabIndex = index(accountId, host, purpose)
+        val keys = wallet.keysIfSeeded(accountId, host) ?: return emptyList()
+        val tabIndex = index(accountId, host, set)
         val count = (tabIndex + gap).coerceAtMost(MAX_LISTED)
         return (0 until count).map { index ->
-            val id = KeyId(accountId, host, purpose, index)
-            val q = branch.notePubkey(p, index)
+            val id = set.key(accountId, host, index)
+            val q = keys.pubkey(set, index)
             val note = wallet.store.note(q.toHex())
             val probe = probes[id]
             val failure = failures[id]?.takeIf { it.checkedAtMillis >= (probe?.checkedAtMillis ?: Long.MIN_VALUE) }
@@ -151,20 +129,20 @@ internal class KeyInspector(private val wallet: Wallet) {
     }
 
     /** Looks up keys from the index until [gap] unused keys in a row follow the last used one. */
-    suspend fun scanAhead(accountId: String, host: String, purpose: Int, gap: Int): KeyScanResult {
-        val from = index(accountId, host, purpose)
-        return scan(accountId, host, purpose, from, until = from + gap, gap)
+    suspend fun scanAhead(accountId: String, host: String, set: KeySet, gap: Int): KeyScanResult {
+        val from = index(accountId, host, set)
+        return scan(accountId, host, set, from, until = from + gap, gap)
     }
 
     /** Looks up every key handed out so far, then on until [gap] unused keys in a row follow the last used one. */
-    suspend fun recheckAll(accountId: String, host: String, purpose: Int, gap: Int): KeyScanResult =
-        scan(accountId, host, purpose, from = 0, until = index(accountId, host, purpose) + gap, gap)
+    suspend fun recheckAll(accountId: String, host: String, set: KeySet, gap: Int): KeyScanResult =
+        scan(accountId, host, set, from = 0, until = index(accountId, host, set) + gap, gap)
 
     /**
      * Looks up keys from [from], at least until [until] and then on until [gap] unused keys in a row follow the last used key found, moving
      * the index past it. Stops early if the mint stops answering or after [MAX_SCAN] keys.
      */
-    private suspend fun scan(accountId: String, host: String, purpose: Int, from: Long, until: Long, gap: Int): KeyScanResult {
+    private suspend fun scan(accountId: String, host: String, set: KeySet, from: Long, until: Long, gap: Int): KeyScanResult {
         val mint =
             wallet.store.mint(host)
                 ?: return KeyScanResult(
@@ -174,7 +152,7 @@ internal class KeyInspector(private val wallet: Wallet) {
                     outstanding = 0,
                     imported = 0,
                     stoppedEarly = "unknown host",
-                    indexAfter = index(accountId, host, purpose),
+                    indexAfter = index(accountId, host, set),
                 )
         var end = until
         var checked = 0
@@ -188,7 +166,7 @@ internal class KeyInspector(private val wallet: Wallet) {
                 stopped = "stopped after $MAX_SCAN keys"
                 break
             }
-            val probe = prober.probe(KeyId(accountId, host, purpose, index), mint)
+            val probe = prober.probe(set.key(accountId, host, index), mint)
             checked++
             when (probe) {
                 is KeyProbe.Outstanding -> {
@@ -206,7 +184,7 @@ internal class KeyInspector(private val wallet: Wallet) {
             if (lastUsed == index) end = maxOf(end, index + 1 + gap)
             index++
         }
-        advanceIndex(accountId, host, purpose, lastUsed)
+        advanceIndex(accountId, host, set, lastUsed)
         return KeyScanResult(
             from,
             until = index,
@@ -214,22 +192,21 @@ internal class KeyInspector(private val wallet: Wallet) {
             outstanding,
             imported,
             stoppedEarly = stopped,
-            indexAfter = index(accountId, host, purpose),
+            indexAfter = index(accountId, host, set),
         )
     }
 
     suspend fun recheck(id: KeyId): KeyProbe {
         val mint = checkNotNull(wallet.store.mint(id.host)) { "unknown host ${id.host}" }
         return prober.probe(id, mint).also {
-            if (it is KeyProbe.Outstanding || it is KeyProbe.Spent) advanceIndex(id.accountId, id.host, id.purpose, id.index)
+            if (it is KeyProbe.Outstanding || it is KeyProbe.Spent) advanceIndex(id.accountId, id.host, id.set, id.index)
         }
     }
 
     /** Moves the tab's index just past [lastUsed] if it is not already past it. Never lowers it. */
-    private suspend fun advanceIndex(accountId: String, host: String, purpose: Int, lastUsed: Long) {
-        if (lastUsed + 1 <= index(accountId, host, purpose)) return
-        if (purpose == LegacyPurpose.LightningAddress.value) wallet.store.setAddressScanFrom(accountId, host, lastUsed + 1)
-        else wallet.store.setIndex(accountId, host, purpose, lastUsed + 1)
+    private suspend fun advanceIndex(accountId: String, host: String, set: KeySet, lastUsed: Long) {
+        if (lastUsed + 1 <= index(accountId, host, set)) return
+        wallet.store.setIndexOf(accountId, host, set, lastUsed + 1)
     }
 
     private companion object {

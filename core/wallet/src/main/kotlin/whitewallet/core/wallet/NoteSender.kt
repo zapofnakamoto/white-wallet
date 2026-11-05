@@ -13,7 +13,6 @@ import whitewallet.core.model.OperationType
 import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.Redaction
 import whitewallet.lnurlcash.RevealsNoteSecret
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
@@ -136,7 +135,7 @@ internal class NoteSender(private val wallet: Wallet) {
                 PayPlanner.plan(notes, amountMsat, baseFee(host))?.let { host to it }
             } ?: return CreateNoteResult.Failed(PayProblem.TooMuch)
         val note =
-            when (val made = payer.exact(accountId, host, plan, amountMsat, OutputSpec.Own(accountId, LegacyPurpose.Wallet))) {
+            when (val made = payer.exact(accountId, host, plan, amountMsat, OutputSpec.Own(accountId, KeySet.Wallet))) {
                 is MutationResult.Done -> made.outputs.first()
                 is MutationResult.Pending -> return CreateNoteResult.Pending
                 is MutationResult.Refused -> return CreateNoteResult.Failed(PayProblem.Refused)
@@ -245,7 +244,7 @@ internal class NoteSender(private val wallet: Wallet) {
                 note.host,
                 inputs = listOf(note),
                 type = OperationType.Rotate,
-                outputs = listOf(OutputSpec.Own(accountId, LegacyPurpose.Wallet)),
+                outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
             )
         return when (result) {
             is MutationResult.Done -> {
@@ -333,10 +332,8 @@ internal class NoteSender(private val wallet: Wallet) {
     @OptIn(RevealsNoteSecret::class)
     private suspend fun link(note: Note): String? {
         val mint = wallet.store.mint(note.host) ?: return null
-        val spend =
-            wallet
-                .branch(note.accountId, note.host)
-                .spend(LegacyPurpose.entries.first { it.value == note.purpose }, note.index ?: return null, spendDomain(note.host))
+        if (note.index == null) return null
+        val spend = wallet.keys(note.accountId, note.host).spend(note, spendDomain(note.host))
         return NoteLink(mint.withdrawUrl, spend, note.amountMsat, note.certificate).encode()
     }
 

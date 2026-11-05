@@ -11,6 +11,7 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
+import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.Profile
@@ -18,9 +19,10 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.KeyId
-import whitewallet.core.wallet.KeyIndexes
 import whitewallet.core.wallet.KeyProbe
+import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.WalletStore
+import whitewallet.lnurlcash.spendDomain
 
 internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
     private val dao = db.dao()
@@ -124,10 +126,19 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
     override suspend fun setIndex(accountId: String, host: String, purpose: Int, next: Long) =
         dao.saveCounter(CounterEntity(accountId, host, purpose, next))
 
-    override fun indexesFlow(accountId: String, host: String): Flow<KeyIndexes> =
-        combine(dao.countersFlow(accountId, host), dao.addressScanFlow(accountId, host)) { counters, scan ->
-            val next = counters.associate { it.purpose to it.next }
-            KeyIndexes(wallet = next[0] ?: 0, change = next[1] ?: 0, addressScanFrom = scan ?: 0)
+    override fun indexesFlow(accountId: String, host: String): Flow<Map<KeySet, Long>> =
+        combine(
+            dao.keyCountersFlow(accountId, spendDomain(host)),
+            dao.shareScansFlow(accountId, host),
+            dao.countersFlow(accountId, host),
+            dao.addressScanFlow(accountId, host),
+        ) { keyCounters, shareScans, counters, scan ->
+            buildMap {
+                keyCounters.forEach { put(if (it.counter == KeyCounter.Wallet.name) KeySet.Wallet else KeySet.Change, it.next) }
+                shareScans.forEach { put(KeySet.share(it.share), it.next) }
+                counters.filter { it.purpose != 2 }.forEach { put(KeySet(KeyScheme.Legacy, it.purpose), it.next) }
+                scan?.let { put(KeySet(KeyScheme.Legacy, 2), it) }
+            }
         }
 
     override suspend fun addressScanFrom(accountId: String, host: String) = dao.addressScanFrom(accountId, host) ?: 0

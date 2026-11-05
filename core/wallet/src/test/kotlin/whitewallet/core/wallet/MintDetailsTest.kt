@@ -1,6 +1,5 @@
 package whitewallet.core.wallet
 
-import fr.acinq.bitcoin.MnemonicCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -10,8 +9,6 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 class MintDetailsTest {
@@ -37,8 +34,8 @@ class MintDetailsTest {
 
     @Test
     fun `details show fees, limits, the pinned key and the account's money there`() = withWallet { mint, _, wallet ->
-        val branch = LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
-        mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 0)), 21_000)
+        val keys = testKeys(words, mint.host)
+        mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 0)), 21_000)
         wallet.refresh()
         val details = wallet.mintDetails(mint.host)
         assertEquals(MintDetails.Reachability.Reachable, details.reachability)
@@ -47,7 +44,7 @@ class MintDetailsTest {
         assertEquals(21_000, details.balanceMsat)
         assertEquals(1, details.noteCount)
         assertEquals(true, details.isHome)
-        assertEquals(branch.cx1(), wallet.watchOnlyKey(mint.host))
+        assertEquals(keys.legacy.cx1(), wallet.watchOnlyKey(mint.host))
     }
 
     @Test

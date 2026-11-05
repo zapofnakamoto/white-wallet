@@ -90,7 +90,7 @@ class RegtestSharedNotesTest {
             // The same recovery phrase on another device renews the note.
             val other = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
             assertIs<RestoreResult.Restored>(other.restore(alice.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
-            assertIs<RotateResult.Rotated>(other.rotateKey(HOST, assertNotNull(note.purpose), assertNotNull(note.index)))
+            assertIs<RotateResult.Rotated>(other.rotateKey(HOST, KeySet.of(note), assertNotNull(note.index)))
 
             wire.offline = false
             alice.wallet.refresh()

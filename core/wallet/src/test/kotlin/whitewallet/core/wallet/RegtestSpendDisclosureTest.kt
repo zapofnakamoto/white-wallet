@@ -33,8 +33,8 @@ class RegtestSpendDisclosureTest {
 
             alice.fund(3000, 2000)
             wallet.recheckNotes()
-            wallet.scanKeysAhead(HOST, 0, gap = 3)
-            wallet.recheckAllKeys(HOST, 0, gap = 3)
+            wallet.scanKeysAhead(HOST, KeySet.Wallet, gap = 3)
+            wallet.recheckAllKeys(HOST, KeySet.Wallet, gap = 3)
             assertIs<NoteActionResult.Done>(wallet.combineNotes(alice.notes().map { it.id }))
             assertIs<NoteActionResult.Done>(wallet.splitNote(alice.notes().single().id, 1_000_000))
             assertIs<RotateResult.Rotated>(wallet.rotateNote(alice.notes().first().id))

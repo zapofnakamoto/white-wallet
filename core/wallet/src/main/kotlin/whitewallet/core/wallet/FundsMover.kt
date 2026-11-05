@@ -6,7 +6,6 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.RejectionKind
 
 sealed interface MoveResult {
@@ -67,7 +66,7 @@ internal class FundsMover(private val wallet: Wallet) {
     private suspend fun moveAll(fromId: String, toId: String, host: String, notes: List<Note>): MoveResult {
         val type = if (notes.size == 1) OperationType.Rotate else OperationType.Merge
         val inputs = notes.sumOf { it.amountMsat }
-        val result = mutator.mutate(fromId, host, inputs = notes, type, outputs = listOf(OutputSpec.Own(toId, LegacyPurpose.Wallet)))
+        val result = mutator.mutate(fromId, host, inputs = notes, type, outputs = listOf(OutputSpec.Own(toId, KeySet.Wallet)))
         when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single().amountMsat
@@ -105,12 +104,12 @@ internal class FundsMover(private val wallet: Wallet) {
                     host,
                     inputs,
                     type = OperationType.Merge,
-                    outputs = listOf(OutputSpec.Own(fromId, LegacyPurpose.Wallet)),
+                    outputs = listOf(OutputSpec.Own(fromId, KeySet.Wallet)),
                 )
             inputs = (merged as? MutationResult.Done)?.outputs ?: return merged.toMove()
             if (inputs.single().amountMsat == amountMsat) return moveAll(fromId, toId, host, inputs)
         }
-        val outputs = listOf(OutputSpec.Own(toId, LegacyPurpose.Wallet), OutputSpec.Own(fromId, LegacyPurpose.Change))
+        val outputs = listOf(OutputSpec.Own(toId, KeySet.Wallet), OutputSpec.Own(fromId, KeySet.Change))
         val result = mutator.mutate(fromId, host, inputs, type = OperationType.Split, outputs, splitMsat = amountMsat)
         when (result) {
             is MutationResult.Done -> {

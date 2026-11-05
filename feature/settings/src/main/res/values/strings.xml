@@ -186,6 +186,9 @@
     <string name="keys_purpose_wallet">Wallet (0)</string>
     <string name="keys_purpose_change">Change (1)</string>
     <string name="keys_purpose_address">Address (2)</string>
+    <string name="keys_legacy_wallet">Legacy wallet (0)</string>
+    <string name="keys_legacy_change">Legacy change (1)</string>
+    <string name="keys_legacy_address">Legacy address (2)</string>
     <string name="keys_scan_stopped">Stopped early: %1$s</string>
     <string name="keys_recheck">Recheck</string>
     <string name="keys_status_confirming">confirming</string>

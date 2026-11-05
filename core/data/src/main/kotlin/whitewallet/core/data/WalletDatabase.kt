@@ -127,6 +127,9 @@ internal interface WalletDao {
 
     @Upsert suspend fun saveShareScan(scan: ShareScanEntity)
 
+    @Query("SELECT * FROM share_scan WHERE accountId = :accountId AND host = :host")
+    fun shareScansFlow(accountId: String, host: String): Flow<List<ShareScanEntity>>
+
     @Upsert suspend fun putJournal(entry: JournalEntity)
 
     @Query("SELECT * FROM journal WHERE status IN (:statuses) ORDER BY createdAtMillis")

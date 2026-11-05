@@ -108,8 +108,11 @@ interface WalletStore {
     /** Sets the counter directly (developer tools and recovery). */
     suspend fun setIndex(accountId: String, host: String, purpose: Int, next: Long)
 
-    /** The account's indexes on [host] (purpose 0/1 counters and the purpose-2 scan start), updated on every change. */
-    fun indexesFlow(accountId: String, host: String): Flow<KeyIndexes>
+    /**
+     * The account's indexes on [host], updated on every change: each one that is set (the wallet and change counters of [host]'s domain,
+     * share scan starts, and the legacy counters and address scan start), by the keys it counts.
+     */
+    fun indexesFlow(accountId: String, host: String): Flow<Map<KeySet, Long>>
 
     /** First purpose-2 index the next Lightning address scan starts from. */
     suspend fun addressScanFrom(accountId: String, host: String): Long

@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -63,23 +63,24 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.DerivedKey
 import whitewallet.core.wallet.DiscoveryResult
 import whitewallet.core.wallet.IndexHealth
-import whitewallet.core.wallet.KeyIndexes
 import whitewallet.core.wallet.KeyProbe
 import whitewallet.core.wallet.KeyScanResult
+import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.KeyStatus
 import whitewallet.core.wallet.RotateAllResult
 import whitewallet.core.wallet.RotateResult
 import whitewallet.core.wallet.SetIndexResult
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.set
 
 data class DerivedKeysState(
     val hosts: List<String> = emptyList(),
     /** The mint of the account's primary address. */
     val homeHost: String? = null,
     val host: String? = null,
-    /** LUD-26 purpose: 0 wallet, 1 change, 2 Lightning address. */
-    val purpose: Int = 2,
-    val indexes: KeyIndexes? = null,
+    /** The tab: the keys one index counts. */
+    val set: KeySet = KeySet.LegacyAddress,
+    val indexes: Map<KeySet, Long> = emptyMap(),
     val keys: List<DerivedKey> = emptyList(),
     val expanded: Long? = null,
     val busy: Boolean = false,
@@ -101,9 +102,9 @@ data class DerivedKeysState(
     val rotatable: List<DerivedKey>
         get() = keys.filter { it.noteState == NoteState.Outstanding }
 
-    /** The tab's one index: the next key the wallet will use (purpose 2: where the address scan starts). */
+    /** The tab's one index: the next key the wallet will use (for addresses: where the scan starts). */
     val index: Long
-        get() = indexes?.of(purpose) ?: 0
+        get() = indexes[set] ?: 0
 }
 
 private const val DEFAULT_GAP = 20
@@ -158,7 +159,7 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
 
     fun selectHost(host: String) = update { copy(host = host, expanded = null, lastRotate = null, indexMessage = null) }
 
-    fun selectPurpose(purpose: Int) = update { copy(purpose = purpose, expanded = null, lastRotate = null, indexMessage = null) }
+    fun selectSet(set: KeySet) = update { copy(set = set, expanded = null, lastRotate = null, indexMessage = null) }
 
     fun toggle(index: Long) = _state.update { it.copy(expanded = if (it.expanded == index) null else index) }
 
@@ -171,24 +172,24 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
 
     /** From the index until gap unused keys follow the last used one. */
     fun scanAhead() = action { s ->
-        val result = wallet.scanKeysAhead(s.host!!, s.purpose, s.gapLimit)
+        val result = wallet.scanKeysAhead(s.host!!, s.set, s.gapLimit)
         _state.update { it.copy(indexMessage = IndexMessage.Scanned(result)) }
     }
 
     /** From 0 until gap unused keys follow the last used one (at least index + gap). */
     fun recheckAll() = action { s ->
-        val result = wallet.recheckAllKeys(s.host!!, s.purpose, s.gapLimit)
+        val result = wallet.recheckAllKeys(s.host!!, s.set, s.gapLimit)
         _state.update { it.copy(indexMessage = IndexMessage.Scanned(result)) }
     }
 
-    fun recheck(index: Long) = action { s -> wallet.recheckKey(s.host!!, s.purpose, index) }
+    fun recheck(index: Long) = action { s -> wallet.recheckKey(s.host!!, s.set, index) }
 
     fun findIndex() = action { s ->
-        val result = wallet.findKeyIndex(s.host!!, s.purpose, s.gapLimit)
+        val result = wallet.findKeyIndex(s.host!!, s.set, s.gapLimit)
         _state.update { it.copy(indexMessage = IndexMessage.Found(result)) }
     }
 
-    fun openSetIndex() = _state.update { it.copy(setIndexInput = (it.indexes?.of(it.purpose) ?: 0).toString()) }
+    fun openSetIndex() = _state.update { it.copy(setIndexInput = it.index.toString()) }
 
     fun onSetIndexInput(value: String) = _state.update { it.copy(setIndexInput = value.filter(Char::isDigit).take(9)) }
 
@@ -198,7 +199,7 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
         val value = _state.value.setIndexInput?.toLongOrNull() ?: return
         _state.update { it.copy(setIndexInput = null) }
         action { s ->
-            val result = wallet.setKeyIndex(s.host!!, s.purpose, value)
+            val result = wallet.setKeyIndex(s.host!!, s.set, value)
             _state.update { it.copy(indexMessage = IndexMessage.Set(result)) }
         }
     }
@@ -230,8 +231,8 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
         action { s ->
             val outcome =
                 when (request) {
-                    is RotateRequest.One -> RotateOutcome.One(wallet.rotateKey(s.host!!, s.purpose, request.key.id.index))
-                    is RotateRequest.All -> RotateOutcome.All(wallet.rotateAllKeys(s.host!!, s.purpose))
+                    is RotateRequest.One -> RotateOutcome.One(wallet.rotateKey(s.host!!, s.set, request.key.id.index))
+                    is RotateRequest.All -> RotateOutcome.All(wallet.rotateAllKeys(s.host!!, s.set))
                 }
             _state.update { it.copy(lastRotate = outcome, expanded = null) }
         }
@@ -260,8 +261,8 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
         val s = _state.value
         val host = s.host ?: return
         val indexes = wallet.keyIndexes(host)
-        val health = wallet.keyIndexHealth(host, s.purpose)
-        val keys = wallet.derivedKeys(host, s.purpose, s.gapLimit)
+        val health = wallet.keyIndexHealth(host, s.set)
+        val keys = wallet.derivedKeys(host, s.set, s.gapLimit)
         _state.update { it.copy(indexes = indexes, keys = keys, health = health) }
     }
 
@@ -280,7 +281,7 @@ fun DerivedKeysRoute(onBack: () -> Unit, viewModel: DerivedKeysViewModel = hiltV
         state,
         onBack,
         onHost = viewModel::selectHost,
-        onPurpose = viewModel::selectPurpose,
+        onSet = viewModel::selectSet,
         onToggle = viewModel::toggle,
         onRecheck = viewModel::recheck,
         index =
@@ -304,13 +305,12 @@ fun DerivedKeysScreen(
     state: DerivedKeysState,
     onBack: () -> Unit,
     onHost: (String) -> Unit,
-    onPurpose: (Int) -> Unit,
+    onSet: (KeySet) -> Unit,
     onToggle: (Long) -> Unit,
     onRecheck: (Long) -> Unit,
     index: IndexActions,
     rotate: RotateActions,
 ) {
-    val purposes = listOf(R.string.keys_purpose_wallet, R.string.keys_purpose_change, R.string.keys_purpose_address)
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.keys_title), onBack) }) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {
             if (state.hosts.size > 1) {
@@ -324,9 +324,9 @@ fun DerivedKeysScreen(
                 }
             }
             item {
-                PrimaryTabRow(selectedTabIndex = state.purpose) {
-                    purposes.forEachIndexed { purpose, label ->
-                        Tab(selected = state.purpose == purpose, onClick = { onPurpose(purpose) }, text = { Text(stringResource(label)) })
+                PrimaryScrollableTabRow(selectedTabIndex = KEY_SETS.indexOf(state.set).coerceAtLeast(0), edgePadding = 0.dp) {
+                    KEY_SETS.forEach { set ->
+                        Tab(selected = state.set == set, onClick = { onSet(set) }, text = { Text(keySetLabel(set)) })
                     }
                 }
             }
@@ -345,7 +345,7 @@ fun DerivedKeysScreen(
             }
         }
     }
-    state.rotateRequest?.let { RotateDialog(it, purposes, rotate.onConfirm, rotate.onDismiss) }
+    state.rotateRequest?.let { RotateDialog(it, rotate.onConfirm, rotate.onDismiss) }
     state.setIndexInput?.let { SetIndexDialog(it, (state.health?.highestUsed ?: -1) + 1, index) }
 }
 
@@ -486,7 +486,7 @@ private fun SetIndexDialog(input: String, floor: Long, actions: IndexActions) {
 class RotateActions(val onAsk: (Long) -> Unit, val onAskAll: () -> Unit, val onConfirm: () -> Unit, val onDismiss: () -> Unit)
 
 @Composable
-private fun RotateDialog(request: RotateRequest, purposes: List<Int>, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun RotateDialog(request: RotateRequest, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     val (title, body) =
         when (request) {
             is RotateRequest.One ->
@@ -495,7 +495,7 @@ private fun RotateDialog(request: RotateRequest, purposes: List<Int>, onConfirm:
                         R.string.keys_renew_body,
                         formatAmount(request.key.noteAmountMsat ?: 0),
                         request.key.id.index,
-                        stringResource(purposes[request.key.id.purpose]),
+                        keySetLabel(request.key.id.set),
                         request.nextWalletIndex,
                     )
             is RotateRequest.All ->
@@ -555,7 +555,7 @@ private fun KeyRow(
             StatusText(key.status)
         }
         Text(
-            statusHint(key.status, key.id.purpose),
+            statusHint(key.status, key.id.set),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -598,7 +598,7 @@ private fun StatusText(status: KeyStatus) {
 }
 
 @Composable
-private fun statusHint(status: KeyStatus, purpose: Int): String =
+private fun statusHint(status: KeyStatus, set: KeySet): String =
     stringResource(
         when (status) {
             is KeyStatus.Funded -> R.string.keys_hint_funded
@@ -606,7 +606,7 @@ private fun statusHint(status: KeyStatus, purpose: Int): String =
             KeyStatus.Spent -> R.string.keys_hint_spent
             KeyStatus.Skipped -> R.string.keys_hint_skipped
             KeyStatus.HandedOut -> R.string.keys_hint_handed_out
-            KeyStatus.Next -> if (purpose == ADDRESS_PURPOSE) R.string.keys_hint_next_address else R.string.keys_hint_next
+            KeyStatus.Next -> if (set.isAddress) R.string.keys_hint_next_address else R.string.keys_hint_next
             KeyStatus.Free -> R.string.keys_hint_free
         }
     )
@@ -635,6 +635,19 @@ private fun lookupText(probe: KeyProbe?): String {
 /** Time of day for today's lookups; date and time for older (saved) ones. */
 private fun checkedAt(millis: Long): String = recentTime(millis)
 
-private const val ADDRESS_PURPOSE = 2
+/** The tabs: the account's LUD-26 chains, then the legacy 2f17578 purposes its older notes are on. */
+private val KEY_SETS = listOf(KeySet.Wallet, KeySet.Change) + KeySet.LEGACY
+
+@Composable
+private fun keySetLabel(set: KeySet): String =
+    stringResource(
+        when (set) {
+            KeySet.Wallet -> R.string.keys_purpose_wallet
+            KeySet.Change -> R.string.keys_purpose_change
+            KeySet.LegacyWallet -> R.string.keys_legacy_wallet
+            KeySet.LegacyChange -> R.string.keys_legacy_change
+            else -> R.string.keys_legacy_address
+        }
+    )
 
 private const val TIME_SKELETON = "jm"

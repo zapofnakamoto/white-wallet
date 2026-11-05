@@ -10,7 +10,6 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.RevealsNoteSecret
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteLookupError
@@ -55,8 +54,7 @@ internal class Melter(private val wallet: Wallet) {
         beforeSend: suspend (journalId: String) -> Unit = {},
     ): MeltOutcome {
         val mint = wallet.store.mint(host) ?: return MeltOutcome.Unreachable
-        val spend =
-            wallet.branch(accountId, host).spend(LegacyPurpose.entries.first { it.value == note.purpose }, note.index!!, spendDomain(host))
+        val spend = wallet.keys(accountId, host).spend(note, spendDomain(host))
         val info =
             try {
                 // Asked by the note's key alone: the spend goes out only with the melt.

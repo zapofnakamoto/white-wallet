@@ -7,8 +7,6 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.isShared
-import whitewallet.lnurlcash.legacy.LegacyCertificates
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
@@ -19,9 +17,9 @@ data class KeyId(
     val host: String,
     val purpose: Int,
     val index: Long,
-    val scheme: KeyScheme = KeyScheme.Legacy,
+    val scheme: KeyScheme,
     /** The share of a chain-2 key under [KeyScheme.Bip32]. */
-    val share: Long? = null,
+    val share: Long?,
 )
 
 /** What the mint said about a derived key the last time it was looked up (by `p`, never by spend). */
@@ -56,8 +54,7 @@ sealed interface KeyProbe {
  */
 internal class KeyProber(private val wallet: Wallet) {
     suspend fun probe(id: KeyId, mint: Mint): KeyProbe {
-        val purpose = LegacyPurpose.entries.first { it.value == id.purpose }
-        val q = wallet.branch(id.accountId, id.host).notePubkey(purpose, id.index)
+        val q = wallet.keys(id.accountId, id.host).pubkey(id)
         val noteId = q.toHex()
         val now = wallet.now()
         val result =
@@ -65,7 +62,7 @@ internal class KeyProber(private val wallet: Wallet) {
                 val info = wallet.client.lookup(mint.withdrawUrl, q)
                 val pinned = Pinning.check(wallet, mint, info.mintPubkey)
                 val certificate =
-                    info.certificate?.takeIf { LegacyCertificates.verify(it, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }
+                    info.certificate?.takeIf { certifies(it, id.host, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }
                 val existing = wallet.store.note(noteId)
                 if (
                     existing == null ||
@@ -87,6 +84,8 @@ internal class KeyProber(private val wallet: Wallet) {
                                 // A note handed out as a link stays out of the balance until it is spent or taken back.
                                 state = existing?.state?.takeIf { it.isShared } ?: NoteState.Outstanding,
                                 updatedAtMillis = now,
+                                scheme = id.scheme,
+                                share = id.share,
                             )
                         )
                     )
@@ -127,11 +126,10 @@ internal class KeyProber(private val wallet: Wallet) {
         return result
     }
 
-    /** A used key must never be handed out again: keep the wallet's own counters past it. */
+    /** A used key must never be handed out again: keep the wallet's own counters past it (shares and addresses have none). */
     private suspend fun ensureCounterPast(id: KeyId) {
-        if (id.purpose == LegacyPurpose.LightningAddress.value) return
-        if (wallet.store.currentIndex(id.accountId, id.host, id.purpose) <= id.index) {
-            wallet.store.setIndex(id.accountId, id.host, id.purpose, id.index + 1)
-        }
+        val set = id.set
+        if (set.isAddress) return
+        if (wallet.store.indexOf(id.accountId, id.host, set) <= id.index) wallet.store.setIndexOf(id.accountId, id.host, set, id.index + 1)
     }
 }

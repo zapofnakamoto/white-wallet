@@ -1,6 +1,5 @@
 package whitewallet.core.wallet
 
-import fr.acinq.bitcoin.MnemonicCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -18,7 +17,6 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyBranch
 import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
@@ -26,11 +24,11 @@ import whitewallet.testkit.MockMint
 class NotesTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branch: LegacyBranch) {
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val keys: AccountKeys) {
         var next = 0L
 
         suspend fun fund(vararg sats: Long) {
-            sats.forEach { mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, next++)), it * 1000) }
+            sats.forEach { mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, next++)), it * 1000) }
             wallet.refresh()
         }
 
@@ -56,7 +54,7 @@ class NotesTest {
                 wallet.payWaitMillis = 3_000
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)).test()
+                Fixture(mint, store, wallet, testKeys(words, mint.host)).test()
             }
         }
 

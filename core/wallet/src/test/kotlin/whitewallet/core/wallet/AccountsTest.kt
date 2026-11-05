@@ -1,6 +1,5 @@
 package whitewallet.core.wallet
 
-import fr.acinq.bitcoin.MnemonicCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -10,14 +9,16 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import whitewallet.core.model.KeyCounter
+import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyBranch
 import whitewallet.lnurlcash.legacy.LegacyPurpose
+import whitewallet.lnurlcash.spendDomain
 import whitewallet.testkit.MockMint
 
 class AccountsTest {
@@ -49,11 +50,11 @@ class AccountsTest {
         }
 
     private fun note(id: String, account: String, msat: Long, host: String = "mint.example", purpose: Int = 0, index: Long = 0) =
-        Note(id, account, host, NoteKind.KeyPath, purpose, index, msat, null, NoteState.Outstanding, 0)
+        Note(id, account, host, NoteKind.KeyPath, purpose, index, msat, null, NoteState.Outstanding, 0, scheme = KeyScheme.Bip32)
 
     // ---- Against the conformance mock mint
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branchA: LegacyBranch)
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val keysA: AccountKeys)
 
     private fun withMint(test: suspend Fixture.() -> Unit) =
         runBlocking<Unit> {
@@ -64,14 +65,14 @@ class AccountsTest {
                 store.addAccount("b", "Savings", Profile("bob", mint.host))
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(wordsA, ""), mint.host)).test()
+                Fixture(mint, store, wallet, testKeys(wordsA, mint.host)).test()
             }
         }
 
     /** Credits a purpose-0 note of account "a" at the mock mint and records it, as a claim would have. */
     private suspend fun Fixture.give(msat: Long) {
-        val index = store.reserveIndex("a", mint.host, 0)
-        val q = branchA.notePubkey(LegacyPurpose.Wallet, index)
+        val index = store.reserveKeyIndex("a", spendDomain(mint.host), KeyCounter.Wallet)
+        val q = keysA.pubkey(KeySet.Wallet, index)
         mint.credit(Cp1.encode(q), msat)
         store.upsertNotes(listOf(note(q.toHex(), "a", msat, mint.host, 0, index)))
     }

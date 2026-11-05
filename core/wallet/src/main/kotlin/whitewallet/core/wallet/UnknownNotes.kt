@@ -22,7 +22,8 @@ internal class UnknownNotes(private val wallet: Wallet) {
         val mint = notes.firstOrNull()?.let { wallet.store.mint(it.host) } ?: return emptyList()
         return notes
             .filter { note ->
-                val id = KeyId(note.accountId, note.host, note.purpose ?: return@filter false, note.index ?: return@filter false)
+                if (note.purpose == null) return@filter false
+                val id = KeySet.of(note).key(note.accountId, note.host, note.index ?: return@filter false)
                 val probe =
                     try {
                         prober.probe(id, mint)
@@ -51,7 +52,7 @@ internal class UnknownNotes(private val wallet: Wallet) {
         for (note in due) {
             wallet.unknownCheckedAt[note.id] = now
             try {
-                prober.probe(KeyId(accountId, note.host, note.purpose!!, note.index!!), wallet.store.mint(note.host)!!)
+                prober.probe(KeySet.of(note).key(accountId, note.host, note.index!!), wallet.store.mint(note.host)!!)
             } catch (e: MintKeyChangedException) {
                 // Nothing is asked of a mint with another key; the user decides first.
             }

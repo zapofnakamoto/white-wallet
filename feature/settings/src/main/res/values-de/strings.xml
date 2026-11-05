@@ -181,6 +181,9 @@
     <string name="keys_purpose_wallet">Wallet (0)</string>
     <string name="keys_purpose_change">Wechselgeld (1)</string>
     <string name="keys_purpose_address">Adresse (2)</string>
+    <string name="keys_legacy_wallet">Alt: Wallet (0)</string>
+    <string name="keys_legacy_change">Alt: Wechselgeld (1)</string>
+    <string name="keys_legacy_address">Alt: Adresse (2)</string>
     <string name="keys_scan_stopped">Vorzeitig beendet: %1$s</string>
     <string name="keys_recheck">Erneut prüfen</string>
     <string name="keys_status_confirming">wird bestätigt</string>

@@ -18,7 +18,6 @@ import whitewallet.core.model.OperationType
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.RejectionKind
 
 /** What the notes page and the note strategies do with notes, on the real mint. */
@@ -60,7 +59,7 @@ class RegtestNotesTest {
                         HOST,
                         listOf(note, note),
                         OperationType.Merge,
-                        listOf(OutputSpec.Own(alice.wallet.activeId(), LegacyPurpose.Wallet)),
+                        listOf(OutputSpec.Own(alice.wallet.activeId(), KeySet.Wallet)),
                     )
             // It says the second k1 is spent; the note is not, so the wallet keeps it.
             val refused = assertIs<MutationResult.Refused>(result, "the same k1 twice in a merge")

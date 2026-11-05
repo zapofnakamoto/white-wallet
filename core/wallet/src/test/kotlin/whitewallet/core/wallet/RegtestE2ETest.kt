@@ -302,12 +302,12 @@ class RegtestE2ETest {
 
             // 6. Rotating that address note onto a wallet key is free on the real mint too.
             val before = wallet.balanceMsat.first()
-            assertIs<RotateResult.Rotated>(wallet.rotateKey(HOST, 2, 1))
+            assertIs<RotateResult.Rotated>(wallet.rotateKey(HOST, KeySet.LegacyAddress, 1))
             assertEquals(before, wallet.balanceMsat.first())
 
             // 7. Even with the wallet counter forced back to 0, rotate all works: used keys are skipped or rediscovered.
-            store.setIndex(accountA, HOST, 0, 0)
-            val all = wallet.rotateAllKeys(HOST, 0)
+            store.setIndexOf(accountA, HOST, KeySet.Wallet, 0)
+            val all = wallet.rotateAllKeys(HOST, KeySet.Wallet)
             assertEquals(0, all.failed, "rotate all after a reset: $all")
             assertTrue(all.rotated > 0)
             assertEquals(before, wallet.balanceMsat.first())

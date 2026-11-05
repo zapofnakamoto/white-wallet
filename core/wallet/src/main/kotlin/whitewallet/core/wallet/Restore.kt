@@ -4,7 +4,6 @@ import java.util.UUID
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Account
 import whitewallet.core.model.NoteState
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 sealed interface RestoreResult {
     /** The account exists and is active, with every note found on the mint; it has no address yet. */
@@ -60,8 +59,9 @@ internal class Restore(private val wallet: Wallet) {
         // The user had the phrase written down; no need to ask them to back it up again.
         wallet.seeds.setBackupVerified(accountId)
         wallet.store.saveAccount(Account(accountId, accountName, wallet.now(), h))
-        for (purpose in LegacyPurpose.entries) {
-            val found = discovery.discover(accountId, h, purpose.value)
+        // The account's LUD-26 chains, then the legacy 2f17578 purposes (tag: keys), which hold what it had before the upgrade.
+        for (set in listOf(KeySet.Wallet, KeySet.Change) + KeySet.LEGACY) {
+            val found = discovery.discover(accountId, h, set)
             found.stoppedEarly?.let { reason ->
                 wallet.store.deleteAccount(accountId)
                 wallet.discardSeed(accountId)

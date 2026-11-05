@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
 import whitewallet.core.model.Profile
@@ -22,9 +23,8 @@ import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.Requests
+import whitewallet.lnurlcash.spendDomain
 import whitewallet.testkit.MockMint
 
 class WalletMockMintTest {
@@ -64,9 +64,9 @@ class WalletMockMintTest {
             MockMint.start().use { mint ->
                 val store = InMemoryWalletStore()
                 val wallet = wallet(mint, store)
-                val branch = LegacyBranch.fromSeed(fr.acinq.bitcoin.MnemonicCode.toSeed(words, ""), mint.host)
+                val keys = testKeys(words, mint.host)
                 for ((index, amount) in listOf(0L to 1_000L, 1L to 2_000L, 5L to 4_000L)) {
-                    mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, index)), amount)
+                    mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, index)), amount)
                 }
                 val result = wallet.refresh()
                 assertEquals(3, result.newNotes)
@@ -96,7 +96,7 @@ class WalletMockMintTest {
                 assertTrue(claimed.certified)
                 assertEquals(21_000, wallet.balanceMsat.first())
                 assertEquals(JournalStatus.Confirmed, store.journal.values.single().status)
-                assertEquals(1, store.counters[Triple(ACCOUNT, mint.host, 0)])
+                assertEquals(1, store.keyCounters[Triple(ACCOUNT, spendDomain(mint.host), KeyCounter.Wallet)])
 
                 // Opened again here, it is known as claimed; anywhere else, the sender's copy is now worthless.
                 assertIs<ClaimPreview.AlreadyInWallet>(wallet.previewClaim("lnurlw://${mint.host}/w?k1=${bearer.k1}"))
@@ -128,8 +128,7 @@ class WalletMockMintTest {
                 val bearer = Spend.Bearer(ByteVector32(Hex.decode("44".repeat(32))))
                 mint.credit(bearer.h.toHex(), 3_000)
                 val known = assertNotNull(store.mintMap[mint.host])
-                val q =
-                    LegacyBranch.fromSeed(fr.acinq.bitcoin.MnemonicCode.toSeed(words, ""), mint.host).notePubkey(LegacyPurpose.Wallet, 0)
+                val q = testKeys(words, mint.host).pubkey(KeySet.Wallet, 0)
                 store.putJournal(
                     JournalEntry(
                         "crashed",

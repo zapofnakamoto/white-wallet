@@ -7,7 +7,6 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 sealed interface RotateResult {
     /** The note now lives at wallet key (purpose 0) [toIndex]. */
@@ -34,18 +33,18 @@ internal class NoteRotator(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
 
     /** [automatic]: done by a note policy rather than by the user (recorded in the history as such). */
-    suspend fun rotate(accountId: String, host: String, purpose: Int, index: Long, automatic: Boolean = false): RotateResult {
-        val note = outstandingNote(accountId, host, purpose, index) ?: return RotateResult.NotRotatable("no outstanding note at #$index")
+    suspend fun rotate(accountId: String, host: String, set: KeySet, index: Long, automatic: Boolean = false): RotateResult {
+        val note = outstandingNote(accountId, host, set, index) ?: return RotateResult.NotRotatable("no outstanding note at #$index")
         return rotate(accountId, note, automatic)
     }
 
-    /** Every outstanding note of [purpose] on [host], one at a time. Stops if the mint stops answering. */
-    suspend fun rotateAll(accountId: String, host: String, purpose: Int, automatic: Boolean = false): RotateAllResult {
+    /** Every outstanding note on [host] in one of [sets], one at a time. Stops if the mint stops answering. */
+    suspend fun rotateAll(accountId: String, host: String, sets: (KeySet) -> Boolean, automatic: Boolean = false): RotateAllResult {
         val notes =
             wallet.store
                 .notes(accountId)
                 .first()
-                .filter { it.host == host && it.purpose == purpose && it.isRotatable() }
+                .filter { it.host == host && it.isRotatable() && sets(KeySet.of(it)) }
                 .sortedBy { it.index }
         var rotated = 0
         var failed = 0
@@ -76,16 +75,16 @@ internal class NoteRotator(private val wallet: Wallet) {
                 note.host,
                 inputs = listOf(note),
                 type = OperationType.Rotate,
-                outputs = listOf(OutputSpec.Own(accountId, LegacyPurpose.Wallet)),
+                outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
             )
         return when (result) {
             is MutationResult.Done -> {
                 val out = result.outputs.single()
                 val now = wallet.now()
                 // Keep the developer key page current without a rescan.
-                wallet.recordProbe(KeyId(accountId, note.host, note.purpose!!, note.index!!), KeyProbe.Spent(now))
+                wallet.recordProbe(KeySet.of(note).key(accountId, note.host, note.index!!), KeyProbe.Spent(now))
                 wallet.recordProbe(
-                    KeyId(accountId, note.host, LegacyPurpose.Wallet.value, out.index!!),
+                    KeySet.of(out).key(accountId, note.host, out.index!!),
                     KeyProbe.Outstanding(out.amountMsat, out.certificate != null, imported = false, now),
                 )
                 log.record(
@@ -117,9 +116,8 @@ internal class NoteRotator(private val wallet: Wallet) {
         }
     }
 
-    private suspend fun outstandingNote(accountId: String, host: String, purpose: Int, index: Long): Note? {
-        val q =
-            wallet.branchIfSeeded(accountId, host)?.notePubkey(LegacyPurpose.entries.first { it.value == purpose }, index) ?: return null
+    private suspend fun outstandingNote(accountId: String, host: String, set: KeySet, index: Long): Note? {
+        val q = wallet.keysIfSeeded(accountId, host)?.pubkey(set, index) ?: return null
         return wallet.store.note(q.toHex())?.takeIf { it.accountId == accountId && it.isRotatable() }
     }
 

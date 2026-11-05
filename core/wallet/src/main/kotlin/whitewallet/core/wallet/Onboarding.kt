@@ -270,7 +270,7 @@ internal class Onboarding(private val wallet: Wallet) {
 
     /** A taken seed-derived name suggests the next derived ones first, so a restore can still find the address. */
     private suspend fun taken(name: String, accountId: String, h: String): OnboardResult {
-        val derived = wallet.branchIfSeeded(accountId, h)?.let(DefaultAddress::names).orEmpty()
+        val derived = wallet.keysIfSeeded(accountId, h)?.legacy?.let(DefaultAddress::names).orEmpty()
         val next = if (name in derived) derived.dropWhile { it != name }.drop(1) else emptyList()
         return OnboardResult.UsernameTaken((next + suggestions(name, wallet.random)).distinct().take(3))
     }

@@ -6,10 +6,10 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /**
  * A note the wallet holds but the mint doesn't know (as after the mint lost its records), against the real reference mint (dev/regtest,
@@ -21,18 +21,19 @@ class RegtestUnknownNoteTest {
     /** A note at a wallet key the mint has never seen, recorded as outstanding; [updatedAtMillis] orders it for strategies. */
     private suspend fun Regtest.Phone.unknownNote(sats: Long, updatedAtMillis: Long = 0, index: Long = 900): Note {
         val accountId = store.currentAccountId()!!
-        val q = wallet.branch(accountId, Regtest.HOST).notePubkey(LegacyPurpose.Wallet, index).toHex()
+        val q = wallet.keys(accountId, Regtest.HOST).pubkey(KeySet.Wallet, index).toHex()
         return Note(
                 q,
                 accountId,
                 Regtest.HOST,
                 NoteKind.KeyPath,
-                LegacyPurpose.Wallet.value,
+                KeySet.Wallet.purpose,
                 index,
                 sats * 1000,
                 null,
                 NoteState.Outstanding,
                 updatedAtMillis,
+                scheme = KeyScheme.Bip32,
             )
             .also { store.upsertNotes(listOf(it)) }
     }

@@ -8,7 +8,6 @@ import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.Spend
-import whitewallet.lnurlcash.legacy.LegacyCertificates
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.NoteLookupError
@@ -171,7 +170,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
     /** Whether the mint vouches for the note at what it is worth: its own certificate, or the link's, verifies. */
     private fun certified(link: NoteLink, info: NoteInfo): Boolean =
         listOfNotNull(info.certificate, link.certificate?.let(Cs1::decode)).any {
-            it.amountMsat == info.maxWithdrawableMsat && LegacyCertificates.verify(it, link.spend.q, info.mintPubkey)
+            it.amountMsat == info.maxWithdrawableMsat && certifies(it, link.host, link.spend.q, info.mintPubkey)
         }
 
     /** The link's certificate amount, if it verifies against the pinned key of its mint (known from earlier). */
@@ -179,6 +178,6 @@ internal class NoteClaimer(private val wallet: Wallet) {
         val certificate = link.certificate?.let(Cs1::decode) ?: return null
         val key = wallet.store.mint(link.host)?.mintPubkey ?: return null
         val mintKey = runCatching { PublicKey.fromHex(key) }.getOrNull() ?: return null
-        return certificate.amountMsat.takeIf { LegacyCertificates.verify(certificate, link.spend.q, mintKey) }
+        return certificate.amountMsat.takeIf { certifies(certificate, link.host, link.spend.q, mintKey) }
     }
 }

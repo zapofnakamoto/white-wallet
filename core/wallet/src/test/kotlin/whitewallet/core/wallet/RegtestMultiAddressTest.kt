@@ -116,14 +116,14 @@ class RegtestMultiAddressTest {
             assertEquals(14_995_000, wallet.balanceMsat.first())
             assertEquals(6, store.addressScanFrom(account, host))
             assertTrue(
-                wallet.recheckKey(host, LegacyPurpose.LightningAddress.value, 3).let {
+                wallet.recheckKey(host, KeySet.LegacyAddress, 3).let {
                     it !is KeyProbe.Outstanding && it !is KeyProbe.Spent
                 },
                 "the reserved key is not a note and does not count as used",
             )
 
             // A spent key is never reused either: spend #0, then a third name (counter 0) must land past everything.
-            assertIs<RotateResult.Rotated>(wallet.rotateKey(host, LegacyPurpose.LightningAddress.value, 0))
+            assertIs<RotateResult.Rotated>(wallet.rotateKey(host, KeySet.LegacyAddress, 0))
             val carol = name()
             register(carol)
             pay(carol, 1_000)

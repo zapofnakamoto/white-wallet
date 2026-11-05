@@ -3,7 +3,6 @@
 package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.ByteVector32
-import fr.acinq.bitcoin.MnemonicCode
 import fr.acinq.secp256k1.Hex
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -25,8 +24,6 @@ import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.testkit.MockMint
 
@@ -35,7 +32,7 @@ class ActivityLogTest {
     private val wordsA = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
     private val wordsB = "legal winner thank year wave sausage worth useful legal winner thank yellow".split(" ")
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val branchA: LegacyBranch)
+    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val keysA: AccountKeys)
 
     private fun withMint(test: suspend Fixture.() -> Unit) =
         runBlocking<Unit> {
@@ -46,12 +43,12 @@ class ActivityLogTest {
                 store.addAccount("b", "Savings", Profile("bob", mint.host))
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, LegacyBranch.fromSeed(MnemonicCode.toSeed(wordsA, ""), mint.host)).test()
+                Fixture(mint, store, wallet, testKeys(wordsA, mint.host)).test()
             }
         }
 
     private fun Fixture.pay(vararg amounts: Long, from: Long = 0) = amounts.forEachIndexed { i, msat ->
-        mint.credit(Cp1.encode(branchA.notePubkey(LegacyPurpose.LightningAddress, from + i)), msat)
+        mint.credit(Cp1.encode(keysA.pubkey(KeySet.LegacyAddress, from + i)), msat)
     }
 
     private suspend fun Fixture.history(account: String = "a"): List<Activity> = store.activities(account).first()
@@ -120,7 +117,7 @@ class ActivityLogTest {
         wallet.setNoteStrategy(ManualStrategy.ID)
         pay(4_000)
         wallet.refresh()
-        assertIs<RotateResult.Rotated>(wallet.rotateKey(mint.host, LegacyPurpose.LightningAddress.value, 0))
+        assertIs<RotateResult.Rotated>(wallet.rotateKey(mint.host, KeySet.LegacyAddress, 0))
         val rotated = history().single { it.kind == ActivityKind.Rotated }
         assertEquals(4_000, rotated.amountMsat)
         assertEquals(false, rotated.automatic)
@@ -132,7 +129,7 @@ class ActivityLogTest {
         val bearer = Spend.Bearer(ByteVector32(Hex.decode("44".repeat(32))))
         mint.credit(bearer.h.toHex(), 3_000)
         val known = assertNotNull(store.mintMap[mint.host])
-        val q = branchA.notePubkey(LegacyPurpose.Wallet, 0)
+        val q = keysA.pubkey(KeySet.Wallet, 0)
         // A claim that was journaled but never reached the mint (e.g. the app died).
         store.putJournal(
             JournalEntry(

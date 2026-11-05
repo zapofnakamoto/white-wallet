@@ -1,6 +1,5 @@
 package whitewallet.core.wallet
 
-import fr.acinq.bitcoin.MnemonicCode
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -15,8 +14,6 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 /** The developer key page observes the same store as Home, so background changes reach it without its own actions. */
@@ -35,7 +32,7 @@ class KeyViewSyncTest {
                 wallet.setAutoRotate(true)
 
                 val changes = CopyOnWriteArrayList<Unit>()
-                val indexes = CopyOnWriteArrayList<KeyIndexes>()
+                val indexes = CopyOnWriteArrayList<Map<KeySet, Long>>()
                 val observers =
                     listOf(
                         launch(Dispatchers.Default) { wallet.keyViewChanges(mint.host).collect { changes += it } },
@@ -44,21 +41,21 @@ class KeyViewSyncTest {
                 delay(200)
                 val before = changes.size
 
-                val branch = LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
-                mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 0)), 2_000)
+                val keys = testKeys(words, mint.host)
+                mint.credit(Cp1.encode(keys.pubkey(KeySet.LegacyAddress, 0)), 2_000)
                 wallet.refresh() // not one of the page's actions
                 delay(200)
 
                 assertTrue(changes.size > before, "the key view was told something changed")
-                assertEquals(KeyIndexes(wallet = 1, change = 0, addressScanFrom = 1), indexes.last(), "the index flow shows the rotate")
-                val address = wallet.derivedKeys(mint.host, LegacyPurpose.LightningAddress.value).first()
-                val walletKey = wallet.derivedKeys(mint.host, LegacyPurpose.Wallet.value).first()
+                assertEquals(mapOf(KeySet.Wallet to 1L, KeySet.LegacyAddress to 1L), indexes.last(), "the index flow shows the rotate")
+                val address = wallet.derivedKeys(mint.host, KeySet.LegacyAddress).first()
+                val walletKey = wallet.derivedKeys(mint.host, KeySet.Wallet).first()
                 assertEquals(NoteState.Spent, address.noteState)
                 assertEquals(NoteState.Outstanding, walletKey.noteState)
                 // Nothing was looked up from the page, yet every row says what it is.
                 assertEquals(KeyStatus.Spent, address.status)
                 assertEquals(KeyStatus.Funded(walletKey.noteAmountMsat!!), walletKey.status)
-                assertEquals(KeyStatus.Next, wallet.derivedKeys(mint.host, LegacyPurpose.Wallet.value)[1].status)
+                assertEquals(KeyStatus.Next, wallet.derivedKeys(mint.host, KeySet.Wallet)[1].status)
                 observers.forEach { it.cancel() }
             }
         }
