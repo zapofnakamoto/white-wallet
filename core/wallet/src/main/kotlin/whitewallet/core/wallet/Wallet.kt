@@ -101,6 +101,7 @@ class Wallet(
     private val mover = FundsMover(this)
     private val inspector = KeyInspector(this)
     private val rotator = NoteRotator(this)
+    internal val migration = LegacyMigration(this, scanner, addressCheck, rotator)
     private val discovery = IndexDiscovery(this)
     private val indexVerifiedAt = MutableStateFlow<Map<Triple<String, String, KeySet>, Long>>(emptyMap())
     private val policyEngine = NotePolicyEngine(this)
@@ -476,7 +477,14 @@ class Wallet(
         val accountId = activeId()
         val h = Onboarding.normalizeHost(host) ?: return null
         val branch = keysIfSeeded(accountId, h)?.legacy ?: return null
-        return DefaultAddress.names(branch).firstOrNull { addressCheck.check(it, h, accountId) == AddressStatus.Ours }
+        return DefaultAddress.names(branch).firstOrNull { name ->
+            when (addressCheck.check(name, h, accountId)) {
+                AddressStatus.Ours -> true
+                // Registered before the mint moved to LUD-26: the branch key on file proves it by moving it (tag: keys).
+                AddressStatus.Taken -> dialect(h) == MintDialect.Current && migration.move(accountId, name, h) != null
+                else -> false
+            }
+        }
     }
 
     /** The active account's addresses a restore can't find by itself (not seed-derived): to be written down. */
@@ -852,6 +860,7 @@ class Wallet(
             // Without an address there's nothing to check or scan; notes arrive by claim or invoice.
             // First: a held address that was paid may be the account's primary one now.
             store.addresses(id).first().filter { it.feeInvoice != null }.forEach { onboarding.settleHeld(id, it) }
+            migration.run(id)
             val profile = store.currentProfile(id)
             if (profile == null && requireAddress) continue
             if (profile != null) {

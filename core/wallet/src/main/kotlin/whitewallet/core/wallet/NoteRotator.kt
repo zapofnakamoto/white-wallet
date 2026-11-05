@@ -39,7 +39,14 @@ internal class NoteRotator(private val wallet: Wallet) {
     }
 
     /** Every outstanding note on [host] in one of [sets], one at a time. Stops if the mint stops answering. */
-    suspend fun rotateAll(accountId: String, host: String, sets: (KeySet) -> Boolean, automatic: Boolean = false): RotateAllResult {
+    suspend fun rotateAll(
+        accountId: String,
+        host: String,
+        sets: (KeySet) -> Boolean,
+        automatic: Boolean = false,
+        /** Leaves no entry in the history: the money stays where it was, and nobody asked for this. */
+        quiet: Boolean = false,
+    ): RotateAllResult {
         val notes =
             wallet.store
                 .notes(accountId)
@@ -51,7 +58,7 @@ internal class NoteRotator(private val wallet: Wallet) {
         var pending = 0
         var total = 0L
         for (note in notes) {
-            when (val r = rotate(accountId, note, automatic)) {
+            when (val r = rotate(accountId, note, automatic, quiet)) {
                 is RotateResult.Rotated -> {
                     rotated++
                     total += r.amountMsat
@@ -68,7 +75,7 @@ internal class NoteRotator(private val wallet: Wallet) {
         return RotateAllResult(rotated, failed, pending, totalMsat = total, stoppedEarly = null)
     }
 
-    private suspend fun rotate(accountId: String, note: Note, automatic: Boolean): RotateResult {
+    private suspend fun rotate(accountId: String, note: Note, automatic: Boolean, quiet: Boolean = false): RotateResult {
         val result =
             mutator.mutate(
                 fromId = accountId,
@@ -87,30 +94,34 @@ internal class NoteRotator(private val wallet: Wallet) {
                     KeySet.of(out).key(accountId, note.host, out.index!!),
                     KeyProbe.Outstanding(out.amountMsat, out.certificate != null, imported = false, now),
                 )
-                log.record(
-                    id = "op:${result.journalId}",
-                    accountId,
-                    kind = ActivityKind.Rotated,
-                    amountMsat = out.amountMsat.takeIf { it > 0 } ?: note.amountMsat,
-                    note.host,
-                    automatic = automatic,
-                    journalId = result.journalId,
-                )
+                if (!quiet) {
+                    log.record(
+                        id = "op:${result.journalId}",
+                        accountId,
+                        kind = ActivityKind.Rotated,
+                        amountMsat = out.amountMsat.takeIf { it > 0 } ?: note.amountMsat,
+                        note.host,
+                        automatic = automatic,
+                        journalId = result.journalId,
+                    )
+                }
                 RotateResult.Rotated(note.index!!, out.index!!, out.amountMsat, out.certificate != null)
             }
             is MutationResult.Refused -> RotateResult.Failed(result.reason ?: result.kind.name, noAnswer = false)
             is MutationResult.Unreachable -> RotateResult.Failed(result.reason, noAnswer = true)
             is MutationResult.Pending -> {
-                log.record(
-                    id = "op:${result.journalId}",
-                    accountId,
-                    kind = ActivityKind.Rotated,
-                    note.amountMsat,
-                    note.host,
-                    status = ActivityStatus.Pending,
-                    automatic = automatic,
-                    journalId = result.journalId,
-                )
+                if (!quiet) {
+                    log.record(
+                        id = "op:${result.journalId}",
+                        accountId,
+                        kind = ActivityKind.Rotated,
+                        note.amountMsat,
+                        note.host,
+                        status = ActivityStatus.Pending,
+                        automatic = automatic,
+                        journalId = result.journalId,
+                    )
+                }
                 RotateResult.Pending
             }
         }

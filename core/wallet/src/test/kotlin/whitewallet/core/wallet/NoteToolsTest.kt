@@ -67,11 +67,13 @@ class NoteToolsTest {
     fun `recheck all refreshes and reports the notes that are gone`() = withMint { mint ->
         val (store, wallet) = phone(mint)
         wallet.refresh()
+        // On a new key, which a refresh leaves alone; the other phone finds it there and renews it.
+        wallet.rotateNote(store.outstanding().single().id)
         val id = store.outstanding().single().id
         val (_, other) = phone(mint)
-        other.refresh()
-        other.rotateNote(id)
-        // Refreshing finds nothing new on this phone (the address payment is known); the lookup finds it spent.
+        other.recheckAllKeys(mint.host, KeySet.Wallet)
+        assertIs<RotateResult.Rotated>(other.rotateNote(id))
+        // Refreshing finds nothing new on this phone; the lookup finds it spent.
         assertEquals(NotesCheck(checked = 1, gone = 1, unreachable = emptyList()), wallet.recheckNotes())
     }
 

@@ -70,6 +70,10 @@ internal class AddressCheck(private val wallet: Wallet) {
         return proveOwner(name, h, accountId, listOfNotNull(recorded?.share, also) + candidates(accountId, h))
     }
 
+    /** The share of the account the mint holds [name] on, or null if it isn't on one (an address moved earlier, whose answer was lost). */
+    suspend fun provenShare(name: String, host: String, accountId: String): Long? =
+        proveOwner(name, host, accountId, candidates(accountId, host)).takeIf { it.status == AddressStatus.Ours }?.share
+
     /**
      * The account's shares on [host]'s domain that may hold a name: those it handed out, and a few past them that another phone with the
      * same phrase (or this one before a restore) may have handed out. Mints on one domain count shares together.

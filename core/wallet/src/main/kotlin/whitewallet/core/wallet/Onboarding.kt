@@ -228,7 +228,7 @@ internal class Onboarding(private val wallet: Wallet) {
         when (before.status) {
             AddressStatus.Ours -> return ready(true, before.share)
             AddressStatus.Taken,
-            AddressStatus.Unconfirmed -> return taken(name, accountId, h)
+            AddressStatus.Unconfirmed -> return takeBack(name, h, accountId)?.let { ready(true, it) } ?: taken(name, accountId, h)
             is AddressStatus.Invalid -> return OnboardResult.UsernameInvalid(before.status.reason)
             is AddressStatus.CheckFailed -> return OnboardResult.NetworkError(before.status.reason)
             AddressStatus.Available -> Unit
@@ -249,6 +249,16 @@ internal class Onboarding(private val wallet: Wallet) {
             MintDialect.Legacy -> legacyClaim(name, h, accountId, ready)
         }
     }
+
+    /**
+     * Legacy 2f17578 (tag: keys): a name registered before the mint moved to LUD-26 is proven by moving it to a share; the share, or null.
+     */
+    private suspend fun takeBack(name: String, h: String, accountId: String): Long? =
+        try {
+            if (wallet.dialect(h) == MintDialect.Current) wallet.migration.move(accountId, name, h) else null
+        } catch (e: IOException) {
+            null
+        }
 
     /**
      * Registers [name] for the account's next share (LUD-26 POST). The share is reserved durably before its `cx1` goes out, so a lost

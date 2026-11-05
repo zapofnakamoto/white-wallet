@@ -34,6 +34,9 @@ internal object Regtest {
     /** The third mint (1 sat base fee), whose signing key [rotateMint3] changes. */
     const val HOST3 = "localhost:8113"
 
+    /** Starts on lnurl-mint 0.12.2 and is upgraded in place ([upgradeMint4]). */
+    const val HOST4 = "localhost:8115"
+
     /** Charges an address fee of 21 sats (on the current stack). */
     const val HOST5 = "localhost:8116"
 
@@ -153,6 +156,16 @@ internal object Regtest {
         val output = process.inputStream.bufferedReader().readText()
         check(process.waitFor(120, TimeUnit.SECONDS) && process.exitValue() == 0) { "lncli ${args.joinToString(" ")} failed:\n$output" }
         return output
+    }
+
+    /** Puts the fourth mint back on the legacy protocol with an empty database. */
+    fun resetMint4() {
+        run("reset-mint4")
+    }
+
+    /** Upgrades the fourth mint in place, keeping its database, as a production mint upgrades. */
+    fun upgradeMint4() {
+        run("upgrade-mint4")
     }
 
     /** Waits for the settlement poll of [host] to register a held [name]. */
