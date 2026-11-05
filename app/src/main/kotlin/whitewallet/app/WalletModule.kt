@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.AmountUnit
+import whitewallet.core.wallet.AddressFeeChoice
 import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppLockPolicy
@@ -84,6 +85,7 @@ object WalletModule {
             brandTrusted = TrustedMints.parse(BuildConfig.TRUSTED_MINTS),
             maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
             requireAddress = AddressPolicy.fromConfig(BuildConfig.LIGHTNING_ADDRESS) == AddressPolicy.Required,
+            maxAddressFeeMsat = BuildConfig.ADDRESS_FEE_MAX_SATS.takeIf { it > 0 }?.times(1000),
             collectDefaults =
                 CollectDefaults.fromConfig(
                     BuildConfig.COLLECT_AT_HOME_MINT,
@@ -135,6 +137,7 @@ object WalletModule {
             maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
             maxAddresses = AppDefaults.limit(BuildConfig.MAX_ADDRESSES),
             address = AddressPolicy.fromConfig(BuildConfig.LIGHTNING_ADDRESS),
+            addressFee = AddressFeeChoice.fromConfig(BuildConfig.ADDRESS_FEE_ONBOARDING),
             notesView = NotesView.fromConfig(BuildConfig.NOTES_VIEW),
             historyFilter = HistoryFilterOption.fromConfig(BuildConfig.HISTORY_FILTER),
             maintenanceNotices =

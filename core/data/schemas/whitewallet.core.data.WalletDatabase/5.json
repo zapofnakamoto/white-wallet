@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 5,
-    "identityHash": "700010523b615a43550ea26fd076ac85",
+    "identityHash": "6d08ec784926263b99735126a85f373d",
     "entities": [
       {
         "tableName": "accounts",
@@ -543,7 +543,7 @@
       },
       {
         "tableName": "addresses",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `username` TEXT NOT NULL, `addedAtMillis` INTEGER NOT NULL, `share` INTEGER, PRIMARY KEY(`accountId`, `host`, `username`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `username` TEXT NOT NULL, `addedAtMillis` INTEGER NOT NULL, `share` INTEGER, `feeInvoice` TEXT, PRIMARY KEY(`accountId`, `host`, `username`))",
         "fields": [
           {
             "fieldPath": "accountId",
@@ -573,6 +573,11 @@
             "fieldPath": "share",
             "columnName": "share",
             "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "feeInvoice",
+            "columnName": "feeInvoice",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -874,7 +879,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '700010523b615a43550ea26fd076ac85')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6d08ec784926263b99735126a85f373d')"
     ]
   }
 }

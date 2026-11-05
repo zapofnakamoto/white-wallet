@@ -97,4 +97,18 @@
     <string name="restore_test_phrase">Use test phrase (developer mode)</string>
 
     <string name="claimed_body_unconfirmed">It\'s registered, but the app can\'t double-check that payments reach this wallet. Try a small payment first.</string>
+    <string name="address_fee_title">This address has a fee</string>
+    <string name="address_fee_body">This mint charges %1$s to register an address, once. You can reserve the name now and pay when you like.</string>
+    <string name="address_fee_reserve">Reserve and pay</string>
+    <string name="address_fee_skip">Skip for now</string>
+    <string name="address_fee_back">Back</string>
+    <string name="address_held_title">Your address is reserved</string>
+    <string name="address_held_body">Pay %1$s to finish. The mint holds the name for a limited time; if the invoice runs out, you can try again.</string>
+    <string name="address_held_qr">Invoice for the address fee</string>
+    <string name="address_held_copy">Copy invoice</string>
+    <string name="address_held_pay_balance">Pay from balance</string>
+    <string name="address_held_later">Pay later</string>
+    <string name="onboarding_error_fee">This mint asks %1$s for an address, more than the %2$s this app accepts.</string>
+    <string name="onboarding_error_fee_not_paid">The fee could not be paid. The name stays reserved.</string>
+    <string name="onboarding_error_hold_expired">The reservation ran out before the fee was paid. You can try again.</string>
 </resources>

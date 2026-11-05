@@ -239,6 +239,46 @@ services:
       - mint-lnd:/mint-lnd:ro
       - user-lnd:/user-lnd:ro
 
+  # A mint that charges an address fee (LUD-26): its names are held until the fee is paid. lnurl-mint 0.12 ignores the setting.
+  mint5:
+    image: lnurlcash/lnurl-mint:${MINT_VERSION:?set by regtest.sh}
+    restart: unless-stopped
+    depends_on: [mint-lnd]
+    # LND writes its macaroon readable by root only; this dev stack runs the mint as root to read the shared volume.
+    user: root
+    ports:
+      - "127.0.0.1:8116:8116"
+    environment:
+      # The app reaches the mint as localhost:8116 (adb reverse), so that is its public URL and spend domain.
+      BASE_URL: http://localhost:8116
+      USERNAME: mint
+      DATABASE_PATH: /data/mint5.db
+      # lnurl-mint 0.13 credits an address payment when a settlement poll sees it (LUD-26 Crediting); poll often here.
+      ZAP_POLL_INTERVAL_SECONDS: "1"
+      FUNDINGSOURCE_BACKEND: lnd
+      FUNDINGSOURCE_URL: https://mint-lnd:8080
+      FUNDINGSOURCE_CERT_PATH: /lnd/tls.cert
+      MIN_SENDABLE_MSAT: "1000"
+      MIN_MINT_MSAT: "1000"
+      BASE_FEE_MSAT: "1000"
+      FEE_PERCENT_PPM: "0"
+      USERNAME_REGISTRATION_ENABLED: "true"
+      ADDRESS_FEE_MSAT: "21000"
+      TITLE: White Wallet regtest mint 5
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        macaroon=/lnd/data/chain/bitcoin/regtest/admin.macaroon
+        echo "waiting for $$macaroon"
+        until [ -f "$$macaroon" ] && [ -f /lnd/tls.cert ]; do sleep 1; done
+        export FUNDINGSOURCE_MACAROON=$$(python -c 'import sys; print(open(sys.argv[1], "rb").read().hex())' "$$macaroon")
+        echo "waiting for mint-lnd to answer"
+        until python -c 'import os, ssl, urllib.request; urllib.request.urlopen(urllib.request.Request("https://mint-lnd:8080/v1/getinfo", headers={"Grpc-Metadata-macaroon": os.environ["FUNDINGSOURCE_MACAROON"]}), context=ssl.create_default_context(cafile="/lnd/tls.cert"), timeout=5)' 2>/dev/null; do sleep 2; done
+        exec uvicorn lnurl_mint.server:app --host 0.0.0.0 --port 8116
+    volumes:
+      - mint-lnd:/lnd:ro
+      - mint5:/data
+
 volumes:
   bitcoind:
   mint-lnd:
@@ -247,3 +287,4 @@ volumes:
   mint2:
   mint3:
   mint4:
+  mint5:

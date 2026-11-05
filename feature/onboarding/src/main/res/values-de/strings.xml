@@ -92,4 +92,18 @@
     <string name="restore_test_phrase">Testphrase verwenden (Entwicklermodus)</string>
 
     <string name="claimed_body_unconfirmed">Sie ist registriert, aber die App kann nicht gegenprüfen, ob Zahlungen diese Wallet erreichen. Probier zuerst eine kleine Zahlung.</string>
+    <string name="address_fee_title">Diese Adresse kostet eine Gebühr</string>
+    <string name="address_fee_body">Diese Mint verlangt einmalig %1$s für eine Adresse. Du kannst den Namen jetzt reservieren und bezahlen, wann du möchtest.</string>
+    <string name="address_fee_reserve">Reservieren und bezahlen</string>
+    <string name="address_fee_skip">Vorerst überspringen</string>
+    <string name="address_fee_back">Zurück</string>
+    <string name="address_held_title">Deine Adresse ist reserviert</string>
+    <string name="address_held_body">Bezahle %1$s, um abzuschließen. Die Mint hält den Namen nur begrenzte Zeit; läuft die Rechnung ab, kannst du es erneut versuchen.</string>
+    <string name="address_held_qr">Rechnung für die Adressgebühr</string>
+    <string name="address_held_copy">Rechnung kopieren</string>
+    <string name="address_held_pay_balance">Vom Guthaben bezahlen</string>
+    <string name="address_held_later">Später bezahlen</string>
+    <string name="onboarding_error_fee">Diese Mint verlangt %1$s für eine Adresse, mehr als die %2$s, die diese App akzeptiert.</string>
+    <string name="onboarding_error_fee_not_paid">Die Gebühr konnte nicht bezahlt werden. Der Name bleibt reserviert.</string>
+    <string name="onboarding_error_hold_expired">Die Reservierung ist abgelaufen, bevor die Gebühr bezahlt wurde. Du kannst es erneut versuchen.</string>
 </resources>

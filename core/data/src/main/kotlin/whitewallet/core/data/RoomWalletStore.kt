@@ -82,7 +82,7 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
         dao.addresses(accountId).map { list -> list.map { it.toModel() } }
 
     override suspend fun saveAddress(accountId: String, address: RegisteredAddress) =
-        dao.saveAddress(AddressEntity(accountId, address.host, address.username, address.addedAtMillis, address.share))
+        dao.saveAddress(AddressEntity(accountId, address.host, address.username, address.addedAtMillis, address.share, address.feeInvoice))
 
     override suspend fun deleteAddress(accountId: String, username: String, host: String) = dao.deleteAddress(accountId, host, username)
 

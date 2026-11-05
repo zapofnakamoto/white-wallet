@@ -218,6 +218,8 @@ data class RegisteredAddress(
     val addedAtMillis: Long,
     /** The share it is registered for (LUD-26 `S/a'/2/n'`), or null while it is still on the legacy 2f17578 branch `cx1`. */
     val share: Long? = null,
+    /** The invoice of the address fee (LUD-26) the mint holds the name for; null once it is registered. */
+    val feeInvoice: String? = null,
 ) {
     val address: String
         get() = "$username@$host"

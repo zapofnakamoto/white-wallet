@@ -56,6 +56,7 @@ import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.BrandTitle
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletButton
@@ -107,6 +108,7 @@ fun OnboardingRoute(
         onRestore,
         onCancelRestore = viewModel::cancelRestore,
         onSkipAddress = viewModel::skipAddress,
+        fee = FeeActions(viewModel::acceptFee, viewModel::declineFee, viewModel::payFee),
     )
 }
 
@@ -125,8 +127,19 @@ fun OnboardingScreen(
     onRestore: (() -> Unit)? = null,
     onCancelRestore: () -> Unit = {},
     onSkipAddress: () -> Unit = {},
+    fee: FeeActions = FeeActions({}, {}, {}),
 ) {
     val claimed = state.claimed
+    state.feePrompt?.let { AddressFeeDialog(it, state.canSkip, fee) }
+    state.held?.let { held ->
+        Surface(Modifier.fillMaxSize()) {
+            ScreenColumn(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState())) {
+                Spacer(Modifier.height(24.dp))
+                HeldContent(held, state, fee.onPay, onContinue)
+            }
+        }
+        return
+    }
     var confirmCancel by rememberSaveable { mutableStateOf(false) }
     val askCancel = { confirmCancel = true }.takeIf { state.restoringAddress && claimed == null && !state.busy }
     // Back on the address step of a restore asks to cancel it; there is nothing else to go back to.
@@ -289,6 +302,56 @@ fun OnboardingScreen(
     }
 }
 
+/** What the address fee steps can ask for. */
+class FeeActions(val onAccept: () -> Unit, val onDecline: () -> Unit, val onPay: () -> Unit)
+
+@Composable
+private fun AddressFeeDialog(amountMsat: Long, canSkip: Boolean, fee: FeeActions) {
+    WalletDialog(
+        onDismissRequest = fee.onDecline,
+        title = { Text(stringResource(R.string.address_fee_title)) },
+        text = { Text(stringResource(R.string.address_fee_body, formatAmount(amountMsat))) },
+        confirmButton = {
+            WalletButton(kind = ButtonKind.Text, onClick = fee.onAccept) { Text(stringResource(R.string.address_fee_reserve)) }
+        },
+        dismissButton = {
+            WalletButton(kind = ButtonKind.Text, onClick = fee.onDecline) {
+                Text(stringResource(if (canSkip) R.string.address_fee_skip else R.string.address_fee_back))
+            }
+        },
+    )
+}
+
+/** The name is held: the invoice to pay from another wallet, or from the balance, and the way on without waiting. */
+@Composable
+private fun HeldContent(held: HeldAddress, state: OnboardingState, onPay: () -> Unit, onContinue: () -> Unit) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    val invoice = held.address.feeInvoice.orEmpty()
+    Text(stringResource(R.string.address_held_title), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+    Text(
+        held.address.address,
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.primary,
+        textAlign = TextAlign.Center,
+    )
+    Text(stringResource(R.string.address_held_body, formatAmount(held.amountMsat)), textAlign = TextAlign.Center)
+    QrCode("lightning:${invoice.uppercase()}", description = stringResource(R.string.address_held_qr))
+    WalletButton(
+        kind = ButtonKind.Secondary,
+        onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("invoice", invoice))) } },
+    ) {
+        Text(stringResource(R.string.address_held_copy))
+    }
+    if (held.canPayFromBalance) {
+        WalletButton(kind = ButtonKind.Secondary, onClick = onPay, enabled = !state.busy) {
+            Text(stringResource(R.string.address_held_pay_balance))
+        }
+    }
+    ErrorText(state)
+    PrimaryButton(stringResource(R.string.address_held_later), onContinue)
+}
+
 /** What the mint dropdown can ask for. */
 class MintActions(val onSelect: (MintOption) -> Unit, val onCustomHost: (String) -> Unit)
 
@@ -363,6 +426,10 @@ private fun ErrorText(state: OnboardingState) {
     state.error?.let { error ->
         val message =
             when (error) {
+                is OnboardingError.FeeTooHigh ->
+                    stringResource(R.string.onboarding_error_fee, formatAmount(error.amountMsat), formatAmount(error.maxMsat))
+                is OnboardingError.FeeNotPaid -> stringResource(R.string.onboarding_error_fee_not_paid)
+                is OnboardingError.HoldExpired -> stringResource(R.string.onboarding_error_hold_expired)
                 is OnboardingError.Username -> stringResource(R.string.onboarding_error_username, error.detail)
                 is OnboardingError.Registration -> stringResource(R.string.onboarding_error_registration, error.detail)
                 is OnboardingError.Mint -> stringResource(R.string.onboarding_error_mint, error.detail)

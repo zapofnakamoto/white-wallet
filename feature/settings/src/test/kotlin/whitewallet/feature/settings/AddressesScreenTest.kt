@@ -46,6 +46,31 @@ class AddressesScreenTest {
     }
 
     @Test
+    fun aHeldAddressWaitsForItsFeeAndOffersOnlyPayingIt() {
+        var paid = false
+        val held =
+            AddressEntry(RegisteredAddress("bob", "home.example", 2, share = 1, feeInvoice = "lnbc1fee"), primary = false, status = null)
+        compose.setContent {
+            AddressesScreen(
+                AddressesState(listOf(home, held), homeHost = "home.example", otherMints = false),
+                {},
+                {},
+                {},
+                {},
+                AddressActions({}, {}, {}, onPayFee = { paid = true }),
+                {},
+                {},
+                {},
+            )
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.addresses_held_pay)))
+        compose.onNodeWithText(text(R.string.addresses_held)).assertExists()
+        compose.onNodeWithText(text(R.string.addresses_unregister)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_held_pay)).performClick()
+        assertEquals(true, paid)
+    }
+
+    @Test
     fun aLockedBrandShowsNoOtherMint() {
         show(AddressesState(listOf(home), homeHost = "home.example", otherMints = false))
         compose.onNodeWithText(text(R.string.addresses_add_elsewhere)).assertDoesNotExist()

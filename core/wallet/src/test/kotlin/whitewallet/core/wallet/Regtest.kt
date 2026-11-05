@@ -2,6 +2,7 @@ package whitewallet.core.wallet
 
 import java.io.File
 import java.io.IOException
+import java.net.URI
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
@@ -32,6 +33,9 @@ internal object Regtest {
 
     /** The third mint (1 sat base fee), whose signing key [rotateMint3] changes. */
     const val HOST3 = "localhost:8113"
+
+    /** Charges an address fee of 21 sats (on the current stack). */
+    const val HOST5 = "localhost:8116"
 
     private val script = File("../../dev/regtest/regtest.sh").canonicalFile
     private val random = SecureRandom()
@@ -152,6 +156,16 @@ internal object Regtest {
         val output = process.inputStream.bufferedReader().readText()
         check(process.waitFor(120, TimeUnit.SECONDS) && process.exitValue() == 0) { "lncli ${args.joinToString(" ")} failed:\n$output" }
         return output
+    }
+
+    /** Waits for the settlement poll of [host] to register a held [name]. */
+    suspend fun untilRegistered(name: String, host: String) {
+        repeat(30) {
+            if (runCatching { URI("http://$host/.well-known/lnurlp/$name").toURL().readText() }.getOrDefault("").contains("payRequest"))
+                return
+            delay(500)
+        }
+        error("$name was not registered on $host")
     }
 
     /** A wallet with its own store, onboarded with a fresh address on [host]. */

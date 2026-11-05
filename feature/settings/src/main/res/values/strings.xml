@@ -428,4 +428,9 @@
     <string name="developer_network_slow_hint">Every request takes 0.2 seconds longer. Normal again when developer mode is off.</string>
     <string name="developer_network_very_slow_hint">Every request takes 6 seconds longer. Normal again when developer mode is off.</string>
     <string name="developer_network_flaky_hint">Requests take up to 4 seconds longer, and one in five never arrives. Normal again when developer mode is off.</string>
+    <string name="addresses_held">Waiting for payment</string>
+    <string name="addresses_held_copy">Copy invoice</string>
+    <string name="addresses_held_pay">Pay from balance</string>
+    <string name="addresses_held_not_paid">The fee for %1$s could not be paid.</string>
+    <string name="money_error_address_fee">This mint charges for an address, so nothing moved. Pay for it under Settings, Addresses, or change mints without an address.</string>
 </resources>

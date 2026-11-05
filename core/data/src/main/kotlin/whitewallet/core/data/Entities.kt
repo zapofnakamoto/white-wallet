@@ -148,8 +148,10 @@ internal data class AddressEntity(
     val addedAtMillis: Long,
     /** Its LUD-26 share, or null while it is registered for the legacy 2f17578 branch `cx1`. */
     val share: Long? = null,
+    /** The address fee's invoice while the mint holds the name for it. */
+    val feeInvoice: String? = null,
 ) {
-    fun toModel() = RegisteredAddress(username, host, addedAtMillis, share)
+    fun toModel() = RegisteredAddress(username, host, addedAtMillis, share, feeInvoice)
 }
 
 /** Legacy: LUD-26 draft 2f17578. The next index per account, host and legacy purpose (tag: keys). */

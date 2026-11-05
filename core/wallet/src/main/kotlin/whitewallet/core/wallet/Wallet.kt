@@ -67,6 +67,8 @@ class Wallet(
      * mint ([createAccount]) and receives by invoice ([requestInvoice]) until it registers one.
      */
     val requireAddress: Boolean = true,
+    /** The most an address fee may be (brand `addresses.fee.max`), or null for whatever the mint advertises. */
+    internal val maxAddressFeeMsat: Long? = null,
     /** The user's trust choices for mints (see [mints]). */
     private val trust: MintTrustStore = MintTrustStore.InMemory(),
     /** Mints the brand ships as trusted, each with its key (brand `mints.trusted`). */
@@ -319,6 +321,24 @@ class Wallet(
      */
     suspend fun addAddress(username: String, limit: Int, host: String? = null): OnboardResult = lock.withLock {
         onboarding.addAddress(username, limit, host)
+    }
+
+    /** The fee [host] asks to register an address (LUD-26), or null for none. Throws IOException when the mint can't be reached. */
+    suspend fun addressFeeMsat(host: String): Long? = client.servicePayRequest(host).fee?.addressMsat?.takeIf { it > 0 }
+
+    /** Pays held [address]'s fee from the account's notes on its mint, which registers it there and then. */
+    suspend fun payAddressFee(address: RegisteredAddress): PayResult? {
+        val preview = previewPayment(address.feeInvoice ?: return null) as? PayPreview.Ready ?: return null
+        val paid = pay(preview, preview.fixedAmountMsat ?: return null)
+        lock.withLock { onboarding.settleHeld(activeId(), address) }
+        return paid
+    }
+
+    /** Asks the mint about held [address] of the active account: the address as it is now, or null once its hold is over. */
+    suspend fun checkHeldAddress(address: RegisteredAddress): RegisteredAddress? = lock.withLock {
+        val id = activeId()
+        onboarding.settleHeld(id, address)
+        store.addresses(id).first().firstOrNull { it.username == address.username && it.host == address.host }
     }
 
     /** Checks every address of the active account, or only [address], against its mint. */
@@ -830,7 +850,9 @@ class Wallet(
             val id = summary.account.id
             unknownNotes.recheckDue(id)
             // Without an address there's nothing to check or scan; notes arrive by claim or invoice.
-            val profile = summary.profile
+            // First: a held address that was paid may be the account's primary one now.
+            store.addresses(id).first().filter { it.feeInvoice != null }.forEach { onboarding.settleHeld(id, it) }
+            val profile = store.currentProfile(id)
             if (profile == null && requireAddress) continue
             if (profile != null) {
                 addressCheck.check(profile.username, profile.host, id).let { status ->

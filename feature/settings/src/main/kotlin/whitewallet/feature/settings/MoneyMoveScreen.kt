@@ -96,6 +96,9 @@ sealed interface MoneyMoveError {
     data class Mint(val detail: String) : MoneyMoveError
 
     data class Network(val detail: String) : MoneyMoveError
+
+    /** The mint charges for the address: nothing moved, and a name it holds waits under Settings → Addresses. */
+    data object AddressFee : MoneyMoveError
 }
 
 /** After the change or move: the new primary address (if the home changed and the account has one), and per mint what happened. */
@@ -261,6 +264,8 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
                         return _state.update {
                             it.copy(busy = false, preview = null, nameCheck = NameCheck.Taken, suggestions = r.suggestions)
                         }
+                    is OnboardResult.AwaitingFee,
+                    is OnboardResult.FeeRefused -> return fail(MoneyMoveError.AddressFee)
                     is OnboardResult.UsernameInvalid -> return fail(MoneyMoveError.Name(r.reason))
                     is OnboardResult.RegistrationFailed -> return fail(MoneyMoveError.Registration(r.reason.orEmpty()))
                     is OnboardResult.NetworkError -> return fail(MoneyMoveError.Network(r.reason))
@@ -485,6 +490,7 @@ private fun ErrorText(error: MoneyMoveError) {
             is MoneyMoveError.Registration -> stringResource(R.string.money_error_registration, error.detail)
             is MoneyMoveError.Mint -> stringResource(R.string.money_error_mint, error.detail)
             is MoneyMoveError.Network -> stringResource(R.string.money_error_network, error.detail)
+            MoneyMoveError.AddressFee -> stringResource(R.string.money_error_address_fee)
         }
     Text(text, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
 }

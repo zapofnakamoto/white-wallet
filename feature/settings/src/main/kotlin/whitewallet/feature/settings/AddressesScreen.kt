@@ -52,6 +52,7 @@ import whitewallet.core.wallet.AddressEntry
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.wallet.PayResult
 import whitewallet.core.wallet.UnregisterResult
 import whitewallet.core.wallet.Wallet
 
@@ -95,6 +96,9 @@ sealed interface AddressesMessage {
     data class Unknown(val address: String, val reason: String) : AddressesMessage
 
     data class PrimaryChanged(val address: String) : AddressesMessage
+
+    /** Its fee could not be paid from the balance; it stays held. */
+    data class FeeNotPaid(val address: String) : AddressesMessage
 }
 
 private data class AddressesUi(
@@ -147,6 +151,10 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
         ui.update { it.copy(message = AddressesMessage.PrimaryChanged(address.address)) }
     }
 
+    fun payFee(address: RegisteredAddress) = act {
+        if (wallet.payAddressFee(address) !is PayResult.Paid) ui.update { it.copy(message = AddressesMessage.FeeNotPaid(address.address)) }
+    }
+
     fun askUnregister(address: RegisteredAddress) = ui.update { it.copy(confirm = address, message = null) }
 
     fun dismissUnregister() = ui.update { it.copy(confirm = null) }
@@ -189,6 +197,7 @@ class AddressActions(
     val onCheck: (RegisteredAddress) -> Unit,
     val onMakePrimary: (RegisteredAddress) -> Unit,
     val onUnregister: (RegisteredAddress) -> Unit,
+    val onPayFee: (RegisteredAddress) -> Unit = {},
 )
 
 @Composable
@@ -206,7 +215,7 @@ fun AddressesRoute(
         onAdd,
         onChangePrimary,
         onCheckAll = viewModel::checkAll,
-        actions = AddressActions(viewModel::check, viewModel::makePrimary, viewModel::askUnregister),
+        actions = AddressActions(viewModel::check, viewModel::makePrimary, viewModel::askUnregister, viewModel::payFee),
         onConfirmUnregister = viewModel::confirmUnregister,
         onDismissUnregister = viewModel::dismissUnregister,
         onAddElsewhere,
@@ -292,6 +301,21 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
                     )
                 }
             }
+            if (a.feeInvoice != null) {
+                Text(stringResource(R.string.addresses_held), style = MaterialTheme.typography.bodySmall)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    WalletButton(
+                        kind = ButtonKind.Text,
+                        onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("invoice", a.feeInvoice))) } },
+                    ) {
+                        Text(stringResource(R.string.addresses_held_copy))
+                    }
+                    WalletButton(kind = ButtonKind.Text, onClick = { actions.onPayFee(a) }, enabled = !state.busy) {
+                        Text(stringResource(R.string.addresses_held_pay))
+                    }
+                }
+                return@Column
+            }
             if (checking) Text(stringResource(R.string.addresses_checking), style = MaterialTheme.typography.bodySmall)
             else StatusLine(entry.status)
             if (entry.primary && state.entries.size > 1) {
@@ -352,6 +376,7 @@ private fun StatusLine(status: AddressStatus?) {
 private fun MessageText(message: AddressesMessage) {
     val (text, error) =
         when (message) {
+            is AddressesMessage.FeeNotPaid -> stringResource(R.string.addresses_held_not_paid, message.address) to true
             is AddressesMessage.Unregistered -> stringResource(R.string.addresses_unregistered, message.address) to false
             is AddressesMessage.NotOurs -> stringResource(R.string.addresses_not_ours, message.address) to true
             is AddressesMessage.Failed -> stringResource(R.string.addresses_unregister_failed, message.address, message.reason) to true

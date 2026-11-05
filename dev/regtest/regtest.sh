@@ -276,6 +276,7 @@ await_credited() {
         http://localhost:8112/*) service=mint2 db=mint2 ;;
         http://localhost:8113/*) service=mint3 db=mint3 ;;
         http://localhost:8115/*) service=mint4 db=mint4 ;;
+        http://localhost:8116/*) service=mint5 db=mint5 ;;
         *) return 0 ;;
     esac
     hash="$(lncli_user decodepayreq "$invoice" | jq -r '.payment_hash')"

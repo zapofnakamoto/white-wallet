@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.wallet.AddressFeeChoice
 import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
@@ -19,8 +21,11 @@ import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.CreateAccountResult
 import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.OnboardResult
+import whitewallet.core.wallet.PayPreview
+import whitewallet.core.wallet.PayResult
 import whitewallet.core.wallet.UsernameSuggestions
 import whitewallet.core.wallet.Wallet
+import whitewallet.lnurlcash.protocol.ProtocolViolation
 
 /** Live result of checking the typed name on the mint. */
 sealed interface Availability {
@@ -40,6 +45,9 @@ sealed interface Availability {
 }
 
 data class Claimed(val address: String, val confirmed: Boolean)
+
+/** A name the mint holds until its fee is paid. [canPayFromBalance]: the account's notes cover the invoice. */
+data class HeldAddress(val address: RegisteredAddress, val amountMsat: Long, val canPayFromBalance: Boolean)
 
 /** What the address form is for. */
 enum class OnboardingMode {
@@ -99,6 +107,9 @@ data class OnboardingState(
     val busy: Boolean = false,
     val error: OnboardingError? = null,
     val claimed: Claimed? = null,
+    /** The address fee the mint asks, for the user to accept or decline. */
+    val feePrompt: Long? = null,
+    val held: HeldAddress? = null,
     val done: Boolean = false,
     /** For [OnboardingMode.RestoreAddress]: what the restore found. */
     val restoredMsat: Long = 0,
@@ -141,6 +152,15 @@ data class OnboardingState(
 
 sealed interface OnboardingError {
     val detail: String
+
+    /** The mint asks [amountMsat] for the address; at most [maxMsat] is accepted. */
+    data class FeeTooHigh(val amountMsat: Long, val maxMsat: Long, override val detail: String = "") : OnboardingError
+
+    /** Paying the fee from the balance failed; the address stays held. */
+    data class FeeNotPaid(override val detail: String = "") : OnboardingError
+
+    /** The name's hold ran out unpaid. */
+    data class HoldExpired(override val detail: String = "") : OnboardingError
 
     data class Username(override val detail: String) : OnboardingError
 
@@ -331,8 +351,74 @@ constructor(
         }
     }
 
+    /** Takes the fee the mint asks: the name is held for it. */
+    fun acceptFee() {
+        val s = _state.value
+        _state.update { it.copy(feePrompt = null) }
+        busy { claim(s) }
+    }
+
+    /** Declines the fee: on without an address where that is allowed, else back to the form. */
+    fun declineFee() {
+        _state.update { it.copy(feePrompt = null) }
+        skipAddress()
+    }
+
+    /** Pays the held address's fee from the account's notes. */
+    fun payFee() {
+        val held = _state.value.held ?: return
+        busy {
+            if (wallet.payAddressFee(held.address) is PayResult.Paid) checkHeld(held) else fail(OnboardingError.FeeNotPaid())
+        }
+    }
+
+    /** Whether the name is registered yet, or its hold is over. */
+    private suspend fun checkHeld(held: HeldAddress) {
+        val now = wallet.checkHeldAddress(held.address)
+        when {
+            now == null -> _state.update { it.copy(busy = false, held = null, error = OnboardingError.HoldExpired()) }
+            now.feeInvoice == null ->
+                _state.update {
+                    it.copy(busy = false, held = null, claimed = Claimed(now.address, true), availability = Availability.Yours)
+                }
+            else -> _state.update { it.copy(busy = false) }
+        }
+    }
+
+    /** The invoice may be paid from another wallet: watches for it while the screen shows it. */
+    private fun watchHeld() {
+        viewModelScope.launch {
+            while (true) {
+                delay(HELD_CHECK_MILLIS)
+                val held = _state.value.held ?: return@launch
+                if (!_state.value.busy) checkHeld(held)
+            }
+        }
+    }
+
     private suspend fun submit(s: OnboardingState) {
         if (!s.withAddress) return createAccount(s)
+        val fee =
+            try {
+                wallet.addressFeeMsat(s.host)
+            } catch (e: ProtocolViolation) {
+                null
+            }
+        // Only a new account follows the brand's choice; from Settings the user always sees the fee first.
+        val choice =
+            if (fee == null) AddressFeeChoice.Reserve
+            else if (s.forExistingAccount && !s.restoringAddress) AddressFeeChoice.Ask else defaults.addressFee
+        when {
+            choice == AddressFeeChoice.Reserve -> claim(s)
+            choice == AddressFeeChoice.Skip && s.canSkip -> {
+                _state.update { it.copy(busy = false) }
+                skipAddress()
+            }
+            else -> _state.update { it.copy(busy = false, feePrompt = fee) }
+        }
+    }
+
+    private suspend fun claim(s: OnboardingState) {
         val result =
             when (s.mode) {
                 OnboardingMode.FirstRun -> wallet.onboard(s.username, s.host, defaultAccountName)
@@ -347,6 +433,12 @@ constructor(
                 _state.update {
                     it.copy(busy = false, claimed = Claimed(result.profile.address, result.confirmed), availability = Availability.Yours)
                 }
+            is OnboardResult.AwaitingFee -> {
+                val payable = wallet.previewPayment(result.address.feeInvoice.orEmpty()) is PayPreview.Ready
+                _state.update { it.copy(busy = false, held = HeldAddress(result.address, result.amountMsat, payable)) }
+                watchHeld()
+            }
+            is OnboardResult.FeeRefused -> fail(OnboardingError.FeeTooHigh(result.amountMsat, result.maxMsat))
             is OnboardResult.UsernameTaken ->
                 _state.update {
                     it.copy(busy = false, availability = Availability.Taken, suggestions = result.suggestions)
@@ -447,6 +539,7 @@ constructor(
 
     private companion object {
         const val DEBOUNCE_MILLIS = 500L
+        private const val HELD_CHECK_MILLIS = 3_000L
     }
 }
 

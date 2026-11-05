@@ -233,6 +233,7 @@ internal object Migration4To5 : Migration(4, 5) {
         db.execSQL("ALTER TABLE notes ADD COLUMN `scheme` INTEGER NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE notes ADD COLUMN `share` INTEGER")
         db.execSQL("ALTER TABLE addresses ADD COLUMN `share` INTEGER")
+        db.execSQL("ALTER TABLE addresses ADD COLUMN `feeInvoice` TEXT")
 
         // The primary key gains the scheme and share: a new table, the old rows as legacy keys.
         db.execSQL(

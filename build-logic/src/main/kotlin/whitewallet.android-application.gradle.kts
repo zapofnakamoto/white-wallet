@@ -122,6 +122,8 @@ android {
         buildConfigField("boolean", "SHOW_MINTS", brand.getProperty("mints.visible", "true").trim().toBooleanStrict().toString())
         buildConfigField("int", "MAX_ACCOUNTS", brand.getProperty("accounts.max", "0").trim())
         buildConfigField("int", "MAX_ADDRESSES", brand.getProperty("addresses.max", "1").trim())
+        buildConfigField("String", "ADDRESS_FEE_ONBOARDING", "\"${brand.getProperty("addresses.fee.onboarding", "ask").trim()}\"")
+        buildConfigField("long", "ADDRESS_FEE_MAX_SATS", "${brand.getProperty("addresses.fee.max", "0").trim()}L")
         buildConfigField("String", "NOTE_STRATEGIES", "\"${brand.getProperty("notes.strategies", "single,manual").trim()}\"")
         buildConfigField("String", "DEFAULT_NOTE_STRATEGY", "\"${brand.getProperty("notes.strategy.default", "manual").trim()}\"")
         // Timings, in milliseconds (see "Timings" in docs/WHITE_LABEL.md).

@@ -111,6 +111,22 @@ enum class NoteAction(
 }
 
 /** Whether accounts have a Lightning address (brand `addresses.lightning`). */
+/** What setup does when a mint charges for an address (brand `addresses.fee.onboarding`). */
+enum class AddressFeeChoice {
+    /** Shows the fee and lets the user choose. */
+    Ask,
+
+    /** Holds the name and asks for the fee. */
+    Reserve,
+
+    /** Goes on without an address, where the brand allows that. */
+    Skip;
+
+    companion object {
+        fun fromConfig(value: String): AddressFeeChoice = configEnum("addresses.fee.onboarding", value)
+    }
+}
+
 enum class AddressPolicy {
     /** Setup asks for a name and can't continue without one. */
     Required,
@@ -203,6 +219,8 @@ data class AppDefaults(
     val maxAddresses: Int = 1,
     /** Whether setup asks for a Lightning address and may go on without one (brand `addresses.lightning`); see [Wallet.requireAddress]. */
     val address: AddressPolicy = AddressPolicy.Optional,
+    /** What setup does when a mint charges for an address (brand `addresses.fee.onboarding`). */
+    val addressFee: AddressFeeChoice = AddressFeeChoice.Ask,
     /** Where users see and manage their notes (brand `notes.view`). */
     val notesView: NotesView = NotesView.Tab,
     /** Which filters the History tab offers (brand `history.filter`). */

@@ -420,4 +420,9 @@
     <string name="developer_network_slow_hint">Jede Anfrage dauert 0,2 Sekunden länger. Wieder normal, wenn der Entwicklermodus aus ist.</string>
     <string name="developer_network_very_slow_hint">Jede Anfrage dauert 6 Sekunden länger. Wieder normal, wenn der Entwicklermodus aus ist.</string>
     <string name="developer_network_flaky_hint">Anfragen dauern bis zu 4 Sekunden länger, und jede fünfte kommt nie an. Wieder normal, wenn der Entwicklermodus aus ist.</string>
+    <string name="addresses_held">Wartet auf Zahlung</string>
+    <string name="addresses_held_copy">Rechnung kopieren</string>
+    <string name="addresses_held_pay">Vom Guthaben bezahlen</string>
+    <string name="addresses_held_not_paid">Die Gebühr für %1$s konnte nicht bezahlt werden.</string>
+    <string name="money_error_address_fee">Diese Mint verlangt eine Gebühr für die Adresse, daher wurde nichts verschoben. Bezahle sie in den Einstellungen unter Adressen oder wechsle die Mint ohne Adresse.</string>
 </resources>
