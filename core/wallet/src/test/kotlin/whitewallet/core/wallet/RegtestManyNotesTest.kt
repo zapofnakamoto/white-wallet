@@ -15,6 +15,7 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
+import whitewallet.lnurlcash.client.LnurlcashClient
 
 /**
  * More notes than one merge request may spend, against the real mint: lnurl-mint refuses more than 100, and a proxy may refuse a long URL
@@ -159,6 +160,70 @@ class RegtestManyNotesTest {
 
             val moved = assertIs<MoveResult.Moved>(phone.wallet.moveFunds(savings, null))
             assertEquals(mapOf(main to 0L, savings to moved.amountMsat), phone.balances())
+        }
+
+    @Test
+    fun `a phrase brings back a wallet of more notes than one request may spend, and it can spend them`() =
+        runBlocking<Unit> {
+            val alice = phone(WalletSettings())
+            alice.fundNotes(105)
+            val store = InMemoryWalletStore()
+            val restored = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
+            val result = assertIs<RestoreResult.Restored>(restored.restore(alice.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
+            assertEquals(105, result.notes)
+            assertEquals(alice.balance(), result.balanceMsat)
+            val sats = result.balanceMsat / 1000 - 5
+            val preview = restored.previewPayment(Regtest.invoice(sats)) as PayPreview.Ready
+            assertIs<PayResult.Paid>(restored.pay(preview, sats * 1000))
+        }
+
+    @Test
+    fun `combining, moving to another account and moving to another mint all take more notes than one request may spend`() =
+        runBlocking<Unit> {
+            val alice = phone(WalletSettings())
+            alice.fundNotes(105)
+            val before = alice.balance()
+            assertIs<NoteActionResult.Done>(alice.wallet.combineNotes(alice.notes().map { it.id }))
+            assertEquals(1, alice.notes().size)
+            assertTrue(alice.balance() >= before)
+
+            val (phone, main, savings) = accounts()
+            phone.fundNotes(105)
+            val moved = assertIs<MoveResult.Moved>(phone.wallet.moveFunds(savings, null))
+            assertEquals(mapOf(main to 0L, savings to moved.amountMsat), phone.balances())
+
+            val bob = phone(WalletSettings())
+            bob.wallet.payWaitMillis = 5_000
+            bob.fundNotes(105)
+            assertIs<MintMoveResult.Moved>(bob.wallet.moveToMint(bob.notes().map { it.id }, HOST2))
+            assertEquals(1, bob.notes(HOST2).size)
+            assertEquals(10, mostNotesInARequest)
+        }
+
+    @Test
+    fun `renewing every note of a wallet of many notes renews them all`() =
+        runBlocking<Unit> {
+            val alice = phone(WalletSettings())
+            alice.fundNotes(105)
+            val before = alice.notes().map { it.id }.toSet()
+            val balance = alice.balance()
+            for (set in listOf(KeySet.Wallet, KeySet.Change)) alice.wallet.rotateAllKeys(HOST, set)
+            assertEquals(105, alice.notes().size)
+            assertEquals(balance, alice.balance(), "a renewal is free")
+            assertTrue(alice.notes().none { it.id in before }, "every note is on a new key")
+        }
+
+    @Test
+    fun `the keep one note strategy brings a wallet of many notes down to one, however many runs it takes`() =
+        runBlocking<Unit> {
+            val alice = phone(WalletSettings())
+            alice.fundNotes(105)
+            val before = alice.balance()
+            alice.wallet.setNoteStrategy(SingleNoteStrategy.ID)
+            alice.wallet.refresh()
+            assertEquals(1, alice.notes().size)
+            assertTrue(alice.balance() >= before, "a merge never loses value")
+            assertEquals(10, mostNotesInARequest)
         }
 
     private companion object {

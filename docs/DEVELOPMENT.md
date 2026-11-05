@@ -243,6 +243,23 @@ The actions themselves (`NoteManager`, via `Wallet.combineNotes` / `splitNote` /
 
 Tests: `NotesTest` (mock mint plus a small fake target mint: combine, split limits, move, failed move, wrong invoice) and `RegtestE2ETest` (a move to the second regtest mint over Lightning and back).
 
+## What a mint refuses
+
+What lnurl-mint 0.13.1 enforces, from its source. To read it: `docker create lnurlcash/lnurl-mint:0.13.1`, then `docker export` it; the code is in `/app/lnurl_mint`, and the defaults in `config.py`. Check this list when the pin moves.
+
+| Rule | Told to wallets? | What the wallet does |
+|---|---|---|
+| At most `max_k1s` notes per request, default 100 | No | `NoteMutator.merge` sends 10 at a time |
+| A received amount within `min_sendable_msat`..`max_sendable_msat`, and at least `min_mint_msat` after fees | Range yes, `min_mint_msat` through `minSendable` | Checks the range before asking (`InvoiceReceiver`, `quoteMove`) |
+| Fee on minting: `base_fee_msat` plus `fee_ppm` | Yes, `Mint fees` | `MintFee.noteValue`. Splits and merge refunds use the base fee alone |
+| A comment of at most `commentAllowed`, 64 | Yes | Cut to fit |
+| Usernames `^[a-z0-9_.-]{1,32}$`, not a mint's own name | The pattern no | Same pattern in `Onboarding`; a mint's own name reads as taken |
+| No melt into an invoice this mint issued | No | Fails as `PayProblem.Refused` after any split, which costs the split's fee (`RegtestMintRulesTest`) |
+| No melt into an invoice melted before | No | The same |
+| A sunsetting mint (`sunset_mint`): no minting, no splits | No | Not handled by name: they fail as refused. Whole notes can still leave. Not tested: no regtest mint runs in this mode |
+
+Rate limits: lnurl-mint has none, though a proxy in front of a mint may.
+
 ## Trusted mints
 
 Mints exist twice in Settings, for the device and for the account. **Settings → Mints** (`MintsScreen`, `Wallet.mints`) is the device's: every mint the wallet has used, all accounts together (`WalletStore.mints`, plus mints any account holds notes of), with its pinned signing key, a **Trusted** switch and which accounts have it as their home (`MintInfo.homeOf`); nothing about any account's money. A mint can be added by its address (`Wallet.addMint`, which connects and pins the key) to trust it before anything arrives from it, and removed on its page (opened from here in device mode, `MintDetailsState.device`: only the mint's own information). `Wallet.removeMint` refuses while any account has its home, a note that isn't spent, an address or an unsettled journal entry there (`MintUse`); otherwise it deletes the mint row (the pinned key) and the trust choice for it (`MintTrustStore.forget`), so adding it again is a first contact, as after a restore. Notes and history are never touched. **Account → Your mints** (`AccountMintsScreen`, `Wallet.accountMints`) is the active account's: its home first, then every mint where it has money or an address, with its money there; a mint's page opened from here adds what the account can do on it (change or make home, "Move…", on the home "Move all money here" (`MoneyMoveMode.MoveHome`), the watch-only key). Tests: `OnboardingTest` (two accounts on different homes, removal), `MintsScreenTest`, `SettingsScreensTest`.
