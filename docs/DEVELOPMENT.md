@@ -258,11 +258,13 @@ What lnurl-mint 0.13.1 enforces, from its source. To read it: `docker create lnu
 | Fee on minting: `base_fee_msat` plus `fee_ppm` | Yes, `Mint fees` | `MintFee.noteValue`. Splits and merge refunds use the base fee alone |
 | A comment of at most `commentAllowed`, 64 | Yes | Cut to fit |
 | Usernames `^[a-z0-9_.-]{1,32}$`, not a mint's own name | The pattern no | Same pattern in `Onboarding`; a mint's own name reads as taken |
-| No melt into an invoice this mint issued | No | Fails as `PayProblem.Refused` after any split, which costs the split's fee (`RegtestMintRulesTest`) |
-| No melt into an invoice melted before | No | The same |
+| No melt into an invoice this mint issued | No | Told from the mint's wording: `PayProblem.OwnMintInvoice`, after any split, which costs the split's fee (`RegtestMintRulesTest`) |
+| No melt into an invoice melted before, even one whose payment failed | No | The same, as `PayProblem.InvoiceUsed`. So only a pay link offers "Try again" |
 | A sunsetting mint (`sunset_mint`): no minting, no splits | No | Not handled by name: they fail as refused. Whole notes can still leave. Not tested: no regtest mint runs in this mode |
 
 Rate limits: lnurl-mint has none, though a proxy in front of a mint may.
+
+Any other refusal of a payment shows the generic text with the mint's own sentence under it (`PayResult.Failed.mintMessage`), labelled as the mint's: one line of plain text, cut to `payment.mint.message.max.characters`. It is only on that screen, not in the history. The two sentences above are lnurl-mint's wording, not the spec's, so if a mint rewords them they come out this way too.
 
 ## Trusted mints
 

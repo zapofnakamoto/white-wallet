@@ -122,6 +122,9 @@
     <string name="receive_hint">Anyone can pay this address from any Lightning wallet. Payments arrive as banknotes in this wallet.</string>
     <string name="receive_claim">Claim a banknote instead</string>
     <string name="send_create_note">Create a banknote</string>
+    <string name="send_problem_refused">The provider refused this payment.</string>
+    <string name="send_problem_own_mint_invoice">This invoice is from your own provider, which can\'t pay itself over Lightning. Ask for a Lightning address instead.</string>
+    <string name="send_problem_mint_message">Message from the provider: “%1$s”</string>
     <string name="note_create_title">Send as a banknote</string>
     <string name="note_create_body">Make a banknote worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
     <string name="note_available">You can make a banknote of up to %1$s.</string>

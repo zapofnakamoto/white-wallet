@@ -198,6 +198,10 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `receive_hint` | Anyone can pay this address from any Lightning wallet. Payments arrive as notes in this wallet. |
 | `receive_claim` | Claim a note instead |
 | `send_create_note` | Create a note |
+| `send_problem_refused` | The mint refused this payment. |
+| `send_problem_own_mint_invoice` | This invoice is from your own mint, which can't pay itself over Lightning. Ask for a Lightning address instead. |
+| `send_problem_invoice_used` | This invoice was already used. Ask for a new one. |
+| `send_problem_mint_message` | Message from the mint: "%1$s" |
 | `note_create_title` | Send as a note |
 | `note_create_body` | Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet. |
 | `note_available` | You can make a note of up to %1$s. |

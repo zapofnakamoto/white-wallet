@@ -1,5 +1,8 @@
 package whitewallet.feature.send
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -9,8 +12,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.core.wallet.PayDestination
+import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayResult
+import whitewallet.lnurl.Bolt11Invoice
 
 @RunWith(RobolectricTestRunner::class)
 class SendScreenTest {
@@ -51,5 +57,44 @@ class SendScreenTest {
         compose.onNodeWithText(text(R.string.send_fee, "₿1")).assertExists()
         compose.onNodeWithText(text(R.string.send_more)).performScrollTo().performClick()
         assertTrue(more)
+    }
+
+    private val payLink =
+        PayPreview.Ready(
+            PayDestination.PayLink("https://mint.example/p", "https://mint.example/cb", "[]", 1_000, 1_000_000, 0, null),
+            fixedAmountMsat = null,
+            minMsat = 1_000,
+            maxMsat = 1_000_000,
+            commentMaxLength = 0,
+            payee = "bob@mint.example",
+            description = null,
+            availableMsat = 1_000_000,
+        )
+
+    @Test
+    fun aRefusalTheWalletDoesNotKnowShowsTheMintsWordsAsTheMints() {
+        val failed = PayResult.Failed(PayProblem.Refused, "Closed for maintenance.")
+        compose.setContent { SendScreen(SendState(preview = payLink, result = failed), onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_problem_refused)).assertExists()
+        compose.onNodeWithText(text(R.string.send_problem_mint_message, "Closed for maintenance.")).assertExists()
+    }
+
+    @Test
+    fun aRefusalTheWalletKnowsIsToldInItsOwnWordsOnly() {
+        val failed = PayResult.Failed(PayProblem.OwnMintInvoice)
+        compose.setContent { SendScreen(SendState(preview = payLink, result = failed), onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_problem_own_mint_invoice)).assertExists()
+        compose.onNodeWithText(text(R.string.send_problem_mint_message, ""), substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun onlyAPayLinkOffersToTryAgainAfterAFailedPayment() {
+        val invoice = Bolt11Invoice("lnbc1…", "bc", 1_000_000, 0, "00", null, null, 3600, null)
+        var preview by mutableStateOf(payLink)
+        val failed = PayResult.Failed(PayProblem.PaymentFailed)
+        compose.setContent { SendScreen(SendState(preview = preview, result = failed), onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_try_again)).assertExists()
+        preview = payLink.copy(destination = PayDestination.Invoice(invoice))
+        compose.onNodeWithText(text(R.string.send_try_again)).assertDoesNotExist()
     }
 }

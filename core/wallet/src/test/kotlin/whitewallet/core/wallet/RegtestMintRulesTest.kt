@@ -10,6 +10,8 @@ import org.junit.jupiter.api.BeforeEach
 class RegtestMintRulesTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 
+    private suspend fun ready(phone: Regtest.Phone, invoice: String) = assertIs<PayPreview.Ready>(phone.wallet.previewPayment(invoice))
+
     @Test
     fun `an invoice of the payer's own mint can't be paid, it costs the split, and the notes stay`() =
         runBlocking<Unit> {
@@ -19,12 +21,12 @@ class RegtestMintRulesTest {
             val before = alice.balance()
             val invoice = assertIs<InvoiceRequest.Ready>(bob.wallet.requestInvoice(1_000_000)).invoice
             val preview = alice.wallet.previewPayment(invoice) as PayPreview.Ready
-            assertEquals(PayResult.Failed(PayProblem.Refused), alice.wallet.pay(preview, 1_000_000))
+            assertEquals(PayResult.Failed(PayProblem.OwnMintInvoice), alice.wallet.pay(preview, 1_000_000))
             assertEquals(before - 1_000, alice.balance(), "the split went through before the mint refused the melt")
             assertEquals(1, alice.notes().count { it.amountMsat == 1_000_000L })
 
             // The note of the amount exists now, so asking again costs nothing.
-            assertEquals(PayResult.Failed(PayProblem.Refused), alice.wallet.pay(preview, 1_000_000))
+            assertEquals(PayResult.Failed(PayProblem.OwnMintInvoice), alice.wallet.pay(preview, 1_000_000))
             assertEquals(before - 1_000, alice.balance())
         }
 
@@ -40,8 +42,41 @@ class RegtestMintRulesTest {
             )
             val paid = alice.balance()
             val again = alice.wallet.previewPayment(invoice) as PayPreview.Ready
-            assertEquals(PayResult.Failed(PayProblem.Refused), alice.wallet.pay(again, 1_000_000))
+            assertEquals(PayResult.Failed(PayProblem.InvoiceUsed), alice.wallet.pay(again, 1_000_000))
             assertEquals(paid - 1_000, alice.balance(), "only the split")
+        }
+
+    @Test
+    fun `an invoice whose payment failed can't be tried again, and costs nothing more`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(2000)
+            val hold = Regtest.holdInvoice(1999)
+            hold.cancel()
+            assertEquals(PayResult.Failed(PayProblem.PaymentFailed), alice.wallet.pay(ready(alice, hold.invoice), 1_999_000))
+            alice.wallet.refresh()
+            val before = alice.balance()
+            assertEquals(PayResult.Failed(PayProblem.InvoiceUsed), alice.wallet.pay(ready(alice, hold.invoice), 1_999_000))
+            assertEquals(before, alice.balance())
+        }
+
+    @Test
+    fun `a refusal the wallet doesn't recognize keeps the mint's words, and the notes`() =
+        runBlocking<Unit> {
+            val client = Regtest.client { chain ->
+                if (chain.request().url.queryParameter("pr") != null) {
+                    Regtest.answer(chain, """{"status":"ERROR","reason":"Closed\nfor maintenance."}""")
+                } else chain.proceed(chain.request())
+            }
+            val alice = Regtest.phone(client = client)
+            alice.fund(2000)
+            val before = alice.balance()
+            val invoice = Regtest.invoice(1999)
+            assertEquals(
+                PayResult.Failed(PayProblem.Refused, "Closed for maintenance."),
+                alice.wallet.pay(ready(alice, invoice), 1_999_000),
+            )
+            assertEquals(before, alice.balance())
         }
 
     @Test

@@ -17,6 +17,7 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.protocol.RejectionKind
 import whitewallet.testkit.MockMint
 
 class PayTest {
@@ -199,5 +200,20 @@ class PayTest {
         }
 
         override fun close() = server.close()
+    }
+
+    @Test
+    fun `a mint's words are shown as one short line, without anything hidden in them`() {
+        assertEquals("Closed for maintenance.", Payer.mintMessage(" Closed\n\tfor\u202E maintenance. ", 200))
+        assertEquals("Close", Payer.mintMessage("Closed", 5))
+        assertNull(Payer.mintMessage("\n ", 200))
+        assertNull(Payer.mintMessage(null, 200))
+    }
+
+    @Test
+    fun `the mint's two invoice refusals are told apart from any other`() {
+        assertEquals(RejectionKind.OwnInvoice, RejectionKind.fromReason("Cannot melt into an invoice this mint issued itself."))
+        assertEquals(RejectionKind.InvoiceUsed, RejectionKind.fromReason("Invoice already used by an earlier melt - use a fresh one."))
+        assertEquals(RejectionKind.Other, RejectionKind.fromReason("Closed for maintenance."))
     }
 }

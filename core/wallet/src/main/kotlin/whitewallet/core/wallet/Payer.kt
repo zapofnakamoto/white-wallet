@@ -79,6 +79,12 @@ enum class PayProblem {
     /** The mint refused the payment; nothing was paid. */
     Refused,
 
+    /** The invoice is the mint's own: it can't pay itself over Lightning. */
+    OwnMintInvoice,
+
+    /** An earlier payment used the invoice, whether it went through or not: only a new one can be paid. */
+    InvoiceUsed,
+
     /** The mint tried and the payment failed; the money is back. */
     PaymentFailed,
 }
@@ -125,7 +131,11 @@ sealed interface PayResult {
     /** Sent; the payment's outcome isn't known yet. A later refresh settles it (see [Reconciler]). */
     data class Pending(val amountMsat: Long) : PayResult
 
-    data class Failed(val problem: PayProblem) : PayResult
+    data class Failed(
+        val problem: PayProblem,
+        /** The mint's own words for a refusal the wallet doesn't recognize: its text, in its language, never the app's. */
+        val mintMessage: String? = null,
+    ) : PayResult
 }
 
 /**
@@ -359,7 +369,7 @@ internal class Payer(private val wallet: Wallet) {
             is MeltOutcome.Paid -> PayResult.Paid(amount, feeMsat.coerceAtLeast(0))
             is MeltOutcome.Pending -> PayResult.Pending(amount)
             is MeltOutcome.PaymentFailed -> PayResult.Failed(PayProblem.PaymentFailed)
-            is MeltOutcome.Refused -> PayResult.Failed(PayProblem.Refused)
+            is MeltOutcome.Refused -> refused(outcome.reason)
             MeltOutcome.Unreachable -> PayResult.Failed(PayProblem.Unreachable)
             MeltOutcome.NoteGone -> null
         }
@@ -396,14 +406,30 @@ internal class Payer(private val wallet: Wallet) {
             it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null
         }
 
+    private fun refused(reason: String?): PayResult.Failed =
+        when (RejectionKind.fromReason(reason)) {
+            RejectionKind.OwnInvoice -> PayResult.Failed(PayProblem.OwnMintInvoice)
+            RejectionKind.InvoiceUsed -> PayResult.Failed(PayProblem.InvoiceUsed)
+            else -> PayResult.Failed(PayProblem.Refused, mintMessage(reason, wallet.settings.paymentMintMessageMaxCharacters))
+        }
+
     internal fun MutationResult.toFailure(): PayResult.Failed =
         when (this) {
             is MutationResult.Refused ->
-                PayResult.Failed(if (kind == RejectionKind.InsufficientValue) PayProblem.TooMuch else PayProblem.Refused)
+                if (kind == RejectionKind.InsufficientValue) PayResult.Failed(PayProblem.TooMuch) else refused(reason)
             else -> PayResult.Failed(PayProblem.Unreachable)
         }
 
     companion object {
+
+        /** A mint's refusal as one line of plain text of at most [max] characters: a mint can write anything. */
+        internal fun mintMessage(reason: String?, max: Int): String? =
+            reason
+                ?.filterNot { Character.getType(it) == Character.FORMAT.toInt() }
+                ?.replace(Regex("\\p{Cntrl}+"), " ")
+                ?.trim()
+                ?.take(max)
+                ?.takeIf { it.isNotEmpty() }
 
         /** `bitcoin:<address>?lightning=<invoice>` (BIP-21 with a Lightning fallback) to the invoice. */
         fun unwrapBip21(text: String): String {

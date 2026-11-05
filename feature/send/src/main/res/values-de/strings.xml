@@ -2,6 +2,11 @@
 <resources>
     <!-- Brand terms (see values/strings.xml). -->
     <string name="send_create_note">Schein erstellen</string>
+    <string name="send_problem_refused">Die Mint hat diese Zahlung abgelehnt.</string>
+    <string name="send_problem_own_mint_invoice">Diese Rechnung stammt von deiner eigenen Mint, die sich nicht selbst über Lightning bezahlen kann. Frag stattdessen nach einer Lightning-Adresse.</string>
+    <string name="send_problem_invoice_used">Diese Rechnung wurde schon verwendet. Frag nach einer neuen.</string>
+    <!-- %1$s: the mint's own words, in whatever language it writes. -->
+    <string name="send_problem_mint_message">Nachricht der Mint: „%1$s“</string>
     <string name="note_create_title">Als Schein senden</string>
     <string name="note_create_body">Erstelle einen Schein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
     <string name="note_available">Du kannst einen Schein über bis zu %1$s erstellen.</string>
@@ -66,7 +71,6 @@
     <string name="send_problem_not_exact">Dieser Betrag lässt sich aus deinem Guthaben nicht bilden.</string>
     <string name="send_problem_below_minimum">Der Betrag liegt unter dem, was der Empfänger annimmt.</string>
     <string name="send_problem_above_maximum">Der Betrag liegt über dem, was der Empfänger annimmt.</string>
-    <string name="send_problem_refused">Die Zahlung wurde abgelehnt. Es wurde nichts bezahlt.</string>
     <string name="send_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Dein Geld ist wieder in deinem Guthaben.</string>
 
     <string name="send_or">oder</string>

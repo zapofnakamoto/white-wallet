@@ -27,6 +27,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Fixed
 
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.
+- A refused payment says why: an invoice of your own mint, one already used, or else the mint's own words. A bare invoice
+  whose payment failed no longer offers "Try again", which a mint always refuses.
 - The developer key screen has a tab per address, so address notes on new keys can be scanned and renewed there. Its
   Change tab could show the count of addresses instead of the change index.
 - After a restore, new payments to an address were only found once its name was entered again. Every share the account

@@ -382,8 +382,16 @@ private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: 
                 color = MaterialTheme.colorScheme.error,
             )
             Text(problemText(result.problem), textAlign = TextAlign.Center)
-            // Only for an invoice that could still be paid (the money is back or never left).
-            if (preview.destination is PayDestination.PayLink || result.problem == PayProblem.PaymentFailed) {
+            result.mintMessage?.let {
+                Text(
+                    stringResource(R.string.send_problem_mint_message, it),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            // Only a pay link can be tried again, with a new invoice: a mint pays an invoice once, and takes no second try at one that
+            // failed.
+            if (preview.destination is PayDestination.PayLink) {
                 WalletButton(kind = ButtonKind.Text, onClick = onTryAgain) { Text(stringResource(R.string.send_try_again)) }
             }
         }
@@ -408,6 +416,8 @@ internal fun problemText(problem: PayProblem): String =
             PayProblem.BelowMinimum -> R.string.send_problem_below_minimum
             PayProblem.AboveMaximum -> R.string.send_problem_above_maximum
             PayProblem.Refused -> R.string.send_problem_refused
+            PayProblem.OwnMintInvoice -> R.string.send_problem_own_mint_invoice
+            PayProblem.InvoiceUsed -> R.string.send_problem_invoice_used
             PayProblem.PaymentFailed -> R.string.send_problem_payment_failed
         }
     )

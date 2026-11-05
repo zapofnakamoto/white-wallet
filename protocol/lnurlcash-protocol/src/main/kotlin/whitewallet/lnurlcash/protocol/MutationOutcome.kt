@@ -23,6 +23,12 @@ public enum class RejectionKind {
     RateLimited,
     InsufficientValue,
     TooManyK1,
+
+    /** A melt into an invoice of this mint. Not a reason the spec defines; lnurl-mint's wording. */
+    OwnInvoice,
+
+    /** A melt into an invoice an earlier melt used, paid or not. Not a reason the spec defines; lnurl-mint's wording. */
+    InvoiceUsed,
     Other;
 
     public companion object {
@@ -34,6 +40,8 @@ public enum class RejectionKind {
                 "rate limited" in r -> RateLimited
                 "insufficient value" in r -> InsufficientValue
                 "too many k1" in r -> TooManyK1
+                "issued itself" in r -> OwnInvoice
+                "earlier melt" in r -> InvoiceUsed
                 "spent" in r -> Spent
                 "unknown" in r || "not found" in r -> NoteUnknown
                 else -> Other

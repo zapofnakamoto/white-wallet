@@ -7,6 +7,11 @@
       aside). See docs/WHITE_LABEL.md.
     -->
     <string name="send_create_note">Create a note</string>
+    <string name="send_problem_refused">The mint refused this payment.</string>
+    <string name="send_problem_own_mint_invoice">This invoice is from your own mint, which can\'t pay itself over Lightning. Ask for a Lightning address instead.</string>
+    <string name="send_problem_invoice_used">This invoice was already used. Ask for a new one.</string>
+    <!-- %1$s: the mint's own words, in whatever language it writes. -->
+    <string name="send_problem_mint_message">Message from the mint: “%1$s”</string>
     <string name="note_create_title">Send as a note</string>
     <string name="note_create_body">Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
     <string name="note_available">You can make a note of up to %1$s.</string>
@@ -71,7 +76,6 @@
     <string name="send_problem_not_exact">This amount can\'t be made from your balance.</string>
     <string name="send_problem_below_minimum">The amount is below what the recipient accepts.</string>
     <string name="send_problem_above_maximum">The amount is above what the recipient accepts.</string>
-    <string name="send_problem_refused">The payment was refused. Nothing was paid.</string>
     <string name="send_problem_payment_failed">The payment didn\'t go through. Your money is back in your balance.</string>
 
     <!-- Sending a note: a link or QR code that holds the money itself. -->
