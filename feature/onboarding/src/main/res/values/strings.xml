@@ -6,6 +6,10 @@
       brand/res/values*/strings.xml. All other strings are written without either word (developer options
       aside). See docs/WHITE_LABEL.md.
     -->
+    <string name="address_fee_body">This mint charges %1$s to register an address, once. You can reserve the name now and pay when you like.</string>
+    <string name="address_held_body">Pay %1$s to finish. The mint holds the name for a limited time; if the invoice runs out, you can try again.</string>
+    <string name="onboarding_error_fee">This mint asks %1$s for an address, more than the %2$s this app accepts.</string>
+    <string name="onboarding_error_mint_too_old">This mint can only give an address to the first account of a wallet. Choose another mint, or continue without an address.</string>
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Mint address</string>
     <string name="onboarding_mint_custody">Your funds are held by the mint you choose. Keep amounts small.</string>
@@ -56,12 +60,12 @@
         <item quantity="other">This account already has %1$d addresses here, the most this app allows.</item>
     </plurals>
     <plurals name="onboarding_error_account_limit">
-        <item quantity="one">This app holds %1$d account at most, and it\'s already set up.</item>
-        <item quantity="other">This app holds %1$d accounts at most, and they\'re all set up.</item>
+        <item quantity="one">Nothing more can be added here: this app allows %1$d at most.</item>
+        <item quantity="other">Nothing more can be added here: this app allows %1$d at most.</item>
     </plurals>
     <plurals name="restore_error_account_limit">
-        <item quantity="one">This app holds %1$d account at most. To restore another one, delete the account on this phone first (Settings → Account), after backing it up.</item>
-        <item quantity="other">This app holds %1$d accounts at most. To restore another one, delete one on this phone first (Settings → Account), after backing it up.</item>
+        <item quantity="one">This app holds %1$d wallet at most. To restore another one, delete the wallet on this phone first (Settings → Account).</item>
+        <item quantity="other">This app holds %1$d wallets at most. To restore another one, delete one on this phone first (Settings → Account).</item>
     </plurals>
     <string name="onboarding_error_network">Couldn\'t connect: %1$s</string>
     <string name="onboarding_restore">Restore from recovery phrase</string>
@@ -98,18 +102,14 @@
 
     <string name="claimed_body_unconfirmed">It\'s registered, but the app can\'t double-check that payments reach this wallet. Try a small payment first.</string>
     <string name="address_fee_title">This address has a fee</string>
-    <string name="address_fee_body">This mint charges %1$s to register an address, once. You can reserve the name now and pay when you like.</string>
     <string name="address_fee_reserve">Reserve and pay</string>
     <string name="address_fee_skip">Skip for now</string>
     <string name="address_fee_back">Back</string>
     <string name="address_held_title">Your address is reserved</string>
-    <string name="address_held_body">Pay %1$s to finish. The mint holds the name for a limited time; if the invoice runs out, you can try again.</string>
     <string name="address_held_qr">Invoice for the address fee</string>
     <string name="address_held_copy">Copy invoice</string>
     <string name="address_held_pay_balance">Pay from balance</string>
     <string name="address_held_later">Pay later</string>
-    <string name="onboarding_error_fee">This mint asks %1$s for an address, more than the %2$s this app accepts.</string>
     <string name="onboarding_error_fee_not_paid">The fee could not be paid. The name stays reserved.</string>
     <string name="onboarding_error_hold_expired">The reservation ran out before the fee was paid. You can try again.</string>
-    <string name="onboarding_error_mint_too_old">This mint can only give an address to the first account of a wallet. Choose another mint, or continue without an address.</string>
 </resources>

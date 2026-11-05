@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand terms (see values/strings.xml). -->
+    <string name="money_error_address_fee">Diese Mint verlangt eine Gebühr für die Adresse, daher wurde nichts verschoben. Bezahle sie in den Einstellungen unter Adressen oder wechsle die Mint ohne Adresse.</string>
+    <string name="money_error_mint_too_old">Diese Mint kann nur dem ersten Konto eines Wallets eine Adresse geben. Wechsle die Mint ohne Adresse.</string>
     <string name="settings_home_mint">Haupt-Mint</string>
     <string name="settings_mints">Mints</string>
     <string name="addresses_home_mint">Haupt-Mint: %1$s</string>
@@ -424,7 +426,5 @@
     <string name="addresses_held_copy">Rechnung kopieren</string>
     <string name="addresses_held_pay">Vom Guthaben bezahlen</string>
     <string name="addresses_held_not_paid">Die Gebühr für %1$s konnte nicht bezahlt werden.</string>
-    <string name="money_error_address_fee">Diese Mint verlangt eine Gebühr für die Adresse, daher wurde nichts verschoben. Bezahle sie in den Einstellungen unter Adressen oder wechsle die Mint ohne Adresse.</string>
-    <string name="money_error_mint_too_old">Diese Mint kann nur dem ersten Konto eines Wallets eine Adresse geben. Wechsle die Mint ohne Adresse.</string>
     <string name="delete_accounts">Alle seine Konten werden mit entfernt: %1$s.</string>
 </resources>

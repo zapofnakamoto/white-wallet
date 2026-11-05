@@ -10,16 +10,19 @@ The `protocol/*` modules implement LNURLcash, which is still a **draft**. This f
 | [lnurlcash-conformance](https://github.com/lnurlcash/lnurlcash-conformance) (MIT) | `571833bf992b97107c14259770b077bc2a4161a0` (v0.16.2) | `lnurlcash-testkit/src/main/resources/vectors/conformance/` |
 | Legacy: LUD-25/26 draft `2f17578` | `2f17578c3f4d29ec337a0fdbb5a0e480eb309050` (PR head on 2026-10-23) | `vectors/spec-2f17578/` |
 | Legacy: lnurlcash-conformance for draft `2f17578` | `82295e59f92d3eb1f7684560ad118a5e7c4dcb4a` | `vectors/conformance-2f17578/` |
-| Mock mint (`dev/conformance.sh` checks it out in `.conformance/`) | `82295e59f92d3eb1f7684560ad118a5e7c4dcb4a` | Still the legacy one: it moves to the conformance commit above once the client speaks `92e430f` |
+| Mock mint (`dev/conformance.sh` checks it out in `.conformance/`) | `571833bf992b97107c14259770b077bc2a4161a0` | The conformance commit above. It has no internal transfer, so transfers are tested on regtest only |
 
 The `25-vectors.json` and `26-vectors.json` at `92e430f` are identical to the conformance suite's `tools/luds/` copies at `571833b`.
 
-**Migration in progress (branch `lud26-92e430f`).** The wallet still implements the legacy draft `2f17578`, and its tests read the `*-2f17578` vectors. It moves to `92e430f` milestone by milestone (see the commits), keeping the legacy draft for mints that still run it (`mint.lnurlcash.com` on 2026-11-05) and for notes and addresses made under it.
+The wallet speaks both drafts at once: `92e430f` to mints that do, and the legacy `2f17578` to the rest ("Two dialects" below). Its tests read both sets of vectors; those of the legacy draft are named `legacy 2f17578 - …`.
 
 ## Tested against a real mint
 
-`core/wallet/.../RegtestE2ETest.kt` runs the wallet against **`lnurlcash/lnurl-mint` 0.12.2** (the reference mint) on regtest Lightning (`dev/regtest`). It covers:
-- address registration with the domain-bound proof and `text/cpub` confirmation
+The `Regtest*Test` classes in `core/wallet` run against **`lnurlcash/lnurl-mint`** (the reference mint) on regtest Lightning (`dev/regtest`), and `just test-regtest` runs every one of them on two stacks: **0.13.1** (`92e430f`) and **0.12.2** (`2f17578`). A test that only means something on one stack says so with `requireStack(MintDialect…)`; those for the old mint are named `legacy 2f17578 - …`. `RegtestMintUpgradeTest` upgrades a mint from 0.12.2 to 0.13.1 under wallets that registered on it. It covers:
+- address registration, one share per address (`RegtestSharesTest`), and on 0.12.2 with the domain-bound proof and `text/cpub` confirmation
+- the address fee: holding a name, paying for it, going on without (`RegtestAddressFeeTest`)
+- internal transfers through the payee's pay callback, and on 0.12.2 to the published key
+- several accounts on one recovery phrase (`RegtestWalletAccountsTest`)
 - auto-mint discovery
 - claiming a bearer note (hex preimage `k1`)
 - split, merge and move with the mint's fees
@@ -29,7 +32,7 @@ The `25-vectors.json` and `26-vectors.json` at `92e430f` are identical to the co
 
 | File | Used by | Notes |
 |---|---|---|
-| `part2.json` | `lnurlcash-core` | Current key-path model: derivation, domain-bound `ck1`, certificates, address proofs, encodings |
+| `part2.json` | `lnurlcash-core` | Derivation, domain-bound `ck1`, certificates, address proofs, encodings. Read at both pins: the `2f17578` copy by the `legacy 2f17578 - …` tests |
 | `bech32.json`, `input-resolution.json` | `lnurl`, `lnurlcash-protocol` | `note` cases checked for accept/reject only (they predate `ck1` k1s) |
 | `responses.json` | `lnurlcash-protocol` | Cases modelling a legacy hash output with a bare OK are skipped, because this wallet always names `cp1` outputs |
 | `pay-request.json`, `withdraw-info.json` | `lnurlcash-protocol` | |
@@ -46,9 +49,13 @@ The `25-vectors.json` and `26-vectors.json` at `92e430f` are identical to the co
 | A `ck1` fails at any other domain | `SpecVectorsTest.key path spend` |
 | Spend domain is the lowercase hostname without port; derivation hashes the host as stored | `ConformancePart2Test.branches` (`localhost:3338`) |
 | Bearer note `Q` from `h`, both short forms, full `cw1` | `SpecVectorsTest.bearer note` |
-| `cs1` = recoverable ECDSA over `LNURLcash:<msat>:<hex(Q)>`, amount in the HRP | `SpecVectorsTest.certificates`, `ConformancePart2Test.certificates` |
-| LUD-26 derivation, both branch parities, purposes 0/1/2, watch-only from `cx1` | `SpecVectorsTest.derivation`, `ConformancePart2Test.branches` |
-| Registration proof: Schnorr by purpose-0 index-0 key over `sha256("LNURLcash:<action>:<domain>:<username>")` | `SpecVectorsTest.registration proofs`, `ConformancePart2Test.address proofs` |
+| `cs1` = recoverable ECDSA over the domain-bound message, amount in the HRP; from a legacy mint, over the one without the domain | `SpecVectorsTest.certificates`, `ConformancePart2Test.certificates`, their `legacy 2f17578 - …` twins, `MintCertificates` |
+| LUD-26 derivation: root from the domain without port, accounts `S/a'`, wallet `S/a'/0/i`, change `S/a'/1/i`, shares `S/a'/2/n'/i`; watch-only from a 65-byte `cx1` | `SpecVectorsTest.derivation`, `ConformancePart2Test.branches`, `NoteKeysTest` |
+| Legacy 2f17578: derivation, both branch parities, purposes 0/1/2, watch-only from `cx1` | `SpecVectorsTest.legacy 2f17578 - derivation`, `ConformancePart2Test.legacy 2f17578 - branches` |
+| Registration proof: Schnorr by the share's key; an update carries `sig` by the key on file and `newsig` by the new share | `SpecVectorsTest.registration proofs`, `ConformancePart2Test.address proofs`, `RegtestSharesTest` |
+| Legacy 2f17578: registration proof by the purpose-0 index-0 key over `sha256("LNURLcash:<action>:<domain>:<username>")` | `SpecVectorsTest.legacy 2f17578 - registration proofs`, `ConformancePart2Test.legacy 2f17578 - address proofs` |
+| A mint may charge for an address: POST answers `pr` and holds the name, unpublished, until paid | `RegtestAddressFeeTest` |
+| An internal transfer spends a note of the exact amount to the payee's pay callback with `amount` and `k1`; the spend goes only to the mint's own origin | `SecretGateTest`, `RegtestE2ETest`, `RegtestRecoveryTest` |
 | Minting payRequest needs `withdrawLink` and `commentAllowed` ≥ 64 | `ProtocolVectorsTest.minting pay requests` |
 | Informational response must echo the queried `k1` and carry a valid `mintPubkey` (parsing only: the wallet never sends `?k1=` there) | `ProtocolVectorsTest.note info` |
 | Outputs are wallet-generated `p1`/`p2`; the service never generates a secret | `Requests` (no API exists to accept one) |
@@ -67,18 +74,58 @@ The `25-vectors.json` and `26-vectors.json` at `92e430f` are identical to the co
 | Callback host | Any URL the informational response names | Its own host | Sends a spend only to a callback on the withdraw URL's scheme, host and port (`SecretGate`); otherwise nothing is sent |
 | `lnurlcash-kotlin` 0.1.1 | — | — | Not used. It signs `ck1` over `sha256("LNURLcash")` and omits the domain from proofs (an older draft) |
 
+## Two dialects
+
+`Wallet.dialect(host)` asks each mint once, with a request only one draft answers (`Registration.dialectProbe`): HTTP 405 is a legacy mint, a parsed LNURL error a current one. What answers neither counts as legacy. The answer is asked again after a refused request of the other draft, and on each refresh for a host with an address still to move: the mint may have been upgraded.
+
+| | Current (`92e430f`, lnurl-mint ≥ 0.13) | Legacy (`2f17578`, lnurl-mint 0.12) |
+|---|---|---|
+| New notes | BIP-32 keys of the account | The same: a mint can't tell |
+| Certificates | Domain-bound | Without the domain |
+| Address | One share each, by POST; a counter per mint domain | The branch `cx1`, one for the whole phrase |
+| Further accounts of a wallet | Own shares, own addresses | No address (`MintTooOld`): the one key is the first account's |
+| Address fee | Advertised as the third `Mint fees` value | None |
+| Payment to a user on the same mint | Spend to the payee's pay callback | Note made at the key the payee's `text/cpub` names |
+| Who an address belongs to | See below | `text/cpub` compared with the branch |
+
+Old keys are the first account's, as they come from the phrase alone (`Wallet.ownsLegacyKeys`). On each refresh `LegacyMigration` moves an account's addresses to shares once their mint is current, and its legacy notes to new keys, without asking.
+
 ## How the wallet confirms a username
 
 The registration response alone is not trusted. Before registering, and again afterwards, the wallet looks the name up at `/.well-known/lnurlp/<name>`:
 
 | Lookup result | Meaning |
 |---|---|
-| `{"status":"ERROR"}` (e.g. `Unknown user.`) | The name is free |
-| payRequest whose `text/cpub` `cx1` equals ours | Ours: payments reach this wallet |
-| payRequest with someone else's `cx1` | Taken |
-| payRequest with no `text/cpub` | Registered but unverifiable. Before a claim this counts as taken (it covers the service's reserved names); right after our own successful claim it is accepted as unconfirmed |
+| `{"status":"ERROR"}` (e.g. `Unknown user.`) | The name is free, or held unpaid by someone |
+| payRequest, current mint | Registered. It is ours if the mint takes our proof for one of our shares, tried by a PUT of that same share: `cx1 already used` is the holder's answer, `Invalid ownership signature.` anyone else's, and nothing is changed either way |
+| payRequest, current mint, recorded on no share yet | Ours until it has moved, unconfirmed: asking would move it |
+| payRequest, legacy mint, `text/cpub` `cx1` equals ours | Ours: payments reach this wallet |
+| payRequest, legacy mint, someone else's `cx1` | Taken |
+| payRequest, legacy mint, no `text/cpub` | Registered but unverifiable. Before a claim this counts as taken (it covers the mint's reserved names); right after our own successful claim it is accepted as unconfirmed |
 
 A POST for a name someone else holds is an overwrite attempt, which the reference mint answers with `Invalid ownership signature.` The pre-check avoids sending it at all.
+
+## Removing legacy 2f17578
+
+Each piece is tagged in its KDoc with what it waits for, and can go in two steps.
+
+**Tag *mint*: once every mint the wallet uses runs ≥ 0.13.**
+
+- [ ] `LegacyRegistration` (client), `LegacyRequests` (protocol), `LegacyCpub`
+- [ ] `MintDialect.Legacy`, `LnurlcashClient.dialect`, `Registration.dialectProbe`, `Wallet.dialect`, `forgetDialect`
+- [ ] `Onboarding.legacyClaim`, `AddressCheck.legacyStatus`, `OnboardResult.MintTooOld` and its strings
+- [ ] `LegacyTransfer` and the published-key branch of `Payer`
+- [ ] The certificate form without the domain in `MintCertificates`
+- [ ] The legacy branch of `Restore.scan`'s share scan
+- [ ] `requireStack(MintDialect…)`, `REGTEST_PROTOCOL`, the legacy stack, `mint4` and `RegtestMintUpgradeTest`; tests named `legacy 2f17578 - …` that need a 0.12 mint
+
+**Tag *keys*: once no wallet or recovery phrase can hold notes or addresses from before. This is a decision, not a date: a phrase written down in 0.7 can come back at any time.**
+
+- [ ] `LegacyBranch`, `LegacyPurpose`, `LegacyEncodings`, `LegacyCertificates`
+- [ ] `AccountKeys.legacy`, `KeyScheme.Legacy`, `KeySet.LEGACY`, `LEGACY_ADDRESSES` in `AddressScanner`
+- [ ] `LegacyMigration`, `Onboarding.takeBack`, the move in `Wallet.recoverableUsername`, `Wallet.ownsLegacyKeys`
+- [ ] `RegisteredAddress.share` being nullable (a Room migration)
+- [ ] Vectors `spec-2f17578/`, `conformance-2f17578/` and the tests reading them
 
 ## Updating to a new spec revision
 

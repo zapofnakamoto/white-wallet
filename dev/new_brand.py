@@ -475,6 +475,7 @@ mints.trusted={",".join(o.trusted_mint)}
 # Accounts the app holds (1 hides everything about accounts) and Lightning addresses an account may register per
 # mint. 0 means no limit.
 accounts.max={o.max_accounts}
+wallets.max={1 if o.max_accounts == 1 else 0}
 addresses.max={o.max_addresses}
 # Lightning addresses at setup: required = setup asks for a name, optional = it asks but users may continue without
 # one, none = setup only creates the account (a single button when there is only one mint to pick). Without an address,
@@ -701,7 +702,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--lock-unit", action="store_true", help="always show amounts in --unit; users can't switch")
     parser.add_argument("--lock", action="store_true", help="only the suggested mints (--mint, --suggest): users can't type their own or change theirs after setup")
     parser.add_argument("--no-address", action="store_true", help="don't ask for a Lightning address at setup; users receive by invoice and can add one later")
-    parser.add_argument("--max-accounts", type=int, default=0, help="accounts the app holds; 1 hides accounts entirely (default: 0, no limit)")
+    parser.add_argument("--max-accounts", type=int, default=0, help="accounts per recovery phrase; 1 also limits the app to one wallet, which hides accounts entirely (default: 0, no limit)")
     parser.add_argument("--max-addresses", type=int, default=1, help="Lightning addresses per account and mint (default: 1; 0 for no limit)")
     parser.add_argument("--note-strategy", choices=("single", "manual"), default="single", help="how a new account keeps its notes: single (keep one note per mint) or manual (default: single)")
     parser.add_argument("--no-strategy-choice", action="store_true", help="offer only --note-strategy, so users have nothing to choose")

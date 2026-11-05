@@ -24,6 +24,7 @@ MINT3_PORT=8113
 FAUCET_PORT=8114
 MINT4_URL="http://localhost:8115"
 MINT4_PORT=8115
+MINT5_PORT=8116
 # mint4 starts on the legacy protocol and `upgrade-mint4` moves it to this image, keeping its database.
 MINT4_LEGACY=0.12.2
 MINT4_UPGRADE=0.13.1
@@ -84,6 +85,7 @@ adb_reverse() {
         "$ADB" reverse "tcp:$MINT2_PORT" "tcp:$MINT2_PORT" >/dev/null && log "adb reverse tcp:$MINT2_PORT (second mint) -> this machine"
         "$ADB" reverse "tcp:$MINT3_PORT" "tcp:$MINT3_PORT" >/dev/null && log "adb reverse tcp:$MINT3_PORT (third mint) -> this machine"
         "$ADB" reverse "tcp:$MINT4_PORT" "tcp:$MINT4_PORT" >/dev/null && log "adb reverse tcp:$MINT4_PORT (fourth mint) -> this machine"
+        "$ADB" reverse "tcp:$MINT5_PORT" "tcp:$MINT5_PORT" >/dev/null && log "adb reverse tcp:$MINT5_PORT (fifth mint) -> this machine"
         "$ADB" reverse "tcp:$FAUCET_PORT" "tcp:$FAUCET_PORT" >/dev/null && log "adb reverse tcp:$FAUCET_PORT (faucet) -> this machine"
     else
         log "no Android device or emulator connected; run '$0 connect' once one is"

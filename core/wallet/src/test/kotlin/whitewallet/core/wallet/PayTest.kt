@@ -4,7 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import mockwebserver3.Dispatcher
@@ -16,11 +15,8 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.Profile
-import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 class PayTest {
@@ -166,25 +162,6 @@ class PayTest {
             assertEquals(50_000, balance())
         }
     }
-
-    @Test
-    fun `a payee on the same mint gets the notes directly, at their published key`() =
-        withMint("--registeredAddress") {
-            fund(50)
-            val preview = ready("mint@${mint.host}")
-            assertTrue(preview.internal)
-            assertEquals(0, preview.commentMaxLength, "an internal transfer carries no comment")
-            assertEquals(PayResult.Paid(20_000, 0), wallet.pay(preview, 20_000))
-            assertEquals(30_000, balance())
-
-            // The note sits at the payee's purpose-2 key the mint hinted at.
-            val pay = assertIs<LnurlResponse.PayRequest>(LnurlcashClient().get("${mint.url}/.well-known/lnurlp/mint"))
-            val cpub = pay.metadataEntries.single { it.first == "text/cpub" }.second
-            val payeeKey = LegacyBranch.fromCx1(cpub.substringBeforeLast(':'))!!.notePubkey(LegacyPurpose.LightningAddress, 0)
-            val known = store.mintMap[mint.host]!!
-            assertEquals(20_000, LnurlcashClient().lookup(known.withdrawUrl, payeeKey).maxWithdrawableMsat)
-            assertTrue(store.notes("a").first().none { it.id == payeeKey.toHex() }, "never recorded as our note")
-        }
 
     /** A LUD-16 payee on another mint, issuing test invoices that commit to its metadata. */
     private class PayLinkServer(private val wrongAmount: Boolean = false) : AutoCloseable {

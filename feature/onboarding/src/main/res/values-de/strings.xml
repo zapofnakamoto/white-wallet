@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand terms (see values/strings.xml). -->
+    <string name="address_fee_body">Diese Mint verlangt einmalig %1$s für eine Adresse. Du kannst den Namen jetzt reservieren und bezahlen, wann du möchtest.</string>
+    <string name="address_held_body">Bezahle %1$s, um abzuschließen. Die Mint hält den Namen nur begrenzte Zeit; läuft die Rechnung ab, kannst du es erneut versuchen.</string>
+    <string name="onboarding_error_fee">Diese Mint verlangt %1$s für eine Adresse, mehr als die %2$s, die diese App akzeptiert.</string>
+    <string name="onboarding_error_mint_too_old">Diese Mint kann nur dem ersten Konto eines Wallets eine Adresse geben. Wähle eine andere Mint oder mach ohne Adresse weiter.</string>
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Adresse der Mint</string>
     <string name="onboarding_mint_custody">Dein Guthaben verwahrt die Mint, die du wählst. Halte die Beträge klein.</string>
@@ -51,12 +55,12 @@
         <item quantity="other">Dieses Konto hat hier schon %1$d Adressen, mehr erlaubt diese App nicht.</item>
     </plurals>
     <plurals name="onboarding_error_account_limit">
-        <item quantity="one">Diese App hat höchstens %1$d Konto, und es ist schon eingerichtet.</item>
-        <item quantity="other">Diese App hat höchstens %1$d Konten, und alle sind schon eingerichtet.</item>
+        <item quantity="one">Hier lässt sich nichts mehr hinzufügen: Diese App erlaubt höchstens %1$d.</item>
+        <item quantity="other">Hier lässt sich nichts mehr hinzufügen: Diese App erlaubt höchstens %1$d.</item>
     </plurals>
     <plurals name="restore_error_account_limit">
-        <item quantity="one">Diese App hat höchstens %1$d Konto. Um ein anderes wiederherzustellen, lösche zuerst das Konto auf diesem Handy (Einstellungen → Konto), nachdem du es gesichert hast.</item>
-        <item quantity="other">Diese App hat höchstens %1$d Konten. Um ein anderes wiederherzustellen, lösche zuerst eins auf diesem Handy (Einstellungen → Konto), nachdem du es gesichert hast.</item>
+        <item quantity="one">Diese App hat höchstens %1$d Wallet. Um ein anderes wiederherzustellen, lösche zuerst das Wallet auf diesem Handy (Einstellungen → Konto).</item>
+        <item quantity="other">Diese App hat höchstens %1$d Wallets. Um eines wiederherzustellen, lösche zuerst eines auf diesem Handy (Einstellungen → Konto).</item>
     </plurals>
     <string name="onboarding_error_network">Keine Verbindung: %1$s</string>
     <string name="onboarding_restore">Mit Wiederherstellungsphrase wiederherstellen</string>
@@ -93,18 +97,14 @@
 
     <string name="claimed_body_unconfirmed">Sie ist registriert, aber die App kann nicht gegenprüfen, ob Zahlungen diese Wallet erreichen. Probier zuerst eine kleine Zahlung.</string>
     <string name="address_fee_title">Diese Adresse kostet eine Gebühr</string>
-    <string name="address_fee_body">Diese Mint verlangt einmalig %1$s für eine Adresse. Du kannst den Namen jetzt reservieren und bezahlen, wann du möchtest.</string>
     <string name="address_fee_reserve">Reservieren und bezahlen</string>
     <string name="address_fee_skip">Vorerst überspringen</string>
     <string name="address_fee_back">Zurück</string>
     <string name="address_held_title">Deine Adresse ist reserviert</string>
-    <string name="address_held_body">Bezahle %1$s, um abzuschließen. Die Mint hält den Namen nur begrenzte Zeit; läuft die Rechnung ab, kannst du es erneut versuchen.</string>
     <string name="address_held_qr">Rechnung für die Adressgebühr</string>
     <string name="address_held_copy">Rechnung kopieren</string>
     <string name="address_held_pay_balance">Vom Guthaben bezahlen</string>
     <string name="address_held_later">Später bezahlen</string>
-    <string name="onboarding_error_fee">Diese Mint verlangt %1$s für eine Adresse, mehr als die %2$s, die diese App akzeptiert.</string>
     <string name="onboarding_error_fee_not_paid">Die Gebühr konnte nicht bezahlt werden. Der Name bleibt reserviert.</string>
     <string name="onboarding_error_hold_expired">Die Reservierung ist abgelaufen, bevor die Gebühr bezahlt wurde. Du kannst es erneut versuchen.</string>
-    <string name="onboarding_error_mint_too_old">Diese Mint kann nur dem ersten Konto eines Wallets eine Adresse geben. Wähle eine andere Mint oder mach ohne Adresse weiter.</string>
 </resources>

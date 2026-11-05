@@ -12,12 +12,12 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
+import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyCertificates
 import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
@@ -46,7 +46,7 @@ class MockMintIntegrationTest {
 
                 val looked = client.lookup(pay.withdrawUrl, q0)
                 assertEquals(21_000, looked.maxWithdrawableMsat)
-                assertTrue(LegacyCertificates.verify(assertNotNull(looked.certificate), q0, looked.mintPubkey))
+                assertTrue(Certificates.verify(assertNotNull(looked.certificate), spendDomain(mint.host), q0, looked.mintPubkey))
 
                 val spend = branch.spend(LegacyPurpose.Wallet, 0, spendDomain(mint.host))
                 val info = looked
@@ -56,7 +56,7 @@ class MockMintIntegrationTest {
                 val confirmed = assertIs<MutationOutcome.Confirmed>(outcome)
                 val cert = assertNotNull(Cs1.decode(assertNotNull(confirmed.certificate)))
                 assertEquals(21_000, cert.amountMsat)
-                assertTrue(LegacyCertificates.verify(cert, q1, info.mintPubkey))
+                assertTrue(Certificates.verify(cert, spendDomain(mint.host), q1, info.mintPubkey))
 
                 val spent = assertFailsWith<NoteLookupError> { client.lookup(pay.withdrawUrl, q0) }
                 assertEquals(RejectionKind.Spent, spent.kind, spent.reason)

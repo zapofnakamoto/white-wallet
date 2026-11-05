@@ -5,6 +5,33 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Added
+
+- LUD-25/26 at luds `92e430f` (lnurl-mint 0.13), next to the draft `2f17578` (lnurl-mint 0.12): the wallet asks each
+  mint which it speaks. New notes use BIP-32 keys, one account `S/a'` at a time. Notes and addresses from before move
+  to the new keys by themselves on a refresh, for free; a mint upgraded later is noticed. A restore finds both.
+- One share per Lightning address on a current mint, so addresses of an account can't be linked by their keys.
+  Whether an address is yours is now proven to the mint, without changing anything there.
+- Address fees: a mint may charge for an address. Setup shows the fee and lets the user reserve the name, pay later or
+  go on without one. A reserved name is on the addresses screen until paid or expired.
+- Payments to someone on the same mint go through the payee's pay callback, for free and with nothing pending.
+- Wallets of several accounts: a recovery phrase can hold several accounts, each with its own money and addresses,
+  and the app can hold several wallets. The switcher groups them; backup and delete act on the wallet, and delete
+  names the accounts it takes with it. A restore finds a wallet's accounts on that mint, up to the first unused one.
+  On a legacy mint only a wallet's first account can have an address. Database version 5.
+
+### For brands
+
+- New keys: `wallets.max`, `addresses.fee.onboarding` (`ask`, `reserve` or `skip`), `addresses.fee.max`.
+- `accounts.max` now counts accounts per recovery phrase, not per app. A brand that wants one account in all sets
+  `wallets.max=1` and `accounts.max=1`: `wallets.max` defaults to no limit, so with `accounts.max=1` alone users can
+  still add wallets.
+- `Wallet.onboard` and `createAccount` take `inActiveWallet`; `OnboardResult` has `AwaitingFee`, `FeeRefused` and
+  `MintTooOld`, so an exhaustive `when` over it needs them. `deleteActiveAccount` deletes the whole wallet.
+- New strings, for brands that word their own: `address_fee_*`, `onboarding_error_fee*`,
+  `onboarding_error_mint_too_old`, `money_error_mint_too_old`, `accounts_wallet`, `accounts_add_wallet`,
+  `delete_accounts`. `delete_what` and `accounts_separate_backups` say something new.
+
 ## [0.7.0]
 
 ### Added

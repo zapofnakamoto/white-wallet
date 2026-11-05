@@ -11,6 +11,7 @@ A local Bitcoin regtest network with a real LNURLcash mint, for developing the w
 | `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between mints |
 | `mint3` | A third mint (1 sat base fee) at `http://localhost:8113` whose signing key can change: it runs on `mint-lnd` or `user-lnd`, and signs with that node's identity key. `rotate-mint3` switches the node, keeping its notes |
 | `mint4` | A fourth mint (1 sat base fee) at `http://localhost:8115` that starts on the legacy protocol (LUD-25/26 draft `2f17578`, lnurl-mint `0.12.2`). `upgrade-mint4` moves it in place to `0.13.1` (LUD-25/26 at `92e430f`), keeping its database, as a production mint upgrades; `reset-mint4` puts it back. The version it runs is kept in `.mint4-version-<stack>` |
+| `mint5` | A fifth mint at `http://localhost:8116` that charges 21 sats for an address (`ADDRESS_FEE_MSAT`), so holding a name, paying for it and going on without one can be tried. On the legacy stack it is a plain mint: `0.12.2` has no address fee |
 | `faucet` | [`faucet.py`](faucet.py) at `http://localhost:8114`: when the app asks, pays an address or invoice from `user-lnd` (or `mint-lnd` for `mint2`'s), like `pay`, or makes an invoice for the app to pay, like `invoice`, on the node that doesn't fund the app's mint |
 
 `up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints and the faucet are exposed, on `127.0.0.1:8111` to `127.0.0.1:8115`; `connect` reverses all five ports.
@@ -55,7 +56,7 @@ Sending works the same way: on **Send**, **Developer: pay a regtest invoice of �
 | `rotate-mint3` | Give the third mint a new signing key: restart it on the other LND node, with the same notes. Prints the new key |
 | `upgrade-mint4` | Upgrade the fourth mint in place from lnurl-mint `0.12.2` to `0.13.1`, keeping its notes and addresses |
 | `reset-mint4` | Put the fourth mint back on `0.12.2` with an empty database |
-| `connect` | `adb reverse` for ports 8111 to 8115 again |
+| `connect` | `adb reverse` for ports 8111 to 8116 again |
 | `status` | Containers, block height, balances, mint reachability |
 | `logs [service]` | Follow logs |
 | `lncli-user …`, `lncli-mint …` | Run `lncli` on a node |
