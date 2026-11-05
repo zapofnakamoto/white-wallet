@@ -23,7 +23,7 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
 4. **Derived keys where the mint is.** Developer options → Derived keys looks like a home-mint view: it offers a chip
    per mint only once the account has key counters there (`Wallet.keyHosts`), and none while there's just one. The
    keys belong to an account on a mint, so the view fits on the mint's page under Account → Your mints (account
-   mode, next to the watch-only key): a "Derived keys" row, shown only while developer options are on, opening the
+   mode, next to its other details): a "Derived keys" row, shown only while developer options are on, opening the
    view for that mint (a mint without counters yet shows its empty indexes rather than nothing). Then the developer
    entry can go, or stay as a shortcut to the home mint's.
 5. **Mint pickers that say more than the name.** New mints are added at setup, when adding an account, under
@@ -121,3 +121,8 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     Once separate, the same link kept offline in two accounts is claimed by the account that kept it first (the
     refresh tries kept notes oldest first, whichever account is active); the other finds it spent. Agreed on
     2026-11-04.
+15. **A mint that is shutting down.** A sunsetting lnurl-mint (`sunset_mint`) stops minting and splitting, but whole
+   notes can still leave. The wallet doesn't know the mode: receiving and any payment that needs a split just fail as
+   refused. Wanted: tell the user why, and offer to move the money while whole notes still can. Open: how a wallet
+   learns of it (the mint doesn't announce it today), and a regtest stack with a mint in this mode, since none runs
+   it yet. See "What a mint refuses" in docs/DEVELOPMENT.md.
