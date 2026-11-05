@@ -295,7 +295,7 @@ internal class Onboarding(private val wallet: Wallet) {
     ): OnboardResult {
         val domain = spendDomain(h)
         val keys = wallet.keys(accountId, h)
-        for (attempt in 0 until wallet.limits.shareAttempts) {
+        for (attempt in 0 until wallet.settings.addressRegistrationMaxSharesTried) {
             val n = wallet.store.reserveKeyIndex(accountId, domain, KeyCounter.Shares)
             val share = keys.share(n)
             when (val outcome = wallet.client.register(h, name, share.cx1(), AddressProof.register(share, domain, name))) {

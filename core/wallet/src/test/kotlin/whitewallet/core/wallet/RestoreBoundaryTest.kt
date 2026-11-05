@@ -45,7 +45,7 @@ abstract class RestoreBoundaryTest {
     /** A client to [host]; [intercept], if given, sees every request. */
     protected abstract fun client(intercept: Interceptor? = null): LnurlcashClient
 
-    private val gap = ScanLimits().keyGap.toLong()
+    private val gap = WalletSettings().scanStopAfterUnusedKeys.toLong()
 
     @Test
     fun `a phrase without notes restores an empty account with every index at 0`() =
@@ -81,7 +81,7 @@ abstract class RestoreBoundaryTest {
             assertEquals(0, phone.index(restored.accountId, KeySet.Wallet))
 
             // The money is not lost: a lookup one key further reaches it.
-            val found = phone.wallet.findKeyIndex(host, KeySet.Wallet, gap = ScanLimits().keyGap + 1)
+            val found = phone.wallet.findKeyIndex(host, KeySet.Wallet, gap = WalletSettings().scanStopAfterUnusedKeys + 1)
             assertEquals(gap + 1, found.next)
             assertEquals(1, found.imported)
             assertEquals(msat, phone.wallet.balanceMsat.first())
@@ -258,7 +258,7 @@ abstract class RestoreBoundaryTest {
     @Test
     fun `a share after a gap of addresses that were never paid is found, up to the share gap`() =
         runBlocking<Unit> {
-            val last = ScanLimits().shareGap - 1L
+            val last = WalletSettings().restoreStopAfterUnusedShares - 1L
             val words = phrase()
             val msat = credit(words, KeySet.share(last), 0, SATS, account = 1)
             val phone = Fresh()
@@ -273,21 +273,34 @@ abstract class RestoreBoundaryTest {
         }
 
     @Test
-    fun `the limits a brand sets are the ones a restore keeps to`() =
+    fun `the wallet settings are the ones a restore keeps to`() =
         runBlocking<Unit> {
             val words = phrase()
             val past = credit(words, KeySet.share(2), 0, SATS)
             val account = credit(words, KeySet.Wallet, 2, SATS, account = 2)
 
-            val narrow = Fresh(limits = ScanLimits(keyGap = 2, shareGap = 2))
+            val narrow = Fresh(settings = WalletSettings(scanStopAfterUnusedKeys = 2, restoreStopAfterUnusedShares = 2))
             assertIs<RestoreResult.Restored>(narrow.restore(words))
             assertEquals(mapOf(0L to 0L), narrow.balances(), "both a share and a key past their gaps, and so no account past the first")
 
-            val wide = Fresh(limits = ScanLimits(keyGap = 3, shareGap = 3, accountGap = 2))
+            val wide =
+                Fresh(
+                    settings =
+                        WalletSettings(scanStopAfterUnusedKeys = 3, restoreStopAfterUnusedShares = 3, restoreStopAfterUnusedAccounts = 2)
+                )
             assertIs<RestoreResult.Restored>(wide.restore(words))
             assertEquals(mapOf(0L to past, 1L to 0L, 2L to account), wide.balances(), "the unused account stays, for the one after it")
 
-            val capped = Fresh(limits = ScanLimits(keyGap = 3, shareGap = 3, accountGap = 2, maxAccounts = 2))
+            val capped =
+                Fresh(
+                    settings =
+                        WalletSettings(
+                            scanStopAfterUnusedKeys = 3,
+                            restoreStopAfterUnusedShares = 3,
+                            restoreStopAfterUnusedAccounts = 2,
+                            restoreMaxAccountsChecked = 2,
+                        )
+                )
             assertIs<RestoreResult.Restored>(capped.restore(words))
             assertEquals(mapOf(0L to past), capped.balances(), "the look ended at the cap, with only an unused account")
         }
@@ -331,10 +344,10 @@ abstract class RestoreBoundaryTest {
         }
 
     /** A phone with nothing on it yet. */
-    private inner class Fresh(intercept: Interceptor? = null, limits: ScanLimits = ScanLimits()) {
+    private inner class Fresh(intercept: Interceptor? = null, settings: WalletSettings = WalletSettings()) {
         val store = InMemoryWalletStore()
         val seeds = InMemorySeedStore()
-        val wallet = Wallet(store, seeds, client(intercept), policies = NotePolicies.InMemory(ManualStrategy.ID), limits = limits)
+        val wallet = Wallet(store, seeds, client(intercept), policies = NotePolicies.InMemory(ManualStrategy.ID), settings = settings)
 
         suspend fun restore(words: List<String>) = wallet.restore(words.joinToString(" "), host, "Restored")
 

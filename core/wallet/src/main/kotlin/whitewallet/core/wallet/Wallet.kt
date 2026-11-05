@@ -88,8 +88,8 @@ class Wallet(
     payWaitMillis: Long = 30_000L,
     /** How long a received note its mint refuses is tried again before it counts as refused (brand `notes.received.giveUpAfter`). */
     internal val receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
-    /** How far scans and restores look (brand `recovery.*`). */
-    internal val limits: ScanLimits = ScanLimits(),
+    /** How the wallet behaves: wallet.properties, not the brand. */
+    internal val settings: WalletSettings = WalletSettings(),
 ) {
     private val lock = Mutex()
 
@@ -983,11 +983,11 @@ class Wallet(
     suspend fun keyIndexes(host: String): Map<KeySet, Long> = store.indexesFlow(activeId(), host).first()
 
     /** Keys 0 until index + [gap] of [set] on [host]. */
-    suspend fun derivedKeys(host: String, set: KeySet, gap: Int = limits.keyGap): List<DerivedKey> =
+    suspend fun derivedKeys(host: String, set: KeySet, gap: Int = settings.scanStopAfterUnusedKeys): List<DerivedKey> =
         activeId().let { id -> inspector.keys(id, host, set, gap, store.keyChecks(id).first(), failedProbes.value) }
 
     /** Looks up keys index until index + [gap], importing notes and moving the index past any used key found. */
-    suspend fun scanKeysAhead(host: String, set: KeySet, gap: Int = limits.keyGap): KeyScanResult = lock.withLock {
+    suspend fun scanKeysAhead(host: String, set: KeySet, gap: Int = settings.scanStopAfterUnusedKeys): KeyScanResult = lock.withLock {
         inspector.scanAhead(activeId(), host, set, gap)
     }
 
@@ -996,7 +996,7 @@ class Wallet(
     }
 
     /** Finds the right index for [set] on [host] (lookups past the highest used key, gap limit 20) and sets it. */
-    suspend fun findKeyIndex(host: String, set: KeySet, gap: Int = limits.keyGap): DiscoveryResult = lock.withLock {
+    suspend fun findKeyIndex(host: String, set: KeySet, gap: Int = settings.scanStopAfterUnusedKeys): DiscoveryResult = lock.withLock {
         discovery.discover(activeId(), host, set, gap)
     }
 
@@ -1010,7 +1010,7 @@ class Wallet(
     }
 
     /** Looks up keys 0 until index + [gap] of [set] on [host] and syncs the wallet with the answers. */
-    suspend fun recheckAllKeys(host: String, set: KeySet, gap: Int = limits.keyGap): KeyScanResult = lock.withLock {
+    suspend fun recheckAllKeys(host: String, set: KeySet, gap: Int = settings.scanStopAfterUnusedKeys): KeyScanResult = lock.withLock {
         inspector.recheckAll(activeId(), host, set, gap)
     }
 

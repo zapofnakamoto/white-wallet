@@ -212,7 +212,7 @@ internal class Payer(private val wallet: Wallet) {
 
     suspend fun pay(preview: PayPreview.Ready, amountMsat: Long, comment: String?): PayResult {
         // A note the mint turned out not to know was set aside (see UnknownNotes): plan again without it.
-        repeat(MAX_PLANS - 1) {
+        repeat(wallet.settings.paymentMaxRetriesAfterUnknownNote) {
             attempt(preview, amountMsat, comment)?.let {
                 return it
             }
@@ -406,8 +406,6 @@ internal class Payer(private val wallet: Wallet) {
         }
 
     companion object {
-        /** Plans per payment: each one after the first follows notes set aside as unknown to their mint. */
-        private const val MAX_PLANS = 3
 
         /** `bitcoin:<address>?lightning=<invoice>` (BIP-21 with a Lightning fallback) to the invoice. */
         fun unwrapBip21(text: String): String {

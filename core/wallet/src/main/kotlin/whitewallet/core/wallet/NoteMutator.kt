@@ -65,7 +65,8 @@ internal class NoteMutator(private val wallet: Wallet) {
     /**
      * Journals and sends one mutation of [fromId]'s [inputs], then records its outputs (in [outputs] order): a rotate or merge into one
      * output, or a split, whose first output gets [splitMsat]. If the mint says an output key is `already in use`, the mutation is retried
-     * with fresh output keys, up to [ScanLimits.keyGap] keys in all; after the first refusal the index is rediscovered.
+     * with fresh output keys, up to [WalletSettings.newNoteMaxKeysTriedWhileInUse] keys in all; after the first refusal the index is
+     * rediscovered.
      */
     suspend fun mutate(
         fromId: String,
@@ -164,7 +165,11 @@ internal class NoteMutator(private val wallet: Wallet) {
                     info,
                     url = request(type, info.callback, spends, outputs = reserved, splitMsat),
                 )
-            if (result is MutationResult.Refused && result.kind == RejectionKind.AlreadyInUse && attempt + 1 < wallet.limits.keyGap) {
+            if (
+                result is MutationResult.Refused &&
+                    result.kind == RejectionKind.AlreadyInUse &&
+                    attempt + 1 < wallet.settings.newNoteMaxKeysTriedWhileInUse
+            ) {
                 if (attempt == 0)
                     outputs.filterIsInstance<OutputSpec.Own>().distinct().forEach { guard.recover(it.accountId, host, it.set) }
                 attempt++

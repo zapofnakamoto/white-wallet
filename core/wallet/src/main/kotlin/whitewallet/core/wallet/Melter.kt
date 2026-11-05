@@ -149,7 +149,7 @@ internal class Melter(private val wallet: Wallet) {
 
         // The mint pays in the background; the note is burned once the payment settles, or restored if it fails.
         val melts = MeltReconciler(wallet)
-        var wait = POLL_START_MILLIS
+        var wait = wallet.settings.paymentStatusFirstWaitMillis
         val deadline = wallet.now() + wallet.payWaitMillis
         while (true) {
             // Unknown leaves the entry as stored, so inFlight stays current until it is settled.
@@ -159,13 +159,8 @@ internal class Melter(private val wallet: Wallet) {
                 else -> if (wallet.now() >= deadline) return MeltOutcome.Pending(entry.id)
             }
             delay(wait)
-            wait = (wait * 2).coerceAtMost(POLL_MAX_MILLIS)
+            wait = (wait * 2).coerceAtMost(wallet.settings.paymentStatusLongestWaitMillis)
         }
-    }
-
-    private companion object {
-        const val POLL_START_MILLIS = 250L
-        const val POLL_MAX_MILLIS = 3_000L
     }
 }
 
@@ -202,7 +197,7 @@ internal class MeltReconciler(private val wallet: Wallet) {
         // The mint said OK, so it marked the note pending before answering: outstanding again means it failed.
         // Without that answer the request may still be on its way, so wait before calling it failed.
         val answered = entry.detail == IN_FLIGHT
-        if (answered || final || wallet.now() - entry.createdAtMillis > LOST_ANSWER_GRACE_MILLIS) {
+        if (answered || final || wallet.now() - entry.createdAtMillis > wallet.settings.paymentLostAnswerWaitMillis) {
             note?.let { wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now()))) }
             return finish(entry, JournalStatus.Rejected)
         }
@@ -218,6 +213,5 @@ internal class MeltReconciler(private val wallet: Wallet) {
     companion object {
         /** Journal detail of a melt the mint accepted (its payment is in flight). */
         const val IN_FLIGHT = "in flight"
-        private const val LOST_ANSWER_GRACE_MILLIS = 120_000L
     }
 }

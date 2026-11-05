@@ -32,11 +32,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A restore stopped after 3 unused shares, so money on an address after three that were never paid was missed. It now
   stops after 20.
 
-### For brands
+### For developers
 
-- `recovery.*` sets how far the wallet looks for what a phrase used: unused keys, shares and accounts in a row, and how
-  much it tries (see "Recovery limits" in `docs/WHITE_LABEL.md`). One build can override them with `-Precovery.keys.gap=30`
-  or `WW_RECOVERY_KEYS_GAP=30`.
+- `wallet.properties` holds the numbers that decide how the wallet behaves, such as how far a restore looks and how
+  many notes one merge request spends. A build can override one with `-P` or a `WW_` variable, a release build can't.
+  Brands don't set these (see "Wallet settings" in `docs/DEVELOPMENT.md`).
+
+### For brands
 
 - New keys: `wallets.max`, `addresses.fee.onboarding` (`ask`, `reserve` or `skip`), `addresses.fee.max`.
 - `accounts.max` now counts accounts per recovery phrase, not per app. A brand that wants one account in all sets

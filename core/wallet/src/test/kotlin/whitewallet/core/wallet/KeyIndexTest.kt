@@ -134,7 +134,7 @@ class KeyIndexTest {
         credit(KeySet.Wallet, 2, 3_000)
         store.setIndexOf("a", mint.host, KeySet.Wallet, 3)
         val result = wallet.recheckAllKeys(mint.host, KeySet.Wallet)
-        assertEquals(3 + ScanLimits().keyGap, result.checked)
+        assertEquals(3 + WalletSettings().scanStopAfterUnusedKeys, result.checked)
         assertEquals(2, result.imported)
         assertEquals(4_000, wallet.balanceMsat.first())
     }

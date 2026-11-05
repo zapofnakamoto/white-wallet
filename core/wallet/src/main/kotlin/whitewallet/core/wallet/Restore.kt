@@ -72,7 +72,7 @@ internal class Restore(private val wallet: Wallet) {
         }
         // The phrase's further accounts, up to a gap of ones never used (BIP-44); those before a used one stay, to keep its index.
         val unused = mutableListOf<String>()
-        for (index in 1L until minOf(wallet.maxAccounts, wallet.limits.maxAccounts).toLong()) {
+        for (index in 1L until minOf(wallet.maxAccounts, wallet.settings.restoreMaxAccountsChecked).toLong()) {
             val id = UUID.randomUUID().toString()
             wallet.store.saveAccount(Account(id, "$accountName ${index + 1}", wallet.now(), h, walletId = accountId, index = index))
             when (val found = scan(id, h, emptyList())) {
@@ -81,7 +81,7 @@ internal class Restore(private val wallet: Wallet) {
                     if (found.used) unused.clear()
                     else {
                         unused += id
-                        if (unused.size >= wallet.limits.accountGap) break
+                        if (unused.size >= wallet.settings.restoreStopAfterUnusedAccounts) break
                     }
             }
         }
@@ -119,7 +119,7 @@ internal class Restore(private val wallet: Wallet) {
         var share = 0L
         var unused = 0
         var last = -1L
-        while (unused < wallet.limits.shareGap) {
+        while (unused < wallet.settings.restoreStopAfterUnusedShares) {
             val found = discovery.discover(accountId, h, KeySet.share(share))
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))

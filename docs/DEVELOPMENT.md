@@ -72,6 +72,14 @@ The brand scaffolder (`dev/new-brand.sh`, see docs/WHITE_LABEL.md) has Python te
 
 CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the regtest tests of `core/wallet` and `core/data` against the stack (`regtest.sh up` on the runner), failing if any of them was skipped, with the wallet's coverage report and the stack's logs as artifacts; lint, the brand check (`dev/check-brand.sh`), builds both sample brands and generates and builds a brand with the scaffolder; on a `v*` tag it creates the GitHub release with that version's `CHANGELOG.md` section. It builds no release APK: brands sign and publish their own.
 
+## Wallet settings
+
+`wallet.properties` at the root holds the numbers that decide how the wallet behaves. Brands don't set them; what a brand decides is in `brand.properties`. The build turns the file into the data class `WalletSettings`: each key becomes a field (`scan.stop.after.unused.keys` is `scanStopAfterUnusedKeys`), and the comment above it becomes the field's documentation. That comment must end with what the key allows, such as `Allowed: 1 to 1000.`, which the build and the class both check. A key ending in `.millis` is a time in milliseconds.
+
+To try a value in one build, without editing the file, use `-Pscan.stop.after.unused.keys=30` or `WW_SCAN_STOP_AFTER_UNUSED_KEYS=30`; `-P` wins. They are read when the app is built, since a phone has no environment. `assembleRelease` and `bundleRelease` fail if one is set, so a commit can only build one release. Tests pass their own `WalletSettings` to `Wallet`.
+
+What defines the keys stays in the code: a key path's numbers decide where the money is, and `DefaultAddress.CANDIDATES` which names a restore can find.
+
 ## Local regtest
 
 `./dev/regtest/regtest.sh up` starts bitcoind, two LND nodes and three reference LNURLcash mints, `http://localhost:8111`, `http://localhost:8112` (mint2, 2 sat base fee) and `http://localhost:8113` (mint3, whose signing key `regtest.sh rotate-mint3` changes), and forwards the ports to a connected device with `adb reverse`. `regtest.sh pay <address|invoice|lnurl> [sats]` pays from a local node (an invoice of mint2 is paid from the other node, since LND can't pay its own). `regtest.sh note [sats] [--mint2]` mints a bearer note and prints a link to claim under Receive → Claim a note (`--type` types it into the focused field on the device). In a debug build with developer mode on, both mints are offered in onboarding and as move targets in the Notes tab, and Developer options → **Local regtest** shows each mint's status, adds an account on it and lists its commands.

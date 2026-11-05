@@ -179,7 +179,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         var run = start
         val skipped = mutableSetOf<String>()
         val fee = wallet.store.mint(host)?.feeBaseMsat ?: 0
-        repeat(MAX_ROUNDS) {
+        repeat(wallet.settings.noteMaintenanceMaxStepsPerMintPerRun) {
             val notes = outstanding(accountId).filter { it.host == host && it.id !in skipped }.associateBy { it.id }
             val steps = strategy.plan(MintNotes(host, notes.values.map { it.forStrategy() }, fee))
             // One step per round: the first that applies. Later steps may name notes it spends, so the strategy plans
@@ -194,7 +194,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
                                 .takeIf { it.size >= 2 }
                                 ?.let {
                                     wallet.working(WalletTask.Maintaining(MaintenanceStep.Combining, strategy.id)) {
-                                        combine(accountId, host, it.take(MAX_MERGE))
+                                        combine(accountId, host, it.take(wallet.settings.noteMergeMaxNotesPerRequest))
                                     }
                                 }
                         is NoteStep.Split ->
@@ -404,11 +404,5 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
 
     private fun Note.forStrategy() = StrategyNote(id, amountMsat, isAddressNote, updatedAtMillis)
 
-    private companion object {
-        /** Spends per merge request; LUD-25 notes ~8-12 `ck1`s fit common URL limits. */
-        const val MAX_MERGE = 10
-
-        /** Steps per mint and run: a strategy that never settles still ends. The next refresh continues. */
-        const val MAX_ROUNDS = 50
-    }
+    private companion object {}
 }

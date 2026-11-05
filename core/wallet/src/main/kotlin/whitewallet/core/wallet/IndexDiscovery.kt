@@ -27,7 +27,12 @@ internal class IndexDiscovery(private val wallet: Wallet) {
     suspend fun highestKnownUsed(accountId: String, host: String, set: KeySet): Long =
         wallet.store.notes(accountId).first().filter { set.holds(it, host) }.maxOfOrNull { it.index ?: -1 } ?: -1
 
-    suspend fun discover(accountId: String, host: String, set: KeySet, gap: Int = wallet.limits.keyGap): DiscoveryResult {
+    suspend fun discover(
+        accountId: String,
+        host: String,
+        set: KeySet,
+        gap: Int = wallet.settings.scanStopAfterUnusedKeys,
+    ): DiscoveryResult {
         val current = wallet.store.indexOf(accountId, host, set)
         val mint = wallet.store.mint(host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
         var lastUsed = highestKnownUsed(accountId, host, set)
@@ -86,7 +91,7 @@ internal class IndexGuard(private val wallet: Wallet) {
         val domain = spendDomain(host)
         if (wallet.store.keyIndexOrNull(accountId, domain, counter) == null) discovery.discover(accountId, host, set)
         val keys = wallet.keys(accountId, host)
-        repeat(MAX_SKIPS) {
+        repeat(wallet.settings.newKeyMaxUsedKeysSkipped) {
             val index = wallet.store.reserveKeyIndex(accountId, domain, counter)
             val key = keys.pubkey(set, index)
             if (wallet.store.note(key.toHex()) == null) {
@@ -102,8 +107,4 @@ internal class IndexGuard(private val wallet: Wallet) {
      * taking the next key.
      */
     suspend fun recover(accountId: String, host: String, set: KeySet) = discovery.discover(accountId, host, set)
-
-    companion object {
-        private const val MAX_SKIPS = 10_000
-    }
 }

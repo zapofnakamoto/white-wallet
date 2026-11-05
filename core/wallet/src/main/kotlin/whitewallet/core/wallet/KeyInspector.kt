@@ -108,7 +108,7 @@ internal class KeyInspector(private val wallet: Wallet) {
     ): List<DerivedKey> {
         val keys = wallet.keysIfSeeded(accountId, host) ?: return emptyList()
         val tabIndex = index(accountId, host, set)
-        val count = (tabIndex + gap).coerceAtMost(MAX_LISTED)
+        val count = (tabIndex + gap).coerceAtMost(wallet.settings.keyScreenMaxKeysListed.toLong())
         return (0 until count).map { index ->
             val id = set.key(accountId, host, index)
             val q = keys.pubkey(set, index)
@@ -140,7 +140,7 @@ internal class KeyInspector(private val wallet: Wallet) {
 
     /**
      * Looks up keys from [from], at least until [until] and then on until [gap] unused keys in a row follow the last used key found, moving
-     * the index past it. Stops early if the mint stops answering or after [MAX_SCAN] keys.
+     * the index past it. Stops early if the mint stops answering or after [WalletSettings.keyScreenMaxKeysScanned] keys.
      */
     private suspend fun scan(accountId: String, host: String, set: KeySet, from: Long, until: Long, gap: Int): KeyScanResult {
         val mint =
@@ -162,8 +162,8 @@ internal class KeyInspector(private val wallet: Wallet) {
         var stopped: String? = null
         var index = from
         while (index < end) {
-            if (checked == MAX_SCAN) {
-                stopped = "stopped after $MAX_SCAN keys"
+            if (checked == wallet.settings.keyScreenMaxKeysScanned) {
+                stopped = "stopped after $checked keys"
                 break
             }
             val probe = prober.probe(set.key(accountId, host, index), mint)
@@ -209,8 +209,5 @@ internal class KeyInspector(private val wallet: Wallet) {
         wallet.store.setIndexOf(accountId, host, set, lastUsed + 1)
     }
 
-    private companion object {
-        const val MAX_LISTED = 500L
-        const val MAX_SCAN = 1_000
-    }
+    private companion object {}
 }

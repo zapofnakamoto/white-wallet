@@ -79,7 +79,7 @@ internal class AddressCheck(private val wallet: Wallet) {
      */
     private suspend fun candidates(accountId: String, host: String): List<Long> {
         val handedOut = wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0
-        return (0 until handedOut + wallet.limits.sharesAhead).toList()
+        return (0 until handedOut + wallet.settings.addressCheckExtraSharesTried).toList()
     }
 
     private suspend fun proveOwner(name: String, host: String, accountId: String, shares: List<Long>): Ownership {

@@ -7,7 +7,8 @@ import whitewallet.lnurlcash.spendDomain
 
 /**
  * Finds notes the mint auto-minted for Lightning address payments (LUD-26: a share's notes; legacy 2f17578: purpose 2) by looking up each
- * derived key by `p`, stopping after [ScanLimits.keyGap] consecutive unused indices, or at a lookup the mint refuses or doesn't answer.
+ * derived key by `p`, stopping after [WalletSettings.scanStopAfterUnusedKeys] consecutive unused indices, or at a lookup the mint refuses
+ * or doesn't answer.
  */
 internal class AddressScanner(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
@@ -38,7 +39,7 @@ internal class AddressScanner(private val wallet: Wallet) {
         var lastUsed = start - 1
         var found = 0
         var received = 0L
-        while (gap < wallet.limits.keyGap) {
+        while (gap < wallet.settings.scanStopAfterUnusedKeys) {
             when (val probe = prober.probe(set.key(accountId, host, index), mint)) {
                 is KeyProbe.Outstanding -> {
                     if (probe.imported) {

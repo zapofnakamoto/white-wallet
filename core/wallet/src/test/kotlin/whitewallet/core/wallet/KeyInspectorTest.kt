@@ -199,7 +199,7 @@ class KeyInspectorTest {
         wallet.recheckKey(mint.host, KeySet.Wallet, 1)
 
         val keys = wallet.derivedKeys(mint.host, KeySet.Wallet)
-        assertEquals(2 + ScanLimits().keyGap, keys.size, "used range plus one scan window")
+        assertEquals(2 + WalletSettings().scanStopAfterUnusedKeys, keys.size, "used range plus one scan window")
         assertEquals(NoteState.Spent, keys[0].noteState)
         assertNull(keys[0].probe)
         assertIs<KeyProbe.Outstanding>(keys[1].probe)
