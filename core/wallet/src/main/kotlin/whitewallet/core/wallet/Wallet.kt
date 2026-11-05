@@ -13,8 +13,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -24,6 +26,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import whitewallet.brand.NoteStrategy
 import whitewallet.brand.WalletTask
+import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.JournalStatus
@@ -60,8 +63,10 @@ class Wallet(
     private val strategies: NoteStrategies = NoteStrategies.builtIn(),
     /** Whether "collect at home mint" is offered, on by default, and its default fee cap (brand configuration). */
     val collectDefaults: CollectDefaults = CollectDefaults(),
-    /** How many accounts this wallet may hold (brand `accounts.max`); [AppDefaults.UNLIMITED] for no limit. */
+    /** How many accounts one recovery phrase may hold (brand `accounts.max`); [AppDefaults.UNLIMITED] for no limit. */
     val maxAccounts: Int = AppDefaults.UNLIMITED,
+    /** How many recovery phrases the app may hold (brand `wallets.max`); [AppDefaults.UNLIMITED] for no limit. */
+    val maxWallets: Int = AppDefaults.UNLIMITED,
     /**
      * Whether every account needs a Lightning address (brand `addresses.lightning=required`). Without, an account is set up with just its
      * mint ([createAccount]) and receives by invoice ([requestInvoice]) until it registers one.
@@ -153,7 +158,7 @@ class Wallet(
     val incomingMsat: Flow<Long> = receivedNotes.map { notes ->
         notes.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
     }
-    val backupVerified: Flow<Boolean> = ofActive(false, seeds::backupVerified)
+    val backupVerified: Flow<Boolean> = ofActive(false) { id -> flow { emitAll(seeds.backupVerified(walletOf(id))) } }
 
     /** The last known status of the active account's primary address; null until checked. Refreshed by [refresh]. */
     val addressStatus: Flow<AddressStatus?> =
@@ -175,8 +180,15 @@ class Wallet(
     /** The active account's history, newest first (see [Activity]). */
     val activity: Flow<List<Activity>> = ofActive(emptyList(), store::activities)
 
-    /** Whether another account may be created or restored ([maxAccounts]). */
-    val canAddAccount: Flow<Boolean> = store.accounts.map { it.size < maxAccounts }
+    /** The accounts of the active wallet (one recovery phrase), the active one included. */
+    val activeWalletAccounts: Flow<List<AccountSummary>> =
+        combine(store.accounts, activeAccount) { all, active -> all.filter { it.account.walletId == active?.account?.walletId } }
+
+    /** Whether the active wallet may hold another account ([maxAccounts]). */
+    val canAddAccount: Flow<Boolean> = activeWalletAccounts.map { it.isEmpty() || it.size < maxAccounts }
+
+    /** Whether another recovery phrase may be created or restored ([maxWallets]). */
+    val canAddWallet: Flow<Boolean> = store.accounts.map { all -> all.map { it.account.walletId }.distinct().size < maxWallets }
 
     /** The active account's note strategy: its choice, or the brand's default. */
     val noteStrategy: Flow<NoteStrategy> = ofActive(strategies.default) { id -> policies.strategy(id).map(strategies::resolve) }
@@ -279,9 +291,9 @@ class Wallet(
      * Creates an account on the mint at [host] without a Lightning address, with a fresh recovery phrase, and makes it active. Only where
      * addresses aren't required ([requireAddress]); otherwise accounts start with [onboard].
      */
-    suspend fun createAccount(host: String, name: String): CreateAccountResult = lock.withLock {
+    suspend fun createAccount(host: String, name: String, inActiveWallet: Boolean = false): CreateAccountResult = lock.withLock {
         check(!requireAddress) { "this app requires an address; use onboard" }
-        onboarding.createAccount(host, name)
+        onboarding.createAccount(host, name, inActiveWallet)
     }
 
     /**
@@ -293,18 +305,19 @@ class Wallet(
     }
 
     /** The active account's BIP-39 recovery phrase. Only for the backup screen; never log or persist it elsewhere. */
-    suspend fun recoveryPhrase(): List<String> = checkNotNull(seeds.load(activeId())) { "account has no seed" }
+    suspend fun recoveryPhrase(): List<String> = checkNotNull(seeds.load(walletOf(activeId()))) { "account has no seed" }
 
-    suspend fun markBackupVerified() = seeds.setBackupVerified(activeId())
+    suspend fun markBackupVerified() = seeds.setBackupVerified(walletOf(activeId()))
 
     /**
      * Claims [username] on [host] and confirms the claim. With [newAccountName], creates a new account with its own recovery phrase (kept
      * only if the claim succeeds) and makes it active; without, changes the active account's address. The very first call always creates an
      * account.
      */
-    suspend fun onboard(username: String, host: String, newAccountName: String? = null): OnboardResult = lock.withLock {
-        onboarding.onboard(username, host, newAccountName)
-    }
+    suspend fun onboard(username: String, host: String, newAccountName: String? = null, inActiveWallet: Boolean = false): OnboardResult =
+        lock.withLock {
+            onboarding.onboard(username, host, newAccountName, inActiveWallet)
+        }
 
     /** Validates and stores a mint (and pins its key) without registering a username. */
     suspend fun connectMint(host: String): ConnectResult = lock.withLock { onboarding.connectMint(host) }
@@ -918,34 +931,40 @@ class Wallet(
     }
 
     /**
-     * Deletes the active account from this device: its seed, notes, journal and settings. Its funds stay at the mint and can only be
-     * recovered with its recovery phrase. Another account becomes active if there is one. Returns true if one did.
+     * Deletes the active wallet from this device: its recovery phrase and every account of it, with their notes, journals and settings.
+     * Their funds stay at the mint and can only be recovered with the phrase. Another account becomes active if there is one. Returns true
+     * if one did.
      */
-    suspend fun deleteActiveAccount(): Boolean = lock.withLock { deleteActive(prefer = null) }
+    suspend fun deleteActiveAccount(): Boolean = lock.withLock { deleteActive(prefer = null, wholeWallet = true) }
 
     /**
-     * Undoes a restore whose address step isn't done (see [needsAddress]): the restored account is removed from this device, and the
-     * account that was active before it (if still known) is active again. Nothing changes at the mint: the money stays under the recovery
-     * phrase and can be restored again. Returns whether an account remains.
+     * Undoes a restore whose address step isn't done (see [needsAddress]): the restored account is removed from this device (the whole
+     * wallet, unless another of its accounts is set up), and the account that was active before it (if still known) is active again.
+     * Nothing changes at the mint: the money stays under the recovery phrase and can be restored again. Returns whether an account remains.
      */
     suspend fun abortRestore(): Boolean = lock.withLock {
         check(store.currentAccountId()?.let { store.currentProfile(it) == null } == true) { "no restore in progress" }
-        deleteActive(prefer = activeBeforeRestore).also { activeBeforeRestore = null }
+        val others = siblings(activeId()).filter { it.id != activeId() }
+        val alone = others.none { store.currentProfile(it.id) != null }
+        deleteActive(prefer = activeBeforeRestore, wholeWallet = alone).also { activeBeforeRestore = null }
     }
 
     /** The account that was active when a restore started; kept in memory only (after a restart, any account is fine). */
     internal var activeBeforeRestore: String? = null
 
-    private suspend fun deleteActive(prefer: String?): Boolean {
-        val id = activeId()
-        store.deleteAccount(id)
-        seeds.clear(id)
-        policies.clear(id)
-        _lastPolicyRun.update { it - id }
-        collectBlocks.update { blocks -> blocks.filterKeys { it.first != id } }
-        keySets.keys.removeAll { it.first == id }
-        addressStatuses.update { statuses -> statuses.filterKeys { it.first != id } }
-        failedProbes.update { probes -> probes.filterKeys { it.accountId != id } }
+    private suspend fun deleteActive(prefer: String?, wholeWallet: Boolean): Boolean {
+        val active = activeId()
+        val walletId = walletOf(active)
+        for (id in if (wholeWallet) siblings(active).map { it.id } else listOf(active)) {
+            store.deleteAccount(id)
+            policies.clear(id)
+            _lastPolicyRun.update { it - id }
+            collectBlocks.update { blocks -> blocks.filterKeys { it.first != id } }
+            keySets.keys.removeAll { it.first == id }
+            addressStatuses.update { statuses -> statuses.filterKeys { it.first != id } }
+            failedProbes.update { probes -> probes.filterKeys { it.accountId != id } }
+        }
+        if (wholeWallet) seeds.clear(walletId)
         val remaining = store.accounts.first().map { it.account.id }
         val next = prefer?.takeIf { it in remaining } ?: remaining.firstOrNull()
         store.setActiveAccount(next)
@@ -1091,7 +1110,7 @@ class Wallet(
         keySets[accountId to host]?.let {
             return it
         }
-        val account = store.account(accountId)
+        val account = accountOf(accountId)
         val words = checkNotNull(seeds.load(account?.walletId ?: accountId)) { "account has no seed" }
         val seed = RecoveryPhrase.seed(words)
         return try {
@@ -1106,8 +1125,28 @@ class Wallet(
     /** The keys, or null if the account has no seed (so nothing can be ours). */
     internal suspend fun keysIfSeeded(accountId: String?, host: String): AccountKeys? {
         if (accountId == null) return null
-        if (keySets[accountId to host] == null && seeds.load(store.account(accountId)?.walletId ?: accountId) == null) return null
+        if (keySets[accountId to host] == null && seeds.load(walletOf(accountId)) == null) return null
         return keys(accountId, host)
+    }
+
+    /** An account being set up in an existing wallet: its keys are needed before it is saved. */
+    internal var forming: Account? = null
+
+    private suspend fun accountOf(accountId: String): Account? = store.account(accountId) ?: forming?.takeIf { it.id == accountId }
+
+    /** The wallet (recovery phrase) of [accountId]. An account not saved yet is its own wallet's first. */
+    internal suspend fun walletOf(accountId: String): String = accountOf(accountId)?.walletId ?: accountId
+
+    /**
+     * Whether the wallet's legacy 2f17578 keys are [accountId]'s (tag: keys). They derive from the phrase alone, so all its accounts would
+     * reach the same notes: they are the first account's, the one that was there before wallets held several.
+     */
+    internal suspend fun ownsLegacyKeys(accountId: String): Boolean = (accountOf(accountId)?.index ?: 0L) == 0L
+
+    /** The accounts sharing [accountId]'s wallet, it included. */
+    internal suspend fun siblings(accountId: String): List<Account> {
+        val walletId = walletOf(accountId)
+        return store.accounts.first().map { it.account }.filter { it.walletId == walletId }
     }
 
     /**

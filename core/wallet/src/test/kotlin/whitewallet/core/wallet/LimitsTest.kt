@@ -14,22 +14,22 @@ import whitewallet.lnurlcash.client.LnurlcashClient
 class LimitsTest {
     private val phrase = "legal winner thank year wave sausage worth useful legal winner thank yellow"
 
-    private fun wallet(store: InMemoryWalletStore, maxAccounts: Int) =
+    private fun wallet(store: InMemoryWalletStore, maxWallets: Int) =
         Wallet(
             store,
             InMemorySeedStore(
                 mapOf("a" to "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "))
             ),
             LnurlcashClient(),
-            maxAccounts = maxAccounts,
+            maxWallets = maxWallets,
         )
 
     @Test
     fun `no account beyond the limit is created or restored`() = runBlocking {
         val store = InMemoryWalletStore()
         store.addAccount("a", "Main", Profile("alice", "mint.example"))
-        val wallet = wallet(store, maxAccounts = 1)
-        assertFalse(wallet.canAddAccount.first())
+        val wallet = wallet(store, maxWallets = 1)
+        assertFalse(wallet.canAddWallet.first())
         assertEquals(OnboardResult.AccountLimitReached(1), wallet.onboard("bob", "mint.example", "Savings"))
         assertEquals(RestoreResult.AccountLimitReached(1), wallet.restore(phrase, "mint.example", "Old"))
         assertEquals(1, store.accounts.first().size)
@@ -39,15 +39,15 @@ class LimitsTest {
     fun `below the limit, accounts can be added`() = runBlocking {
         val store = InMemoryWalletStore()
         store.addAccount("a", "Main", Profile("alice", "mint.example"))
-        assertTrue(wallet(store, maxAccounts = 2).canAddAccount.first())
-        assertTrue(wallet(store, maxAccounts = AppDefaults.UNLIMITED).canAddAccount.first())
+        assertTrue(wallet(store, maxWallets = 2).canAddWallet.first())
+        assertTrue(wallet(store, maxWallets = AppDefaults.UNLIMITED).canAddWallet.first())
     }
 
     @Test
     fun `changing the address of the only account is not a new account`() = runBlocking {
         val store = InMemoryWalletStore()
         store.addAccount("a", "Main", Profile("alice", "mint.example"))
-        val result = wallet(store, maxAccounts = 1).onboard("bob", "not a host", null)
+        val result = wallet(store, maxWallets = 1).onboard("bob", "not a host", null)
         assertIs<OnboardResult.MintInvalid>(result, "gets past the account limit")
     }
 

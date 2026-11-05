@@ -103,6 +103,7 @@ fun HomeRoute(
     onBackup: () -> Unit,
     onChangeAddress: () -> Unit,
     onAddAccount: () -> Unit,
+    onAddWallet: () -> Unit = {},
     onMoveFunds: () -> Unit,
     /** Null until sending exists; the Send button shows disabled. */
     onSend: (() -> Unit)? = null,
@@ -136,7 +137,7 @@ fun HomeRoute(
         onBackup,
         onDismissBackup = viewModel::dismissBackupPrompt,
         onChangeAddress,
-        accountActions = AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds),
+        accountActions = AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds, onAddWallet),
         onOpenNote,
         onToggleBalance = viewModel::toggleBalanceHidden,
         onOpenMint,
@@ -305,6 +306,11 @@ fun HomeScreen(
             accounts = state.accounts,
             activeId = state.activeAccountId,
             canAdd = state.canAddAccount,
+            canAddWallet = state.canAddWallet,
+            onAddWallet = {
+                showAccounts = false
+                accountActions.onAddWallet()
+            },
             onSelect = {
                 showAccounts = false
                 accountActions.onSwitch(it)

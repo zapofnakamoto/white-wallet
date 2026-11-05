@@ -21,7 +21,7 @@
     <string name="settings_note_list">Scheine</string>
     <string name="settings_note_list_hint">Deine Scheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>
     <string name="settings_account_contents">Wiederherstellungsphrase, Adressen, Scheine</string>
-    <string name="delete_what">Das entfernt dieses Konto von diesem Handy: seine Wiederherstellungsphrase, seine Scheine und seine Einstellungen. Andere Konten sind nicht betroffen.</string>
+    <string name="delete_what">Das entfernt dieses Wallet von diesem Handy: seine Wiederherstellungsphrase und seine Konten, mit ihren Scheinen und Einstellungen. Andere Wallets sind nicht betroffen.</string>
     <string name="settings_note_strategy">Umgang mit Scheinen</string>
     <string name="settings_strategy_manual_hint">Scheine so behalten, wie sie ankommen.</string>
     <string name="settings_strategy_single">Nur einen Schein behalten</string>
@@ -425,4 +425,6 @@
     <string name="addresses_held_pay">Vom Guthaben bezahlen</string>
     <string name="addresses_held_not_paid">Die Gebühr für %1$s konnte nicht bezahlt werden.</string>
     <string name="money_error_address_fee">Diese Mint verlangt eine Gebühr für die Adresse, daher wurde nichts verschoben. Bezahle sie in den Einstellungen unter Adressen oder wechsle die Mint ohne Adresse.</string>
+    <string name="money_error_mint_too_old">Diese Mint kann nur dem ersten Konto eines Wallets eine Adresse geben. Wechsle die Mint ohne Adresse.</string>
+    <string name="delete_accounts">Alle seine Konten werden mit entfernt: %1$s.</string>
 </resources>

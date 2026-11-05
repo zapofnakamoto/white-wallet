@@ -86,11 +86,13 @@ fun OnboardingRoute(
     presetHost: String? = null,
     /** For [OnboardingMode.RestoreAddress]: the restore was cancelled; whether another account remains. */
     onRestoreCancelled: (remains: Boolean) -> Unit = {},
+    /** For [OnboardingMode.NewAccount]: the account joins the active wallet. */
+    inActiveWallet: Boolean = false,
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val defaultName = stringResource(R.string.default_account_name)
     val newName = stringResource(R.string.new_account_default_name)
-    LaunchedEffect(Unit) { viewModel.init(mode, defaultName, newName, presetHost) }
+    LaunchedEffect(Unit) { viewModel.init(mode, defaultName, newName, presetHost, inActiveWallet) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.done) { if (state.done) onDone() }
     LaunchedEffect(state.restoreCancelled) { state.restoreCancelled?.let(onRestoreCancelled) }
@@ -429,6 +431,7 @@ private fun ErrorText(state: OnboardingState) {
                 is OnboardingError.FeeTooHigh ->
                     stringResource(R.string.onboarding_error_fee, formatAmount(error.amountMsat), formatAmount(error.maxMsat))
                 is OnboardingError.FeeNotPaid -> stringResource(R.string.onboarding_error_fee_not_paid)
+                is OnboardingError.MintTooOld -> stringResource(R.string.onboarding_error_mint_too_old)
                 is OnboardingError.HoldExpired -> stringResource(R.string.onboarding_error_hold_expired)
                 is OnboardingError.Username -> stringResource(R.string.onboarding_error_username, error.detail)
                 is OnboardingError.Registration -> stringResource(R.string.onboarding_error_registration, error.detail)

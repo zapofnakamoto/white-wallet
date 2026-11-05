@@ -18,7 +18,7 @@ internal class AddressScanner(private val wallet: Wallet) {
     suspend fun scanAll(accountId: String, host: String): RefreshResult {
         val addresses = wallet.store.addresses(accountId).first().filter { it.host == host }
         val sets = addresses.mapNotNull { it.share }.distinct().map(KeySet::share).toMutableList()
-        if (addresses.isEmpty() || addresses.any { it.share == null }) sets += LEGACY_ADDRESSES
+        if ((addresses.isEmpty() || addresses.any { it.share == null }) && wallet.ownsLegacyKeys(accountId)) sets += LEGACY_ADDRESSES
         return sets.fold(RefreshResult(0, 0)) { total, set ->
             val r = scan(accountId, host, set)
             RefreshResult(total.newNotes + r.newNotes, total.receivedMsat + r.receivedMsat)

@@ -27,6 +27,8 @@ data class DeleteWalletState(
     val deleted: Boolean = false,
     /** After deleting: whether another account took over (otherwise the app starts over). */
     val otherAccountRemains: Boolean = false,
+    /** Every account the wallet's recovery phrase holds: all of them go. */
+    val accounts: List<String> = emptyList(),
 ) {
     /** Money would be lost for good: there is a balance and no verified backup. */
     val atRisk: Boolean
@@ -50,11 +52,11 @@ class DeleteWalletViewModel @Inject constructor(private val wallet: Wallet) : Vi
     private val local = MutableStateFlow(Local())
 
     val state: StateFlow<DeleteWalletState> =
-        combine(wallet.activeAccount, wallet.balanceMsat, wallet.backupVerified, local) { account, balance, backedUp, l ->
+        combine(wallet.activeAccount, wallet.activeWalletAccounts, wallet.backupVerified, local) { account, members, backedUp, l ->
                 DeleteWalletState(
                     account?.profile,
                     account?.account?.host,
-                    balanceMsat = balance,
+                    balanceMsat = members.sumOf { it.balanceMsat },
                     backupVerified = backedUp,
                     l.unresolved,
                     l.acknowledged,
@@ -62,6 +64,7 @@ class DeleteWalletViewModel @Inject constructor(private val wallet: Wallet) : Vi
                     l.deleting,
                     l.deleted,
                     l.otherAccountRemains,
+                    accounts = members.map { it.account.name },
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeleteWalletState())

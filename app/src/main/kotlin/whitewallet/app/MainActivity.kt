@@ -230,7 +230,8 @@ internal object Routes {
     const val MOVE_HOME = "settings/mint/move-home"
     const val DELETE = "delete"
     const val NEW_ACCOUNT = "account/new"
-    const val NEW_ACCOUNT_ON = "account/new?host={host}"
+    const val NEW_ACCOUNT_ON = "account/new?host={host}&inWallet={inWallet}"
+    const val NEW_ACCOUNT_IN_WALLET = "account/new?inWallet=true"
     const val MOVE_FUNDS = "move"
     const val DEVELOPER = "settings/developer"
     const val BRAND = "brand/{id}"
@@ -331,7 +332,8 @@ private fun WalletApp(
                 onSettings = { nav.navigate(Routes.SETTINGS) },
                 onBackup = { nav.navigate(Routes.BACKUP) },
                 onChangeAddress = { nav.navigate(Routes.CHANGE_ADDRESS) },
-                onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
+                onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT_IN_WALLET) },
+                onAddWallet = { nav.navigate(Routes.NEW_ACCOUNT) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
                 menu =
                     brand.on(BrandScreenEntry.HomeMenu).map { screen ->
@@ -358,21 +360,28 @@ private fun WalletApp(
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
-                    }
+                    },
+                    navArgument("inWallet") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    },
                 ),
         ) { entry ->
+            val inWallet = entry.arguments?.getBoolean("inWallet") == true
             OnboardingRoute(
                 appName,
                 logo = {},
                 onDone = {
-                    if (backupAtSetup)
+                    // An account in an existing wallet comes with no new phrase to back up.
+                    if (backupAtSetup && !inWallet)
                         nav.navigate(Routes.backupAtSetup(next = null)) { popUpTo(Routes.NEW_ACCOUNT_ON) { inclusive = true } }
                     else nav.popBackStack()
                 },
                 mode = OnboardingMode.NewAccount,
                 onBack = { nav.popBackStack() },
                 presetHost = entry.arguments?.getString("host"),
-                onRestore = { nav.navigate(Routes.RESTORE_ACCOUNT) },
+                onRestore = if (inWallet) null else ({ nav.navigate(Routes.RESTORE_ACCOUNT) }),
+                inActiveWallet = inWallet,
             )
         }
         composable(Routes.MOVE_FUNDS) {

@@ -111,7 +111,7 @@ class NoAddressTest {
     fun `accounts without addresses respect the account limit, and require-address brands can't create them`() = runBlocking {
         val store = InMemoryWalletStore()
         store.addAccount("a", "Main", null)
-        val limited = Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false, maxAccounts = 1)
+        val limited = Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false, maxWallets = 1)
         assertEquals(CreateAccountResult.AccountLimitReached(1), limited.createAccount("mint.example", "Second"))
         assertFailsWith<IllegalStateException> {
             Wallet(store, InMemorySeedStore(), LnurlcashClient()).createAccount("mint.example", "Second")

@@ -99,6 +99,9 @@ sealed interface MoneyMoveError {
 
     /** The mint charges for the address: nothing moved, and a name it holds waits under Settings → Addresses. */
     data object AddressFee : MoneyMoveError
+
+    /** A further account of a wallet can't get an address on a legacy mint. */
+    data object MintTooOld : MoneyMoveError
 }
 
 /** After the change or move: the new primary address (if the home changed and the account has one), and per mint what happened. */
@@ -266,6 +269,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
                         }
                     is OnboardResult.AwaitingFee,
                     is OnboardResult.FeeRefused -> return fail(MoneyMoveError.AddressFee)
+                    OnboardResult.MintTooOld -> return fail(MoneyMoveError.MintTooOld)
                     is OnboardResult.UsernameInvalid -> return fail(MoneyMoveError.Name(r.reason))
                     is OnboardResult.RegistrationFailed -> return fail(MoneyMoveError.Registration(r.reason.orEmpty()))
                     is OnboardResult.NetworkError -> return fail(MoneyMoveError.Network(r.reason))
@@ -491,6 +495,7 @@ private fun ErrorText(error: MoneyMoveError) {
             is MoneyMoveError.Mint -> stringResource(R.string.money_error_mint, error.detail)
             is MoneyMoveError.Network -> stringResource(R.string.money_error_network, error.detail)
             MoneyMoveError.AddressFee -> stringResource(R.string.money_error_address_fee)
+            MoneyMoveError.MintTooOld -> stringResource(R.string.money_error_mint_too_old)
         }
     Text(text, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
 }

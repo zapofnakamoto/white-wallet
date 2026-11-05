@@ -62,8 +62,10 @@ data class HomeState(
     val backupPromptDismissed: Boolean = false,
     /** The balance shows as dots until tapped (kept across launches). */
     val balanceHidden: Boolean = false,
-    /** Another account may be created or restored (brand `accounts.max`). */
+    /** The active wallet may hold another account (brand `accounts.max`). */
     val canAddAccount: Boolean = true,
+    /** Another wallet may be created or restored (brand `wallets.max`). */
+    val canAddWallet: Boolean = false,
     /** Accounts are a thing in this app: hidden when the brand allows one and there is one. */
     val showAccounts: Boolean = true,
     /** Which filters History offers (brand `history.filter`). */
@@ -137,6 +139,7 @@ class HomeViewModel(
                 (backedUp, address, hidden),
                 s ->
                 val balance = active?.balanceMsat ?: 0
+                val walletId = active?.account?.walletId
                 s.copy(
                     task = work.first,
                     strategyText = work.second,
@@ -148,8 +151,9 @@ class HomeViewModel(
                     activity = activity,
                     showBackupPrompt = defaults.remindBackup(balance) && !backedUp && !s.backupPromptDismissed,
                     balanceHidden = hidden,
-                    canAddAccount = accounts.size < wallet.maxAccounts,
-                    showAccounts = wallet.maxAccounts > 1 || accounts.size > 1,
+                    canAddAccount = accounts.count { it.account.walletId == walletId } < wallet.maxAccounts,
+                    canAddWallet = accounts.map { it.account.walletId }.distinct().size < wallet.maxWallets,
+                    showAccounts = wallet.maxAccounts > 1 || wallet.maxWallets > 1 || accounts.size > 1,
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState(loaded = false))

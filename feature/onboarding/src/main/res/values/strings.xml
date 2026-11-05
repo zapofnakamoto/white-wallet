@@ -111,4 +111,5 @@
     <string name="onboarding_error_fee">This mint asks %1$s for an address, more than the %2$s this app accepts.</string>
     <string name="onboarding_error_fee_not_paid">The fee could not be paid. The name stays reserved.</string>
     <string name="onboarding_error_hold_expired">The reservation ran out before the fee was paid. You can try again.</string>
+    <string name="onboarding_error_mint_too_old">This mint can only give an address to the first account of a wallet. Choose another mint, or continue without an address.</string>
 </resources>

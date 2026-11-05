@@ -50,4 +50,20 @@ class AccountSwitcherTest {
         show((1..30).map { summary("$it", "Account $it") }, activeId = "1")
         compose.onNodeWithText(text(R.string.accounts_separate_backups)).performScrollTo().assertIsDisplayed()
     }
+
+    @Test
+    fun severalWalletsAreShownApartAndAnotherOneCanBeAdded() {
+        var added = false
+        val first = AccountSummary(Account("a", "Main", 0, "mint.example"), null, 0)
+        val sibling = AccountSummary(Account("b", "Savings", 1, "mint.example", walletId = "a", index = 1), null, 0)
+        val other = AccountSummary(Account("c", "Work", 2, "mint.example"), null, 0)
+        compose.setContent {
+            AccountSwitcher(listOf(first, sibling, other), "a", true, {}, {}, {}, {}, canAddWallet = true, onAddWallet = { added = true })
+        }
+        compose.onNodeWithText(text(R.string.accounts_wallet, 1)).assertExists()
+        compose.onNodeWithText(text(R.string.accounts_wallet, 2)).assertExists()
+        compose.onNodeWithText(text(R.string.accounts_wallet, 3)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.accounts_add_wallet)).performScrollTo().performClick()
+        assertEquals(true, added)
+    }
 }

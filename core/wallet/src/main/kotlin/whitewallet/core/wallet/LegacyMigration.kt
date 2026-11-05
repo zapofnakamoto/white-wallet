@@ -65,6 +65,8 @@ internal class LegacyMigration(
      * file, so refused attempts leave no gap for a restore to stop at; a crash in between is covered by [AddressCheck.provenShare].
      */
     suspend fun move(accountId: String, name: String, host: String): Long? {
+        // The branch key is the phrase's: a further account would take the first account's address with it.
+        if (!wallet.ownsLegacyKeys(accountId)) return null
         val domain = spendDomain(host)
         val keys = wallet.keys(accountId, host)
         val n = wallet.store.keyIndexOrNull(accountId, domain, KeyCounter.Shares) ?: 0

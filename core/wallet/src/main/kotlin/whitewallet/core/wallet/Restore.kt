@@ -18,7 +18,7 @@ sealed interface RestoreResult {
     /** This recovery phrase is already an account of this wallet. */
     data class AlreadyInWallet(val accountName: String) : RestoreResult
 
-    /** The wallet already holds [limit] accounts, the most this app allows ([Wallet.maxAccounts]). Nothing changed. */
+    /** The app already holds [limit] wallets, the most it allows ([Wallet.maxWallets]). Nothing changed. */
     data class AccountLimitReached(val limit: Int) : RestoreResult
 
     data class MintInvalid(val reason: String) : RestoreResult
@@ -44,9 +44,9 @@ internal class Restore(private val wallet: Wallet) {
             }
         val accounts = wallet.store.accounts.first()
         for (summary in accounts) {
-            if (wallet.seeds.load(summary.account.id) == words) return RestoreResult.AlreadyInWallet(summary.account.name)
+            if (wallet.seeds.load(summary.account.walletId) == words) return RestoreResult.AlreadyInWallet(summary.account.name)
         }
-        if (accounts.size >= wallet.maxAccounts) return RestoreResult.AccountLimitReached(wallet.maxAccounts)
+        if (!wallet.canAddWallet.first()) return RestoreResult.AccountLimitReached(wallet.maxWallets)
         when (val connected = onboarding.connectMint(host)) {
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
@@ -63,18 +63,55 @@ internal class Restore(private val wallet: Wallet) {
         // The user had the phrase written down; no need to ask them to back it up again.
         wallet.seeds.setBackupVerified(accountId)
         wallet.store.saveAccount(Account(accountId, accountName, wallet.now(), h))
-        val stopped: suspend (DiscoveryResult) -> RestoreResult? = { found ->
-            found.stoppedEarly?.let { reason ->
-                wallet.store.deleteAccount(accountId)
-                wallet.discardSeed(accountId)
-                if (found.refused) RestoreResult.MintInvalid(reason) else RestoreResult.NetworkError(reason)
+        val failed: suspend (Failure) -> RestoreResult = { failure ->
+            wallet.siblings(accountId).forEach { wallet.store.deleteAccount(it.id) }
+            wallet.discardSeed(accountId)
+            if (failure.refused) RestoreResult.MintInvalid(failure.reason) else RestoreResult.NetworkError(failure.reason)
+        }
+        when (val first = scan(accountId, h, legacy = true)) {
+            is Scan.Failed -> return failed(first.failure)
+            is Scan.Done -> Unit
+        }
+        // The phrase's further accounts, up to the first that was never used (BIP-44).
+        for (index in 1L until minOf(wallet.maxAccounts, MAX_ACCOUNTS).toLong()) {
+            val id = UUID.randomUUID().toString()
+            wallet.store.saveAccount(Account(id, "$accountName ${index + 1}", wallet.now(), h, walletId = accountId, index = index))
+            when (val found = scan(id, h, legacy = false)) {
+                is Scan.Failed -> return failed(found.failure)
+                is Scan.Done ->
+                    if (!found.used) {
+                        wallet.store.deleteAccount(id)
+                        break
+                    }
             }
         }
-        // The account's LUD-26 chains, then the legacy 2f17578 purposes (tag: keys), which hold what it had before the upgrade.
-        for (set in listOf(KeySet.Wallet, KeySet.Change) + KeySet.LEGACY) {
-            stopped(discovery.discover(accountId, h, set))?.let {
-                return it
+        wallet.activeBeforeRestore = wallet.store.currentAccountId()
+        wallet.store.setActiveAccount(accountId)
+        val notes = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
+        return RestoreResult.Restored(accountId, notes.size, notes.sumOf { it.amountMsat })
+    }
+
+    private data class Failure(val reason: String, val refused: Boolean)
+
+    private sealed interface Scan {
+        /** [used]: some key of the account was ever used. */
+        data class Done(val used: Boolean) : Scan
+
+        data class Failed(val failure: Failure) : Scan
+    }
+
+    /**
+     * Finds what [accountId] holds on [h]. The legacy 2f17578 purposes (tag: keys) hold what the wallet's first account had before the
+     * upgrade.
+     */
+    private suspend fun scan(accountId: String, h: String, legacy: Boolean): Scan {
+        var used = false
+        for (set in listOf(KeySet.Wallet, KeySet.Change) + if (legacy) KeySet.LEGACY else emptyList()) {
+            val found = discovery.discover(accountId, h, set)
+            found.stoppedEarly?.let {
+                return Scan.Failed(Failure(it, found.refused))
             }
+            used = used || found.next > 0
         }
         // Address payments, one share per address: shares are handed out in order, so the scan ends after a few unused ones. A legacy
         // mint never registered one (tag: mint).
@@ -82,28 +119,28 @@ internal class Restore(private val wallet: Wallet) {
             try {
                 wallet.dialect(h)
             } catch (e: IOException) {
-                wallet.store.deleteAccount(accountId)
-                wallet.discardSeed(accountId)
-                return RestoreResult.NetworkError(e.message ?: "network error")
+                return Scan.Failed(Failure(e.message ?: "network error", refused = false))
             }
         var share = 0L
         var unused = if (dialect == MintDialect.Legacy) AddressCheck.RESTORE_SHARES.toInt() else 0
-        var used = -1L
+        var last = -1L
         while (unused < AddressCheck.RESTORE_SHARES) {
             val found = discovery.discover(accountId, h, KeySet.share(share))
-            stopped(found)?.let {
-                return it
+            found.stoppedEarly?.let {
+                return Scan.Failed(Failure(it, found.refused))
             }
             if (found.next > 0) {
-                used = share
+                last = share
                 unused = 0
             } else unused++
             share++
         }
-        if (used >= 0) wallet.store.setKeyIndex(accountId, spendDomain(h), KeyCounter.Shares, used + 1)
-        wallet.activeBeforeRestore = wallet.store.currentAccountId()
-        wallet.store.setActiveAccount(accountId)
-        val notes = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
-        return RestoreResult.Restored(accountId, notes.size, notes.sumOf { it.amountMsat })
+        if (last >= 0) wallet.store.setKeyIndex(accountId, spendDomain(h), KeyCounter.Shares, last + 1)
+        return Scan.Done(used || last >= 0)
+    }
+
+    private companion object {
+        /** Past this a restore stops looking for further accounts, whatever the brand allows. */
+        const val MAX_ACCOUNTS = 100
     }
 }

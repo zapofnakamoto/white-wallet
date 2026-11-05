@@ -27,7 +27,7 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.AccountSummary
 
 /** What the account switcher can ask for. */
-class AccountActions(val onSwitch: (String) -> Unit, val onAdd: () -> Unit, val onMove: () -> Unit)
+class AccountActions(val onSwitch: (String) -> Unit, val onAdd: () -> Unit, val onMove: () -> Unit, val onAddWallet: () -> Unit = {})
 
 /** Bottom sheet listing every account with its address and balance (Design Guide: wallet switcher). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,13 +35,17 @@ class AccountActions(val onSwitch: (String) -> Unit, val onAdd: () -> Unit, val 
 fun AccountSwitcher(
     accounts: List<AccountSummary>,
     activeId: String?,
-    /** False once the wallet holds as many accounts as the brand allows. */
+    /** False once the active wallet holds as many accounts as the brand allows. */
     canAdd: Boolean,
     onSelect: (String) -> Unit,
     onAdd: () -> Unit,
     onMove: () -> Unit,
     onDismiss: () -> Unit,
+    /** False once the app holds as many wallets as the brand allows. */
+    canAddWallet: Boolean = false,
+    onAddWallet: () -> Unit = {},
 ) {
+    val wallets = accounts.groupBy { it.account.walletId }.values.toList()
     WalletSheet(onDismissRequest = onDismiss) {
         // Scrolls: with many accounts, the buttons and the backup hint below them would be cut off.
         Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 16.dp)) {
@@ -52,15 +56,24 @@ fun AccountSwitcher(
             )
             // One choice among the accounts: each row is a radio button to screen readers; the active one's mark has a check.
             Column(Modifier.selectableGroup()) {
-                accounts.forEachIndexed { index, summary ->
-                    val active = summary.account.id == activeId
-                    WalletListItem(
-                        leadingContent = { WalletAccountMark(summary.account.name, index, active = active) },
-                        headlineContent = { Text(summary.account.name) },
-                        supportingContent = { Text(summary.profile?.address ?: summary.account.host) },
-                        trailingContent = { Text(formatAmount(summary.balanceMsat)) },
-                        modifier = Modifier.selectable(selected = active, role = Role.RadioButton) { onSelect(summary.account.id) },
-                    )
+                wallets.forEachIndexed { number, members ->
+                    if (wallets.size > 1) {
+                        Text(
+                            stringResource(R.string.accounts_wallet, number + 1),
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp),
+                        )
+                    }
+                    members.forEach { summary ->
+                        val active = summary.account.id == activeId
+                        WalletListItem(
+                            leadingContent = { WalletAccountMark(summary.account.name, accounts.indexOf(summary), active = active) },
+                            headlineContent = { Text(summary.account.name) },
+                            supportingContent = { Text(summary.profile?.address ?: summary.account.host) },
+                            trailingContent = { Text(formatAmount(summary.balanceMsat)) },
+                            modifier = Modifier.selectable(selected = active, role = Role.RadioButton) { onSelect(summary.account.id) },
+                        )
+                    }
                 }
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -70,6 +83,11 @@ fun AccountSwitcher(
                     }
                 WalletButton(kind = ButtonKind.Secondary, onClick = onMove, enabled = accounts.size > 1, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.accounts_move))
+                }
+            }
+            if (canAddWallet) {
+                WalletButton(kind = ButtonKind.Text, onClick = onAddWallet, modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Text(stringResource(R.string.accounts_add_wallet))
                 }
             }
             Text(

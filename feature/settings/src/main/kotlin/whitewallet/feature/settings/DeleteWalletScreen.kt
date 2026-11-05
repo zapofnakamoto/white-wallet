@@ -81,6 +81,9 @@ fun DeleteWalletScreen(
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.delete_title), onBack) }) { padding ->
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.delete_what), modifier = Modifier.fillMaxWidth())
+            if (state.accounts.size > 1) {
+                Text(stringResource(R.string.delete_accounts, state.accounts.joinToString(", ")), modifier = Modifier.fillMaxWidth())
+            }
             state.host?.let { host -> Text(stringResource(R.string.delete_funds, host), modifier = Modifier.fillMaxWidth()) }
             state.profile?.let { profile ->
                 Text(stringResource(R.string.delete_address, profile.address), modifier = Modifier.fillMaxWidth())

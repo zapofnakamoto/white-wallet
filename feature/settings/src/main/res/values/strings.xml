@@ -26,7 +26,7 @@
     <string name="settings_note_list">Notes</string>
     <string name="settings_note_list_hint">See your notes one by one, share, split or combine them</string>
     <string name="settings_account_contents">Recovery phrase, addresses, notes</string>
-    <string name="delete_what">This removes this account from this phone: its recovery phrase, its notes and its settings. Other accounts are not affected.</string>
+    <string name="delete_what">This removes this wallet from this phone: its recovery phrase and its accounts, with their notes and settings. Other wallets are not affected.</string>
     <string name="settings_note_strategy">Note strategy</string>
     <string name="settings_strategy_manual_hint">Keep notes as they arrive.</string>
     <string name="settings_strategy_single">Keep only one note</string>
@@ -433,4 +433,6 @@
     <string name="addresses_held_pay">Pay from balance</string>
     <string name="addresses_held_not_paid">The fee for %1$s could not be paid.</string>
     <string name="money_error_address_fee">This mint charges for an address, so nothing moved. Pay for it under Settings, Addresses, or change mints without an address.</string>
+    <string name="money_error_mint_too_old">This mint can only give an address to the first account of a wallet. Change mints without an address.</string>
+    <string name="delete_accounts">All of its accounts go with it: %1$s.</string>
 </resources>

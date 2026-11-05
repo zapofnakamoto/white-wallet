@@ -56,4 +56,19 @@ class RegtestMintUpgradeTest {
             restored.refresh()
             assertEquals(2_999_000 + 999_000, restored.balanceMsat.first())
         }
+
+    @Test
+    fun `a further account can't take the first account's address, though the old branch key would prove it`() =
+        runBlocking<Unit> {
+            Regtest.resetMint4()
+            val carol = Regtest.phone(host = HOST4)
+            val first = carol.wallet.activeId()
+            val name = carol.address.substringBefore('@')
+            Regtest.upgradeMint4()
+
+            assertIs<OnboardResult.UsernameTaken>(carol.wallet.onboard(name, HOST4, "Savings", inActiveWallet = true))
+            assertEquals(first, carol.wallet.activeId())
+            carol.wallet.refresh()
+            assertEquals(0L, carol.store.addresses(first).first().single().share, "the first account moved it itself")
+        }
 }

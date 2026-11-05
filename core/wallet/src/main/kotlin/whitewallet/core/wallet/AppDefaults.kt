@@ -213,8 +213,10 @@ data class AppDefaults(
     val defaultAmountUnit: AmountUnit = AmountUnit.Bitcoin,
     /** Whether users may pick another unit under Settings → Amounts (brand `amounts.unit.changeable`); else always [defaultAmountUnit]. */
     val allowUnitChange: Boolean = true,
-    /** Accounts this wallet may hold (brand `accounts.max`); [UNLIMITED] for no limit. Enforced by [Wallet.maxAccounts]. */
+    /** Accounts one recovery phrase may hold (brand `accounts.max`); [UNLIMITED] for no limit. Enforced by [Wallet.maxAccounts]. */
     val maxAccounts: Int = UNLIMITED,
+    /** Recovery phrases the app may hold (brand `wallets.max`); [UNLIMITED] for no limit. Enforced by [Wallet.maxWallets]. */
+    val maxWallets: Int = UNLIMITED,
     /** Lightning addresses an account may hold per mint (brand `addresses.max`); [UNLIMITED] for no limit. */
     val maxAddresses: Int = 1,
     /** Whether setup asks for a Lightning address and may go on without one (brand `addresses.lightning`); see [Wallet.requireAddress]. */

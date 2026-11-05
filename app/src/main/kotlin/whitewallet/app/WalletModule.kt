@@ -84,6 +84,7 @@ object WalletModule {
             trust = trust,
             brandTrusted = TrustedMints.parse(BuildConfig.TRUSTED_MINTS),
             maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
+            maxWallets = AppDefaults.limit(BuildConfig.MAX_WALLETS),
             requireAddress = AddressPolicy.fromConfig(BuildConfig.LIGHTNING_ADDRESS) == AddressPolicy.Required,
             maxAddressFeeMsat = BuildConfig.ADDRESS_FEE_MAX_SATS.takeIf { it > 0 }?.times(1000),
             collectDefaults =
@@ -135,6 +136,7 @@ object WalletModule {
             defaultAmountUnit = AmountUnit.fromConfig(BuildConfig.DEFAULT_AMOUNT_UNIT),
             allowUnitChange = BuildConfig.ALLOW_UNIT_CHANGE,
             maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
+            maxWallets = AppDefaults.limit(BuildConfig.MAX_WALLETS),
             maxAddresses = AppDefaults.limit(BuildConfig.MAX_ADDRESSES),
             address = AddressPolicy.fromConfig(BuildConfig.LIGHTNING_ADDRESS),
             addressFee = AddressFeeChoice.fromConfig(BuildConfig.ADDRESS_FEE_ONBOARDING),

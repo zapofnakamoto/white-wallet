@@ -119,6 +119,8 @@ data class OnboardingState(
     val withAddress: Boolean = true,
     /** The user may go on without an address (brand `addresses.lightning=optional`): first run, new account, after a restore. */
     val canSkipAddress: Boolean = false,
+    /** A new account joins the active wallet (its recovery phrase) instead of starting a wallet of its own. */
+    val inActiveWallet: Boolean = false,
 ) {
     val changingAddress: Boolean
         get() = mode == OnboardingMode.ChangeAddress
@@ -158,6 +160,9 @@ sealed interface OnboardingError {
 
     /** Paying the fee from the balance failed; the address stays held. */
     data class FeeNotPaid(override val detail: String = "") : OnboardingError
+
+    /** A further account of a wallet can't get an address on a legacy mint. */
+    data class MintTooOld(override val detail: String = "") : OnboardingError
 
     /** The name's hold ran out unpaid. */
     data class HoldExpired(override val detail: String = "") : OnboardingError
@@ -210,9 +215,16 @@ constructor(
      * Call once from the screen. [defaultAccountName] names the first account (localized by the caller); a new account starts with
      * [newAccountName]. When changing the address, the mint is fixed to the current one.
      */
-    fun init(mode: OnboardingMode, defaultAccountName: String, newAccountName: String, presetHost: String? = null) {
+    fun init(
+        mode: OnboardingMode,
+        defaultAccountName: String,
+        newAccountName: String,
+        presetHost: String? = null,
+        inActiveWallet: Boolean = false,
+    ) {
         if (initialized) return
         initialized = true
+        _state.update { it.copy(inActiveWallet = inActiveWallet) }
         this.defaultAccountName = defaultAccountName
         viewModelScope.launch {
             when (mode) {
@@ -422,7 +434,7 @@ constructor(
         val result =
             when (s.mode) {
                 OnboardingMode.FirstRun -> wallet.onboard(s.username, s.host, defaultAccountName)
-                OnboardingMode.NewAccount -> wallet.onboard(s.username, s.host, s.accountName.trim())
+                OnboardingMode.NewAccount -> wallet.onboard(s.username, s.host, s.accountName.trim(), s.inActiveWallet)
                 OnboardingMode.ChangeAddress -> wallet.onboard(s.username, s.host, null)
                 OnboardingMode.AddAddress -> wallet.addAddress(s.username, addressLimit())
                 OnboardingMode.AddAddressElsewhere -> wallet.addAddress(s.username, addressLimit(), s.host)
@@ -449,13 +461,14 @@ constructor(
             is OnboardResult.NetworkError -> fail(OnboardingError.Network(result.reason))
             is OnboardResult.LimitReached -> fail(OnboardingError.Limit(result.limit))
             is OnboardResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
+            OnboardResult.MintTooOld -> fail(OnboardingError.MintTooOld())
         }
     }
 
     /** A new account without an address: nothing to show afterwards, it opens right away. */
     private suspend fun createAccount(s: OnboardingState) {
         val name = if (s.mode == OnboardingMode.NewAccount) s.accountName.trim() else defaultAccountName
-        when (val result = wallet.createAccount(s.host, name)) {
+        when (val result = wallet.createAccount(s.host, name, s.inActiveWallet)) {
             is CreateAccountResult.Created -> _state.update { it.copy(busy = false, done = true) }
             is CreateAccountResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
             is CreateAccountResult.MintInvalid -> fail(OnboardingError.Mint(result.reason))

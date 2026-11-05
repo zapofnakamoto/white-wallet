@@ -110,7 +110,7 @@ internal class AddressCheck(private val wallet: Wallet) {
     /** Legacy 2f17578 (tag: mint): the published `text/cpub` names the account's branch, or not. */
     private suspend fun legacyStatus(pay: LnurlResponse.PayRequest, host: String, accountId: String?): AddressStatus {
         val cpub = LegacyCpub.cx1(pay) ?: return AddressStatus.Unconfirmed
-        val ours = wallet.keysIfSeeded(accountId, host)?.legacy?.cx1()
+        val ours = accountId?.takeIf { wallet.ownsLegacyKeys(it) }?.let { wallet.keysIfSeeded(it, host)?.legacy?.cx1() }
         return if (ours != null && cpub.equals(ours, ignoreCase = true)) AddressStatus.Ours else AddressStatus.Taken
     }
 
