@@ -10,6 +10,7 @@ import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
@@ -26,6 +27,8 @@ class InMemoryWalletStore : WalletStore {
     private val active = MutableStateFlow<String?>(null)
     val mintMap = mutableMapOf<String, Mint>()
     val counters = mutableMapOf<Triple<String, String, Int>, Long>()
+    val keyCounters = mutableMapOf<Triple<String, String, KeyCounter>, Long>()
+    val shareScans = mutableMapOf<Triple<String, String, Long>, Long>()
     val scanFrom = mutableMapOf<Pair<String, String>, Long>()
     val journal = linkedMapOf<String, JournalEntry>()
     private val checks = MutableStateFlow<Map<KeyId, KeyProbe>>(emptyMap())
@@ -67,6 +70,8 @@ class InMemoryWalletStore : WalletStore {
         addressMap.value = addressMap.value - id
         noteMap.value = noteMap.value.filterValues { it.accountId != id }
         counters.keys.removeAll { it.first == id }
+        keyCounters.keys.removeAll { it.first == id }
+        shareScans.keys.removeAll { it.first == id }
         scanFrom.keys.removeAll { it.first == id }
         journal.values.removeAll { it.accountId == id }
         checks.value = checks.value.filterKeys { it.accountId != id }
@@ -123,6 +128,26 @@ class InMemoryWalletStore : WalletStore {
 
     override suspend fun upsertNotes(notes: List<Note>) {
         noteMap.value = noteMap.value + notes.associateBy { it.id }
+    }
+
+    override suspend fun reserveKeyIndex(accountId: String, domain: String, counter: KeyCounter): Long {
+        val key = Triple(accountId, domain, counter)
+        val next = keyCounters[key] ?: 0
+        keyCounters[key] = next + 1
+        return next
+    }
+
+    override suspend fun keyIndexOrNull(accountId: String, domain: String, counter: KeyCounter) =
+        keyCounters[Triple(accountId, domain, counter)]
+
+    override suspend fun setKeyIndex(accountId: String, domain: String, counter: KeyCounter, next: Long) {
+        keyCounters[Triple(accountId, domain, counter)] = next
+    }
+
+    override suspend fun shareScanFrom(accountId: String, host: String, share: Long) = shareScans[Triple(accountId, host, share)] ?: 0
+
+    override suspend fun setShareScanFrom(accountId: String, host: String, share: Long, index: Long) {
+        shareScans[Triple(accountId, host, share)] = index
     }
 
     override suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long {

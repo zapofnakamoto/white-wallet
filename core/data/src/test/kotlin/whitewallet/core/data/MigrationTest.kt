@@ -20,11 +20,18 @@ import org.json.JSONObject
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import whitewallet.core.model.Account
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.KeyCounter
+import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.OutputRef
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.wallet.KeyId
+import whitewallet.core.wallet.KeyProbe
 
 /**
  * An update keeps what a released app stored: a database of an older version, built from its exported schema (core/data/schemas), opens
@@ -141,6 +148,87 @@ class MigrationTest {
                     )
                 store.putReceivedNote(note)
                 assertEquals(listOf(note), store.receivedNotes(setOf(ReceivedState.Locked)))
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `a wallet of version 4 becomes one wallet per account, with its keys, checks and outputs as legacy 2f17578`() =
+        runBlocking<Unit> {
+            val legacyOutput = "acc:0:3:${"a".repeat(64)}"
+            oldDatabase("v4.db", 4) {
+                execSQL("INSERT INTO accounts VALUES ('acc', 'Main', 1, 'mint.example')")
+                execSQL("INSERT INTO accounts VALUES ('acc2', 'Savings', 2, 'mint.example')")
+                execSQL("INSERT INTO notes VALUES ('n1', 'acc', 'mint.example', 'KeyPath', 0, 2, 21000, NULL, 'Outstanding', 2, 5)")
+                execSQL("INSERT INTO counters VALUES ('acc', 'mint.example', 0, 3)")
+                execSQL("INSERT INTO address_scan VALUES ('acc', 'mint.example', 4)")
+                execSQL("INSERT INTO key_checks VALUES ('acc', 'mint.example', 2, 7, 'Outstanding', 1000, 1, 0, NULL, 9)")
+                execSQL("INSERT INTO addresses VALUES ('acc', 'mint.example', 'alice', 3)")
+                execSQL(
+                    "INSERT INTO journal VALUES ('j1', 'acc', 'Rotate', 'mint.example', 'https://mint.example/w', 'n0', 'k', " +
+                        "'$legacyOutput', 'https://mint.example/w?k1=k', 'Prepared', NULL, 3, 3)"
+                )
+            }
+            val db =
+                Room.databaseBuilder(context, WalletDatabase::class.java, "v4.db")
+                    .addMigrations(*WalletDatabase.MIGRATIONS)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val store = RoomWalletStore(db)
+                // Each account is its own wallet, under its own id (where its recovery phrase already is), at account index 0.
+                assertEquals(Account("acc", "Main", 1, "mint.example", walletId = "acc", index = 0), store.account("acc"))
+                assertEquals("acc2", store.account("acc2")?.walletId)
+                assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
+
+                val n1 = store.note("n1")!!
+                assertEquals(KeyScheme.Legacy, n1.scheme)
+                assertEquals(0 to 2L, n1.purpose to n1.index)
+                assertNull(n1.share)
+                assertEquals(3, store.currentIndex("acc", "mint.example", 0))
+                assertEquals(4, store.addressScanFrom("acc", "mint.example"))
+                assertEquals(
+                    mapOf(KeyId("acc", "mint.example", 2, 7, KeyScheme.Legacy, null) to KeyProbe.Outstanding(1000, true, false, 9)),
+                    store.keyChecks("acc").first(),
+                )
+                assertEquals(listOf(RegisteredAddress("alice", "mint.example", 3, share = null)), store.addresses("acc").first())
+                assertEquals(
+                    listOf(OutputRef("acc", 0, 3, "a".repeat(64), KeyScheme.Legacy, null)),
+                    store.journal(setOf(JournalStatus.Prepared)).single().outputs,
+                )
+
+                // The new counters start empty, per mint domain.
+                assertNull(store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
+                assertEquals(0, store.reserveKeyIndex("acc", "mint.example", KeyCounter.Wallet))
+                assertEquals(1, store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
+                store.setShareScanFrom("acc", "mint.example", share = 1, index = 5)
+                assertEquals(5, store.shareScanFrom("acc", "mint.example", 1))
+                assertEquals(0, store.shareScanFrom("acc", "mint.example", 0))
+
+                // New rows keep their scheme and share.
+                val shared = n1.copy(id = "n2", scheme = KeyScheme.Bip32, purpose = 2, index = 0, share = 1)
+                store.upsertNotes(listOf(shared))
+                assertEquals(shared, store.note("n2"))
+                val check = KeyId("acc", "mint.example", 2, 0, KeyScheme.Bip32, 1)
+                store.putKeyCheck(check, KeyProbe.Spent(10))
+                assertEquals(KeyProbe.Spent(10), store.keyChecks("acc").first()[check])
+                val entry = store.journal(setOf(JournalStatus.Prepared)).single()
+                val output = OutputRef("acc", 2, 0, "b".repeat(64), KeyScheme.Bip32, 1)
+                store.putJournal(entry.copy(id = "j2", outputs = listOf(output, OutputRef("acc", 0, 4, "c".repeat(64), KeyScheme.Bip32))))
+                assertEquals(
+                    listOf(output, OutputRef("acc", 0, 4, "c".repeat(64), KeyScheme.Bip32)),
+                    store.journal(setOf(JournalStatus.Prepared)).single { it.id == "j2" }.outputs,
+                )
+
+                // A second account in the first wallet; the wallet goes with its last account.
+                store.saveAccount(Account("acc3", "Second", 4, "mint.example", walletId = "acc", index = 1))
+                assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
+                store.deleteAccount("acc")
+                assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
+                assertNull(store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
+                store.deleteAccount("acc3")
+                assertEquals(listOf("acc2"), db.dao().wallets().first().map { it.id })
             } finally {
                 db.close()
             }

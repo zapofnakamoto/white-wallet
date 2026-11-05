@@ -45,10 +45,38 @@ enum class NoteKind {
 }
 
 /**
- * One account: its own recovery phrase, home mint ([host]), notes, and Lightning addresses (none, if the brand doesn't require one). The
- * primary address, when there is one, is always on [host].
+ * One account: a set of funds with its own home mint ([host]), notes, and Lightning addresses (none, if the brand doesn't require one). The
+ * primary address, when there is one, is always on [host]. Its keys are account [index] (LUD-26 `S/a'`) of its wallet's recovery phrase; an
+ * account made before wallets held several is its own wallet, with the same id, at index 0.
  */
-data class Account(val id: String, val name: String, val createdAtMillis: Long, val host: String)
+data class Account(
+    val id: String,
+    val name: String,
+    val createdAtMillis: Long,
+    val host: String,
+    val walletId: String = id,
+    val index: Long = 0,
+)
+
+/** How a key-path note's key derives from the seed. */
+enum class KeyScheme(val value: Int) {
+    /** Legacy: LUD-26 draft 2f17578, a tweak per purpose (0 wallet, 1 change, 2 Lightning address) of one branch per host. */
+    Legacy(0),
+
+    /** LUD-26 at luds 92e430f: BIP-32 below the account, on the wallet or change chain or a share. */
+    Bip32(1);
+
+    companion object {
+        fun of(value: Int): KeyScheme = entries.first { it.value == value }
+    }
+}
+
+/** One of an account's LUD-26 counters on a mint domain: the next wallet or change key, and the next share to hand out. */
+enum class KeyCounter {
+    Wallet,
+    Change,
+    Shares,
+}
 
 /** An account with what the switcher shows about it. */
 data class AccountSummary(val account: Account, val profile: Profile?, val balanceMsat: Long)
@@ -62,7 +90,10 @@ data class Note(
     /** The mint host exactly as stored (port included). */
     val host: String,
     val kind: NoteKind,
-    /** LUD-26 derivation coordinates for key-path notes; the secret is re-derived from the seed when needed. */
+    /**
+     * LUD-26 derivation coordinates for key-path notes; the secret is re-derived from the seed when needed. Under [KeyScheme.Bip32],
+     * [purpose] is the chain (0 wallet, 1 change, 2 share [share]); under [KeyScheme.Legacy], the legacy purpose.
+     */
     val purpose: Int?,
     val index: Long?,
     val amountMsat: Long,
@@ -71,6 +102,9 @@ data class Note(
     val updatedAtMillis: Long,
     /** When its mint last answered a lookup for it; kept for shared notes, so their screen can say how fresh it is. */
     val checkedAtMillis: Long? = null,
+    val scheme: KeyScheme = KeyScheme.Legacy,
+    /** The share a chain-2 note is on (LUD-26 `S/a'/2/n'`). */
+    val share: Long? = null,
 )
 
 /** Where a [ReceivedNote] stands. Only [Claimed] puts its money in the balance, as one of the wallet's own notes. */
@@ -178,7 +212,13 @@ data class Profile(val username: String, val host: String) {
  * A Lightning address registered to an account. An account can hold several on a mint; all of them pay into the same note keys (LUD-26
  * purpose 2). The account's [Profile] is the primary one, shown on Home and Receive.
  */
-data class RegisteredAddress(val username: String, val host: String, val addedAtMillis: Long) {
+data class RegisteredAddress(
+    val username: String,
+    val host: String,
+    val addedAtMillis: Long,
+    /** The share it is registered for (LUD-26 `S/a'/2/n'`), or null while it is still on the legacy 2f17578 branch `cx1`. */
+    val share: Long? = null,
+) {
     val address: String
         get() = "$username@$host"
 }
@@ -204,7 +244,14 @@ enum class JournalStatus {
 }
 
 /** An output note named in a mutation, recorded before its `cp1` is disclosed. [accountId] owns the output's key. */
-data class OutputRef(val accountId: String, val purpose: Int, val index: Long, val q: String) {
+data class OutputRef(
+    val accountId: String,
+    val purpose: Int,
+    val index: Long,
+    val q: String,
+    val scheme: KeyScheme = KeyScheme.Legacy,
+    val share: Long? = null,
+) {
     /** Someone else's key (an internal transfer): never recorded as a note of this wallet. */
     val isExternal: Boolean
         get() = accountId.isEmpty()

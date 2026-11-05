@@ -11,6 +11,7 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.Profile
@@ -36,7 +37,11 @@ interface WalletStore {
 
     suspend fun saveAccount(account: Account)
 
-    /** Removes the account and all of its notes, received notes, addresses, counters, key checks, journal entries and history. */
+    /**
+     * Saves the account, and its wallet ([Account.walletId], named after the account) if the wallet is new. Removing the account removes
+     * all of its notes, received notes, addresses, counters, key checks, journal entries and history, and its wallet once no account is
+     * left in it.
+     */
     suspend fun deleteAccount(id: String)
 
     fun notes(accountId: String): Flow<List<Note>>
@@ -71,7 +76,24 @@ interface WalletStore {
 
     suspend fun upsertNotes(notes: List<Note>)
 
-    /** Returns the next unused index for ([accountId], [host], [purpose]) and durably advances the counter, atomically. */
+    /**
+     * Returns the next unused index of the account's LUD-26 [counter] on [domain] (a mint's spend domain: mints sharing a hostname share
+     * keys) and durably advances it, atomically.
+     */
+    suspend fun reserveKeyIndex(accountId: String, domain: String, counter: KeyCounter): Long
+
+    /** The next index [reserveKeyIndex] would return, or null if the counter was never set. */
+    suspend fun keyIndexOrNull(accountId: String, domain: String, counter: KeyCounter): Long?
+
+    /** Sets a LUD-26 counter directly (restore, developer tools). */
+    suspend fun setKeyIndex(accountId: String, domain: String, counter: KeyCounter, next: Long)
+
+    /** First note index of [share] the next scan of it at [host] starts from. */
+    suspend fun shareScanFrom(accountId: String, host: String, share: Long): Long
+
+    suspend fun setShareScanFrom(accountId: String, host: String, share: Long, index: Long)
+
+    /** Legacy 2f17578 (tag: keys): returns the next unused index for ([accountId], [host], [purpose]) and durably advances it. */
     suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long
 
     /** The next index [reserveIndex] would return, without reserving it. */

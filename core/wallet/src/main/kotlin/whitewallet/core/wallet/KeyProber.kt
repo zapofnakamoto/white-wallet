@@ -1,6 +1,7 @@
 package whitewallet.core.wallet
 
 import java.io.IOException
+import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -13,7 +14,15 @@ import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
 
 /** Identifies one derived note key. */
-data class KeyId(val accountId: String, val host: String, val purpose: Int, val index: Long)
+data class KeyId(
+    val accountId: String,
+    val host: String,
+    val purpose: Int,
+    val index: Long,
+    val scheme: KeyScheme = KeyScheme.Legacy,
+    /** The share of a chain-2 key under [KeyScheme.Bip32]. */
+    val share: Long? = null,
+)
 
 /** What the mint said about a derived key the last time it was looked up (by `p`, never by spend). */
 sealed interface KeyProbe {

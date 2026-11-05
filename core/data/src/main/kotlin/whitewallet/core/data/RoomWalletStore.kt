@@ -10,6 +10,7 @@ import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.Profile
@@ -39,8 +40,10 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
 
     override suspend fun account(id: String) = dao.account(id)?.toModel()
 
-    override suspend fun saveAccount(account: Account) =
-        dao.saveAccount(AccountEntity(account.id, account.name, account.createdAtMillis, account.host))
+    override suspend fun saveAccount(account: Account) = db.withTransaction {
+        if (dao.wallet(account.walletId) == null) dao.saveWallet(WalletEntity(account.walletId, account.name, account.createdAtMillis))
+        dao.saveAccount(AccountEntity.from(account))
+    }
 
     override suspend fun deleteAccount(id: String) = db.withTransaction {
         dao.deleteNotes(id)
@@ -52,7 +55,11 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
         dao.deleteAddresses(id)
         dao.deleteActivities(id)
         dao.deleteReceivedNotes(id)
+        dao.deleteKeyCounters(id)
+        dao.deleteShareScans(id)
+        val walletId = dao.account(id)?.walletId
         dao.deleteAccountRow(id)
+        walletId?.let { dao.deleteWalletIfEmpty(it) }
         if (dao.currentAccountId() == id) dao.saveAppState(AppStateEntity(activeAccountId = null))
     }
 
@@ -73,7 +80,7 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
         dao.addresses(accountId).map { list -> list.map { it.toModel() } }
 
     override suspend fun saveAddress(accountId: String, address: RegisteredAddress) =
-        dao.saveAddress(AddressEntity(accountId, address.host, address.username, address.addedAtMillis))
+        dao.saveAddress(AddressEntity(accountId, address.host, address.username, address.addedAtMillis, address.share))
 
     override suspend fun deleteAddress(accountId: String, username: String, host: String) = dao.deleteAddress(accountId, host, username)
 
@@ -88,6 +95,23 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
     override suspend fun note(id: String) = dao.note(id)?.toModel()
 
     override suspend fun upsertNotes(notes: List<Note>) = dao.upsertNotes(notes.map(NoteEntity::from))
+
+    override suspend fun reserveKeyIndex(accountId: String, domain: String, counter: KeyCounter): Long = db.withTransaction {
+        val next = dao.keyCounter(accountId, domain, counter.name) ?: 0
+        dao.saveKeyCounter(KeyCounterEntity(accountId, domain, counter.name, next + 1))
+        next
+    }
+
+    override suspend fun keyIndexOrNull(accountId: String, domain: String, counter: KeyCounter) =
+        dao.keyCounter(accountId, domain, counter.name)
+
+    override suspend fun setKeyIndex(accountId: String, domain: String, counter: KeyCounter, next: Long) =
+        dao.saveKeyCounter(KeyCounterEntity(accountId, domain, counter.name, next))
+
+    override suspend fun shareScanFrom(accountId: String, host: String, share: Long) = dao.shareScanFrom(accountId, host, share) ?: 0
+
+    override suspend fun setShareScanFrom(accountId: String, host: String, share: Long, index: Long) =
+        dao.saveShareScan(ShareScanEntity(accountId, host, share, index))
 
     override suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long = db.withTransaction {
         val next = dao.counter(accountId, host, purpose) ?: 0

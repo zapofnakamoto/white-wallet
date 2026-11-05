@@ -1,5 +1,6 @@
 package whitewallet.core.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -9,6 +10,8 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.KeyCounter
+import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -24,9 +27,25 @@ import whitewallet.core.wallet.KeyProbe
 import whitewallet.lnurlcash.RevealsNoteSecret
 
 @Entity(tableName = "accounts")
-internal data class AccountEntity(@PrimaryKey val id: String, val name: String, val createdAtMillis: Long, val host: String) {
-    fun toModel() = Account(id, name, createdAtMillis, host)
+internal data class AccountEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val createdAtMillis: Long,
+    val host: String,
+    /** The wallet (recovery phrase) the account's keys derive from; an account from before wallets is its own, with the same id. */
+    @ColumnInfo(defaultValue = "''") val walletId: String,
+    /** Its LUD-26 account index `a` in that wallet. */
+    @ColumnInfo(defaultValue = "0") val accountIndex: Long,
+) {
+    fun toModel() = Account(id, name, createdAtMillis, host, walletId, accountIndex)
+
+    companion object {
+        fun from(a: Account) = AccountEntity(a.id, a.name, a.createdAtMillis, a.host, a.walletId, a.index)
+    }
 }
+
+/** A recovery phrase and the accounts below it (`accounts.walletId`); the phrase itself is in the seed store, under this id. */
+@Entity(tableName = "wallets") internal data class WalletEntity(@PrimaryKey val id: String, val name: String, val createdAtMillis: Long)
 
 /** Single row holding app-wide state. */
 @Entity(tableName = "app_state") internal data class AppStateEntity(@PrimaryKey val id: Int = 0, val activeAccountId: String?)
@@ -56,6 +75,9 @@ internal data class NoteEntity(
     val state: String,
     val updatedAtMillis: Long,
     val checkedAtMillis: Long? = null,
+    /** [KeyScheme.value]: rows from before LUD-26 at 92e430f are legacy. */
+    @ColumnInfo(defaultValue = "0") val scheme: Int = KeyScheme.Legacy.value,
+    val share: Long? = null,
 ) {
     fun toModel() =
         Note(
@@ -70,6 +92,8 @@ internal data class NoteEntity(
             state = NoteState.valueOf(state),
             updatedAtMillis,
             checkedAtMillis,
+            KeyScheme.of(scheme),
+            share,
         )
 
     companion object {
@@ -86,6 +110,8 @@ internal data class NoteEntity(
                 n.state.name,
                 n.updatedAtMillis,
                 n.checkedAtMillis,
+                n.scheme.value,
+                n.share,
             )
     }
 }
@@ -115,26 +141,49 @@ internal data class ProfileEntity(@PrimaryKey val accountId: String, val usernam
 
 /** Every Lightning address an account registered; the `profile` row names the primary one. */
 @Entity(tableName = "addresses", primaryKeys = ["accountId", "host", "username"])
-internal data class AddressEntity(val accountId: String, val host: String, val username: String, val addedAtMillis: Long) {
-    fun toModel() = RegisteredAddress(username, host, addedAtMillis)
+internal data class AddressEntity(
+    val accountId: String,
+    val host: String,
+    val username: String,
+    val addedAtMillis: Long,
+    /** Its LUD-26 share, or null while it is registered for the legacy 2f17578 branch `cx1`. */
+    val share: Long? = null,
+) {
+    fun toModel() = RegisteredAddress(username, host, addedAtMillis, share)
 }
 
+/** Legacy: LUD-26 draft 2f17578. The next index per account, host and legacy purpose (tag: keys). */
 @Entity(tableName = "counters", primaryKeys = ["accountId", "host", "purpose"])
 internal data class CounterEntity(val accountId: String, val host: String, val purpose: Int, val next: Long)
 
-/** First purpose-2 index the next Lightning address scan starts from, per account and host. */
+/**
+ * The next unused index of one of an account's LUD-26 counters ([KeyCounter]) on a mint domain: keys derive from the domain, never the
+ * port, so mints sharing a hostname share these.
+ */
+@Entity(tableName = "key_counters", primaryKeys = ["accountId", "domain", "counter"])
+internal data class KeyCounterEntity(val accountId: String, val domain: String, val counter: String, val next: Long)
+
+/** Legacy: LUD-26 draft 2f17578. First purpose-2 index the next Lightning address scan starts from, per account and host (tag: keys). */
 @Entity(tableName = "address_scan", primaryKeys = ["accountId", "host"])
 internal data class AddressScanEntity(val accountId: String, val host: String, val next: Long)
+
+/** First note index of share [share] the next scan of it at [host] starts from. */
+@Entity(tableName = "share_scan", primaryKeys = ["accountId", "host", "share"])
+internal data class ShareScanEntity(val accountId: String, val host: String, val share: Long, val next: Long)
 
 /**
  * The last answer the mint gave for one derived key (public lookup by `p`, never by spend). Failed lookups are not saved. [result] is the
  * [KeyProbe] subtype; [amountMsat], [certified] and [imported] belong to `Outstanding`, [reason] to `Refused`.
  */
-@Entity(tableName = "key_checks", primaryKeys = ["accountId", "host", "purpose", "keyIndex"])
+@Entity(tableName = "key_checks", primaryKeys = ["accountId", "host", "scheme", "purpose", "share", "keyIndex"])
 internal data class KeyCheckEntity(
     val accountId: String,
     val host: String,
+    /** [KeyScheme.value]. */
+    val scheme: Int,
     val purpose: Int,
+    /** The share of a chain-2 key, or -1. */
+    val share: Long,
     val keyIndex: Long,
     val result: String,
     val amountMsat: Long?,
@@ -143,7 +192,7 @@ internal data class KeyCheckEntity(
     val reason: String?,
     val checkedAtMillis: Long,
 ) {
-    fun id() = KeyId(accountId, host, purpose, keyIndex)
+    fun id() = KeyId(accountId, host, purpose, keyIndex, KeyScheme.of(scheme), share.takeIf { it >= 0 })
 
     fun toModel(): KeyProbe? =
         when (result) {
@@ -173,7 +222,9 @@ internal data class KeyCheckEntity(
             return KeyCheckEntity(
                 id.accountId,
                 id.host,
+                id.scheme.value,
                 id.purpose,
+                id.share ?: -1,
                 keyIndex = id.index,
                 result,
                 outstanding?.amountMsat,
@@ -196,7 +247,7 @@ internal data class JournalEntity(
     /** Comma-separated; ids, spends and outputs never contain commas. */
     val inputIds: String,
     val inputK1s: String,
-    /** `accountId:purpose:index:q`, comma-separated. */
+    /** `accountId:scheme:purpose:share:index:q` (share empty for none), comma-separated; legacy rows `accountId:purpose:index:q`. */
     val outputs: String,
     val requestUrl: String,
     val status: String,
@@ -213,7 +264,7 @@ internal data class JournalEntity(
             withdrawUrl,
             inputIds = inputIds.split(),
             inputK1s = inputK1s.split(),
-            outputs = outputs.split().map { it.split(':').let { (a, p, i, q) -> OutputRef(a, p.toInt(), i.toLong(), q) } },
+            outputs = outputs.split().map(::output),
             requestUrl,
             status = JournalStatus.valueOf(status),
             detail,
@@ -232,7 +283,10 @@ internal data class JournalEntity(
                 e.withdrawUrl,
                 inputIds = e.inputIds.joinToString(","),
                 inputK1s = e.inputK1s.joinToString(","),
-                outputs = e.outputs.joinToString(",") { "${it.accountId}:${it.purpose}:${it.index}:${it.q}" },
+                outputs =
+                    e.outputs.joinToString(",") {
+                        "${it.accountId}:${it.scheme.value}:${it.purpose}:${it.share ?: ""}:${it.index}:${it.q}"
+                    },
                 e.requestUrl,
                 e.status.name,
                 e.detail,
@@ -241,6 +295,18 @@ internal data class JournalEntity(
             )
 
         private fun String.split(): List<String> = if (isEmpty()) emptyList() else split(',')
+
+        private fun output(text: String): OutputRef {
+            val parts = text.split(':')
+            return if (parts.size == 4) {
+                // Written before LUD-26 at 92e430f: a legacy key.
+                val (a, p, i, q) = parts
+                OutputRef(a, p.toInt(), i.toLong(), q)
+            } else {
+                val (a, scheme, p, share) = parts
+                OutputRef(a, p.toInt(), parts[4].toLong(), parts[5], KeyScheme.of(scheme.toInt()), share.toLongOrNull())
+            }
+        }
     }
 }
 

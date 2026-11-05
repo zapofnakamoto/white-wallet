@@ -25,6 +25,15 @@ internal interface WalletDao {
 
     @Upsert suspend fun saveAccount(account: AccountEntity)
 
+    @Query("SELECT * FROM wallets WHERE id = :id") suspend fun wallet(id: String): WalletEntity?
+
+    @Query("SELECT * FROM wallets ORDER BY createdAtMillis") fun wallets(): Flow<List<WalletEntity>>
+
+    @Upsert suspend fun saveWallet(wallet: WalletEntity)
+
+    @Query("DELETE FROM wallets WHERE id = :id AND NOT EXISTS (SELECT 1 FROM accounts WHERE walletId = :id)")
+    suspend fun deleteWalletIfEmpty(id: String)
+
     @Query("SELECT activeAccountId FROM app_state WHERE id = 0") fun activeAccountId(): Flow<String?>
 
     @Query("SELECT activeAccountId FROM app_state WHERE id = 0") suspend fun currentAccountId(): String?
@@ -40,6 +49,10 @@ internal interface WalletDao {
     @Query("DELETE FROM counters WHERE accountId = :id") suspend fun deleteCounters(id: String)
 
     @Query("DELETE FROM address_scan WHERE accountId = :id") suspend fun deleteAddressScan(id: String)
+
+    @Query("DELETE FROM key_counters WHERE accountId = :id") suspend fun deleteKeyCounters(id: String)
+
+    @Query("DELETE FROM share_scan WHERE accountId = :id") suspend fun deleteShareScans(id: String)
 
     @Query("DELETE FROM addresses WHERE accountId = :id") suspend fun deleteAddresses(id: String)
 
@@ -101,6 +114,19 @@ internal interface WalletDao {
 
     @Upsert suspend fun saveCounter(counter: CounterEntity)
 
+    @Query("SELECT next FROM key_counters WHERE accountId = :accountId AND domain = :domain AND counter = :counter")
+    suspend fun keyCounter(accountId: String, domain: String, counter: String): Long?
+
+    @Query("SELECT * FROM key_counters WHERE accountId = :accountId AND domain = :domain")
+    fun keyCountersFlow(accountId: String, domain: String): Flow<List<KeyCounterEntity>>
+
+    @Upsert suspend fun saveKeyCounter(counter: KeyCounterEntity)
+
+    @Query("SELECT next FROM share_scan WHERE accountId = :accountId AND host = :host AND share = :share")
+    suspend fun shareScanFrom(accountId: String, host: String, share: Long): Long?
+
+    @Upsert suspend fun saveShareScan(scan: ShareScanEntity)
+
     @Upsert suspend fun putJournal(entry: JournalEntity)
 
     @Query("SELECT * FROM journal WHERE status IN (:statuses) ORDER BY createdAtMillis")
@@ -136,6 +162,7 @@ internal interface WalletDao {
     entities =
         [
             AccountEntity::class,
+            WalletEntity::class,
             AppStateEntity::class,
             NoteEntity::class,
             MintEntity::class,
@@ -147,8 +174,10 @@ internal interface WalletDao {
             AddressEntity::class,
             ActivityEntity::class,
             ReceivedNoteEntity::class,
+            KeyCounterEntity::class,
+            ShareScanEntity::class,
         ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 internal abstract class WalletDatabase : RoomDatabase() {
@@ -156,7 +185,7 @@ internal abstract class WalletDatabase : RoomDatabase() {
 
     companion object {
         /** Every schema change from v0.3.0 (version 2) on; installed wallets keep their data. Schemas: core/data/schemas. */
-        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4)
+        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4, Migration4To5)
     }
 }
 
@@ -180,5 +209,50 @@ internal object Migration3To4 : Migration(3, 4) {
                 "`receivedAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `refusedSinceMillis` INTEGER, PRIMARY KEY(`id`))"
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_received_notes_accountId` ON `received_notes` (`accountId`)")
+    }
+}
+
+/**
+ * LUD-26 at luds 92e430f: wallets hold accounts (each account so far becomes its own wallet, with its id, at account index 0); notes, key
+ * checks and journal outputs say which key scheme they use (everything so far is legacy 2f17578); new counters per mint domain and share
+ * scans; an address says which share it is on (none so far: they are on the legacy branch `cx1`).
+ */
+internal object Migration4To5 : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `wallets` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        )
+        db.execSQL("INSERT INTO wallets (id, name, createdAtMillis) SELECT id, name, createdAtMillis FROM accounts")
+        db.execSQL("ALTER TABLE accounts ADD COLUMN `walletId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE accounts ADD COLUMN `accountIndex` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE accounts SET walletId = id")
+
+        db.execSQL("ALTER TABLE notes ADD COLUMN `scheme` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE notes ADD COLUMN `share` INTEGER")
+        db.execSQL("ALTER TABLE addresses ADD COLUMN `share` INTEGER")
+
+        // The primary key gains the scheme and share: a new table, the old rows as legacy keys.
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `key_checks_new` (`accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `scheme` INTEGER NOT NULL, " +
+                "`purpose` INTEGER NOT NULL, `share` INTEGER NOT NULL, `keyIndex` INTEGER NOT NULL, `result` TEXT NOT NULL, " +
+                "`amountMsat` INTEGER, `certified` INTEGER NOT NULL, `imported` INTEGER NOT NULL, `reason` TEXT, " +
+                "`checkedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `host`, `scheme`, `purpose`, `share`, `keyIndex`))"
+        )
+        db.execSQL(
+            "INSERT INTO key_checks_new SELECT accountId, host, 0, purpose, -1, keyIndex, result, amountMsat, certified, imported, " +
+                "reason, checkedAtMillis FROM key_checks"
+        )
+        db.execSQL("DROP TABLE key_checks")
+        db.execSQL("ALTER TABLE key_checks_new RENAME TO key_checks")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `key_counters` (`accountId` TEXT NOT NULL, `domain` TEXT NOT NULL, `counter` TEXT NOT NULL, " +
+                "`next` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `domain`, `counter`))"
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `share_scan` (`accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `share` INTEGER NOT NULL, " +
+                "`next` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `host`, `share`))"
+        )
+        // Journal outputs of four fields are read as legacy keys; nothing to rewrite.
     }
 }
