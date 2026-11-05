@@ -1,5 +1,6 @@
 package whitewallet.core.wallet
 
+import fr.acinq.bitcoin.ByteVector32
 import java.io.File
 import java.io.IOException
 import java.net.URI
@@ -18,6 +19,8 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.NoteState
+import whitewallet.lnurl.Lnurl
+import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
 
@@ -79,6 +82,19 @@ internal object Regtest {
 
     /** A bearer note minted on the mint (the mint's fee comes off), as its link. */
     fun note(sats: Long, second: Boolean = false): String = if (second) run("note", "$sats", "--mint2") else run("note", "$sats")
+
+    /** Mints a note of [sats] (the mint's fee off) at key [q] on [host], as any wallet can, and returns once the mint has it. */
+    suspend fun mintTo(host: String, q: ByteVector32, sats: Long) {
+        val client = LnurlcashClient()
+        val mint = client.servicePayRequest(host)
+        val quote = URI(Lnurl.withQuery(mint.pay.callback, listOf("amount" to "${sats * 1000}", "comment" to Cp1.encode(q)))).toURL().readText()
+        pay(checkNotNull(Regex("\"pr\":\\s*\"([^\"]+)\"").find(quote)) { quote }.groupValues[1], sats)
+        repeat(30) {
+            if (runCatching { client.lookup(mint.withdrawUrl, q) }.isSuccess) return
+            delay(500)
+        }
+        error("no note at ${q.toHex()} on $host")
+    }
 
     /** A bearer note minted on the third mint, as its link. */
     fun note3(sats: Long): String = run("note", "$sats", "--mint3")
