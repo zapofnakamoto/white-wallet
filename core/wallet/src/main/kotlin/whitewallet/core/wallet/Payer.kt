@@ -14,6 +14,7 @@ import whitewallet.lnurl.Bolt11Invoice
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurl.string
+import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.legacy.LegacyBranch
 import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.ProtocolViolation
@@ -26,7 +27,7 @@ sealed interface PayDestination {
 
     /**
      * A LUD-06 pay link (a Lightning address, `lnurlp://` or bech32 LNURL). [transfer] is set when the payee is on a mint this account
-     * holds notes on and publishes a `text/cpub`: then the notes are handed over directly (LUD-26 internal transfer), without Lightning.
+     * holds notes on: then the notes are handed over directly (LUD-26 internal transfer), without Lightning.
      */
     data class PayLink(
         val url: String,
@@ -39,8 +40,17 @@ sealed interface PayDestination {
     ) : PayDestination
 }
 
-/** A payee's purpose-2 branch on the same mint, from their `text/cpub` (`cx1:<next index>`). */
-class InternalTransfer internal constructor(internal val branch: LegacyBranch, internal val nextIndex: Long)
+/** How a note reaches a payee on its own mint. */
+sealed interface InternalTransfer {
+    /** At the payee's pay callback, as a whole note; the mint picks the payee's key. */
+    data object ToCallback : InternalTransfer
+}
+
+/**
+ * Legacy 2f17578 (tag: mint): a payee's purpose-2 branch, from their `text/cpub` (`cx1:<next index>`), the note's output named by the
+ * payer.
+ */
+class LegacyTransfer internal constructor(internal val branch: LegacyBranch, internal val nextIndex: Long) : InternalTransfer
 
 /** Why a payment can't be made (or wasn't). Every case maps to a full string in the app. */
 enum class PayProblem {
@@ -159,17 +169,17 @@ internal class Payer(private val wallet: Wallet) {
             }
         val accountId = wallet.activeId()
         val payeeHost = Lnurl.host(url)?.lowercase()
-        val transfer =
-            LegacyCpub.from(pay)
-                ?.let { (cx1, next) -> LegacyBranch.fromCx1(cx1)?.let { InternalTransfer(it, next) } }
-                ?.takeIf { payeeHost != null && outstanding(accountId).any { it.host == payeeHost } }
+        val holdsNotes = payeeHost != null && outstanding(accountId).any { it.host == payeeHost }
+        val legacy =
+            LegacyCpub.from(pay)?.let { (cx1, next) -> LegacyBranch.fromCx1(cx1)?.let { LegacyTransfer(it, next) } }?.takeIf { holdsNotes }
+        val transfer = legacy ?: InternalTransfer.ToCallback.takeIf { holdsNotes && sharesMint(pay, payeeHost!!) }
         // One of the account's own addresses, as recorded, or (legacy 2f17578, tag: mint) as the mint publishes its branch.
         val own = wallet.store.addresses(accountId).first().any { Lnurl.lightningAddressUrl(it.address) == url }
         if (
             own ||
-                transfer != null &&
+                legacy != null &&
                     payeeHost != null &&
-                    transfer.branch.cx1().equals(wallet.branch(accountId, payeeHost).cx1(), ignoreCase = true)
+                    legacy.branch.cx1().equals(wallet.branch(accountId, payeeHost).cx1(), ignoreCase = true)
         ) {
             return PayPreview.Invalid(PayProblem.OwnAddress)
         }
@@ -236,7 +246,7 @@ internal class Payer(private val wallet: Wallet) {
         // Who was paid; an invoice's description isn't a recipient, so a bare invoice has none.
         val counterparty = preview.payee
 
-        if (destination is PayDestination.PayLink && destination.transfer != null) {
+        if (destination is PayDestination.PayLink && destination.transfer is LegacyTransfer) {
             val transfer = destination.transfer
             val target = OutputSpec.External { attempt ->
                 transfer.branch.notePubkey(LegacyPurpose.LightningAddress, transfer.nextIndex + attempt)
@@ -274,17 +284,19 @@ internal class Payer(private val wallet: Wallet) {
             }
         }
 
-        // Melt: get the invoice first, so nothing is split for a payee that refuses.
+        // Melt: get the invoice first, so nothing is split for a payee that refuses. A transfer needs none.
+        val transferTo = (destination as? PayDestination.PayLink)?.takeIf { it.transfer == InternalTransfer.ToCallback }?.callback
         val invoice =
             when (destination) {
                 is PayDestination.Invoice -> destination.invoice
+                is PayDestination.PayLink if transferTo != null -> null
                 is PayDestination.PayLink ->
                     when (val fetched = fetchInvoice(destination, amountMsat, comment)) {
                         is Fetched.Ok -> fetched.invoice
                         is Fetched.Problem -> return PayResult.Failed(fetched.problem)
                     }
             }
-        if (invoice.isExpired(wallet.now())) return PayResult.Failed(PayProblem.Expired)
+        if (invoice?.isExpired(wallet.now()) == true) return PayResult.Failed(PayProblem.Expired)
         val note =
             when (val made = exact(accountId, host, plan, amountMsat, target = OutputSpec.Own(accountId, KeySet.Wallet))) {
                 is MutationResult.Done -> made.outputs.first()
@@ -293,7 +305,23 @@ internal class Payer(private val wallet: Wallet) {
                 is MutationResult.Refused -> return if (made.setAside.isNotEmpty()) null else made.toFailure()
                 is MutationResult.Unreachable -> return made.toFailure()
             }
-        return melt(accountId, host, note, invoice, plan.feeMsat, counterparty)
+        val amount = note.amountMsat.takeIf { it > 0 } ?: invoice?.amountMsat ?: amountMsat
+        return send(accountId, host, amount, plan.feeMsat, counterparty) { record ->
+            if (invoice != null) melter.melt(accountId, host, note, invoice.raw, record)
+            else melter.transfer(accountId, host, note, checkNotNull(transferTo), record)
+        }
+    }
+
+    /** Whether the payee's pay link is on [host]'s LUD-26 mint, the one whose keys are pinned here: a note may go to its callback then. */
+    private suspend fun sharesMint(pay: LnurlResponse.PayRequest, host: String): Boolean {
+        val withdrawUrl = wallet.store.mint(host)?.withdrawUrl ?: return false
+        val dialect =
+            try {
+                wallet.dialect(host)
+            } catch (e: IOException) {
+                return false
+            }
+        return dialect == MintDialect.Current && pay.raw.string("withdrawLink")?.let(Lnurl::resolve) == withdrawUrl
     }
 
     private sealed interface Fetched {
@@ -354,30 +382,28 @@ internal class Payer(private val wallet: Wallet) {
         )
     }
 
-    /** Melts [note] into [invoice] and records the payment in History (see [Melter]). */
-    private suspend fun melt(
+    /** Spends a note with [spend] (see [Melter]) and records the payment in History. */
+    private suspend fun send(
         accountId: String,
         host: String,
-        note: Note,
-        invoice: Bolt11Invoice,
+        amount: Long,
         feeMsat: Long,
         counterparty: String?,
+        spend: suspend (record: suspend (journalId: String) -> Unit) -> MeltOutcome,
     ): PayResult? {
-        val amount = note.amountMsat.takeIf { it > 0 } ?: invoice.amountMsat!!
-        val outcome =
-            melter.melt(accountId, host, note, invoice.raw) { journalId ->
-                log.record(
-                    id = "pay:$journalId",
-                    accountId,
-                    kind = ActivityKind.Sent,
-                    amountMsat = amount,
-                    host,
-                    status = ActivityStatus.Pending,
-                    feeMsat = feeMsat.takeIf { it > 0 },
-                    counterparty,
-                    journalId = journalId,
-                )
-            }
+        val outcome = spend { journalId ->
+            log.record(
+                id = "pay:$journalId",
+                accountId,
+                kind = ActivityKind.Sent,
+                amountMsat = amount,
+                host,
+                status = ActivityStatus.Pending,
+                feeMsat = feeMsat.takeIf { it > 0 },
+                counterparty,
+                journalId = journalId,
+            )
+        }
         return when (outcome) {
             is MeltOutcome.Paid -> PayResult.Paid(amount, feeMsat.coerceAtLeast(0))
             is MeltOutcome.Pending -> PayResult.Pending(amount)

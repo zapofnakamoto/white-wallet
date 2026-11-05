@@ -51,9 +51,6 @@ internal object Regtest {
     val addressSet: KeySet
         get() = if (protocol == MintDialect.Current) KeySet.share(0) else KeySet.LegacyAddress
 
-    /** Skips on the current stack what the wallet does only on a legacy mint until [milestone] (luds 92e430f upgrade). */
-    fun legacyUntil(milestone: String) = assumeTrue(protocol == MintDialect.Legacy, "on a LUD-26 mint from $milestone")
-
     fun requireStack(dialect: MintDialect) {
         requireStack()
         assumeTrue(protocol == dialect, "needs the ${dialect.name.lowercase()} regtest stack")
@@ -301,9 +298,9 @@ internal class LightningAddressPayee(
     }
 }
 
-/** A note-changing request (rotate, merge, split, melt) rather than a lookup, info or pay request. */
+/** A note-changing request (rotate, merge, split, melt, or a transfer to a pay callback) rather than a lookup, info or pay request. */
 internal val HttpUrl.isMutation: Boolean
-    get() = queryParameter("k1") != null && (queryParameter("p1") != null || queryParameter("pr") != null)
+    get() = queryParameter("k1") != null && (queryParameter("p1") != null || queryParameter("pr") != null || encodedPath.startsWith("/p/"))
 
 /** A melt: a note paying an invoice. */
 internal val HttpUrl.isMelt: Boolean

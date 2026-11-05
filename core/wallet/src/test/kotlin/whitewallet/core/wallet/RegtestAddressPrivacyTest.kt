@@ -6,10 +6,10 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
+import whitewallet.lnurlcash.Share
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.legacy.LegacyBranch
@@ -21,11 +21,10 @@ import whitewallet.lnurlcash.legacy.LegacyPurpose
  * don't derive from what an address publishes (see NoteKeysTest for a share's `cx1`).
  */
 class RegtestAddressPrivacyTest {
-    @BeforeEach fun requireStack() = Regtest.requireStack(MintDialect.Legacy)
-
     @Test
     fun `the address tells nobody about the account's wallet and change notes`() =
         runBlocking<Unit> {
+            Regtest.requireStack()
             // An address note, two claimed notes on wallet keys, and a payment that leaves change.
             val phone = Regtest.phone()
             phone.fund(2000)
@@ -41,14 +40,22 @@ class RegtestAddressPrivacyTest {
             assertEquals(setOf(KeySet.Wallet, KeySet.Change), own.map { KeySet.of(it) }.toSet(), "$own")
 
             // An outsider with only the address derives every key its cx1 reaches, well past the indexes used: none is the account's.
-            val watcher = watcher(phone.address)
-            val visible = LegacyPurpose.entries.flatMap { p -> (0L until 40L).map { watcher.notePubkey(p, it).toHex() } }.toSet()
+            val visible =
+                if (Regtest.protocol == MintDialect.Current) {
+                    // No mint publishes a cx1 any more; the mint itself holds the share's.
+                    val share = assertNotNull(Share.fromCx1(phone.wallet.keys(phone.wallet.activeId(), HOST).share(0).cx1()))
+                    (0L until 40L).map { share.notePubkey(it).toHex() }.toSet()
+                } else {
+                    val watcher = watcher(phone.address)
+                    LegacyPurpose.entries.flatMap { p -> (0L until 40L).map { watcher.notePubkey(p, it).toHex() } }.toSet()
+                }
             assertEquals(emptyList(), own.filter { it.id in visible }, "notes an outsider can find")
         }
 
     @Test
     fun `legacy 2f17578 - anyone with the address finds the account's notes on legacy wallet keys, and what they hold`() =
         runBlocking<Unit> {
+            Regtest.requireStack(MintDialect.Legacy)
             val phone = Regtest.phone()
             // A note on legacy wallet key #0, as the wallet made them before LUD-26 at 92e430f.
             val client = LnurlcashClient()

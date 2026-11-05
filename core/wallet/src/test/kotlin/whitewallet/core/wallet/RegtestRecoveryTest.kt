@@ -90,7 +90,6 @@ class RegtestRecoveryTest {
     @Test
     fun `a payment to a user on the same mint that loses the connection is pending, then settled as paid once`() =
         runBlocking<Unit> {
-            Regtest.legacyUntil("milestone 7, internal transfer")
             val bob = Regtest.phone()
             val outage = Outage()
             val alice = Regtest.phone(client = outage.client)

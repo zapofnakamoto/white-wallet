@@ -12,6 +12,7 @@ import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
+import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
@@ -46,12 +47,39 @@ internal class Melter(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
     private val unknownNotes = UnknownNotes(wallet)
 
+    @OptIn(RevealsNoteSecret::class)
     suspend fun melt(
         accountId: String,
         host: String,
         note: Note,
         invoice: String,
         beforeSend: suspend (journalId: String) -> Unit = {},
+    ): MeltOutcome =
+        spend(accountId, host, note, MutationType.Melt, callback = null, beforeSend) { info, k1 ->
+            Requests.melt(info.callback, k1, invoice)
+        }
+
+    /** Internal transfer (LUD-26): [note], whole, to the payee at their pay [callback] on the note's mint. It settles like a melt. */
+    @OptIn(RevealsNoteSecret::class)
+    suspend fun transfer(
+        accountId: String,
+        host: String,
+        note: Note,
+        callback: String,
+        beforeSend: suspend (journalId: String) -> Unit = {},
+    ): MeltOutcome =
+        spend(accountId, host, note, MutationType.Transfer, callback, beforeSend) { _, k1 ->
+            Requests.transfer(callback, note.amountMsat, k1)
+        }
+
+    private suspend fun spend(
+        accountId: String,
+        host: String,
+        note: Note,
+        type: MutationType,
+        callback: String?,
+        beforeSend: suspend (journalId: String) -> Unit,
+        request: (NoteInfo, String) -> String,
     ): MeltOutcome {
         val mint = wallet.store.mint(host) ?: return MeltOutcome.Unreachable
         val spend = wallet.keys(accountId, host).spend(note, spendDomain(host))
@@ -79,7 +107,7 @@ internal class Melter(private val wallet: Wallet) {
                 inputIds = listOf(note.id),
                 inputK1s = listOf(spend.k1),
                 outputs = emptyList(),
-                requestUrl = Requests.melt(info.callback, spend.k1, invoice),
+                requestUrl = request(info, spend.k1),
                 status = JournalStatus.Prepared,
                 detail = null,
                 createdAtMillis = created,
@@ -90,7 +118,7 @@ internal class Melter(private val wallet: Wallet) {
         beforeSend(entry.id)
 
         val outcome =
-            when (val released = SecretGate(wallet).release(entry, info, MutationType.Melt)) {
+            when (val released = SecretGate(wallet).release(entry, info, type, callback ?: info.callback)) {
                 is SecretGate.Released.Sent -> released.outcome
                 is SecretGate.Released.NotSent -> {
                     wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now())))

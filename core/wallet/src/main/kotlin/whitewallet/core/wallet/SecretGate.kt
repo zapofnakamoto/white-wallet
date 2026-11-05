@@ -14,7 +14,8 @@ import whitewallet.lnurlcash.protocol.NoteInfo
  * - the request is journaled, unchanged and not sent yet ([JournalStatus.Prepared]): what goes out is what was stored;
  * - its mint presents the key pinned for it (a mint the wallet doesn't know yet is trusted on first use, as on connecting; the claim pins
  *   it);
- * - it goes to the callback [info] names, on the mint's own host, port and scheme. Otherwise nothing is sent.
+ * - it goes to the callback [info] names or, for an internal transfer, the payee's pay callback, on the mint's own host, port and scheme.
+ *   Otherwise nothing is sent.
  */
 internal class SecretGate(private val wallet: Wallet) {
     sealed interface Released {
@@ -24,13 +25,13 @@ internal class SecretGate(private val wallet: Wallet) {
     }
 
     @OptIn(RevealsNoteSecret::class)
-    suspend fun release(entry: JournalEntry, info: NoteInfo, type: MutationType): Released {
+    suspend fun release(entry: JournalEntry, info: NoteInfo, type: MutationType, callback: String = info.callback): Released {
         val stored = wallet.store.journal(setOf(JournalStatus.Prepared)).firstOrNull { it.id == entry.id }
         if (stored == null || stored.requestUrl != entry.requestUrl) return Released.NotSent("not journaled as prepared")
         val pinned = wallet.store.mint(entry.host)?.mintPubkey
         if (pinned != null && pinned != info.mintPubkey.toHex()) return Released.NotSent("the signing key of ${entry.host} changed")
-        if (!sameOrigin(info.callback, entry.withdrawUrl)) return Released.NotSent("the callback isn't on ${entry.host}")
-        if (!entry.requestUrl.startsWith(info.callback.substringBefore('?'))) return Released.NotSent("the request isn't for the callback")
+        if (!sameOrigin(callback, entry.withdrawUrl)) return Released.NotSent("the callback isn't on ${entry.host}")
+        if (!entry.requestUrl.startsWith(callback.substringBefore('?'))) return Released.NotSent("the request isn't for the callback")
         return Released.Sent(wallet.client.mutate(type, entry.requestUrl))
     }
 

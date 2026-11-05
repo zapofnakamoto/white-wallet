@@ -55,6 +55,10 @@ class SecretGateTest {
         SecretGate(wallet).release(entry, info, MutationType.Rotate)
     }
 
+    private fun transfer(entry: JournalEntry, to: String) = runBlocking {
+        SecretGate(wallet).release(entry, NoteInfo(callback, 1_000, key, null), MutationType.Transfer, to)
+    }
+
     private suspend fun pin(key: PublicKey?) = store.saveMint(Mint(host, withdrawUrl, key?.toHex(), 1_000, 1_000_000, null, null))
 
     @Test
@@ -65,6 +69,28 @@ class SecretGateTest {
             assertIs<SecretGate.Released.Sent>(release(entry()))
             assertEquals(1, server.requestCount)
             assertEquals("/cb?k1=a&p1=cp1x", server.takeRequest().target)
+        }
+
+    @Test
+    fun `a transfer goes out to the payee's pay callback on the mint's own origin`() =
+        runBlocking<Unit> {
+            pin(key)
+            val payee = server.url("/p/bob").toString()
+            val entry = entry(requestUrl = "$payee?amount=1000&k1=a")
+            store.putJournal(entry)
+            assertIs<SecretGate.Released.Sent>(transfer(entry, payee))
+            assertEquals("/p/bob?amount=1000&k1=a", server.takeRequest().target)
+        }
+
+    @Test
+    fun `no transfer goes out to a pay callback on any other origin`() =
+        runBlocking<Unit> {
+            pin(key)
+            val elsewhere = "https://payee.example/p/bob"
+            val entry = entry(requestUrl = "$elsewhere?amount=1000&k1=a")
+            store.putJournal(entry)
+            assertIs<SecretGate.Released.NotSent>(transfer(entry, elsewhere))
+            assertEquals(0, server.requestCount)
         }
 
     @Test

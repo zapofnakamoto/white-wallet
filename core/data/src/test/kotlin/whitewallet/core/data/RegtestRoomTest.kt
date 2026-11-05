@@ -92,8 +92,6 @@ class RegtestRoomTest {
     @Test
     fun `a payment left in flight when the app died is settled from the stored journal after the restart, paid once`() =
         runBlocking<Unit> {
-            // An internal transfer: on a LUD-26 mint from milestone 7 (luds 92e430f upgrade).
-            assumeTrue("on a LUD-26 mint from milestone 7", System.getenv("REGTEST_PROTOCOL") != "current")
             val bob = start()
             val bobName = name()
             assertIs<OnboardResult.Ready>(bob.onboard(bobName, host))
@@ -111,7 +109,9 @@ class RegtestRoomTest {
                             .addInterceptor { chain ->
                                 val url = chain.request().url
                                 if (offline) throw IOException("connection dropped")
-                                if (armed && url.queryParameter("k1") != null && url.queryParameter("p1") != null) {
+                                // A spend: with its outputs, or (LUD-26) a transfer to a pay callback, which names none.
+                                val spends = url.queryParameter("p1") != null || url.encodedPath.startsWith("/p/")
+                                if (armed && url.queryParameter("k1") != null && spends) {
                                     offline = true
                                     chain.proceed(chain.request()).close()
                                     throw IOException("connection dropped before the answer arrived")

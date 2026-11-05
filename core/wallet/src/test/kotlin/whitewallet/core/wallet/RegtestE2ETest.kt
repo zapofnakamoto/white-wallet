@@ -57,7 +57,6 @@ class RegtestE2ETest {
     @Test
     fun `pay a Lightning invoice and another user's address on the same mint`() =
         runBlocking<Unit> {
-            Regtest.legacyUntil("milestone 7, internal transfer")
             val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
             alice.fund(5000)
             val start = alice.balance()
@@ -336,7 +335,6 @@ class RegtestE2ETest {
     @Test
     fun `a payment to a user on the same mint that drops while someone else pays them is not taken as paid`() =
         runBlocking<Unit> {
-            Regtest.legacyUntil("milestone 7, internal transfer")
             val bob = Regtest.phone(strategy = SingleNoteStrategy.ID)
             val carol = Regtest.phone(strategy = SingleNoteStrategy.ID)
             carol.fund(3000)
@@ -387,7 +385,6 @@ class RegtestE2ETest {
     @Test
     fun `a combine the mint pays fees back for shows the refund`() =
         runBlocking<Unit> {
-            Regtest.legacyUntil("milestone 7, internal transfer")
             val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
             alice.fund(5000)
             val bob = Regtest.phone(strategy = SingleNoteStrategy.ID)
