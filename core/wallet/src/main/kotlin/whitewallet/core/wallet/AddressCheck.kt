@@ -4,6 +4,7 @@ import java.io.IOException
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.protocol.ProtocolViolation
+import whitewallet.lnurlcash.protocol.legacy.LegacyCpub
 
 /** Whether a Lightning address on a mint points at an account's note branch. */
 sealed interface AddressStatus {
@@ -42,9 +43,7 @@ internal class AddressCheck(private val wallet: Wallet) {
         val pay =
             response as? LnurlResponse.PayRequest
                 ?: return if (response is LnurlResponse.Error) AddressStatus.Available else AddressStatus.CheckFailed("unexpected response")
-        val cpub =
-            pay.metadataEntries.firstOrNull { it.first == "text/cpub" }?.second?.substringBeforeLast(':')
-                ?: return AddressStatus.Unconfirmed
+        val cpub = LegacyCpub.cx1(pay) ?: return AddressStatus.Unconfirmed
         val ours = wallet.branchIfSeeded(accountId, h)?.cx1()
         return if (ours != null && cpub.equals(ours, ignoreCase = true)) AddressStatus.Ours else AddressStatus.Taken
     }

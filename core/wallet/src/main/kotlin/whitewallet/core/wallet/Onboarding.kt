@@ -9,6 +9,8 @@ import whitewallet.core.model.Mint
 import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.lnurlcash.client.RegistrationOutcome
+import whitewallet.lnurlcash.client.legacy.legacyRegister
+import whitewallet.lnurlcash.client.legacy.legacyUnregister
 import whitewallet.lnurlcash.legacy.LegacyAddressProof
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.spendDomain
@@ -142,7 +144,7 @@ internal class Onboarding(private val wallet: Wallet) {
         if (primary?.username == address.username && primary.host == address.host) return UnregisterResult.IsPrimary
         val branch = wallet.branch(accountId, address.host)
         val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Unregister, spendDomain(address.host), address.username)
-        val outcome = wallet.client.unregister(address.host, address.username, sig)
+        val outcome = wallet.client.legacyUnregister(address.host, address.username, sig)
         val remove = suspend {
             wallet.store.deleteAddress(accountId, address.username, address.host)
             wallet.setAddressStatus(accountId, address.address, null)
@@ -192,7 +194,7 @@ internal class Onboarding(private val wallet: Wallet) {
 
         val branch = wallet.branch(accountId, h)
         val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Register, spendDomain(h), name)
-        when (val outcome = wallet.client.register(h, name, branch.cx1(), sig)) {
+        when (val outcome = wallet.client.legacyRegister(h, name, branch.cx1(), sig)) {
             is RegistrationOutcome.Rejected -> {
                 // Lost a race for the name, or the mint refuses registrations. Look again to tell which.
                 return if (addresses.check(name, h, accountId) == AddressStatus.Taken) taken(name, accountId, h)
@@ -200,6 +202,7 @@ internal class Onboarding(private val wallet: Wallet) {
             }
             // The answer was lost; the lookup below shows whether it landed.
             is RegistrationOutcome.Ambiguous,
+            is RegistrationOutcome.AwaitingFee,
             RegistrationOutcome.Registered -> Unit
         }
 

@@ -11,8 +11,8 @@ import whitewallet.testkit.str
 import whitewallet.testkit.strOrNull
 
 class LnurlTest {
-    private val bech32 = Vectors.legacyConformance("bech32")
-    private val resolution = Vectors.legacyConformance("input-resolution")
+    private val bech32 = Vectors.conformance("bech32")
+    private val resolution = Vectors.conformance("input-resolution")
 
     @Test
     fun `bech32 encode and decode`() {
@@ -61,7 +61,7 @@ class LnurlTest {
 
     @Test
     fun `withdraw responses are parsed strictly`() {
-        val v = Vectors.legacyConformance("withdraw-info")
+        val v = Vectors.conformance("withdraw-info")
         for (c in v.objects("accepted")) assertIs<LnurlResponse.WithdrawRequest>(LnurlResponse.parse(c.obj("body")), c.str("name"))
         val structural =
             setOf(

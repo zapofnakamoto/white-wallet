@@ -37,23 +37,47 @@ public object Requests {
     @RevealsNoteSecret
     public fun melt(callback: String, k1: String, invoice: String): String = Lnurl.withQuery(callback, listOf("k1" to k1, "pr" to invoice))
 
-    /** The discovery URLs for a service's own identity (`_`). */
-    public fun servicePayUrl(host: String): String = checkNotNull(Lnurl.lightningAddressUrl("_@$host")) { "invalid host $host" }
+    /**
+     * Internal transfer (LUD-26): pays a Lightning address on the same mint with a whole note instead of an invoice, at its payRequest
+     * [callback]. [amountMsat] is the note's full value.
+     */
+    @RevealsNoteSecret
+    public fun transfer(callback: String, amountMsat: Long, k1: String): String =
+        Lnurl.withQuery(callback, listOf("amount" to amountMsat.toString(), "k1" to k1))
+
+    /**
+     * The discovery URLs for a mint's own identity, `_@<host>`. LUD-26 names `mint@<domain>` for it, which lnurl-mint answers too, but the
+     * legacy 2f17578 mock mint only knows `_`; move to [MINT_USERNAME] with the mock mint's pin.
+     */
+    public fun servicePayUrl(host: String): String = addressUrl(host, "_")
 
     public fun serviceWithdrawDiscoveryUrl(host: String): String = checkNotNull(Lnurl.withdrawUrlForPayUrl(servicePayUrl(host)))
 
-    /**
-     * Username registration: `POST <service>/p/<username>?cx1=&sig=`. Not specified by LUD-26; this is the endpoint both reference mints
-     * implement (see protocol/SPEC.md).
-     */
-    public fun register(host: String, username: String, cx1: String, signatureHex: String): String {
-        val base = servicePayUrl(host).substringBefore("/.well-known/")
-        return Lnurl.withQuery("$base/p/$username", listOf("cx1" to cx1, "sig" to signatureHex))
-    }
+    /** `<scheme>://<host>/.well-known/lnurlp/<username>`: a Lightning address, and where LUD-26 registers it. */
+    public fun addressUrl(host: String, username: String): String =
+        checkNotNull(Lnurl.lightningAddressUrl("$username@$host")) { "invalid address $username@$host" }
 
-    /** `DELETE` target that frees [username] again, proven by an unregister signature (see LegacyAddressProof). */
-    public fun unregister(host: String, username: String, signatureHex: String): String {
-        val base = servicePayUrl(host).substringBefore("/.well-known/")
-        return Lnurl.withQuery("$base/p/$username", listOf("sig" to signatureHex))
-    }
+    /** The username every mint keeps for its own payRequest; never registrable. */
+    public const val MINT_USERNAME: String = "mint"
+}
+
+/** A request whose parameters go in an `application/x-www-form-urlencoded` body (LUD-26 registration). */
+public data class FormRequest(val method: String, val url: String, val fields: List<Pair<String, String>>)
+
+/** LUD-26 registration at the Lightning address it claims: POST registers, PUT moves it to another share, DELETE frees it. */
+public object Registration {
+    public fun register(host: String, username: String, cx1: String, sig: String): FormRequest =
+        FormRequest("POST", Requests.addressUrl(host, username.lowercase()), listOf("cx1" to cx1, "sig" to sig))
+
+    public fun update(host: String, username: String, cx1: String, sig: String, newsig: String): FormRequest =
+        FormRequest("PUT", Requests.addressUrl(host, username.lowercase()), listOf("cx1" to cx1, "sig" to sig, "newsig" to newsig))
+
+    public fun unregister(host: String, username: String, sig: String): FormRequest =
+        FormRequest("DELETE", Requests.addressUrl(host, username.lowercase()), listOf("sig" to sig))
+
+    /**
+     * A request that changes nothing on any mint but tells the two protocols apart: a mint on LUD-26 answers a PUT on its own reserved name
+     * with an LNURL error, one on the legacy draft 2f17578 has no PUT there at all (HTTP 405).
+     */
+    public fun dialectProbe(host: String): FormRequest = FormRequest("PUT", Requests.addressUrl(host, Requests.MINT_USERNAME), emptyList())
 }

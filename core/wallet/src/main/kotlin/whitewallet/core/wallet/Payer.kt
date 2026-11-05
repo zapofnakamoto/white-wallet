@@ -18,6 +18,7 @@ import whitewallet.lnurlcash.legacy.LegacyBranch
 import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
+import whitewallet.lnurlcash.protocol.legacy.LegacyCpub
 
 /** Where a payment goes. */
 sealed interface PayDestination {
@@ -159,13 +160,8 @@ internal class Payer(private val wallet: Wallet) {
         val accountId = wallet.activeId()
         val payeeHost = Lnurl.host(url)?.lowercase()
         val transfer =
-            pay.metadataEntries
-                .firstOrNull { it.first == "text/cpub" }
-                ?.second
-                ?.let { cpub ->
-                    val branch = LegacyBranch.fromCx1(cpub.substringBeforeLast(':')) ?: return@let null
-                    InternalTransfer(branch, cpub.substringAfterLast(':', "0").toLongOrNull() ?: 0)
-                }
+            LegacyCpub.from(pay)
+                ?.let { (cx1, next) -> LegacyBranch.fromCx1(cx1)?.let { InternalTransfer(it, next) } }
                 ?.takeIf { payeeHost != null && outstanding(accountId).any { it.host == payeeHost } }
         if (
             transfer != null &&

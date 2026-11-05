@@ -15,7 +15,10 @@ public enum class RejectionKind {
     /** The service does not recognise the note. */
     NoteUnknown,
 
-    /** A `p1`/`p2` names a note that is outstanding or was ever burned; retry at the next index. */
+    /**
+     * A key is outstanding or was ever burned (LUD-25). At a mutation it may be a `p1`/`p2` (retry at the next index) or, since LUD-25 at
+     * 92e430f, a burned input: the wallet tells the two apart by looking its inputs up.
+     */
     AlreadyInUse,
     RateLimited,
     InsufficientValue,
@@ -70,6 +73,9 @@ public enum class MutationType {
     Split,
     Merge,
     Melt,
+
+    /** Internal transfer (LUD-26): a rotate whose output the mint picks, on the payee's share. Answered with a bare OK. */
+    Transfer,
 }
 
 public object MutationClassifier {
@@ -93,7 +99,8 @@ public object MutationClassifier {
         val c2 = raw.string("c2")
         val missing =
             when (type) {
-                MutationType.Melt -> false
+                MutationType.Melt,
+                MutationType.Transfer -> false
                 MutationType.Split -> c == null || c2 == null
                 MutationType.Rotate,
                 MutationType.Merge -> c == null

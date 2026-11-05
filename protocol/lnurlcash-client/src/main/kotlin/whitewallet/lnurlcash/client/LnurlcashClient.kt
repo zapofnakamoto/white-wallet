@@ -7,11 +7,14 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.ConnectionPool
+import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.RequestBody
 import whitewallet.lnurl.LnurlResponse
+import whitewallet.lnurl.string
 import whitewallet.lnurlcash.RevealsNoteSecret
+import whitewallet.lnurlcash.protocol.FormRequest
 import whitewallet.lnurlcash.protocol.HttpResult
 import whitewallet.lnurlcash.protocol.MintingPayRequest
 import whitewallet.lnurlcash.protocol.MutationClassifier
@@ -19,7 +22,7 @@ import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.ProtocolViolation
-import whitewallet.lnurlcash.protocol.RejectionKind
+import whitewallet.lnurlcash.protocol.Registration
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.protocol.WithdrawDiscovery
 
@@ -89,28 +92,57 @@ public class LnurlcashClient(
         return outcome
     }
 
-    /** Registers [username] against a `cx1` (see Requests.register). */
-    public suspend fun register(host: String, username: String, cx1: String, signatureHex: String): RegistrationOutcome =
-        registration(Request.Builder().url(Requests.register(host, username, cx1, signatureHex)).post(ByteArray(0).toRequestBody()).build())
+    /** Registers [username] for a share (LUD-26 POST). The mint may hold it for an address fee ([RegistrationOutcome.AwaitingFee]). */
+    public suspend fun register(host: String, username: String, cx1: String, sig: String): RegistrationOutcome =
+        registration(Registration.register(host, username, cx1, sig))
 
-    /** Frees [username] again (see Requests.unregister). [RegistrationOutcome.Registered] means the service accepted it. */
-    public suspend fun unregister(host: String, username: String, signatureHex: String): RegistrationOutcome =
-        registration(Request.Builder().url(Requests.unregister(host, username, signatureHex)).delete().build())
+    /** Moves [username] to another share without freeing it (LUD-26 PUT): `sig` by the key on file, `newsig` by the new share. */
+    public suspend fun updateRegistration(host: String, username: String, cx1: String, sig: String, newsig: String): RegistrationOutcome =
+        registration(Registration.update(host, username, cx1, sig, newsig))
+
+    /** Frees [username] again (LUD-26 DELETE). [RegistrationOutcome.Registered] means the service accepted it. */
+    public suspend fun unregister(host: String, username: String, sig: String): RegistrationOutcome =
+        registration(Registration.unregister(host, username, sig))
+
+    /**
+     * Which protocol the mint at [host] speaks, from a request that changes nothing ([Registration.dialectProbe]). Throws [IOException]
+     * when the mint can't be reached, and [ProtocolViolation] when its answer fits neither.
+     */
+    public suspend fun dialect(host: String): MintDialect {
+        val probe = Registration.dialectProbe(host)
+        val request = Request.Builder().url(probe.url).method(probe.method, formBody(probe.fields)).build()
+        val result = execute(request).let { if (it is HttpResult.TransportFailure) execute(request) else it }
+        return when (result) {
+            is HttpResult.TransportFailure -> throw IOException(result.message)
+            is HttpResult.Response ->
+                when {
+                    result.status == 405 -> MintDialect.Legacy
+                    LnurlResponse.parse(result.body) is LnurlResponse.Error -> MintDialect.Current
+                    else -> throw ProtocolViolation("the mint answered neither protocol (HTTP ${result.status})")
+                }
+        }
+    }
+
+    private suspend fun registration(form: FormRequest): RegistrationOutcome =
+        registration(Request.Builder().url(form.url).method(form.method, formBody(form.fields)).build())
 
     /** Registration changes always go out on a fresh connection and are never retried. */
-    private suspend fun registration(request: Request): RegistrationOutcome {
+    internal suspend fun registration(request: Request): RegistrationOutcome {
         return when (val result = execute(request, freshConnectionHttp)) {
             is HttpResult.TransportFailure -> RegistrationOutcome.Ambiguous(result.message)
             is HttpResult.Response ->
                 when (val r = LnurlResponse.parse(result.body)) {
-                    is LnurlResponse.Error -> RegistrationOutcome.Rejected(RejectionKind.fromReason(r.reason), r.reason)
-                    is LnurlResponse.Ok -> RegistrationOutcome.Registered
+                    is LnurlResponse.Error -> RegistrationOutcome.Rejected(RegistrationRejection.fromReason(r.reason), r.reason)
+                    is LnurlResponse.Ok -> r.raw.string("pr")?.let { RegistrationOutcome.AwaitingFee(it) } ?: RegistrationOutcome.Registered
                     else ->
                         if (result.status in 200..299) RegistrationOutcome.Registered
-                        else RegistrationOutcome.Rejected(RejectionKind.Other, "HTTP ${result.status}")
+                        else RegistrationOutcome.Rejected(RegistrationRejection.Other, "HTTP ${result.status}")
                 }
         }
     }
+
+    private fun formBody(fields: List<Pair<String, String>>): RequestBody =
+        FormBody.Builder().apply { fields.forEach { (k, v) -> add(k, v) } }.build()
 
     private suspend fun execute(request: Request, client: OkHttpClient = http): HttpResult =
         withContext(io) {
@@ -135,8 +167,54 @@ public class LnurlcashClient(
 public sealed interface RegistrationOutcome {
     public data object Registered : RegistrationOutcome
 
+    /**
+     * Accepted, but held until the address fee is paid (LUD-26): [invoice] is a BOLT-11 invoice for it. Until it settles, the mint
+     * publishes nothing for the name; if it expires unpaid, the name is free again.
+     */
+    public data class AwaitingFee(val invoice: String) : RegistrationOutcome
+
     /** Refused, e.g. because the username is taken. */
-    public data class Rejected(val kind: RejectionKind, val reason: String?) : RegistrationOutcome
+    public data class Rejected(val kind: RegistrationRejection, val reason: String?) : RegistrationOutcome
 
     public data class Ambiguous(val cause: String) : RegistrationOutcome
+}
+
+/** Why a mint refused a registration, update or unregistration. */
+public enum class RegistrationRejection {
+    /** The name is registered, or held for an unpaid address fee (a POST never overwrites). */
+    AlreadyRegistered,
+
+    /** This share's key was accepted before, for any name: each share registers once. */
+    Cx1AlreadyUsed,
+
+    /** No such registration (a PUT or DELETE for a free name). */
+    UnknownUser,
+
+    /** A proof didn't verify: the name is not held by the key that signed. Not a reason the spec defines; lnurl-mint's wording. */
+    InvalidSignature,
+    RateLimited,
+    Other;
+
+    public companion object {
+        public fun fromReason(reason: String?): RegistrationRejection {
+            val r = reason?.trim()?.lowercase() ?: return Other
+            return when {
+                "already registered" in r -> AlreadyRegistered
+                "cx1 already used" in r -> Cx1AlreadyUsed
+                "unknown user" in r -> UnknownUser
+                "signature" in r -> InvalidSignature
+                "rate limited" in r -> RateLimited
+                else -> Other
+            }
+        }
+    }
+}
+
+/** Which protocol a mint speaks. */
+public enum class MintDialect {
+    /** LUD-25/26 at luds 92e430f, pinned in protocol/SPEC.md. */
+    Current,
+
+    /** Legacy: LUD-25/26 draft 2f17578. */
+    Legacy,
 }

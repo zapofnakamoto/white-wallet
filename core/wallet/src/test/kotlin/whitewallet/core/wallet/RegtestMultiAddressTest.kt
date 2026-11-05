@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.RegistrationOutcome
+import whitewallet.lnurlcash.client.legacy.legacyRegister
 import whitewallet.lnurlcash.legacy.LegacyAddressProof
 import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.lnurlcash.protocol.NoteLookupError
@@ -73,7 +74,7 @@ class RegtestMultiAddressTest {
             val withdrawUrl = assertNotNull(store.mint(host)).withdrawUrl
             suspend fun register(name: String) {
                 val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Register, spendDomain(host), name)
-                assertEquals(RegistrationOutcome.Registered, client.register(host, name, branch.cx1(), sig), "registering $name")
+                assertEquals(RegistrationOutcome.Registered, client.legacyRegister(host, name, branch.cx1(), sig), "registering $name")
                 assertEquals(AddressStatus.Ours, wallet.checkAddress(name, host), "$name publishes this wallet's cx1")
             }
 
