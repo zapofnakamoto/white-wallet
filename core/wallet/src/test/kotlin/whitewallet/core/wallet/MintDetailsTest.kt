@@ -4,9 +4,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.Profile
+import whitewallet.core.model.RegisteredAddress
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.testkit.MockMint
@@ -33,7 +35,7 @@ class MintDetailsTest {
         }
 
     @Test
-    fun `details show fees, limits, the pinned key and the account's money there`() = withWallet { mint, _, wallet ->
+    fun `details show fees, limits, the pinned key and the account's money there`() = withWallet { mint, store, wallet ->
         val keys = testKeys(words, mint.host)
         mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 0)), 21_000)
         wallet.refresh()
@@ -44,7 +46,14 @@ class MintDetailsTest {
         assertEquals(21_000, details.balanceMsat)
         assertEquals(1, details.noteCount)
         assertEquals(true, details.isHome)
-        assertEquals(keys.share(0).cx1(), wallet.watchOnlyKey(mint.host))
+        assertEquals(keys.share(0).cx1(), wallet.watchOnlyKey(store.addresses(wallet.activeId()).first().single()))
+    }
+
+    @Test
+    fun `legacy 2f17578 - an address still on the branch shows the branch's watch-only key`() = withWallet { mint, store, wallet ->
+        val address = RegisteredAddress("old", mint.host, 0)
+        store.saveAddress("a", address)
+        assertEquals(testKeys(words, mint.host).legacy.cx1(), wallet.watchOnlyKey(address))
     }
 
     @Test

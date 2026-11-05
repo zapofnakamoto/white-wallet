@@ -60,6 +60,7 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.localTime
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.NoteState
+import whitewallet.core.wallet.AddressShare
 import whitewallet.core.wallet.DerivedKey
 import whitewallet.core.wallet.DiscoveryResult
 import whitewallet.core.wallet.IndexHealth
@@ -78,6 +79,8 @@ import whitewallet.core.wallet.set
 
 data class DerivedKeysState(
     val hosts: List<String> = emptyList(),
+    /** The account's shares on [host]: a tab each. */
+    val shares: List<AddressShare> = emptyList(),
     /** The mint of the account's primary address. */
     val homeHost: String? = null,
     val host: String? = null,
@@ -101,6 +104,10 @@ data class DerivedKeysState(
     /** The outcome of the last rotate on this page. */
     val lastRotate: RotateOutcome? = null,
 ) {
+    /** The tabs: the account's LUD-26 chains and shares, then the legacy 2f17578 purposes its older notes are on. */
+    val sets: List<KeySet>
+        get() = listOf(KeySet.Wallet, KeySet.Change) + shares.map { it.set } + KeySet.LEGACY
+
     /** Keys on this tab whose note is outstanding in the wallet. */
     val rotatable: List<DerivedKey>
         get() = keys.filter { it.noteState == NoteState.Outstanding }
@@ -264,9 +271,10 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
         val s = _state.value
         val host = s.host ?: return
         val indexes = wallet.keyIndexes(host)
+        val shares = wallet.addressShares(host)
         val health = wallet.keyIndexHealth(host, s.set)
         val keys = wallet.derivedKeys(host, s.set, s.gapLimit)
-        _state.update { it.copy(indexes = indexes, keys = keys, health = health) }
+        _state.update { it.copy(indexes = indexes, shares = shares, keys = keys, health = health) }
     }
 
     private companion object {
@@ -327,9 +335,23 @@ fun DerivedKeysScreen(
                 }
             }
             item {
-                PrimaryScrollableTabRow(selectedTabIndex = KEY_SETS.indexOf(state.set).coerceAtLeast(0), edgePadding = 0.dp) {
-                    KEY_SETS.forEach { set ->
-                        Tab(selected = state.set == set, onClick = { onSet(set) }, text = { Text(keySetLabel(set)) })
+                PrimaryScrollableTabRow(selectedTabIndex = state.sets.indexOf(state.set).coerceAtLeast(0), edgePadding = 0.dp) {
+                    state.sets.forEach { set ->
+                        Tab(
+                            selected = state.set == set,
+                            onClick = { onSet(set) },
+                            text = {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(keySetLabel(set))
+                                    state.shares
+                                        .firstOrNull { it.set == set }
+                                        ?.address
+                                        ?.let {
+                                            Text(it, style = MaterialTheme.typography.labelSmall)
+                                        }
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -638,19 +660,17 @@ private fun lookupText(probe: KeyProbe?): String {
 /** Time of day for today's lookups; date and time for older (saved) ones. */
 private fun checkedAt(millis: Long): String = recentTime(millis)
 
-/** The tabs: the account's LUD-26 chains, then the legacy 2f17578 purposes its older notes are on. */
-private val KEY_SETS = listOf(KeySet.Wallet, KeySet.Change) + KeySet.LEGACY
-
 @Composable
 private fun keySetLabel(set: KeySet): String =
-    stringResource(
-        when (set) {
-            KeySet.Wallet -> R.string.keys_purpose_wallet
-            KeySet.Change -> R.string.keys_purpose_change
-            KeySet.LegacyWallet -> R.string.keys_legacy_wallet
-            KeySet.LegacyChange -> R.string.keys_legacy_change
-            else -> R.string.keys_legacy_address
-        }
-    )
+    set.share?.let { stringResource(R.string.keys_address_number, it + 1) }
+        ?: stringResource(
+            when (set) {
+                KeySet.Wallet -> R.string.keys_purpose_wallet
+                KeySet.Change -> R.string.keys_purpose_change
+                KeySet.LegacyWallet -> R.string.keys_legacy_wallet
+                KeySet.LegacyChange -> R.string.keys_legacy_change
+                else -> R.string.keys_legacy_address
+            }
+        )
 
 private const val TIME_SKELETON = "jm"

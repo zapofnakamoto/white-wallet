@@ -16,6 +16,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -27,6 +28,7 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
+import whitewallet.core.wallet.KeySet
 
 /**
  * What the wallet stores comes back as it was written: the journal above all, which settles every operation whose outcome is unknown, after
@@ -114,6 +116,15 @@ class RoomWalletStoreTest {
                 listOf(KeyProbe.Unused(1), KeyProbe.Outstanding(1_000, true, false, 2), KeyProbe.Spent(3), KeyProbe.Refused("pending", 4))
             probes.forEachIndexed { i, p -> store.putKeyCheck(KeyId("acc", "mint.example", 2, i.toLong(), KeyScheme.Bip32, 0), p) }
             assertEquals(probes, store.keyChecks("acc").first().toSortedMap(compareBy { it.index }).values.toList())
+        }
+
+    @Test
+    fun `the indexes of a mint show each counter under its own keys, and leave out how many shares went out`() =
+        runBlocking<Unit> {
+            store.setKeyIndex("acc", "mint.example", KeyCounter.Wallet, 4)
+            store.setKeyIndex("acc", "mint.example", KeyCounter.Change, 7)
+            store.setKeyIndex("acc", "mint.example", KeyCounter.Shares, 2)
+            assertEquals(mapOf(KeySet.Wallet to 4L, KeySet.Change to 7L), store.indexesFlow("acc", "mint.example").first())
         }
 
     @Test

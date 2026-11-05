@@ -1,10 +1,16 @@
 package whitewallet.feature.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -34,6 +40,24 @@ class AddressesScreenTest {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("alice@other.example"))
         compose.onNodeWithText("other.example").assertExists()
         compose.onNodeWithText(text(R.string.addresses_make_primary)).assertDoesNotExist()
+    }
+
+    @Test
+    fun anAddressShowsItsOwnWatchOnlyKeyAndCopiesIt() {
+        var state by mutableStateOf(AddressesState(listOf(home, other), homeHost = "home.example", otherMints = true))
+        var toggled: RegisteredAddress? = null
+        var copied: String? = null
+        val actions = AddressActions({}, {}, {}, onToggleWatchOnly = { toggled = it }, onCopyWatchOnly = { copied = it })
+        compose.setContent { AddressesScreen(state, {}, {}, {}, {}, actions, {}, {}, {}) }
+
+        compose.onAllNodesWithText(text(R.string.addresses_watch_only))[0].performClick()
+        assertEquals(home.address, toggled)
+
+        state = state.copy(watchOnly = WatchOnlyKey(home.address.address, "cx1test"))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("cx1test"))
+        compose.onNodeWithText(text(R.string.addresses_watch_only_hint)).assertExists()
+        compose.onAllNodesWithText(text(R.string.mint_copy)).onLast().performScrollTo().performClick()
+        assertEquals("cx1test", copied)
     }
 
     @Test

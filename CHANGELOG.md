@@ -21,12 +21,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   On a legacy mint only a wallet's first account can have an address. Database version 5.
 
 - The seed-derived default address of a new account comes from its first share, so each account of a wallet has its
-  own; those made before are still found by a restore. The watch-only key on a mint's page is the key of the first
-  address there, and says so.
+  own; those made before are still found by a restore. The watch-only key moved from the mint's page to each
+  address: a key only ever shows what was paid to its own address.
 
 ### Fixed
 
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.
+- The developer key screen has a tab per address, so address notes on new keys can be scanned and renewed there. Its
+  Change tab could show the count of addresses instead of the change index.
 - After a restore, new payments to an address were only found once its name was entered again. Every share the account
   handed out is now scanned on a refresh, on its home mint, whether or not the phone knows the name.
 - A payment, a move or a combine of more than 100 notes was refused by the mint: all their notes went into one request.

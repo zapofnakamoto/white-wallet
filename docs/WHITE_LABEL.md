@@ -224,7 +224,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `mint_invalid` | Answers, but can't hold notes |
 | `mint_key_accept_body` | Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost. |
 | `mint_balance` | %1$s in %2$d note / %1$s in %2$d notes (plural) |
-| `mint_watch_only_hint` | Lets another app see this account's notes here and receive to it, but never spend. |
+| `addresses_watch_only_hint` | Lets another app see the notes paid to this address, but never spend them. |
 | `notes_collect_hint` | Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too. |
 | `settings_notices_hint` | A short message when the wallet combined, split, renewed or moved your notes by itself. |
 | `notes_collect_pending` | Moving the notes from %1$s; they arrive shortly. |

@@ -40,7 +40,7 @@
         <item quantity="one">%1$s in %2$d note</item>
         <item quantity="other">%1$s in %2$d notes</item>
     </plurals>
-    <string name="mint_watch_only_hint">Lets another app see the notes paid to your address here and receive to it, but never spend.</string>
+    <string name="addresses_watch_only_hint">Lets another app see the notes paid to this address, but never spend them.</string>
     <string name="notes_collect_hint">Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too.</string>
     <string name="notes_collect_pending">Moving the notes from %1$s; they arrive shortly.</string>
     <string name="mints_add_invalid">That address can\'t hold notes.</string>
@@ -187,7 +187,7 @@
     <string name="keys_description">Note keys of this account, local indexes, lookups and rescans</string>
     <string name="keys_purpose_wallet">Wallet (0)</string>
     <string name="keys_purpose_change">Change (1)</string>
-    <string name="keys_purpose_address">Address (2)</string>
+    <string name="keys_address_number">Address %1$d</string>
     <string name="keys_legacy_wallet">Legacy wallet (0)</string>
     <string name="keys_legacy_change">Legacy change (1)</string>
     <string name="keys_legacy_address">Legacy address (2)</string>
@@ -300,8 +300,8 @@
     <string name="mint_signing_key_hint">Remembered on first contact. If it ever changes, your wallet stops and asks you.</string>
     <string name="mint_website">Website</string>
     <string name="mint_open">Open</string>
-    <string name="mint_watch_only">Watch-only key</string>
-    <string name="mint_watch_only_qr">QR code of the watch-only key</string>
+    <string name="addresses_watch_only">Watch-only key</string>
+    <string name="addresses_watch_only_qr">QR code of the watch-only key</string>
     <string name="mint_show">Show</string>
     <string name="mint_hide">Hide</string>
     <string name="mint_copy">Copy</string>

@@ -23,8 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -42,6 +44,8 @@ import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
+import whitewallet.core.designsystem.QrCode
+import whitewallet.core.designsystem.SensitiveClipboard
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCheckbox
@@ -66,6 +70,8 @@ data class AddressesState(
     /** An unregister waiting for confirmation. */
     val confirm: RegisteredAddress? = null,
     val message: AddressesMessage? = null,
+    /** The address whose watch-only key is showing, and that key. */
+    val watchOnly: WatchOnlyKey? = null,
     /** The account's home mint, where new addresses are added. */
     val homeHost: String? = null,
     /**
@@ -85,6 +91,8 @@ data class AddressesState(
     val elsewhere: Map<String, List<AddressEntry>>
         get() = entries.filter { it.address.host != homeHost }.groupBy { it.address.host }
 }
+
+data class WatchOnlyKey(val address: String, val key: String)
 
 sealed interface AddressesMessage {
     data class Unregistered(val address: String) : AddressesMessage
@@ -106,6 +114,7 @@ private data class AddressesUi(
     val busy: Boolean = false,
     val confirm: RegisteredAddress? = null,
     val message: AddressesMessage? = null,
+    val watchOnly: WatchOnlyKey? = null,
 )
 
 @HiltViewModel
@@ -122,14 +131,26 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
                     ui.busy,
                     ui.confirm,
                     ui.message,
+                    ui.watchOnly,
                     homeHost = home,
                     otherMints = defaults.allowMintChange && defaults.otherMintsAllowed(home),
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState())
 
+    /** How soon a copied key is cleared from the clipboard. */
+    val clipboardClearMillis = defaults.timings.clipboardClearMillis
+
     init {
         checkAll()
+    }
+
+    fun toggleWatchOnly(address: RegisteredAddress) {
+        if (ui.value.watchOnly?.address == address.address) return ui.update { it.copy(watchOnly = null) }
+        viewModelScope.launch {
+            val key = wallet.watchOnlyKey(address) ?: return@launch
+            ui.update { it.copy(watchOnly = WatchOnlyKey(address.address, key)) }
+        }
     }
 
     fun checkAll() = check(null)
@@ -198,6 +219,8 @@ class AddressActions(
     val onMakePrimary: (RegisteredAddress) -> Unit,
     val onUnregister: (RegisteredAddress) -> Unit,
     val onPayFee: (RegisteredAddress) -> Unit = {},
+    val onToggleWatchOnly: (RegisteredAddress) -> Unit = {},
+    val onCopyWatchOnly: (String) -> Unit = {},
 )
 
 @Composable
@@ -209,13 +232,22 @@ fun AddressesRoute(
     viewModel: AddressesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     AddressesScreen(
         state,
         onBack,
         onAdd,
         onChangePrimary,
         onCheckAll = viewModel::checkAll,
-        actions = AddressActions(viewModel::check, viewModel::makePrimary, viewModel::askUnregister, viewModel::payFee),
+        actions =
+            AddressActions(
+                viewModel::check,
+                viewModel::makePrimary,
+                viewModel::askUnregister,
+                viewModel::payFee,
+                viewModel::toggleWatchOnly,
+                onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key, viewModel.clipboardClearMillis) },
+            ),
         onConfirmUnregister = viewModel::confirmUnregister,
         onDismissUnregister = viewModel::dismissUnregister,
         onAddElsewhere,
@@ -289,6 +321,7 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
     val scope = rememberCoroutineScope()
     val a = entry.address
     val checking = a.address in state.checking || "*" in state.checking
+    val watchOnly = state.watchOnly?.takeIf { it.address == a.address }
     WalletCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -335,6 +368,9 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
                 ) {
                     Text(stringResource(R.string.addresses_copy))
                 }
+                WalletButton(kind = ButtonKind.Text, onClick = { actions.onToggleWatchOnly(a) }) {
+                    Text(stringResource(if (watchOnly != null) R.string.mint_hide else R.string.addresses_watch_only))
+                }
                 if (!entry.primary) {
                     // The primary address is always on the home mint.
                     if (a.host == state.homeHost) {
@@ -352,7 +388,23 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
                     }
                 }
             }
+            watchOnly?.let { WatchOnlySection(it.key, actions.onCopyWatchOnly) }
         }
+    }
+}
+
+@Composable
+private fun WatchOnlySection(key: String, onCopy: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(stringResource(R.string.addresses_watch_only_hint), style = MaterialTheme.typography.bodySmall)
+        QrCode(key, description = stringResource(R.string.addresses_watch_only_qr))
+        Text(
+            key,
+            fontFamily = FontFamily.Monospace,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
+        WalletButton(kind = ButtonKind.Secondary, onClick = { onCopy(key) }) { Text(stringResource(R.string.mint_copy)) }
     }
 }
 

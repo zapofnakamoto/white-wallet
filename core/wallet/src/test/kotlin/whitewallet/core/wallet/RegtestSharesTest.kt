@@ -3,6 +3,8 @@ package whitewallet.core.wallet
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -10,6 +12,8 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
+import whitewallet.lnurlcash.Share
+import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
 
 /**
@@ -39,6 +43,54 @@ class RegtestSharesTest {
             assertEquals(mapOf(0L to 1, 1L to 2), received.groupingBy { it.share!! }.eachCount(), "$received")
             assertTrue(received.all { it.scheme == KeyScheme.Bip32 })
             assertEquals(received.map { it.amountMsat }.sum(), phone.balance())
+        }
+
+    @Test
+    fun `each address has its own watch-only key, which shows the notes paid to it and no other`() =
+        runBlocking<Unit> {
+            val phone = Regtest.phone()
+            val second = Regtest.name()
+            assertIs<OnboardResult.Ready>(phone.wallet.addAddress(second, limit = 5))
+            val accountId = phone.wallet.activeId()
+            val addresses = phone.store.addresses(accountId).first().sortedBy { it.share }
+            val keys = addresses.map { assertNotNull(phone.wallet.watchOnlyKey(it)) }
+            assertEquals(2, keys.distinct().size)
+
+            Regtest.pay("$second@$HOST", 2000)
+            phone.wallet.refresh()
+            val note = phone.notes().single()
+            val derive = { key: String -> assertNotNull(Share.fromCx1(key)).notePubkey(note.index!!).toHex() }
+            assertEquals(note.id, derive(keys[1]), "its own address's key finds it")
+            assertNotEquals(note.id, derive(keys[0]), "the other address's does not")
+        }
+
+    @Test
+    fun `the key page lists every share, named when the phone knows its address, and finds a payment past the gap`() =
+        runBlocking<Unit> {
+            val phone = Regtest.phone()
+            val second = Regtest.name()
+            assertIs<OnboardResult.Ready>(phone.wallet.addAddress(second, limit = 5))
+            val accountId = phone.wallet.activeId()
+            val first = phone.address
+            assertEquals(listOf(AddressShare(0, first), AddressShare(1, "$second@$HOST")), phone.wallet.addressShares(HOST))
+
+            // A restored phone has handed out the same shares, and knows no names.
+            val gap = WalletSettings().scanStopAfterUnusedKeys.toLong()
+            val set = KeySet.share(1)
+            val q = phone.wallet.keys(accountId, HOST).pubkey(set, gap + 5)
+            Regtest.pay("$second@$HOST", 1000)
+            phone.wallet.refresh()
+            Regtest.mintTo(HOST, q, 3000)
+            val store = InMemoryWalletStore()
+            val restored = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
+            val result = assertIs<RestoreResult.Restored>(restored.restore(phone.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
+            assertEquals(listOf(AddressShare(0, null), AddressShare(1, null)), restored.addressShares(HOST))
+
+            // Past the gap: no restore or refresh goes that far. The tab's scan does.
+            restored.refresh()
+            assertEquals(result.balanceMsat, restored.balanceMsat.first(), "not found by a refresh")
+            restored.scanKeysAhead(HOST, set, (gap + 10).toInt())
+            assertTrue(restored.balanceMsat.first() > result.balanceMsat, "found by the tab's scan")
         }
 
     @Test

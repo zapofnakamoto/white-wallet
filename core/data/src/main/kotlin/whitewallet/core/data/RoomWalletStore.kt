@@ -134,7 +134,12 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
             dao.addressScanFlow(accountId, host),
         ) { keyCounters, shareScans, counters, scan ->
             buildMap {
-                keyCounters.forEach { put(if (it.counter == KeyCounter.Wallet.name) KeySet.Wallet else KeySet.Change, it.next) }
+                keyCounters.forEach { row ->
+                    when (row.counter) {
+                        KeyCounter.Wallet.name -> put(KeySet.Wallet, row.next)
+                        KeyCounter.Change.name -> put(KeySet.Change, row.next)
+                    }
+                }
                 shareScans.forEach { put(KeySet.share(it.share), it.next) }
                 counters.filter { it.purpose != 2 }.forEach { put(KeySet(KeyScheme.Legacy, it.purpose), it.next) }
                 scan?.let { put(KeySet(KeyScheme.Legacy, 2), it) }

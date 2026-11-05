@@ -83,6 +83,12 @@ sealed interface SetIndexResult {
     data class BelowFloor(val floor: Long) : SetIndexResult
 }
 
+/** One of an account's shares (`S/a'/2/n'`), with the [address] registered on it, if the phone knows one. */
+data class AddressShare(val share: Long, val address: String?) {
+    val set: KeySet
+        get() = KeySet.share(share)
+}
+
 /** Developer tools over the derived keys of the active account. */
 internal class KeyInspector(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)

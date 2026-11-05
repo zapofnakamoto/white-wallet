@@ -30,6 +30,7 @@ import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -46,6 +47,7 @@ import whitewallet.lnurlcash.ServiceRoot
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.protocol.ProtocolViolation
+import whitewallet.lnurlcash.spendDomain
 
 /**
  * The wallet's entry point. It holds several accounts, each with its own recovery phrase; everything except account management acts on the
@@ -514,13 +516,13 @@ class Wallet(
     suspend fun mintDetails(host: String): MintDetails = mintInspector.details(host)
 
     /**
-     * The watch-only key (`cx1`) of the active account's first address on [host]: it lets someone see the notes paid to that address, but
-     * never spend. Null if the account has no address there, or no recovery phrase on this device.
+     * The watch-only key (`cx1`) of the active account's [address]: it lets someone see the notes paid to that address, never spend them.
+     * Null if there is no recovery phrase on this device.
      */
-    suspend fun watchOnlyKey(host: String): String? {
+    suspend fun watchOnlyKey(address: RegisteredAddress): String? {
         val accountId = activeId()
-        val share = store.addresses(accountId).first().firstOrNull { it.host == host && it.share != null }?.share
-        return share?.let { keysIfSeeded(accountId, host)?.share(it)?.cx1() } ?: legacy.watchOnlyKey(accountId, host)
+        return address.share?.let { keysIfSeeded(accountId, address.host)?.share(it)?.cx1() }
+            ?: legacy.watchOnlyKey(accountId, address.host)
     }
 
     /** The most one note can be sent as, from the active account's notes. */
@@ -981,6 +983,17 @@ class Wallet(
 
     /** The active account's indexes on [host]: each counter or scan start that is set, by the keys it counts. */
     suspend fun keyIndexes(host: String): Map<KeySet, Long> = store.indexesFlow(activeId(), host).first()
+
+    /**
+     * The active account's shares on [host]'s domain, in order: every one handed out, with the address on it at [host] if the phone knows
+     * it.
+     */
+    suspend fun addressShares(host: String): List<AddressShare> {
+        val id = activeId()
+        val addresses = store.addresses(id).first().filter { it.host == host && it.share != null }.associateBy { it.share!! }
+        val handedOut = store.keyIndexOrNull(id, spendDomain(host), KeyCounter.Shares) ?: 0
+        return ((0 until handedOut) + addresses.keys).distinct().sorted().map { AddressShare(it, addresses[it]?.address) }
+    }
 
     /** Keys 0 until index + [gap] of [set] on [host]. */
     suspend fun derivedKeys(host: String, set: KeySet, gap: Int = settings.scanStopAfterUnusedKeys): List<DerivedKey> =

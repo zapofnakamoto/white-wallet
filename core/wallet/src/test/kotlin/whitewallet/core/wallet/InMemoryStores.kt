@@ -174,8 +174,13 @@ class InMemoryWalletStore : WalletStore {
         buildMap {
             val domain = spendDomain(host)
             keyCounters.forEach { (k, next) ->
-                if (k.first == accountId && k.second == domain)
-                    put(if (k.third == KeyCounter.Wallet) KeySet.Wallet else KeySet.Change, next)
+                if (k.first == accountId && k.second == domain) {
+                    when (k.third) {
+                        KeyCounter.Wallet -> put(KeySet.Wallet, next)
+                        KeyCounter.Change -> put(KeySet.Change, next)
+                        KeyCounter.Shares -> Unit
+                    }
+                }
             }
             shareScans.forEach { (k, next) -> if (k.first == accountId && k.second == host) put(KeySet.share(k.third), next) }
             counters.forEach { (k, next) ->

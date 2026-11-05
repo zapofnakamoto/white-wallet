@@ -39,8 +39,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Tone
-import whitewallet.core.designsystem.QrCode
-import whitewallet.core.designsystem.SensitiveClipboard
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCircularProgress
@@ -58,8 +56,6 @@ import whitewallet.core.wallet.Wallet
 data class MintDetailsState(
     val details: MintDetails? = null,
     val loading: Boolean = true,
-    val watchOnlyKey: String? = null,
-    val showWatchOnly: Boolean = false,
     /**
      * This page offers changing the home mint (`mints.changeable`): on the home's, when there is another mint the brand allows
      * (`mints.custom`); on another mint's, to it if the brand allows it.
@@ -82,9 +78,6 @@ data class MintDetailsState(
 class MintDetailsViewModel
 @Inject
 constructor(private val wallet: Wallet, savedState: SavedStateHandle, private val defaults: AppDefaults) : ViewModel() {
-    /** How soon a copied key is cleared from the clipboard. */
-    val clipboardClearMillis = defaults.timings.clipboardClearMillis
-
     /** The mint to show: the route's `host`, else the account's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
     private val _state = MutableStateFlow(MintDetailsState(device = savedState.get<Boolean>("device") ?: false))
@@ -120,15 +113,12 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
                 it.copy(
                     details = details,
                     loading = false,
-                    watchOnlyKey = wallet.watchOnlyKey(details.host),
                     mint = mint,
                     canChangeHome = canChangeHome,
                 )
             }
         }
     }
-
-    fun toggleWatchOnly() = _state.update { it.copy(showWatchOnly = !it.showWatchOnly) }
 
     /** Forgets this mint (see [Wallet.removeMint]); the page closes once it's gone. */
     fun remove() {
@@ -170,8 +160,6 @@ fun MintDetailsRoute(
         state,
         onBack,
         onRefresh = viewModel::refresh,
-        onToggleWatchOnly = viewModel::toggleWatchOnly,
-        onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key, viewModel.clipboardClearMillis) },
         onAcceptKey = viewModel::acceptKey,
         onChangeHome = onChangeHome,
         onMoveMoney = onMoveMoney,
@@ -189,8 +177,6 @@ fun MintDetailsScreen(
     state: MintDetailsState,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
-    onToggleWatchOnly: () -> Unit,
-    onCopyWatchOnly: (String) -> Unit,
     onAcceptKey: (String) -> Unit = {},
     onChangeHome: (host: String?) -> Unit = {},
     onMoveMoney: (host: String) -> Unit = {},
@@ -272,34 +258,6 @@ fun MintDetailsScreen(
                 },
             )
             if (state.device) state.mint?.let { RemoveSection(it, state.removeRefused, onRemove) }
-            state.watchOnlyKey
-                ?.takeUnless { state.device }
-                ?.let { key ->
-                    HorizontalDivider()
-                    WalletListItem(
-                        headlineContent = { Text(stringResource(R.string.mint_watch_only)) },
-                        supportingContent = { Text(stringResource(R.string.mint_watch_only_hint)) },
-                        trailingContent = {
-                            WalletButton(kind = ButtonKind.Text, onClick = onToggleWatchOnly) {
-                                Text(stringResource(if (state.showWatchOnly) R.string.mint_hide else R.string.mint_show))
-                            }
-                        },
-                    )
-                    if (state.showWatchOnly) {
-                        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            QrCode(key, description = stringResource(R.string.mint_watch_only_qr))
-                            Text(
-                                key,
-                                fontFamily = FontFamily.Monospace,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(vertical = 8.dp),
-                            )
-                            WalletButton(kind = ButtonKind.Secondary, onClick = { onCopyWatchOnly(key) }) {
-                                Text(stringResource(R.string.mint_copy))
-                            }
-                        }
-                    }
-                }
         }
     }
 }
