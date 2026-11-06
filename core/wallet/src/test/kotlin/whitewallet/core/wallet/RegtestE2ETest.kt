@@ -12,6 +12,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.extension.ExtendWith
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.wallet.Regtest.HOST
@@ -237,6 +238,7 @@ class RegtestE2ETest {
         }
 
     @Test
+    @ExtendWith(ThirdMintLock::class)
     fun `changing the home mint to the second one, then moving the money there as quoted`() =
         runBlocking<Unit> {
             val phone = Regtest.phone(strategy = ManualStrategy.ID, collectDefaults = CollectDefaults(enabled = true, feeCapPercent = 2))

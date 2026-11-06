@@ -7,8 +7,10 @@ import kotlin.test.assertNotNull
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.extension.ExtendWith
 
 /** Moving money between the regtest mints, where it can't go through. */
+@ExtendWith(ThirdMintLock::class)
 class RegtestMoneyMoveTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 

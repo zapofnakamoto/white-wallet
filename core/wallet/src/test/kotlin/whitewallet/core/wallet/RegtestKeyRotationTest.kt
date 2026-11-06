@@ -11,6 +11,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.extension.ExtendWith
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST3
@@ -22,6 +23,7 @@ import whitewallet.lnurlcash.client.LnurlcashClient
  * A mint that really changes its signing key (the third mint, moved to another Lightning node with its notes): notes signed with the old
  * key and with the new one keep working once the user accepts the new key, on a restored phone too.
  */
+@ExtendWith(ThirdMintLock::class)
 class RegtestKeyRotationTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 
