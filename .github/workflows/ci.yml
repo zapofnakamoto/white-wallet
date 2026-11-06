@@ -43,6 +43,9 @@ jobs:
       - name: Screens draw through the brand's design
         run: dev/check-design.sh
 
+      - name: Legacy stays behind its seams
+        run: dev/check-legacy.sh
+
       - name: Formatting
         run: ./gradlew spotlessCheck
 
@@ -60,7 +63,7 @@ jobs:
   regtest:
     # The wallet against the real reference mints on regtest Lightning (dev/regtest): the proof for every change that
     # talks to a mint (CONTRIBUTING.md). With LNURLCASH_REGTEST=1 a regtest test fails, rather than skips, when the
-    # stack is down; the last step makes sure none was skipped.
+    # stack is down; the last step makes sure none was skipped. Only the current stack: `just test-regtest` runs legacy too.
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -83,11 +86,11 @@ jobs:
         run: |
           results=(core/wallet/build/test-results/test/TEST-*Regtest*.xml core/data/build/test-results/testDebugUnitTest/TEST-*Regtest*.xml)
           [[ -e "${results[0]}" ]] || { echo "No regtest test results." >&2; exit 1; }
-          if grep -l 'skipped="[1-9]' "${results[@]}"; then echo "Regtest tests were skipped (above)." >&2; exit 1; fi
+          if grep -h '<skipped' "${results[@]}" | grep -v 'needs the legacy regtest stack'; then echo "Regtest tests were skipped (above)." >&2; exit 1; fi
 
       - name: Stack logs
         if: failure()
-        run: docker compose -f dev/regtest/docker-compose.yml logs --no-color > regtest-logs.txt 2>&1 || true
+        run: docker compose -p whitewallet-regtest-current -f dev/regtest/docker-compose.yml logs --no-color > regtest-logs.txt 2>&1 || true
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
