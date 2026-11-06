@@ -45,8 +45,13 @@ Those tests drive real HTTP against a mint that misbehaves on purpose: dropped c
 The **regtest tests** (`Regtest*` in `core/wallet`) run the wallet against the real reference mints on real (regtest) Lightning, from the stack in `dev/regtest`. They are skipped unless `LNURLCASH_REGTEST=1`, which `just test-regtest` sets after starting the stack (`regtest.sh up`, quick when it is already running). The stack keeps running afterwards; `just regtest down` stops it:
 
 ```sh
-just test-regtest     # regtest.sh up, then LNURLCASH_REGTEST=1 just test
+just test-regtest           # both stacks, legacy then current
+just test-regtest-current   # the current stack only (lnurl-mint 0.13.1)
+just test-regtest-legacy    # the legacy stack only (lnurl-mint 0.12.2); temporary, see below
+just regtest-down           # stops both stacks
 ```
+
+The legacy stack and `just test-regtest-legacy` are temporary: they go with legacy 2f17578 (`protocol/SPEC.md`, "Removing legacy 2f17578"), and `just test-regtest` then runs the current stack alone.
 
 `core/data` has its own `Regtest*` tests, for the store the app uses rather than the tests' in-memory one: the wallet runs on Room (under Robolectric, without SQLCipher) and is closed and opened again over the same database, as when the app is killed and restarted mid-payment. `RoomWalletStoreTest` checks the same store without a stack, in every `test` run.
 

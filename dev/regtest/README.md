@@ -18,11 +18,13 @@ A local Bitcoin regtest network with a real LNURLcash mint, for developing the w
 
 ### Two stacks: legacy and current
 
-While mints run two versions of LNURLcash, there are two stacks. `REGTEST_PROTOCOL=legacy` (the default) runs `mint`, `mint2` and `mint3` on lnurl-mint `0.12.2` (LUD-25/26 draft `2f17578`); `REGTEST_PROTOCOL=current` runs them on `0.13.1` (luds `92e430f`). Each is its own compose project (`whitewallet-regtest` and `whitewallet-regtest-current`) with its own chain, nodes and mint databases, on the same ports; `up` stops the other one first, so only one runs at a time. A mint's database is never downgraded. `just test-regtest` runs the regtest tests on both, one after the other.
+While mints run two versions of LNURLcash, there are two stacks. `REGTEST_PROTOCOL=current` (the default) runs `mint`, `mint2` and `mint3` on lnurl-mint `0.13.1` (luds `92e430f`); `REGTEST_PROTOCOL=legacy` runs them on `0.12.2` (LUD-25/26 draft `2f17578`). Each is its own compose project (`whitewallet-regtest` and `whitewallet-regtest-current`) with its own chain, nodes and mint databases, on the same ports; `up` stops the other one first, so only one runs at a time. A mint's database is never downgraded. `just test-regtest` runs the regtest tests on both, one after the other.
 
 ```sh
-REGTEST_PROTOCOL=current ./dev/regtest/regtest.sh up
+REGTEST_PROTOCOL=legacy ./dev/regtest/regtest.sh up
 ```
+
+The tests run on one stack with `just test-regtest-current` or `just test-regtest-legacy`, on both with `just test-regtest`, and `just regtest-down` stops both. The legacy stack is temporary: it goes with legacy 2f17578 (`protocol/SPEC.md`, "Removing legacy 2f17578").
 
 Requirements: Docker with Compose, `curl`, `jq`, `python3`. For a device: `adb` (Android SDK platform-tools).
 

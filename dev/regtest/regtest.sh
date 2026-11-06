@@ -7,7 +7,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Which stack: legacy runs every mint on lnurl-mint 0.12.2 (LUD-25/26 draft 2f17578), current on 0.13.1 (luds 92e430f).
 # Each is its own compose project with its own volumes (the legacy one keeps the stack's original name and state), on the
 # same ports, so `up` stops the other one first.
-PROTOCOL="${REGTEST_PROTOCOL:-legacy}"
+PROTOCOL="${REGTEST_PROTOCOL:-current}"
 case "$PROTOCOL" in
     legacy) PROJECT=whitewallet-regtest; OTHER_PROJECT=whitewallet-regtest-current; MINT_VERSION=0.12.2 ;;
     current) PROJECT=whitewallet-regtest-current; OTHER_PROJECT=whitewallet-regtest; MINT_VERSION=0.13.1 ;;
@@ -427,9 +427,9 @@ cmd_status() {
 
 usage() {
     cat <<USAGE
-usage: [REGTEST_PROTOCOL=legacy|current] $0 <command>
+usage: [REGTEST_PROTOCOL=current|legacy] $0 <command>
 
-  REGTEST_PROTOCOL picks the stack: legacy (default) runs the mints on lnurl-mint 0.12.2, current on 0.13.1.
+  REGTEST_PROTOCOL picks the stack: current (default) runs the mints on lnurl-mint 0.13.1, legacy on 0.12.2.
 
   up                       start and bootstrap the stack (idempotent), then adb reverse
   pay <target> [sats]      pay an invoice (lnbcrt...), a Lightning address (alice@localhost:8111, or :8112 on mint2)

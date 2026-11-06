@@ -91,7 +91,7 @@ test *gradle_args:
     dev/conformance.sh
     ./gradlew test {{ gradle_args }}
 
-# The tests, including those against the local regtest stack (started if it isn't running; stop it with `just regtest down`)
+# The tests on both regtest stacks, legacy then current (each started if it isn't running; stop them with `just regtest-down`)
 [group('checks')]
 test-regtest *gradle_args:
     #!/usr/bin/env bash
@@ -100,10 +100,21 @@ test-regtest *gradle_args:
     failed=()
     for protocol in legacy current; do
         echo "==> regtest tests on the $protocol stack"
-        REGTEST_PROTOCOL=$protocol dev/regtest/regtest.sh up >/dev/null || { failed+=("$protocol (stack)"); continue; }
-        REGTEST_PROTOCOL=$protocol LNURLCASH_REGTEST=1 just test {{ gradle_args }} || failed+=("$protocol")
+        just test-regtest-$protocol {{ gradle_args }} || failed+=("$protocol")
     done
     (( ${#failed[@]} == 0 )) || { echo "regtest tests failed on: ${failed[*]}" >&2; exit 1; }
+
+# The tests on the current regtest stack (lnurl-mint 0.13.1)
+[group('checks')]
+test-regtest-current *gradle_args:
+    REGTEST_PROTOCOL=current dev/regtest/regtest.sh up >/dev/null
+    REGTEST_PROTOCOL=current LNURLCASH_REGTEST=1 just test {{ gradle_args }}
+
+# The tests on the legacy regtest stack (lnurl-mint 0.12.2). Temporary: goes with legacy 2f17578, see protocol/SPEC.md
+[group('checks')]
+test-regtest-legacy *gradle_args:
+    REGTEST_PROTOCOL=legacy dev/regtest/regtest.sh up >/dev/null
+    REGTEST_PROTOCOL=legacy LNURLCASH_REGTEST=1 just test {{ gradle_args }}
 
 # Line and branch coverage of the protocol and wallet modules, regtest tests included (<module>/build/reports/jacoco/test/html)
 [group('checks')]
@@ -152,6 +163,12 @@ new-brand *args:
 [group('regtest')]
 regtest *args:
     dev/regtest/regtest.sh {{ args }}
+
+# Stop both regtest stacks (`just regtest down` stops only the current one)
+[group('regtest')]
+regtest-down:
+    REGTEST_PROTOCOL=current dev/regtest/regtest.sh down
+    REGTEST_PROTOCOL=legacy dev/regtest/regtest.sh down
 
 # Mint a note on the local mint (add --mint2 for the second one) and type it into the focused field on the device
 [group('regtest')]

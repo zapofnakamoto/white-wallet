@@ -51,7 +51,7 @@ internal object Regtest {
 
     /** Which stack is up (dev/regtest, REGTEST_PROTOCOL): its mints run the legacy draft 2f17578 or the current protocol. */
     val protocol: MintDialect
-        get() = if (System.getenv("REGTEST_PROTOCOL") == "current") MintDialect.Current else MintDialect.Legacy
+        get() = if (System.getenv("REGTEST_PROTOCOL") == "legacy") MintDialect.Legacy else MintDialect.Current
 
     /** [requireStack], for a test that only means something against mints speaking [dialect]; skipped on the other stack. */
     /** The keys a payment to a phone's first address lands on: its share 0 on a LUD-26 mint, the legacy purpose 2 on a 2f17578 one. */

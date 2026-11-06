@@ -118,7 +118,7 @@ This list has been rehearsed: on a copy with all of it done at once, the app and
 - [ ] `whitewallet.lnurlcash.legacy`, `whitewallet.lnurlcash.protocol.legacy`, `whitewallet.lnurlcash.client.legacy`
 - [ ] Vectors `spec-2f17578/`, `conformance-2f17578/`
 - [ ] Tests named `legacy 2f17578 - …`, and the classes `RegtestMintUpgradeTest` and `LegacyBranchTest`
-- [ ] The legacy stack, `REGTEST_PROTOCOL`, `mint4`, `dev/check-legacy.sh`
+- [ ] The legacy stack, `REGTEST_PROTOCOL`, `mint4`, `dev/check-legacy.sh`, `just test-regtest-legacy` (`just test-regtest` and `regtest-down` then cover the current stack alone)
 
 **Tag *mint*: once every mint the wallet uses runs ≥ 0.13.** Each line is one call to drop.
 
