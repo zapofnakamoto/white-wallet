@@ -97,7 +97,7 @@ internal class KeyProber(private val wallet: Wallet) {
                     RejectionKind.Spent -> {
                         wallet.store
                             .note(noteId)
-                            ?.takeIf { it.state == NoteState.Outstanding || it.state == NoteState.Unknown }
+                            ?.takeIf { it.host == id.host && (it.state == NoteState.Outstanding || it.state == NoteState.Unknown) }
                             ?.let {
                                 wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = now)))
                             }
@@ -105,10 +105,11 @@ internal class KeyProber(private val wallet: Wallet) {
                         KeyProbe.Spent(now)
                     }
                     RejectionKind.NoteUnknown -> {
-                        // A note the wallet holds that the mint doesn't know: out of the balance, kept until it knows it again.
+                        // A note the wallet holds that the mint doesn't know: out of the balance, kept until it knows it again. Mints on
+                        // one domain share their keys, so the note may be another mint's, which this answer says nothing about.
                         wallet.store
                             .note(noteId)
-                            ?.takeIf { it.state == NoteState.Outstanding }
+                            ?.takeIf { it.host == id.host && it.state == NoteState.Outstanding }
                             ?.let {
                                 wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Unknown, updatedAtMillis = now)))
                             }

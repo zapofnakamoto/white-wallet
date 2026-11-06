@@ -225,6 +225,14 @@ internal object Regtest {
         return Phone(store, wallet, "$name@$host")
     }
 
+    /** A second phone restored from [phone]'s recovery phrase on [host], without its address. */
+    suspend fun restored(phone: Phone, host: String = HOST): Phone {
+        val store = InMemoryWalletStore()
+        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
+        assertIs<RestoreResult.Restored>(wallet.restore(phone.wallet.recoveryPhrase().joinToString(" "), host, "Restored"))
+        return Phone(store, wallet, phone.address)
+    }
+
     class Phone(val store: InMemoryWalletStore, val wallet: Wallet, val address: String) {
         /** Pays the address [sats] for each amount and refreshes: one note each, the mint's fee off. */
         suspend fun fund(vararg sats: Long) {

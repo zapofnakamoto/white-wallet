@@ -113,6 +113,7 @@ class OnboardingTest {
                     registered.remove(name)
                     MockResponse(body = """{"status":"OK"}""")
                 }
+                path == "/w" -> error("Unknown note.")
                 else -> MockResponse(code = 404)
             }
         }

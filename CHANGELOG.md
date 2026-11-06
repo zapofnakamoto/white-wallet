@@ -27,6 +27,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Fixed
 
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.
+- Adding a mint finds what the account already holds there, as a restore does on its mint, and payments to addresses
+  found there keep arriving. A scan that fails says so, and adding the mint again goes on from there.
+- A lookup on one mint no longer marks a note of another mint on the same domain as unknown or spent.
 - A refused payment says why: an invoice of your own mint, one already used, or else the mint's own words. A bare invoice
   whose payment failed no longer offers "Try again", which a mint always refuses.
 - The developer key screen has a tab per address, so address notes on new keys can be scanned and renewed there. Its

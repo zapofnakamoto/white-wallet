@@ -1,0 +1,299 @@
+package whitewallet.core.wallet
+
+import fr.acinq.bitcoin.MnemonicCode
+import java.io.IOException
+import java.security.SecureRandom
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import okhttp3.Interceptor
+import okhttp3.Response
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.BeforeEach
+import whitewallet.core.model.KeyCounter
+import whitewallet.core.wallet.legacy.LegacyWallet
+import whitewallet.lnurlcash.Cp1
+import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.spendDomain
+import whitewallet.testkit.MockMint
+
+/**
+ * Adding a mint finds what the phrase already holds there, as a restore does on its mint. Every case runs against mock mints
+ * ([MockMintAddMintTest]) and the regtest stack ([RegtestAddMintTest]); each uses a fresh phrase, so notes left on a mint by earlier runs
+ * never count.
+ */
+abstract class AddMintTest {
+    protected abstract val home: String
+    protected abstract val other: String
+
+    /** Puts a note of [sats] on key [index] of [set] of account [account] of [words] on [host]; returns what the note is worth. */
+    protected abstract suspend fun credit(words: List<String>, host: String, set: KeySet, index: Long, sats: Long, account: Long = 0): Long
+
+    /** A client to the mints; [intercept], if given, sees every request. */
+    protected abstract fun client(intercept: Interceptor? = null): LnurlcashClient
+
+    @Test
+    fun `adding a mint finds the notes of every key chain there and sets the indexes past them`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val onHome = credit(words, home, KeySet.Wallet, 0, SATS)
+            val msat =
+                credit(words, other, KeySet.Wallet, 1, SATS) +
+                    credit(words, other, KeySet.Change, 0, SATS) +
+                    credit(words, other, KeySet.share(0), 0, SATS) +
+                    credit(words, other, KeySet.share(2), 1, SATS) +
+                    credit(words, other, KeySet.LegacyWallet, 0, SATS)
+            val phone = Fresh()
+            val id = assertIs<RestoreResult.Restored>(phone.restore(words)).accountId
+            assertEquals(onHome, phone.balance())
+
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+
+            assertEquals(onHome + msat, phone.balance())
+            assertEquals(5, phone.store.allNotes().count { it.host == other })
+            assertEquals(2, phone.store.indexOf(id, other, KeySet.Wallet), "never hands out a used key")
+            assertEquals(1, phone.store.indexOf(id, other, KeySet.Change))
+            assertEquals(2, phone.store.indexOf(id, other, KeySet.share(2)))
+            assertEquals(3, phone.shares(id))
+        }
+
+    @Test
+    fun `a mint with nothing of the phrase is added, and nothing is found`() =
+        runBlocking<Unit> {
+            val phone = Fresh()
+            val id = assertIs<RestoreResult.Restored>(phone.restore(phrase())).accountId
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertNotNull(phone.store.mint(other))
+            assertEquals(0, phone.balance())
+            assertEquals(0, phone.store.indexOf(id, other, KeySet.Wallet))
+            assertNull(phone.shares(id))
+        }
+
+    @Test
+    fun `new payments to an address found on the added mint arrive on a refresh`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val first = credit(words, other, KeySet.share(0), 0, SATS)
+            val phone = Fresh()
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+
+            val next = credit(words, other, KeySet.share(0), 1, SATS)
+            assertEquals(next, phone.wallet.refresh().receivedMsat)
+            assertEquals(first + next, phone.balance())
+        }
+
+    @Test
+    fun `only the active account is looked up, and the legacy keys stay the first account's`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            // Another chain than on the other mint: both mints are on localhost, one domain, so their chains are the same keys.
+            val onHome = credit(words, home, KeySet.Change, 0, SATS, account = 1)
+            credit(words, other, KeySet.Wallet, 0, SATS)
+            credit(words, other, KeySet.LegacyWallet, 0, SATS)
+            val found = credit(words, other, KeySet.Wallet, 0, SATS, account = 1)
+            val phone = Fresh()
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+            phone.store.setActiveAccount(phone.ids().getValue(1))
+
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(mapOf(0L to 0L, 1L to onHome + found), phone.balances())
+
+            // The first account's turn: added again while it is active.
+            phone.store.setActiveAccount(phone.ids().getValue(0))
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(2, phone.store.allNotes().count { it.host == other && it.accountId == phone.ids().getValue(0) })
+        }
+
+    @Test
+    fun `adding a mint never takes back shares handed out there`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            credit(words, other, KeySet.share(0), 0, SATS)
+            val phone = Fresh()
+            val id = assertIs<RestoreResult.Restored>(phone.restore(words)).accountId
+            // Shares 1 and 2 went to addresses nobody paid: they look unused, and must not be given out again.
+            phone.store.setKeyIndex(id, spendDomain(other), KeyCounter.Shares, 3)
+
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(3, phone.shares(id))
+        }
+
+    @Test
+    fun `a mint that stops answering before anything is found is not left behind, and adding it again finds the notes`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val msat = credit(words, other, KeySet.Wallet, 0, SATS)
+            var answering = true
+            val phone = Fresh(onLookup(other) { chain -> if (answering) chain.proceed(chain.request()) else throw IOException("dropped") })
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+
+            answering = false
+            val failed = assertIs<ConnectResult.Failed>(phone.wallet.addMint(other))
+            assertIs<OnboardResult.NetworkError>(failed.result)
+            assertNull(phone.store.mint(other))
+
+            answering = true
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(msat, phone.balance())
+        }
+
+    @Test
+    fun `a scan cut off half way keeps what it found, and adding the mint again finds the rest`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val msat = credit(words, other, KeySet.Wallet, 0, SATS)
+            val rest = credit(words, other, KeySet.Change, 0, SATS)
+            var lookups = 0
+            var limit = Int.MAX_VALUE
+            val phone =
+                Fresh(onLookup(other) { chain -> if (++lookups > limit) throw IOException("dropped") else chain.proceed(chain.request()) })
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+
+            limit = 2
+            assertIs<ConnectResult.Failed>(phone.wallet.addMint(other))
+            assertNotNull(phone.store.mint(other), "it holds a note now")
+            assertEquals(msat, phone.balance())
+
+            limit = Int.MAX_VALUE
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(msat + rest, phone.balance())
+        }
+
+    @Test
+    fun `a mint that refuses a lookup can't be added`() =
+        runBlocking<Unit> {
+            val phone = Fresh(onLookup(other) { chain -> Regtest.answer(chain, """{"status":"ERROR","reason":"not today"}""") })
+            assertIs<RestoreResult.Restored>(phone.restore(phrase()))
+            val failed = assertIs<ConnectResult.Failed>(phone.wallet.addMint(other))
+            assertIs<OnboardResult.MintInvalid>(failed.result)
+            assertNull(phone.store.mint(other))
+        }
+
+    @Test
+    fun `leaving the screen doesn't cut the scan off`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val msat = credit(words, other, KeySet.Change, 0, SATS)
+            var adding: Job? = null
+            val phone =
+                Fresh(
+                    onLookup(other) { chain ->
+                        adding?.cancel()
+                        chain.proceed(chain.request())
+                    }
+                )
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+
+            adding = launch(Dispatchers.Default) { phone.wallet.addMint(other) }
+            adding.join()
+            assertEquals(msat, phone.balance())
+        }
+
+    /** Answers every lookup on [host] with [answer], and lets everything else through. */
+    private fun onLookup(host: String, answer: (Interceptor.Chain) -> Response) = Interceptor { chain ->
+        val url = chain.request().url
+        if ("${url.host}:${url.port}" == host && url.queryParameter("p") != null) answer(chain) else chain.proceed(chain.request())
+    }
+
+    /** A phone with nothing on it yet; a restore stops after a few unused shares, as the tests use only the first. */
+    private inner class Fresh(intercept: Interceptor? = null) {
+        val store = InMemoryWalletStore()
+        val wallet =
+            Wallet(
+                store,
+                InMemorySeedStore(),
+                client(intercept),
+                policies = NotePolicies.InMemory(ManualStrategy.ID),
+                settings = WalletSettings(restoreStopAfterUnusedShares = 3),
+            )
+
+        suspend fun restore(words: List<String>) = wallet.restore(words.joinToString(" "), home, "Restored")
+
+        suspend fun balance(): Long = wallet.balanceMsat.first()
+
+        /** Each account's id, by its index in the wallet. */
+        suspend fun ids(): Map<Long, String> = store.accounts.first().associate { it.account.index to it.account.id }
+
+        /** What each account holds, by its index in the wallet. */
+        suspend fun balances(): Map<Long, Long> = store.accounts.first().associate { it.account.index to it.balanceMsat }
+
+        suspend fun shares(accountId: String): Long? = store.keyIndexOrNull(accountId, spendDomain(other), KeyCounter.Shares)
+    }
+
+    internal fun keys(words: List<String>, host: String, account: Long): AccountKeys = testKeys(words, host, account)
+
+    private fun phrase(): List<String> = MnemonicCode.toMnemonics(ByteArray(16).also(random::nextBytes))
+
+    private companion object {
+        val random = SecureRandom()
+        const val SATS = 1_000L
+    }
+}
+
+class MockMintAddMintTest : AddMintTest() {
+    private var homeMint: MockMint? = null
+    private var otherMint: MockMint? = null
+
+    override val home: String
+        get() = homeMint!!.host
+
+    override val other: String
+        get() = otherMint!!.host
+
+    @BeforeEach
+    fun start() {
+        assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
+        homeMint = MockMint.start()
+        otherMint = MockMint.start()
+    }
+
+    @AfterEach
+    fun stop() {
+        homeMint?.close()
+        otherMint?.close()
+    }
+
+    override suspend fun credit(words: List<String>, host: String, set: KeySet, index: Long, sats: Long, account: Long): Long {
+        val mint = if (host == home) homeMint!! else otherMint!!
+        mint.credit(Cp1.encode(keys(words, host, account).pubkey(set, index)), sats * 1000)
+        return sats * 1000
+    }
+
+    override fun client(intercept: Interceptor?): LnurlcashClient =
+        if (intercept == null) LnurlcashClient()
+        else LnurlcashClient(http = LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor(intercept).build())
+}
+
+/** [AddMintTest] against the real reference mints: notes are minted to the chosen keys by paying the mint's invoices for them. */
+class RegtestAddMintTest : AddMintTest() {
+    @BeforeEach fun requireStack() = Regtest.requireStack()
+
+    override val home = Regtest.HOST
+    override val other = Regtest.HOST2
+
+    override suspend fun credit(words: List<String>, host: String, set: KeySet, index: Long, sats: Long, account: Long): Long {
+        val client = client()
+        val pay = client.servicePayRequest(host)
+        val key = keys(words, host, account).pubkey(set, index)
+        val asker = Wallet(InMemoryWalletStore(), InMemorySeedStore(), client)
+        Regtest.pay(assertIs<MintInvoice.Ok>(MintInvoice.fetch(asker, pay, sats * 1000, key)).invoice, sats)
+        repeat(30) {
+            val note = runCatching { client.lookup(pay.withdrawUrl, key) }.getOrNull()
+            if (note != null) return note.maxWithdrawableMsat
+            delay(1_000)
+        }
+        error("no note on $set/$index after paying its invoice")
+    }
+
+    override fun client(intercept: Interceptor?): LnurlcashClient = intercept?.let(Regtest::client) ?: LnurlcashClient()
+}

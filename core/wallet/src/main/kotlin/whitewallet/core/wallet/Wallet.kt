@@ -7,6 +7,7 @@ import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -683,8 +684,25 @@ class Wallet(
         if (updated.isNotEmpty()) store.upsertNotes(updated)
     }
 
-    /** Connects to a mint the user names (pinning its key), so it can be trusted before any note from it arrives. */
-    suspend fun addMint(host: String): ConnectResult = connectMint(host)
+    /**
+     * Connects to a mint the user names (pinning its key), so it can be trusted before any note from it arrives, and finds what the active
+     * account already holds there, as a restore does. A scan that stops is [ConnectResult.Failed]: adding the mint again goes on from what
+     * it found, and a new mint where it found nothing is forgotten, so that it can be added again. Runs to its end if the screen that asked
+     * is left: a mint in the list with its scan cut off would look empty.
+     */
+    suspend fun addMint(host: String): ConnectResult =
+        withContext(NonCancellable) {
+            lock.withLock {
+                val known = Onboarding.normalizeHost(host)?.let { store.mint(it) } != null
+                val connected = onboarding.connectMint(host)
+                val id = store.currentAccountId()
+                if (connected !is ConnectResult.Connected || id == null) return@withLock connected
+                val h = connected.mint.host
+                val failed = restorer.scanAddedMint(id, h) ?: return@withLock connected
+                if (!known && store.notes(id).first().none { it.host == h }) store.removeMint(h)
+                ConnectResult.Failed(failed)
+            }
+        }
 
     /** Whether [mint] (this host with this key) is trusted. */
     internal suspend fun isTrusted(mint: MintKey): Boolean {
@@ -885,8 +903,8 @@ class Wallet(
                 if (id == active) result = scanned
             }
             // Addresses on other mints (same recovery phrase, that mint's own keys) are paid there, and a restored account's on its home
-            // mint before the phone knows their names.
-            val hosts = store.addresses(id).first().map { it.host } + listOfNotNull(store.account(id)?.host)
+            // mint, or a mint it added, before the phone knows their names.
+            val hosts = store.addresses(id).first().map { it.host } + listOfNotNull(store.account(id)?.host) + hostsPaidAt(id)
             for (host in hosts.distinct() - setOfNotNull(profile?.host)) {
                 val scanned = scanner.scanAll(id, host)
                 if (id == active) result = RefreshResult(result.newNotes + scanned.newNotes, result.receivedMsat + scanned.receivedMsat)
@@ -896,6 +914,11 @@ class Wallet(
         }
         return result
     }
+
+    /** The mints where [accountId] has handed out shares or holds a note paid to an address, whether or not it knows the address. */
+    private suspend fun hostsPaidAt(id: String): List<String> =
+        store.notes(id).first().filter { it.isAddressNote }.map { it.host } +
+            store.mints.first().map { it.host }.filter { (store.keyIndexOrNull(id, spendDomain(it), KeyCounter.Shares) ?: 0) > 0 }
 
     /**
      * An invoice for [amountMsat] that mints a note to the active account on its home mint once paid (see [InvoiceReceiver]); the way to

@@ -140,6 +140,36 @@ class RegtestMintTest {
             assertEquals(true, assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(1000, second = true))).trusted)
         }
 
+    @Test
+    fun `a restored phone finds what the phrase has on a mint it adds, spends it, and is paid there from then on`() =
+        runBlocking<Unit> {
+            // Phone 1 has an address on the second mint, paid there, and moved a note over.
+            val phone1 = Regtest.phone()
+            val name = Regtest.name()
+            assertIs<OnboardResult.Ready>(phone1.wallet.addAddress(name, limit = 2, host = HOST2))
+            Regtest.untilRegistered(name, HOST2)
+            Regtest.pay("$name@$HOST2", 3000)
+            phone1.fund(4000)
+            val ids = phone1.notes().map { it.id }
+            assertIs<MintMoveQuote.Ready>(phone1.wallet.quoteMintMove(ids, HOST2))
+            assertIs<MintMoveResult.Moved>(phone1.wallet.moveToMint(ids, HOST2))
+            val held = phone1.notes(HOST2)
+            assertEquals(setOf(0, 2), held.map { it.purpose }.toSet())
+
+            val phone2 = Regtest.restored(phone1)
+            assertEquals(0, phone2.balance(), "the restore looked at the home mint only")
+            assertIs<ConnectResult.Connected>(phone2.wallet.addMint(HOST2))
+            assertEquals(held.map { it.id }.toSet(), phone2.notes(HOST2).map { it.id }.toSet())
+            assertEquals(phone1.balance(), phone2.balance())
+
+            // The notes are the phone's own, and the new key is past every key phone 1 used there.
+            assertIs<RotateResult.Rotated>(phone2.wallet.rotateNote(held.first().id))
+
+            // The phone doesn't know the name, and the payment arrives all the same.
+            Regtest.pay("$name@$HOST2", 2000)
+            phone2.refreshUntil { phone2.notes(HOST2).size == held.size + 1 }
+        }
+
     /** A client to which, while [changed], every mint presents [OTHER_KEY] as its signing key. */
     private fun changedKey(changed: () -> Boolean) = Regtest.client { chain ->
         val response = chain.proceed(chain.request())

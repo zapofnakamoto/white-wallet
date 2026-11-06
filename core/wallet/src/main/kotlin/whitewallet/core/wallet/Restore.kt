@@ -92,6 +92,20 @@ internal class Restore(private val wallet: Wallet) {
         return RestoreResult.Restored(accountId, notes.size, notes.sumOf { it.amountMsat })
     }
 
+    /**
+     * Finds what [accountId], which exists already, holds on the mint at [host]: what a restore does on its mint, here for one the account
+     * adds later. Null once every key set was looked through; otherwise why the scan stopped. What it found until then stays.
+     */
+    suspend fun scanAddedMint(accountId: String, host: String): OnboardResult? {
+        val older = if (wallet.legacy.ownsKeys(accountId)) wallet.legacy.restoreSets else emptyList()
+        return when (val found = scan(accountId, host, older)) {
+            is Scan.Done -> null
+            is Scan.Failed ->
+                if (found.failure.refused) OnboardResult.MintInvalid(found.failure.reason)
+                else OnboardResult.NetworkError(found.failure.reason)
+        }
+    }
+
     private data class Failure(val reason: String, val refused: Boolean)
 
     private sealed interface Scan {
@@ -130,7 +144,10 @@ internal class Restore(private val wallet: Wallet) {
             } else unused++
             share++
         }
-        if (last >= 0) wallet.store.setKeyIndex(accountId, spendDomain(h), KeyCounter.Shares, last + 1)
+        // Only forward: an existing account may have handed out shares that were never paid.
+        if ((wallet.store.keyIndexOrNull(accountId, spendDomain(h), KeyCounter.Shares) ?: 0) <= last) {
+            wallet.store.setKeyIndex(accountId, spendDomain(h), KeyCounter.Shares, last + 1)
+        }
         return Scan.Done(used || last >= 0)
     }
 }
