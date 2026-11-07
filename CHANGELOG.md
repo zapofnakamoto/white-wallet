@@ -24,6 +24,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   own; those made before are still found by a restore. The watch-only key moved from the mint's page to each
   address: a key only ever shows what was paid to its own address.
 
+### Changed
+
+- Each wallet has its own mints: the signing key it pinned there and whether you trust a mint are the wallet's, and
+  another wallet on the phone never sees or changes them. A mint's new key is accepted per wallet. An update gives
+  every wallet the mints and trust choices the phone had. Database version 6.
+
 ### Fixed
 
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.

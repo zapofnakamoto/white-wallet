@@ -113,7 +113,7 @@ class ReceivedNotesTest {
         runBlocking<Unit> {
             account()
             val mintKey = PrivateKey(ByteArray(32) { 3 })
-            store.saveMint(Mint(host, withdrawUrl, mintKey.publicKey().toHex(), 1_000, 1_000_000_000, null, null))
+            store.saveMint(Mint("acc", host, withdrawUrl, mintKey.publicKey().toHex(), 1_000, 1_000_000_000, null, null))
             val note = LockedNote.until(1_700_000_000)
             val spend = note.spend(spendDomain(host))
             fun certifiedMsat(certificate: String?): Long? = runBlocking {

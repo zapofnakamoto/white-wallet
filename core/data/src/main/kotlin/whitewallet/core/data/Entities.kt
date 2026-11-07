@@ -116,10 +116,11 @@ internal data class NoteEntity(
     }
 }
 
-/** Shared by all accounts: what a host is and the key pinned for it. */
-@Entity(tableName = "mints")
+/** A wallet's mint, shared by its accounts: what a host is and the key the wallet pinned for it. */
+@Entity(tableName = "mints", primaryKeys = ["walletId", "host"])
 internal data class MintEntity(
-    @PrimaryKey val host: String,
+    val walletId: String,
+    val host: String,
     val withdrawUrl: String,
     val mintPubkey: String?,
     val minSendableMsat: Long,
@@ -127,10 +128,11 @@ internal data class MintEntity(
     val feeBaseMsat: Long?,
     val feePpm: Long?,
 ) {
-    fun toModel() = Mint(host, withdrawUrl, mintPubkey, minSendableMsat, maxSendableMsat, feeBaseMsat, feePpm)
+    fun toModel() = Mint(walletId, host, withdrawUrl, mintPubkey, minSendableMsat, maxSendableMsat, feeBaseMsat, feePpm)
 
     companion object {
-        fun from(s: Mint) = MintEntity(s.host, s.withdrawUrl, s.mintPubkey, s.minSendableMsat, s.maxSendableMsat, s.feeBaseMsat, s.feePpm)
+        fun from(s: Mint) =
+            MintEntity(s.walletId, s.host, s.withdrawUrl, s.mintPubkey, s.minSendableMsat, s.maxSendableMsat, s.feeBaseMsat, s.feePpm)
     }
 }
 

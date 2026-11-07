@@ -53,7 +53,7 @@ class WalletMockMintTest {
             MockMint.start().use { mint ->
                 val store = InMemoryWalletStore()
                 wallet(mint, store)
-                val known = assertNotNull(store.mintMap[mint.host])
+                val known = assertNotNull(store.mint(mint.host))
                 assertEquals("034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa", known.mintPubkey)
             }
         }
@@ -127,7 +127,7 @@ class WalletMockMintTest {
                 val wallet = wallet(mint, store)
                 val bearer = Spend.Bearer(ByteVector32(Hex.decode("44".repeat(32))))
                 mint.credit(bearer.h.toHex(), 3_000)
-                val known = assertNotNull(store.mintMap[mint.host])
+                val known = assertNotNull(store.mint(mint.host))
                 val q = testKeys(words, mint.host).pubkey(KeySet.Wallet, 0)
                 store.putJournal(
                     JournalEntry(

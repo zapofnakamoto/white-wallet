@@ -104,22 +104,25 @@ internal class NoteSender(private val wallet: Wallet) {
     private val unknownNotes = UnknownNotes(wallet)
 
     /** The most a single note can be made worth from one mint's notes. */
-    suspend fun availableMsat(): Long =
-        candidates(wallet.activeId()).maxOfOrNull { (host, notes) -> PayPlanner.max(notes, baseFee(host)) } ?: 0
+    suspend fun availableMsat(): Long {
+        val accountId = wallet.activeId()
+        return candidates(accountId).maxOfOrNull { (host, notes) -> PayPlanner.max(notes, baseFee(accountId, host)) } ?: 0
+    }
 
     suspend fun quote(amountMsat: Long): PayQuote {
         if (amountMsat <= 0) return PayQuote.Invalid(PayProblem.BelowMinimum, 1)
-        val candidates = candidates(wallet.activeId())
+        val accountId = wallet.activeId()
+        val candidates = candidates(accountId)
         candidates
-            .firstNotNullOfOrNull { (host, notes) -> PayPlanner.plan(notes, amountMsat, baseFee(host)) }
+            .firstNotNullOfOrNull { (host, notes) -> PayPlanner.plan(notes, amountMsat, baseFee(accountId, host)) }
             ?.let {
                 return PayQuote.Ok(amountMsat, it.feeMsat.coerceAtLeast(0))
             }
         val (host, notes) =
-            candidates.maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(h)) } ?: return PayQuote.Invalid(PayProblem.NoFunds)
-        val all = PayPlanner.max(notes, baseFee(host))
+            candidates.maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(accountId, h)) } ?: return PayQuote.Invalid(PayProblem.NoFunds)
+        val all = PayPlanner.max(notes, baseFee(accountId, host))
         return if (amountMsat > all) PayQuote.Invalid(PayProblem.TooMuch, all)
-        else PayQuote.Unreachable(PayPlanner.maxWithChange(notes, baseFee(host)), all)
+        else PayQuote.Unreachable(PayPlanner.maxWithChange(notes, baseFee(accountId, host)), all)
     }
 
     suspend fun create(amountMsat: Long): CreateNoteResult {
@@ -131,7 +134,7 @@ internal class NoteSender(private val wallet: Wallet) {
         val accountId = wallet.activeId()
         val (host, plan) =
             candidates(accountId).firstNotNullOfOrNull { (host, notes) ->
-                PayPlanner.plan(notes, amountMsat, baseFee(host))?.let { host to it }
+                PayPlanner.plan(notes, amountMsat, baseFee(accountId, host))?.let { host to it }
             } ?: return CreateNoteResult.Failed(PayProblem.TooMuch)
         val note =
             when (val made = payer.exact(accountId, host, plan, amountMsat, OutputSpec.Own(accountId, KeySet.Wallet))) {
@@ -283,7 +286,7 @@ internal class NoteSender(private val wallet: Wallet) {
 
     /** Looks [note] up by `p`, never with its spend: burned means spent (recorded as such); there confirms it. */
     private suspend fun check(note: Note): Check {
-        val mint = wallet.store.mint(note.host) ?: return Check.Unreadable
+        val mint = wallet.mintOf(note.accountId, note.host) ?: return Check.Unreadable
         try {
             wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id))
             return confirmed(note)
@@ -329,7 +332,7 @@ internal class NoteSender(private val wallet: Wallet) {
     /** The link the user hands out: the note's spend, on purpose. */
     @OptIn(RevealsNoteSecret::class)
     private suspend fun link(note: Note): String? {
-        val mint = wallet.store.mint(note.host) ?: return null
+        val mint = wallet.mintOf(note.accountId, note.host) ?: return null
         if (note.index == null) return null
         val spend = wallet.keys(note.accountId, note.host).spend(note, spendDomain(note.host))
         return NoteLink(mint.withdrawUrl, spend, note.amountMsat, note.certificate).encode()
@@ -350,7 +353,7 @@ internal class NoteSender(private val wallet: Wallet) {
             .sortedBy { it.first != primary }
     }
 
-    private suspend fun baseFee(host: String): Long = wallet.store.mint(host)?.feeBaseMsat ?: 0
+    private suspend fun baseFee(accountId: String, host: String): Long = wallet.mintOf(accountId, host)?.feeBaseMsat ?: 0
 
     companion object {
         fun activityId(noteId: String) = "$SENT_NOTE_PREFIX$noteId"

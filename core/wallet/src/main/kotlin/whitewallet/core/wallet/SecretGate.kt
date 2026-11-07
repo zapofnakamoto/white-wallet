@@ -28,7 +28,7 @@ internal class SecretGate(private val wallet: Wallet) {
     suspend fun release(entry: JournalEntry, info: NoteInfo, type: MutationType, callback: String = info.callback): Released {
         val stored = wallet.store.journal(setOf(JournalStatus.Prepared)).firstOrNull { it.id == entry.id }
         if (stored == null || stored.requestUrl != entry.requestUrl) return Released.NotSent("not journaled as prepared")
-        val pinned = wallet.store.mint(entry.host)?.mintPubkey
+        val pinned = wallet.mintOf(entry.accountId, entry.host)?.mintPubkey
         if (pinned != null && pinned != info.mintPubkey.toHex()) return Released.NotSent("the signing key of ${entry.host} changed")
         if (!sameOrigin(callback, entry.withdrawUrl)) return Released.NotSent("the callback isn't on ${entry.host}")
         if (!entry.requestUrl.startsWith(callback.substringBefore('?'))) return Released.NotSent("the request isn't for the callback")

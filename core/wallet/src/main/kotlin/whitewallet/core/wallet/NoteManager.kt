@@ -152,7 +152,7 @@ internal class NoteManager(private val wallet: Wallet) {
 
     suspend fun splitLimits(id: String): SplitLimits? {
         val note = select(wallet.activeId(), listOf(id)).let { (it as? Selected.Ok)?.notes?.single() } ?: return null
-        val fee = baseFee(note.host)
+        val fee = baseFee(note.accountId, note.host)
         return SplitLimits(1, note.amountMsat - fee - 1, fee).takeIf { it.maxMsat >= it.minMsat }
     }
 
@@ -262,7 +262,7 @@ internal class NoteManager(private val wallet: Wallet) {
         }
         if (output == null || invoice == null) return MintMoveResult.Failed(NoteProblem.Refused)
 
-        val target = wallet.store.mint(quote.toHost) ?: return MintMoveResult.Failed(NoteProblem.MintInvalid)
+        val target = wallet.mintOf(accountId, quote.toHost) ?: return MintMoveResult.Failed(NoteProblem.MintInvalid)
         val mintId = UUID.randomUUID().toString()
         val expected = quote.expectedMsat
         val melted =
@@ -344,8 +344,8 @@ internal class NoteManager(private val wallet: Wallet) {
         val host = Onboarding.normalizeHost(toHost) ?: return PreparedMove.Problem(NoteProblem.MintInvalid)
         if (host == fromHost) return PreparedMove.Problem(NoteProblem.SameMint)
         // Notes claimed from a mint before its record was kept: paying out of it needs the record.
-        if (wallet.store.mint(fromHost) == null) {
-            when (val source = onboarding.connectMint(fromHost)) {
+        if (wallet.mintOf(accountId, fromHost) == null) {
+            when (val source = onboarding.connectMint(wallet.walletOf(accountId), fromHost)) {
                 is ConnectResult.Connected -> Unit
                 is ConnectResult.Failed ->
                     return PreparedMove.Problem(
@@ -362,14 +362,14 @@ internal class NoteManager(private val wallet: Wallet) {
                 return PreparedMove.Problem(NoteProblem.Unreachable)
             }
         // Pins the target's signing key and stores it as one of the account's mints.
-        when (val connected = onboarding.connectMint(host)) {
+        when (val connected = onboarding.connectMint(wallet.walletOf(accountId), host)) {
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
                 return PreparedMove.Problem(
                     if (connected.result is OnboardResult.NetworkError) NoteProblem.Unreachable else NoteProblem.MintInvalid
                 )
         }
-        val amount = PayPlanner.max(notes, baseFee(fromHost))
+        val amount = PayPlanner.max(notes, baseFee(accountId, fromHost))
         if (amount < pay.pay.minSendable) return PreparedMove.Problem(NoteProblem.BelowMinimum, pay.pay.minSendable)
         if (amount > pay.pay.maxSendable) return PreparedMove.Problem(NoteProblem.AboveMaximum, pay.pay.maxSendable)
         val expected = pay.fee?.noteValue(amount) ?: amount
@@ -397,7 +397,7 @@ internal class NoteManager(private val wallet: Wallet) {
         return Selected.Ok(notes.sortedByDescending { it.amountMsat })
     }
 
-    private suspend fun baseFee(host: String): Long = wallet.store.mint(host)?.feeBaseMsat ?: 0
+    private suspend fun baseFee(accountId: String, host: String): Long = wallet.mintOf(accountId, host)?.feeBaseMsat ?: 0
 
     private fun MutationResult.toAction(): NoteActionResult =
         when (this) {

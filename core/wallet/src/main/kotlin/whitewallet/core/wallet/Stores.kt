@@ -22,7 +22,7 @@ import whitewallet.lnurlcash.client.NetworkConditions
 
 /**
  * Persistent wallet state for every account. Implemented by core:data on Android and in memory for tests. Mints (a host's withdraw URL and
- * pinned key) are shared; everything else is per account.
+ * pinned key) are per wallet; everything else is per account.
  */
 interface WalletStore {
     /** Oldest first: an account's place here is its mark's colour, so the order must stay stable. */
@@ -39,8 +39,8 @@ interface WalletStore {
 
     /**
      * Saves the account, and its wallet ([Account.walletId], named after the account) if the wallet is new. Removing the account removes
-     * all of its notes, received notes, addresses, counters, key checks, journal entries and history, and its wallet once no account is
-     * left in it.
+     * all of its notes, received notes, addresses, counters, key checks, journal entries and history, and its wallet with the wallet's
+     * mints once no account is left in it.
      */
     suspend fun deleteAccount(id: String)
 
@@ -61,15 +61,19 @@ interface WalletStore {
 
     suspend fun deleteAddress(accountId: String, username: String, host: String)
 
-    suspend fun mint(host: String): Mint?
+    suspend fun mint(walletId: String, host: String): Mint?
 
+    /** Saves [mint] for its wallet ([Mint.walletId]). */
     suspend fun saveMint(mint: Mint)
 
-    /** Forgets the mint at [host] and its pinned key (see [Wallet.removeMint]); notes and history stay. */
-    suspend fun removeMint(host: String)
+    /** Forgets the wallet's mint at [host] and its pinned key (see [Wallet.removeMint]); notes and history stay. */
+    suspend fun removeMint(walletId: String, host: String)
 
-    /** Every mint the wallet has connected to (all accounts share them), by host. */
-    val mints: Flow<List<Mint>>
+    /** Forgets every mint of the wallet: its recovery phrase is gone from the phone. */
+    suspend fun removeMints(walletId: String)
+
+    /** Every mint the wallet has connected to (all its accounts share them), by host. */
+    fun mints(walletId: String): Flow<List<Mint>>
 
     /** A note by `Q`, whichever account holds it. */
     suspend fun note(id: String): Note?

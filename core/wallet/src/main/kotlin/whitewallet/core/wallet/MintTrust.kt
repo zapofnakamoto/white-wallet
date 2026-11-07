@@ -2,42 +2,49 @@ package whitewallet.core.wallet
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 /** A mint as the user knows it: its host and the signing key it presents (lowercase hex, compressed). */
 data class MintKey(val host: String, val pubkey: String)
 
 /**
- * The user's trust choices, on this device and for all accounts. Trust always names a key: if a mint's key changes, it is no longer trusted
- * (and the wallet stops operating with it anyway, see [Pinning]). [untrusted] records mints the user untrusted, although they are trusted
- * by default (the home mint, the brand's).
+ * The user's trust choices, each wallet's own: trusting a mint in one wallet says nothing about another. Trust always names a key: if a
+ * mint's key changes, it is no longer trusted (and the wallet stops operating with it anyway, see [Pinning]). [untrusted] records mints the
+ * user untrusted, although they are trusted by default (the home mint, the brand's).
  */
 interface MintTrustStore {
-    val trusted: Flow<Set<MintKey>>
-    val untrusted: Flow<Set<MintKey>>
+    fun trusted(walletId: String): Flow<Set<MintKey>>
 
-    suspend fun setTrusted(mint: MintKey, trusted: Boolean)
+    fun untrusted(walletId: String): Flow<Set<MintKey>>
 
-    /** Drops the user's choice for [mint] either way, as if it was never made. */
-    suspend fun forget(mint: MintKey)
+    suspend fun setTrusted(walletId: String, mint: MintKey, trusted: Boolean)
+
+    /** Drops the wallet's choice for [mint] either way, as if it was never made. */
+    suspend fun forget(walletId: String, mint: MintKey)
+
+    /** Drops every choice of the wallet: its recovery phrase is gone from the phone. */
+    suspend fun forgetWallet(walletId: String)
 
     class InMemory : MintTrustStore {
-        override suspend fun forget(mint: MintKey) {
-            trusted.update { it - mint }
-            untrusted.update { it - mint }
-        }
+        /** Each wallet's trusted and untrusted mints. */
+        private val choices = MutableStateFlow(emptyMap<String, Pair<Set<MintKey>, Set<MintKey>>>())
 
-        override val trusted = MutableStateFlow(emptySet<MintKey>())
-        override val untrusted = MutableStateFlow(emptySet<MintKey>())
+        override fun trusted(walletId: String): Flow<Set<MintKey>> = choices.map { it[walletId]?.first.orEmpty() }
 
-        override suspend fun setTrusted(mint: MintKey, trusted: Boolean) {
-            if (trusted) {
-                this.trusted.update { it + mint }
-                untrusted.update { it - mint }
-            } else {
-                this.trusted.update { it - mint }
-                untrusted.update { it + mint }
+        override fun untrusted(walletId: String): Flow<Set<MintKey>> = choices.map { it[walletId]?.second.orEmpty() }
+
+        override suspend fun setTrusted(walletId: String, mint: MintKey, trusted: Boolean) =
+            change(walletId) { (yes, no) ->
+                if (trusted) (yes + mint) to (no - mint) else (yes - mint) to (no + mint)
             }
+
+        override suspend fun forget(walletId: String, mint: MintKey) = change(walletId) { (yes, no) -> (yes - mint) to (no - mint) }
+
+        override suspend fun forgetWallet(walletId: String) = choices.update { it - walletId }
+
+        private fun change(walletId: String, how: (Pair<Set<MintKey>, Set<MintKey>>) -> Pair<Set<MintKey>, Set<MintKey>>) = choices.update {
+            it + (walletId to how(it[walletId] ?: (emptySet<MintKey>() to emptySet())))
         }
     }
 }
@@ -51,7 +58,7 @@ enum class TrustDefault {
     Brand,
 }
 
-/** One mint as the device-wide Mints page shows it: nothing about any one account's money. */
+/** One mint of the active wallet, as the Mints page shows it: nothing about any one account's money. */
 data class MintInfo(
     val host: String,
     /** The pinned signing key; null if the wallet never got one (then it can't be trusted). */
@@ -84,7 +91,7 @@ data class AccountMint(
 sealed interface RemoveMintResult {
     data object Removed : RemoveMintResult
 
-    /** Still in use, by at least one account: nothing was removed. */
+    /** Still in use, by at least one account of the wallet: nothing was removed. */
     data class InUse(val reason: MintUse) : RemoveMintResult
 }
 

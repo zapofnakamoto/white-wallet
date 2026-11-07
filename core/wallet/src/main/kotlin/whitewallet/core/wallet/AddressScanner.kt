@@ -32,7 +32,7 @@ internal class AddressScanner(private val wallet: Wallet) {
 
     suspend fun scan(accountId: String, host: String, set: KeySet): RefreshResult {
         require(set.isAddress)
-        val mint = wallet.store.mint(host) ?: return RefreshResult(0, 0)
+        val mint = wallet.mintOf(accountId, host) ?: return RefreshResult(0, 0)
         val start = wallet.store.indexOf(accountId, host, set)
         var index = start
         var gap = 0

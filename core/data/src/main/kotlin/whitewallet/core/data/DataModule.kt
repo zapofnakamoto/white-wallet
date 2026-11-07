@@ -2,7 +2,9 @@ package whitewallet.core.data
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import dagger.Module
 import dagger.Provides
@@ -10,6 +12,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.first
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
@@ -19,7 +22,6 @@ import whitewallet.core.wallet.SeedStore
 import whitewallet.core.wallet.WalletStore
 
 private val Context.secretsDataStore by preferencesDataStore(name = "secrets")
-private val Context.settingsDataStore by preferencesDataStore(name = "settings", produceMigrations = { DataStorePreferences.MIGRATIONS })
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -49,11 +51,16 @@ object DataModule {
 
     @Provides
     @Singleton
-    internal fun preferences(@ApplicationContext context: Context, defaults: AppDefaults): DataStorePreferences {
+    internal fun preferences(@ApplicationContext context: Context, defaults: AppDefaults, db: WalletDatabase): DataStorePreferences {
         // The app's own build type (a library's BuildConfig.DEBUG would not tell): debug builds start in developer mode.
         val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+        // Only this provider opens the file, once (@Singleton); its migrations read the wallets from the database.
+        val settings =
+            PreferenceDataStoreFactory.create(migrations = DataStorePreferences.migrations { db.dao().wallets().first().map { it.id } }) {
+                context.preferencesDataStoreFile("settings")
+            }
         return DataStorePreferences(
-            context.settingsDataStore,
+            settings,
             developerModeByDefault = debuggable,
             appLockByDefault = defaults.appLock.onByDefault,
         )

@@ -178,7 +178,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     private suspend fun follow(accountId: String, host: String, strategy: NoteStrategy, start: PolicyRun): PolicyRun {
         var run = start
         val skipped = mutableSetOf<String>()
-        val fee = wallet.store.mint(host)?.feeBaseMsat ?: 0
+        val fee = wallet.mintOf(accountId, host)?.feeBaseMsat ?: 0
         repeat(wallet.settings.noteMaintenanceMaxStepsPerMintPerRun) {
             val notes = outstanding(accountId).filter { it.host == host && it.id !in skipped }.associateBy { it.id }
             val steps = strategy.plan(MintNotes(host, notes.values.map { it.forStrategy() }, fee))

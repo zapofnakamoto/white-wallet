@@ -82,7 +82,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     return waiting(note)
                 }
         if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
-        val pinned = wallet.store.mint(note.host)?.mintPubkey
+        val pinned = wallet.mintOf(note.accountId, note.host)?.mintPubkey
         if (pinned != null && pinned != answer.mintPubkey.toHex())
             return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, refusedSinceMillis = null)))
         val result =
@@ -100,7 +100,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     certified = out.certificate != null || certified,
                 )
                 update(note.copy(state = ReceivedState.Claimed, k1 = null, amountMsat = amount, journalId = result.journalId))
-                if (wallet.store.mint(note.host) == null) onboarding.connectMint(note.host)
+                if (wallet.mintOf(note.accountId, note.host) == null) onboarding.connectMint(wallet.walletOf(note.accountId), note.host)
                 ClaimResult.Claimed(amount, out.certificate != null)
             }
             // Either the rotate landed or the note is back where it was once reconciled; then it is tried again.

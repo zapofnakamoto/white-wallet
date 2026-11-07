@@ -88,13 +88,18 @@ internal interface WalletDao {
 
     @Upsert suspend fun saveProfile(profile: ProfileEntity)
 
-    @Query("SELECT * FROM mints WHERE host = :host") suspend fun mint(host: String): MintEntity?
+    @Query("SELECT * FROM mints WHERE walletId = :walletId AND host = :host") suspend fun mint(walletId: String, host: String): MintEntity?
 
-    @Query("SELECT * FROM mints ORDER BY host") fun mints(): Flow<List<MintEntity>>
+    @Query("SELECT * FROM mints WHERE walletId = :walletId ORDER BY host") fun mints(walletId: String): Flow<List<MintEntity>>
 
     @Upsert suspend fun saveMint(mint: MintEntity)
 
-    @Query("DELETE FROM mints WHERE host = :host") suspend fun removeMint(host: String)
+    @Query("DELETE FROM mints WHERE walletId = :walletId AND host = :host") suspend fun removeMint(walletId: String, host: String)
+
+    @Query("DELETE FROM mints WHERE walletId = :walletId") suspend fun removeMints(walletId: String)
+
+    @Query("DELETE FROM mints WHERE walletId = :walletId AND NOT EXISTS (SELECT 1 FROM accounts WHERE walletId = :walletId)")
+    suspend fun deleteMintsIfNoAccount(walletId: String)
 
     @Query("SELECT next FROM address_scan WHERE accountId = :accountId AND host = :host")
     suspend fun addressScanFrom(accountId: String, host: String): Long?
@@ -180,7 +185,7 @@ internal interface WalletDao {
             KeyCounterEntity::class,
             ShareScanEntity::class,
         ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 internal abstract class WalletDatabase : RoomDatabase() {
@@ -188,7 +193,7 @@ internal abstract class WalletDatabase : RoomDatabase() {
 
     companion object {
         /** Every schema change from v0.3.0 (version 2) on; installed wallets keep their data. Schemas: core/data/schemas. */
-        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4, Migration4To5)
+        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4, Migration4To5, Migration5To6)
     }
 }
 
@@ -258,5 +263,22 @@ internal object Migration4To5 : Migration(4, 5) {
                 "`next` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `host`, `share`))"
         )
         // Journal outputs of four fields are read as legacy keys; nothing to rewrite.
+    }
+}
+
+/** Each wallet has its own mints, with the key it pinned: every mint so far becomes each wallet's, as all of them shared it. */
+internal object Migration5To6 : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `mints_new` (`walletId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, " +
+                "`mintPubkey` TEXT, `minSendableMsat` INTEGER NOT NULL, `maxSendableMsat` INTEGER NOT NULL, `feeBaseMsat` INTEGER, " +
+                "`feePpm` INTEGER, PRIMARY KEY(`walletId`, `host`))"
+        )
+        db.execSQL(
+            "INSERT INTO mints_new SELECT wallets.id, host, withdrawUrl, mintPubkey, minSendableMsat, maxSendableMsat, feeBaseMsat, " +
+                "feePpm FROM mints, wallets"
+        )
+        db.execSQL("DROP TABLE mints")
+        db.execSQL("ALTER TABLE mints_new RENAME TO mints")
     }
 }

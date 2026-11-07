@@ -34,7 +34,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         gap: Int = wallet.settings.scanStopAfterUnusedKeys,
     ): DiscoveryResult {
         val current = wallet.store.indexOf(accountId, host, set)
-        val mint = wallet.store.mint(host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
+        val mint = wallet.mintOf(accountId, host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
         var lastUsed = highestKnownUsed(accountId, host, set)
         var index = lastUsed + 1
         var unused = 0

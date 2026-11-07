@@ -173,7 +173,7 @@ internal class Payer(private val wallet: Wallet) {
         val payeeHost = Lnurl.host(url)?.lowercase()
         val holdsNotes = payeeHost != null && outstanding(accountId).any { it.host == payeeHost }
         val legacy = LegacyTransfer.from(pay)?.takeIf { holdsNotes }
-        val transfer = legacy ?: InternalTransfer.ToCallback.takeIf { holdsNotes && sharesMint(pay, payeeHost!!) }
+        val transfer = legacy ?: InternalTransfer.ToCallback.takeIf { holdsNotes && sharesMint(accountId, pay, payeeHost!!) }
         // One of the account's own addresses, as recorded, or as a legacy mint publishes its branch.
         val own = wallet.store.addresses(accountId).first().any { Lnurl.lightningAddressUrl(it.address) == url }
         if (own || legacy != null && payeeHost != null && wallet.legacy.paysOwnBranch(legacy, accountId, payeeHost)) {
@@ -212,11 +212,11 @@ internal class Payer(private val wallet: Wallet) {
         if (choice != null) return PayQuote.Ok(amountMsat, choice.second.feeMsat.coerceAtLeast(0))
         // No plan anywhere: too much for every mint, or an amount the notes can't make exactly.
         val (host, notes) =
-            candidates(accountId, preview).maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(h)) }
+            candidates(accountId, preview).maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(accountId, h)) }
                 ?: return PayQuote.Invalid(PayProblem.NoFunds)
-        val all = PayPlanner.max(notes, baseFee(host))
+        val all = PayPlanner.max(notes, baseFee(accountId, host))
         return if (amountMsat > all) PayQuote.Invalid(PayProblem.TooMuch, all)
-        else PayQuote.Unreachable(PayPlanner.maxWithChange(notes, baseFee(host)), all)
+        else PayQuote.Unreachable(PayPlanner.maxWithChange(notes, baseFee(accountId, host)), all)
     }
 
     suspend fun pay(preview: PayPreview.Ready, amountMsat: Long, comment: String?): PayResult {
@@ -275,8 +275,8 @@ internal class Payer(private val wallet: Wallet) {
     }
 
     /** Whether the payee's pay link is on [host]'s LUD-26 mint, the one whose keys are pinned here: a note may go to its callback then. */
-    private suspend fun sharesMint(pay: LnurlResponse.PayRequest, host: String): Boolean {
-        val withdrawUrl = wallet.store.mint(host)?.withdrawUrl ?: return false
+    private suspend fun sharesMint(accountId: String, pay: LnurlResponse.PayRequest, host: String): Boolean {
+        val withdrawUrl = wallet.mintOf(accountId, host)?.withdrawUrl ?: return false
         val dialect =
             try {
                 wallet.dialect(host)
@@ -378,7 +378,7 @@ internal class Payer(private val wallet: Wallet) {
     /** The mint and plan to pay [amountMsat] with: the primary address's mint first, then the others. */
     private suspend fun choose(accountId: String, preview: PayPreview.Ready, amountMsat: Long): Pair<String, PayPlan>? =
         candidates(accountId, preview).firstNotNullOfOrNull { (host, notes) ->
-            PayPlanner.plan(notes, amountMsat, baseFee(host))?.let { host to it }
+            PayPlanner.plan(notes, amountMsat, baseFee(accountId, host))?.let { host to it }
         }
 
     private suspend fun candidates(accountId: String, preview: PayPreview.Ready): List<Pair<String, List<Note>>> {
@@ -397,9 +397,9 @@ internal class Payer(private val wallet: Wallet) {
         outstanding(accountId)
             .groupBy { it.host }
             .filterKeys { onlyHost == null || it == onlyHost }
-            .maxOfOrNull { (host, notes) -> PayPlanner.max(notes, baseFee(host)) } ?: 0
+            .maxOfOrNull { (host, notes) -> PayPlanner.max(notes, baseFee(accountId, host)) } ?: 0
 
-    private suspend fun baseFee(host: String): Long = wallet.store.mint(host)?.feeBaseMsat ?: 0
+    private suspend fun baseFee(accountId: String, host: String): Long = wallet.mintOf(accountId, host)?.feeBaseMsat ?: 0
 
     /** What can pay: notes on the wallet's own keys, so every spend is a `ck1`. A note held as a link is claimed onto them first. */
     private suspend fun outstanding(accountId: String): List<Note> =

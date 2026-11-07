@@ -128,7 +128,7 @@ class ActivityLogTest {
     fun `a pending row is settled when its journal entry is`() = withMint {
         val bearer = Spend.Bearer(ByteVector32(Hex.decode("44".repeat(32))))
         mint.credit(bearer.h.toHex(), 3_000)
-        val known = assertNotNull(store.mintMap[mint.host])
+        val known = assertNotNull(store.mint(mint.host))
         val q = keysA.pubkey(KeySet.Wallet, 0)
         // A claim that was journaled but never reached the mint (e.g. the app died).
         store.putJournal(

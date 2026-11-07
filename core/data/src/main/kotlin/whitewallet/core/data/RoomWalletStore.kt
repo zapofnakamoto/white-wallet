@@ -61,7 +61,10 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
         dao.deleteShareScans(id)
         val walletId = dao.account(id)?.walletId
         dao.deleteAccountRow(id)
-        walletId?.let { dao.deleteWalletIfEmpty(it) }
+        walletId?.let {
+            dao.deleteWalletIfEmpty(it)
+            dao.deleteMintsIfNoAccount(it)
+        }
         if (dao.currentAccountId() == id) dao.saveAppState(AppStateEntity(activeAccountId = null))
     }
 
@@ -86,13 +89,15 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
 
     override suspend fun deleteAddress(accountId: String, username: String, host: String) = dao.deleteAddress(accountId, host, username)
 
-    override suspend fun mint(host: String) = dao.mint(host)?.toModel()
+    override suspend fun mint(walletId: String, host: String) = dao.mint(walletId, host)?.toModel()
 
     override suspend fun saveMint(mint: Mint) = dao.saveMint(MintEntity.from(mint))
 
-    override suspend fun removeMint(host: String) = dao.removeMint(host)
+    override suspend fun removeMint(walletId: String, host: String) = dao.removeMint(walletId, host)
 
-    override val mints: Flow<List<Mint>> = dao.mints().map { list -> list.map { it.toModel() } }
+    override suspend fun removeMints(walletId: String) = dao.removeMints(walletId)
+
+    override fun mints(walletId: String): Flow<List<Mint>> = dao.mints(walletId).map { list -> list.map { it.toModel() } }
 
     override suspend fun note(id: String) = dao.note(id)?.toModel()
 

@@ -59,13 +59,13 @@ internal class MintInspector(private val wallet: Wallet) {
                 val pay = wallet.client.servicePayRequest(h)
                 description =
                     pay.pay.metadataEntries.firstOrNull { it.first == "text/plain" && !it.second.startsWith("Mint fees:") }?.second
-                val pinned = wallet.store.mint(h)?.mintPubkey
+                val pinned = wallet.mintOf(accountId, h)?.mintPubkey
                 presented = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey?.toHex() }.getOrNull()
                 if (pinned != null && presented != null && pinned != presented) {
                     MintDetails.Reachability.KeyChanged
                 } else {
                     // Stores fresh fees and limits (and pins the key if it wasn't yet).
-                    if (onboarding.connectMint(h) is ConnectResult.Connected) MintDetails.Reachability.Reachable
+                    if (onboarding.connectMint(wallet.walletOf(accountId), h) is ConnectResult.Connected) MintDetails.Reachability.Reachable
                     else MintDetails.Reachability.Invalid
                 }
             } catch (e: ProtocolViolation) {
@@ -76,7 +76,7 @@ internal class MintInspector(private val wallet: Wallet) {
         val notes = wallet.store.notes(accountId).first().filter { it.host == h && it.state == NoteState.Outstanding }
         return MintDetails(
             host = h,
-            mint = wallet.store.mint(h),
+            mint = wallet.mintOf(accountId, h),
             reachability = reachability,
             description = description,
             balanceMsat = notes.sumOf { it.amountMsat },

@@ -45,7 +45,8 @@ internal class Restore(private val wallet: Wallet) {
             if (wallet.seeds.load(summary.account.walletId) == words) return RestoreResult.AlreadyInWallet(summary.account.name)
         }
         if (!wallet.canAddWallet.first()) return RestoreResult.AccountLimitReached(wallet.maxWallets)
-        when (val connected = onboarding.connectMint(host)) {
+        val accountId = UUID.randomUUID().toString()
+        when (val connected = onboarding.connectMint(accountId, host)) {
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
                 return when (val r = connected.result) {
@@ -56,7 +57,6 @@ internal class Restore(private val wallet: Wallet) {
         }
         val h = checkNotNull(Onboarding.normalizeHost(host))
 
-        val accountId = UUID.randomUUID().toString()
         wallet.seeds.save(accountId, words)
         // The user had the phrase written down; no need to ask them to back it up again.
         wallet.seeds.setBackupVerified(accountId)

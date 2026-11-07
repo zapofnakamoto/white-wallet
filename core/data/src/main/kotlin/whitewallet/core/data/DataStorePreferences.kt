@@ -66,23 +66,34 @@ internal class DataStorePreferences(
         prefs.edit { it[BALANCE_HIDDEN] = hidden }
     }
 
-    override val trusted: Flow<Set<MintKey>> = prefs.data.map { p -> p[TRUSTED].orEmpty().mapNotNull(::mintKey).toSet() }
-    override val untrusted: Flow<Set<MintKey>> = prefs.data.map { p -> p[UNTRUSTED].orEmpty().mapNotNull(::mintKey).toSet() }
+    override fun trusted(walletId: String): Flow<Set<MintKey>> =
+        prefs.data.map { p -> p[trustedKey(walletId)].orEmpty().mapNotNull(::mintKey).toSet() }
 
-    override suspend fun setTrusted(mint: MintKey, trusted: Boolean) {
+    override fun untrusted(walletId: String): Flow<Set<MintKey>> =
+        prefs.data.map { p -> p[untrustedKey(walletId)].orEmpty().mapNotNull(::mintKey).toSet() }
+
+    override suspend fun setTrusted(walletId: String, mint: MintKey, trusted: Boolean) {
         val entry = "${mint.host} ${mint.pubkey}"
         prefs.edit {
-            val (add, remove) = if (trusted) TRUSTED to UNTRUSTED else UNTRUSTED to TRUSTED
+            val (add, remove) =
+                if (trusted) trustedKey(walletId) to untrustedKey(walletId) else untrustedKey(walletId) to trustedKey(walletId)
             it[add] = it[add].orEmpty() + entry
             it[remove] = it[remove].orEmpty() - entry
         }
     }
 
-    override suspend fun forget(mint: MintKey) {
+    override suspend fun forget(walletId: String, mint: MintKey) {
         val entry = "${mint.host} ${mint.pubkey}"
         prefs.edit {
-            it[TRUSTED] = it[TRUSTED].orEmpty() - entry
-            it[UNTRUSTED] = it[UNTRUSTED].orEmpty() - entry
+            it[trustedKey(walletId)] = it[trustedKey(walletId)].orEmpty() - entry
+            it[untrustedKey(walletId)] = it[untrustedKey(walletId)].orEmpty() - entry
+        }
+    }
+
+    override suspend fun forgetWallet(walletId: String) {
+        prefs.edit {
+            it.remove(trustedKey(walletId))
+            it.remove(untrustedKey(walletId))
         }
     }
 
@@ -156,8 +167,6 @@ internal class DataStorePreferences(
         private val BALANCE_HIDDEN = booleanPreferencesKey("balance_hidden")
         private val APP_LOCK = booleanPreferencesKey("app_lock")
         private val NOTES_SORT = stringPreferencesKey("notes_sort")
-        private val TRUSTED = stringSetPreferencesKey("trusted_mints")
-        private val UNTRUSTED = stringSetPreferencesKey("untrusted_mints")
         private val SEEN_RELEASE_NOTES = stringSetPreferencesKey("seen_release_notes")
 
         private fun autoRotateKey(accountId: String) = booleanPreferencesKey("auto_rotate_$accountId")
@@ -170,9 +179,43 @@ internal class DataStorePreferences(
 
         private fun noticesKey(accountId: String) = booleanPreferencesKey("maintenance_notices_$accountId")
 
-        /** Keys renamed since v0.3.0: an installed app keeps the value under the new name. */
-        val MIGRATIONS: List<DataMigration<Preferences>> = listOf(RenamedKey(intPreferencesKey("max_addresses_per_service"), MAX_ADDRESSES))
+        private fun trustedKey(walletId: String) = stringSetPreferencesKey("trusted_mints_$walletId")
+
+        private fun untrustedKey(walletId: String) = stringSetPreferencesKey("untrusted_mints_$walletId")
+
+        /**
+         * Keys changed since v0.3.0: an installed app keeps the value under the new name. Trust choices were the device's until each wallet
+         * ([walletIds], every one on the phone) had its own; each wallet starts with them.
+         */
+        fun migrations(walletIds: suspend () -> List<String>): List<DataMigration<Preferences>> =
+            listOf(
+                RenamedKey(intPreferencesKey("max_addresses_per_service"), MAX_ADDRESSES),
+                PerWallet(stringSetPreferencesKey("trusted_mints"), walletIds, ::trustedKey),
+                PerWallet(stringSetPreferencesKey("untrusted_mints"), walletIds, ::untrustedKey),
+            )
     }
+}
+
+/** Gives every wallet of [walletIds] the device-wide set under [old] once, joined with its own ([new]). */
+private class PerWallet(
+    private val old: Preferences.Key<Set<String>>,
+    private val walletIds: suspend () -> List<String>,
+    private val new: (String) -> Preferences.Key<Set<String>>,
+) : DataMigration<Preferences> {
+    override suspend fun shouldMigrate(currentData: Preferences) = old in currentData
+
+    override suspend fun migrate(currentData: Preferences): Preferences {
+        val wallets = walletIds()
+        return currentData
+            .toMutablePreferences()
+            .apply {
+                val value = remove(old).orEmpty()
+                wallets.forEach { this[new(it)] = this[new(it)].orEmpty() + value }
+            }
+            .toPreferences()
+    }
+
+    override suspend fun cleanUp() = Unit
 }
 
 /** Moves a value from [old] to [new] once; a value already under [new] wins. */

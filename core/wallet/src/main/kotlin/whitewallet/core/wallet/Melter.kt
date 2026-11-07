@@ -81,7 +81,7 @@ internal class Melter(private val wallet: Wallet) {
         beforeSend: suspend (journalId: String) -> Unit,
         request: (NoteInfo, String) -> String,
     ): MeltOutcome {
-        val mint = wallet.store.mint(host) ?: return MeltOutcome.Unreachable
+        val mint = wallet.mintOf(accountId, host) ?: return MeltOutcome.Unreachable
         val spend = wallet.keys(accountId, host).spend(note, spendDomain(host))
         val info =
             try {

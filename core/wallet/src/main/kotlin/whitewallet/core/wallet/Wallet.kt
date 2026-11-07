@@ -326,7 +326,10 @@ class Wallet(
         }
 
     /** Validates and stores a mint (and pins its key) without registering a username. */
-    suspend fun connectMint(host: String): ConnectResult = lock.withLock { onboarding.connectMint(host) }
+    suspend fun connectMint(host: String): ConnectResult = lock.withLock {
+        val id = store.currentAccountId() ?: return@withLock ConnectResult.Failed(OnboardResult.MintInvalid("no account"))
+        onboarding.connectMint(walletOf(id), host)
+    }
 
     /**
      * Checks whether [username]@[host] is free, taken, or already the active account's. Pass [forNewAccount] when choosing a name for an
@@ -398,7 +401,7 @@ class Wallet(
         val (id, keepTrusted) = leavingHome(host) ?: return@withLock HomeChanged(OnboardResult.MintInvalid(ALREADY_HOME))
         val result = onboarding.onboard(username, host, newAccountName = null)
         if (result !is OnboardResult.Ready) return@withLock HomeChanged(result)
-        keepTrusted?.let { trust.setTrusted(it, true) }
+        keepTrusted?.let { trust.setTrusted(walletOf(id), it, true) }
         HomeChanged(result, moneyMove.move(id, result.profile.host, lines))
     }
 
@@ -407,10 +410,10 @@ class Wallet(
         val (id, keepTrusted) =
             leavingHome(host) ?: return@withLock HomeChanged(ConnectResult.Failed(OnboardResult.MintInvalid(ALREADY_HOME)))
         check(store.currentProfile(id) == null) { "the account has an address; pass the name to use on the new home" }
-        val result = onboarding.connectMint(host)
+        val result = onboarding.connectMint(walletOf(id), host)
         if (result !is ConnectResult.Connected) return@withLock HomeChanged(result)
         store.saveAccount(checkNotNull(store.account(id)).copy(host = result.mint.host))
-        keepTrusted?.let { trust.setTrusted(it, true) }
+        keepTrusted?.let { trust.setTrusted(walletOf(id), it, true) }
         HomeChanged(result, moneyMove.move(id, result.mint.host, lines))
     }
 
@@ -442,7 +445,8 @@ class Wallet(
         val id = activeId()
         val home = checkNotNull(store.account(id)) { "no active account" }.host
         if (Onboarding.normalizeHost(host) == home) return null
-        return id to store.mint(home)?.mintPubkey?.let { MintKey(home, it) }?.takeIf { isTrusted(it) }
+        val walletId = walletOf(id)
+        return id to store.mint(walletId, home)?.mintPubkey?.let { MintKey(home, it) }?.takeIf { isTrusted(walletId, it) }
     }
 
     /** Frees one of the active account's addresses at its mint. Never the primary one. */
@@ -544,19 +548,23 @@ class Wallet(
         sender.reclaim(id).also { applyPolicies(accountId) }
     }
 
-    /** Every account's notes (spent ones too), for what concerns the whole device. */
-    private val allNotes: Flow<List<Note>> = ofEveryAccount(store::notes)
+    /** The active wallet's notes, every account's (spent ones too), for what concerns the whole wallet. */
+    private val walletNotes: Flow<List<Note>> = ofActiveWalletAccounts(store::notes)
 
-    /** Every account's Lightning addresses. */
-    private val allAddresses: Flow<List<RegisteredAddress>> = ofEveryAccount(store::addresses)
+    /** The active wallet's Lightning addresses, every account's. */
+    private val walletAddresses: Flow<List<RegisteredAddress>> = ofActiveWalletAccounts(store::addresses)
+
+    /** The active wallet's trust choices: trusted and untrusted mints. */
+    private val walletTrust: Flow<Pair<Set<MintKey>, Set<MintKey>>> =
+        ofActiveWallet(emptySet<MintKey>() to emptySet()) { combine(trust.trusted(it), trust.untrusted(it), ::Pair) }
 
     /**
-     * Every mint the wallet has used (connected to, or holding any account's notes), on this device and for all accounts, until removed
-     * ([removeMint]): its key, whether it's trusted and why, whose home it is, and whether it can be removed. Homes first, then by host.
-     * Trust follows [isTrusted]. Nothing about one account's money: see [accountMints].
+     * Every mint the active wallet has used (connected to, or holding any of its accounts' notes), until removed ([removeMint]): its key,
+     * whether it's trusted and why, whose home it is, and whether it can be removed. Homes first, then by host. Trust follows [isTrusted].
+     * Nothing about one account's money: see [accountMints]. Another wallet's mints, keys and trust are its own.
      */
     val mints: Flow<List<MintInfo>> =
-        combine(store.mints, store.accounts, allNotes, allAddresses, combine(trust.trusted, trust.untrusted, ::Pair)) {
+        combine(ofActiveWallet(emptyList(), store::mints), activeWalletAccounts, walletNotes, walletAddresses, walletTrust) {
             mints,
             accounts,
             notes,
@@ -569,7 +577,7 @@ class Wallet(
                 .distinct()
                 .map { host ->
                     val key = keys[host]
-                    val default = key?.let { trustDefault(MintKey(host, it), homes) }
+                    val default = key?.let { trustDefault(MintKey(host, it), pinned = it, homes) }
                     val homeOf = accounts.filter { it.account.host == host }.map { it.account.name }
                     MintInfo(
                         host,
@@ -609,47 +617,53 @@ class Wallet(
         }
 
     /**
-     * Forgets the mint at [host]: its pinned signing key and the user's trust choice for it, so adding it again is a first contact (as
-     * after a restore). Only if no account has its home, a note that isn't spent, an address or an unsettled operation there
-     * ([RemoveMintResult.InUse] says which); notes and history are never touched.
+     * Forgets the active wallet's mint at [host]: its pinned signing key and the user's trust choice for it, so adding it again is a first
+     * contact (as after a restore). Only if no account of the wallet has its home, a note that isn't spent, an address or an unsettled
+     * operation there ([RemoveMintResult.InUse] says which); notes and history are never touched. Another wallet's mint stays.
      */
     suspend fun removeMint(host: String): RemoveMintResult = lock.withLock {
         val h = Onboarding.normalizeHost(host) ?: host
-        val accounts = store.accounts.first()
+        val id = activeId()
+        val walletId = walletOf(id)
+        val accounts = siblings(id)
+        val ids = accounts.map { it.id }.toSet()
         val use =
             when {
-                accounts.any { it.account.host == h } -> MintUse.Home
-                accounts.any { a -> store.notes(a.account.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
-                accounts.any { a -> store.addresses(a.account.id).first().any { it.host == h } } -> MintUse.Address
-                store.journal(UNSETTLED).any { it.host == h } -> MintUse.OpenOperation
+                accounts.any { it.host == h } -> MintUse.Home
+                accounts.any { a -> store.notes(a.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
+                accounts.any { a -> store.addresses(a.id).first().any { it.host == h } } -> MintUse.Address
+                store.journal(UNSETTLED).any { it.host == h && it.accountId in ids } -> MintUse.OpenOperation
                 else -> null
             }
         if (use != null) return@withLock RemoveMintResult.InUse(use)
-        store.mint(h)?.mintPubkey?.let { trust.forget(MintKey(h, it)) }
-        store.removeMint(h)
+        store.mint(walletId, h)?.mintPubkey?.let { trust.forget(walletId, MintKey(h, it)) }
+        store.removeMint(walletId, h)
         RemoveMintResult.Removed
     }
 
-    /** Hosts of trusted mints, for highlighting notes. */
+    /** Hosts of the active wallet's trusted mints, for highlighting notes. */
     val trustedHosts: Flow<Set<String>>
         get() = trustedHosts()
 
     private fun trustedHosts(): Flow<Set<String>> =
         mints.map { list -> list.filter { it.trusted }.map { it.host }.toSet() }.distinctUntilChanged()
 
-    /** Trusts or untrusts [host] with the key the wallet pinned for it. A mint without a pinned key can't be trusted. */
+    /** Trusts or untrusts [host] in the active wallet, with the key it pinned for it. A mint without a pinned key can't be trusted. */
     suspend fun setMintTrusted(host: String, trusted: Boolean) {
-        val key = checkNotNull(store.mint(host)?.mintPubkey) { "no signing key known for $host" }
-        trust.setTrusted(MintKey(host, key), trusted)
+        val walletId = walletOf(activeId())
+        val key = checkNotNull(store.mint(walletId, host)?.mintPubkey) { "no signing key known for $host" }
+        trust.setTrusted(walletId, MintKey(host, key), trusted)
     }
 
     /**
-     * Keeps using [host] with the signing key [key] it now presents in place of the pinned one, once the user has seen the change. Only
-     * that key: if the mint presents yet another one (or none), nothing changes and false is returned. A mint the user trusted stays
-     * trusted with the new key, and the notes held there get the mint's certificates under the new key (see [recertify]).
+     * Keeps using [host] in the active wallet with the signing key [key] it now presents in place of the pinned one, once the user has seen
+     * the change. Only that key: if the mint presents yet another one (or none), nothing changes and false is returned. A mint the user
+     * trusted stays trusted with the new key, and the wallet's notes held there get the mint's certificates under the new key (see
+     * [recertify]). Another wallet keeps the old key until it accepts the new one itself.
      */
     suspend fun acceptMintKey(host: String, key: String): Boolean = lock.withLock {
-        val mint = store.mint(host) ?: return false
+        val walletId = walletOf(activeId())
+        val mint = store.mint(walletId, host) ?: return false
         val presented =
             try {
                 client.withdrawDiscovery(host).mintPubkey
@@ -659,20 +673,21 @@ class Wallet(
         if (presented == null || presented.toHex() != key) return false
         val old = mint.mintPubkey
         store.saveMint(mint.copy(mintPubkey = key))
-        if (old != null && MintKey(host, old) in trust.trusted.first()) trust.setTrusted(MintKey(host, key), true)
+        if (old != null && MintKey(host, old) in trust.trusted(walletId).first()) trust.setTrusted(walletId, MintKey(host, key), true)
         recertify(mint, presented)
         true
     }
 
     /**
-     * Replaces the certificates of every account's notes on [mint], signed with its old key, by the mint's current ones under [key]: a note
-     * shared later carries a certificate its recipient can verify. A note whose certificate doesn't verify is left without one; one the
-     * mint doesn't answer for (spent, or no answer) keeps its old one.
+     * Replaces the certificates of the notes on [mint] of every account of its wallet, signed with its old key, by the mint's current ones
+     * under [key]: a note shared later carries a certificate its recipient can verify. A note whose certificate doesn't verify is left
+     * without one; one the mint doesn't answer for (spent, or no answer) keeps its old one.
      */
     private suspend fun recertify(mint: Mint, key: PublicKey) {
         val held =
             store.accounts
                 .first()
+                .filter { it.account.walletId == mint.walletId }
                 .flatMap { store.notes(it.account.id).first() }
                 .filter { it.host == mint.host && it.kind == NoteKind.KeyPath && it.state != NoteState.Spent }
         val updated = held.mapNotNull { note ->
@@ -693,27 +708,31 @@ class Wallet(
     suspend fun addMint(host: String): ConnectResult =
         withContext(NonCancellable) {
             lock.withLock {
-                val known = Onboarding.normalizeHost(host)?.let { store.mint(it) } != null
-                val connected = onboarding.connectMint(host)
-                val id = store.currentAccountId()
-                if (connected !is ConnectResult.Connected || id == null) return@withLock connected
+                val id = store.currentAccountId() ?: return@withLock ConnectResult.Failed(OnboardResult.MintInvalid("no account"))
+                val walletId = walletOf(id)
+                val known = Onboarding.normalizeHost(host)?.let { store.mint(walletId, it) } != null
+                val connected = onboarding.connectMint(walletId, host)
+                if (connected !is ConnectResult.Connected) return@withLock connected
                 val h = connected.mint.host
-                val failed = restorer.scanAddedMint(walletOf(id), h) ?: return@withLock connected
-                if (!known && siblings(id).none { a -> store.notes(a.id).first().any { it.host == h } }) store.removeMint(h)
+                val failed = restorer.scanAddedMint(walletId, h) ?: return@withLock connected
+                if (!known && siblings(id).none { a -> store.notes(a.id).first().any { it.host == h } }) store.removeMint(walletId, h)
                 ConnectResult.Failed(failed)
             }
         }
 
-    /** Whether [mint] (this host with this key) is trusted. */
-    internal suspend fun isTrusted(mint: MintKey): Boolean {
-        val homes = store.accounts.first().map { it.account.host }.toSet()
-        return isTrusted(mint, trustDefault(mint, homes), trust.trusted.first(), trust.untrusted.first())
+    /** Whether [mint] (this host with this key) is trusted in the wallet [walletId]. */
+    internal suspend fun isTrusted(walletId: String, mint: MintKey): Boolean {
+        val homes = store.accounts.first().filter { it.account.walletId == walletId }.map { it.account.host }.toSet()
+        val default = trustDefault(mint, store.mint(walletId, mint.host)?.mintPubkey, homes)
+        return isTrusted(mint, default, trust.trusted(walletId).first(), trust.untrusted(walletId).first())
     }
 
-    /** The home mint is trusted by default with the key pinned for it; a brand's mint only with the key it ships. */
-    private suspend fun trustDefault(mint: MintKey, homes: Set<String>): TrustDefault? =
+    /**
+     * A home mint of the wallet ([homes]) is trusted by default with the key it [pinned] for it; a brand's mint only with the key it ships.
+     */
+    private fun trustDefault(mint: MintKey, pinned: String?, homes: Set<String>): TrustDefault? =
         when {
-            mint.host in homes && store.mint(mint.host)?.mintPubkey == mint.pubkey -> TrustDefault.Home
+            mint.host in homes && pinned == mint.pubkey -> TrustDefault.Home
             mint in brandTrusted -> TrustDefault.Brand
             else -> null
         }
@@ -770,7 +789,7 @@ class Wallet(
         val note =
             store.note(id)?.takeIf { it.accountId == activeId() && (it.isRecheckable() || it.isUnknown() || it.isConfirming()) }
                 ?: return NoteCheck.NotFound
-        if (store.mint(note.host) == null) return NoteCheck.Unreachable
+        if (mintOf(note.accountId, note.host) == null) return NoteCheck.Unreachable
         // A recheck only asks: whatever failure a developer armed, it goes unanswered.
         if (SimulatedFailure.takeAny()) return NoteCheck.Unreachable
         if (note.isConfirming()) return settle(note)
@@ -918,7 +937,11 @@ class Wallet(
     /** The mints where [accountId] has handed out shares or holds a note paid to an address, whether or not it knows the address. */
     private suspend fun hostsPaidAt(id: String): List<String> =
         store.notes(id).first().filter { it.isAddressNote }.map { it.host } +
-            store.mints.first().map { it.host }.filter { (store.keyIndexOrNull(id, spendDomain(it), KeyCounter.Shares) ?: 0) > 0 }
+            store
+                .mints(walletOf(id))
+                .first()
+                .map { it.host }
+                .filter { (store.keyIndexOrNull(id, spendDomain(it), KeyCounter.Shares) ?: 0) > 0 }
 
     /**
      * An invoice for [amountMsat] that mints a note to the active account on its home mint once paid (see [InvoiceReceiver]); the way to
@@ -990,7 +1013,10 @@ class Wallet(
             addressStatuses.update { statuses -> statuses.filterKeys { it.first != id } }
             failedProbes.update { probes -> probes.filterKeys { it.accountId != id } }
         }
-        if (wholeWallet) seeds.clear(walletId)
+        if (wholeWallet) {
+            seeds.clear(walletId)
+            trust.forgetWallet(walletId)
+        }
         val remaining = store.accounts.first().map { it.account.id }
         val next = prefer?.takeIf { it in remaining } ?: remaining.firstOrNull()
         store.setActiveAccount(next)
@@ -1129,12 +1155,18 @@ class Wallet(
     private fun <T> ofActive(none: T, ofAccount: (String) -> Flow<T>): Flow<T> =
         store.activeAccountId.flatMapLatest { id -> id?.let(ofAccount) ?: flowOf(none) }
 
-    /** [ofAccount] of every account, joined, following accounts being added and removed. */
-    private fun <T> ofEveryAccount(ofAccount: (String) -> Flow<List<T>>): Flow<List<T>> =
-        store.accounts.flatMapLatest { accounts ->
-            if (accounts.isEmpty()) flowOf(emptyList())
-            else combine(accounts.map { ofAccount(it.account.id) }) { lists -> lists.flatMap { it.toList() } }
-        }
+    /** [ofWallet] of the active account's wallet, following switches; [none] while there is no account. */
+    private fun <T> ofActiveWallet(none: T, ofWallet: (String) -> Flow<T>): Flow<T> =
+        activeAccount.map { it?.account?.walletId }.distinctUntilChanged().flatMapLatest { id -> id?.let(ofWallet) ?: flowOf(none) }
+
+    /** [ofAccount] of every account of the active wallet, joined, following switches and accounts being added and removed. */
+    private fun <T> ofActiveWalletAccounts(ofAccount: (String) -> Flow<List<T>>): Flow<List<T>> =
+        activeWalletAccounts
+            .map { list -> list.map { it.account.id } }
+            .distinctUntilChanged()
+            .flatMapLatest { ids ->
+                if (ids.isEmpty()) flowOf(emptyList()) else combine(ids.map(ofAccount)) { lists -> lists.flatMap { it.toList() } }
+            }
 
     internal suspend fun activeId(): String = checkNotNull(store.currentAccountId()) { "no active account" }
 
@@ -1170,6 +1202,9 @@ class Wallet(
     internal var forming: Account? = null
 
     internal suspend fun accountOf(accountId: String): Account? = store.account(accountId) ?: forming?.takeIf { it.id == accountId }
+
+    /** [accountId]'s wallet's mint at [host]: what it fetched and the key it pinned. */
+    internal suspend fun mintOf(accountId: String, host: String): Mint? = store.mint(walletOf(accountId), host)
 
     /** The wallet (recovery phrase) of [accountId]. An account not saved yet is its own wallet's first. */
     internal suspend fun walletOf(accountId: String): String = accountOf(accountId)?.walletId ?: accountId
@@ -1249,6 +1284,9 @@ class Wallet(
     internal suspend fun discardSeed(accountId: String, keepForRetry: Boolean = false) {
         if (keepForRetry) seeds.load(accountId)?.let { prepared = PreparedPhrase(it.toMutableList()) }
         seeds.clear(accountId)
+        // The phrase was the wallet's: what it connected to and chose goes with it.
+        store.removeMints(accountId)
+        trust.forgetWallet(accountId)
         keySets.keys.removeAll { it.first == accountId }
     }
 

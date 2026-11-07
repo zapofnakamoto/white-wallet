@@ -31,6 +31,7 @@ class SettingsScreensTest {
 
     private val mint =
         Mint(
+            walletId = "w",
             host = "mint.example",
             withdrawUrl = "https://mint.example/w",
             mintPubkey = "02" + "ab".repeat(32),

@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.room.Room
 import java.io.File
 import kotlin.test.Test
@@ -32,6 +33,7 @@ import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
+import whitewallet.core.wallet.MintKey
 
 /**
  * An update keeps what a released app stored: a database of an older version, built from its exported schema (core/data/schemas), opens
@@ -93,7 +95,7 @@ class MigrationTest {
                 val store = RoomWalletStore(db)
                 assertEquals("mint.example", store.account("acc")?.host)
                 assertEquals(listOf(21000L to NoteState.Outstanding), store.notes("acc").first().map { it.amountMsat to it.state })
-                assertEquals("pk", store.mint("mint.example")?.mintPubkey)
+                assertEquals("pk", store.mint("acc", "mint.example")?.mintPubkey)
                 assertEquals(listOf("m1"), store.journal(setOf(JournalStatus.Prepared)).map { it.id })
                 assertEquals(
                     listOf("claim:c1" to ActivityKind.Claimed, "mint:m1" to ActivityKind.MovedMint),
@@ -162,6 +164,7 @@ class MigrationTest {
                 execSQL("INSERT INTO accounts VALUES ('acc2', 'Savings', 2, 'mint.example')")
                 execSQL("INSERT INTO notes VALUES ('n1', 'acc', 'mint.example', 'KeyPath', 0, 2, 21000, NULL, 'Outstanding', 2, 5)")
                 execSQL("INSERT INTO counters VALUES ('acc', 'mint.example', 0, 3)")
+                execSQL("INSERT INTO mints VALUES ('mint.example', 'https://mint.example/w', 'pk', 1000, 1000000, 0, 0)")
                 execSQL("INSERT INTO address_scan VALUES ('acc', 'mint.example', 4)")
                 execSQL("INSERT INTO key_checks VALUES ('acc', 'mint.example', 2, 7, 'Outstanding', 1000, 1, 0, NULL, 9)")
                 execSQL("INSERT INTO addresses VALUES ('acc', 'mint.example', 'alice', 3)")
@@ -181,6 +184,9 @@ class MigrationTest {
                 assertEquals(Account("acc", "Main", 1, "mint.example", walletId = "acc", index = 0), store.account("acc"))
                 assertEquals("acc2", store.account("acc2")?.walletId)
                 assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
+                // The mints were the device's: each wallet has them now, with the key pinned for them.
+                assertEquals(listOf("pk"), store.mints("acc").first().map { it.mintPubkey })
+                assertEquals(listOf("pk"), store.mints("acc2").first().map { it.mintPubkey })
 
                 val n1 = store.note("n1")!!
                 assertEquals(KeyScheme.Legacy, n1.scheme)
@@ -227,8 +233,12 @@ class MigrationTest {
                 store.deleteAccount("acc")
                 assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
                 assertNull(store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
+                assertEquals(listOf("mint.example"), store.mints("acc").first().map { it.host })
                 store.deleteAccount("acc3")
                 assertEquals(listOf("acc2"), db.dao().wallets().first().map { it.id })
+                // A wallet's mints go with it; another wallet's stay.
+                assertEquals(emptyList(), store.mints("acc").first())
+                assertEquals(listOf("mint.example"), store.mints("acc2").first().map { it.host })
             } finally {
                 db.close()
             }
@@ -244,9 +254,45 @@ class MigrationTest {
             before.cancelAndJoin()
             val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
             try {
-                val store = PreferenceDataStoreFactory.create(migrations = DataStorePreferences.MIGRATIONS, scope = scope) { file }
+                val store =
+                    PreferenceDataStoreFactory.create(migrations = DataStorePreferences.migrations { emptyList() }, scope = scope) { file }
                 assertEquals(3, DataStorePreferences(store).maxAddressesPerMint.first())
                 assertNull(store.data.first()[old])
+            } finally {
+                scope.cancel()
+            }
+        }
+
+    @Test
+    fun `trust chosen for the device becomes each wallet's own`() =
+        runBlocking<Unit> {
+            val file = File(context.filesDir, "trust.preferences_pb").apply { delete() }
+            val before = SupervisorJob()
+            PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO + before)) { file }
+                .edit {
+                    it[stringSetPreferencesKey("trusted_mints")] = setOf("mint.example 02aa")
+                    it[stringSetPreferencesKey("untrusted_mints")] = setOf("other.example 02bb")
+                }
+            before.cancelAndJoin()
+            val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+            try {
+                val store =
+                    PreferenceDataStoreFactory.create(migrations = DataStorePreferences.migrations { listOf("w1", "w2") }, scope = scope) {
+                        file
+                    }
+                val prefs = DataStorePreferences(store)
+                for (wallet in listOf("w1", "w2")) {
+                    assertEquals(setOf(MintKey("mint.example", "02aa")), prefs.trusted(wallet).first())
+                    assertEquals(setOf(MintKey("other.example", "02bb")), prefs.untrusted(wallet).first())
+                }
+                assertNull(store.data.first()[stringSetPreferencesKey("trusted_mints")])
+
+                // From then on, one wallet's choice is its own.
+                prefs.setTrusted("w1", MintKey("other.example", "02bb"), true)
+                assertEquals(setOf(MintKey("other.example", "02bb")), prefs.untrusted("w2").first())
+                prefs.forgetWallet("w1")
+                assertEquals(emptySet(), prefs.trusted("w1").first())
+                assertEquals(setOf(MintKey("mint.example", "02aa")), prefs.trusted("w2").first())
             } finally {
                 scope.cancel()
             }

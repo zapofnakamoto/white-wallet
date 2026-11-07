@@ -193,8 +193,11 @@ data class ReceivedNote(
     }
 }
 
-/** A mint the wallet talks to. Only [host] is configuration; the rest is fetched from it. */
+/** A mint a wallet talks to. Each wallet has its own: what it fetched and the key it pinned say nothing about another wallet's. */
 data class Mint(
+    /** The wallet (recovery phrase) that added it. */
+    val walletId: String,
+    /** Only the host is configuration; the rest is fetched from it. */
     val host: String,
     val withdrawUrl: String,
     /** Pinned on first contact; operations stop if it ever changes. */

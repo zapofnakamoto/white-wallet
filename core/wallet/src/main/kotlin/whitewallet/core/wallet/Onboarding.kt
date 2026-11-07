@@ -165,7 +165,8 @@ internal class Onboarding(private val wallet: Wallet) {
         limit(creating = true, inActiveWallet)?.let {
             return CreateAccountResult.AccountLimitReached(it)
         }
-        when (val connected = connectMint(h)) {
+        val accountId = UUID.randomUUID().toString()
+        when (val connected = connectMint(if (inActiveWallet) wallet.walletOf(wallet.activeId()) else accountId, h)) {
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
                 return when (val r = connected.result) {
@@ -174,7 +175,6 @@ internal class Onboarding(private val wallet: Wallet) {
                     else -> CreateAccountResult.MintInvalid(r.toString())
                 }
         }
-        val accountId = UUID.randomUUID().toString()
         val accountName = name.trim().ifEmpty { DEFAULT_ACCOUNT_NAME }
         if (inActiveWallet) {
             wallet.store.saveAccount(sibling(accountId, accountName, h))
@@ -246,7 +246,7 @@ internal class Onboarding(private val wallet: Wallet) {
         accountName: String,
         primary: Boolean = true,
     ): OnboardResult {
-        when (val connected = connectMint(h)) {
+        when (val connected = connectMint(wallet.walletOf(accountId), h)) {
             is ConnectResult.Failed -> return connected.result
             is ConnectResult.Connected -> Unit
         }
@@ -389,18 +389,20 @@ internal class Onboarding(private val wallet: Wallet) {
             is AddressStatus.CheckFailed -> OnboardResult.NetworkError(after.reason)
         }
 
-    suspend fun connectMint(host: String): ConnectResult {
+    /** Connects the wallet [walletId] to the mint at [host]: fetches what it is and pins its key for that wallet on first contact. */
+    suspend fun connectMint(walletId: String, host: String): ConnectResult {
         val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid("not a valid host"))
         return try {
             val pay = wallet.client.servicePayRequest(h)
             val discovered = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey }.getOrNull()
-            val existing = wallet.store.mint(h)
+            val existing = wallet.store.mint(walletId, h)
             val pinned = existing?.mintPubkey
             if (pinned != null && discovered != null && pinned != discovered.toHex()) {
                 return ConnectResult.Failed(OnboardResult.MintInvalid("the signing key of this host changed"))
             }
             val mint =
                 Mint(
+                    walletId = walletId,
                     host = h,
                     withdrawUrl = pay.withdrawUrl,
                     mintPubkey = pinned ?: discovered?.toHex(),

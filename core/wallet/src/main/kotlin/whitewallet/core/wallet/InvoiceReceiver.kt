@@ -100,7 +100,7 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
         if (amountMsat < pay.pay.minSendable || amountMsat > pay.pay.maxSendable || expected <= 0) {
             return InvoiceRequest.OutOfRange(pay.pay.minSendable, pay.pay.maxSendable)
         }
-        val mint = wallet.store.mint(host) ?: return InvoiceRequest.Unreachable
+        val mint = wallet.mintOf(accountId, host) ?: return InvoiceRequest.Unreachable
         repeat(wallet.settings.newNoteMaxKeysTriedWhileInUse) { attempt ->
             val reserved = guard.reserve(accountId, host, KeySet.Wallet)
             when (val fetched = MintInvoice.fetch(wallet, pay, amountMsat, reserved.key)) {

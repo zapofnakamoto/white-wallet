@@ -150,7 +150,7 @@ internal class KeyInspector(private val wallet: Wallet) {
      */
     private suspend fun scan(accountId: String, host: String, set: KeySet, from: Long, until: Long, gap: Int): KeyScanResult {
         val mint =
-            wallet.store.mint(host)
+            wallet.mintOf(accountId, host)
                 ?: return KeyScanResult(
                     from,
                     until,
@@ -203,7 +203,7 @@ internal class KeyInspector(private val wallet: Wallet) {
     }
 
     suspend fun recheck(id: KeyId): KeyProbe {
-        val mint = checkNotNull(wallet.store.mint(id.host)) { "unknown host ${id.host}" }
+        val mint = checkNotNull(wallet.mintOf(id.accountId, id.host)) { "unknown host ${id.host}" }
         return prober.probe(id, mint).also {
             if (it is KeyProbe.Outstanding || it is KeyProbe.Spent) advanceIndex(id.accountId, id.host, id.set, id.index)
         }

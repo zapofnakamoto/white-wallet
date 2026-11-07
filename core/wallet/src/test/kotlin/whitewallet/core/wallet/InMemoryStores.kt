@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
@@ -27,7 +28,7 @@ class InMemoryWalletStore : WalletStore {
     private val profiles = MutableStateFlow<Map<String, Profile>>(emptyMap())
     private val addressMap = MutableStateFlow<Map<String, List<RegisteredAddress>>>(emptyMap())
     private val active = MutableStateFlow<String?>(null)
-    val mintMap = mutableMapOf<String, Mint>()
+    val mintMap = MutableStateFlow(emptyMap<Pair<String, String>, Mint>())
     val counters = mutableMapOf<Triple<String, String, Int>, Long>()
     val keyCounters = mutableMapOf<Triple<String, String, KeyCounter>, Long>()
     val shareScans = mutableMapOf<Triple<String, String, Long>, Long>()
@@ -67,7 +68,7 @@ class InMemoryWalletStore : WalletStore {
     }
 
     override suspend fun deleteAccount(id: String) {
-        accountMap.value = accountMap.value - id
+        val walletId = accountMap.value[id]?.walletId
         profiles.value = profiles.value - id
         addressMap.value = addressMap.value - id
         noteMap.value = noteMap.value.filterValues { it.accountId != id }
@@ -79,6 +80,8 @@ class InMemoryWalletStore : WalletStore {
         checks.value = checks.value.filterKeys { it.accountId != id }
         activityMap.value = activityMap.value.filterValues { it.second.accountId != id }
         receivedMap.value = receivedMap.value.filterValues { it.accountId != id }
+        accountMap.value = accountMap.value - id
+        if (walletId != null && accountMap.value.values.none { it.walletId == walletId }) removeMints(walletId)
         if (active.value == id) active.value = null
     }
 
@@ -110,21 +113,27 @@ class InMemoryWalletStore : WalletStore {
             addressMap.value + (accountId to addressMap.value[accountId].orEmpty().filterNot { it.username == username && it.host == host })
     }
 
-    override suspend fun mint(host: String) = mintMap[host]
+    override suspend fun mint(walletId: String, host: String) = mintMap.value[walletId to host]
 
     override suspend fun saveMint(mint: Mint) {
-        mintMap[mint.host] = mint
-        mintsFlow.value = mintMap.values.sortedBy { it.host }
+        mintMap.update { it + ((mint.walletId to mint.host) to mint) }
     }
 
-    override suspend fun removeMint(host: String) {
-        mintMap.remove(host)
-        mintsFlow.value = mintMap.values.sortedBy { it.host }
+    override suspend fun removeMint(walletId: String, host: String) {
+        mintMap.update { it - (walletId to host) }
     }
 
-    private val mintsFlow = MutableStateFlow<List<Mint>>(emptyList())
-    override val mints
-        get() = mintsFlow
+    override suspend fun removeMints(walletId: String) {
+        mintMap.update { all -> all.filterKeys { it.first != walletId } }
+    }
+
+    /** The mint at [host] of the one wallet that has it, for tests of a phone with a single wallet there. */
+    fun mint(host: String): Mint? =
+        mintMap.value.values.filter { it.host == host }.also { check(it.size <= 1) { "several wallets have $host" } }.firstOrNull()
+
+    override fun mints(walletId: String): Flow<List<Mint>> = mintMap.map { all ->
+        all.values.filter { it.walletId == walletId }.sortedBy { it.host }
+    }
 
     override suspend fun note(id: String) = noteMap.value[id]
 

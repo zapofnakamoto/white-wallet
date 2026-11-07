@@ -22,6 +22,7 @@ import whitewallet.testkit.MockMint
 /** Trusting mints: by key, the home mint by default, the brand's with their keys, and the claim hint. */
 class MintTrustTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
+    private val otherWords = "legal winner thank year wave sausage worth useful legal winner thank yellow".split(" ")
 
     private fun withMints(
         brand: (home: String, other: String, otherKey: String) -> List<MintKey> = { _, _, _ -> emptyList() },
@@ -34,14 +35,15 @@ class MintTrustTest {
                     // Learn the other mint's key first, for a brand list.
                     val probe = InMemoryWalletStore()
                     val scout = Wallet(probe, InMemorySeedStore(), LnurlcashClient())
+                    probe.addAccount("s", "Scout", null, other.host)
                     assertIs<ConnectResult.Connected>(scout.connectMint(other.host))
-                    val otherKey = probe.mintMap.getValue(other.host).mintPubkey!!
+                    val otherKey = checkNotNull(probe.mint(other.host)).mintPubkey!!
 
                     val store = InMemoryWalletStore()
                     val wallet =
                         Wallet(
                             store,
-                            InMemorySeedStore(mapOf("a" to words)),
+                            InMemorySeedStore(mapOf("a" to words, "b" to otherWords)),
                             LnurlcashClient(),
                             policies = NotePolicies.InMemory(ManualStrategy.ID),
                             trust = MintTrustStore.InMemory(),
@@ -85,7 +87,7 @@ class MintTrustTest {
     fun `trust names the key, so a changed key is no longer trusted`() = withMints { wallet, store, _, other ->
         wallet.addMint(other.host)
         wallet.setMintTrusted(other.host, true)
-        val mint = store.mintMap.getValue(other.host)
+        val mint = checkNotNull(store.mint(other.host))
         store.saveMint(mint.copy(mintPubkey = "03" + "11".repeat(32)))
         assertFalse(wallet.info(other.host).trusted)
     }
@@ -104,6 +106,29 @@ class MintTrustTest {
             wallet.addMint(other.host)
             assertFalse(wallet.info(other.host).trusted)
         }
+
+    @Test
+    fun `each wallet trusts and pins on its own`() = withMints { wallet, store, _, other ->
+        wallet.addMint(other.host)
+        wallet.setMintTrusted(other.host, true)
+        val key = checkNotNull(store.mint("a", other.host)?.mintPubkey)
+
+        // Another wallet on the same mints: its home is trusted by default, the other mint not, whatever the first wallet chose.
+        store.addAccount("b", "Other", null, host = other.host)
+        assertIs<ConnectResult.Connected>(wallet.addMint(other.host))
+        assertEquals(TrustDefault.Home, wallet.info(other.host).trustedByDefault)
+        wallet.setMintTrusted(other.host, false)
+        assertFalse(wallet.info(other.host).trusted)
+        wallet.switchAccount("a")
+        assertTrue(wallet.info(other.host).trusted)
+
+        // Both pinned a key the mint no longer presents: accepting its key in one wallet leaves the other's pin as it was.
+        val old = "03" + "11".repeat(32)
+        for (id in listOf("a", "b")) store.saveMint(checkNotNull(store.mint(id, other.host)).copy(mintPubkey = old))
+        assertTrue(wallet.acceptMintKey(other.host, key))
+        assertEquals(key, store.mint("a", other.host)?.mintPubkey)
+        assertEquals(old, store.mint("b", other.host)?.mintPubkey)
+    }
 
     @Test
     fun `a mint without a key can't be trusted`() = withMints { wallet, _, _, _ ->

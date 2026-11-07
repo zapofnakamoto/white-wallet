@@ -19,7 +19,7 @@ internal class UnknownNotes(private val wallet: Wallet) {
      * (the refusal had another reason) or the mint didn't answer.
      */
     suspend fun sortOut(notes: List<Note>): List<String> {
-        val mint = notes.firstOrNull()?.let { wallet.store.mint(it.host) } ?: return emptyList()
+        val mint = notes.firstOrNull()?.let { wallet.mintOf(it.accountId, it.host) } ?: return emptyList()
         return notes
             .filter { note ->
                 if (note.purpose == null) return@filter false
@@ -47,13 +47,13 @@ internal class UnknownNotes(private val wallet: Wallet) {
                 note.state == NoteState.Unknown &&
                     note.purpose != null &&
                     note.index != null &&
-                    wallet.store.mint(note.host) != null &&
+                    wallet.mintOf(accountId, note.host) != null &&
                     wallet.unknownCheckedAt[note.id]?.let { now - it >= interval(now - note.updatedAtMillis) } != false
             }
         for (note in due) {
             wallet.unknownCheckedAt[note.id] = now
             try {
-                prober.probe(KeySet.of(note).key(accountId, note.host, note.index!!), wallet.store.mint(note.host)!!)
+                prober.probe(KeySet.of(note).key(accountId, note.host, note.index!!), wallet.mintOf(accountId, note.host)!!)
             } catch (e: MintKeyChangedException) {
                 // Nothing is asked of a mint with another key; the user decides first.
             }

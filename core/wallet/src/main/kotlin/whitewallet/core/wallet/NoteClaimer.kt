@@ -118,12 +118,12 @@ internal class NoteClaimer(private val wallet: Wallet) {
                 return ClaimPreview.Invalid(e.message ?: "invalid response")
             } catch (e: IOException) {
                 if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = false)
-                return ClaimPreview.Offline(link, link.declaredAmountMsat, certifiedOffline(link))
+                return ClaimPreview.Offline(link, link.declaredAmountMsat, certifiedOffline(link, accountId))
             }
         if (info.maxWithdrawableMsat <= 0) return ClaimPreview.AlreadySpent
         if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
         val own = wallet.store.account(accountId)?.host
-        val mint = wallet.store.mint(link.host)
+        val mint = wallet.mintOf(accountId, link.host)
         if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey.toHex())
             return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
         return ClaimPreview.Ready(
@@ -132,7 +132,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
             info.maxWithdrawableMsat,
             certified(link, info),
             isOwnMint = link.host == own,
-            trusted = wallet.isTrusted(MintKey(link.host, info.mintPubkey.toHex())),
+            trusted = wallet.isTrusted(wallet.walletOf(accountId), MintKey(link.host, info.mintPubkey.toHex())),
             hasOtherPaths = script?.hasOtherPaths == true,
         )
     }
@@ -174,9 +174,9 @@ internal class NoteClaimer(private val wallet: Wallet) {
         }
 
     /** The link's certificate amount, if it verifies against the pinned key of its mint (known from earlier). */
-    private suspend fun certifiedOffline(link: NoteLink): Long? {
+    private suspend fun certifiedOffline(link: NoteLink, accountId: String): Long? {
         val certificate = link.certificate?.let(Cs1::decode) ?: return null
-        val key = wallet.store.mint(link.host)?.mintPubkey ?: return null
+        val key = wallet.mintOf(accountId, link.host)?.mintPubkey ?: return null
         val mintKey = runCatching { PublicKey.fromHex(key) }.getOrNull() ?: return null
         return certificate.amountMsat.takeIf { certifies(certificate, link.host, link.spend.q, mintKey) }
     }

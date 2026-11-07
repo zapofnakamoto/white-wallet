@@ -38,6 +38,7 @@ class NotePolicyTest {
                 val policies = NotePolicies.InMemory()
                 val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient(), policies = policies)
                 store.addAccount("b", "Savings", Profile("bob", mint.host))
+                assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 store.addAccount("a", "Main", Profile("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 Fixture(mint, store, policies, wallet).test()
@@ -177,8 +178,9 @@ class NotePolicyTest {
         pay(1_000, 2_000, keys = keysB)
         wallet.refresh()
         assertEquals(2, outstanding("a").size)
-        assertEquals(1, outstanding("b").size, "account b keeps the default, keep only one note")
         wallet.switchAccount("b")
+        wallet.refresh()
+        assertEquals(1, outstanding("b").size, "account b keeps the default, keep only one note")
         assertEquals(SingleNoteStrategy.ID, wallet.noteStrategy.first().id)
         assertFalse(wallet.autoRotate.first())
     }
