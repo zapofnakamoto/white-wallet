@@ -685,10 +685,10 @@ class Wallet(
     }
 
     /**
-     * Connects to a mint the user names (pinning its key), so it can be trusted before any note from it arrives, and finds what the active
-     * account already holds there, as a restore does. A scan that stops is [ConnectResult.Failed]: adding the mint again goes on from what
-     * it found, and a new mint where it found nothing is forgotten, so that it can be added again. Runs to its end if the screen that asked
-     * is left: a mint in the list with its scan cut off would look empty.
+     * Connects to a mint the user names (pinning its key), so it can be trusted before any note from it arrives, and finds what every
+     * account of the active wallet already holds there, as a restore does; accounts the phone didn't have are created. A scan that stops is
+     * [ConnectResult.Failed]: adding the mint again goes on from what it found, and a new mint where it found nothing is forgotten, so that
+     * it can be added again. Runs to its end if the screen that asked is left: a mint in the list with its scan cut off would look empty.
      */
     suspend fun addMint(host: String): ConnectResult =
         withContext(NonCancellable) {
@@ -698,8 +698,8 @@ class Wallet(
                 val id = store.currentAccountId()
                 if (connected !is ConnectResult.Connected || id == null) return@withLock connected
                 val h = connected.mint.host
-                val failed = restorer.scanAddedMint(id, h) ?: return@withLock connected
-                if (!known && store.notes(id).first().none { it.host == h }) store.removeMint(h)
+                val failed = restorer.scanAddedMint(walletOf(id), h) ?: return@withLock connected
+                if (!known && siblings(id).none { a -> store.notes(a.id).first().any { it.host == h } }) store.removeMint(h)
                 ConnectResult.Failed(failed)
             }
         }

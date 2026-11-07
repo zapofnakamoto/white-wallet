@@ -66,26 +66,9 @@ internal class Restore(private val wallet: Wallet) {
             wallet.discardSeed(accountId)
             if (failure.refused) RestoreResult.MintInvalid(failure.reason) else RestoreResult.NetworkError(failure.reason)
         }
-        when (val first = scan(accountId, h, wallet.legacy.restoreSets)) {
-            is Scan.Failed -> return failed(first.failure)
-            is Scan.Done -> Unit
+        scanWallet(accountId, h)?.let {
+            return failed(it)
         }
-        // The phrase's further accounts, up to a gap of ones never used (BIP-44); those before a used one stay, to keep its index.
-        val unused = mutableListOf<String>()
-        for (index in 1L until minOf(wallet.maxAccounts, wallet.settings.restoreMaxAccountsChecked).toLong()) {
-            val id = UUID.randomUUID().toString()
-            wallet.store.saveAccount(Account(id, "$accountName ${index + 1}", wallet.now(), h, walletId = accountId, index = index))
-            when (val found = scan(id, h, emptyList())) {
-                is Scan.Failed -> return failed(found.failure)
-                is Scan.Done ->
-                    if (found.used) unused.clear()
-                    else {
-                        unused += id
-                        if (unused.size >= wallet.settings.restoreStopAfterUnusedAccounts) break
-                    }
-            }
-        }
-        unused.forEach { wallet.store.deleteAccount(it) }
         wallet.activeBeforeRestore = wallet.store.currentAccountId()
         wallet.store.setActiveAccount(accountId)
         val notes = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
@@ -93,17 +76,46 @@ internal class Restore(private val wallet: Wallet) {
     }
 
     /**
-     * Finds what [accountId], which exists already, holds on the mint at [host]: what a restore does on its mint, here for one the account
-     * adds later. Null once every key set was looked through; otherwise why the scan stopped. What it found until then stays.
+     * Finds what the wallet [walletId], which exists already, holds on the mint at [host]: what a restore does on its mint, here for one
+     * the wallet adds later. Null once every account was looked through; otherwise why the scan stopped. What it found until then stays.
      */
-    suspend fun scanAddedMint(accountId: String, host: String): OnboardResult? {
-        val older = if (wallet.legacy.ownsKeys(accountId)) wallet.legacy.restoreSets else emptyList()
-        return when (val found = scan(accountId, host, older)) {
-            is Scan.Done -> null
-            is Scan.Failed ->
-                if (found.failure.refused) OnboardResult.MintInvalid(found.failure.reason)
-                else OnboardResult.NetworkError(found.failure.reason)
+    suspend fun scanAddedMint(walletId: String, host: String): OnboardResult? =
+        scanWallet(walletId, host)?.let { if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason) }
+
+    /**
+     * Finds what every account of the wallet [walletId] holds on [host]: each account it has, then further ones up to a gap of ones never
+     * used (BIP-44), created with [host] as their home. An account the wallet has counts as used, and created ones before a used one stay,
+     * to keep its index. Null once every account was looked through; otherwise why the scan stopped, and the created accounts that hold
+     * nothing are gone again.
+     */
+    private suspend fun scanWallet(walletId: String, host: String): Failure? {
+        val accounts = wallet.store.accounts.first().map { it.account }.filter { it.walletId == walletId }
+        val byIndex = accounts.associateBy { it.index }
+        val name = accounts.minBy { it.index }.name
+        val last = accounts.maxOf { it.index }
+        val creatable = minOf(wallet.maxAccounts, wallet.settings.scanMaxAccountsChecked).toLong()
+        val unused = mutableListOf<String>()
+        var index = 0L
+        while (index <= last || (index < creatable && unused.size < wallet.settings.scanStopAfterUnusedAccounts)) {
+            val had = byIndex[index]
+            val account =
+                had
+                    ?: Account(UUID.randomUUID().toString(), "$name ${index + 1}", wallet.now(), host, walletId, index)
+                        .takeIf { index < creatable }
+                        ?.also { wallet.store.saveAccount(it) }
+            index++
+            if (account == null) continue
+            when (val found = scan(account.id, host)) {
+                is Scan.Failed -> {
+                    val created = if (had == null) unused + account.id else unused
+                    created.filter { wallet.store.notes(it).first().isEmpty() }.forEach { wallet.store.deleteAccount(it) }
+                    return found.failure
+                }
+                is Scan.Done -> if (found.used || had != null) unused.clear() else unused += account.id
+            }
         }
+        unused.forEach { wallet.store.deleteAccount(it) }
+        return null
     }
 
     private data class Failure(val reason: String, val refused: Boolean)
@@ -119,7 +131,8 @@ internal class Restore(private val wallet: Wallet) {
      * Finds what [accountId] holds on [h]. The legacy 2f17578 purposes (tag: keys) hold what the wallet's first account had before the
      * upgrade.
      */
-    private suspend fun scan(accountId: String, h: String, older: List<KeySet>): Scan {
+    private suspend fun scan(accountId: String, h: String): Scan {
+        val older = if (wallet.legacy.ownsKeys(accountId)) wallet.legacy.restoreSets else emptyList()
         var used = false
         for (set in listOf(KeySet.Wallet, KeySet.Change) + older) {
             val found = discovery.discover(accountId, h, set)
@@ -133,7 +146,7 @@ internal class Restore(private val wallet: Wallet) {
         var share = 0L
         var unused = 0
         var last = -1L
-        while (unused < wallet.settings.restoreStopAfterUnusedShares) {
+        while (unused < wallet.settings.scanStopAfterUnusedShares) {
             val found = discovery.discover(accountId, h, KeySet.share(share))
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))

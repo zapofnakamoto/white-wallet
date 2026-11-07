@@ -258,7 +258,7 @@ abstract class RestoreBoundaryTest {
     @Test
     fun `a share after a gap of addresses that were never paid is found, up to the share gap`() =
         runBlocking<Unit> {
-            val last = WalletSettings().restoreStopAfterUnusedShares - 1L
+            val last = WalletSettings().scanStopAfterUnusedShares - 1L
             val words = phrase()
             val msat = credit(words, KeySet.share(last), 0, SATS, account = 1)
             val phone = Fresh()
@@ -279,14 +279,13 @@ abstract class RestoreBoundaryTest {
             val past = credit(words, KeySet.share(2), 0, SATS)
             val account = credit(words, KeySet.Wallet, 2, SATS, account = 2)
 
-            val narrow = Fresh(settings = WalletSettings(scanStopAfterUnusedKeys = 2, restoreStopAfterUnusedShares = 2))
+            val narrow = Fresh(settings = WalletSettings(scanStopAfterUnusedKeys = 2, scanStopAfterUnusedShares = 2))
             assertIs<RestoreResult.Restored>(narrow.restore(words))
             assertEquals(mapOf(0L to 0L), narrow.balances(), "both a share and a key past their gaps, and so no account past the first")
 
             val wide =
                 Fresh(
-                    settings =
-                        WalletSettings(scanStopAfterUnusedKeys = 3, restoreStopAfterUnusedShares = 3, restoreStopAfterUnusedAccounts = 2)
+                    settings = WalletSettings(scanStopAfterUnusedKeys = 3, scanStopAfterUnusedShares = 3, scanStopAfterUnusedAccounts = 2)
                 )
             assertIs<RestoreResult.Restored>(wide.restore(words))
             assertEquals(mapOf(0L to past, 1L to 0L, 2L to account), wide.balances(), "the unused account stays, for the one after it")
@@ -296,9 +295,9 @@ abstract class RestoreBoundaryTest {
                     settings =
                         WalletSettings(
                             scanStopAfterUnusedKeys = 3,
-                            restoreStopAfterUnusedShares = 3,
-                            restoreStopAfterUnusedAccounts = 2,
-                            restoreMaxAccountsChecked = 2,
+                            scanStopAfterUnusedShares = 3,
+                            scanStopAfterUnusedAccounts = 2,
+                            scanMaxAccountsChecked = 2,
                         )
                 )
             assertIs<RestoreResult.Restored>(capped.restore(words))

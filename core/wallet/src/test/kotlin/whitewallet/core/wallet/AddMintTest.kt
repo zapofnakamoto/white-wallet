@@ -27,9 +27,9 @@ import whitewallet.lnurlcash.spendDomain
 import whitewallet.testkit.MockMint
 
 /**
- * Adding a mint finds what the phrase already holds there, as a restore does on its mint. Every case runs against mock mints
- * ([MockMintAddMintTest]) and the regtest stack ([RegtestAddMintTest]); each uses a fresh phrase, so notes left on a mint by earlier runs
- * never count.
+ * Adding a mint finds what every account of the active wallet already holds there, as a restore does on its mint. Every case runs against
+ * mock mints ([MockMintAddMintTest]) and the regtest stack ([RegtestAddMintTest]); each uses a fresh phrase, so notes left on a mint by
+ * earlier runs never count.
  */
 abstract class AddMintTest {
     protected abstract val home: String
@@ -93,25 +93,88 @@ abstract class AddMintTest {
         }
 
     @Test
-    fun `only the active account is looked up, and the legacy keys stay the first account's`() =
+    fun `every account of the wallet is looked up, and the legacy keys stay the first account's`() =
         runBlocking<Unit> {
             val words = phrase()
             // Another chain than on the other mint: both mints are on localhost, one domain, so their chains are the same keys.
             val onHome = credit(words, home, KeySet.Change, 0, SATS, account = 1)
-            credit(words, other, KeySet.Wallet, 0, SATS)
-            credit(words, other, KeySet.LegacyWallet, 0, SATS)
+            val first = credit(words, other, KeySet.Wallet, 0, SATS) + credit(words, other, KeySet.LegacyWallet, 0, SATS)
             val found = credit(words, other, KeySet.Wallet, 0, SATS, account = 1)
             val phone = Fresh()
             assertIs<RestoreResult.Restored>(phone.restore(words))
             phone.store.setActiveAccount(phone.ids().getValue(1))
 
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
-            assertEquals(mapOf(0L to 0L, 1L to onHome + found), phone.balances())
+            assertEquals(mapOf(0L to first, 1L to onHome + found), phone.balances())
+            assertEquals(1, phone.store.allNotes().count { it.host == other && it.accountId == phone.ids().getValue(1) })
+        }
 
-            // The first account's turn: added again while it is active.
-            phone.store.setActiveAccount(phone.ids().getValue(0))
+    @Test
+    fun `an account found only on the added mint is created there, and the active one stays`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val found = credit(words, other, KeySet.Wallet, 0, SATS, account = 1)
+            val phone = Fresh()
+            val id = assertIs<RestoreResult.Restored>(phone.restore(words)).accountId
+            assertEquals(setOf(0L), phone.ids().keys)
+
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
-            assertEquals(2, phone.store.allNotes().count { it.host == other && it.accountId == phone.ids().getValue(0) })
+            assertEquals(mapOf(0L to 0L, 1L to found), phone.balances())
+            val created = assertNotNull(phone.store.account(phone.ids().getValue(1)))
+            assertEquals(other, created.host)
+            assertEquals("Restored 2", created.name)
+            assertEquals(id, created.walletId)
+            assertEquals(id, phone.store.currentAccountId())
+        }
+
+    @Test
+    fun `no account is created past a gap of unused ones, nor past the most the brand allows`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            credit(words, other, KeySet.Wallet, 0, SATS, account = 2)
+            val phone = Fresh()
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(setOf(0L), phone.ids().keys, "account 1 is unused: the scan stops there")
+
+            val single = phrase()
+            credit(single, other, KeySet.Wallet, 0, SATS, account = 1)
+            val one = Fresh(maxAccounts = 1)
+            assertIs<RestoreResult.Restored>(one.restore(single))
+            assertIs<ConnectResult.Connected>(one.wallet.addMint(other))
+            assertEquals(setOf(0L), one.ids().keys)
+        }
+
+    @Test
+    fun `an account the wallet has is looked up past a gap of unused ones`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            credit(words, home, KeySet.Change, 0, SATS, account = 1)
+            credit(words, home, KeySet.Change, 0, SATS, account = 2)
+            val found = credit(words, other, KeySet.Wallet, 0, SATS, account = 2)
+            val phone = Fresh()
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+            assertEquals(setOf(0L, 1L, 2L), phone.ids().keys)
+
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(1, phone.store.allNotes().count { it.host == other && it.accountId == phone.ids().getValue(2) })
+            assertEquals(found, phone.store.allNotes().filter { it.host == other }.sumOf { it.amountMsat })
+        }
+
+    @Test
+    fun `another wallet on the phone is left alone`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            credit(words, other, KeySet.Wallet, 0, SATS)
+            credit(words, other, KeySet.Wallet, 0, SATS, account = 1)
+            val phone = Fresh()
+            val left = assertIs<RestoreResult.Restored>(phone.restore(words)).accountId
+            val active = assertIs<RestoreResult.Restored>(phone.restore(phrase())).accountId
+
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(0, phone.store.allNotes().count { it.host == other })
+            assertEquals(listOf(left), phone.store.accounts.first().map { it.account }.filter { it.walletId == left }.map { it.id })
+            assertEquals(active, phone.store.currentAccountId())
         }
 
     @Test
@@ -170,6 +233,31 @@ abstract class AddMintTest {
         }
 
     @Test
+    fun `a scan cut off in an account it created keeps that account if it found a note there`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val msat = credit(words, other, KeySet.Wallet, 0, SATS, account = 1)
+            val rest = credit(words, other, KeySet.Change, 0, SATS, account = 1)
+            val stop = Cp1.encode(keys(words, other, 1).pubkey(KeySet.Change, 0))
+            var answering = false
+            val phone =
+                Fresh(
+                    onLookup(other) { chain ->
+                        if (!answering && chain.request().url.queryParameter("p") == stop) throw IOException("dropped")
+                        chain.proceed(chain.request())
+                    }
+                )
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+
+            assertIs<ConnectResult.Failed>(phone.wallet.addMint(other))
+            assertEquals(mapOf(0L to 0L, 1L to msat), phone.balances())
+
+            answering = true
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(mapOf(0L to 0L, 1L to msat + rest), phone.balances())
+        }
+
+    @Test
     fun `a mint that refuses a lookup can't be added`() =
         runBlocking<Unit> {
             val phone = Fresh(onLookup(other) { chain -> Regtest.answer(chain, """{"status":"ERROR","reason":"not today"}""") })
@@ -206,7 +294,7 @@ abstract class AddMintTest {
     }
 
     /** A phone with nothing on it yet; a restore stops after a few unused shares, as the tests use only the first. */
-    private inner class Fresh(intercept: Interceptor? = null) {
+    private inner class Fresh(intercept: Interceptor? = null, maxAccounts: Int = AppDefaults.UNLIMITED) {
         val store = InMemoryWalletStore()
         val wallet =
             Wallet(
@@ -214,7 +302,8 @@ abstract class AddMintTest {
                 InMemorySeedStore(),
                 client(intercept),
                 policies = NotePolicies.InMemory(ManualStrategy.ID),
-                settings = WalletSettings(restoreStopAfterUnusedShares = 3),
+                settings = WalletSettings(scanStopAfterUnusedShares = 3),
+                maxAccounts = maxAccounts,
             )
 
         suspend fun restore(words: List<String>) = wallet.restore(words.joinToString(" "), home, "Restored")

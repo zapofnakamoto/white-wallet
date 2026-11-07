@@ -27,8 +27,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Fixed
 
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.
-- Adding a mint finds what the account already holds there, as a restore does on its mint, and payments to addresses
-  found there keep arriving. A scan that fails says so, and adding the mint again goes on from there.
+- Adding a mint finds what every account of the wallet already holds there, as a restore does on its mint, and creates
+  the accounts this phone didn't have yet. Payments to addresses found there keep arriving. A scan that fails says so,
+  and adding the mint again goes on from there.
 - A lookup on one mint no longer marks a note of another mint on the same domain as unknown or spent.
 - A refused payment says why: an invoice of your own mint, one already used, or else the mint's own words. A bare invoice
   whose payment failed no longer offers "Try again", which a mint always refuses.
@@ -43,8 +44,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### For developers
 
-- `wallet.properties` holds the numbers that decide how the wallet behaves, such as how far a restore looks and how
-  many notes one merge request spends. A build can override one with `-P` or a `WW_` variable, a release build can't.
+- `wallet.properties` holds the numbers that decide how the wallet behaves, such as how far a restore or adding a mint
+  looks (`scan.*`) and how many notes one merge request spends. A build can override one with `-P` or a `WW_` variable, a release build can't.
   Brands don't set these (see "Wallet settings" in `docs/DEVELOPMENT.md`).
 
 ### For brands
