@@ -31,7 +31,7 @@ internal data class AccountEntity(
     @PrimaryKey val id: String,
     val name: String,
     val createdAtMillis: Long,
-    val host: String,
+    val host: String?,
     /** The wallet (recovery phrase) the account's keys derive from; an account from before wallets is its own, with the same id. */
     @ColumnInfo(defaultValue = "''") val walletId: String,
     /** Its LUD-26 account index `a` in that wallet. */
@@ -55,8 +55,8 @@ internal data class AccountSummaryRow(
     val id: String,
     val name: String,
     val createdAtMillis: Long,
-    /** The account's home mint. */
-    val host: String,
+    /** The account's home mint; null without one. */
+    val host: String?,
     val username: String?,
     val addressHost: String?,
     val balanceMsat: Long,

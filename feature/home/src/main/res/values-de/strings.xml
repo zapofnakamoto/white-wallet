@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand terms (see values/strings.xml). -->
+    <string name="home_add_mint_title">Mint hinzufügen</string>
+    <string name="home_add_mint_body">Diese Wallet hat noch keine Mint, deshalb kann nichts empfangen werden. Fügst du die Mint hinzu, die du benutzt, wird das Geld gefunden, das deine Wiederherstellungsphrase dort hat.</string>
+    <string name="home_add_mint_action">Mint hinzufügen</string>
     <string name="activity_moved_mint_other">Zu einer anderen Mint verschoben</string>
     <string name="home_tab_notes">Scheine</string>
     <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Schein ein.</string>

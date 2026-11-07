@@ -29,21 +29,23 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.wallet.PhraseCheck
 
 /**
- * Restores an account from its recovery phrase on a chosen mint. [onRestored] gets the host, where the account's address is picked next
- * (addresses aren't part of the phrase).
+ * Restores an account from its recovery phrase on a chosen mint, or without one where the brand allows. [onRestored] gets the host, where
+ * the account's address is picked next (addresses aren't part of the phrase); null without a mint.
  */
 @Composable
 fun RestoreRoute(
     asNewAccount: Boolean,
     onBack: () -> Unit,
-    onRestored: (host: String) -> Unit,
+    onRestored: (host: String?) -> Unit,
     viewModel: RestoreViewModel = hiltViewModel(),
 ) {
     val defaultName = stringResource(R.string.default_account_name)
     val newName = stringResource(R.string.restore_default_account_name)
     LaunchedEffect(Unit) { viewModel.init(asNewAccount, defaultName, newName) }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(state.restoredOn) { state.restoredOn?.let(onRestored) }
+    LaunchedEffect(state.restoredOn, state.restoredWithoutMint) {
+        if (state.restoredWithoutMint) onRestored(null) else state.restoredOn?.let(onRestored)
+    }
     // The phrase is on screen: keep it out of screenshots and the recent-apps preview.
     SecureScreen {
         RestoreScreen(
@@ -54,6 +56,7 @@ fun RestoreRoute(
             mint = MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange),
             onRestore = viewModel::restore,
             onUseTestPhrase = viewModel::useTestPhrase,
+            onRestoreWithoutMint = viewModel::restoreWithoutMint,
         )
     }
 }
@@ -67,6 +70,7 @@ fun RestoreScreen(
     mint: MintActions,
     onRestore: () -> Unit,
     onUseTestPhrase: () -> Unit = {},
+    onRestoreWithoutMint: () -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.restore_title), onBack.takeIf { !state.busy }) }) { padding ->
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
@@ -112,6 +116,17 @@ fun RestoreScreen(
                 Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             }
             PrimaryButton(stringResource(R.string.restore_start), onRestore, enabled = state.canSubmit, busy = state.busy)
+            if (state.canSkipMint) {
+                WalletButton(kind = ButtonKind.Text, onClick = onRestoreWithoutMint, enabled = state.canSkipMintNow) {
+                    Text(stringResource(R.string.restore_skip_mint))
+                }
+                Text(
+                    stringResource(R.string.restore_skip_mint_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
             if (state.busy) {
                 Text(
                     stringResource(R.string.restore_searching),

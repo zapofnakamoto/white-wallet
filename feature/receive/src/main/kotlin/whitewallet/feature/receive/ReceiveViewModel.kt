@@ -30,6 +30,15 @@ sealed interface InvoiceProblem {
     data object Refused : InvoiceProblem
 }
 
+/** Why the account can't receive yet: it has no home mint. */
+enum class NoHome {
+    /** Its wallet has no mint at all: add one. */
+    NoMint,
+
+    /** Its wallet has mints, but the account's home was removed: pick one of them. */
+    PickHome,
+}
+
 /** An invoice on screen and where it stands. */
 data class ShownInvoice(val request: InvoiceRequest.Ready, val status: InvoiceStatus = InvoiceStatus.Waiting)
 
@@ -45,10 +54,12 @@ data class ReceiveState(
     val invoice: ShownInvoice? = null,
     /** Developer: whether the regtest faucet can pay what is shown, and its last attempt. */
     val faucet: FaucetState? = null,
+    /** Set while the account has no home mint: nothing can be received until it has one. */
+    val noHome: NoHome? = null,
 ) {
-    /** The amount form shows: always without an address, else once asked for. */
+    /** The amount form shows: always without an address, else once asked for; never without a home mint. */
     val showAmountForm: Boolean
-        get() = invoice == null && (address == null || requestingAmount)
+        get() = noHome == null && invoice == null && (address == null || requestingAmount)
 
     /** What arrived, once something did: the paid invoice, or what came to the address while the screen is open. */
     val arrivedMsat: Long?
@@ -88,7 +99,7 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
     private var watch: Job? = null
 
     val state: StateFlow<ReceiveState> =
-        combine(wallet.profile, received, ui, faucet.available) { profile, msat, u, canFaucet ->
+        combine(wallet.profile, received, ui, faucet.available, noHome()) { profile, msat, u, canFaucet, noHome ->
                 ReceiveState(
                     profile?.address,
                     receivedMsat = msat,
@@ -98,9 +109,19 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
                     u.problem,
                     u.invoice,
                     faucet = u.faucet.takeIf { canFaucet },
+                    noHome = noHome,
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState())
+
+    private fun noHome() =
+        combine(wallet.activeAccount, wallet.hasMint) { active, hasMint ->
+            when {
+                active == null || active.account.host != null -> null
+                hasMint -> NoHome.PickHome
+                else -> NoHome.NoMint
+            }
+        }
 
     init {
         viewModelScope.launch {

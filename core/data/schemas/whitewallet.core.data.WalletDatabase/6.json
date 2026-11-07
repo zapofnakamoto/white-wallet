@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 6,
-    "identityHash": "968b5c4d69024fd350eb3a9d74fc60a3",
+    "identityHash": "6a7a8db70687c2b08de7b16fc6a0f3f1",
     "entities": [
       {
         "tableName": "accounts",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `host` TEXT NOT NULL, `walletId` TEXT NOT NULL DEFAULT '', `accountIndex` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `host` TEXT, `walletId` TEXT NOT NULL DEFAULT '', `accountIndex` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -29,8 +29,7 @@
           {
             "fieldPath": "host",
             "columnName": "host",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "walletId",
@@ -886,7 +885,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '968b5c4d69024fd350eb3a9d74fc60a3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6a7a8db70687c2b08de7b16fc6a0f3f1')"
     ]
   }
 }

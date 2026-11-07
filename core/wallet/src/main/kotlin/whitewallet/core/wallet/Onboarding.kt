@@ -135,7 +135,7 @@ internal class Onboarding(private val wallet: Wallet) {
         }
 
     /** The active wallet's next account: its lowest free index, so a restore, which stops at the first unused one, finds no gap. */
-    private suspend fun sibling(accountId: String, name: String, host: String): Account {
+    private suspend fun sibling(accountId: String, name: String, host: String?): Account {
         val siblings = wallet.siblings(wallet.activeId())
         val used = siblings.map { it.index }.toSet()
         val index = generateSequence(0L) { it + 1 }.first { it !in used }
@@ -150,7 +150,7 @@ internal class Onboarding(private val wallet: Wallet) {
     suspend fun addAddress(username: String, limit: Int, host: String? = null): OnboardResult {
         val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
         val accountId = wallet.store.currentAccountId() ?: return OnboardResult.MintInvalid("no account")
-        val home = wallet.store.account(accountId)?.host ?: return OnboardResult.MintInvalid("no account")
+        val home = wallet.store.account(accountId)?.host ?: return OnboardResult.MintInvalid("no mint")
         val h = host?.let { normalizeHost(it) ?: return OnboardResult.MintInvalid("not a valid host") } ?: home
         val onHost = wallet.store.addresses(accountId).first().filter { it.host == h }
         if (onHost.none { it.username == name } && onHost.size >= limit) return OnboardResult.LimitReached(limit)
@@ -160,13 +160,15 @@ internal class Onboarding(private val wallet: Wallet) {
     }
 
     /** See [Wallet.createAccount]. The new recovery phrase is kept only if the mint answers as one. */
-    suspend fun createAccount(host: String, name: String, inActiveWallet: Boolean = false): CreateAccountResult {
-        val h = normalizeHost(host) ?: return CreateAccountResult.MintInvalid("not a valid host")
+    suspend fun createAccount(host: String?, name: String, inActiveWallet: Boolean = false): CreateAccountResult {
+        val h = host?.let { normalizeHost(it) ?: return CreateAccountResult.MintInvalid("not a valid host") }
         limit(creating = true, inActiveWallet)?.let {
             return CreateAccountResult.AccountLimitReached(it)
         }
         val accountId = UUID.randomUUID().toString()
-        when (val connected = connectMint(if (inActiveWallet) wallet.walletOf(wallet.activeId()) else accountId, h)) {
+        val connected = h?.let { connectMint(if (inActiveWallet) wallet.walletOf(wallet.activeId()) else accountId, it) }
+        when (connected) {
+            null,
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
                 return when (val r = connected.result) {

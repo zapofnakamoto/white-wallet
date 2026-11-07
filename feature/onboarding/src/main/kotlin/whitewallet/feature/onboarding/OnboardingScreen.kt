@@ -111,6 +111,7 @@ fun OnboardingRoute(
         onCancelRestore = viewModel::cancelRestore,
         onSkipAddress = viewModel::skipAddress,
         fee = FeeActions(viewModel::acceptFee, viewModel::declineFee, viewModel::payFee),
+        onSkipMint = viewModel::skipMint,
     )
 }
 
@@ -130,6 +131,7 @@ fun OnboardingScreen(
     onCancelRestore: () -> Unit = {},
     onSkipAddress: () -> Unit = {},
     fee: FeeActions = FeeActions({}, {}, {}),
+    onSkipMint: () -> Unit = {},
 ) {
     val claimed = state.claimed
     state.feePrompt?.let { AddressFeeDialog(it, state.canSkip, fee) }
@@ -247,6 +249,7 @@ fun OnboardingScreen(
                     } else {
                         MintForm(state, mint, onStart, stringResource(R.string.onboarding_create_account))
                     }
+                    SkipMint(state, onSkipMint)
                     onRestore?.let {
                         WalletButton(kind = ButtonKind.Text, onClick = it, enabled = !state.busy) {
                             Text(stringResource(R.string.onboarding_restore_instead))
@@ -281,6 +284,7 @@ fun OnboardingScreen(
                 // Without an address and with a single mint, this is just the button.
                 MintForm(state, mint, onStart, stringResource(R.string.onboarding_start))
             }
+            SkipMint(state, onSkipMint)
             onRestore?.let {
                 WalletButton(kind = ButtonKind.Text, onClick = it, enabled = !state.busy) {
                     Text(stringResource(R.string.onboarding_restore))
@@ -409,6 +413,21 @@ private fun SkipAddress(state: OnboardingState, onSkip: () -> Unit) {
     }
     Text(
         stringResource(R.string.onboarding_skip_address_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
+}
+
+/** Where the brand lets a new account start without a mint: the way past it, and what that means until one is added. */
+@Composable
+private fun SkipMint(state: OnboardingState, onSkip: () -> Unit) {
+    if (!state.showSkipMint) return
+    WalletButton(kind = ButtonKind.Text, onClick = onSkip, enabled = state.canSkipMintNow) {
+        Text(stringResource(R.string.onboarding_skip_mint))
+    }
+    Text(
+        stringResource(R.string.onboarding_skip_mint_hint),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,

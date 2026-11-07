@@ -119,6 +119,8 @@ data class OnboardingState(
     val withAddress: Boolean = true,
     /** The user may go on without an address (brand `addresses.lightning=optional`): first run, new account, after a restore. */
     val canSkipAddress: Boolean = false,
+    /** The user may set up a new account without a mint ([AppDefaults.mintOptional]), and add one later. */
+    val canSkipMint: Boolean = false,
     /** A new account joins the active wallet (its recovery phrase) instead of starting a wallet of its own. */
     val inActiveWallet: Boolean = false,
 ) {
@@ -147,6 +149,13 @@ data class OnboardingState(
 
     val canSkip: Boolean
         get() = canSkipAddress && !busy && host.isNotBlank() && (mode != OnboardingMode.NewAccount || accountName.isNotBlank())
+
+    /** A new account may be set up now without a mint. */
+    val showSkipMint: Boolean
+        get() = canSkipMint && (mode == OnboardingMode.FirstRun || mode == OnboardingMode.NewAccount)
+
+    val canSkipMintNow: Boolean
+        get() = showSkipMint && !busy && (mode != OnboardingMode.NewAccount || accountName.isNotBlank())
 
     private val addressOk: Boolean
         get() = username.isNotBlank() && availability !is Availability.Taken && availability !is Availability.Invalid
@@ -203,6 +212,7 @@ constructor(
                 canChangeHost = true,
                 withAddress = defaults.address != AddressPolicy.None,
                 canSkipAddress = defaults.address == AddressPolicy.Optional,
+                canSkipMint = defaults.mintOptional,
             )
         )
     val state: StateFlow<OnboardingState> = _state
@@ -465,10 +475,10 @@ constructor(
         }
     }
 
-    /** A new account without an address: nothing to show afterwards, it opens right away. */
-    private suspend fun createAccount(s: OnboardingState) {
+    /** A new account without an address (on no mint, when [host] is null): nothing to show afterwards, it opens right away. */
+    private suspend fun createAccount(s: OnboardingState, host: String? = s.host) {
         val name = if (s.mode == OnboardingMode.NewAccount) s.accountName.trim() else defaultAccountName
-        when (val result = wallet.createAccount(s.host, name, s.inActiveWallet)) {
+        when (val result = wallet.createAccount(host, name, s.inActiveWallet)) {
             is CreateAccountResult.Created -> _state.update { it.copy(busy = false, done = true) }
             is CreateAccountResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
             is CreateAccountResult.MintInvalid -> fail(OnboardingError.Mint(result.reason))
@@ -487,6 +497,14 @@ constructor(
         if (!s.canSkip) return
         checkJob?.cancel()
         if (s.restoringAddress) onContinue() else busy { createAccount(s) }
+    }
+
+    /** Sets the new account up without a mint (and so without an address): Home asks for a mint until one is added. */
+    fun skipMint() {
+        val s = _state.value
+        if (!s.canSkipMintNow) return
+        checkJob?.cancel()
+        busy { createAccount(s, host = null) }
     }
 
     /** Removes the just-restored account again, before it has an address (see [Wallet.abortRestore]). */

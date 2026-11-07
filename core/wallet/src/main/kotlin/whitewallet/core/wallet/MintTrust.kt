@@ -97,7 +97,6 @@ sealed interface RemoveMintResult {
 
 /** Why a mint can't be removed, checked in this order. */
 enum class MintUse {
-    Home,
     Notes,
     Address,
     OpenOperation,

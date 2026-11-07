@@ -117,6 +117,8 @@ fun HomeRoute(
     menu: List<HomeMenuItem> = emptyList(),
     /** Scan any QR code: a note to claim or something to pay. Null hides the button. */
     onScan: (() -> Unit)? = null,
+    /** Opens where a mint is added, for a wallet without one. */
+    onAddMint: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     releaseNotes: ReleaseNotesViewModel = hiltViewModel(),
 ) {
@@ -147,6 +149,7 @@ fun HomeRoute(
         onRecheckUnknown = viewModel::recheckUnknown,
         onDismissReceived = viewModel::dismissReceived,
         onScan,
+        onAddMint,
     )
 }
 
@@ -193,6 +196,7 @@ fun HomeScreen(
     onRecheckUnknown: () -> Unit = {},
     onDismissReceived: (String) -> Unit = {},
     onScan: (() -> Unit)? = null,
+    onAddMint: () -> Unit = {},
 ) {
     var saved by rememberSaveable { mutableStateOf(HomeTab.Wallet) }
     val tab = saved.takeIf { it != HomeTab.Notes || notesTab != null } ?: HomeTab.Wallet
@@ -287,6 +291,7 @@ fun HomeScreen(
                                 onRecheckUnknown,
                                 onDismissReceived,
                                 onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
+                                onAddMint,
                             )
                         HomeTab.Notes -> notesTab?.content?.invoke()
                         HomeTab.History ->
@@ -465,6 +470,7 @@ private fun WalletTab(
     onDismissReceived: (String) -> Unit,
     /** Opens the notes view, where received notes are listed too; null without one (the card below lists them). */
     onOpenIncoming: (() -> Unit)?,
+    onAddMint: () -> Unit,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(
@@ -483,6 +489,7 @@ private fun WalletTab(
                     onRecheck = onRecheckUnknown,
                 )
             }
+            if (state.showAddMintPrompt) AddMintPrompt(onAddMint)
             if (state.showBackupPrompt) BackupPrompt(onBackup, onDismissBackup)
             WalletStatusScope(state.status) { BrandDecoration(Anchor.HomeHeader) }
             AmountText(state.balanceMsat, hidden = state.balanceHidden, onToggleHidden = onToggleBalance)
@@ -833,6 +840,18 @@ private fun AddressInactive(address: String, onChangeAddress: () -> Unit) {
             Text(stringResource(R.string.home_address_inactive_title), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.home_address_inactive_body, address), style = MaterialTheme.typography.bodyMedium)
             WalletButton(onClick = onChangeAddress) { Text(stringResource(R.string.home_address_inactive_action)) }
+        }
+    }
+}
+
+/** A wallet without a mint can't receive: stays until one is added. */
+@Composable
+private fun AddMintPrompt(onAddMint: () -> Unit) {
+    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.home_add_mint_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.home_add_mint_body), style = MaterialTheme.typography.bodyMedium)
+            WalletButton(onClick = onAddMint) { Text(stringResource(R.string.home_add_mint_action)) }
         }
     }
 }

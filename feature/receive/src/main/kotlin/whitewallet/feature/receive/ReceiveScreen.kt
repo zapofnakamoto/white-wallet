@@ -51,7 +51,13 @@ import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceStatus
 
 @Composable
-fun ReceiveRoute(onBack: () -> Unit, onClaim: () -> Unit, viewModel: ReceiveViewModel = hiltViewModel()) {
+fun ReceiveRoute(
+    onBack: () -> Unit,
+    onClaim: () -> Unit,
+    /** Opens where a mint is added ([NoHome.NoMint]) or the account's home is picked ([NoHome.PickHome]). */
+    onNoHome: (NoHome) -> Unit = {},
+    viewModel: ReceiveViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     ReceiveScreen(
         state,
@@ -65,6 +71,7 @@ fun ReceiveRoute(onBack: () -> Unit, onClaim: () -> Unit, viewModel: ReceiveView
             onReceiveMore = viewModel::receiveMore,
             onFaucet = viewModel::payFromFaucet,
         ),
+        onNoHome,
     )
 }
 
@@ -81,7 +88,13 @@ class InvoiceActions(
 )
 
 @Composable
-fun ReceiveScreen(state: ReceiveState, onBack: () -> Unit, onClaim: () -> Unit, invoice: InvoiceActions = InvoiceActions()) {
+fun ReceiveScreen(
+    state: ReceiveState,
+    onBack: () -> Unit,
+    onClaim: () -> Unit,
+    invoice: InvoiceActions = InvoiceActions(),
+    onNoHome: (NoHome) -> Unit = {},
+) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.receive_title), onBack) }) { padding ->
         val arrived = state.arrivedMsat
         if (arrived != null) {
@@ -102,6 +115,7 @@ fun ReceiveScreen(state: ReceiveState, onBack: () -> Unit, onClaim: () -> Unit, 
             val shown = state.invoice
             WalletStatusScope(receiveStatus(state)) { BrandDecoration(Anchor.ReceiveHeader) }
             when {
+                state.noHome != null -> NoHomeContent(state.noHome, onNoHome)
                 shown != null -> InvoiceContent(shown, onBack, invoice.onNewInvoice)
                 state.showAmountForm -> AmountForm(state, invoice)
                 state.address != null -> AddressContent(state.address, invoice.onRequestAmount)
@@ -111,6 +125,18 @@ fun ReceiveScreen(state: ReceiveState, onBack: () -> Unit, onClaim: () -> Unit, 
             state.faucet?.takeIf { payable }?.let { FaucetButton(it, invoice = shown != null, onPay = invoice.onFaucet) }
         }
     }
+}
+
+/** Without a home mint nothing can be received: what is missing, and the way to it. */
+@Composable
+private fun NoHomeContent(noHome: NoHome, onNoHome: (NoHome) -> Unit) {
+    val mint = noHome == NoHome.NoMint
+    Text(
+        stringResource(if (mint) R.string.receive_no_mint else R.string.receive_no_home),
+        style = MaterialTheme.typography.bodyLarge,
+        textAlign = TextAlign.Center,
+    )
+    PrimaryButton(stringResource(if (mint) R.string.receive_no_mint_action else R.string.receive_no_home_action), { onNoHome(noHome) })
 }
 
 /** What the screen is about, for the brand's design: waiting, or a problem. What arrived has its own screen. */

@@ -322,7 +322,7 @@ private fun AccountSection(
     }
 }
 
-/** Removing the mint from this device: only when nothing ties an account to it, after a confirmation. */
+/** Removing the mint from this wallet: only when nothing ties an account to it, after a confirmation. */
 @Composable
 private fun RemoveSection(mint: MintInfo, refused: MintUse?, onRemove: () -> Unit) {
     var confirming by remember { mutableStateOf(false) }

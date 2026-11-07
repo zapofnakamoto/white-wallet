@@ -16,6 +16,10 @@
     <string name="onboarding_add_elsewhere_title">Address on another mint</string>
     <string name="onboarding_add_elsewhere_body">A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is.</string>
     <string name="restore_error_mint">This mint can\'t be used for a restore. Check that it\'s the one you used before.</string>
+    <string name="onboarding_skip_mint">Continue without a mint</string>
+    <string name="onboarding_skip_mint_hint">You can add a mint later. Until then, nothing can be received.</string>
+    <string name="restore_skip_mint">Restore without a mint</string>
+    <string name="restore_skip_mint_hint">Your money is found once you add the mint you used before.</string>
     <string name="onboarding_tagline">Bearer notes on Lightning. Ready in one tap.</string>
 
     <string name="onboarding_username">Your name</string>

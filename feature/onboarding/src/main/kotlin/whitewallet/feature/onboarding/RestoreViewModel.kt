@@ -43,6 +43,10 @@ data class RestoreState(
     val developerMode: Boolean = false,
     /** Set once restored: the host the account was restored on (its address is picked there next). */
     val restoredOn: String? = null,
+    /** Set once restored without a mint: the wallet opens and asks for one there. */
+    val restoredWithoutMint: Boolean = false,
+    /** The user may restore without a mint ([AppDefaults.mintOptional]), and add the one they used later. */
+    val canSkipMint: Boolean = false,
 ) {
     val check: PhraseCheck
         get() = RecoveryPhrase.check(phrase)
@@ -56,7 +60,10 @@ data class RestoreState(
         get() = mintOptions.hasChoice()
 
     val canSubmit: Boolean
-        get() = !busy && check is PhraseCheck.Valid && host.isNotBlank() && (!askAccountName || accountName.isNotBlank())
+        get() = canSkipMintNow && host.isNotBlank()
+
+    val canSkipMintNow: Boolean
+        get() = !busy && check is PhraseCheck.Valid && (!askAccountName || accountName.isNotBlank())
 }
 
 @HiltViewModel
@@ -67,7 +74,7 @@ constructor(
     private val defaults: AppDefaults,
     private val preferences: AppPreferences,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(RestoreState(host = defaults.defaultMintHost))
+    private val _state = MutableStateFlow(RestoreState(host = defaults.defaultMintHost, canSkipMint = defaults.mintOptional))
     val state: StateFlow<RestoreState> = _state
     private var initialized = false
     private var defaultAccountName = ""
@@ -111,14 +118,23 @@ constructor(
     fun onCustomHostChange(value: String) = _state.update { it.copy(customHost = value, host = value, error = null) }
 
     fun restore() {
+        if (_state.value.canSubmit) restore(_state.value.host)
+    }
+
+    /** Restores only the phrase: the wallet has no mint until the user adds one, which finds what it holds there. */
+    fun restoreWithoutMint() {
         val s = _state.value
-        if (!s.canSubmit) return
+        if (s.canSkipMint && s.canSkipMintNow) restore(host = null)
+    }
+
+    private fun restore(host: String?) {
+        val s = _state.value
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             val name = if (s.askAccountName) s.accountName.trim() else defaultAccountName
             val result =
                 try {
-                    wallet.restore(s.phrase, s.host, name)
+                    wallet.restore(s.phrase, host, name)
                 } catch (e: IOException) {
                     return@launch _state.update { it.copy(busy = false, error = RestoreError.Network) }
                 } catch (e: MintKeyChangedException) {
@@ -128,7 +144,14 @@ constructor(
                 when (result) {
                     is RestoreResult.Restored -> {
                         // The phrase isn't needed any more; don't keep it in memory longer than the screen.
-                        _state.update { it.copy(busy = false, phrase = "", restoredOn = s.host.trim().lowercase()) }
+                        _state.update {
+                            it.copy(
+                                busy = false,
+                                phrase = "",
+                                restoredOn = host?.trim()?.lowercase(),
+                                restoredWithoutMint = host == null,
+                            )
+                        }
                         return@launch
                     }
                     is RestoreResult.AlreadyInWallet -> RestoreError.AlreadyInWallet(result.accountName)

@@ -82,7 +82,7 @@ fun MoveFundsScreen(
                     WalletListItem(
                         leadingContent = { WalletAccountMark(target.account.name, state.places[target.account.id] ?: 0) },
                         headlineContent = { Text(target.account.name) },
-                        supportingContent = { Text(target.profile?.address ?: target.account.host) },
+                        supportingContent = (target.profile?.address ?: target.account.host)?.let { place -> { Text(place) } },
                         trailingContent = { WalletRadioButton(selected = selected, onClick = null) },
                         modifier = Modifier.selectable(selected = selected, role = Role.RadioButton) { onTarget(target.account.id) },
                     )

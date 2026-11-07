@@ -20,6 +20,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   names the accounts it takes with it. A restore finds a wallet's accounts on that mint, up to the first unused one.
   On a legacy mint only a wallet's first account can have an address. Database version 5.
 
+- A wallet without a mint: setup and restore may go on without one where the brand lets users add a mint later
+  (`mints.changeable=true`, `mints.visible=true`, an address not required). Home asks for a mint until there is one,
+  and Receive points there; the first mint added becomes the home of every account, and finds what the phrase holds
+  there. A restore is the phrase, then adding the mint picked.
 - The seed-derived default address of a new account comes from its first share, so each account of a wallet has its
   own; those made before are still found by a restore. The watch-only key moved from the mint's page to each
   address: a key only ever shows what was paid to its own address.
@@ -29,6 +33,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Each wallet has its own mints: the signing key it pinned there and whether you trust a mint are the wallet's, and
   another wallet on the phone never sees or changes them. A mint's new key is accepted per wallet. An update gives
   every wallet the mints and trust choices the phone had. Database version 6.
+- A home mint can be removed like any other mint, once nothing of the wallet is left there: its accounts have no home
+  until the user picks one, which Receive asks for.
 - A refresh, in the app or in the background, looks after the active wallet only. Another wallet's payments,
   received notes and open operations are taken care of once it is active.
 

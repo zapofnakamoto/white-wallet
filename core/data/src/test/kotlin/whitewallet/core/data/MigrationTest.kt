@@ -227,6 +227,14 @@ class MigrationTest {
                     store.journal(setOf(JournalStatus.Prepared)).single { it.id == "j2" }.outputs,
                 )
 
+                // An account may have no home mint now (its wallet has none yet).
+                store.saveAccount(Account("acc3", "Second", 4, null, walletId = "acc", index = 1))
+                assertNull(store.account("acc3")?.host)
+                assertEquals(
+                    null to "Second",
+                    store.accounts.first().single { it.account.id == "acc3" }.let { it.account.host to it.account.name },
+                )
+
                 // A second account in the first wallet; the wallet goes with its last account.
                 store.saveAccount(Account("acc3", "Second", 4, "mint.example", walletId = "acc", index = 1))
                 assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })

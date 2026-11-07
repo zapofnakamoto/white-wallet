@@ -295,18 +295,20 @@ class Wallet(
 
     /**
      * Creates an account on the mint at [host] without a Lightning address, with a fresh recovery phrase, and makes it active. Only where
-     * addresses aren't required ([requireAddress]); otherwise accounts start with [onboard].
+     * addresses aren't required ([requireAddress]); otherwise accounts start with [onboard]. Without [host], a wallet without a mint: it
+     * can't receive until one is added ([addMint]).
      */
-    suspend fun createAccount(host: String, name: String, inActiveWallet: Boolean = false): CreateAccountResult = lock.withLock {
+    suspend fun createAccount(host: String?, name: String, inActiveWallet: Boolean = false): CreateAccountResult = lock.withLock {
         check(!requireAddress) { "this app requires an address; use onboard" }
         onboarding.createAccount(host, name, inActiveWallet)
     }
 
     /**
      * Recovers an account from its recovery phrase on [host] and makes it active (see [Restore]). The account has no address afterwards;
-     * give it one with [onboard] (no new account name), which accepts an address it already owns.
+     * give it one with [onboard] (no new account name), which accepts an address it already owns. Without [host], only the phrase comes in:
+     * adding a mint later finds what it holds there.
      */
-    suspend fun restore(phrase: String, host: String, accountName: String): RestoreResult = lock.withLock {
+    suspend fun restore(phrase: String, host: String?, accountName: String): RestoreResult = lock.withLock {
         restorer.restore(phrase, host, accountName)
     }
 
@@ -443,7 +445,7 @@ class Wallet(
      */
     private suspend fun leavingHome(host: String): Pair<String, MintKey?>? {
         val id = activeId()
-        val home = checkNotNull(store.account(id)) { "no active account" }.host
+        val home = checkNotNull(store.account(id)) { "no active account" }.host ?: return id to null
         if (Onboarding.normalizeHost(host) == home) return null
         val walletId = walletOf(id)
         return id to store.mint(walletId, home)?.mintPubkey?.let { MintKey(home, it) }?.takeIf { isTrusted(walletId, it) }
@@ -570,7 +572,7 @@ class Wallet(
             notes,
             addresses,
             (trusted, untrusted) ->
-            val homes = accounts.map { it.account.host }.toSet()
+            val homes = accounts.mapNotNull { it.account.host }.toSet()
             val keys = mints.associate { it.host to it.mintPubkey }
             val held = notes.filter { it.state != NoteState.Spent }
             (keys.keys + held.map { it.host })
@@ -585,7 +587,7 @@ class Wallet(
                         trusted = key != null && isTrusted(MintKey(host, key), default, trusted, untrusted),
                         trustedByDefault = default,
                         homeOf = homeOf,
-                        removable = homeOf.isEmpty() && held.none { it.host == host } && addresses.none { it.host == host },
+                        removable = held.none { it.host == host } && addresses.none { it.host == host },
                     )
                 }
                 .sortedWith(compareBy({ it.homeOf.isEmpty() }, { it.host }))
@@ -618,8 +620,9 @@ class Wallet(
 
     /**
      * Forgets the active wallet's mint at [host]: its pinned signing key and the user's trust choice for it, so adding it again is a first
-     * contact (as after a restore). Only if no account of the wallet has its home, a note that isn't spent, an address or an unsettled
-     * operation there ([RemoveMintResult.InUse] says which); notes and history are never touched. Another wallet's mint stays.
+     * contact (as after a restore). Only if no account of the wallet has a note that isn't spent, an address or an unsettled operation
+     * there ([RemoveMintResult.InUse] says which); notes and history are never touched. An account whose home it was has none afterwards,
+     * until the user picks one. Another wallet's mint stays.
      */
     suspend fun removeMint(host: String): RemoveMintResult = lock.withLock {
         val h = Onboarding.normalizeHost(host) ?: host
@@ -629,7 +632,6 @@ class Wallet(
         val ids = accounts.map { it.id }.toSet()
         val use =
             when {
-                accounts.any { it.host == h } -> MintUse.Home
                 accounts.any { a -> store.notes(a.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
                 accounts.any { a -> store.addresses(a.id).first().any { it.host == h } } -> MintUse.Address
                 store.journal(UNSETTLED).any { it.host == h && it.accountId in ids } -> MintUse.OpenOperation
@@ -638,8 +640,12 @@ class Wallet(
         if (use != null) return@withLock RemoveMintResult.InUse(use)
         store.mint(walletId, h)?.mintPubkey?.let { trust.forget(walletId, MintKey(h, it)) }
         store.removeMint(walletId, h)
+        accounts.filter { it.host == h }.forEach { store.saveAccount(it.copy(host = null)) }
         RemoveMintResult.Removed
     }
+
+    /** Whether the active wallet has a mint at all; without one, it can't receive until one is added ([addMint]). */
+    val hasMint: Flow<Boolean> = ofActiveWallet(true) { id -> store.mints(id).map { it.isNotEmpty() } }.distinctUntilChanged()
 
     /** Hosts of the active wallet's trusted mints, for highlighting notes. */
     val trustedHosts: Flow<Set<String>>
@@ -714,15 +720,20 @@ class Wallet(
                 val connected = onboarding.connectMint(walletId, host)
                 if (connected !is ConnectResult.Connected) return@withLock connected
                 val h = connected.mint.host
-                val failed = restorer.scanAddedMint(walletId, h) ?: return@withLock connected
-                if (!known && siblings(id).none { a -> store.notes(a.id).first().any { it.host == h } }) store.removeMint(walletId, h)
-                ConnectResult.Failed(failed)
+                val failed = restorer.scanAddedMint(walletId, h)
+                if (failed != null && !known && siblings(id).none { a -> store.notes(a.id).first().any { it.host == h } }) {
+                    store.removeMint(walletId, h)
+                    return@withLock ConnectResult.Failed(failed)
+                }
+                // The wallet's first mint: accounts without a home receive there from now on.
+                siblings(id).filter { it.host == null }.forEach { store.saveAccount(it.copy(host = h)) }
+                if (failed == null) connected else ConnectResult.Failed(failed)
             }
         }
 
     /** Whether [mint] (this host with this key) is trusted in the wallet [walletId]. */
     internal suspend fun isTrusted(walletId: String, mint: MintKey): Boolean {
-        val homes = store.accounts.first().filter { it.account.walletId == walletId }.map { it.account.host }.toSet()
+        val homes = store.accounts.first().filter { it.account.walletId == walletId }.mapNotNull { it.account.host }.toSet()
         val default = trustDefault(mint, store.mint(walletId, mint.host)?.mintPubkey, homes)
         return isTrusted(mint, default, trust.trusted(walletId).first(), trust.untrusted(walletId).first())
     }

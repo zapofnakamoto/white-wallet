@@ -27,6 +27,15 @@ class AppDefaultsTest {
     }
 
     @Test
+    fun `setup may go on without a mint only where one can be added later and no address is required`() {
+        val open = defaults.copy(allowMintChange = true)
+        assertEquals(true, open.mintOptional)
+        assertEquals(false, defaults.mintOptional, "mints.changeable=false")
+        assertEquals(false, open.copy(address = AddressPolicy.Required).mintOptional)
+        assertEquals(false, open.copy(showMints = false).mintOptional)
+    }
+
+    @Test
     fun `users bring their own mint, but there must be one`() {
         val own = AppDefaults(mintSuggestions = emptyList(), allowMintChange = true)
         assertEquals("", own.defaultMintHost)

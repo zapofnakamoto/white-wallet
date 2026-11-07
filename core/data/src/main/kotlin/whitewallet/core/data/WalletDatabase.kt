@@ -266,9 +266,20 @@ internal object Migration4To5 : Migration(4, 5) {
     }
 }
 
-/** Each wallet has its own mints, with the key it pinned: every mint so far becomes each wallet's, as all of them shared it. */
+/**
+ * Each wallet has its own mints, with the key it pinned: every mint so far becomes each wallet's, as all of them shared it. An account may
+ * have no home mint (its wallet has none yet); every account so far keeps its own.
+ */
 internal object Migration5To6 : Migration(5, 6) {
     override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `accounts_new` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, " +
+                "`host` TEXT, `walletId` TEXT NOT NULL DEFAULT '', `accountIndex` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))"
+        )
+        db.execSQL("INSERT INTO accounts_new SELECT id, name, createdAtMillis, host, walletId, accountIndex FROM accounts")
+        db.execSQL("DROP TABLE accounts")
+        db.execSQL("ALTER TABLE accounts_new RENAME TO accounts")
+
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `mints_new` (`walletId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, " +
                 "`mintPubkey` TEXT, `minSendableMsat` INTEGER NOT NULL, `maxSendableMsat` INTEGER NOT NULL, `feeBaseMsat` INTEGER, " +

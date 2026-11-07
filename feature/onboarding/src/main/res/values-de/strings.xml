@@ -11,6 +11,10 @@
     <string name="onboarding_add_elsewhere_title">Adresse bei einer anderen Mint</string>
     <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einer anderen Mint, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei dieser Mint an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
     <string name="restore_error_mint">Diese Mint geht für eine Wiederherstellung nicht. Prüfe, ob es die ist, die du vorher benutzt hast.</string>
+    <string name="onboarding_skip_mint">Ohne Mint weitermachen</string>
+    <string name="onboarding_skip_mint_hint">Du kannst später eine Mint hinzufügen. Bis dahin kann nichts empfangen werden.</string>
+    <string name="restore_skip_mint">Ohne Mint wiederherstellen</string>
+    <string name="restore_skip_mint_hint">Dein Geld wird gefunden, sobald du die Mint hinzufügst, die du vorher benutzt hast.</string>
     <string name="onboarding_tagline">Inhaberscheine auf Lightning. Mit einem Tipp startklar.</string>
 
     <string name="onboarding_username">Dein Name</string>

@@ -359,4 +359,66 @@ class OnboardingScreenTest {
         compose.onNodeWithText(text(DesignR.string.release_stage_beta)).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.release_stage_alpha)).assertDoesNotExist()
     }
+
+    @Test
+    fun setupMayGoOnWithoutAMintWhereTheBrandAllows() {
+        var skipped = false
+        val state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false, canSkipMint = true)
+        compose.setContent {
+            OnboardingScreen(
+                "Wallet",
+                logo = {},
+                state = state,
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
+                onSkipMint = { skipped = true },
+            )
+        }
+        compose.onNodeWithText(text(R.string.onboarding_skip_mint)).performScrollTo().performClick()
+        assertTrue(skipped)
+        compose.onNodeWithText(text(R.string.onboarding_skip_mint_hint)).assertExists()
+    }
+
+    @Test
+    fun withoutTheBrandsLeaveSetupNeedsAMint() {
+        compose.setContent {
+            OnboardingScreen(
+                "Wallet",
+                logo = {},
+                state = OnboardingState(username = "alice", host = "mint.example", canChangeHost = false),
+                onBack = null,
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = {},
+                onAccountNameChange = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.onboarding_skip_mint)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aRestoreMayGoOnWithoutAMint() {
+        var skipped = false
+        val state = RestoreState(phrase = List(11) { "abandon" }.plus("about").joinToString(" "), host = "mint.example", canSkipMint = true)
+        compose.setContent {
+            RestoreScreen(
+                state,
+                onBack = {},
+                onPhraseChange = {},
+                onAccountNameChange = {},
+                mint = MintActions({}, {}),
+                onRestore = {},
+                onRestoreWithoutMint = { skipped = true },
+            )
+        }
+        compose.onNodeWithText(text(R.string.restore_skip_mint)).performScrollTo().performClick()
+        assertTrue(skipped)
+    }
 }

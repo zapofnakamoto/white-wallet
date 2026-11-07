@@ -26,15 +26,16 @@ sealed interface RestoreResult {
 
 /**
  * Recovers an account from its recovery phrase alone (LUD-26 recovery): every key of each purpose is looked up on the mint until a gap of
- * unused ones, which imports every note and sets the indexes past the last used key. Lightning addresses can't be recovered this way (the
- * mint maps names to keys, not keys to names); the account is left without one, and the user enters an address they had or picks a new one
- * (see [Wallet.needsAddress]). Only lookups are sent, so a restore that fails half way changes nothing at the mint and is undone locally.
+ * unused ones, which imports every note and sets the indexes past the last used key. Without a mint, only the phrase comes in, as a wallet
+ * without a mint; adding one later runs the same scan there ([scanAddedMint]). Lightning addresses can't be recovered this way (the mint
+ * maps names to keys, not keys to names); the account is left without one, and the user enters an address they had or picks a new one (see
+ * [Wallet.needsAddress]). Only lookups are sent, so a restore that fails half way changes nothing at the mint and is undone locally.
  */
 internal class Restore(private val wallet: Wallet) {
     private val discovery = IndexDiscovery(wallet)
     private val onboarding = Onboarding(wallet)
 
-    suspend fun restore(phrase: String, host: String, accountName: String): RestoreResult {
+    suspend fun restore(phrase: String, host: String?, accountName: String): RestoreResult {
         val words =
             when (val check = RecoveryPhrase.check(phrase)) {
                 is PhraseCheck.Valid -> check.words
@@ -46,7 +47,8 @@ internal class Restore(private val wallet: Wallet) {
         }
         if (!wallet.canAddWallet.first()) return RestoreResult.AccountLimitReached(wallet.maxWallets)
         val accountId = UUID.randomUUID().toString()
-        when (val connected = onboarding.connectMint(accountId, host)) {
+        when (val connected = host?.let { onboarding.connectMint(accountId, it) }) {
+            null,
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
                 return when (val r = connected.result) {
@@ -55,7 +57,7 @@ internal class Restore(private val wallet: Wallet) {
                     else -> RestoreResult.MintInvalid(r.toString())
                 }
         }
-        val h = checkNotNull(Onboarding.normalizeHost(host))
+        val h = host?.let { checkNotNull(Onboarding.normalizeHost(it)) }
 
         wallet.seeds.save(accountId, words)
         // The user had the phrase written down; no need to ask them to back it up again.
@@ -66,9 +68,10 @@ internal class Restore(private val wallet: Wallet) {
             wallet.discardSeed(accountId)
             if (failure.refused) RestoreResult.MintInvalid(failure.reason) else RestoreResult.NetworkError(failure.reason)
         }
-        scanWallet(accountId, h)?.let {
-            return failed(it)
-        }
+        h?.let { scanWallet(accountId, it) }
+            ?.let {
+                return failed(it)
+            }
         wallet.activeBeforeRestore = wallet.store.currentAccountId()
         wallet.store.setActiveAccount(accountId)
         val notes = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }

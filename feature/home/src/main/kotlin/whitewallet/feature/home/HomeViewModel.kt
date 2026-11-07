@@ -57,6 +57,8 @@ data class HomeState(
     val keyChangedHost: String? = null,
     /** Funds are at risk until the recovery phrase is backed up. */
     val showBackupPrompt: Boolean = false,
+    /** The active wallet has no mint yet: nothing can be received until one is added. */
+    val showAddMintPrompt: Boolean = false,
     /** The mint no longer routes the profile's address to this wallet (checked on refresh). */
     val addressInactive: Boolean = false,
     val backupPromptDismissed: Boolean = false,
@@ -124,7 +126,7 @@ class HomeViewModel(
     /** Whether Home is on screen, as the screen says ([setVisible]). */
     private var visible = false
 
-    private val walletFlags = combine(wallet.backupVerified, wallet.addressStatus, preferences.balanceHidden, ::Triple)
+    private val walletFlags = combine(wallet.backupVerified, wallet.addressStatus, preferences.balanceHidden, wallet.hasMint, ::WalletFlags)
     private val work =
         combine(wallet.task, wallet.noteStrategy) { task, strategy ->
             task to strategy.workingText?.takeIf { task is WalletTask.Maintaining && task.strategyId == strategy.id }
@@ -136,7 +138,7 @@ class HomeViewModel(
                 (accounts, active, work),
                 profile,
                 activity,
-                (backedUp, address, hidden),
+                (backedUp, address, hidden, hasMint),
                 s ->
                 val balance = active?.balanceMsat ?: 0
                 val walletId = active?.account?.walletId
@@ -150,6 +152,7 @@ class HomeViewModel(
                     profile = profile,
                     activity = activity,
                     showBackupPrompt = defaults.remindBackup(balance) && !backedUp && !s.backupPromptDismissed,
+                    showAddMintPrompt = active != null && !hasMint,
                     balanceHidden = hidden,
                     canAddAccount = accounts.count { it.account.walletId == walletId } < wallet.maxAccounts,
                     canAddWallet = accounts.map { it.account.walletId }.distinct().size < wallet.maxWallets,
@@ -258,3 +261,5 @@ class HomeViewModel(
         }
     }
 }
+
+private data class WalletFlags(val backedUp: Boolean, val address: AddressStatus?, val hidden: Boolean, val hasMint: Boolean)

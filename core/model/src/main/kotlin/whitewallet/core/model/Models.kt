@@ -47,7 +47,7 @@ enum class NoteKind {
 }
 
 /**
- * One account: a set of funds with its own home mint ([host]), notes, and Lightning addresses (none, if the brand doesn't require one). The
+ * One account: a set of funds with its home mint ([host]), notes, and Lightning addresses (none, if the brand doesn't require one). The
  * primary address, when there is one, is always on [host]. Its keys are account [index] (LUD-26 `S/a'`) of its wallet's recovery phrase; an
  * account made before wallets held several is its own wallet, with the same id, at index 0.
  */
@@ -55,7 +55,8 @@ data class Account(
     val id: String,
     val name: String,
     val createdAtMillis: Long,
-    val host: String,
+    /** The mint the user made the account's primary one; null while its wallet has no mint, so it can't receive yet. */
+    val host: String?,
     val walletId: String = id,
     val index: Long = 0,
 )

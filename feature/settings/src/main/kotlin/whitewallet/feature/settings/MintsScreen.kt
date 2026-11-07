@@ -74,7 +74,7 @@ sealed interface MintsProblem {
 private data class MintsUi(val newHost: String = "", val adding: Boolean = false, val problem: MintsProblem? = null)
 
 /**
- * The mints this device knows, for all accounts: which of them the user trusts (by signing key), whose home each is, and adding one
+ * The active wallet's mints, for all its accounts: which of them the user trusts (by signing key), whose home each is, and adding one
  * (removing one is on its page): by its address if the brand lets users (`mints.custom`), or one of the brand's suggested mints. Nothing
  * about one account's money: see Account → Mints.
  */

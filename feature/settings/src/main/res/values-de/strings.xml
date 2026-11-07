@@ -39,7 +39,7 @@
     <string name="notes_collect_hint">Scheine, die du anderswo bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Scheinen“ oben.</string>
     <string name="notes_collect_pending">Die Scheine von %1$s werden verschoben; sie kommen gleich an.</string>
     <string name="mints_add_invalid">Diese Adresse kann keine Scheine verwahren.</string>
-    <string name="mints_remove_body">Diese Wallet vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die Wallet merkt.</string>
+    <string name="mints_remove_body">Diese Wallet vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die Wallet merkt. Ein Konto, dessen Haupt-Mint er ist, hat keine mehr, bis du eine andere wählst.</string>
     <string name="settings_notices_hint">Eine kurze Nachricht, wenn die Wallet deine Scheine von selbst zusammengelegt, geteilt, erneuert oder verschoben hat.</string>
 
     <string name="settings_title">Einstellungen</string>
@@ -409,7 +409,7 @@
     </plurals>
     <string name="mints_remove_title">%1$s entfernen?</string>
     <string name="mints_remove_confirm">Entfernen</string>
-    <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto ihn nutzt: als Zuhause, oder mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
+    <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto ihn nutzt: mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
     <string name="settings_notices">Melden, was die Wallet selbst erledigt hat</string>
 
     <!-- Developer options: requests behave as on a bad connection. -->

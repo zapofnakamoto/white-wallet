@@ -67,6 +67,30 @@ abstract class AddMintTest {
         }
 
     @Test
+    fun `a wallet restored without a mint finds everything as its mints are added`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            // Another chain than on the other mint: both mints are on localhost, one domain, so their chains are the same keys.
+            val onHome = credit(words, home, KeySet.Wallet, 0, SATS)
+            val found = credit(words, other, KeySet.Change, 0, SATS, account = 1)
+            val phone = Fresh()
+            val id = assertIs<RestoreResult.Restored>(phone.restore(words, host = null)).accountId
+            assertEquals(0, phone.balance())
+            assertNull(phone.store.account(id)?.host)
+            assertEquals(false, phone.wallet.hasMint.first())
+
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(home))
+            assertEquals(mapOf(0L to onHome), phone.balances())
+            assertEquals(home, phone.store.account(id)?.host, "the wallet's first mint is its home")
+
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(mapOf(0L to onHome, 1L to found), phone.balances())
+            assertEquals(home, phone.store.account(id)?.host)
+            assertEquals(other, phone.store.account(phone.ids().getValue(1))?.host)
+            assertEquals(id, phone.store.currentAccountId())
+        }
+
+    @Test
     fun `a mint with nothing of the phrase is added, and nothing is found`() =
         runBlocking<Unit> {
             val phone = Fresh()
@@ -306,7 +330,7 @@ abstract class AddMintTest {
                 maxAccounts = maxAccounts,
             )
 
-        suspend fun restore(words: List<String>) = wallet.restore(words.joinToString(" "), home, "Restored")
+        suspend fun restore(words: List<String>, host: String? = home) = wallet.restore(words.joinToString(" "), host, "Restored")
 
         suspend fun balance(): Long = wallet.balanceMsat.first()
 

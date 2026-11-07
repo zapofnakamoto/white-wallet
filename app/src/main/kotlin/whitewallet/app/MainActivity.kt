@@ -65,6 +65,7 @@ import whitewallet.feature.notes.NotesViewModel
 import whitewallet.feature.onboarding.OnboardingMode
 import whitewallet.feature.onboarding.OnboardingRoute
 import whitewallet.feature.onboarding.RestoreRoute
+import whitewallet.feature.receive.NoHome
 import whitewallet.feature.receive.ReceiveRoute
 import whitewallet.feature.send.CreateNoteRoute
 import whitewallet.feature.send.ScanRoute
@@ -260,8 +261,9 @@ private fun WalletApp(
     val nav = rememberNavController()
     // A restored account has no address yet; picking one (unless this app has none) replaces everything before it, so
     // back can't return there.
-    val afterRestore = { host: String ->
-        nav.navigate(if (addressAfterRestore) "restore/address?host=$host" else Routes.HOME) { popUpTo(0) { inclusive = true } }
+    val afterRestore = { host: String? ->
+        val next = if (host != null && addressAfterRestore) "restore/address?host=$host" else Routes.HOME
+        nav.navigate(next) { popUpTo(0) { inclusive = true } }
     }
     // Links from outside open once the wallet is set up (Home is on the back stack): a note in Claim, anything else
     // in Send. Nothing is claimed or paid until the user confirms there.
@@ -335,6 +337,7 @@ private fun WalletApp(
                 onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT_IN_WALLET) },
                 onAddWallet = { nav.navigate(Routes.NEW_ACCOUNT) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
+                onAddMint = { nav.navigate(Routes.MINTS) },
                 menu =
                     brand.on(BrandScreenEntry.HomeMenu).map { screen ->
                         HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) }
@@ -416,7 +419,13 @@ private fun WalletApp(
             SharedNoteRoute(onBack = { nav.popBackStack() })
         }
         composable(Routes.RECEIVE) {
-            ReceiveRoute(onBack = { nav.popBackStack() }, onClaim = { nav.navigate(Routes.CLAIM) { popUpTo(Routes.HOME) } })
+            ReceiveRoute(
+                onBack = { nav.popBackStack() },
+                onClaim = { nav.navigate(Routes.CLAIM) { popUpTo(Routes.HOME) } },
+                onNoHome = { noHome ->
+                    nav.navigate(if (noHome == NoHome.NoMint) Routes.MINTS else Routes.changeMint(null)) { popUpTo(Routes.HOME) }
+                },
+            )
         }
         composable(
             Routes.CLAIM_WITH,

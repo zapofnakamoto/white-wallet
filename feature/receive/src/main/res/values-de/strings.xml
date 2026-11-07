@@ -2,6 +2,10 @@
 <resources>
     <!-- Brand terms (see values/strings.xml). -->
     <string name="receive_hint">Jeder kann an diese Adresse aus jeder Lightning-Wallet zahlen. Zahlungen kommen als Scheine in dieser Wallet an.</string>
+    <string name="receive_no_mint">Diese Wallet hat noch keine Mint. Füge eine hinzu, um zu empfangen.</string>
+    <string name="receive_no_mint_action">Mint hinzufügen</string>
+    <string name="receive_no_home">Dieses Konto hat keine Haupt-Mint. Wähle eine deiner Mints, um dort zu empfangen.</string>
+    <string name="receive_no_home_action">Haupt-Mint wählen</string>
     <string name="receive_claim">Stattdessen einen Schein einlösen</string>
 
     <string name="receive_title">Empfangen</string>

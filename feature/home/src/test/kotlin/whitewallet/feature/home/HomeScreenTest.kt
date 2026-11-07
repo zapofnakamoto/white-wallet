@@ -87,6 +87,31 @@ class HomeScreenTest {
     }
 
     @Test
+    fun aWalletWithoutAMintAsksForOneUntilItHasOne() {
+        var added = 0
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                HomeState(activeAccountId = "a", showAddMintPrompt = true),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onChangeAddress = {},
+                accountActions = AccountActions({}, {}, {}),
+                onAddMint = { added++ },
+            )
+        }
+        compose.onNodeWithText(text(R.string.home_add_mint_title)).assertExists()
+        // No way to put it off: only adding a mint takes it away.
+        compose.onNodeWithText(text(R.string.home_backup_later)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_add_mint_action)).performClick()
+        assertEquals(1, added)
+    }
+
+    @Test
     fun withoutAScanHomeShowsNoScanButton() {
         show(HomeState(balanceMsat = 845_000))
         compose.onNodeWithContentDescription(text(R.string.home_scan)).assertDoesNotExist()

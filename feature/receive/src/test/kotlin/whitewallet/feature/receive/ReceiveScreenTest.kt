@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -19,6 +20,22 @@ import whitewallet.core.wallet.InvoiceStatus
 @RunWith(RobolectricTestRunner::class)
 class ReceiveScreenTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun withoutAHomeMintItSaysWhatIsMissing() {
+        val asked = mutableListOf<NoHome>()
+        compose.setContent { ReceiveScreen(ReceiveState(noHome = NoHome.NoMint), onBack = {}, onClaim = {}, onNoHome = { asked += it }) }
+        compose.onNodeWithText(text(R.string.receive_no_mint)).assertExists()
+        compose.onNodeWithText(text(R.string.receive_no_mint_action)).performClick()
+        assertEquals(listOf(NoHome.NoMint), asked)
+    }
+
+    @Test
+    fun anAccountWhoseHomeWasRemovedPicksOne() {
+        compose.setContent { ReceiveScreen(ReceiveState(noHome = NoHome.PickHome), onBack = {}, onClaim = {}) }
+        compose.onNodeWithText(text(R.string.receive_no_home_action)).assertExists()
+        compose.onNodeWithText(text(R.string.receive_no_mint_action)).assertDoesNotExist()
+    }
 
     @Test
     fun showsTheAddress() {

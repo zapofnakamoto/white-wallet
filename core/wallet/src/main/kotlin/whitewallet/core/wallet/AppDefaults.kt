@@ -253,6 +253,13 @@ data class AppDefaults(
         require(mintSuggestions.isNotEmpty() || customMints) { "mints.suggestions is empty and mints.custom=false: no mint to set up with" }
     }
 
+    /**
+     * Whether setup and restore may go on without a mint: the wallet asks for one on Home, and can't receive until then. Only where an
+     * address isn't required and users can add a mint later (brand `mints.changeable`, `mints.visible`).
+     */
+    val mintOptional: Boolean
+        get() = address != AddressPolicy.Required && allowMintChange && showMints
+
     /** The mint preselected at setup and restore; empty when users bring their own. */
     val defaultMintHost: String
         get() = mintSuggestions.firstOrNull().orEmpty()
