@@ -131,7 +131,7 @@ English is the source; **German** (`values-de`) is complete in every module and 
 
 ## Background sync
 
-`SyncWorker` (WorkManager, every 15 minutes or more, with a network) runs the same `Wallet.refresh()` as pull-to-refresh: it reconciles the journal (payments, moves, claims in flight), scans the address keys, settles sent notes and applies the note policies. It shares the wallet's lock with the UI. A failure retries next period. A received note kept while its mint couldn't be reached also asks for one run as soon as the device has a network (`SyncWorker.scheduleOnce`, through `Wallet`'s `onWaitingForNetwork`), which stays one while it waits.
+`SyncWorker` (WorkManager, every 15 minutes or more, with a network) runs the same `Wallet.refresh()` as pull-to-refresh: it reconciles the journal (payments, moves, claims in flight), scans the address keys, settles sent notes and applies the note policies, for the accounts of the active wallet only: another wallet on the phone is left alone until it is active (switching accounts on Home refreshes). It shares the wallet's lock with the UI. A failure retries next period. A received note kept while its mint couldn't be reached also asks for one run as soon as the device has a network (`SyncWorker.scheduleOnce`, through `Wallet`'s `onWaitingForNetwork`), which stays one while it waits.
 
 ## Mints, keys and security
 

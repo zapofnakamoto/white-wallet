@@ -884,30 +884,37 @@ class Wallet(
     suspend fun moveToMint(ids: Collection<String>, toHost: String): MintMoveResult = lock.withLock { noteManager.move(ids, toHost) }
 
     /**
-     * Settles unknown outcomes, then checks every account's address and scans for new notes. As [WalletTask.Updating], unless no mint has
-     * anything to tell (no address, nothing open, no handed-out note).
+     * Settles unknown outcomes, then checks the address of every account of the active wallet and scans for new notes. As
+     * [WalletTask.Updating], unless no mint has anything to tell (no address, nothing open, no handed-out note). Another wallet is left
+     * alone: it catches up once it is active.
      */
     suspend fun refresh(): RefreshResult = lock.withLock { refreshUnderLock() }
 
     private suspend fun refreshUnderLock(): RefreshResult =
         if (asksMints()) working(WalletTask.Updating) { refreshLocked() } else refreshLocked()
 
-    private suspend fun asksMints(): Boolean =
-        store.journal(UNSETTLED).isNotEmpty() ||
-            store.receivedNotes(ReceivedState.PENDING).isNotEmpty() ||
-            store.accounts.first().any { summary ->
-                val id = summary.account.id
-                summary.profile != null ||
-                    store.addresses(id).first().isNotEmpty() ||
-                    store.notes(id).first().any { it.state.isShared || it.state == NoteState.Unknown }
-            }
+    private suspend fun asksMints(): Boolean {
+        val ids = walletAccountIds()
+        return store.journal(UNSETTLED).any { it.accountId in ids } ||
+            store.receivedNotes(ReceivedState.PENDING).any { it.accountId in ids } ||
+            store.accounts
+                .first()
+                .filter { it.account.id in ids }
+                .any { summary ->
+                    val id = summary.account.id
+                    summary.profile != null ||
+                        store.addresses(id).first().isNotEmpty() ||
+                        store.notes(id).first().any { it.state.isShared || it.state == NoteState.Unknown }
+                }
+    }
 
     private suspend fun refreshLocked(): RefreshResult {
-        reconciler.reconcileAll()
-        received.retryAll()
+        val ids = walletAccountIds()
+        reconciler.reconcileAll(ids)
+        received.retryAll(ids)
         val active = store.currentAccountId()
         var result = RefreshResult(0, 0)
-        for (summary in store.accounts.first()) {
+        for (summary in store.accounts.first().filter { it.account.id in ids }) {
             val id = summary.account.id
             unknownNotes.recheckDue(id)
             // First: a held address that was paid may be the account's primary one now.
@@ -1127,11 +1134,18 @@ class Wallet(
         }
     }
 
-    suspend fun unresolvedOperations(): Int =
-        store
+    /** The active wallet's operations whose outcome isn't settled yet. */
+    suspend fun unresolvedOperations(): Int {
+        val ids = walletAccountIds()
+        return store
             .journal(UNSETTLED)
             // An invoice waiting to be paid isn't stuck (see [requestInvoice]).
-            .count { !(it.type == OperationType.Mint && it.detail == null) }
+            .count { it.accountId in ids && !(it.type == OperationType.Mint && it.detail == null) }
+    }
+
+    /** The ids of the active wallet's accounts; none before there is an account. */
+    private suspend fun walletAccountIds(): Set<String> =
+        store.currentAccountId()?.let { active -> siblings(active).map { it.id }.toSet() }.orEmpty()
 
     /** Applies [accountId]'s note policies; must be called under the lock. */
     private suspend fun applyPolicies(accountId: String) {

@@ -290,7 +290,7 @@ class RegtestReceivedNotesTest {
         }
 
     @Test
-    fun `a note kept on one account is claimed into that account, whichever is active`() =
+    fun `a note kept on one account is claimed into that account, once its wallet is active`() =
         runBlocking<Unit> {
             val link = aNote()
             val connection = Connection()
@@ -308,6 +308,8 @@ class RegtestReceivedNotesTest {
             bob.wallet.refresh()
             assertEquals(0, bob.balance(), "not claimed into the active account")
             bob.wallet.switchAccount(first)
+            assertEquals(ReceivedState.Waiting, bob.wallet.receivedNotes.first().single().state, "another wallet's refresh left it alone")
+            bob.wallet.refresh()
             assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state)
             assertEquals(1_000_000, bob.balance())
             assertEquals(listOf(ActivityKind.Claimed), bob.wallet.activity.first().map { it.kind })

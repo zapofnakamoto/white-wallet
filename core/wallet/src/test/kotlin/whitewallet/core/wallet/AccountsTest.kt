@@ -9,11 +9,14 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import whitewallet.core.model.JournalEntry
+import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.OperationType
 import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -77,6 +80,42 @@ class AccountsTest {
     }
 
     private suspend fun Fixture.balance(account: String) = store.accounts.first().first { it.account.id == account }.balanceMsat
+
+    @Test
+    fun `a refresh is the active wallet's, another wallet's payments and operations wait until it is active`() = withMint {
+        wallet.switchAccount("b")
+        assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
+        wallet.switchAccount("a")
+        val keysB = testKeys(wordsB, mint.host)
+        mint.credit(Cp1.encode(keysB.pubkey(KeySet.share(0), 0)), 4_000)
+        val open =
+            JournalEntry(
+                "j1",
+                "b",
+                OperationType.Rotate,
+                mint.host,
+                "https://${mint.host}/w",
+                emptyList(),
+                emptyList(),
+                emptyList(),
+                "",
+                JournalStatus.Unknown,
+                null,
+                0,
+                0,
+            )
+        store.putJournal(open)
+
+        wallet.refresh()
+        assertEquals(0, balance("b"))
+        assertEquals(listOf(JournalStatus.Unknown), store.journal(JournalStatus.entries.toSet()).map { it.status })
+        assertEquals(0, wallet.unresolvedOperations())
+
+        store.putJournal(open.copy(status = JournalStatus.Rejected))
+        wallet.switchAccount("b")
+        wallet.refresh()
+        assertEquals(4_000, balance("b"))
+    }
 
     @Test
     fun `moving everything rotates a single note into the other account`() = withMint {

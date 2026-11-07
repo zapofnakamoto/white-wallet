@@ -25,8 +25,9 @@ internal class Reconciler(private val wallet: Wallet) {
     private val melts = MeltReconciler(wallet)
     private val mints = MintReconciler(wallet)
 
-    suspend fun reconcileAll() {
-        for (entry in wallet.store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown))) {
+    /** Settles the open operations of the accounts [accountIds]: those of the active wallet. */
+    suspend fun reconcileAll(accountIds: Set<String>) {
+        for (entry in wallet.store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).filter { it.accountId in accountIds }) {
             when (entry.type) {
                 OperationType.Melt -> melts.reconcile(entry)
                 OperationType.Mint -> mints.reconcile(entry)

@@ -29,6 +29,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Each wallet has its own mints: the signing key it pinned there and whether you trust a mint are the wallet's, and
   another wallet on the phone never sees or changes them. A mint's new key is accepted per wallet. An update gives
   every wallet the mints and trust choices the phone had. Database version 6.
+- A refresh, in the app or in the background, looks after the active wallet only. Another wallet's payments,
+  received notes and open operations are taken care of once it is active.
 
 ### Fixed
 

@@ -126,11 +126,11 @@ internal class ReceivedNotes(private val wallet: Wallet) {
     /**
      * On every refresh: settles claims whose outcome was unknown, then claims every kept note whose mint may take it now (a lock by date
      * once the date has passed; a wait after crediting is only known to the mint, so it is asked; a changed key is asked about again, and
-     * once the user accepted it the note is claimed).
+     * once the user accepted it the note is claimed). Only the notes of the accounts [accountIds]: those of the active wallet.
      */
-    suspend fun retryAll() {
-        for (note in wallet.store.receivedNotes(setOf(ReceivedState.Claiming))) settle(note)
-        for (note in wallet.store.receivedNotes(RETRIED)) {
+    suspend fun retryAll(accountIds: Set<String>) {
+        for (note in wallet.store.receivedNotes(setOf(ReceivedState.Claiming)).filter { it.accountId in accountIds }) settle(note)
+        for (note in wallet.store.receivedNotes(RETRIED).filter { it.accountId in accountIds }) {
             if (note.state == ReceivedState.Locked && (note.lockedUntilMillis ?: 0) > wallet.now()) continue
             claim(note)
         }
