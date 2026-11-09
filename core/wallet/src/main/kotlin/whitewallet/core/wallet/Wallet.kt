@@ -1223,10 +1223,12 @@ class Wallet(
         return keys(accountId, host)
     }
 
-    /** An account being set up in an existing wallet: its keys are needed before it is saved. */
-    internal var forming: Account? = null
+    internal suspend fun accountOf(accountId: String): Account? = store.account(accountId)
 
-    internal suspend fun accountOf(accountId: String): Account? = store.account(accountId) ?: forming?.takeIf { it.id == accountId }
+    /** Drops the keys kept for [accountId] (see [keys]): the account is gone. */
+    internal fun forgetKeys(accountId: String) {
+        keySets.keys.removeAll { it.first == accountId }
+    }
 
     /** [accountId]'s wallet's mint at [host]: what it fetched and the key it pinned. */
     internal suspend fun mintOf(accountId: String, host: String): Mint? = store.mint(walletOf(accountId), host)

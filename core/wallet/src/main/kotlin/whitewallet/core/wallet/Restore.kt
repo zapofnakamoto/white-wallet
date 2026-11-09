@@ -46,27 +46,33 @@ internal class Restore(private val wallet: Wallet) {
             if (wallet.seeds.load(summary.account.walletId) == words) return RestoreResult.AlreadyInWallet(summary.account.name)
         }
         if (!wallet.canAddWallet.first()) return RestoreResult.AccountLimitReached(wallet.maxWallets)
+        val h = host?.let { Onboarding.normalizeHost(it) ?: return RestoreResult.MintInvalid("not a valid host") }
         val accountId = UUID.randomUUID().toString()
-        when (val connected = host?.let { onboarding.connectMint(accountId, it) }) {
+
+        // The wallet and its first account are saved before anything of theirs (the mint, what the scan finds), and removed on failure.
+        wallet.seeds.save(accountId, words)
+        // The user had the phrase written down; no need to ask them to back it up again.
+        wallet.seeds.setBackupVerified(accountId)
+        wallet.store.saveAccount(Account(accountId, accountName, wallet.now(), h))
+        val undo = suspend {
+            wallet.siblings(accountId).forEach { wallet.store.deleteAccount(it.id) }
+            wallet.discardSeed(accountId)
+        }
+        val failed: suspend (Failure) -> RestoreResult = { failure ->
+            undo()
+            if (failure.refused) RestoreResult.MintInvalid(failure.reason) else RestoreResult.NetworkError(failure.reason)
+        }
+        when (val connected = h?.let { onboarding.connectMint(accountId, it) }) {
             null,
             is ConnectResult.Connected -> Unit
-            is ConnectResult.Failed ->
+            is ConnectResult.Failed -> {
+                undo()
                 return when (val r = connected.result) {
                     is OnboardResult.NetworkError -> RestoreResult.NetworkError(r.reason)
                     is OnboardResult.MintInvalid -> RestoreResult.MintInvalid(r.reason)
                     else -> RestoreResult.MintInvalid(r.toString())
                 }
-        }
-        val h = host?.let { checkNotNull(Onboarding.normalizeHost(it)) }
-
-        wallet.seeds.save(accountId, words)
-        // The user had the phrase written down; no need to ask them to back it up again.
-        wallet.seeds.setBackupVerified(accountId)
-        wallet.store.saveAccount(Account(accountId, accountName, wallet.now(), h))
-        val failed: suspend (Failure) -> RestoreResult = { failure ->
-            wallet.siblings(accountId).forEach { wallet.store.deleteAccount(it.id) }
-            wallet.discardSeed(accountId)
-            if (failure.refused) RestoreResult.MintInvalid(failure.reason) else RestoreResult.NetworkError(failure.reason)
+            }
         }
         h?.let { scanWallet(accountId, it) }
             ?.let {

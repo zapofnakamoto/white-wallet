@@ -59,7 +59,10 @@ class SecretGateTest {
         SecretGate(wallet).release(entry, NoteInfo(callback, 1_000, key, null), MutationType.Transfer, to)
     }
 
-    private suspend fun pin(key: PublicKey?) = store.saveMint(Mint("acc", host, withdrawUrl, key?.toHex(), 1_000, 1_000_000, null, null))
+    private suspend fun pin(key: PublicKey?) {
+        if (store.account("acc") == null) store.addAccount("acc", "Main", null, host)
+        store.saveMint(Mint("acc", host, withdrawUrl, key?.toHex(), 1_000, 1_000_000, null, null))
+    }
 
     @Test
     fun `a journaled request to the mint's callback goes out once, unchanged`() =

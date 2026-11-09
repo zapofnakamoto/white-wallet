@@ -22,6 +22,10 @@ import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.lnurlcash.spendDomain
 
+/**
+ * [WalletStore] in memory. Like the database's foreign keys, it refuses an account's rows (counters, scans, addresses) before the account
+ * is saved, and a wallet's mint before the wallet has an account.
+ */
 class InMemoryWalletStore : WalletStore {
     private val accountMap = MutableStateFlow<Map<String, Account>>(emptyMap())
     private val noteMap = MutableStateFlow<Map<String, Note>>(emptyMap())
@@ -63,6 +67,8 @@ class InMemoryWalletStore : WalletStore {
 
     override suspend fun account(id: String) = accountMap.value[id]
 
+    private fun requireAccount(id: String) = check(id in accountMap.value) { "row of account $id saved before the account" }
+
     override suspend fun saveAccount(account: Account) {
         accountMap.value = accountMap.value + (account.id to account)
     }
@@ -92,6 +98,7 @@ class InMemoryWalletStore : WalletStore {
     override suspend fun currentProfile(accountId: String) = profiles.value[accountId]
 
     override suspend fun saveProfile(accountId: String, profile: Profile) {
+        requireAccount(accountId)
         profiles.value = profiles.value + (accountId to profile)
         val list = addressMap.value[accountId].orEmpty()
         if (list.none { it.username == profile.username && it.host == profile.host }) {
@@ -104,6 +111,7 @@ class InMemoryWalletStore : WalletStore {
     }
 
     override suspend fun saveAddress(accountId: String, address: RegisteredAddress) {
+        requireAccount(accountId)
         val others = addressMap.value[accountId].orEmpty().filterNot { it.username == address.username && it.host == address.host }
         addressMap.value = addressMap.value + (accountId to others + address)
     }
@@ -116,6 +124,7 @@ class InMemoryWalletStore : WalletStore {
     override suspend fun mint(walletId: String, host: String) = mintMap.value[walletId to host]
 
     override suspend fun saveMint(mint: Mint) {
+        check(accountMap.value.values.any { it.walletId == mint.walletId }) { "mint ${mint.host} saved before its wallet ${mint.walletId}" }
         mintMap.update { it + ((mint.walletId to mint.host) to mint) }
     }
 
@@ -142,6 +151,7 @@ class InMemoryWalletStore : WalletStore {
     }
 
     override suspend fun reserveKeyIndex(accountId: String, domain: String, counter: KeyCounter): Long {
+        requireAccount(accountId)
         val key = Triple(accountId, domain, counter)
         val next = keyCounters[key] ?: 0
         keyCounters[key] = next + 1
@@ -153,6 +163,7 @@ class InMemoryWalletStore : WalletStore {
         keyCounters[Triple(accountId, domain, counter)]
 
     override suspend fun setKeyIndex(accountId: String, domain: String, counter: KeyCounter, next: Long) {
+        requireAccount(accountId)
         keyCounters[Triple(accountId, domain, counter)] = next
         indexVersion.value++
     }
@@ -160,11 +171,13 @@ class InMemoryWalletStore : WalletStore {
     override suspend fun shareScanFrom(accountId: String, host: String, share: Long) = shareScans[Triple(accountId, host, share)] ?: 0
 
     override suspend fun setShareScanFrom(accountId: String, host: String, share: Long, index: Long) {
+        requireAccount(accountId)
         shareScans[Triple(accountId, host, share)] = index
         indexVersion.value++
     }
 
     override suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long {
+        requireAccount(accountId)
         val key = Triple(accountId, host, purpose)
         val next = counters[key] ?: 0
         counters[key] = next + 1
@@ -175,6 +188,7 @@ class InMemoryWalletStore : WalletStore {
     override suspend fun currentIndexOrNull(accountId: String, host: String, purpose: Int) = counters[Triple(accountId, host, purpose)]
 
     override suspend fun setIndex(accountId: String, host: String, purpose: Int, next: Long) {
+        requireAccount(accountId)
         counters[Triple(accountId, host, purpose)] = next
         indexVersion.value++
     }

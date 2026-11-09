@@ -220,8 +220,13 @@ class OnboardingTest {
     @Test
     fun `a mint that refuses registrations is reported, not retried under another name`() =
         withMint(registrationEnabled = false) { mint, host ->
-            assertIs<OnboardResult.RegistrationFailed>(wallet().onboard("alice", host))
+            val store = InMemoryWalletStore()
+            assertIs<OnboardResult.RegistrationFailed>(wallet(store).onboard("alice", host))
             assertEquals(1, mint.posts)
+            // The account was saved before its mint and counters, and goes again with them.
+            assertEquals(emptyList(), store.accounts.first())
+            assertEquals(emptyMap(), store.mintMap.value)
+            assertEquals(emptyMap(), store.keyCounters)
         }
 
     @Test

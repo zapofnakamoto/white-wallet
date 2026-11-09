@@ -111,19 +111,33 @@ internal class Onboarding(private val wallet: Wallet) {
         limit(creating, inActiveWallet)?.let {
             return OnboardResult.AccountLimitReached(it)
         }
-        if (creating && inActiveWallet) {
-            val accountId = UUID.randomUUID().toString()
-            wallet.forming = sibling(accountId, accountName, h)
-            return claim(name, h, accountId, creating = true, accountName).also { wallet.forming = null }
-        }
-        val accountId = if (creating) UUID.randomUUID().toString() else existing
-        if (creating) wallet.createSeed(accountId)
-        val result = claim(name, h, accountId, creating, accountName)
-        // Kept for the next attempt, so the seed-derived names offered stay the same.
-        if (creating && result !is OnboardResult.Ready && result !is OnboardResult.AwaitingFee) {
-            wallet.discardSeed(accountId, keepForRetry = true)
-        }
+        if (!creating) return claim(name, h, checkNotNull(existing), creating = false)
+        // The account is saved before anything of it is (its counters, its wallet's mint), and removed again unless the claim holds.
+        val accountId = saveNew(accountName, h, inActiveWallet)
+        val result = claim(name, h, accountId, creating = true)
+        if (result !is OnboardResult.Ready && result !is OnboardResult.AwaitingFee) unsaveNew(accountId, inActiveWallet)
         return result
+    }
+
+    /** Saves a new account on [host] (null: on no mint): the next one of the active wallet, or the first of a wallet with a new phrase. */
+    private suspend fun saveNew(name: String, host: String?, inActiveWallet: Boolean): String {
+        val accountId = UUID.randomUUID().toString()
+        if (inActiveWallet) {
+            wallet.store.saveAccount(sibling(accountId, name, host))
+        } else {
+            wallet.createSeed(accountId)
+            wallet.store.saveAccount(Account(accountId, name, wallet.now(), host))
+        }
+        return accountId
+    }
+
+    /**
+     * Removes an account [saveNew] saved, before it was ever active: with its own wallet, the phrase is kept for the next attempt, so the
+     * seed-derived names offered stay the same.
+     */
+    private suspend fun unsaveNew(accountId: String, inActiveWallet: Boolean) {
+        wallet.store.deleteAccount(accountId)
+        if (inActiveWallet) wallet.forgetKeys(accountId) else wallet.discardSeed(accountId, keepForRetry = true)
     }
 
     /** The limit a new account would pass, if any: of accounts in the active wallet, or of wallets. */
@@ -142,10 +156,6 @@ internal class Onboarding(private val wallet: Wallet) {
         return Account(accountId, name, wallet.now(), host, siblings.first().walletId, index)
     }
 
-    /** The account as it is saved: in the wallet it is forming in, or the first of its own. */
-    private fun new(accountId: String, name: String, host: String): Account =
-        wallet.forming?.takeIf { it.id == accountId }?.copy(host = host) ?: Account(accountId, name, wallet.now(), host)
-
     /** Registers [username] as another address of the active account on its home mint: non-primary, unless it is the account's first. */
     suspend fun addAddress(username: String, limit: Int, host: String? = null): OnboardResult {
         val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
@@ -156,33 +166,24 @@ internal class Onboarding(private val wallet: Wallet) {
         if (onHost.none { it.username == name } && onHost.size >= limit) return OnboardResult.LimitReached(limit)
         // The primary address is always on the home mint; one on another mint is an extra way to get paid.
         val first = h == home && wallet.store.currentProfile(accountId) == null
-        return claim(name, h, accountId, creating = false, accountName = "", primary = first)
+        return claim(name, h, accountId, creating = false, primary = first)
     }
 
-    /** See [Wallet.createAccount]. The new recovery phrase is kept only if the mint answers as one. */
+    /** See [Wallet.createAccount]. The account is saved first; it stays only if the mint answers as one. */
     suspend fun createAccount(host: String?, name: String, inActiveWallet: Boolean = false): CreateAccountResult {
         val h = host?.let { normalizeHost(it) ?: return CreateAccountResult.MintInvalid("not a valid host") }
         limit(creating = true, inActiveWallet)?.let {
             return CreateAccountResult.AccountLimitReached(it)
         }
-        val accountId = UUID.randomUUID().toString()
-        val connected = h?.let { connectMint(if (inActiveWallet) wallet.walletOf(wallet.activeId()) else accountId, it) }
-        when (connected) {
-            null,
-            is ConnectResult.Connected -> Unit
-            is ConnectResult.Failed ->
-                return when (val r = connected.result) {
-                    is OnboardResult.NetworkError -> CreateAccountResult.NetworkError(r.reason)
-                    is OnboardResult.MintInvalid -> CreateAccountResult.MintInvalid(r.reason)
-                    else -> CreateAccountResult.MintInvalid(r.toString())
-                }
-        }
-        val accountName = name.trim().ifEmpty { DEFAULT_ACCOUNT_NAME }
-        if (inActiveWallet) {
-            wallet.store.saveAccount(sibling(accountId, accountName, h))
-        } else {
-            wallet.createSeed(accountId)
-            wallet.store.saveAccount(Account(accountId, accountName, wallet.now(), h))
+        val accountId = saveNew(name.trim().ifEmpty { DEFAULT_ACCOUNT_NAME }, h, inActiveWallet)
+        val failed = h?.let { connectMint(wallet.walletOf(accountId), it) as? ConnectResult.Failed }
+        if (failed != null) {
+            unsaveNew(accountId, inActiveWallet)
+            return when (val r = failed.result) {
+                is OnboardResult.NetworkError -> CreateAccountResult.NetworkError(r.reason)
+                is OnboardResult.MintInvalid -> CreateAccountResult.MintInvalid(r.reason)
+                else -> CreateAccountResult.MintInvalid(r.toString())
+            }
         }
         wallet.store.setActiveAccount(accountId)
         return CreateAccountResult.Created(accountId)
@@ -245,7 +246,6 @@ internal class Onboarding(private val wallet: Wallet) {
         h: String,
         accountId: String,
         creating: Boolean,
-        accountName: String,
         primary: Boolean = true,
     ): OnboardResult {
         when (val connected = connectMint(wallet.walletOf(accountId), h)) {
@@ -253,7 +253,7 @@ internal class Onboarding(private val wallet: Wallet) {
             is ConnectResult.Connected -> Unit
         }
         val ready = suspend { confirmed: Boolean, share: Long? ->
-            ready(accountId, creating, accountName, name, host = h, confirmed, primary, share)
+            ready(accountId, name, host = h, confirmed, primary, share)
         }
 
         // Check first: the name may already be ours (an earlier attempt whose answer was lost) or someone else's.
@@ -278,7 +278,7 @@ internal class Onboarding(private val wallet: Wallet) {
                 val held = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == h }
                 val invoice = held?.feeInvoice?.let(Bolt11::decode)?.takeUnless { it.isExpired(wallet.now()) }
                 if (held != null && invoice?.amountMsat != null) return OnboardResult.AwaitingFee(held, invoice.amountMsat!!)
-                claimShare(name, h, accountId, ready) { n, pr -> hold(pr, n, name, h, accountId, creating, accountName) }
+                claimShare(name, h, accountId, ready) { n, pr -> hold(pr, n, name, h, accountId, creating) }
             }
             MintDialect.Legacy -> wallet.legacy.claim(this, name, h, accountId, ready)
         }
@@ -332,7 +332,6 @@ internal class Onboarding(private val wallet: Wallet) {
         h: String,
         accountId: String,
         creating: Boolean,
-        accountName: String,
     ): OnboardResult {
         val advertised =
             try {
@@ -345,10 +344,7 @@ internal class Onboarding(private val wallet: Wallet) {
         val amount = Bolt11.decode(invoice)?.amountMsat ?: return OnboardResult.RegistrationFailed("the fee invoice can't be read")
         val max = minOf(advertised, wallet.maxAddressFeeMsat ?: advertised)
         if (amount > max) return OnboardResult.FeeRefused(amount, max)
-        if (creating) {
-            wallet.store.saveAccount(new(accountId, accountName, h))
-            wallet.store.setActiveAccount(accountId)
-        }
+        if (creating) wallet.store.setActiveAccount(accountId)
         val address = RegisteredAddress(name, h, wallet.now(), share, invoice)
         wallet.store.saveAddress(accountId, address)
         return OnboardResult.AwaitingFee(address, amount)
@@ -364,7 +360,7 @@ internal class Onboarding(private val wallet: Wallet) {
             AddressStatus.Ours -> {
                 val home = wallet.store.account(accountId)?.host
                 val primary = address.host == home && wallet.store.currentProfile(accountId) == null
-                ready(accountId, false, "", address.username, address.host, true, primary, after.share ?: address.share, activate = false)
+                ready(accountId, address.username, address.host, true, primary, after.share ?: address.share, activate = false)
             }
             AddressStatus.Available ->
                 if (address.feeInvoice?.let(Bolt11::decode)?.isExpired(wallet.now()) != false) {
@@ -424,8 +420,6 @@ internal class Onboarding(private val wallet: Wallet) {
 
     private suspend fun ready(
         accountId: String,
-        creating: Boolean,
-        accountName: String,
         name: String,
         host: String,
         confirmed: Boolean,
@@ -433,7 +427,6 @@ internal class Onboarding(private val wallet: Wallet) {
         share: Long?,
         activate: Boolean = true,
     ): OnboardResult.Ready {
-        if (creating) wallet.store.saveAccount(new(accountId, accountName, host))
         val profile = Profile(name, host)
         val known = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == host }
         if (known == null || known.feeInvoice != null || (share != null && known.share != share)) {
