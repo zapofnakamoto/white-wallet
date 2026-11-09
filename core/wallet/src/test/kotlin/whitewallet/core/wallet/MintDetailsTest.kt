@@ -7,7 +7,6 @@ import kotlin.test.assertNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
-import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -28,7 +27,7 @@ class MintDetailsTest {
                         LnurlcashClient(),
                         policies = NotePolicies.InMemory(ManualStrategy.ID),
                     )
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 test(mint, store, wallet)
             }

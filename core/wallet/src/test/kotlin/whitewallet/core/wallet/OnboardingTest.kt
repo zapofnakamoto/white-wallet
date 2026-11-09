@@ -8,7 +8,6 @@ import fr.acinq.secp256k1.Hex
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
@@ -166,7 +165,7 @@ class OnboardingTest {
         val wallet = wallet(store, seeds)
         val result = assertIs<OnboardResult.Ready>(wallet.onboard(" Alice ", host))
         assertTrue(result.confirmed)
-        assertEquals("alice@$host", result.profile.address)
+        assertEquals("alice@$host", result.address.address)
         assertEquals(AddressStatus.Ours, wallet.addressStatus.first())
         val accountId = assertNotNull(store.currentAccountId())
         assertEquals("Main", store.account(accountId)?.name)
@@ -181,7 +180,7 @@ class OnboardingTest {
         val store = InMemoryWalletStore()
         val seeds = InMemorySeedStore()
         val result = assertIs<OnboardResult.UsernameTaken>(wallet(store, seeds).onboard("alice", host))
-        assertTrue(seeds.accountIds().isEmpty(), "the unused recovery phrase is discarded")
+        assertTrue(seeds.walletIds().isEmpty(), "the unused recovery phrase is discarded")
         assertTrue(result.suggestions.isNotEmpty() && "alice" !in result.suggestions)
         assertEquals(0, mint.posts)
         assertNull(store.currentAccountId(), "no account is created")
@@ -262,14 +261,14 @@ class OnboardingTest {
         assertEquals("Savings", store.account(second)?.name)
         assertTrue(seeds.load(first) != seeds.load(second), "separate recovery phrases")
         assertTrue(mint.registered["alice"] != mint.registered["bob"], "each address points at its own account")
-        assertEquals("bob", wallet.profile.first()?.username)
-        assertEquals(listOf("alice", "bob"), wallet.accounts.first().map { it.profile?.username })
+        assertEquals("bob", wallet.primaryAddress.first()?.username)
+        assertEquals(listOf("alice", "bob"), wallet.accounts.first().map { store.currentPrimaryAddress(it.account.id)?.username })
 
         // A failed attempt at a third account leaves no trace.
         mint.registered["carol"] = mint.registered.getValue("alice")
         assertIs<OnboardResult.UsernameTaken>(wallet.onboard("carol", host, newAccountName = "Third"))
         assertEquals(2, wallet.accounts.first().size)
-        assertEquals(setOf(first, second), seeds.accountIds())
+        assertEquals(setOf(first, second), seeds.walletIds())
         assertEquals(second, store.currentAccountId())
     }
 
@@ -279,7 +278,7 @@ class OnboardingTest {
         val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
         assertIs<CreateAccountResult.Created>(wallet.createAccount(host, "Main"))
         assertIs<OnboardResult.Ready>(wallet.addAddress("alice", limit = 1))
-        assertEquals("alice@$host", wallet.profile.first()?.address)
+        assertEquals("alice@$host", wallet.primaryAddress.first()?.address)
         assertEquals(listOf(true), wallet.addresses.first().map { it.primary })
         assertEquals(OnboardResult.LimitReached(1), wallet.addAddress("bob", limit = 1))
     }
@@ -301,35 +300,41 @@ class OnboardingTest {
 
         val entries = wallet.addresses.first()
         assertEquals(listOf("alice" to true, "bob" to false), entries.map { it.address.username to it.primary })
-        assertEquals("alice", wallet.profile.first()?.username, "adding does not change the primary address")
+        assertEquals("alice", wallet.primaryAddress.first()?.username, "adding does not change the primary address")
         assertTrue(entries.all { it.status == AddressStatus.Ours })
     }
 
     @Test
-    fun `an address on another mint uses that mint's keys of the same phrase, and is never the primary one`() = withMint { home, homeHost ->
-        MockWebServer().use { server ->
-            val other = FakeMint(server, publishCpub = true, registrationEnabled = true)
-            server.dispatcher = other
-            server.start()
-            val otherHost = "localhost:${server.port}"
-            val wallet = wallet()
-            assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+    fun `an address on another mint uses that mint's keys of the same phrase, and may be made the primary one`() =
+        withMint { home, homeHost ->
+            MockWebServer().use { server ->
+                val other = FakeMint(server, publishCpub = true, registrationEnabled = true)
+                server.dispatcher = other
+                server.start()
+                val otherHost = "localhost:${server.port}"
+                val wallet = wallet()
+                assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
 
-            val added =
-                assertIs<OnboardResult.Ready>(
-                    wallet.addAddress("alice", limit = 1, host = otherHost),
-                    "the home mint's limit doesn't count there",
+                val added =
+                    assertIs<OnboardResult.Ready>(
+                        wallet.addAddress("alice", limit = 1, host = otherHost),
+                        "the home mint's limit doesn't count there",
+                    )
+                assertTrue(added.confirmed)
+                assertNotEquals(home.registered["alice"], other.registered["alice"], "each mint gets its own cx1 of the phrase")
+                val entries = wallet.addresses.first()
+                assertEquals(
+                    listOf("alice@$homeHost" to true, "alice@$otherHost" to false),
+                    entries.map { it.address.address to it.primary },
                 )
-            assertTrue(added.confirmed)
-            assertNotEquals(home.registered["alice"], other.registered["alice"], "each mint gets its own cx1 of the phrase")
-            val entries = wallet.addresses.first()
-            assertEquals(listOf("alice@$homeHost" to true, "alice@$otherHost" to false), entries.map { it.address.address to it.primary })
-            assertEquals("alice@$homeHost", wallet.profile.first()?.address)
-            assertEquals(homeHost, wallet.homeHost.first())
-            assertFailsWith<IllegalStateException> { wallet.setPrimaryAddress(entries[1].address) }
-            assertEquals(OnboardResult.LimitReached(1), wallet.addAddress("bob", limit = 1, host = otherHost), "the limit is per mint")
+                assertEquals("alice@$homeHost", wallet.primaryAddress.first()?.address)
+                assertEquals(homeHost, wallet.homeHost.first())
+                wallet.setPrimaryAddress(entries[1].address)
+                assertEquals("alice@$otherHost", wallet.primaryAddress.first()?.address)
+                assertEquals(homeHost, wallet.homeHost.first(), "the home mint stays")
+                assertEquals(OnboardResult.LimitReached(1), wallet.addAddress("bob", limit = 1, host = otherHost), "the limit is per mint")
+            }
         }
-    }
 
     /** Runs [test] with a second fake mint next to the one [withMint] gives. */
     private fun withTwoMints(test: suspend (home: FakeMint, homeHost: String, other: FakeMint, otherHost: String) -> Unit) =
@@ -343,30 +348,24 @@ class OnboardingTest {
         }
 
     @Test
-    fun `changing the home mint claims the name there as the primary address, and the old one stays`() =
+    fun `changing the home mint is only a setting, addresses stay, and the old home stays trusted`() =
         withTwoMints { home, homeHost, other, otherHost ->
             val wallet = wallet()
             assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
             assertTrue(wallet.mints.first().single { it.host == homeHost }.trusted)
 
-            val moved = assertIs<OnboardResult.Ready>(wallet.changeHome(otherHost, "alice"))
-            assertTrue(moved.confirmed)
+            assertIs<ConnectResult.Connected>(wallet.setHomeMint(otherHost).result)
             assertEquals(otherHost, wallet.homeHost.first())
-            assertEquals("alice@$otherHost", wallet.profile.first()?.address)
-            assertEquals(
-                listOf("alice@$homeHost" to false, "alice@$otherHost" to true),
-                wallet.addresses.first().map { it.address.address to it.primary },
-            )
-            assertNotEquals(home.registered["alice"], other.registered["alice"], "the new home's own cx1 of the phrase")
+            assertEquals(0, other.posts, "nothing is registered there")
+            assertEquals("alice@$homeHost", wallet.primaryAddress.first()?.address, "the primary address stays where it is")
             val mints = wallet.mints.first()
             assertEquals(TrustDefault.Home, mints.single { it.host == otherHost }.trustedByDefault)
             assertTrue(mints.single { it.host == homeHost }.trusted, "the old home stays trusted")
 
-            // And back: the address there is already ours, so nothing is registered again.
+            // And back.
             val posts = home.posts
-            assertIs<OnboardResult.Ready>(wallet.changeHome(homeHost, "alice"))
+            assertIs<ConnectResult.Connected>(wallet.setHomeMint(homeHost).result)
             assertEquals(homeHost, wallet.homeHost.first())
-            assertEquals("alice@$homeHost", wallet.profile.first()?.address)
             assertEquals(posts, home.posts)
         }
 
@@ -380,14 +379,14 @@ class OnboardingTest {
             assertIs<OnboardResult.Ready>(wallet.onboard("bob", otherHost, newAccountName = "Savings"))
             val savings = checkNotNull(store.currentAccountId())
 
-            // The active wallet's: its home, with whose home it is; nothing about money. Main's wallet is another.
-            assertEquals(listOf(otherHost to listOf("Savings")), wallet.mints.first().map { it.host to it.homeOf })
+            // The active wallet's: its home; nothing about money. Main's wallet is another.
+            assertEquals(listOf(otherHost to true), wallet.mints.first().map { it.host to it.isHome })
             // The active account's: only its own home.
             assertEquals(listOf(otherHost), wallet.accountMints.first().map { it.host })
             assertEquals(RemoveMintResult.InUse(MintUse.Address), wallet.removeMint(otherHost), "its home, and its address is there")
 
-            // Savings moves home to the first mint; its address on the other one still ties it.
-            assertIs<OnboardResult.Ready>(wallet.changeHome(homeHost, "bob"))
+            // Savings' wallet makes the first mint its home; its address on the other one still ties it.
+            assertIs<ConnectResult.Connected>(wallet.setHomeMint(homeHost).result)
             assertEquals(listOf(homeHost, otherHost), wallet.accountMints.first().map { it.host }, "home first, then the old address")
             assertEquals(RemoveMintResult.InUse(MintUse.Address), wallet.removeMint(otherHost))
             store.deleteAddress(savings, "bob", otherHost)
@@ -433,8 +432,8 @@ class OnboardingTest {
             // Main's wallet has its home, and the other mint only for the note it holds there: never connected, it has no key there.
             wallet.switchAccount(main)
             assertEquals(
-                listOf(Triple(homeHost, listOf("Main"), true), Triple(otherHost, emptyList(), false)),
-                wallet.mints.first().map { Triple(it.host, it.homeOf, it.pubkey != null) },
+                listOf(Triple(homeHost, true, true), Triple(otherHost, false, false)),
+                wallet.mints.first().map { Triple(it.host, it.isHome, it.pubkey != null) },
             )
             wallet.switchAccount(savings)
 
@@ -446,26 +445,11 @@ class OnboardingTest {
         }
 
     @Test
-    fun `an address added on another mint before is taken as it is when moving there`() = withTwoMints { _, homeHost, other, otherHost ->
+    fun `the home mint can't be made home again`() = withTwoMints { _, homeHost, _, _ ->
         val wallet = wallet()
         assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
-        assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 1, host = otherHost))
-        val posts = other.posts
-        assertIs<OnboardResult.Ready>(wallet.changeHome(otherHost, "bob"))
-        assertEquals(posts, other.posts, "nothing registered again")
-        assertEquals("bob@$otherHost", wallet.profile.first()?.address)
-        assertEquals(2, wallet.addresses.first().size)
-    }
-
-    @Test
-    fun `a taken name or the same mint moves nothing`() = withTwoMints { _, homeHost, other, otherHost ->
-        val wallet = wallet()
-        assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
-        other.registered["alice"] = SOMEONE_ELSE
-        assertIs<OnboardResult.UsernameTaken>(wallet.changeHome(otherHost, "alice"))
-        assertIs<OnboardResult.MintInvalid>(wallet.changeHome(homeHost, "alice"))
+        assertIs<ConnectResult.Failed>(wallet.setHomeMint(homeHost).result)
         assertEquals(homeHost, wallet.homeHost.first())
-        assertEquals("alice@$homeHost", wallet.profile.first()?.address)
     }
 
     @Test
@@ -473,62 +457,65 @@ class OnboardingTest {
         val wallet = wallet()
         assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
         wallet.setMintTrusted(homeHost, false)
-        assertIs<OnboardResult.Ready>(wallet.changeHome(otherHost, "alice"))
+        assertIs<ConnectResult.Connected>(wallet.setHomeMint(otherHost).result)
         assertFalse(wallet.mints.first().single { it.host == homeHost }.trusted)
     }
 
     @Test
-    fun `an account without an address just changes its mint`() = withTwoMints { _, homeHost, _, otherHost ->
+    fun `an account without an address changes its wallet's home too`() = withTwoMints { _, homeHost, _, otherHost ->
         val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
         assertIs<CreateAccountResult.Created>(wallet.createAccount(homeHost, "Main"))
-        assertIs<ConnectResult.Connected>(wallet.changeHome(otherHost))
+        assertIs<ConnectResult.Connected>(wallet.setHomeMint(otherHost).result)
         assertEquals(otherHost, wallet.homeHost.first())
-        assertNull(wallet.profile.first())
-        assertIs<ConnectResult.Failed>(wallet.changeHome(otherHost), "already home")
+        assertNull(wallet.primaryAddress.first())
+        assertIs<ConnectResult.Failed>(wallet.setHomeMint(otherHost).result, "already home")
     }
 
     @Test
-    fun `a wallet set up without a mint can't receive, and its first mint becomes every account's home`() =
-        withTwoMints { _, homeHost, _, otherHost ->
-            val store = InMemoryWalletStore()
-            val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
-            val main = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main")).accountId
-            val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true)).accountId
-            assertNull(store.account(main)?.host)
-            assertFalse(wallet.hasMint.first())
-            assertEquals(InvoiceRequest.Unreachable, wallet.requestInvoice(1_000_000))
-            assertEquals(emptyList(), wallet.mints.first())
+    fun `a wallet set up without a mint can't receive, and its first mint becomes its home`() = withTwoMints { _, homeHost, _, otherHost ->
+        val store = InMemoryWalletStore()
+        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
+        val main = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main")).accountId
+        val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true)).accountId
+        assertNull(store.homeOf(main))
+        assertFalse(wallet.hasMint.first())
+        assertEquals(InvoiceRequest.Unreachable, wallet.requestInvoice(1_000_000))
+        assertEquals(emptyList(), wallet.mints.first())
 
-            assertIs<ConnectResult.Connected>(wallet.addMint(homeHost))
-            assertTrue(wallet.hasMint.first())
-            assertEquals(homeHost, store.account(main)?.host)
-            assertEquals(homeHost, store.account(savings)?.host)
+        assertIs<ConnectResult.Connected>(wallet.addMint(homeHost))
+        assertTrue(wallet.hasMint.first())
+        assertEquals(homeHost, store.homeOf(main))
+        assertEquals(homeHost, store.homeOf(savings))
 
-            // A second mint is only added; the homes stay.
-            assertIs<ConnectResult.Connected>(wallet.addMint(otherHost))
-            assertEquals(homeHost, store.account(savings)?.host)
+        // A second mint is only added; the home stays.
+        assertIs<ConnectResult.Connected>(wallet.addMint(otherHost))
+        assertEquals(homeHost, store.homeOf(savings))
 
-            // A home may be removed: its accounts have none until one is picked, while the wallet still has a mint.
-            assertEquals(RemoveMintResult.Removed, wallet.removeMint(homeHost))
-            assertNull(store.account(main)?.host)
-            assertNull(store.account(savings)?.host)
-            assertTrue(wallet.hasMint.first())
-            assertIs<ConnectResult.Connected>(wallet.changeHome(otherHost))
-            assertEquals(otherHost, wallet.homeHost.first())
-            assertNull(store.account(main)?.host, "the other account picks its own")
-        }
+        // The home may be removed: the wallet has none until one is picked, while it still has a mint.
+        assertEquals(RemoveMintResult.Removed, wallet.removeMint(homeHost))
+        assertNull(store.homeOf(main))
+        assertNull(store.homeOf(savings))
+        assertTrue(wallet.hasMint.first())
+        assertIs<ConnectResult.Connected>(wallet.setHomeMint(otherHost).result)
+        assertEquals(otherHost, wallet.homeHost.first())
+        assertEquals(otherHost, store.homeOf(main), "one home for the whole wallet")
+    }
 
     @Test
-    fun `without a home address, an address on another mint still isn't primary`() = withMint { _, homeHost ->
+    fun `an account's first address is its primary one, on whichever mint, and the home stays`() = withMint { _, homeHost ->
         MockWebServer().use { server ->
             server.dispatcher = FakeMint(server, publishCpub = true, registrationEnabled = true)
             server.start()
+            val otherHost = "localhost:${server.port}"
             val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
             assertIs<CreateAccountResult.Created>(wallet.createAccount(homeHost, "Main"))
-            assertIs<OnboardResult.Ready>(wallet.addAddress("alice", limit = 1, host = "localhost:${server.port}"))
-            assertNull(wallet.profile.first())
+            assertIs<OnboardResult.Ready>(wallet.addAddress("alice", limit = 1, host = otherHost))
+            assertEquals("alice@$otherHost", wallet.primaryAddress.first()?.address)
             assertEquals(homeHost, wallet.homeHost.first())
-            assertEquals(listOf(false), wallet.addresses.first().map { it.primary })
+
+            // A second one is added beside it.
+            assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 1))
+            assertEquals(listOf("alice" to true, "bob" to false), wallet.addresses.first().map { it.address.username to it.primary })
         }
     }
 
@@ -563,25 +550,22 @@ class OnboardingTest {
         assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 2))
         val bob = wallet.addresses.first().single { it.address.username == "bob" }.address
         wallet.setPrimaryAddress(bob)
-        assertEquals("bob", wallet.profile.first()?.username)
+        assertEquals("bob", wallet.primaryAddress.first()?.username)
         assertEquals(listOf("alice" to false, "bob" to true), wallet.addresses.first().map { it.address.username to it.primary })
 
         // "Change primary address" registers a new name and makes it primary; the others stay.
         assertIs<OnboardResult.Ready>(wallet.onboard("carol", host))
-        assertEquals("carol", wallet.profile.first()?.username)
+        assertEquals("carol", wallet.primaryAddress.first()?.username)
         assertEquals(listOf("alice", "bob", "carol"), wallet.addresses.first().map { it.address.username })
         assertTrue(listOf("alice", "bob", "carol").all { mint.registered.containsKey(it) })
     }
 
     @Test
-    fun `unregistering frees the name at the mint, but never the primary address`() = withMint { mint, host ->
+    fun `unregistering frees the name at the mint, the primary one too, which leaves none primary`() = withMint { mint, host ->
         val wallet = wallet()
         assertIs<OnboardResult.Ready>(wallet.onboard("alice", host))
         assertIs<OnboardResult.Ready>(wallet.addAddress("bob", limit = 2))
         val (alice, bob) = wallet.addresses.first().map { it.address }
-
-        assertEquals(UnregisterResult.IsPrimary, wallet.unregisterAddress(alice))
-        assertEquals(0, mint.deletes, "nothing is sent for the primary address")
 
         assertEquals(UnregisterResult.Unregistered, wallet.unregisterAddress(bob))
         assertEquals(1, mint.deletes)
@@ -589,8 +573,13 @@ class OnboardingTest {
         assertEquals(listOf("alice"), wallet.addresses.first().map { it.address.username })
         assertEquals(AddressStatus.Available, wallet.checkAddress("bob", host))
 
-        // Room for another address again.
+        assertEquals(UnregisterResult.Unregistered, wallet.unregisterAddress(alice))
+        assertNull(wallet.primaryAddress.first())
+        assertEquals(emptyList(), wallet.addresses.first())
+
+        // Room for another address again; the next one is primary.
         assertIs<OnboardResult.Ready>(wallet.addAddress("carol", limit = 2))
+        assertEquals("carol", wallet.primaryAddress.first()?.username)
     }
 
     @Test

@@ -122,7 +122,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
             }
         if (info.maxWithdrawableMsat <= 0) return ClaimPreview.AlreadySpent
         if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
-        val own = wallet.store.account(accountId)?.host
+        val own = wallet.homeOf(accountId)
         val mint = wallet.mintOf(accountId, link.host)
         if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey.toHex())
             return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)

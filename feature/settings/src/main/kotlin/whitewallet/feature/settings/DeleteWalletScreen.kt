@@ -85,8 +85,8 @@ fun DeleteWalletScreen(
                 Text(stringResource(R.string.delete_accounts, state.accounts.joinToString(", ")), modifier = Modifier.fillMaxWidth())
             }
             state.host?.let { host -> Text(stringResource(R.string.delete_funds, host), modifier = Modifier.fillMaxWidth()) }
-            state.profile?.let { profile ->
-                Text(stringResource(R.string.delete_address, profile.address), modifier = Modifier.fillMaxWidth())
+            state.address?.let { address ->
+                Text(stringResource(R.string.delete_address, address.address), modifier = Modifier.fillMaxWidth())
             }
             Text(stringResource(R.string.delete_balance, formatAmount(state.balanceMsat)), style = MaterialTheme.typography.titleMedium)
 

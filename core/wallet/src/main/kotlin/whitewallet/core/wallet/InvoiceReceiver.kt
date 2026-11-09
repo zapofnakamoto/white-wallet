@@ -87,7 +87,7 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
 
     suspend fun request(amountMsat: Long): InvoiceRequest {
         val accountId = wallet.activeId()
-        val host = wallet.store.account(accountId)?.host ?: return InvoiceRequest.Unreachable
+        val host = wallet.homeOf(accountId) ?: return InvoiceRequest.Unreachable
         val pay =
             try {
                 wallet.client.servicePayRequest(host)

@@ -1,16 +1,12 @@
 package whitewallet.feature.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,9 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,24 +34,19 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import javax.inject.Inject
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
-import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCheckbox
-import whitewallet.core.designsystem.WalletSuggestionChip
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
-import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ConnectResult
 import whitewallet.core.wallet.MintKeyChangedException
@@ -78,34 +67,14 @@ enum class MoneyMoveMode {
     MoveHome,
 }
 
-/** The live check of the name on the new home mint. */
-enum class NameCheck {
-    Idle,
-    Checking,
-    Available,
-    Yours,
-    Taken,
-    Unknown,
-}
-
 sealed interface MoneyMoveError {
-    data class Name(val detail: String) : MoneyMoveError
-
-    data class Registration(val detail: String) : MoneyMoveError
-
     data class Mint(val detail: String) : MoneyMoveError
 
     data class Network(val detail: String) : MoneyMoveError
-
-    /** The mint charges for the address: nothing moved, and a name it holds waits under Settings → Addresses. */
-    data object AddressFee : MoneyMoveError
-
-    /** A further account of a wallet can't get an address on a legacy mint. */
-    data object MintTooOld : MoneyMoveError
 }
 
-/** After the change or move: the new primary address (if the home changed and the account has one), and per mint what happened. */
-data class MoneyMoveOutcome(val homeChanged: Boolean, val address: String?, val moved: List<MoneyMoved>) {
+/** After the change or move: whether the home mint changed, and per mint what happened. */
+data class MoneyMoveOutcome(val homeChanged: Boolean, val moved: List<MoneyMoved>) {
     /** Mints whose money didn't move and might on another try. */
     val retryable: List<String>
         get() = moved.filter { it.result is MintMoveResult.Failed }.map { it.host }
@@ -118,12 +87,7 @@ data class MoneyMoveState(
     /** The mints the user knows (Settings → Mints) that can be picked (see [moveTargets]); a new one is added there first. */
     val targets: List<String> = emptyList(),
     val target: String? = null,
-    /** [MoneyMoveMode.ChangeHome]: the account has a primary address, so it needs a name on the new home. */
-    val withAddress: Boolean = false,
-    val username: String = "",
-    val nameCheck: NameCheck = NameCheck.Idle,
-    val suggestions: List<String> = emptyList(),
-    /** The account collects at its home mint: what's within the fee cap moves along, without a choice per mint. */
+    /** The wallet collects at its home mint: what's within the fee cap moves along, without a choice per mint. */
     val collects: Boolean = false,
     val preview: MovePreview? = null,
     /** Mints the user unchecked (only when the account doesn't collect). */
@@ -159,7 +123,7 @@ data class MoneyMoveState(
         get() = (changingHome || mode == MoneyMoveMode.MoveHome) && !collects && movable.isNotEmpty()
 
     val canContinue: Boolean
-        get() = !busy && target != null && (!changingHome || !withAddress || username.isNotBlank() && nameCheck != NameCheck.Taken)
+        get() = !busy && target != null
 }
 
 @HiltViewModel
@@ -167,7 +131,6 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
     private val _state = MutableStateFlow(MoneyMoveState())
     val state: StateFlow<MoneyMoveState> = _state
     private var initialized = false
-    private var checkJob: Job? = null
 
     /** [host]: for a new home, the one to preselect; for a move, the mint whose money moves. */
     fun init(mode: MoneyMoveMode, host: String?) {
@@ -180,31 +143,11 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
             val targets =
                 moveTargets(mode, known = wallet.mints.first().map { it.host }, home, from, collects, allowed = defaults::mintAllowed)
             val preset = host.takeIf { mode == MoneyMoveMode.ChangeHome && it in targets } ?: targets.firstOrNull()
-            val profile = wallet.profile.first()
-            _state.update {
-                it.copy(
-                    mode = mode,
-                    from = from,
-                    targets = targets,
-                    target = preset,
-                    withAddress = profile != null,
-                    username = profile?.username.orEmpty(),
-                    collects = collects,
-                )
-            }
-            scheduleCheck(immediately = true)
+            _state.update { it.copy(mode = mode, from = from, targets = targets, target = preset, collects = collects) }
         }
     }
 
-    fun onTarget(host: String) {
-        _state.update { it.copy(target = host, preview = null, error = null) }
-        scheduleCheck(immediately = true)
-    }
-
-    fun onUsername(value: String) {
-        _state.update { it.copy(username = value, error = null, suggestions = emptyList(), preview = null) }
-        scheduleCheck()
-    }
+    fun onTarget(host: String) = _state.update { it.copy(target = host, preview = null, error = null) }
 
     fun onToggle(host: String) = _state.update { it.copy(excluded = if (host in it.excluded) it.excluded - host else it.excluded + host) }
 
@@ -255,40 +198,18 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
         val target = s.target ?: return
         val lines = if (move) s.chosen else emptyList()
         if (!s.changingHome)
-            return _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(false, null, wallet.moveMoney(target, lines))) }
+            return _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(false, wallet.moveMoney(target, lines))) }
         // The change and the move in one step: a refresh in between would collect the money itself.
-        val moved =
-            if (s.withAddress) {
-                val changed = wallet.changeHome(target, s.username, lines)
-                when (val r = changed.result) {
-                    is OnboardResult.Ready ->
-                        return _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, r.profile.address, changed.moved)) }
-                    is OnboardResult.UsernameTaken ->
-                        return _state.update {
-                            it.copy(busy = false, preview = null, nameCheck = NameCheck.Taken, suggestions = r.suggestions)
-                        }
-                    is OnboardResult.AwaitingFee,
-                    is OnboardResult.FeeRefused -> return fail(MoneyMoveError.AddressFee)
-                    OnboardResult.MintTooOld -> return fail(MoneyMoveError.MintTooOld)
-                    is OnboardResult.UsernameInvalid -> return fail(MoneyMoveError.Name(r.reason))
-                    is OnboardResult.RegistrationFailed -> return fail(MoneyMoveError.Registration(r.reason.orEmpty()))
-                    is OnboardResult.NetworkError -> return fail(MoneyMoveError.Network(r.reason))
-                    is OnboardResult.MintInvalid -> return fail(MoneyMoveError.Mint(r.reason))
-                    is OnboardResult.LimitReached,
-                    is OnboardResult.AccountLimitReached -> return fail(MoneyMoveError.Registration(r.toString()))
-                }
-            } else {
-                val changed = wallet.changeHome(target, lines)
-                when (val r = changed.result) {
-                    is ConnectResult.Connected -> changed.moved
-                    is ConnectResult.Failed ->
-                        return fail(
-                            (r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network(it.reason) }
-                                ?: MoneyMoveError.Mint(r.result.toString())
-                        )
-                }
-            }
-        _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, null, moved)) }
+        val changed = wallet.setHomeMint(target, lines)
+        when (val r = changed.result) {
+            is ConnectResult.Connected -> Unit
+            is ConnectResult.Failed ->
+                return fail(
+                    (r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network(it.reason) }
+                        ?: MoneyMoveError.Mint(r.result.toString())
+                )
+        }
+        _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, changed.moved)) }
     }
 
     /** Runs [block]; a network failure or a changed signing key at [host] ends it as an error. */
@@ -303,38 +224,11 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
     }
 
     private fun fail(error: MoneyMoveError) = _state.update { it.copy(busy = false, error = error, preview = null) }
-
-    private fun scheduleCheck(immediately: Boolean = false) {
-        checkJob?.cancel()
-        checkJob = viewModelScope.launch {
-            if (!immediately) delay(DEBOUNCE_MILLIS)
-            val s = _state.value
-            val target = s.target
-            if (!s.changingHome || !s.withAddress || target == null || s.username.isBlank())
-                return@launch _state.update { it.copy(nameCheck = NameCheck.Idle) }
-            _state.update { it.copy(nameCheck = NameCheck.Checking) }
-            val check =
-                when (wallet.checkAddress(s.username, target)) {
-                    AddressStatus.Available -> NameCheck.Available
-                    AddressStatus.Ours -> NameCheck.Yours
-                    AddressStatus.Taken,
-                    AddressStatus.Unconfirmed -> NameCheck.Taken
-                    is AddressStatus.Invalid -> NameCheck.Taken
-                    is AddressStatus.CheckFailed -> NameCheck.Unknown
-                }
-            _state.update { it.copy(nameCheck = check) }
-        }
-    }
-
-    private companion object {
-        const val DEBOUNCE_MILLIS = 500L
-    }
 }
 
 /** What the screen can ask for. */
 class MoneyMoveActions(
     val onTarget: (String) -> Unit = {},
-    val onUsername: (String) -> Unit = {},
     val onReview: () -> Unit = {},
     val onToggle: (String) -> Unit = {},
     val onConfirm: (move: Boolean) -> Unit = {},
@@ -352,7 +246,6 @@ fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, view
         onClose,
         MoneyMoveActions(
             onTarget = viewModel::onTarget,
-            onUsername = viewModel::onUsername,
             onReview = viewModel::review,
             onToggle = viewModel::onToggle,
             onConfirm = viewModel::confirm,
@@ -364,8 +257,8 @@ fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, view
 }
 
 /**
- * Changing the home mint, or moving one mint's money to another: pick a known mint (and the name there), see what the money would do and
- * what it costs, confirm, then see what happened, with another try for what didn't move.
+ * Changing the home mint, or moving one mint's money to another: pick a known mint, see what the money would do and what it costs, confirm,
+ * then see what happened, with another try for what didn't move.
  */
 @Composable
 fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMoveActions) {
@@ -400,38 +293,8 @@ private fun PickContent(state: MoneyMoveState, actions: MoneyMoveActions) {
     if (state.mode == MoneyMoveMode.MoveHome) Text(stringResource(R.string.money_move_all_body), textAlign = TextAlign.Center)
     else if (state.mode == MoneyMoveMode.Move)
         state.from?.let { Text(stringResource(R.string.money_move_from, it), textAlign = TextAlign.Center) }
-    else
-        Text(
-            stringResource(if (state.withAddress) R.string.money_change_body else R.string.money_change_body_no_address),
-            textAlign = TextAlign.Center,
-        )
+    else Text(stringResource(R.string.money_change_body), textAlign = TextAlign.Center)
     MintPicker(state.targets, state.target, state.busy, actions.onTarget)
-    if (state.changingHome && state.withAddress) {
-        WalletTextField(
-            value = state.username,
-            onValueChange = actions.onUsername,
-            label = { Text(stringResource(R.string.money_name_label)) },
-            supportingText = {
-                Column {
-                    state.target?.let {
-                        if (state.username.isNotBlank())
-                            Text(stringResource(R.string.money_address_preview, "${state.username.trim()}@$it"))
-                    }
-                    NameCheckText(state.nameCheck)
-                }
-            },
-            isError = state.nameCheck == NameCheck.Taken,
-            singleLine = true,
-            enabled = !state.busy,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (state.suggestions.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                state.suggestions.forEach { name -> WalletSuggestionChip(onClick = { actions.onUsername(name) }, label = { Text(name) }) }
-            }
-        }
-    }
     state.error?.let { ErrorText(it) }
     PrimaryButton(stringResource(R.string.money_continue), actions.onReview, enabled = state.canContinue, busy = state.busy)
 }
@@ -473,29 +336,11 @@ private fun androidx.compose.material3.ExposedDropdownMenuBoxScope.DropdownMenuI
 }
 
 @Composable
-private fun NameCheckText(check: NameCheck) {
-    val (text, color) =
-        when (check) {
-            NameCheck.Idle -> return
-            NameCheck.Checking -> stringResource(R.string.money_name_checking) to MaterialTheme.colorScheme.onSurfaceVariant
-            NameCheck.Available -> stringResource(R.string.money_name_available) to MaterialTheme.walletColors.success
-            NameCheck.Yours -> stringResource(R.string.money_name_yours) to MaterialTheme.walletColors.success
-            NameCheck.Taken -> stringResource(R.string.money_name_taken) to MaterialTheme.colorScheme.error
-            NameCheck.Unknown -> stringResource(R.string.money_name_unknown) to MaterialTheme.colorScheme.onSurfaceVariant
-        }
-    Text(text, color = color)
-}
-
-@Composable
 private fun ErrorText(error: MoneyMoveError) {
     val text =
         when (error) {
-            is MoneyMoveError.Name -> stringResource(R.string.money_error_name, error.detail)
-            is MoneyMoveError.Registration -> stringResource(R.string.money_error_registration, error.detail)
             is MoneyMoveError.Mint -> stringResource(R.string.money_error_mint, error.detail)
             is MoneyMoveError.Network -> stringResource(R.string.money_error_network, error.detail)
-            MoneyMoveError.AddressFee -> stringResource(R.string.money_error_address_fee)
-            MoneyMoveError.MintTooOld -> stringResource(R.string.money_error_mint_too_old)
         }
     Text(text, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
 }
@@ -511,9 +356,6 @@ private fun ReviewContent(preview: MovePreview, state: MoneyMoveState, actions: 
         style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center,
     )
-    if (state.changingHome && state.withAddress) {
-        Text(stringResource(R.string.money_review_address, "${state.username.trim()}@${preview.toHost}"), textAlign = TextAlign.Center)
-    }
     preview.lines.forEach { line -> Text(reviewLine(line, state), textAlign = TextAlign.Center) }
     if (state.canChoose) ChooseSection(state, actions.onToggle)
     if (state.chosenMsat > 0)
@@ -592,7 +434,7 @@ private fun ChooseSection(state: MoneyMoveState, onToggle: (String) -> Unit) {
     }
 }
 
-/** What happened: the new home and address, then per mint what moved or why it stayed, with another try. */
+/** What happened: the new home, then per mint what moved or why it stayed, with another try. */
 @Composable
 private fun OutcomeContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, actions: MoneyMoveActions) {
     if (outcome.homeChanged) {
@@ -601,7 +443,6 @@ private fun OutcomeContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, act
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
         )
-        outcome.address?.let { Text(stringResource(R.string.money_result_address, it), textAlign = TextAlign.Center) }
         if (outcome.moved.isEmpty()) Text(stringResource(R.string.money_result_money_stays), textAlign = TextAlign.Center)
     }
     outcome.moved.forEach { m ->

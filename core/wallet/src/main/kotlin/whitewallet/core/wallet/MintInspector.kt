@@ -81,7 +81,7 @@ internal class MintInspector(private val wallet: Wallet) {
             description = description,
             balanceMsat = notes.sumOf { it.amountMsat },
             noteCount = notes.size,
-            isHome = wallet.store.account(accountId)?.host == h,
+            isHome = wallet.homeOf(accountId) == h,
             presentedKey = presented.takeIf { reachability == MintDetails.Reachability.KeyChanged },
         )
     }

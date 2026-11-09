@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -30,12 +31,12 @@ sealed interface InvoiceProblem {
     data object Refused : InvoiceProblem
 }
 
-/** Why the account can't receive yet: it has no home mint. */
+/** Why the account can't receive yet: its wallet has no home mint. */
 enum class NoHome {
     /** Its wallet has no mint at all: add one. */
     NoMint,
 
-    /** Its wallet has mints, but the account's home was removed: pick one of them. */
+    /** Its wallet has mints, but its home mint was removed: pick one of them. */
     PickHome,
 }
 
@@ -43,8 +44,13 @@ enum class NoHome {
 data class ShownInvoice(val request: InvoiceRequest.Ready, val status: InvoiceStatus = InvoiceStatus.Waiting)
 
 data class ReceiveState(
-    /** The primary Lightning address; null if the account has none (then it receives by invoice only). */
+    /**
+     * The Lightning address shown: the one the user picked, else the primary one, else one on the home mint; null for none (then it
+     * receives by invoice, made at the home mint).
+     */
     val address: String? = null,
+    /** How many Lightning addresses the account has to show; more than the one shown can be switched through. */
+    val addressCount: Int = 0,
     val receivedMsat: Long = 0,
     /** The user asked for an invoice instead of the address. */
     val requestingAmount: Boolean = false,
@@ -84,7 +90,12 @@ private data class ReceiveUi(
     val problem: InvoiceProblem? = null,
     val invoice: ShownInvoice? = null,
     val faucet: FaucetState = FaucetState(),
+    /** The address the user switched to, if any. */
+    val chosen: String? = null,
 )
+
+/** The active account's registered addresses, the one Receive offers first leading; that one is null if none is offered first. */
+private data class AddressChoice(val first: String?, val all: List<String>)
 
 /**
  * Shows the Lightning address and checks for incoming payments while the screen is open; or, without an address (or on request), an invoice
@@ -99,9 +110,10 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
     private var watch: Job? = null
 
     val state: StateFlow<ReceiveState> =
-        combine(wallet.profile, received, ui, faucet.available, noHome()) { profile, msat, u, canFaucet, noHome ->
+        combine(addressChoice(), received, ui, faucet.available, noHome()) { choice, msat, u, canFaucet, noHome ->
                 ReceiveState(
-                    profile?.address,
+                    u.chosen?.takeIf { it in choice.all } ?: choice.first,
+                    choice.all.size,
                     receivedMsat = msat,
                     u.requestingAmount,
                     u.amountText,
@@ -114,10 +126,18 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState())
 
+    /** The primary address first, else one on the home mint; addresses still held for their fee aren't offered. */
+    private fun addressChoice() =
+        combine(wallet.primaryAddress, wallet.addresses, wallet.homeHost) { primary, entries, home ->
+            val registered = entries.map { it.address }.filter { it.feeInvoice == null }
+            val first = primary?.takeIf { it.feeInvoice == null } ?: registered.firstOrNull { it.host == home }
+            AddressChoice(first?.address, (listOfNotNull(first) + registered).distinct().map { it.address })
+        }
+
     private fun noHome() =
-        combine(wallet.activeAccount, wallet.hasMint) { active, hasMint ->
+        combine(wallet.activeAccount, wallet.homeHost, wallet.hasMint) { active, home, hasMint ->
             when {
-                active == null || active.account.host != null -> null
+                active == null || home != null -> null
                 hasMint -> NoHome.PickHome
                 else -> NoHome.NoMint
             }
@@ -134,6 +154,17 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
     }
 
     fun requestAmount() = ui.update { it.copy(requestingAmount = true) }
+
+    /** Shows the account's next Lightning address (the first, from the amount form). */
+    fun otherAddress() {
+        viewModelScope.launch {
+            val all = addressChoice().first().all
+            if (all.isEmpty()) return@launch
+            val shown = state.value.address
+            val next = if (shown == null || ui.value.requestingAmount) all.first() else all[(all.indexOf(shown) + 1) % all.size]
+            ui.update { it.copy(chosen = next, requestingAmount = false, problem = null) }
+        }
+    }
 
     fun onAmountChange(value: String) = ui.update { it.copy(amountText = value.filter(Char::isDigit), problem = null) }
 

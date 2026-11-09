@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.RejectionKind
@@ -50,7 +49,7 @@ class PayTest {
                         policies = NotePolicies.InMemory(ManualStrategy.ID),
                     )
                 wallet.payWaitMillis = 3_000
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 Fixture(mint, store, wallet, testKeys(words, mint.host)).test()
             }

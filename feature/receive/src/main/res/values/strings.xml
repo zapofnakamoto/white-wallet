@@ -9,7 +9,7 @@
     <string name="receive_hint">Anyone can pay this address from any Lightning wallet. Payments arrive as notes in this wallet.</string>
     <string name="receive_no_mint">This wallet has no mint yet. Add one to receive.</string>
     <string name="receive_no_mint_action">Add mint</string>
-    <string name="receive_no_home">This account has no home mint. Choose one of your mints to receive there.</string>
+    <string name="receive_no_home">This wallet has no home mint. Choose one of your mints to receive there.</string>
     <string name="receive_no_home_action">Choose home mint</string>
     <string name="receive_claim">Claim a note instead</string>
 
@@ -18,6 +18,8 @@
     <string name="receive_share">Share</string>
     <string name="receive_copied">Address copied</string>
     <string name="receive_request_amount">Request a specific amount</string>
+    <string name="receive_other_address">Show another address</string>
+    <string name="receive_use_address">Show a Lightning address</string>
     <string name="receive_invoice_intro">Create a Lightning invoice for the amount you want. It can be paid from any Lightning wallet, once.</string>
     <string name="receive_invoice_create">Create invoice</string>
     <string name="receive_invoice_range">Choose an amount from %1$s to %2$s.</string>

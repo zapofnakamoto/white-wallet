@@ -43,7 +43,7 @@ class RegtestAddressFeeTest {
             val name = Regtest.name()
             val held = assertIs<OnboardResult.AwaitingFee>(wallet.onboard(name, HOST5))
             assertEquals(fee, held.amountMsat)
-            assertNull(wallet.profile.first(), "no address until the fee is paid")
+            assertNull(wallet.primaryAddress.first(), "no address until the fee is paid")
             wallet.refresh()
             assertNotNull(store.addresses(wallet.activeId()).first().single().feeInvoice, "still held")
 
@@ -53,7 +53,7 @@ class RegtestAddressFeeTest {
             Regtest.pay(held.address.feeInvoice!!, 0)
             Regtest.untilRegistered(name, HOST5)
             wallet.refresh()
-            assertEquals("$name@$HOST5", wallet.profile.first()?.address)
+            assertEquals("$name@$HOST5", wallet.primaryAddress.first()?.address)
             assertNull(store.addresses(wallet.activeId()).first().single().feeInvoice)
             assertEquals(AddressStatus.Ours, wallet.checkAddress(name, HOST5))
 
@@ -75,7 +75,7 @@ class RegtestAddressFeeTest {
             val name = Regtest.name()
             val held = assertIs<OnboardResult.AwaitingFee>(wallet.addAddress(name, limit = 1))
             assertIs<PayResult.Paid>(assertNotNull(wallet.payAddressFee(held.address)))
-            assertEquals("$name@$HOST5", wallet.profile.first()?.address)
+            assertEquals("$name@$HOST5", wallet.primaryAddress.first()?.address)
             assertNull(store.addresses(wallet.activeId()).first().single().feeInvoice)
             assertTrue(wallet.balanceMsat.first() <= before - fee, "the fee came out of the balance")
         }

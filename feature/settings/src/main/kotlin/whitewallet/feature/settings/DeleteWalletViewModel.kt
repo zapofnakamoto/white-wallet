@@ -11,12 +11,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import whitewallet.core.model.Profile
+import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.Wallet
 
 data class DeleteWalletState(
-    val profile: Profile? = null,
-    /** The account's home mint, where its funds are. */
+    /** The active account's primary address. */
+    val address: RegisteredAddress? = null,
+    /** The wallet's home mint, where its funds are. */
     val host: String? = null,
     val balanceMsat: Long = 0,
     val backupVerified: Boolean = false,
@@ -52,10 +53,15 @@ class DeleteWalletViewModel @Inject constructor(private val wallet: Wallet) : Vi
     private val local = MutableStateFlow(Local())
 
     val state: StateFlow<DeleteWalletState> =
-        combine(wallet.activeAccount, wallet.activeWalletAccounts, wallet.backupVerified, local) { account, members, backedUp, l ->
+        combine(wallet.primaryAddress, wallet.homeHost, wallet.activeWalletAccounts, wallet.backupVerified, local) {
+                address,
+                home,
+                members,
+                backedUp,
+                l ->
                 DeleteWalletState(
-                    account?.profile,
-                    account?.account?.host,
+                    address,
+                    home,
                     balanceMsat = members.sumOf { it.balanceMsat },
                     backupVerified = backedUp,
                     l.unresolved,

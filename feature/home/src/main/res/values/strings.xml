@@ -116,9 +116,9 @@
     <string name="home_backup_body">If you lose this phone, your recovery phrase is the only way to get your money back. It takes two minutes.</string>
     <string name="home_backup_action">Back up</string>
     <string name="home_backup_later">Later</string>
-    <string name="home_address_inactive_title">Your address isn\'t active</string>
-    <string name="home_address_inactive_body">Payments to %1$s won\'t reach this wallet. Choose a new address to keep receiving.</string>
-    <string name="home_address_inactive_action">Choose a new address</string>
+    <string name="home_address_inactive_title">An address isn\'t active</string>
+    <string name="home_address_inactive_body">Payments to %1$s won\'t reach this wallet. Check your addresses to keep receiving.</string>
+    <string name="home_address_inactive_action">Show addresses</string>
     <string name="home_unknown_action">Check again</string>
     <string name="accounts_title">Accounts</string>
     <string name="accounts_add">Add account</string>

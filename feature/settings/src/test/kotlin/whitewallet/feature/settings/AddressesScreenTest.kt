@@ -3,6 +3,7 @@ package whitewallet.feature.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -35,11 +36,11 @@ class AddressesScreenTest {
     }
 
     @Test
-    fun anAddressOnAnotherMintIsListedUnderItAndCanNotBecomePrimary() {
+    fun anAddressOnAnotherMintIsListedUnderItAndCanBecomePrimary() {
         show(AddressesState(listOf(home, other), homeHost = "home.example", otherMints = true))
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("alice@other.example"))
         compose.onNodeWithText("other.example").assertExists()
-        compose.onNodeWithText(text(R.string.addresses_make_primary)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_make_primary)).assertExists()
     }
 
     @Test
@@ -89,7 +90,7 @@ class AddressesScreenTest {
         }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.addresses_held_pay)))
         compose.onNodeWithText(text(R.string.addresses_held)).assertExists()
-        compose.onNodeWithText(text(R.string.addresses_unregister)).assertDoesNotExist()
+        compose.onAllNodesWithText(text(R.string.addresses_unregister)).assertCountEquals(1)
         compose.onNodeWithText(text(R.string.addresses_held_pay)).performClick()
         assertEquals(true, paid)
     }
@@ -101,9 +102,9 @@ class AddressesScreenTest {
     }
 
     @Test
-    fun withOnlyAnAddressElsewhereTheFirstOneHereIsStillOffered() {
+    fun withOnlyAnAddressElsewhereOneCanStillBeAddedHere() {
         show(AddressesState(listOf(other), homeHost = "home.example", otherMints = true))
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Get a Lightning address"))
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.addresses_add)))
     }
 
     @Test

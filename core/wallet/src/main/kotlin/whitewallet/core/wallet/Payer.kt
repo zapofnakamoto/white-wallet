@@ -375,7 +375,7 @@ internal class Payer(private val wallet: Wallet) {
         }
     }
 
-    /** The mint and plan to pay [amountMsat] with: the primary address's mint first, then the others. */
+    /** The mint and plan to pay [amountMsat] with: the home mint first, then the others (or the other way round, see [Wallet.payOrder]). */
     private suspend fun choose(accountId: String, preview: PayPreview.Ready, amountMsat: Long): Pair<String, PayPlan>? =
         candidates(accountId, preview).firstNotNullOfOrNull { (host, notes) ->
             PayPlanner.plan(notes, amountMsat, baseFee(accountId, host))?.let { host to it }
@@ -384,12 +384,12 @@ internal class Payer(private val wallet: Wallet) {
     private suspend fun candidates(accountId: String, preview: PayPreview.Ready): List<Pair<String, List<Note>>> {
         val transferHost =
             (preview.destination as? PayDestination.PayLink)?.takeIf { it.transfer != null }?.url?.let(Lnurl::host)?.lowercase()
-        val primary = wallet.store.account(accountId)?.host
+        val order = wallet.payOrder(accountId)
         return outstanding(accountId)
             .groupBy { it.host }
             .filterKeys { transferHost == null || it == transferHost }
             .entries
-            .sortedBy { if (it.key == primary) 0 else 1 }
+            .sortedBy { order(it.key) }
             .map { it.key to it.value }
     }
 

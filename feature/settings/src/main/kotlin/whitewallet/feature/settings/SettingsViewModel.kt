@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.brand.NoteStrategy
-import whitewallet.core.model.Profile
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
@@ -23,10 +22,11 @@ data class SettingsState(
     val accountName: String? = null,
     /** The account's place among the accounts, oldest first: its mark's colour. */
     val accountPlace: Int = 0,
-    val profile: Profile? = null,
+    /** The account's primary address, else its first one; null without any. */
+    val address: String? = null,
     val backupVerified: Boolean = false,
     val addressStatus: AddressStatus? = null,
-    /** How many addresses the account has besides the primary one. */
+    /** How many addresses the account has besides [address]. */
     val otherAddresses: Int = 0,
     val developerMode: Boolean = false,
     /** The account's note strategy; null until loaded. */
@@ -34,7 +34,7 @@ data class SettingsState(
     val autoRotate: Boolean = false,
     val lastPolicyRun: PolicyRun? = null,
     val appLock: Boolean = false,
-    /** The account's home mint. */
+    /** The wallet's home mint. */
     val homeHost: String? = null,
     /** Notes on other mints are moved to [homeHost] automatically. */
     val collectAtHome: Boolean = false,
@@ -73,7 +73,8 @@ internal fun hiddenPages(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
     private val notes = combine(wallet.noteStrategy, wallet.autoRotate, wallet.lastPolicyRun, ::Triple)
-    private val address = combine(wallet.profile, wallet.addressStatus, wallet.addresses, ::Triple)
+    private val address = combine(wallet.primaryAddress, wallet.addressStatus, wallet.addresses, ::Triple)
+    private val home = combine(wallet.homeHost, wallet.mints, ::Pair)
     private val account =
         combine(wallet.activeAccount, wallet.backupVerified, wallet.accounts) { active, backedUp, accounts ->
             Triple(active, backedUp, accounts.indexOfFirst { it.account.id == active?.account?.id }.coerceAtLeast(0))
@@ -82,17 +83,17 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
     private val app = combine(developer, preferences.appLock, wallet.collectAtHome, ::Triple)
 
     val state: StateFlow<SettingsState> =
-        combine(account, address, notes, app, wallet.mints) {
+        combine(account, address, notes, app, home) {
                 (account, backedUp, place),
-                (profile, status, addresses),
+                (primary, status, addresses),
                 (strategy, rotate, run),
                 (developerState, appLock, collect),
-                mints ->
+                (homeHost, mints) ->
                 val (developer, unlocked) = developerState
                 SettingsState(
                     accountName = account?.account?.name,
                     accountPlace = place,
-                    profile,
+                    (primary ?: addresses.firstOrNull()?.address)?.address,
                     backupVerified = backedUp,
                     addressStatus = status,
                     otherAddresses = (addresses.size - 1).coerceAtLeast(0),
@@ -101,7 +102,7 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
                     autoRotate = rotate,
                     lastPolicyRun = run,
                     appLock,
-                    homeHost = account?.account?.host,
+                    homeHost = homeHost,
                     collectAtHome = collect,
                     hidden = hiddenPages(defaults, wallet, strategy, developer, unlocked),
                     mintCount = mints.size,

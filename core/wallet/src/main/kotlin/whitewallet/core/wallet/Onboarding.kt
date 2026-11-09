@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Account
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
-import whitewallet.core.model.Profile
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.WalletRecord
 import whitewallet.lnurl.Bolt11
 import whitewallet.lnurlcash.AddressProof
 import whitewallet.lnurlcash.client.MintDialect
@@ -22,7 +22,7 @@ sealed interface OnboardResult {
      * The address is saved. [confirmed] is true when the mint publishes our own `cx1` for it, which proves payments to it reach this
      * wallet; false when the mint accepted it but does not expose a `cx1` to check.
      */
-    data class Ready(val profile: Profile, val confirmed: Boolean) : OnboardResult
+    data class Ready(val address: RegisteredAddress, val confirmed: Boolean) : OnboardResult
 
     /**
      * The mint holds the name until [address]'s fee is paid: its invoice for [amountMsat], from another wallet or with
@@ -65,9 +65,6 @@ sealed interface UnregisterResult {
     /** The name no longer points at this account (someone else holds it); removed from the account. */
     data object NotOurs : UnregisterResult
 
-    /** Refused: the primary address can't be unregistered. Make another address primary first. */
-    data object IsPrimary : UnregisterResult
-
     /** The mint kept the name; nothing changed. */
     data class Failed(val reason: String) : UnregisterResult
 
@@ -98,9 +95,9 @@ internal class Onboarding(private val wallet: Wallet) {
     private val addresses = AddressCheck(wallet)
 
     /**
-     * Claims [username] on [host] and confirms it by looking the address up afterwards. Never registers a different name than the one asked
-     * for. A new account (see [Wallet.onboard]) gets a fresh recovery phrase, which is discarded again unless the claim succeeds; with
-     * [inActiveWallet], the next free account of the active wallet's phrase instead.
+     * Claims [username] on [host] as the account's primary address and confirms it by looking the address up afterwards. Never registers a
+     * different name than the one asked for. A new account (see [Wallet.onboard]) gets a fresh recovery phrase, which is discarded again
+     * unless the claim succeeds; with [inActiveWallet], the next free account of the active wallet's phrase instead.
      */
     suspend fun onboard(username: String, host: String, newAccountName: String?, inActiveWallet: Boolean = false): OnboardResult {
         val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
@@ -111,22 +108,23 @@ internal class Onboarding(private val wallet: Wallet) {
         limit(creating, inActiveWallet)?.let {
             return OnboardResult.AccountLimitReached(it)
         }
-        if (!creating) return claim(name, h, checkNotNull(existing), creating = false)
+        if (!creating) return claim(name, h, checkNotNull(existing), creating = false, primary = true)
         // The account is saved before anything of it is (its counters, its wallet's mint), and removed again unless the claim holds.
-        val accountId = saveNew(accountName, h, inActiveWallet)
-        val result = claim(name, h, accountId, creating = true)
+        val accountId = saveNew(accountName, inActiveWallet)
+        val result = claim(name, h, accountId, creating = true, primary = true)
         if (result !is OnboardResult.Ready && result !is OnboardResult.AwaitingFee) unsaveNew(accountId, inActiveWallet)
         return result
     }
 
-    /** Saves a new account on [host] (null: on no mint): the next one of the active wallet, or the first of a wallet with a new phrase. */
-    private suspend fun saveNew(name: String, host: String?, inActiveWallet: Boolean): String {
+    /** Saves a new account: the next one of the active wallet, or the first of a new wallet with a new phrase, saved before it. */
+    private suspend fun saveNew(name: String, inActiveWallet: Boolean): String {
         val accountId = UUID.randomUUID().toString()
         if (inActiveWallet) {
-            wallet.store.saveAccount(sibling(accountId, name, host))
+            wallet.store.saveAccount(sibling(accountId, name))
         } else {
             wallet.createSeed(accountId)
-            wallet.store.saveAccount(Account(accountId, name, wallet.now(), host))
+            wallet.store.saveWallet(WalletRecord(accountId, name, wallet.now()))
+            wallet.store.saveAccount(Account(accountId, name, wallet.now()))
         }
         return accountId
     }
@@ -149,24 +147,27 @@ internal class Onboarding(private val wallet: Wallet) {
         }
 
     /** The active wallet's next account: its lowest free index, so a restore, which stops at the first unused one, finds no gap. */
-    private suspend fun sibling(accountId: String, name: String, host: String?): Account {
+    private suspend fun sibling(accountId: String, name: String): Account {
         val siblings = wallet.siblings(wallet.activeId())
         val used = siblings.map { it.index }.toSet()
         val index = generateSequence(0L) { it + 1 }.first { it !in used }
-        return Account(accountId, name, wallet.now(), host, siblings.first().walletId, index)
+        return Account(accountId, name, wallet.now(), siblings.first().walletId, index)
     }
 
-    /** Registers [username] as another address of the active account on its home mint: non-primary, unless it is the account's first. */
+    /**
+     * Registers [username] as another address of the active account, on [host] or else its wallet's home mint: the primary one only if the
+     * account has none.
+     */
     suspend fun addAddress(username: String, limit: Int, host: String? = null): OnboardResult {
         val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
         val accountId = wallet.store.currentAccountId() ?: return OnboardResult.MintInvalid("no account")
-        val home = wallet.store.account(accountId)?.host ?: return OnboardResult.MintInvalid("no mint")
-        val h = host?.let { normalizeHost(it) ?: return OnboardResult.MintInvalid("not a valid host") } ?: home
+        val h =
+            host?.let { normalizeHost(it) ?: return OnboardResult.MintInvalid("not a valid host") }
+                ?: wallet.homeOf(accountId)
+                ?: return OnboardResult.MintInvalid("no mint")
         val onHost = wallet.store.addresses(accountId).first().filter { it.host == h }
         if (onHost.none { it.username == name } && onHost.size >= limit) return OnboardResult.LimitReached(limit)
-        // The primary address is always on the home mint; one on another mint is an extra way to get paid.
-        val first = h == home && wallet.store.currentProfile(accountId) == null
-        return claim(name, h, accountId, creating = false, primary = first)
+        return claim(name, h, accountId, creating = false, primary = false)
     }
 
     /** See [Wallet.createAccount]. The account is saved first; it stays only if the mint answers as one. */
@@ -175,7 +176,7 @@ internal class Onboarding(private val wallet: Wallet) {
         limit(creating = true, inActiveWallet)?.let {
             return CreateAccountResult.AccountLimitReached(it)
         }
-        val accountId = saveNew(name.trim().ifEmpty { DEFAULT_ACCOUNT_NAME }, h, inActiveWallet)
+        val accountId = saveNew(name.trim().ifEmpty { DEFAULT_ACCOUNT_NAME }, inActiveWallet)
         val failed = h?.let { connectMint(wallet.walletOf(accountId), it) as? ConnectResult.Failed }
         if (failed != null) {
             unsaveNew(accountId, inActiveWallet)
@@ -194,8 +195,6 @@ internal class Onboarding(private val wallet: Wallet) {
      * gone (or no longer ours) leaves the account.
      */
     suspend fun unregister(accountId: String, address: RegisteredAddress): UnregisterResult {
-        val primary = wallet.store.currentProfile(accountId)
-        if (primary?.username == address.username && primary.host == address.host) return UnregisterResult.IsPrimary
         val outcome =
             try {
                 unregisterAt(accountId, address)
@@ -241,19 +240,14 @@ internal class Onboarding(private val wallet: Wallet) {
         }
     }
 
-    private suspend fun claim(
-        name: String,
-        h: String,
-        accountId: String,
-        creating: Boolean,
-        primary: Boolean = true,
-    ): OnboardResult {
+    /** Claims [name] on [h] for the account: as its primary address with [primary], else only if it has none. */
+    private suspend fun claim(name: String, h: String, accountId: String, creating: Boolean, primary: Boolean): OnboardResult {
         when (val connected = connectMint(wallet.walletOf(accountId), h)) {
             is ConnectResult.Failed -> return connected.result
             is ConnectResult.Connected -> Unit
         }
         val ready = suspend { confirmed: Boolean, share: Long? ->
-            ready(accountId, name, host = h, confirmed, primary, share)
+            ready(accountId, name, host = h, confirmed, share, primary)
         }
 
         // Check first: the name may already be ours (an earlier attempt whose answer was lost) or someone else's.
@@ -322,8 +316,8 @@ internal class Onboarding(private val wallet: Wallet) {
     }
 
     /**
-     * Keeps the name the mint holds for [invoice], if it asks what it advertises and the app allows. A held address has no profile yet: a
-     * refresh makes it the primary one when it is paid (see [settleHeld]).
+     * Keeps the name the mint holds for [invoice], if it asks what it advertises and the app allows. A held address is not registered yet:
+     * a refresh finishes it when it is paid (see [settleHeld]).
      */
     private suspend fun hold(
         invoice: String,
@@ -352,16 +346,13 @@ internal class Onboarding(private val wallet: Wallet) {
 
     /**
      * Asks the mint about a held [address]: registered means the fee was paid, so it becomes a full address (the primary one if the account
-     * has none on its home mint); free with its invoice expired means the hold is over, and the name can be registered again.
+     * has none); free with its invoice expired means the hold is over, and the name can be registered again.
      */
     suspend fun settleHeld(accountId: String, address: RegisteredAddress) {
         val after = addresses.ownership(address.username, address.host, accountId, also = address.share)
         when (after.status) {
-            AddressStatus.Ours -> {
-                val home = wallet.store.account(accountId)?.host
-                val primary = address.host == home && wallet.store.currentProfile(accountId) == null
-                ready(accountId, address.username, address.host, true, primary, after.share ?: address.share, activate = false)
-            }
+            AddressStatus.Ours ->
+                ready(accountId, address.username, address.host, true, after.share ?: address.share, primary = false, activate = false)
             AddressStatus.Available ->
                 if (address.feeInvoice?.let(Bolt11::decode)?.isExpired(wallet.now()) != false) {
                     wallet.store.deleteAddress(accountId, address.username, address.host)
@@ -387,7 +378,10 @@ internal class Onboarding(private val wallet: Wallet) {
             is AddressStatus.CheckFailed -> OnboardResult.NetworkError(after.reason)
         }
 
-    /** Connects the wallet [walletId] to the mint at [host]: fetches what it is and pins its key for that wallet on first contact. */
+    /**
+     * Connects the wallet [walletId] to the mint at [host]: fetches what it is and pins its key for that wallet on first contact. The
+     * wallet's first mint becomes its home mint.
+     */
     suspend fun connectMint(walletId: String, host: String): ConnectResult {
         val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid("not a valid host"))
         return try {
@@ -410,6 +404,7 @@ internal class Onboarding(private val wallet: Wallet) {
                     feePpm = pay.fee?.ppm,
                 )
             wallet.store.saveMint(mint)
+            wallet.store.wallet(walletId)?.takeIf { it.homeHost == null }?.let { wallet.store.saveWallet(it.copy(homeHost = h)) }
             ConnectResult.Connected(mint)
         } catch (e: ProtocolViolation) {
             ConnectResult.Failed(OnboardResult.MintInvalid(e.message ?: "not an LNURLcash server"))
@@ -418,32 +413,29 @@ internal class Onboarding(private val wallet: Wallet) {
         }
     }
 
+    /** Saves [name]@[host] as a registered address of the account: its primary one with [primary], or if it has none. */
     private suspend fun ready(
         accountId: String,
         name: String,
         host: String,
         confirmed: Boolean,
-        primary: Boolean,
         share: Long?,
+        primary: Boolean,
         activate: Boolean = true,
     ): OnboardResult.Ready {
-        val profile = Profile(name, host)
         val known = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == host }
+        val address = RegisteredAddress(name, host, known?.addedAtMillis ?: wallet.now(), share ?: known?.share)
         if (known == null || known.feeInvoice != null || (share != null && known.share != share)) {
-            wallet.store.saveAddress(accountId, RegisteredAddress(name, host, known?.addedAtMillis ?: wallet.now(), share))
+            wallet.store.saveAddress(accountId, address)
         }
         // A restored account learns how many shares it handed out from the ones it proves.
         if (share != null && (wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0) <= share) {
             wallet.store.setKeyIndex(accountId, spendDomain(host), KeyCounter.Shares, share + 1)
         }
-        if (primary) {
-            // A primary address on another mint moves the account's home there.
-            wallet.store.account(accountId)?.takeIf { it.host != host }?.let { wallet.store.saveAccount(it.copy(host = host)) }
-            wallet.store.saveProfile(accountId, profile)
-            if (activate) wallet.store.setActiveAccount(accountId)
-        }
-        wallet.setAddressStatus(accountId, profile.address, if (confirmed) AddressStatus.Ours else AddressStatus.Unconfirmed)
-        return OnboardResult.Ready(profile, confirmed)
+        if (primary || wallet.store.currentPrimaryAddress(accountId) == null) wallet.store.setPrimaryAddress(accountId, name, host)
+        if (activate) wallet.store.setActiveAccount(accountId)
+        wallet.setAddressStatus(accountId, address.address, if (confirmed) AddressStatus.Ours else AddressStatus.Unconfirmed)
+        return OnboardResult.Ready(address, confirmed)
     }
 
     /** A taken seed-derived name suggests the next derived ones first, so a restore can still find the address. */

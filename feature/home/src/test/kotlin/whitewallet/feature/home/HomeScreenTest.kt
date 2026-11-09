@@ -54,7 +54,7 @@ class HomeScreenTest {
             onSettings = {},
             onBackup = {},
             onDismissBackup = {},
-            onChangeAddress = {},
+            onOpenAddresses = {},
             accountActions = AccountActions({}, {}, {}),
             onToggleBalance = onToggle,
             onOpenMint = onOpenMint,
@@ -74,7 +74,7 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onChangeAddress = {},
+                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onScan = { scans++ },
             )
@@ -99,7 +99,7 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onChangeAddress = {},
+                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onAddMint = { added++ },
             )
@@ -130,7 +130,7 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onChangeAddress = {},
+                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onToggleBalance = { hidden = !hidden },
             )
@@ -171,7 +171,7 @@ class HomeScreenTest {
                     onSettings = {},
                     onBackup = {},
                     onDismissBackup = {},
-                    onChangeAddress = {},
+                    onOpenAddresses = {},
                     accountActions = AccountActions({}, {}, {}),
                     onToggleBalance = {},
                 )
@@ -193,7 +193,7 @@ class HomeScreenTest {
                     onSettings = {},
                     onBackup = {},
                     onDismissBackup = {},
-                    onChangeAddress = {},
+                    onOpenAddresses = {},
                     accountActions = AccountActions({}, {}, {}),
                     onToggleBalance = {},
                 )
@@ -216,7 +216,7 @@ class HomeScreenTest {
                     onSettings = {},
                     onBackup = {},
                     onDismissBackup = {},
-                    onChangeAddress = {},
+                    onOpenAddresses = {},
                     accountActions = AccountActions({}, {}, {}),
                     onToggleBalance = {},
                 )
@@ -234,15 +234,15 @@ class HomeScreenTest {
 
     @Test
     fun aSingleAccountBrandShowsNoAccounts() {
-        val main = AccountSummary(Account("a", "Main", 0, "mint.example"), null, 0)
+        val main = AccountSummary(Account("a", "Main", 0), 0)
         show(HomeState(accounts = listOf(main), activeAccountId = "a", showAccounts = false))
         compose.onNodeWithText("Main").assertDoesNotExist()
     }
 
     @Test
     fun theSwitcherOffersNoNewAccountAtTheLimit() {
-        val main = AccountSummary(Account("a", "Main", 0, "mint.example"), null, 0)
-        val savings = AccountSummary(Account("b", "Savings", 1, "mint.example"), null, 0)
+        val main = AccountSummary(Account("a", "Main", 0), 0)
+        val savings = AccountSummary(Account("b", "Savings", 1), 0)
         show(HomeState(accounts = listOf(main, savings), activeAccountId = "a", canAddAccount = false))
         compose.onNodeWithText("Main").performClick()
         compose.onNodeWithText("Savings").assertExists()
@@ -425,7 +425,7 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onChangeAddress = {},
+                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onNoticeShown = { shown = true },
             )
@@ -453,7 +453,7 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onChangeAddress = {},
+                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
             )
         }
@@ -552,7 +552,7 @@ class HomeScreenTest {
                     onSettings = {},
                     onBackup = {},
                     onDismissBackup = {},
-                    onChangeAddress = {},
+                    onOpenAddresses = {},
                     accountActions = AccountActions({}, {}, {}),
                 )
             }
@@ -625,7 +625,7 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onChangeAddress = {},
+                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onDismissReceived = { dismissed = it },
             )
@@ -665,7 +665,7 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onChangeAddress = {},
+                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onDismissReceived = { dismissed = it },
             )

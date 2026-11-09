@@ -17,8 +17,7 @@ import whitewallet.core.model.AccountSummary
 class MoveFundsScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    private fun summary(id: String, name: String, balanceMsat: Long = 0) =
-        AccountSummary(Account(id, name, 0, "mint.example"), null, balanceMsat)
+    private fun summary(id: String, name: String, balanceMsat: Long = 0) = AccountSummary(Account(id, name, 0), balanceMsat)
 
     @Test
     fun bothAccountsCarryTheirMarksAndTheTargetIsARadioChoice() {

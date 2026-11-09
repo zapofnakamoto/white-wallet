@@ -72,24 +72,23 @@ data class AddressesState(
     val message: AddressesMessage? = null,
     /** The address whose watch-only key is showing, and that key. */
     val watchOnly: WatchOnlyKey? = null,
-    /** The account's home mint, where new addresses are added. */
+    /** The wallet's home mint, where new addresses are added. */
     val homeHost: String? = null,
     /**
-     * The brand lets users pick other mints (`mints.changeable`) and allows one besides the home (`mints.custom`), so addresses can be
-     * added there too.
+     * The brand lets users pick other mints (`mints.changeable`) and the wallet has another one it allows, so addresses can go there too.
      */
     val otherMints: Boolean = false,
 ) {
-    /** Addresses on the home mint (the primary address's), where new ones are added. */
-    val onPrimaryMint: Int
+    /** Addresses on the home mint, where new ones are added. */
+    val onHomeMint: Int
         get() = entries.count { it.address.host == homeHost }
 
     val canAdd: Boolean
-        get() = !busy && onPrimaryMint < limit
+        get() = !busy && homeHost != null && onHomeMint < limit
 
-    /** Addresses on other mints, per mint in the order they were added. */
-    val elsewhere: Map<String, List<AddressEntry>>
-        get() = entries.filter { it.address.host != homeHost }.groupBy { it.address.host }
+    /** Every address per mint, the home mint's first, then in the order they were added. */
+    val byMint: Map<String, List<AddressEntry>>
+        get() = entries.sortedBy { it.address.host != homeHost }.groupBy { it.address.host }
 }
 
 data class WatchOnlyKey(val address: String, val key: String)
@@ -123,7 +122,7 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
     private val limit = combine(preferences.developerMode, preferences.maxAddressesPerMint, defaults::addressLimit)
 
     val state: StateFlow<AddressesState> =
-        combine(wallet.addresses, limit, ui, wallet.homeHost) { entries, limit, ui, home ->
+        combine(wallet.addresses, limit, ui, wallet.homeHost, wallet.mints) { entries, limit, ui, home, mints ->
                 AddressesState(
                     entries,
                     limit,
@@ -133,7 +132,7 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
                     ui.message,
                     ui.watchOnly,
                     homeHost = home,
-                    otherMints = defaults.allowMintChange && defaults.otherMintsAllowed(home),
+                    otherMints = defaults.allowMintChange && mints.any { it.host != home && defaults.mintAllowed(it.host) },
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState())
@@ -188,7 +187,6 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
                 when (val r = wallet.unregisterAddress(address)) {
                     UnregisterResult.Unregistered -> AddressesMessage.Unregistered(address.address)
                     UnregisterResult.NotOurs -> AddressesMessage.NotOurs(address.address)
-                    UnregisterResult.IsPrimary -> AddressesMessage.Failed(address.address, "primary")
                     is UnregisterResult.Failed -> AddressesMessage.Failed(address.address, r.reason)
                     is UnregisterResult.NetworkError -> AddressesMessage.Unknown(address.address, r.reason)
                 }
@@ -284,21 +282,8 @@ fun AddressesScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
-            state.homeHost?.let { home ->
-                item {
-                    Text(
-                        stringResource(R.string.addresses_home_mint, home),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                }
-            }
             state.message?.let { item { MessageText(it) } }
-            items(state.entries.filter { it.address.host == state.homeHost }, key = { it.address.address }) { entry ->
-                AddressCard(entry, state, actions)
-            }
-            item { AddSection(state, onAdd, onChangePrimary) }
-            state.elsewhere.forEach { (host, entries) ->
+            state.byMint.forEach { (host, entries) ->
                 item(key = "host:$host") {
                     Text(
                         host,
@@ -308,6 +293,7 @@ fun AddressesScreen(
                 }
                 items(entries, key = { it.address.address }) { entry -> AddressCard(entry, state, actions) }
             }
+            item { AddSection(state, onAdd, onChangePrimary) }
             if (state.otherMints) item { AddElsewhereSection(state, onAddElsewhere) }
         }
     }
@@ -351,13 +337,6 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
             }
             if (checking) Text(stringResource(R.string.addresses_checking), style = MaterialTheme.typography.bodySmall)
             else StatusLine(entry.status)
-            if (entry.primary && state.entries.size > 1) {
-                Text(
-                    stringResource(R.string.addresses_primary_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 WalletButton(kind = ButtonKind.Text, onClick = { actions.onCheck(a) }, enabled = !checking) {
                     Text(stringResource(R.string.addresses_check))
@@ -372,20 +351,12 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
                     Text(stringResource(if (watchOnly != null) R.string.mint_hide else R.string.addresses_watch_only))
                 }
                 if (!entry.primary) {
-                    // The primary address is always on the home mint.
-                    if (a.host == state.homeHost) {
-                        WalletButton(kind = ButtonKind.Text, onClick = { actions.onMakePrimary(a) }, enabled = !state.busy) {
-                            Text(stringResource(R.string.addresses_make_primary))
-                        }
+                    WalletButton(kind = ButtonKind.Text, onClick = { actions.onMakePrimary(a) }, enabled = !state.busy) {
+                        Text(stringResource(R.string.addresses_make_primary))
                     }
-                    WalletButton(
-                        kind = ButtonKind.Text,
-                        onClick = { actions.onUnregister(a) },
-                        enabled = !state.busy,
-                        tone = Tone.Danger,
-                    ) {
-                        Text(stringResource(R.string.addresses_unregister))
-                    }
+                }
+                WalletButton(kind = ButtonKind.Text, onClick = { actions.onUnregister(a) }, enabled = !state.busy, tone = Tone.Danger) {
+                    Text(stringResource(R.string.addresses_unregister))
                 }
             }
             watchOnly?.let { WatchOnlySection(it.key, actions.onCopyWatchOnly) }
@@ -446,17 +417,17 @@ private fun MessageText(message: AddressesMessage) {
 @Composable
 private fun AddSection(state: AddressesState, onAdd: () -> Unit, onChangePrimary: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Addresses on other mints don't count: the first one here becomes the primary address.
-        val first = state.onPrimaryMint == 0
+        // The limit is per mint: only the home mint's count here, where this adds one.
+        val first = state.entries.isEmpty()
         WalletButton(onClick = onAdd, enabled = state.canAdd, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(if (first) R.string.addresses_get else R.string.addresses_add))
         }
         if (!first && state.limit != AppDefaults.UNLIMITED) {
             Text(
-                if (state.onPrimaryMint > state.limit) {
+                if (state.onHomeMint > state.limit) {
                     stringResource(R.string.addresses_over_limit, state.limit)
                 } else {
-                    pluralStringResource(R.plurals.addresses_limit, state.limit, state.onPrimaryMint, state.limit)
+                    pluralStringResource(R.plurals.addresses_limit, state.limit, state.onHomeMint, state.limit)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

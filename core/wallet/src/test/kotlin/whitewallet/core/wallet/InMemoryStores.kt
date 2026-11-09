@@ -16,20 +16,28 @@ import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Profile
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.WalletRecord
 import whitewallet.lnurlcash.spendDomain
 
+/** A test's account's primary address, as [InMemoryWalletStore.addAccount] sets it up. */
+data class PrimaryAddress(val username: String, val host: String) {
+    val address: String
+        get() = "$username@$host"
+}
+
 /**
- * [WalletStore] in memory. Like the database's foreign keys, it refuses an account's rows (counters, scans, addresses) before the account
- * is saved, and a wallet's mint before the wallet has an account.
+ * [WalletStore] in memory. Like the database's foreign keys, it refuses an account before its wallet, an account's rows (counters, scans,
+ * addresses) before the account, and a wallet's mint before the wallet.
  */
 class InMemoryWalletStore : WalletStore {
+    private val walletMap = MutableStateFlow<Map<String, WalletRecord>>(emptyMap())
     private val accountMap = MutableStateFlow<Map<String, Account>>(emptyMap())
     private val noteMap = MutableStateFlow<Map<String, Note>>(emptyMap())
-    private val profiles = MutableStateFlow<Map<String, Profile>>(emptyMap())
+    /** Per account, its primary address as (username, host). */
+    private val primaries = MutableStateFlow<Map<String, Pair<String, String>>>(emptyMap())
     private val addressMap = MutableStateFlow<Map<String, List<RegisteredAddress>>>(emptyMap())
     private val active = MutableStateFlow<String?>(null)
     val mintMap = MutableStateFlow(emptyMap<Pair<String, String>, Mint>())
@@ -46,17 +54,25 @@ class InMemoryWalletStore : WalletStore {
     private val indexVersion = MutableStateFlow(0L)
 
     override val accounts: Flow<List<AccountSummary>> =
-        combine(accountMap, profiles, noteMap) { accounts, profiles, notes ->
+        combine(accountMap, noteMap) { accounts, notes ->
             accounts.values
                 .sortedBy { it.createdAtMillis }
                 .map { a ->
                     AccountSummary(
                         a,
-                        profiles[a.id],
                         notes.values.filter { it.accountId == a.id && it.state == NoteState.Outstanding }.sumOf { it.amountMsat },
                     )
                 }
         }
+
+    override val wallets: Flow<List<WalletRecord>> = walletMap.map { it.values.sortedBy { w -> w.createdAtMillis } }
+
+    override suspend fun wallet(id: String) = walletMap.value[id]
+
+    override suspend fun saveWallet(wallet: WalletRecord) {
+        walletMap.update { it + (wallet.id to wallet) }
+    }
+
     override val activeAccountId: Flow<String?> = active
 
     override suspend fun currentAccountId() = active.value
@@ -70,12 +86,16 @@ class InMemoryWalletStore : WalletStore {
     private fun requireAccount(id: String) = check(id in accountMap.value) { "row of account $id saved before the account" }
 
     override suspend fun saveAccount(account: Account) {
+        check(account.walletId in walletMap.value) { "account ${account.id} saved before its wallet ${account.walletId}" }
+        check(accountMap.value.values.none { it.id != account.id && it.walletId == account.walletId && it.index == account.index }) {
+            "account ${account.index} of wallet ${account.walletId} exists already"
+        }
         accountMap.value = accountMap.value + (account.id to account)
     }
 
     override suspend fun deleteAccount(id: String) {
         val walletId = accountMap.value[id]?.walletId
-        profiles.value = profiles.value - id
+        primaries.value = primaries.value - id
         addressMap.value = addressMap.value - id
         noteMap.value = noteMap.value.filterValues { it.accountId != id }
         counters.keys.removeAll { it.first == id }
@@ -87,23 +107,33 @@ class InMemoryWalletStore : WalletStore {
         activityMap.value = activityMap.value.filterValues { it.second.accountId != id }
         receivedMap.value = receivedMap.value.filterValues { it.accountId != id }
         accountMap.value = accountMap.value - id
-        if (walletId != null && accountMap.value.values.none { it.walletId == walletId }) removeMints(walletId)
+        if (walletId != null && accountMap.value.values.none { it.walletId == walletId }) {
+            removeMints(walletId)
+            walletMap.update { it - walletId }
+        }
         if (active.value == id) active.value = null
     }
 
     override fun notes(accountId: String): Flow<List<Note>> = noteMap.map { it.values.filter { n -> n.accountId == accountId } }
 
-    override fun profile(accountId: String): Flow<Profile?> = profiles.map { it[accountId] }
+    override fun primaryAddress(accountId: String): Flow<RegisteredAddress?> =
+        combine(primaries, addressMap) { primaries, addresses -> primaryOf(accountId, primaries, addresses) }
 
-    override suspend fun currentProfile(accountId: String) = profiles.value[accountId]
+    override suspend fun currentPrimaryAddress(accountId: String) = primaryOf(accountId, primaries.value, addressMap.value)
 
-    override suspend fun saveProfile(accountId: String, profile: Profile) {
-        requireAccount(accountId)
-        profiles.value = profiles.value + (accountId to profile)
-        val list = addressMap.value[accountId].orEmpty()
-        if (list.none { it.username == profile.username && it.host == profile.host }) {
-            saveAddress(accountId, RegisteredAddress(profile.username, profile.host, System.currentTimeMillis()))
+    private fun primaryOf(
+        accountId: String,
+        primaries: Map<String, Pair<String, String>>,
+        addresses: Map<String, List<RegisteredAddress>>,
+    ) = primaries[accountId]?.let { (username, host) -> addresses[accountId]?.firstOrNull { it.username == username && it.host == host } }
+
+    override suspend fun setPrimaryAddress(accountId: String, username: String?, host: String?) {
+        if (username == null || host == null) {
+            primaries.update { it - accountId }
+            return
         }
+        check(addressMap.value[accountId].orEmpty().any { it.username == username && it.host == host }) { "not an address of this account" }
+        primaries.update { it + (accountId to (username to host)) }
     }
 
     override fun addresses(accountId: String): Flow<List<RegisteredAddress>> = addressMap.map {
@@ -117,6 +147,7 @@ class InMemoryWalletStore : WalletStore {
     }
 
     override suspend fun deleteAddress(accountId: String, username: String, host: String) {
+        if (primaries.value[accountId] == (username to host)) primaries.update { it - accountId }
         addressMap.value =
             addressMap.value + (accountId to addressMap.value[accountId].orEmpty().filterNot { it.username == username && it.host == host })
     }
@@ -124,7 +155,7 @@ class InMemoryWalletStore : WalletStore {
     override suspend fun mint(walletId: String, host: String) = mintMap.value[walletId to host]
 
     override suspend fun saveMint(mint: Mint) {
-        check(accountMap.value.values.any { it.walletId == mint.walletId }) { "mint ${mint.host} saved before its wallet ${mint.walletId}" }
+        check(mint.walletId in walletMap.value) { "mint ${mint.host} saved before its wallet ${mint.walletId}" }
         mintMap.update { it + ((mint.walletId to mint.host) to mint) }
     }
 
@@ -275,12 +306,19 @@ class InMemoryWalletStore : WalletStore {
 
     fun allNotes() = noteMap.value.values.toList()
 
-    /** Creates an account with [profile] (on [host], its home mint) and makes it active, as a successful onboarding would. */
-    suspend fun addAccount(id: String, name: String, profile: Profile?, host: String = profile?.host ?: "mint.example") {
-        saveAccount(Account(id, name, accountMap.value.size.toLong(), host))
-        profile?.let {
-            saveProfile(id, it)
+    /** The home mint of [accountId]'s wallet. */
+    suspend fun homeOf(accountId: String): String? = account(accountId)?.let { wallet(it.walletId)?.homeHost }
+
+    /**
+     * Creates an account in a wallet of its own (home mint [host], unless the wallet has one) with [primary] as its primary address, and
+     * makes it active, as a successful onboarding would.
+     */
+    suspend fun addAccount(id: String, name: String, primary: PrimaryAddress?, host: String = primary?.host ?: "mint.example") {
+        if (id !in walletMap.value) saveWallet(WalletRecord(id, name, accountMap.value.size.toLong(), homeHost = host))
+        saveAccount(Account(id, name, accountMap.value.size.toLong()))
+        primary?.let {
             saveAddress(id, RegisteredAddress(it.username, it.host, 0, share = 0))
+            setPrimaryAddress(id, it.username, it.host)
         }
         setActiveAccount(id)
     }
@@ -290,22 +328,22 @@ class InMemorySeedStore(initial: Map<String, List<String>> = emptyMap()) : SeedS
     private val words = initial.toMutableMap()
     private val verified = MutableStateFlow<Set<String>>(emptySet())
 
-    override suspend fun load(accountId: String) = words[accountId]
+    override suspend fun load(walletId: String) = words[walletId]
 
-    override suspend fun save(accountId: String, words: List<String>) {
-        this.words[accountId] = words
+    override suspend fun save(walletId: String, words: List<String>) {
+        this.words[walletId] = words
     }
 
-    override fun backupVerified(accountId: String): Flow<Boolean> = verified.map { accountId in it }
+    override fun backupVerified(walletId: String): Flow<Boolean> = verified.map { walletId in it }
 
-    override suspend fun setBackupVerified(accountId: String) {
-        verified.value = verified.value + accountId
+    override suspend fun setBackupVerified(walletId: String) {
+        verified.value = verified.value + walletId
     }
 
-    override suspend fun clear(accountId: String) {
-        words.remove(accountId)
-        verified.value = verified.value - accountId
+    override suspend fun clear(walletId: String) {
+        words.remove(walletId)
+        verified.value = verified.value - walletId
     }
 
-    fun accountIds() = words.keys.toSet()
+    fun walletIds() = words.keys.toSet()
 }

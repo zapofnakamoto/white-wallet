@@ -17,7 +17,6 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.spendDomain
@@ -33,18 +32,18 @@ class AccountsTest {
             val store = InMemoryWalletStore()
             val seeds = InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB))
             val wallet = Wallet(store, seeds, LnurlcashClient())
-            store.addAccount("a", "Main", Profile("alice", "mint.example"))
-            store.addAccount("b", "Savings", Profile("bob", "other.example"))
+            store.addAccount("a", "Main", PrimaryAddress("alice", "mint.example"))
+            store.addAccount("b", "Savings", PrimaryAddress("bob", "other.example"))
             store.upsertNotes(listOf(note("n1", "a", 3_000), note("n2", "b", 5_000)))
             seeds.setBackupVerified("a")
 
-            assertEquals("bob", wallet.profile.first()?.username)
+            assertEquals("bob", wallet.primaryAddress.first()?.username)
             assertEquals(5_000, wallet.balanceMsat.first())
             assertEquals(false, wallet.backupVerified.first())
             assertEquals(wordsB, wallet.recoveryPhrase())
 
             wallet.switchAccount("a")
-            assertEquals("alice", wallet.profile.first()?.username)
+            assertEquals("alice", wallet.primaryAddress.first()?.username)
             assertEquals(3_000, wallet.balanceMsat.first())
             assertEquals(true, wallet.backupVerified.first())
             assertEquals(wordsA, wallet.recoveryPhrase())
@@ -64,8 +63,8 @@ class AccountsTest {
             MockMint.start().use { mint ->
                 val store = InMemoryWalletStore()
                 val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient())
-                store.addAccount("b", "Savings", Profile("bob", mint.host))
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("b", "Savings", PrimaryAddress("bob", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 Fixture(mint, store, wallet, testKeys(wordsA, mint.host)).test()
             }
@@ -171,7 +170,7 @@ class AccountsTest {
             // Onboarding a second account is covered against a fake mint in OnboardingTest; here only the seed separation.
             val store = InMemoryWalletStore()
             val seeds = InMemorySeedStore(mapOf("a" to wordsA))
-            store.addAccount("a", "Main", Profile("alice", "mint.example"))
+            store.addAccount("a", "Main", PrimaryAddress("alice", "mint.example"))
             val wallet = Wallet(store, seeds, LnurlcashClient())
             wallet.createSeed("b")
             assertNotEquals(seeds.load("a"), seeds.load("b"))

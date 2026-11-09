@@ -468,7 +468,7 @@ mints.changeable={"false" if o.lock else "true"}
 # the mints in the notes view.
 mints.visible={"false" if o.hide_mints else "true"}
 # Mints shown as trusted from the start, each as host:pubkey (the mint's signing key), comma-separated. Users can
-# untrust them; each account's home mint is trusted by default anyway.
+# untrust them; each wallet's home mint is trusted by default anyway.
 mints.trusted={",".join(o.trusted_mint)}
 
 # Accounts and Lightning addresses
@@ -502,9 +502,9 @@ notes.actions={"share,split,combine,recheck,renew,print" if o.hide_mints else "s
 # and the one a new account starts with.
 notes.strategies={o.note_strategy if o.no_strategy_choice else ",".join(dict.fromkeys([o.note_strategy, "single", "manual"]))}
 notes.strategy.default={o.note_strategy}
-# "Collect at home mint": notes on other mints are moved to the account's home mint automatically, when the move
+# "Collect at home mint": notes on other mints are moved to the wallet's home mint automatically, when the move
 # costs at most notes.collect.feeCap percent. hidden = not offered, off = offered and starts off, on = offered and
-# starts on, always = every account collects and users have no switch.
+# starts on, always = every wallet collects and users have no switch.
 notes.collect.atHomeMint={o.collect_at_home}
 notes.collect.feeCap={o.collect_fee_cap}
 # A short message when the wallet changed the notes by itself (combined, split, renewed, moved home): hidden = never,

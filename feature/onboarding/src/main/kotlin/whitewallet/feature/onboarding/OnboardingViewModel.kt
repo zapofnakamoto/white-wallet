@@ -253,12 +253,9 @@ constructor(
                 OnboardingMode.AddAddressElsewhere -> {
                     homeHost = wallet.homeHost.first()
                     known = wallet.mints.first().map { it.host }.filter(defaults::mintAllowed)
-                    val other =
-                        mintOptions(defaults, preferences.developerMode.first(), known).firstNotNullOfOrNull { o ->
-                            o.host?.takeIf { it != homeHost }
-                        }
-                    // The same name as at home is the natural first try.
-                    val name = wallet.profile.first()?.username.orEmpty()
+                    val other = known.firstOrNull { it != homeHost }
+                    // The same name as the primary address is the natural first try.
+                    val name = wallet.primaryAddress.first()?.username.orEmpty()
                     _state.update {
                         it.copy(
                             mode = mode,
@@ -325,13 +322,17 @@ constructor(
     /** For [OnboardingMode.AddAddressElsewhere]: the home mint, left out of the choice. */
     private var homeHost: String? = null
 
-    /** For [OnboardingMode.AddAddressElsewhere]: the mints the user knows that the brand allows, offered first. */
+    /** For [OnboardingMode.AddAddressElsewhere]: the wallet's mints that the brand allows, the only ones offered. */
     private var known: List<String> = emptyList()
 
     private fun updateMintOptions(developerMode: Boolean) {
         val before = _state.value.host
         _state.update { s ->
-            val options = mintOptions(defaults, developerMode, known).filter { it.host == null || it.host != homeHost }
+            val options =
+                mintOptions(defaults, developerMode, known).filter {
+                    if (s.mode == OnboardingMode.AddAddressElsewhere) it.host in known && it.host != homeHost
+                    else it.host == null || it.host != homeHost
+                }
             val selected = keepSelection(options, s.mintOptions, s.selectedMint, s.host)
             s.copy(
                 mintOptions = options,
@@ -453,7 +454,7 @@ constructor(
         when (result) {
             is OnboardResult.Ready ->
                 _state.update {
-                    it.copy(busy = false, claimed = Claimed(result.profile.address, result.confirmed), availability = Availability.Yours)
+                    it.copy(busy = false, claimed = Claimed(result.address.address, result.confirmed), availability = Availability.Yours)
                 }
             is OnboardResult.AwaitingFee -> {
                 val payable = wallet.previewPayment(result.address.feeInvoice.orEmpty()) is PayPreview.Ready

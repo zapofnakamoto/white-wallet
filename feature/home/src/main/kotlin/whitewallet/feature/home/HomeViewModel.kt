@@ -20,7 +20,6 @@ import whitewallet.brand.WalletStatus
 import whitewallet.brand.WalletTask
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
-import whitewallet.core.model.Profile
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.AccountMint
@@ -47,7 +46,6 @@ data class HomeState(
     val accounts: List<AccountSummary> = emptyList(),
     val activeAccountId: String? = null,
     val balanceMsat: Long = 0,
-    val profile: Profile? = null,
     /** The active account's history, newest first, maintenance included (History filters it). */
     val activity: List<Activity> = emptyList(),
     val refreshing: Boolean = false,
@@ -59,8 +57,8 @@ data class HomeState(
     val showBackupPrompt: Boolean = false,
     /** The active wallet has no mint yet: nothing can be received until one is added. */
     val showAddMintPrompt: Boolean = false,
-    /** The mint no longer routes the profile's address to this wallet (checked on refresh). */
-    val addressInactive: Boolean = false,
+    /** An address of the active account that its mint no longer routes to this wallet (checked on refresh); null if none. */
+    val inactiveAddress: String? = null,
     val backupPromptDismissed: Boolean = false,
     /** The balance shows as dots until tapped (kept across launches). */
     val balanceHidden: Boolean = false,
@@ -126,7 +124,11 @@ class HomeViewModel(
     /** Whether Home is on screen, as the screen says ([setVisible]). */
     private var visible = false
 
-    private val walletFlags = combine(wallet.backupVerified, wallet.addressStatus, preferences.balanceHidden, wallet.hasMint, ::WalletFlags)
+    private val inactiveAddress =
+        wallet.addresses.map { entries ->
+            entries.firstOrNull { it.status == AddressStatus.Taken || it.status == AddressStatus.Available }?.address?.address
+        }
+    private val walletFlags = combine(wallet.backupVerified, inactiveAddress, preferences.balanceHidden, wallet.hasMint, ::WalletFlags)
     private val work =
         combine(wallet.task, wallet.noteStrategy) { task, strategy ->
             task to strategy.workingText?.takeIf { task is WalletTask.Maintaining && task.strategyId == strategy.id }
@@ -134,11 +136,10 @@ class HomeViewModel(
     private val accountInfo = combine(wallet.accounts, wallet.activeAccount, work, ::Triple)
 
     val state: StateFlow<HomeState> =
-        combine(accountInfo, wallet.profile, wallet.activity, walletFlags, status) {
+        combine(accountInfo, wallet.activity, walletFlags, status) {
                 (accounts, active, work),
-                profile,
                 activity,
-                (backedUp, address, hidden, hasMint),
+                (backedUp, inactive, hidden, hasMint),
                 s ->
                 val balance = active?.balanceMsat ?: 0
                 val walletId = active?.account?.walletId
@@ -147,9 +148,8 @@ class HomeViewModel(
                     strategyText = work.second,
                     accounts = accounts,
                     activeAccountId = active?.account?.id,
-                    addressInactive = address == AddressStatus.Taken || address == AddressStatus.Available,
+                    inactiveAddress = inactive,
                     balanceMsat = balance,
-                    profile = profile,
                     activity = activity,
                     showBackupPrompt = defaults.remindBackup(balance) && !backedUp && !s.backupPromptDismissed,
                     showAddMintPrompt = active != null && !hasMint,
@@ -262,4 +262,4 @@ class HomeViewModel(
     }
 }
 
-private data class WalletFlags(val backedUp: Boolean, val address: AddressStatus?, val hidden: Boolean, val hasMint: Boolean)
+private data class WalletFlags(val backedUp: Boolean, val inactiveAddress: String?, val hidden: Boolean, val hasMint: Boolean)

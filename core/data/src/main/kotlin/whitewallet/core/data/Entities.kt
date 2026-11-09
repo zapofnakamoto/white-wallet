@@ -2,6 +2,7 @@ package whitewallet.core.data
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import whitewallet.core.model.Account
@@ -18,54 +19,91 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
-import whitewallet.core.model.Profile
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.SetupStep
+import whitewallet.core.model.WalletRecord
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
 import whitewallet.lnurlcash.RevealsNoteSecret
 
-@Entity(tableName = "accounts")
+/**
+ * A wallet's account. Its own rows (counters, scans, key checks, history, addresses) go with it; its notes, received notes and journal
+ * entries must be deleted first, never by accident ([RESTRICT]).
+ */
+@Entity(
+    tableName = "accounts",
+    foreignKeys = [ForeignKey(WalletEntity::class, ["id"], ["walletId"])],
+    indices = [Index("walletId", "accountIndex", unique = true)],
+)
 internal data class AccountEntity(
     @PrimaryKey val id: String,
     val name: String,
     val createdAtMillis: Long,
-    val host: String?,
     /** The wallet (recovery phrase) the account's keys derive from; an account from before wallets is its own, with the same id. */
-    @ColumnInfo(defaultValue = "''") val walletId: String,
+    val walletId: String,
     /** Its LUD-26 account index `a` in that wallet. */
-    @ColumnInfo(defaultValue = "0") val accountIndex: Long,
+    val accountIndex: Long,
 ) {
-    fun toModel() = Account(id, name, createdAtMillis, host, walletId, accountIndex)
+    fun toModel() = Account(id, name, createdAtMillis, walletId, accountIndex)
 
     companion object {
-        fun from(a: Account) = AccountEntity(a.id, a.name, a.createdAtMillis, a.host, a.walletId, a.index)
+        fun from(a: Account) = AccountEntity(a.id, a.name, a.createdAtMillis, a.walletId, a.index)
     }
 }
 
 /** A recovery phrase and the accounts below it (`accounts.walletId`); the phrase itself is in the seed store, under this id. */
-@Entity(tableName = "wallets") internal data class WalletEntity(@PrimaryKey val id: String, val name: String, val createdAtMillis: Long)
+@Entity(tableName = "wallets")
+internal data class WalletEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val createdAtMillis: Long,
+    val homeHost: String?,
+    /** [SetupStep] name. */
+    val setupStep: String?,
+    val activeBeforeSetup: String?,
+) {
+    fun toModel() =
+        WalletRecord(
+            id,
+            name,
+            createdAtMillis,
+            homeHost,
+            setupStep?.let { s -> SetupStep.entries.firstOrNull { it.name == s } },
+            activeBeforeSetup,
+        )
+
+    companion object {
+        fun from(w: WalletRecord) = WalletEntity(w.id, w.name, w.createdAtMillis, w.homeHost, w.setupStep?.name, w.activeBeforeSetup)
+    }
+}
 
 /** Single row holding app-wide state. */
 @Entity(tableName = "app_state") internal data class AppStateEntity(@PrimaryKey val id: Int = 0, val activeAccountId: String?)
 
-/** One row of the account switcher: an account with its address and outstanding balance. */
+/** One row of the account switcher: an account with its outstanding balance. */
 internal data class AccountSummaryRow(
     val id: String,
     val name: String,
     val createdAtMillis: Long,
-    /** The account's home mint; null without one. */
-    val host: String?,
     /** Its wallet and index there: without them, every account would look like the first of a wallet of its own. */
     val walletId: String,
     val accountIndex: Long,
-    val username: String?,
-    val addressHost: String?,
     val balanceMsat: Long,
 )
 
-@Entity(tableName = "notes", indices = [Index("accountId")])
+/** A foreign key to the account: rows the account owns outright go with it. */
+private const val CASCADE = ForeignKey.CASCADE
+
+/** A foreign key to the account that keeps it while it has rows here: money and operations are never deleted by a cascade. */
+private const val RESTRICT = ForeignKey.RESTRICT
+
+@Entity(
+    tableName = "notes",
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = RESTRICT)],
+    indices = [Index("accountId")],
+)
 internal data class NoteEntity(
     @PrimaryKey val id: String,
     val accountId: String,
@@ -120,7 +158,11 @@ internal data class NoteEntity(
 }
 
 /** A wallet's mint, shared by its accounts: what a host is and the key the wallet pinned for it. */
-@Entity(tableName = "mints", primaryKeys = ["walletId", "host"])
+@Entity(
+    tableName = "mints",
+    primaryKeys = ["walletId", "host"],
+    foreignKeys = [ForeignKey(WalletEntity::class, ["id"], ["walletId"], onDelete = CASCADE)],
+)
 internal data class MintEntity(
     val walletId: String,
     val host: String,
@@ -139,13 +181,13 @@ internal data class MintEntity(
     }
 }
 
-@Entity(tableName = "profile")
-internal data class ProfileEntity(@PrimaryKey val accountId: String, val username: String, val host: String) {
-    fun toModel() = Profile(username, host)
-}
-
-/** Every Lightning address an account registered; the `profile` row names the primary one. */
-@Entity(tableName = "addresses", primaryKeys = ["accountId", "host", "username"])
+/** Every Lightning address an account registered; at most one is its primary one. */
+@Entity(
+    tableName = "addresses",
+    primaryKeys = ["accountId", "host", "username"],
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = CASCADE)],
+    indices = [Index("accountId", "isPrimary", unique = true)],
+)
 internal data class AddressEntity(
     val accountId: String,
     val host: String,
@@ -155,34 +197,56 @@ internal data class AddressEntity(
     val share: Long? = null,
     /** The address fee's invoice while the mint holds the name for it. */
     val feeInvoice: String? = null,
+    /** 1 for the account's primary address, else null: the unique index allows one 1 per account, and any number of nulls. */
+    val isPrimary: Int? = null,
 ) {
     fun toModel() = RegisteredAddress(username, host, addedAtMillis, share, feeInvoice)
 }
 
 /** Legacy: LUD-26 draft 2f17578. The next index per account, host and legacy purpose (tag: keys). */
-@Entity(tableName = "counters", primaryKeys = ["accountId", "host", "purpose"])
+@Entity(
+    tableName = "counters",
+    primaryKeys = ["accountId", "host", "purpose"],
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = CASCADE)],
+)
 internal data class CounterEntity(val accountId: String, val host: String, val purpose: Int, val next: Long)
 
 /**
  * The next unused index of one of an account's LUD-26 counters ([KeyCounter]) on a mint domain: keys derive from the domain, never the
  * port, so mints sharing a hostname share these.
  */
-@Entity(tableName = "key_counters", primaryKeys = ["accountId", "domain", "counter"])
+@Entity(
+    tableName = "key_counters",
+    primaryKeys = ["accountId", "domain", "counter"],
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = CASCADE)],
+)
 internal data class KeyCounterEntity(val accountId: String, val domain: String, val counter: String, val next: Long)
 
 /** Legacy: LUD-26 draft 2f17578. First purpose-2 index the next Lightning address scan starts from, per account and host (tag: keys). */
-@Entity(tableName = "address_scan", primaryKeys = ["accountId", "host"])
+@Entity(
+    tableName = "address_scan",
+    primaryKeys = ["accountId", "host"],
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = CASCADE)],
+)
 internal data class AddressScanEntity(val accountId: String, val host: String, val next: Long)
 
 /** First note index of share [share] the next scan of it at [host] starts from. */
-@Entity(tableName = "share_scan", primaryKeys = ["accountId", "host", "share"])
+@Entity(
+    tableName = "share_scan",
+    primaryKeys = ["accountId", "host", "share"],
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = CASCADE)],
+)
 internal data class ShareScanEntity(val accountId: String, val host: String, val share: Long, val next: Long)
 
 /**
  * The last answer the mint gave for one derived key (public lookup by `p`, never by spend). Failed lookups are not saved. [result] is the
  * [KeyProbe] subtype; [amountMsat], [certified] and [imported] belong to `Outstanding`, [reason] to `Refused`.
  */
-@Entity(tableName = "key_checks", primaryKeys = ["accountId", "host", "scheme", "purpose", "share", "keyIndex"])
+@Entity(
+    tableName = "key_checks",
+    primaryKeys = ["accountId", "host", "scheme", "purpose", "share", "keyIndex"],
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = CASCADE)],
+)
 internal data class KeyCheckEntity(
     val accountId: String,
     val host: String,
@@ -244,7 +308,11 @@ internal data class KeyCheckEntity(
     }
 }
 
-@Entity(tableName = "journal", indices = [Index("accountId")])
+@Entity(
+    tableName = "journal",
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = RESTRICT)],
+    indices = [Index("accountId")],
+)
 internal data class JournalEntity(
     @PrimaryKey val id: String,
     val accountId: String,
@@ -318,7 +386,11 @@ internal data class JournalEntity(
 }
 
 /** One row of an account's history (see [Activity]). */
-@Entity(tableName = "activity", indices = [Index("accountId", "createdAtMillis"), Index("journalId")])
+@Entity(
+    tableName = "activity",
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = CASCADE)],
+    indices = [Index("accountId", "createdAtMillis"), Index("journalId")],
+)
 internal data class ActivityEntity(
     @PrimaryKey val id: String,
     val accountId: String,
@@ -372,7 +444,11 @@ internal data class ActivityEntity(
 }
 
 /** A note received as a link (see [ReceivedNote]). */
-@Entity(tableName = "received_notes", indices = [Index("accountId")])
+@Entity(
+    tableName = "received_notes",
+    foreignKeys = [ForeignKey(AccountEntity::class, ["id"], ["accountId"], onDelete = RESTRICT)],
+    indices = [Index("accountId")],
+)
 internal data class ReceivedNoteEntity(
     @PrimaryKey val id: String,
     val accountId: String,

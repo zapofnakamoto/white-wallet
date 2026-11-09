@@ -37,7 +37,7 @@ data class MovePreview(
 /** What [Wallet.moveMoney] did with one mint's money ([amountMsat] of it): moved, still settling, or not moved and why. */
 data class MoneyMoved(val host: String, val amountMsat: Long, val result: MintMoveResult)
 
-/** What [Wallet.changeHome] with money to move did: the change's [result], then per mint what the move did. */
+/** What [Wallet.setHomeMint] with money to move did: the change's [result], then per mint what the move did. */
 data class HomeChanged<R>(val result: R, val moved: List<MoneyMoved> = emptyList())
 
 /**

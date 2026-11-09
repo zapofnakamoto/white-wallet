@@ -13,6 +13,7 @@ import org.robolectric.annotation.Config
 import whitewallet.core.wallet.CollectDefaults
 import whitewallet.core.wallet.Collected
 import whitewallet.core.wallet.ManualStrategy
+import whitewallet.core.wallet.MovePreview
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.PolicyRun
 
@@ -60,6 +61,42 @@ class CollectSettingsTest {
         show(state(collect = false, offered = false))
         compose.onNodeWithText(text(R.string.notes_collect_title, "home.example")).assertDoesNotExist()
         compose.onNodeWithText("2%").assertDoesNotExist()
+    }
+
+    @Test
+    fun payingFromOtherMintsFirstIsASwitchNamingTheHomeMint() {
+        var first: Boolean? = null
+        compose.setContent {
+            NotesSettingsScreen(
+                state(collect = false),
+                onBack = {},
+                onNoteStrategy = {},
+                onAutoRotate = {},
+                onPayFromOtherMintsFirst = { first = it },
+            )
+        }
+        compose.onNodeWithText(text(R.string.notes_pay_from_others_first_hint, "home.example")).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.notes_pay_from_others_first)).performClick()
+        assertEquals(true, first)
+    }
+
+    @Test
+    fun turningCollectingOnShowsWhatMovesNowAndAsks() {
+        var confirmed = false
+        val preview =
+            MovePreview(
+                "home.example",
+                listOf(
+                    MovePreview.Line("other.example", 50_000, MovePreview.Quote.Ok(49_000, 1_000)),
+                    MovePreview.Line("dear.example", 10_000, MovePreview.Quote.Ok(5_000, 5_000)),
+                ),
+                feeCapPercent = 2,
+            )
+        show(state(collect = false).copy(collectPreview = preview), CollectActions(onConfirm = { confirmed = true }))
+        compose.onNodeWithText(text(R.string.money_review_moves, "₿50", "other.example", "₿49", "₿1")).assertExists()
+        compose.onNodeWithText(text(R.string.money_review_over_cap, "₿10", "dear.example", 2)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_collect_confirm)).performClick()
+        assertEquals(true, confirmed)
     }
 
     @Test

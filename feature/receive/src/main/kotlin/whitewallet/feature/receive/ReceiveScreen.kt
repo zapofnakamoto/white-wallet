@@ -54,7 +54,7 @@ import whitewallet.core.wallet.InvoiceStatus
 fun ReceiveRoute(
     onBack: () -> Unit,
     onClaim: () -> Unit,
-    /** Opens where a mint is added ([NoHome.NoMint]) or the account's home is picked ([NoHome.PickHome]). */
+    /** Opens where a mint is added ([NoHome.NoMint]) or the wallet's home is picked ([NoHome.PickHome]). */
     onNoHome: (NoHome) -> Unit = {},
     viewModel: ReceiveViewModel = hiltViewModel(),
 ) {
@@ -65,6 +65,7 @@ fun ReceiveRoute(
         onClaim,
         InvoiceActions(
             onRequestAmount = viewModel::requestAmount,
+            onOtherAddress = viewModel::otherAddress,
             onAmountChange = viewModel::onAmountChange,
             onCreate = viewModel::createInvoice,
             onNewInvoice = viewModel::newInvoice,
@@ -78,6 +79,8 @@ fun ReceiveRoute(
 /** What the invoice part of the screen can ask for. */
 class InvoiceActions(
     val onRequestAmount: () -> Unit = {},
+    /** Shows another of the account's Lightning addresses. */
+    val onOtherAddress: () -> Unit = {},
     val onAmountChange: (String) -> Unit = {},
     val onCreate: () -> Unit = {},
     val onNewInvoice: () -> Unit = {},
@@ -118,7 +121,7 @@ fun ReceiveScreen(
                 state.noHome != null -> NoHomeContent(state.noHome, onNoHome)
                 shown != null -> InvoiceContent(shown, onBack, invoice.onNewInvoice)
                 state.showAmountForm -> AmountForm(state, invoice)
-                state.address != null -> AddressContent(state.address, invoice.onRequestAmount)
+                state.address != null -> AddressContent(state.address, others = state.addressCount > 1, invoice)
             }
             if (shown == null) WalletButton(kind = ButtonKind.Text, onClick = onClaim) { Text(stringResource(R.string.receive_claim)) }
             val payable = shown?.status == InvoiceStatus.Waiting || (shown == null && !state.showAmountForm && state.address != null)
@@ -169,12 +172,14 @@ private fun FaucetButton(faucet: FaucetState, invoice: Boolean, onPay: () -> Uni
 }
 
 @Composable
-private fun AddressContent(address: String, onRequestAmount: () -> Unit) {
+private fun AddressContent(address: String, others: Boolean, actions: InvoiceActions) {
     QrCode("lightning:${address.uppercase()}")
     Text(address, style = MaterialTheme.typography.titleMedium)
     Text(stringResource(R.string.receive_hint), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
     CopyShare(address, stringResource(R.string.receive_copied))
-    WalletButton(kind = ButtonKind.Text, onClick = onRequestAmount) { Text(stringResource(R.string.receive_request_amount)) }
+    WalletButton(kind = ButtonKind.Text, onClick = actions.onRequestAmount) { Text(stringResource(R.string.receive_request_amount)) }
+    if (others)
+        WalletButton(kind = ButtonKind.Text, onClick = actions.onOtherAddress) { Text(stringResource(R.string.receive_other_address)) }
 }
 
 @Composable
@@ -206,6 +211,9 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions) {
         enabled = state.amountMsat != null,
         busy = state.creating,
     )
+    if (state.addressCount > 0) {
+        WalletButton(kind = ButtonKind.Text, onClick = actions.onOtherAddress) { Text(stringResource(R.string.receive_use_address)) }
+    }
 }
 
 @Composable

@@ -76,7 +76,7 @@ private fun Hub(
         SummaryRow(
             leading = { WalletAccountMark(name, state.accountPlace) },
             title = stringResource(R.string.settings_account_section, name),
-            summary = state.profile?.address ?: stringResource(R.string.settings_account_contents),
+            summary = state.address ?: stringResource(R.string.settings_account_contents),
             extra =
                 state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) }
                     ?: status.takeIf { color == MaterialTheme.colorScheme.error },
@@ -162,19 +162,19 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
             ) {
                 open(SettingsTarget.Backup)
             }
-            val profile = state.profile
-            if (profile != null) {
+            val address = state.address
+            if (address != null) {
                 val (status, color) = addressSummary(state.addressStatus)
                 val summary =
                     if (state.otherAddresses > 0) {
                         pluralStringResource(
                             R.plurals.settings_address_with_more,
                             state.otherAddresses,
-                            profile.address,
+                            address,
                             state.otherAddresses,
                         )
                     } else {
-                        profile.address
+                        address
                     }
                 SummaryRow(
                     leading = pageIcon(SettingsTarget.Addresses),

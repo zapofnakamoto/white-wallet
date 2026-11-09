@@ -13,7 +13,6 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -49,7 +48,7 @@ class MintTrustTest {
                             trust = MintTrustStore.InMemory(),
                             brandTrusted = brand(home.host, other.host, otherKey),
                         )
-                    store.addAccount("a", "Main", Profile("alice", home.host), host = home.host)
+                    store.addAccount("a", "Main", PrimaryAddress("alice", home.host), host = home.host)
                     assertIs<ConnectResult.Connected>(wallet.connectMint(home.host))
                     test(wallet, store, home, other)
                 }

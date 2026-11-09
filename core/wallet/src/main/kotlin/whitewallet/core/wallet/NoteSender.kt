@@ -341,16 +341,16 @@ internal class NoteSender(private val wallet: Wallet) {
     private suspend fun activity(accountId: String, noteId: String): Activity? =
         wallet.store.activities(accountId).first().firstOrNull { it.id == activityId(noteId) && it.kind == ActivityKind.SentNote }
 
-    /** The mints to make the note on: the home mint first, then the others. */
+    /** The mints to make the note on: the home mint first, then the others (or the other way round, see [Wallet.payOrder]). */
     private suspend fun candidates(accountId: String): List<Pair<String, List<Note>>> {
-        val primary = wallet.store.account(accountId)?.host
+        val order = wallet.payOrder(accountId)
         return wallet.store
             .notes(accountId)
             .first()
             .filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null }
             .groupBy { it.host }
             .toList()
-            .sortedBy { it.first != primary }
+            .sortedBy { order(it.first) }
     }
 
     private suspend fun baseFee(accountId: String, host: String): Long = wallet.mintOf(accountId, host)?.feeBaseMsat ?: 0

@@ -75,7 +75,7 @@ class RegtestRoomTest {
             val rows = wallet.activity.first()
 
             wallet = start()
-            assertEquals("$name@$host", wallet.profile.first()?.address)
+            assertEquals("$name@$host", wallet.primaryAddress.first()?.address)
             assertEquals(2_999_000, wallet.balanceMsat.first())
             assertEquals(rows, wallet.activity.first())
             assertEquals(0, wallet.refresh().newNotes, "the address scan goes on where it was")

@@ -78,7 +78,7 @@ data class MintDetailsState(
 class MintDetailsViewModel
 @Inject
 constructor(private val wallet: Wallet, savedState: SavedStateHandle, private val defaults: AppDefaults) : ViewModel() {
-    /** The mint to show: the route's `host`, else the account's home mint. */
+    /** The mint to show: the route's `host`, else the wallet's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
     private val _state = MutableStateFlow(MintDetailsState(device = savedState.get<Boolean>("device") ?: false))
     val state: StateFlow<MintDetailsState> = _state
@@ -202,12 +202,7 @@ fun MintDetailsScreen(
                 },
             )
             if (state.device) {
-                state.mint
-                    ?.homeOf
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let { homes ->
-                        WalletListItem(headlineContent = { Text(stringResource(R.string.mints_home_mint_of, homes.joinToString(", "))) })
-                    }
+                if (state.mint?.isHome == true) WalletListItem(headlineContent = { Text(stringResource(R.string.settings_home_mint)) })
             } else {
                 AccountSection(details, state, onChangeHome, onMoveMoney, onMoveAllHere)
             }

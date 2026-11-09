@@ -14,7 +14,6 @@ import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.spendDomain
@@ -37,9 +36,9 @@ class NotePolicyTest {
                 val store = InMemoryWalletStore()
                 val policies = NotePolicies.InMemory()
                 val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient(), policies = policies)
-                store.addAccount("b", "Savings", Profile("bob", mint.host))
+                store.addAccount("b", "Savings", PrimaryAddress("bob", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 Fixture(mint, store, policies, wallet).test()
             }

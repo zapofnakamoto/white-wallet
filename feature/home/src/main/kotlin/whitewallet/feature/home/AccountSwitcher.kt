@@ -69,7 +69,6 @@ fun AccountSwitcher(
                         WalletListItem(
                             leadingContent = { WalletAccountMark(summary.account.name, accounts.indexOf(summary), active = active) },
                             headlineContent = { Text(summary.account.name) },
-                            supportingContent = (summary.profile?.address ?: summary.account.host)?.let { place -> { Text(place) } },
                             trailingContent = { Text(formatAmount(summary.balanceMsat)) },
                             modifier = Modifier.selectable(selected = active, role = Role.RadioButton) { onSelect(summary.account.id) },
                         )

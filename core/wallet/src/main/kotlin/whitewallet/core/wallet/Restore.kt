@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Account
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.WalletRecord
 import whitewallet.lnurlcash.spendDomain
 
 sealed interface RestoreResult {
@@ -53,7 +54,8 @@ internal class Restore(private val wallet: Wallet) {
         wallet.seeds.save(accountId, words)
         // The user had the phrase written down; no need to ask them to back it up again.
         wallet.seeds.setBackupVerified(accountId)
-        wallet.store.saveAccount(Account(accountId, accountName, wallet.now(), h))
+        wallet.store.saveWallet(WalletRecord(accountId, accountName, wallet.now()))
+        wallet.store.saveAccount(Account(accountId, accountName, wallet.now()))
         val undo = suspend {
             wallet.siblings(accountId).forEach { wallet.store.deleteAccount(it.id) }
             wallet.discardSeed(accountId)
@@ -93,9 +95,8 @@ internal class Restore(private val wallet: Wallet) {
 
     /**
      * Finds what every account of the wallet [walletId] holds on [host]: each account it has, then further ones up to a gap of ones never
-     * used (BIP-44), created with [host] as their home. An account the wallet has counts as used, and created ones before a used one stay,
-     * to keep its index. Null once every account was looked through; otherwise why the scan stopped, and the created accounts that hold
-     * nothing are gone again.
+     * used (BIP-44). An account the wallet has counts as used, and created ones before a used one stay, to keep its index. Null once every
+     * account was looked through; otherwise why the scan stopped, and the created accounts that hold nothing are gone again.
      */
     private suspend fun scanWallet(walletId: String, host: String): Failure? {
         val accounts = wallet.store.accounts.first().map { it.account }.filter { it.walletId == walletId }
@@ -109,7 +110,7 @@ internal class Restore(private val wallet: Wallet) {
             val had = byIndex[index]
             val account =
                 had
-                    ?: Account(UUID.randomUUID().toString(), "$name ${index + 1}", wallet.now(), host, walletId, index)
+                    ?: Account(UUID.randomUUID().toString(), "$name ${index + 1}", wallet.now(), walletId, index)
                         .takeIf { index < creatable }
                         ?.also { wallet.store.saveAccount(it) }
             index++

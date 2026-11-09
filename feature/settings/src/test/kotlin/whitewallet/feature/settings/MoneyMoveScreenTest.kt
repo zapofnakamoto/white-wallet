@@ -81,7 +81,6 @@ class MoneyMoveScreenTest {
         val outcome =
             MoneyMoveOutcome(
                 homeChanged = true,
-                address = "alice@new.example",
                 moved =
                     listOf(
                         MoneyMoved("old.example", 100_000, MintMoveResult.Moved(99_000, 1_000)),

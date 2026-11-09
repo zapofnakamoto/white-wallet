@@ -333,7 +333,7 @@ private fun WalletApp(
                 onReceive = { nav.navigate(Routes.RECEIVE) },
                 onSettings = { nav.navigate(Routes.SETTINGS) },
                 onBackup = { nav.navigate(Routes.BACKUP) },
-                onChangeAddress = { nav.navigate(Routes.CHANGE_ADDRESS) },
+                onOpenAddresses = { nav.navigate(Routes.ADDRESSES) },
                 onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT_IN_WALLET) },
                 onAddWallet = { nav.navigate(Routes.NEW_ACCOUNT) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },

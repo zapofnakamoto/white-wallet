@@ -27,10 +27,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.brand.NoteStrategy
+import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletListItem
@@ -39,6 +43,7 @@ import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.MovePreview
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
@@ -57,9 +62,13 @@ data class NotesSettingsState(
     /** The fee caps to pick from: the brand's, and [collectFeeCap] if it is another one. */
     val collectFeeCaps: List<Int> = emptyList(),
     val homeHost: String? = null,
+    /** Payments take notes on other mints before those at [homeHost] (a wallet setting). */
+    val payFromOtherMintsFirst: Boolean = false,
     val lastPolicyRun: PolicyRun? = null,
     /** A policy change is being applied (it may merge or rotate notes right away). */
     val applyingPolicy: Boolean = false,
+    /** Turning collecting on: what it would move right away, and at what fee, to confirm first. */
+    val collectPreview: MovePreview? = null,
     /** The brand lets users choose whether they are told what the wallet did to their notes by itself. */
     val noticesOffered: Boolean = false,
     val notices: Boolean = false,
@@ -69,22 +78,31 @@ data class NotesSettingsState(
 @HiltViewModel
 class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {
     private val applying = MutableStateFlow(false)
+    private val collectPreview = MutableStateFlow<MovePreview?>(null)
     private val collect = combine(wallet.collectAtHome, wallet.collectFeeCap, ::Pair)
-    private val home = combine(wallet.homeHost, wallet.maintenanceNoticesChoice.map(defaults.maintenanceNotices::active), ::Pair)
+    private val home =
+        combine(
+            wallet.homeHost,
+            wallet.maintenanceNoticesChoice.map(defaults.maintenanceNotices::active),
+            wallet.payFromOtherMintsFirst,
+            ::Triple,
+        )
 
     val state: StateFlow<NotesSettingsState> =
-        combine(wallet.noteStrategy, wallet.autoRotate, wallet.lastPolicyRun, applying, combine(collect, home, ::Pair)) {
-                strategy,
-                rotate,
-                run,
-                busy,
-                (collect, home) ->
+        combine(
+                wallet.noteStrategy,
+                wallet.autoRotate,
+                wallet.lastPolicyRun,
+                combine(applying, collectPreview, ::Pair),
+                combine(collect, home, ::Pair),
+            ) { strategy, rotate, run, (busy, preview), (collect, home) ->
                 NotesSettingsState(
                     noteStrategy = strategy,
                     strategies = wallet.noteStrategies,
                     autoRotate = rotate,
                     lastPolicyRun = run,
                     applyingPolicy = busy,
+                    collectPreview = preview,
                     collectOffered = wallet.collectDefaults.offered,
                     collectAtHome = collect.first,
                     collectFeeCap = collect.second,
@@ -92,6 +110,7 @@ class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet, pri
                     homeHost = home.first,
                     noticesOffered = defaults.maintenanceNotices.offered,
                     notices = home.second,
+                    payFromOtherMintsFirst = home.third,
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesSettingsState())
@@ -100,9 +119,40 @@ class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet, pri
 
     fun setAutoRotate(enabled: Boolean) = applyPolicy { wallet.setAutoRotate(enabled) }
 
-    fun setCollectAtHome(enabled: Boolean) = applyPolicy { wallet.setCollectAtHome(enabled) }
+    /** Off right away; on after the user saw what it would move now ([confirmCollect]), unless it would move nothing. */
+    fun setCollectAtHome(enabled: Boolean) {
+        if (!enabled) return applyPolicy { wallet.setCollectAtHome(false) }
+        if (applying.value) return
+        applying.value = true
+        viewModelScope.launch {
+            val preview = wallet.homeHost.first()?.let { wallet.previewMove(it) }
+            if (preview == null || preview.lines.isEmpty()) {
+                try {
+                    wallet.setCollectAtHome(true)
+                } finally {
+                    applying.value = false
+                }
+            } else {
+                collectPreview.value = preview
+                applying.value = false
+            }
+        }
+    }
+
+    fun confirmCollect() {
+        collectPreview.value = null
+        applyPolicy { wallet.setCollectAtHome(true) }
+    }
+
+    fun dismissCollect() {
+        collectPreview.value = null
+    }
 
     fun setCollectFeeCap(percent: Int) = applyPolicy { wallet.setCollectFeeCap(percent) }
+
+    fun setPayFromOtherMintsFirst(enabled: Boolean) {
+        viewModelScope.launch { wallet.setPayFromOtherMintsFirst(enabled) }
+    }
 
     fun setNotices(enabled: Boolean) {
         viewModelScope.launch { wallet.setMaintenanceNotices(enabled) }
@@ -129,19 +179,23 @@ fun NotesSettingsRoute(onBack: () -> Unit, viewModel: NotesSettingsViewModel = h
         onBack,
         onNoteStrategy = viewModel::setNoteStrategy,
         onAutoRotate = viewModel::setAutoRotate,
-        collect = CollectActions(viewModel::setCollectAtHome, viewModel::setCollectFeeCap),
+        collect =
+            CollectActions(viewModel::setCollectAtHome, viewModel::setCollectFeeCap, viewModel::confirmCollect, viewModel::dismissCollect),
         onNotices = viewModel::setNotices,
+        onPayFromOtherMintsFirst = viewModel::setPayFromOtherMintsFirst,
     )
 }
 
 class CollectActions(
     val onCollect: (Boolean) -> Unit = {},
     val onFeeCap: (Int) -> Unit = {},
+    val onConfirm: () -> Unit = {},
+    val onDismiss: () -> Unit = {},
 )
 
 /**
- * Note settings: the note strategy, collecting at the home mint, auto-rotate, whether to be told what the wallet did by itself, and what
- * the last automatic run did.
+ * Note settings: the note strategy, collecting at the home mint, which mint pays first, auto-rotate, whether to be told what the wallet did
+ * by itself, and what the last automatic run did.
  */
 @Composable
 fun NotesSettingsScreen(
@@ -151,11 +205,22 @@ fun NotesSettingsScreen(
     onAutoRotate: (Boolean) -> Unit,
     collect: CollectActions = CollectActions(),
     onNotices: (Boolean) -> Unit = {},
+    onPayFromOtherMintsFirst: (Boolean) -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_notes), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             NotePolicySettings(state, onNoteStrategy, onAutoRotate)
             CollectSettings(state, collect)
+            state.homeHost?.let { home ->
+                WalletListItem(
+                    headlineContent = { Text(stringResource(R.string.notes_pay_from_others_first)) },
+                    supportingContent = { Text(stringResource(R.string.notes_pay_from_others_first_hint, home)) },
+                    trailingContent = {
+                        WalletSwitch(checked = state.payFromOtherMintsFirst, onCheckedChange = onPayFromOtherMintsFirst)
+                    },
+                    modifier = Modifier.clickable { onPayFromOtherMintsFirst(!state.payFromOtherMintsFirst) },
+                )
+            }
             if (state.noticesOffered) {
                 WalletListItem(
                     headlineContent = { Text(stringResource(R.string.settings_notices)) },
@@ -226,6 +291,7 @@ private fun CollectSettings(state: NotesSettingsState, actions: CollectActions) 
             WalletSwitch(checked = state.collectAtHome, onCheckedChange = actions.onCollect, enabled = !state.applyingPolicy)
         },
     )
+    state.collectPreview?.let { CollectDialog(it, home, actions) }
     if (state.collectAtHome) {
         Column(Modifier.padding(horizontal = 16.dp)) {
             Text(stringResource(R.string.notes_collect_fee_cap), style = MaterialTheme.typography.bodyMedium)
@@ -241,6 +307,45 @@ private fun CollectSettings(state: NotesSettingsState, actions: CollectActions) 
             }
         }
     }
+}
+
+/** What turning collecting on would move right away, per mint: within the fee cap it moves, otherwise it stays. */
+@Composable
+private fun CollectDialog(preview: MovePreview, home: String, actions: CollectActions) {
+    WalletDialog(
+        onDismissRequest = actions.onDismiss,
+        title = { Text(stringResource(R.string.notes_collect_title, home)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.notes_collect_confirm_body))
+                preview.lines.forEach { line ->
+                    val amount = formatAmount(line.amountMsat)
+                    Text(
+                        when (val q = line.quote) {
+                            is MovePreview.Quote.Ok ->
+                                if (line.overCap(preview.feeCapPercent))
+                                    stringResource(R.string.money_review_over_cap, amount, line.host, preview.feeCapPercent)
+                                else
+                                    stringResource(
+                                        R.string.money_review_moves,
+                                        amount,
+                                        line.host,
+                                        formatAmount(q.arrivesMsat),
+                                        formatAmount(q.feeMsat),
+                                    )
+                            is MovePreview.Quote.TooSmall -> stringResource(R.string.money_review_too_small, amount, line.host)
+                            is MovePreview.Quote.Unavailable -> stringResource(R.string.money_review_unavailable, amount, line.host)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            WalletButton(kind = ButtonKind.Text, onClick = actions.onConfirm) { Text(stringResource(R.string.notes_collect_confirm)) }
+        },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = actions.onDismiss) { Text(stringResource(R.string.money_back)) } },
+    )
 }
 
 /** What the last automatic run did: the counts, and per mint what collecting moved or left ("Move anyway" is on the Notes page). */

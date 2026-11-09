@@ -30,7 +30,7 @@ class RegtestDefaultAddressTest {
             assertIs<RestoreResult.Restored>(restored.restore(words.joinToString(" "), HOST, "Restored"))
             assertEquals(name, restored.recoverableUsername(HOST))
             assertIs<OnboardResult.Ready>(restored.onboard(name, HOST, null))
-            assertEquals("$name@$HOST", restored.profile.first()?.address)
+            assertEquals("$name@$HOST", restored.primaryAddress.first()?.address)
         }
 
     @Test

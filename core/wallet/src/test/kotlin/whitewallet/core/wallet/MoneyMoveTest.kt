@@ -86,7 +86,7 @@ class MoneyMoveTest {
     fun `changing the home mint moves no money by itself`() = withMint {
         fund(30)
         NotesTest.TargetMint(feeMsat = 0).use { target ->
-            assertIs<ConnectResult.Connected>(wallet.changeHome(target.host))
+            assertIs<ConnectResult.Connected>(wallet.setHomeMint(target.host).result)
             assertEquals(target.host, wallet.homeHost.first())
             assertEquals(listOf(30_000L), on(old.host))
             assertEquals(listOf(old.host), requireNotNull(wallet.previewMove(target.host)).lines.map { it.host }, "still there to move")

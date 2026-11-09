@@ -14,15 +14,16 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
-import whitewallet.core.model.Profile
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.WalletRecord
 import whitewallet.lnurlcash.client.NetworkConditions
 
 /**
- * Persistent wallet state for every account. Implemented by core:data on Android and in memory for tests. Mints (a host's withdraw URL and
- * pinned key) are per wallet; everything else is per account.
+ * Persistent wallet state for every wallet and account. Implemented by core:data on Android and in memory for tests. A wallet's rows come
+ * before its accounts', and an account's before anything of it: mints (a host's withdraw URL and pinned key) and the home mint are per
+ * wallet; everything else is per account.
  */
 interface WalletStore {
     /** Oldest first: an account's place here is its mark's colour, so the order must stay stable. */
@@ -33,30 +34,39 @@ interface WalletStore {
 
     suspend fun setActiveAccount(id: String?)
 
+    /** Every wallet, oldest first. */
+    val wallets: Flow<List<WalletRecord>>
+
+    suspend fun wallet(id: String): WalletRecord?
+
+    /** Saves [wallet], or updates it in place: its accounts and everything of theirs stay. */
+    suspend fun saveWallet(wallet: WalletRecord)
+
     suspend fun account(id: String): Account?
 
+    /** Saves [account] in its wallet ([Account.walletId]), which must be saved already; an update keeps everything of the account. */
     suspend fun saveAccount(account: Account)
 
     /**
-     * Saves the account, and its wallet ([Account.walletId], named after the account) if the wallet is new. Removing the account removes
-     * all of its notes, received notes, addresses, counters, key checks, journal entries and history, and its wallet with the wallet's
-     * mints once no account is left in it.
+     * Removes the account with all of its notes, received notes, addresses, counters, key checks, journal entries and history, and its
+     * wallet with the wallet's mints once no account is left in it.
      */
     suspend fun deleteAccount(id: String)
 
     fun notes(accountId: String): Flow<List<Note>>
 
-    /** The account's primary address. */
-    fun profile(accountId: String): Flow<Profile?>
+    /** The address the account's user made primary (Receive offers it first); null for none. */
+    fun primaryAddress(accountId: String): Flow<RegisteredAddress?>
 
-    suspend fun currentProfile(accountId: String): Profile?
+    suspend fun currentPrimaryAddress(accountId: String): RegisteredAddress?
 
-    /** Makes [profile] the account's primary address, adding it to [addresses] if it is not there yet. */
-    suspend fun saveProfile(accountId: String, profile: Profile)
+    /** Makes the account's address [username]@[host], which must be saved already, its primary one; null: none is. */
+    suspend fun setPrimaryAddress(accountId: String, username: String?, host: String?)
 
-    /** Every Lightning address registered to the account, oldest first; the primary one is always among them. */
+    /** Every Lightning address registered to the account, oldest first. */
     fun addresses(accountId: String): Flow<List<RegisteredAddress>>
 
+    /** Saves [address], or updates it: an update keeps whether it is primary. */
     suspend fun saveAddress(accountId: String, address: RegisteredAddress)
 
     suspend fun deleteAddress(accountId: String, username: String, host: String)
@@ -158,19 +168,19 @@ interface WalletStore {
     suspend fun deleteReceivedNote(id: String)
 }
 
-/** Holds each account's BIP-39 words. Implemented with Android Keystore encryption on device. */
+/** Holds each wallet's BIP-39 words, by wallet id. Implemented with Android Keystore encryption on device. */
 interface SeedStore {
-    suspend fun load(accountId: String): List<String>?
+    suspend fun load(walletId: String): List<String>?
 
-    suspend fun save(accountId: String, words: List<String>)
+    suspend fun save(walletId: String, words: List<String>)
 
-    /** Whether the user has written this account's words down and passed the verification step. */
-    fun backupVerified(accountId: String): Flow<Boolean>
+    /** Whether the user has written this wallet's words down and passed the verification step. */
+    fun backupVerified(walletId: String): Flow<Boolean>
 
-    suspend fun setBackupVerified(accountId: String)
+    suspend fun setBackupVerified(walletId: String)
 
-    /** Deletes the account's words and backup flag. */
-    suspend fun clear(accountId: String)
+    /** Deletes the wallet's words and backup flag. */
+    suspend fun clear(walletId: String)
 }
 
 /** App-wide preferences, independent of accounts (they survive deleting every account). */
@@ -225,8 +235,9 @@ interface AppPreferences {
 }
 
 /**
- * Per-account note policies: auto-rotate of notes on Lightning address keys (off by default) and the id of the chosen note strategy (null
- * until the user picks one; the brand's default applies, see [NoteStrategies]).
+ * Note policies. Per account: auto-rotate of notes on Lightning address keys (off by default), the id of the chosen note strategy (null
+ * until the user picks one; the brand's default applies, see [NoteStrategies]) and maintenance notices. Per wallet: collecting at its home
+ * mint, the fee cap for that, and which mint payments come from first.
  */
 interface NotePolicies {
     fun autoRotate(accountId: String): Flow<Boolean>
@@ -237,22 +248,31 @@ interface NotePolicies {
 
     suspend fun setStrategy(accountId: String, strategyId: String)
 
-    /** Whether notes on other mints are moved to the home mint; null until the user chooses (the brand's default). */
-    fun collect(accountId: String): Flow<Boolean?>
+    /** Whether the wallet's notes on other mints are moved to its home mint; null until the user chooses (the brand's default). */
+    fun collect(walletId: String): Flow<Boolean?>
 
-    suspend fun setCollect(accountId: String, enabled: Boolean)
+    suspend fun setCollect(walletId: String, enabled: Boolean)
 
     /** The most an automatic move may cost, in percent of what it moves; null until chosen (the brand's default). */
-    fun collectFeeCap(accountId: String): Flow<Int?>
+    fun collectFeeCap(walletId: String): Flow<Int?>
 
-    suspend fun setCollectFeeCap(accountId: String, percent: Int)
+    suspend fun setCollectFeeCap(walletId: String, percent: Int)
+
+    /** Whether payments use notes on other mints before the home mint's; off (home mint first) until chosen. */
+    fun payFromOtherMintsFirst(walletId: String): Flow<Boolean>
+
+    suspend fun setPayFromOtherMintsFirst(walletId: String, enabled: Boolean)
 
     /** Whether the user is told what the note policies did by themselves; null until chosen (the brand's default). */
     fun maintenanceNotices(accountId: String): Flow<Boolean?>
 
     suspend fun setMaintenanceNotices(accountId: String, enabled: Boolean)
 
+    /** Forgets the account's policies. */
     suspend fun clear(accountId: String)
+
+    /** Forgets the wallet's policies. */
+    suspend fun clearWallet(walletId: String)
 
     /** Keeps policies in memory only; the default when no persistent store is given. */
     class InMemory(private val defaultStrategy: String? = null) : NotePolicies {
@@ -260,6 +280,7 @@ interface NotePolicies {
         private val strategies = MutableStateFlow<Map<String, String>>(emptyMap())
         private val collect = MutableStateFlow<Map<String, Boolean>>(emptyMap())
         private val feeCaps = MutableStateFlow<Map<String, Int>>(emptyMap())
+        private val otherMintsFirst = MutableStateFlow<Map<String, Boolean>>(emptyMap())
         private val notices = MutableStateFlow<Map<String, Boolean>>(emptyMap())
 
         override fun autoRotate(accountId: String): Flow<Boolean> = autoRotate.map { it[accountId] ?: false }
@@ -270,13 +291,19 @@ interface NotePolicies {
 
         override suspend fun setStrategy(accountId: String, strategyId: String) = strategies.update { it + (accountId to strategyId) }
 
-        override fun collect(accountId: String): Flow<Boolean?> = collect.map { it[accountId] }
+        override fun collect(walletId: String): Flow<Boolean?> = collect.map { it[walletId] }
 
-        override suspend fun setCollect(accountId: String, enabled: Boolean) = collect.update { it + (accountId to enabled) }
+        override suspend fun setCollect(walletId: String, enabled: Boolean) = collect.update { it + (walletId to enabled) }
 
-        override fun collectFeeCap(accountId: String): Flow<Int?> = feeCaps.map { it[accountId] }
+        override fun collectFeeCap(walletId: String): Flow<Int?> = feeCaps.map { it[walletId] }
 
-        override suspend fun setCollectFeeCap(accountId: String, percent: Int) = feeCaps.update { it + (accountId to percent) }
+        override suspend fun setCollectFeeCap(walletId: String, percent: Int) = feeCaps.update { it + (walletId to percent) }
+
+        override fun payFromOtherMintsFirst(walletId: String): Flow<Boolean> = otherMintsFirst.map { it[walletId] ?: false }
+
+        override suspend fun setPayFromOtherMintsFirst(walletId: String, enabled: Boolean) = otherMintsFirst.update {
+            it + (walletId to enabled)
+        }
 
         override fun maintenanceNotices(accountId: String): Flow<Boolean?> = notices.map { it[accountId] }
 
@@ -285,9 +312,13 @@ interface NotePolicies {
         override suspend fun clear(accountId: String) {
             autoRotate.update { it - accountId }
             strategies.update { it - accountId }
-            collect.update { it - accountId }
-            feeCaps.update { it - accountId }
             notices.update { it - accountId }
+        }
+
+        override suspend fun clearWallet(walletId: String) {
+            collect.update { it - walletId }
+            feeCaps.update { it - walletId }
+            otherMintsFirst.update { it - walletId }
         }
     }
 }

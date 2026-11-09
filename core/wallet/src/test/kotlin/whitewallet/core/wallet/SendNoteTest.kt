@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -47,7 +46,7 @@ class SendNoteTest {
                     LnurlcashClient(),
                     policies = NotePolicies.InMemory(ManualStrategy.ID),
                 )
-            store.addAccount("b", "Bob", Profile("bob", mint.host))
+            store.addAccount("b", "Bob", PrimaryAddress("bob", mint.host))
             assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
             return store to wallet
         }
@@ -65,7 +64,7 @@ class SendNoteTest {
                         LnurlcashClient(),
                         policies = NotePolicies.InMemory(strategy),
                     )
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 Fixture(mint, store, wallet, testKeys(alice, mint.host)).test()
             }
@@ -153,7 +152,7 @@ class SendNoteTest {
     fun `a shared note claimed into another account is received there, and found spent in its own`() = withMint {
         fund(40)
         val note = assertIs<CreateNoteResult.Created>(wallet.createNote(15_000)).note
-        store.addAccount("s", "Savings", Profile("bob", mint.host))
+        store.addAccount("s", "Savings", PrimaryAddress("bob", mint.host))
         assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(note.link!!))))
         assertEquals(listOf(ActivityKind.Claimed), store.activities("s").first().map { it.kind })
         wallet.switchAccount("a")

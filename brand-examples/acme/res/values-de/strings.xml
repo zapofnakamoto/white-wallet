@@ -12,7 +12,6 @@
     <string name="mint_change_home">Anbieter wechseln</string>
     <string name="mint_make_home">Zu meinem Anbieter machen</string>
     <string name="settings_account_mints">Deine Anbieter</string>
-    <string name="mints_home_mint_of">Anbieter von %1$s</string>
     <string name="mints_remove_mint">Anbieter entfernen</string>
     <string name="activity_moved_mint_other">Zu einem anderen Anbieter verschoben</string>
     <string name="onboarding_add_elsewhere_title">Adresse bei einem anderen Anbieter</string>

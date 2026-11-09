@@ -13,12 +13,12 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import whitewallet.core.model.Account
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
@@ -47,8 +47,8 @@ class CollectTest {
 
         suspend fun melts() = store.journal(JournalStatus.entries.toSet()).count { it.type == OperationType.Melt }
 
-        /** Makes [host] the account's home mint, as changing to an address there would. */
-        suspend fun moveHomeTo(host: String) = store.saveAccount(store.account("a")!!.copy(host = host))
+        /** Makes [host] the wallet's home mint, as the setting would (without connecting to it). */
+        suspend fun moveHomeTo(host: String) = store.saveWallet(store.wallet("a")!!.copy(homeHost = host))
     }
 
     private fun withMint(vararg flags: String, defaults: CollectDefaults = CollectDefaults(), test: suspend Fixture.() -> Unit) =
@@ -66,7 +66,7 @@ class CollectTest {
                         collectDefaults = defaults,
                     )
                 wallet.payWaitMillis = 3_000
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 Fixture(mint, store, wallet, testKeys(words, mint.host)).test()
             }
@@ -115,6 +115,36 @@ class CollectTest {
                 }
             }
         }
+
+    @Test
+    fun `collecting is the wallet's, and moves only the active account's notes`() = withMint {
+        fund(30)
+        store.saveAccount(Account("b", "Savings", clock, walletId = "a", index = 1))
+        wallet.switchAccount("b")
+        NotesTest.TargetMint(feeMsat = 0).use { home ->
+            moveHomeTo(home.host)
+            wallet.setCollectAtHome(true)
+            wallet.refresh()
+            assertEquals(true, wallet.collectAtHome.first())
+            assertEquals(listOf(30_000L), on(mint.host), "account a isn't active: its notes stay")
+            assertEquals(0, melts())
+
+            wallet.switchAccount("a")
+            assertEquals(true, wallet.collectAtHome.first(), "the same setting for every account of the wallet")
+            wallet.refresh()
+            assertEquals(listOf(30_000L), on(home.host))
+        }
+    }
+
+    @Test
+    fun `payments take the home mint's notes first, or the other mints' if the wallet says so`() = withMint {
+        moveHomeTo("home.example")
+        val order = { listOf("other.example", "home.example", "third.example").sortedBy(runBlocking { wallet.payOrder("a") }) }
+        assertEquals(listOf("home.example", "other.example", "third.example"), order())
+        wallet.setPayFromOtherMintsFirst(true)
+        assertEquals(true, wallet.payFromOtherMintsFirst.first())
+        assertEquals(listOf("other.example", "third.example", "home.example"), order())
+    }
 
     @Test
     fun `over the cap nothing is sent, until the cap allows it`() = withMint {

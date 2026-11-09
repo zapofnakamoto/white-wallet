@@ -101,7 +101,7 @@ fun HomeRoute(
     onReceive: () -> Unit,
     onSettings: () -> Unit,
     onBackup: () -> Unit,
-    onChangeAddress: () -> Unit,
+    onOpenAddresses: () -> Unit,
     onAddAccount: () -> Unit,
     onAddWallet: () -> Unit = {},
     onMoveFunds: () -> Unit,
@@ -138,7 +138,7 @@ fun HomeRoute(
         onSettings,
         onBackup,
         onDismissBackup = viewModel::dismissBackupPrompt,
-        onChangeAddress,
+        onOpenAddresses,
         accountActions = AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds, onAddWallet),
         onOpenNote,
         onToggleBalance = viewModel::toggleBalanceHidden,
@@ -185,7 +185,7 @@ fun HomeScreen(
     onSettings: () -> Unit,
     onBackup: () -> Unit,
     onDismissBackup: () -> Unit,
-    onChangeAddress: () -> Unit,
+    onOpenAddresses: () -> Unit,
     accountActions: AccountActions,
     onOpenNote: (String) -> Unit = {},
     onToggleBalance: () -> Unit = {},
@@ -285,7 +285,7 @@ fun HomeScreen(
                                 onAccounts = { showAccounts = true },
                                 onBackup,
                                 onDismissBackup,
-                                onChangeAddress,
+                                onOpenAddresses,
                                 onToggleBalance,
                                 onOpenMint,
                                 onRecheckUnknown,
@@ -463,7 +463,7 @@ private fun WalletTab(
     onAccounts: () -> Unit,
     onBackup: () -> Unit,
     onDismissBackup: () -> Unit,
-    onChangeAddress: () -> Unit,
+    onOpenAddresses: () -> Unit,
     onToggleBalance: () -> Unit,
     onOpenMint: (String) -> Unit,
     onRecheckUnknown: () -> Unit,
@@ -479,7 +479,7 @@ private fun WalletTab(
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         ) {
             state.keyChangedMint?.let { KeyChanged(it) { onOpenMint(it) } }
-            if (state.addressInactive) state.profile?.let { AddressInactive(it.address, onChangeAddress) }
+            state.inactiveAddress?.let { AddressInactive(it, onOpenAddresses) }
             state.unknownNotes.forEach {
                 UnknownNotesCard(
                     mint = it,
@@ -834,12 +834,12 @@ private fun ReceivedCard(state: HomeState, onDismiss: (String) -> Unit) {
 }
 
 @Composable
-private fun AddressInactive(address: String, onChangeAddress: () -> Unit) {
+private fun AddressInactive(address: String, onOpenAddresses: () -> Unit) {
     WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.home_address_inactive_title), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.home_address_inactive_body, address), style = MaterialTheme.typography.bodyMedium)
-            WalletButton(onClick = onChangeAddress) { Text(stringResource(R.string.home_address_inactive_action)) }
+            WalletButton(onClick = onOpenAddresses) { Text(stringResource(R.string.home_address_inactive_action)) }
         }
     }
 }

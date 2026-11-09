@@ -19,10 +19,10 @@ import kotlinx.coroutines.flow.map
 import whitewallet.core.wallet.RecoveryPhrase
 import whitewallet.core.wallet.SeedStore
 
-/** Stores each account's BIP-39 words encrypted with a non-exportable AES-GCM key in the Android Keystore. */
+/** Stores each wallet's BIP-39 words encrypted with a non-exportable AES-GCM key in the Android Keystore. */
 internal class KeystoreSeedStore(private val prefs: DataStore<Preferences>) : SeedStore {
-    override suspend fun load(accountId: String): List<String>? {
-        val stored = prefs.data.first()[seedKey(accountId)] ?: return null
+    override suspend fun load(walletId: String): List<String>? {
+        val stored = prefs.data.first()[seedKey(walletId)] ?: return null
         val bytes = Base64.decode(stored, Base64.NO_WRAP)
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes, 0, IV_SIZE))
@@ -34,7 +34,7 @@ internal class KeystoreSeedStore(private val prefs: DataStore<Preferences>) : Se
         }
     }
 
-    override suspend fun save(accountId: String, words: List<String>) {
+    override suspend fun save(walletId: String, words: List<String>) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, key())
         val plain = RecoveryPhrase.toBytes(words)
@@ -44,21 +44,21 @@ internal class KeystoreSeedStore(private val prefs: DataStore<Preferences>) : Se
             } finally {
                 plain.fill(0)
             }
-        prefs.edit { it[seedKey(accountId)] = Base64.encodeToString(encrypted, Base64.NO_WRAP) }
+        prefs.edit { it[seedKey(walletId)] = Base64.encodeToString(encrypted, Base64.NO_WRAP) }
     }
 
-    override fun backupVerified(accountId: String): Flow<Boolean> = prefs.data.map { it[backupKey(accountId)] == true }
+    override fun backupVerified(walletId: String): Flow<Boolean> = prefs.data.map { it[backupKey(walletId)] == true }
 
-    override suspend fun setBackupVerified(accountId: String) {
-        prefs.edit { it[backupKey(accountId)] = true }
+    override suspend fun setBackupVerified(walletId: String) {
+        prefs.edit { it[backupKey(walletId)] = true }
     }
 
-    override suspend fun clear(accountId: String) {
+    override suspend fun clear(walletId: String) {
         prefs.edit {
-            it.remove(seedKey(accountId))
-            it.remove(backupKey(accountId))
+            it.remove(seedKey(walletId))
+            it.remove(backupKey(walletId))
         }
-        // The Keystore key is shared by all accounts; drop it once no account needs it.
+        // The Keystore key is shared by all wallets; drop it once no wallet needs it.
         if (prefs.data.first().asMap().keys.none { it.name.startsWith(SEED_PREFIX) }) {
             KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }.deleteEntry(ALIAS)
         }
@@ -85,8 +85,8 @@ internal class KeystoreSeedStore(private val prefs: DataStore<Preferences>) : Se
         const val IV_SIZE = 12
         const val SEED_PREFIX = "seed_"
 
-        fun seedKey(accountId: String) = stringPreferencesKey("$SEED_PREFIX$accountId")
+        fun seedKey(walletId: String) = stringPreferencesKey("$SEED_PREFIX$walletId")
 
-        fun backupKey(accountId: String) = booleanPreferencesKey("backup_verified_$accountId")
+        fun backupKey(walletId: String) = booleanPreferencesKey("backup_verified_$walletId")
     }
 }

@@ -1,9 +1,11 @@
 package whitewallet.core.data
 
+import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Room
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
@@ -26,9 +28,10 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
-import whitewallet.core.model.Profile
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.WalletRecord
 import whitewallet.core.wallet.CreateAccountResult
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
@@ -53,9 +56,16 @@ class RoomWalletStoreTest {
     private val q1 = "a".repeat(64)
     private val q2 = "b".repeat(64)
 
+    /** Saves account [id] (index [index] of wallet [walletId], saved first if new): its rows need it, as the foreign keys say. */
+    private suspend fun account(id: String, walletId: String = id, index: Long = 0, home: String? = "mint.example") {
+        if (store.wallet(walletId) == null) store.saveWallet(WalletRecord(walletId, id, 1, homeHost = home))
+        store.saveAccount(Account(id, id, 1, walletId, index))
+    }
+
     @Test
     fun `a journal entry comes back as written, with its inputs, spends and outputs, ours and someone else's`() =
         runBlocking<Unit> {
+            account("acc")
             val entry =
                 JournalEntry(
                     "j1",
@@ -101,7 +111,7 @@ class RoomWalletStoreTest {
     @Test
     fun `notes keep their state, and only outstanding ones count in the balance`() =
         runBlocking<Unit> {
-            store.saveAccount(Account("acc", "Main", 1, "mint.example"))
+            account("acc")
             val notes =
                 listOf(
                     Note(q1, "acc", "mint.example", NoteKind.KeyPath, 2, 3, 1_000, "cs1…", NoteState.Outstanding, 1),
@@ -117,6 +127,7 @@ class RoomWalletStoreTest {
     @Test
     fun `key indexes are handed out once, and key checks of every kind come back`() =
         runBlocking<Unit> {
+            account("acc")
             assertEquals(listOf(0L, 1L, 2L), List(3) { store.reserveIndex("acc", "mint.example", 0) })
             assertEquals(3, store.currentIndexOrNull("acc", "mint.example", 0))
             assertNull(store.currentIndexOrNull("acc", "mint.example", 1))
@@ -129,6 +140,7 @@ class RoomWalletStoreTest {
     @Test
     fun `the indexes of a mint show each counter under its own keys, and leave out how many shares went out`() =
         runBlocking<Unit> {
+            account("acc")
             store.setKeyIndex("acc", "mint.example", KeyCounter.Wallet, 4)
             store.setKeyIndex("acc", "mint.example", KeyCounter.Change, 7)
             store.setKeyIndex("acc", "mint.example", KeyCounter.Shares, 2)
@@ -138,6 +150,7 @@ class RoomWalletStoreTest {
     @Test
     fun `history rows linked to an operation are settled with it`() =
         runBlocking<Unit> {
+            account("acc")
             val row =
                 Activity(
                     "pay:j1",
@@ -162,9 +175,9 @@ class RoomWalletStoreTest {
     @Test
     fun `the account list says which wallet each account is in, and at which index`() =
         runBlocking<Unit> {
-            store.saveAccount(Account("w", "Main", 1, "mint.example", walletId = "w", index = 0))
-            store.saveAccount(Account("s", "Savings", 2, "mint.example", walletId = "w", index = 1))
-            store.saveAccount(Account("o", "Other", 3, null, walletId = "o", index = 0))
+            account("w")
+            account("s", walletId = "w", index = 1)
+            account("o", home = null)
             assertEquals(
                 listOf(Triple("w", "w", 0L), Triple("s", "w", 1L), Triple("o", "o", 0L)),
                 store.accounts.first().map { Triple(it.account.id, it.account.walletId, it.account.index) },
@@ -196,8 +209,9 @@ class RoomWalletStoreTest {
     fun `deleting an account leaves nothing of it, and other accounts untouched`() =
         runBlocking<Unit> {
             for (id in listOf("a", "b")) {
-                store.saveAccount(Account(id, id, 1, "mint.example"))
-                store.saveProfile(id, Profile("name-$id", "mint.example"))
+                account(id)
+                store.saveAddress(id, RegisteredAddress("name-$id", "mint.example", 1))
+                store.setPrimaryAddress(id, "name-$id", "mint.example")
                 store.upsertNotes(
                     listOf(Note(id.repeat(64), id, "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, NoteState.Outstanding, 1))
                 )
@@ -226,7 +240,10 @@ class RoomWalletStoreTest {
             assertNull(store.currentAccountId())
             assertEquals(listOf("b"), store.accounts.first().map { it.account.id })
             assertEquals(emptyList(), store.notes("a").first())
-            assertNull(store.currentProfile("a"))
+            assertNull(store.currentPrimaryAddress("a"))
+            assertEquals(emptyList(), store.addresses("a").first())
+            assertEquals("name-b@mint.example", store.currentPrimaryAddress("b")?.address)
+            assertNull(store.wallet("a"), "the wallet goes with its last account")
             assertNull(store.currentIndexOrNull("a", "mint.example", 0))
             assertEquals(listOf("jb"), store.journal(setOf(JournalStatus.Unknown)).map { it.id })
             assertEquals(1, store.notes("b").first().size)
@@ -237,6 +254,7 @@ class RoomWalletStoreTest {
     @Test
     fun `a received note comes back as written, with its spend, lock and refusals, and is found by its state`() =
         runBlocking<Unit> {
+            account("acc")
             val locked =
                 received(q1, "acc", ReceivedState.Locked)
                     .copy(lockedUntilMillis = 1_800_000_000_000, lockedForSeconds = 86_528, receivedAtMillis = 2)
@@ -253,6 +271,46 @@ class RoomWalletStoreTest {
             assertEquals(listOf(locked), store.receivedNotes(setOf(ReceivedState.Waiting, ReceivedState.Locked)))
             store.deleteReceivedNote(q1)
             assertNull(store.receivedNote(q1))
+        }
+
+    @Test
+    fun `an account's money and operations keep it, its own rows go with it, and an update keeps everything`() =
+        runBlocking<Unit> {
+            account("acc")
+            store.upsertNotes(listOf(Note(q1, "acc", "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, NoteState.Outstanding, 1)))
+            store.setKeyIndex("acc", "mint.example", KeyCounter.Wallet, 3)
+            // Saving the account or its wallet again (a rename, a new home) changes them in place.
+            store.saveAccount(Account("acc", "Renamed", 1))
+            store.saveWallet(WalletRecord("acc", "acc", 1, homeHost = "other.example"))
+            assertEquals(1, store.notes("acc").first().size)
+            assertEquals(3, store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
+            assertEquals("Renamed", store.account("acc")?.name)
+
+            // The database refuses to drop an account that still has notes; deleteAccount deletes them by name first.
+            val sql = db.openHelper.writableDatabase
+            assertFailsWith<SQLiteConstraintException> { sql.execSQL("DELETE FROM accounts WHERE id = 'acc'") }
+            store.deleteAccount("acc")
+            assertNull(store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet), "its counters went with it")
+        }
+
+    @Test
+    fun `an account is one index of one wallet, and has at most one primary address`() =
+        runBlocking<Unit> {
+            account("a")
+            assertFailsWith<SQLiteConstraintException> { store.saveAccount(Account("b", "B", 2, "a", 0)) }
+            assertFailsWith<SQLiteConstraintException>("no wallet") { store.saveAccount(Account("c", "C", 2, "nowhere", 0)) }
+
+            store.saveAddress("a", RegisteredAddress("alice", "mint.example", 1))
+            store.saveAddress("a", RegisteredAddress("bob", "other.example", 2))
+            store.setPrimaryAddress("a", "alice", "mint.example")
+            store.setPrimaryAddress("a", "bob", "other.example")
+            assertEquals("bob@other.example", store.currentPrimaryAddress("a")?.address)
+            // Saving it again (its fee paid, its share learned) keeps it primary.
+            store.saveAddress("a", RegisteredAddress("bob", "other.example", 2, share = 4))
+            assertEquals(RegisteredAddress("bob", "other.example", 2, share = 4), store.currentPrimaryAddress("a"))
+            assertFailsWith<IllegalStateException> { store.setPrimaryAddress("a", "carol", "mint.example") }
+            store.deleteAddress("a", "bob", "other.example")
+            assertNull(store.currentPrimaryAddress("a"), "none is primary once it is gone")
         }
 
     private fun received(q: String, accountId: String, state: ReceivedState) =

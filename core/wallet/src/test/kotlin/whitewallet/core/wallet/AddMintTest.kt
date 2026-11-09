@@ -76,17 +76,17 @@ abstract class AddMintTest {
             val phone = Fresh()
             val id = assertIs<RestoreResult.Restored>(phone.restore(words, host = null)).accountId
             assertEquals(0, phone.balance())
-            assertNull(phone.store.account(id)?.host)
+            assertNull(phone.store.homeOf(id))
             assertEquals(false, phone.wallet.hasMint.first())
 
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(home))
             assertEquals(mapOf(0L to onHome), phone.balances())
-            assertEquals(home, phone.store.account(id)?.host, "the wallet's first mint is its home")
+            assertEquals(home, phone.store.homeOf(id), "the wallet's first mint is its home")
 
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
             assertEquals(mapOf(0L to onHome, 1L to found), phone.balances())
-            assertEquals(home, phone.store.account(id)?.host)
-            assertEquals(other, phone.store.account(phone.ids().getValue(1))?.host)
+            assertEquals(home, phone.store.homeOf(id), "a mint added later doesn't take the home's place")
+            assertEquals(home, phone.store.homeOf(phone.ids().getValue(1)), "the home is the wallet's: every account's")
             assertEquals(id, phone.store.currentAccountId())
         }
 
@@ -145,7 +145,7 @@ abstract class AddMintTest {
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
             assertEquals(mapOf(0L to 0L, 1L to found), phone.balances())
             val created = assertNotNull(phone.store.account(phone.ids().getValue(1)))
-            assertEquals(other, created.host)
+            assertEquals(phone.store.homeOf(id), phone.store.homeOf(created.id), "one home for the whole wallet")
             assertEquals("Restored 2", created.name)
             assertEquals(id, created.walletId)
             assertEquals(id, phone.store.currentAccountId())

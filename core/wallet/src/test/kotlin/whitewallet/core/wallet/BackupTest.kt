@@ -73,7 +73,7 @@ class DeleteAccountTest {
             val store = InMemoryWalletStore()
             val seeds = InMemorySeedStore(mapOf("main" to words))
             val wallet = Wallet(store, seeds, LnurlcashClient())
-            store.addAccount("main", "Main", whitewallet.core.model.Profile("alice", "mint.example"))
+            store.addAccount("main", "Main", PrimaryAddress("alice", "mint.example"))
             store.upsertNotes(listOf(note("aa", "main")))
             wallet.markBackupVerified()
 
@@ -92,15 +92,15 @@ class DeleteAccountTest {
             val store = InMemoryWalletStore()
             val seeds = InMemorySeedStore(mapOf("a" to words, "b" to words.reversed()))
             val wallet = Wallet(store, seeds, LnurlcashClient())
-            store.addAccount("a", "A", whitewallet.core.model.Profile("alice", "mint.example"))
-            store.addAccount("b", "B", whitewallet.core.model.Profile("bob", "mint.example"))
+            store.addAccount("a", "A", PrimaryAddress("alice", "mint.example"))
+            store.addAccount("b", "B", PrimaryAddress("bob", "mint.example"))
             store.upsertNotes(listOf(note("aa", "a"), note("bb", "b")))
-            assertEquals("bob", wallet.profile.first()?.username)
+            assertEquals("bob", wallet.primaryAddress.first()?.username)
 
             assertTrue(wallet.deleteActiveAccount())
 
             assertEquals("a", store.currentAccountId())
-            assertEquals("alice", wallet.profile.first()?.username)
+            assertEquals("alice", wallet.primaryAddress.first()?.username)
             assertEquals(1000L, wallet.balanceMsat.first())
             assertEquals(words, seeds.load("a"))
             assertEquals(null, seeds.load("b"))

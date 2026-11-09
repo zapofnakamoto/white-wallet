@@ -203,7 +203,7 @@ class RegtestE2ETest {
             // Typing the old address re-attaches it without registering anything (the mint already maps it to this seed).
             val ready = assertIs<OnboardResult.Ready>(phone2.onboard(username(phone1), HOST))
             assertTrue(ready.confirmed)
-            assertEquals(phone1.address, phone2.profile.first()?.address)
+            assertEquals(phone1.address, phone2.primaryAddress.first()?.address)
             assertEquals(1, store.accounts.first().size, "no second account")
 
             // New payments to the address reach phone 2 (the address scan continues after the recovered keys).
@@ -218,7 +218,7 @@ class RegtestE2ETest {
             val store = phone1.store
             val bob = Regtest.name("e2e")
             assertTrue(assertIs<OnboardResult.Ready>(phone1.wallet.addAddress(bob, limit = 1, host = HOST2)).confirmed)
-            assertEquals(phone1.address, phone1.wallet.profile.first()?.address, "the primary address stays on the home mint")
+            assertEquals(phone1.address, phone1.wallet.primaryAddress.first()?.address, "the primary address stays on the home mint")
 
             // A payment to the second mint's address: found by refresh, as a note on that mint.
             Regtest.pay("$bob@$HOST2", 2000)
@@ -259,10 +259,10 @@ class RegtestE2ETest {
             val smallLine = preview.lines.single { it.host == HOST3 }
             assertTrue(smallLine.quote !is MovePreview.Quote.Ok || smallLine.overCap(2), "the small note stays")
 
-            // The change itself moves nothing: the same name on the second mint becomes the primary address there.
-            assertTrue(assertIs<OnboardResult.Ready>(wallet.changeHome(HOST2, alice)).confirmed)
+            // The change itself moves nothing, and the address stays on the old mint.
+            assertIs<ConnectResult.Connected>(wallet.setHomeMint(HOST2).result)
             assertEquals(HOST2, wallet.homeHost.first())
-            assertEquals("$alice@$HOST2", wallet.profile.first()?.address)
+            assertEquals("$alice@$HOST", wallet.primaryAddress.first()?.address)
             assertEquals(1, phone.notes(HOST).size, "the change moved nothing")
 
             // Then the money the user confirmed: over Lightning, arrived as quoted.

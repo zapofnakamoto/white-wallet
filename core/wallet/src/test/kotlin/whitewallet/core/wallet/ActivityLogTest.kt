@@ -19,7 +19,6 @@ import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
@@ -40,8 +39,8 @@ class ActivityLogTest {
             MockMint.start().use { mint ->
                 val store = InMemoryWalletStore()
                 val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient())
-                store.addAccount("b", "Savings", Profile("bob", mint.host))
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("b", "Savings", PrimaryAddress("bob", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 Fixture(mint, store, wallet, testKeys(wordsA, mint.host)).test()
             }

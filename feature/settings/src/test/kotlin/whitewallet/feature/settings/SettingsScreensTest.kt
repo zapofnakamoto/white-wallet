@@ -244,8 +244,8 @@ class SettingsScreensTest {
         compose.onNodeWithText(text(R.string.mints_remove_confirm)).performClick()
         assertEquals(true, removed)
 
-        state = state.copy(mint = removable.copy(removable = false, homeOf = listOf("Main")))
-        compose.onNodeWithText(text(R.string.mints_home_mint_of, "Main")).assertExists()
+        state = state.copy(mint = removable.copy(removable = false, isHome = true))
+        compose.onNodeWithText(text(R.string.settings_home_mint)).assertExists()
         compose.onNodeWithText("Can't be removed", substring = true).performScrollTo().assertExists()
     }
 

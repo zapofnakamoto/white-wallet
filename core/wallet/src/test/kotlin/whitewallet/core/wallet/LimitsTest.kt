@@ -7,7 +7,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.client.LnurlcashClient
 
 /** The brand's limits (brand.properties `accounts.max`, `addresses.max`). Checked before anything is sent. */
@@ -27,7 +26,7 @@ class LimitsTest {
     @Test
     fun `no account beyond the limit is created or restored`() = runBlocking {
         val store = InMemoryWalletStore()
-        store.addAccount("a", "Main", Profile("alice", "mint.example"))
+        store.addAccount("a", "Main", PrimaryAddress("alice", "mint.example"))
         val wallet = wallet(store, maxWallets = 1)
         assertFalse(wallet.canAddWallet.first())
         assertEquals(OnboardResult.AccountLimitReached(1), wallet.onboard("bob", "mint.example", "Savings"))
@@ -38,7 +37,7 @@ class LimitsTest {
     @Test
     fun `below the limit, accounts can be added`() = runBlocking {
         val store = InMemoryWalletStore()
-        store.addAccount("a", "Main", Profile("alice", "mint.example"))
+        store.addAccount("a", "Main", PrimaryAddress("alice", "mint.example"))
         assertTrue(wallet(store, maxWallets = 2).canAddWallet.first())
         assertTrue(wallet(store, maxWallets = AppDefaults.UNLIMITED).canAddWallet.first())
     }
@@ -46,7 +45,7 @@ class LimitsTest {
     @Test
     fun `changing the address of the only account is not a new account`() = runBlocking {
         val store = InMemoryWalletStore()
-        store.addAccount("a", "Main", Profile("alice", "mint.example"))
+        store.addAccount("a", "Main", PrimaryAddress("alice", "mint.example"))
         val result = wallet(store, maxWallets = 1).onboard("bob", "not a host", null)
         assertIs<OnboardResult.MintInvalid>(result, "gets past the account limit")
     }

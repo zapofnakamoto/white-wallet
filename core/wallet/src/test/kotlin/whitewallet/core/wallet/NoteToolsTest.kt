@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -29,7 +28,7 @@ class NoteToolsTest {
         val store = InMemoryWalletStore()
         val wallet =
             Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
-        store.addAccount("a", "Main", Profile("alice", mint.host))
+        store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
         assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
         return store to wallet
     }

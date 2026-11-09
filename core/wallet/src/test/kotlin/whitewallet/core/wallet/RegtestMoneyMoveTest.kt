@@ -44,15 +44,14 @@ class RegtestMoneyMoveTest {
         runBlocking<Unit> {
             val phone = Regtest.phone(strategy = SingleNoteStrategy.ID, collectDefaults = CollectDefaults(offered = false, always = true))
             phone.fund(3000)
-            val name = phone.address.substringBefore("@")
             listOf(Regtest.HOST2, Regtest.HOST, Regtest.HOST2, Regtest.HOST).forEach { to ->
                 val lines = assertNotNull(phone.wallet.previewMove(to)).lines
                 // A refresh waiting for the lock (the app's background sync) must not get between the change and the move.
-                val change = async { phone.wallet.changeHome(to, name, lines) }
+                val change = async { phone.wallet.setHomeMint(to, lines) }
                 val refresh = async { phone.wallet.refresh() }
                 val changed = change.await()
                 refresh.await()
-                assertIs<OnboardResult.Ready>(changed.result)
+                assertIs<ConnectResult.Connected>(changed.result)
                 assertIs<MintMoveResult.Moved>(changed.moved.single().result, "to $to")
                 assertEquals(1, phone.notes(to).size)
             }

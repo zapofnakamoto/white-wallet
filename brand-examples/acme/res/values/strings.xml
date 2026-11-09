@@ -12,7 +12,6 @@
     <string name="mint_change_home">Change provider</string>
     <string name="mint_make_home">Make this my provider</string>
     <string name="settings_account_mints">Your providers</string>
-    <string name="mints_home_mint_of">Provider of %1$s</string>
     <string name="mints_remove_mint">Remove provider</string>
     <string name="activity_moved_mint_other">Moved to another provider</string>
     <string name="onboarding_add_elsewhere_title">Address with another provider</string>

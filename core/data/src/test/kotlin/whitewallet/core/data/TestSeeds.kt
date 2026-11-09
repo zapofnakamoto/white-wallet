@@ -10,19 +10,19 @@ internal class TestSeeds : SeedStore {
     private val words = mutableMapOf<String, List<String>>()
     private val verified = MutableStateFlow<Set<String>>(emptySet())
 
-    override suspend fun load(accountId: String) = words[accountId]
+    override suspend fun load(walletId: String) = words[walletId]
 
-    override suspend fun save(accountId: String, words: List<String>) {
-        this.words[accountId] = words
+    override suspend fun save(walletId: String, words: List<String>) {
+        this.words[walletId] = words
     }
 
-    override fun backupVerified(accountId: String): Flow<Boolean> = verified.map { accountId in it }
+    override fun backupVerified(walletId: String): Flow<Boolean> = verified.map { walletId in it }
 
-    override suspend fun setBackupVerified(accountId: String) {
-        verified.value = verified.value + accountId
+    override suspend fun setBackupVerified(walletId: String) {
+        verified.value = verified.value + walletId
     }
 
-    override suspend fun clear(accountId: String) {
-        words.remove(accountId)
+    override suspend fun clear(walletId: String) {
+        words.remove(walletId)
     }
 }

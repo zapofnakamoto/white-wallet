@@ -47,19 +47,32 @@ enum class NoteKind {
 }
 
 /**
- * One account: a set of funds with its home mint ([host]), notes, and Lightning addresses (none, if the brand doesn't require one). The
- * primary address, when there is one, is always on [host]. Its keys are account [index] (LUD-26 `S/a'`) of its wallet's recovery phrase; an
- * account made before wallets held several is its own wallet, with the same id, at index 0.
+ * A wallet: one recovery phrase (kept in the seed store under [id]) and the accounts below it. Its mints, the user's trust in them and its
+ * [homeHost] are the wallet's, shared by all its accounts.
  */
-data class Account(
+data class WalletRecord(
     val id: String,
     val name: String,
     val createdAtMillis: Long,
-    /** The mint the user made the account's primary one; null while its wallet has no mint, so it can't receive yet. */
-    val host: String?,
-    val walletId: String = id,
-    val index: Long = 0,
+    /** The mint the user trusts most: notes are collected there and invoices made there. Null while the wallet has no mint. */
+    val homeHost: String? = null,
+    /** The setup step the wallet was left at; null once it is set up. */
+    val setupStep: SetupStep? = null,
+    /** The account that was active before this wallet's setup started, to go back to if the setup is abandoned. */
+    val activeBeforeSetup: String? = null,
 )
+
+/** Where a wallet's setup continues after the app was closed. */
+enum class SetupStep {
+    Mint,
+    Address,
+}
+
+/**
+ * One account: account [index] (LUD-26 `S/a'`) of its wallet's recovery phrase. It exists on every mint of its wallet at once; its notes,
+ * addresses and key counters are its own. An account made before wallets held several is its own wallet, with the same id, at index 0.
+ */
+data class Account(val id: String, val name: String, val createdAtMillis: Long, val walletId: String = id, val index: Long = 0)
 
 /** How a key-path note's key derives from the seed. */
 enum class KeyScheme(val value: Int) {
@@ -82,7 +95,7 @@ enum class KeyCounter {
 }
 
 /** An account with what the switcher shows about it. */
-data class AccountSummary(val account: Account, val profile: Profile?, val balanceMsat: Long)
+data class AccountSummary(val account: Account, val balanceMsat: Long)
 
 /** A note this wallet holds or held, identified by its output key `Q`. */
 data class Note(
@@ -209,14 +222,9 @@ data class Mint(
     val feePpm: Long?,
 )
 
-data class Profile(val username: String, val host: String) {
-    val address: String
-        get() = "$username@$host"
-}
-
 /**
  * A Lightning address registered to an account. An account can hold several on a mint; all of them pay into the same note keys (LUD-26
- * purpose 2). The account's [Profile] is the primary one, shown on Home and Receive.
+ * purpose 2). The account may mark one as primary: Receive offers it first.
  */
 data class RegisteredAddress(
     val username: String,

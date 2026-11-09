@@ -154,7 +154,6 @@ class RegtestMultiAddressTest {
             assertEquals(1_999_000, wallet.balanceMsat.first())
 
             val (first, second) = wallet.addresses.first().map { it.address }
-            assertEquals(UnregisterResult.IsPrimary, wallet.unregisterAddress(first))
             assertEquals(UnregisterResult.Unregistered, wallet.unregisterAddress(second), "the mint accepts the wallet's unregister proof")
             assertEquals(AddressStatus.Available, wallet.checkAddress(bob, host), "the name is free again")
             assertEquals(listOf(alice), wallet.addresses.first().map { it.address.username })
@@ -176,12 +175,11 @@ class RegtestMultiAddressTest {
 
             val second = wallet.addresses.first().single { it.address.username == bob }.address
             wallet.setPrimaryAddress(second)
-            assertEquals(bob, wallet.profile.first()?.username)
+            assertEquals(bob, wallet.primaryAddress.first()?.username)
             assertEquals(listOf(alice to false, bob to true), wallet.addresses.first().map { it.address.username to it.primary })
 
             // The old primary is now an extra address the mint lets go; payments to the new one keep arriving.
             val first = wallet.addresses.first().single { it.address.username == alice }.address
-            assertEquals(UnregisterResult.IsPrimary, wallet.unregisterAddress(second))
             assertEquals(UnregisterResult.Unregistered, wallet.unregisterAddress(first))
             pay(bob, 2_000)
             assertEquals(1, wallet.refresh().newNotes)

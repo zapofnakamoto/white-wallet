@@ -14,10 +14,10 @@ import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
-import whitewallet.core.model.Profile
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.WalletRecord
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
 import whitewallet.core.wallet.KeySet
@@ -29,10 +29,7 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
 
     override val accounts: Flow<List<AccountSummary>> =
         dao.accountSummaries().map { rows ->
-            rows.map { r ->
-                val profile = if (r.username != null && r.addressHost != null) Profile(r.username, r.addressHost) else null
-                AccountSummary(Account(r.id, r.name, r.createdAtMillis, r.host, r.walletId, r.accountIndex), profile, r.balanceMsat)
-            }
+            rows.map { r -> AccountSummary(Account(r.id, r.name, r.createdAtMillis, r.walletId, r.accountIndex), r.balanceMsat) }
         }
     override val activeAccountId: Flow<String?> = dao.activeAccountId()
 
@@ -40,52 +37,51 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
 
     override suspend fun setActiveAccount(id: String?) = dao.saveAppState(AppStateEntity(activeAccountId = id))
 
+    override val wallets: Flow<List<WalletRecord>> = dao.wallets().map { list -> list.map { it.toModel() } }
+
+    override suspend fun wallet(id: String) = dao.wallet(id)?.toModel()
+
+    override suspend fun saveWallet(wallet: WalletRecord) = dao.saveWallet(WalletEntity.from(wallet))
+
     override suspend fun account(id: String) = dao.account(id)?.toModel()
 
-    override suspend fun saveAccount(account: Account) = db.withTransaction {
-        if (dao.wallet(account.walletId) == null) dao.saveWallet(WalletEntity(account.walletId, account.name, account.createdAtMillis))
-        dao.saveAccount(AccountEntity.from(account))
+    override suspend fun saveAccount(account: Account) {
+        val row = AccountEntity.from(account)
+        if (dao.updateAccount(row) == 0) dao.insertAccount(row)
     }
 
     override suspend fun deleteAccount(id: String) = db.withTransaction {
+        // Money and operations are deleted by name (their foreign keys restrict); everything else of the account cascades.
         dao.deleteNotes(id)
-        dao.deleteProfile(id)
-        dao.deleteCounters(id)
-        dao.deleteAddressScan(id)
         dao.deleteJournal(id)
-        dao.deleteKeyChecks(id)
-        dao.deleteAddresses(id)
-        dao.deleteActivities(id)
         dao.deleteReceivedNotes(id)
-        dao.deleteKeyCounters(id)
-        dao.deleteShareScans(id)
         val walletId = dao.account(id)?.walletId
         dao.deleteAccountRow(id)
-        walletId?.let {
-            dao.deleteWalletIfEmpty(it)
-            dao.deleteMintsIfNoAccount(it)
-        }
+        // The wallet's mints cascade with it.
+        walletId?.let { dao.deleteWalletIfEmpty(it) }
         if (dao.currentAccountId() == id) dao.saveAppState(AppStateEntity(activeAccountId = null))
     }
 
     override fun notes(accountId: String): Flow<List<Note>> = dao.notes(accountId).map { list -> list.map { it.toModel() } }
 
-    override fun profile(accountId: String): Flow<Profile?> = dao.profile(accountId).map { it?.toModel() }
+    override fun primaryAddress(accountId: String): Flow<RegisteredAddress?> = dao.primaryAddress(accountId).map { it?.toModel() }
 
-    override suspend fun currentProfile(accountId: String) = dao.currentProfile(accountId)?.toModel()
+    override suspend fun currentPrimaryAddress(accountId: String) = dao.currentPrimaryAddress(accountId)?.toModel()
 
-    override suspend fun saveProfile(accountId: String, profile: Profile) = db.withTransaction {
-        dao.saveProfile(ProfileEntity(accountId, profile.username, profile.host))
-        if (dao.addressCount(accountId, profile.host, profile.username) == 0) {
-            dao.saveAddress(AddressEntity(accountId, profile.host, profile.username, System.currentTimeMillis()))
-        }
+    override suspend fun setPrimaryAddress(accountId: String, username: String?, host: String?) = db.withTransaction {
+        dao.clearPrimary(accountId)
+        if (username != null && host != null) check(dao.markPrimary(accountId, host, username) == 1) { "not an address of this account" }
     }
 
     override fun addresses(accountId: String): Flow<List<RegisteredAddress>> =
         dao.addresses(accountId).map { list -> list.map { it.toModel() } }
 
-    override suspend fun saveAddress(accountId: String, address: RegisteredAddress) =
-        dao.saveAddress(AddressEntity(accountId, address.host, address.username, address.addedAtMillis, address.share, address.feeInvoice))
+    override suspend fun saveAddress(accountId: String, address: RegisteredAddress) = db.withTransaction {
+        val primary = dao.address(accountId, address.host, address.username)?.isPrimary
+        dao.saveAddress(
+            AddressEntity(accountId, address.host, address.username, address.addedAtMillis, address.share, address.feeInvoice, primary)
+        )
+    }
 
     override suspend fun deleteAddress(accountId: String, username: String, host: String) = dao.deleteAddress(accountId, host, username)
 

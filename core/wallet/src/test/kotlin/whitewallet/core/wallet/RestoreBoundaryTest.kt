@@ -204,7 +204,7 @@ abstract class RestoreBoundaryTest {
                 )
             assertIs<RestoreResult.NetworkError>(phone.restore(words))
             assertTrue(phone.store.accounts.first().isEmpty())
-            assertTrue(phone.seeds.accountIds().isEmpty())
+            assertTrue(phone.seeds.walletIds().isEmpty())
             assertTrue(phone.store.allNotes().isEmpty(), "the notes of keys 0 and 1 go with the account")
         }
 

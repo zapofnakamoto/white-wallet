@@ -15,6 +15,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import whitewallet.core.model.Account
+import whitewallet.core.model.WalletRecord
 
 /** What only a device can check: the Keystore-encrypted seed and database passphrase, and SQLCipher itself. */
 @RunWith(AndroidJUnit4::class)
@@ -47,7 +48,9 @@ class EncryptedStorageTest {
                 Room.databaseBuilder(context, WalletDatabase::class.java, name)
                     .openHelperFactory(SupportOpenHelperFactory(passphrase))
                     .build()
-            RoomWalletStore(db).saveAccount(Account("a", "Main", 1, "mint.example"))
+            val store = RoomWalletStore(db)
+            store.saveWallet(WalletRecord("a", "Main", 1, homeHost = "mint.example"))
+            store.saveAccount(Account("a", "Main", 1))
             db.close()
 
             val bytes = context.getDatabasePath(name).readBytes()

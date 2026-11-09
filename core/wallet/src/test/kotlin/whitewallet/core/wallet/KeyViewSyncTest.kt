@@ -11,7 +11,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.testkit.MockMint
@@ -27,7 +26,7 @@ class KeyViewSyncTest {
             MockMint.start().use { mint ->
                 val store = InMemoryWalletStore()
                 val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient())
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 wallet.setAutoRotate(true)
 

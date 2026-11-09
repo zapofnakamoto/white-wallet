@@ -11,7 +11,6 @@ import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.testkit.MockMint
@@ -52,7 +51,7 @@ class CustomStrategyTest {
                 val store = InMemoryWalletStore()
                 val strategies = NoteStrategies(listOf(ManualStrategy(), strategy), listOf(ManualStrategy.ID, strategy.id), strategy.id)
                 val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), strategies = strategies)
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 Fixture(mint, store, wallet, testKeys(words, mint.host)).test()
             }

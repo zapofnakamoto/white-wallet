@@ -14,7 +14,6 @@ import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
-import whitewallet.core.model.Profile
 import whitewallet.core.wallet.legacy.LegacyChange
 import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.Cp1
@@ -102,7 +101,7 @@ class RestoreTest {
     @Test
     fun `aborting a restore before the address step removes the account and goes back to the one before`() =
         withMint { mint, store, wallet ->
-            store.addAccount("a", "Main", Profile("alice", mint.host))
+            store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
             seeds.save("a", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "))
             mint.credit(key(mint.host, KeySet.Wallet, 0), 1_000)
             assertFailsWith<IllegalStateException>("an account with an address is never removed this way") { wallet.abortRestore() }
@@ -112,7 +111,7 @@ class RestoreTest {
             assertTrue(wallet.abortRestore(), "the earlier account remains")
             assertEquals("a", store.currentAccountId())
             assertEquals(listOf("a"), store.accounts.first().map { it.account.id })
-            assertEquals(setOf("a"), seeds.accountIds())
+            assertEquals(setOf("a"), seeds.walletIds())
             assertTrue(store.notes(restored.accountId).first().isEmpty())
 
             // The money is still there: restoring again finds it.
@@ -121,7 +120,7 @@ class RestoreTest {
 
     @Test
     fun `restoring a phrase that is already in the wallet is refused`() = withMint { mint, store, wallet ->
-        store.addAccount("a", "Main", Profile("alice", mint.host))
+        store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
         seeds.save("a", words)
         assertEquals(RestoreResult.AlreadyInWallet("Main"), wallet.restore(phrase, mint.host, "Restored"))
         assertEquals(1, store.accounts.first().size)
@@ -132,7 +131,7 @@ class RestoreTest {
         assertIs<RestoreResult.InvalidPhrase>(wallet.restore("abandon ability", "localhost:1", "Restored"))
         assertIs<RestoreResult.NetworkError>(wallet.restore(phrase, "localhost:1", "Restored"))
         assertTrue(store.accounts.first().isEmpty())
-        assertTrue(seeds.accountIds().isEmpty())
+        assertTrue(seeds.walletIds().isEmpty())
         assertFalse(wallet.needsAddress())
     }
 
@@ -154,7 +153,7 @@ class RestoreTest {
             mint.credit(key(mint.host, KeySet.Wallet, 2), 2_000)
             assertIs<RestoreResult.MintInvalid>(wallet.restore(phrase, mint.host, "Restored"))
             assertTrue(store.accounts.first().isEmpty())
-            assertTrue(seeds.accountIds().isEmpty())
+            assertTrue(seeds.walletIds().isEmpty())
         }
 
     private val seeds = InMemorySeedStore()

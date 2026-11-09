@@ -9,19 +9,18 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import whitewallet.core.model.Profile
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsHubTest {
     @get:Rule val compose = createComposeRule()
 
-    private val profile = Profile(username = "alice", host = "mint.example")
+    private val address = "alice@mint.example"
 
     @Test
     fun theHubOnlyLinksToPages() {
         val opened = mutableListOf<SettingsTarget>()
         compose.setContent {
-            SettingsScreen(SettingsState(accountName = "Main", profile = profile, backupVerified = true), "1.0", {}) {
+            SettingsScreen(SettingsState(accountName = "Main", address = address, backupVerified = true), "1.0", {}) {
                 opened += (it as SettingsDestination.Page).target
             }
         }
@@ -37,7 +36,7 @@ class SettingsHubTest {
     fun aMissingBackupIsWarnedAboutOnTop() {
         val opened = mutableListOf<SettingsTarget>()
         compose.setContent {
-            SettingsScreen(SettingsState(accountName = "Main", profile = profile), "1.0", {}) {
+            SettingsScreen(SettingsState(accountName = "Main", address = address), "1.0", {}) {
                 opened += (it as SettingsDestination.Page).target
             }
         }
@@ -49,7 +48,7 @@ class SettingsHubTest {
     fun hiddenPagesHaveNoRowOnTheAccountPage() {
         val hidden = setOf(SettingsTarget.Mints, SettingsTarget.AccountMints, SettingsTarget.Notes, SettingsTarget.NoteList)
         val state =
-            SettingsState(accountName = "Main", profile = profile, backupVerified = true, homeHost = "mint.example", hidden = hidden)
+            SettingsState(accountName = "Main", address = address, backupVerified = true, homeHost = "mint.example", hidden = hidden)
         compose.setContent { AccountSettingsScreen(state, {}, {}) }
         compose.onNodeWithText("alice@mint.example").assertExists()
         compose.onNodeWithText(text(R.string.settings_account_mints)).assertDoesNotExist()
@@ -62,7 +61,7 @@ class SettingsHubTest {
         val state =
             SettingsState(
                 accountName = "Main",
-                profile = profile,
+                address = address,
                 backupVerified = true,
                 hidden = setOf(SettingsTarget.Mints, SettingsTarget.Notes, SettingsTarget.Display, SettingsTarget.Developer),
             )
@@ -75,7 +74,7 @@ class SettingsHubTest {
     @Test
     @Config(qualifiers = "de")
     fun theAccountPageHoldsTheAccountsSettings() {
-        compose.setContent { AccountSettingsScreen(SettingsState(accountName = "Main", profile = profile), {}, {}) }
+        compose.setContent { AccountSettingsScreen(SettingsState(accountName = "Main", address = address), {}, {}) }
         compose.onNodeWithText("Konto: Main").assertExists()
         compose.onNodeWithText("Wiederherstellungsphrase").assertExists()
         compose.onNodeWithText("alice@mint.example").assertExists()

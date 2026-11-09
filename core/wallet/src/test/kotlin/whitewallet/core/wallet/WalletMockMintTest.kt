@@ -18,7 +18,6 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
@@ -42,7 +41,7 @@ class WalletMockMintTest {
         client: LnurlcashClient = LnurlcashClient(),
     ): Wallet {
         val wallet = Wallet(store, InMemorySeedStore(mapOf(ACCOUNT to words)), client)
-        store.addAccount(ACCOUNT, "Main", Profile("alice", mint.host))
+        store.addAccount(ACCOUNT, "Main", PrimaryAddress("alice", mint.host))
         assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
         return wallet
     }

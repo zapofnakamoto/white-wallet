@@ -37,6 +37,19 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   until the user picks one, which Receive asks for.
 - A refresh, in the app or in the background, looks after the active wallet only. Another wallet's payments,
   received notes and open operations are taken care of once it is active.
+- The home mint is the wallet's: the mint you trust most, where invoices are made and where collecting moves your
+  notes. Changing it is a setting; it no longer needs an address there, the old home stays trusted, and your addresses
+  stay where they are. An update gives each wallet the home of its first account; a wallet whose accounts had
+  different homes keeps all of them trusted and starts with collecting off.
+- Collecting at the home mint is a wallet setting, off if any account had it off, and turning it on first shows what
+  it would move now and at what fee. It, and every automatic step, only touches the active account's notes.
+- New wallet setting: pay from other mints first, so money gathers at the home mint.
+- Any address can be the primary one, on any mint, and the primary one can be unregistered, which leaves none.
+  Receive offers the primary address, else one on the home mint, else an invoice, and lets you pick another. The main
+  screen warns about any address that no longer reaches the account. The account switcher shows balances only.
+- The database checks that every row belongs to an account and every account to a wallet. An update keeps notes,
+  received notes and operations of an account that is gone aside instead of dropping them, and merges a duplicate
+  account. Database version 7.
 
 ### Fixed
 
@@ -73,8 +86,16 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - `KeySet.LegacyWallet`, `LegacyChange`, `LegacyAddress` and `LEGACY` moved to `whitewallet.core.wallet.legacy`.
   `Note` and `OutputRef` default to `KeyScheme.Bip32`; `Requests.servicePayUrl` asks for `mint`, not `_`.
 - New strings, for brands that word their own: `address_fee_*`, `onboarding_error_fee*`,
-  `onboarding_error_mint_too_old`, `money_error_mint_too_old`, `accounts_wallet`, `accounts_add_wallet`,
+  `onboarding_error_mint_too_old`, `accounts_wallet`, `accounts_add_wallet`,
   `delete_accounts`. `delete_what` and `accounts_separate_backups` say something new.
+- `Account` has no `host` and `Profile` is gone: `Wallet.homeHost`, `WalletStore.wallet(id)` (a `WalletRecord`) and
+  `Wallet.primaryAddress` say what they said. `changeHome` is `setHomeMint(host, lines)`; `UnregisterResult.IsPrimary`
+  and `MoneyMoveError`'s address cases are gone.
+- New strings: `receive_other_address`, `receive_use_address`, `notes_pay_from_others_first*`,
+  `notes_collect_confirm*`. Gone: `mints_home_mint_of`, `addresses_primary_hint`, `money_name_*`,
+  `money_address_preview`, `money_review_address`, `money_result_address`, `money_error_name`,
+  `money_error_registration`, `money_error_address_fee`, `money_error_mint_too_old`. `money_change_body`,
+  `addresses_intro`, `addresses_add_elsewhere_hint`, `receive_no_home` and `home_address_inactive_*` say something new.
 
 ## [0.7.0]
 

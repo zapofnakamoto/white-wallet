@@ -1,16 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand terms (see values/strings.xml). -->
-    <string name="money_error_address_fee">Diese Mint verlangt eine Gebühr für die Adresse, daher wurde nichts verschoben. Bezahle sie in den Einstellungen unter Adressen oder wechsle die Mint ohne Adresse.</string>
-    <string name="money_error_mint_too_old">Diese Mint kann nur dem ersten Konto eines Wallets eine Adresse geben. Wechsle die Mint ohne Adresse.</string>
     <string name="settings_home_mint">Haupt-Mint</string>
     <string name="settings_mints">Mints</string>
-    <string name="addresses_home_mint">Haupt-Mint: %1$s</string>
     <string name="mint_change_home">Haupt-Mint wechseln</string>
     <string name="mint_make_home">Zu meiner Haupt-Mint machen</string>
     <string name="settings_account_mints">Deine Mints</string>
-    <string name="mints_home_mint_of">Haupt-Mint von %1$s</string>
     <string name="mints_remove_mint">Mint entfernen</string>
+    <string name="addresses_home_mint">Haupt-Mint: %1$s</string>
     <string name="addresses_add_elsewhere">Adresse bei einer anderen Mint hinzufügen</string>
     <string name="settings_strategy_single_hint">Alle Scheine zu einem pro Mint zusammenlegen. Kostenlos.</string>
     <string name="mint_title">Mint</string>
@@ -39,8 +36,12 @@
     <string name="notes_collect_hint">Scheine, die du anderswo bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Scheinen“ oben.</string>
     <string name="notes_collect_pending">Die Scheine von %1$s werden verschoben; sie kommen gleich an.</string>
     <string name="mints_add_invalid">Diese Adresse kann keine Scheine verwahren.</string>
-    <string name="mints_remove_body">Diese Wallet vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die Wallet merkt. Ein Konto, dessen Haupt-Mint er ist, hat keine mehr, bis du eine andere wählst.</string>
+    <string name="mints_remove_body">Diese Wallet vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die Wallet merkt. Ist er die Haupt-Mint der Wallet, hat sie keine mehr, bis du eine andere wählst.</string>
     <string name="settings_notices_hint">Eine kurze Nachricht, wenn die Wallet deine Scheine von selbst zusammengelegt, geteilt, erneuert oder verschoben hat.</string>
+    <string name="notes_pay_from_others_first">Zuerst von anderen Mints zahlen</string>
+    <string name="notes_pay_from_others_first_hint">Zahlungen nehmen zuerst Scheine deiner anderen Mints, dann die von %1$s; so sammelt sich dein Geld bei deiner Haupt-Mint.</string>
+    <string name="notes_collect_confirm_body">Wenn du das einschaltest, werden deine Scheine anderer Mints jetzt dorthin verschoben:</string>
+    <string name="money_change_body">Wähle die neue Haupt-Mint. Rechnungen werden dort erstellt, und „Alles verschieben“ sammelt deine Scheine dort. Deine Adressen bleiben, wo sie sind.</string>
 
     <string name="settings_title">Einstellungen</string>
     <string name="settings_recovery_phrase">Wiederherstellungsphrase</string>
@@ -59,7 +60,6 @@
     <string name="addresses_checking">Wird geprüft …</string>
     <string name="addresses_not_checked">Noch nicht geprüft</string>
     <string name="addresses_primary">Hauptadresse</string>
-    <string name="addresses_primary_hint">Die Hauptadresse lässt sich nicht abmelden. Mach zuerst eine andere Adresse zur Hauptadresse.</string>
     <string name="addresses_make_primary">Zur Hauptadresse machen</string>
     <string name="addresses_unregister">Abmelden</string>
     <string name="addresses_keep">Behalten</string>
@@ -67,7 +67,7 @@
     <string name="addresses_status_free">Nicht mehr registriert: Zahlungen daran schlagen fehl</string>
     <string name="addresses_status_failed">Prüfen nicht möglich: %1$s</string>
     <string name="addresses_add">Adresse hinzufügen</string>
-    <string name="addresses_add_elsewhere_hint">Dieselbe Wiederherstellungsphrase. Zahlungen daran kommen in diesem Konto an; deine Hauptadresse bleibt hier.</string>
+    <string name="addresses_add_elsewhere_hint">Dieselbe Wiederherstellungsphrase. Zahlungen daran kommen in diesem Konto an.</string>
     <string name="addresses_over_limit">Mehr Adressen als das aktuelle Limit (%1$d). Sie funktionieren weiter; melde die ab, die du nicht nutzt.</string>
     <string name="addresses_change_primary">Hauptadresse ändern</string>
     <string name="addresses_change_primary_hint">Registriert einen neuen Namen und macht ihn zur Hauptadresse. Die bisherige bleibt registriert, bis du sie abmeldest.</string>
@@ -255,7 +255,7 @@
     <string name="keys_scanned">#%1$d–#%2$d geprüft: %3$d mit Guthaben, %4$d neu · Index jetzt #%5$d</string>
     <string name="keys_behind">Hinter benutztem Schlüssel #%1$d. „Index finden“ behebt das.</string>
     <string name="settings_address_unconfirmed">Registriert (die App kann es nicht bestätigen)</string>
-    <string name="addresses_intro">Zahlungen an jede dieser Adressen kommen in diesem Konto an. Die Hauptadresse ist die, die auf dem Startbildschirm und unter „Empfangen“ steht.</string>
+    <string name="addresses_intro">Zahlungen an jede dieser Adressen kommen in diesem Konto an. „Empfangen“ zeigt zuerst die Hauptadresse.</string>
     <plurals name="addresses_limit">
         <item quantity="one">%1$d von %2$d Adresse</item>
         <item quantity="other">%1$d von %2$d Adressen</item>
@@ -330,6 +330,7 @@
     <string name="addresses_get">Lightning-Adresse holen</string>
     <string name="settings_no_address">Noch keine: du empfängst per Rechnung</string>
     <string name="notes_collect_title">Alles zu %1$s verschieben</string>
+    <string name="notes_collect_confirm">Einschalten</string>
     <string name="notes_collect_fee_cap">Nur wenn die Gebühren höchstens</string>
     <string name="notes_collect_fee_cap_option">%1$d %%</string>
     <string name="notes_collect_moved">%1$s von %2$s verschoben (Gebühr %3$s)</string>
@@ -359,23 +360,11 @@
     <string name="money_move_from">Dein ganzes Geld auf %1$s geht dorthin, wo du auswählst, in einer Zahlung.</string>
     <string name="money_move_target">Nach</string>
     <string name="money_move_no_mints">Es gibt nichts anderes, wohin es gehen könnte. Füge zuerst eins in den Einstellungen hinzu.</string>
-    <string name="money_change_body">Wähle das neue Zuhause. Deine Hauptadresse zieht mit dem Namen deiner Wahl dorthin; deine alte Adresse funktioniert weiter.</string>
-    <string name="money_change_body_no_address">Wähle das neue Zuhause. Neue Zahlungen kommen dort an.</string>
-    <string name="money_name_label">Name</string>
-    <string name="money_address_preview">Deine neue Adresse: %1$s</string>
-    <string name="money_name_checking">Wird geprüft…</string>
-    <string name="money_name_available">Verfügbar</string>
-    <string name="money_name_yours">Gehört schon dir</string>
-    <string name="money_name_taken">Vergeben, versuch einen anderen</string>
-    <string name="money_name_unknown">Konnte nicht prüfen; du kannst es trotzdem versuchen</string>
-    <string name="money_error_name">Dieser Name geht nicht: %1$s</string>
-    <string name="money_error_registration">Der Name konnte nicht registriert werden: %1$s</string>
     <string name="money_error_mint">Antwortet nicht wie erwartet: %1$s</string>
     <string name="money_error_network">Keine Verbindung: %1$s</string>
     <string name="money_continue">Weiter</string>
     <string name="money_back">Zurück</string>
     <string name="money_review_to">Nach %1$s</string>
-    <string name="money_review_address">Deine neue Adresse: %1$s</string>
     <string name="money_review_moves">%1$s auf %2$s: %3$s kommen an, die Gebühr ist %4$s</string>
     <string name="money_review_over_cap">%1$s auf %2$s bleibt: das Verschieben kostet mehr als %3$d %%</string>
     <string name="money_review_too_small">%1$s auf %2$s bleibt: zu wenig zum Verschieben</string>
@@ -388,7 +377,6 @@
     <string name="money_move_amount">%1$s verschieben</string>
     <string name="money_change_and_move">Wechseln und %1$s verschieben</string>
     <string name="money_home_changed">Neues Zuhause: %1$s</string>
-    <string name="money_result_address">Deine Hauptadresse ist jetzt %1$s.</string>
     <string name="money_result_money_stays">Dein Geld ist geblieben, wo es war.</string>
     <string name="money_result_moved">%1$s von %2$s angekommen (Gebühr %3$s)</string>
     <string name="money_result_pending">%1$s von %2$s ist unterwegs</string>

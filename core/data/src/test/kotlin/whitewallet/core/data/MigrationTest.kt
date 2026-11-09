@@ -1,7 +1,9 @@
 package whitewallet.core.data
 
+import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -9,6 +11,7 @@ import androidx.room.Room
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +77,7 @@ class MigrationTest {
         runBlocking<Unit> {
             oldDatabase("v2.db", 2) {
                 execSQL("INSERT INTO accounts VALUES ('acc', 'Main', 1, 'mint.example')")
+                execSQL("INSERT INTO accounts VALUES ('acc2', 'Work', 2, 'other.example')")
                 execSQL("INSERT INTO notes VALUES ('n1', 'acc', 'mint.example', 'KeyPath', 1, 0, 21000, NULL, 'Outstanding', 2)")
                 execSQL("INSERT INTO services VALUES ('mint.example', 'https://mint.example/w', 'pk', 1000, 1000000, 0, 0)")
                 execSQL(
@@ -93,7 +97,9 @@ class MigrationTest {
                     .build()
             try {
                 val store = RoomWalletStore(db)
-                assertEquals("mint.example", store.account("acc")?.host)
+                // Each account of then is a wallet of its own, its home the account's.
+                assertEquals("mint.example", store.wallet("acc")?.homeHost)
+                assertEquals("other.example", store.wallet("acc2")?.homeHost)
                 assertEquals(listOf(21000L to NoteState.Outstanding), store.notes("acc").first().map { it.amountMsat to it.state })
                 assertEquals("pk", store.mint("acc", "mint.example")?.mintPubkey)
                 assertEquals(listOf("m1"), store.journal(setOf(JournalStatus.Prepared)).map { it.id })
@@ -181,7 +187,8 @@ class MigrationTest {
             try {
                 val store = RoomWalletStore(db)
                 // Each account is its own wallet, under its own id (where its recovery phrase already is), at account index 0.
-                assertEquals(Account("acc", "Main", 1, "mint.example", walletId = "acc", index = 0), store.account("acc"))
+                assertEquals(Account("acc", "Main", 1, walletId = "acc", index = 0), store.account("acc"))
+                assertEquals("mint.example", store.wallet("acc")?.homeHost)
                 assertEquals("acc2", store.account("acc2")?.walletId)
                 assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
                 // The mints were the device's: each wallet has them now, with the key pinned for them.
@@ -227,16 +234,9 @@ class MigrationTest {
                     store.journal(setOf(JournalStatus.Prepared)).single { it.id == "j2" }.outputs,
                 )
 
-                // An account may have no home mint now (its wallet has none yet).
-                store.saveAccount(Account("acc3", "Second", 4, null, walletId = "acc", index = 1))
-                assertNull(store.account("acc3")?.host)
-                assertEquals(
-                    null to "Second",
-                    store.accounts.first().single { it.account.id == "acc3" }.let { it.account.host to it.account.name },
-                )
-
                 // A second account in the first wallet; the wallet goes with its last account.
-                store.saveAccount(Account("acc3", "Second", 4, "mint.example", walletId = "acc", index = 1))
+                store.saveAccount(Account("acc3", "Second", 4, walletId = "acc", index = 1))
+                assertEquals("Second", store.accounts.first().single { it.account.id == "acc3" }.account.name)
                 assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
                 store.deleteAccount("acc")
                 assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
@@ -253,6 +253,157 @@ class MigrationTest {
         }
 
     @Test
+    fun `a wallet of version 6 keeps every note, its home becomes the wallet's, and every row points at its account`() =
+        runBlocking<Unit> {
+            val q = { c: Char -> c.toString().repeat(64) }
+            oldDatabase("v6.db", 6) {
+                // Wallet w1: accounts 0 and 1 with different homes, and a duplicate of account 1 (an old scan bug), newer.
+                execSQL("INSERT INTO wallets VALUES ('w1', 'Main', 1)")
+                execSQL("INSERT INTO accounts VALUES ('a0', 'Main', 1, 'one.example', 'w1', 0)")
+                execSQL("INSERT INTO accounts VALUES ('a1', 'Savings', 2, 'two.example', 'w1', 1)")
+                execSQL("INSERT INTO accounts VALUES ('dup', 'Savings 2', 3, 'one.example', 'w1', 1)")
+                // A wallet from before v5 (its id is its account's) whose wallet row is missing.
+                execSQL("INSERT INTO accounts VALUES ('old', 'Old', 4, 'one.example', 'old', 0)")
+                execSQL("INSERT INTO mints VALUES ('w1', 'one.example', 'https://one.example/w', 'pk1', 1, 2, 0, 0)")
+                execSQL("INSERT INTO mints VALUES ('w1', 'two.example', 'https://two.example/w', 'pk2', 1, 2, 0, 0)")
+                execSQL("INSERT INTO mints VALUES ('ghost', 'one.example', 'https://one.example/w', 'pk1', 1, 2, 0, 0)")
+                for ((id, account) in listOf('a' to "a0", 'b' to "a1", 'c' to "dup", 'd' to "gone")) {
+                    execSQL(
+                        "INSERT INTO notes VALUES ('${q(id)}', '$account', 'one.example', 'KeyPath', 0, 1, 1000, NULL, 'Outstanding', 1, NULL, 1, NULL)"
+                    )
+                }
+                execSQL(
+                    "INSERT INTO received_notes VALUES ('${q('r')}', 'a1', 'one.example', 'https://one.example/w', 'k1', NULL, 500, NULL, " +
+                        "NULL, NULL, 'Waiting', NULL, 1, 1, NULL)"
+                )
+                execSQL(
+                    "INSERT INTO received_notes VALUES ('${q('s')}', 'gone', 'one.example', 'https://one.example/w', 'k1', NULL, 700, NULL, " +
+                        "NULL, NULL, 'Waiting', NULL, 1, 1, NULL)"
+                )
+                // In flight from account 0 to the duplicate and to account 1.
+                execSQL(
+                    "INSERT INTO journal VALUES ('j1', 'a0', 'Split', 'one.example', 'https://one.example/w', '${q('a')}', 'k', " +
+                        "'dup:1:0::5:${q('e')},a1:1:0::6:${q('f')}', 'https://one.example/w?k1=k', 'Unknown', NULL, 3, 3)"
+                )
+                execSQL("INSERT INTO key_counters VALUES ('a1', 'one.example', 'Wallet', 4)")
+                execSQL("INSERT INTO key_counters VALUES ('dup', 'one.example', 'Wallet', 9)")
+                execSQL("INSERT INTO key_counters VALUES ('dup', 'one.example', 'Shares', 2)")
+                execSQL("INSERT INTO share_scan VALUES ('a1', 'one.example', 0, 8)")
+                execSQL("INSERT INTO share_scan VALUES ('dup', 'one.example', 0, 3)")
+                execSQL("INSERT INTO key_counters VALUES ('gone', 'one.example', 'Wallet', 1)")
+                // Legacy addresses (no share) and the primary one as its own row; the old wallet's isn't among its addresses.
+                execSQL("INSERT INTO addresses VALUES ('a0', 'one.example', 'alice', 5, NULL, NULL)")
+                execSQL("INSERT INTO addresses VALUES ('a0', 'two.example', 'alice', 6, 0, NULL)")
+                execSQL("INSERT INTO addresses VALUES ('dup', 'one.example', 'sam', 7, 1, NULL)")
+                execSQL("INSERT INTO profile VALUES ('a0', 'alice', 'one.example')")
+                execSQL("INSERT INTO profile VALUES ('old', 'bob', 'one.example')")
+                execSQL("INSERT INTO app_state VALUES (0, 'dup')")
+            }
+            val db =
+                Room.databaseBuilder(context, WalletDatabase::class.java, "v6.db")
+                    .addMigrations(*WalletDatabase.MIGRATIONS)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val store = RoomWalletStore(db)
+                // The home is the wallet's: account 0's. Account 1's other home is noted for the settings migration.
+                assertEquals("one.example", store.wallet("w1")?.homeHost)
+                assertEquals("one.example", store.wallet("old")?.homeHost)
+                assertEquals(
+                    listOf(
+                        MigratingWallet("old", listOf("old")),
+                        MigratingWallet("w1", listOf("a0", "a1"), listOf("two.example" to "pk2")),
+                    ),
+                    migratingWallets(db).sortedBy { it.id },
+                )
+
+                // The duplicate is merged into the older account 1: its note, its counters (the highest), its scans (the lowest).
+                assertEquals(listOf("a0", "a1", "old"), store.accounts.first().map { it.account.id })
+                assertEquals(listOf(q('b'), q('c')), store.notes("a1").first().map { it.id }.sorted())
+                assertEquals(9, store.keyIndexOrNull("a1", "one.example", KeyCounter.Wallet))
+                assertEquals(2, store.keyIndexOrNull("a1", "one.example", KeyCounter.Shares))
+                assertEquals(3, store.shareScanFrom("a1", "one.example", 0))
+                assertEquals(listOf("sam"), store.addresses("a1").first().map { it.username })
+                assertEquals("a1", store.currentAccountId())
+                // The operation in flight now names account 1 for both outputs, and settles there.
+                assertEquals(listOf("a1", "a1"), store.journal(setOf(JournalStatus.Unknown)).single().outputs.map { it.accountId })
+
+                // The primary address is a flag; one that wasn't among the addresses is added.
+                assertEquals(RegisteredAddress("alice", "one.example", 5, share = null), store.currentPrimaryAddress("a0"))
+                assertEquals(listOf("alice@one.example", "alice@two.example"), store.addresses("a0").first().map { it.address })
+                assertEquals("bob@one.example", store.currentPrimaryAddress("old")?.address)
+
+                // What belonged to no account: money and operations kept aside, derived rows and a missing wallet's mints gone.
+                assertNull(store.note(q('d')))
+                assertNull(store.receivedNote(q('s')))
+                val sql = db.openHelper.readableDatabase
+                sql.query("SELECT id FROM orphan_notes").use {
+                    assertEquals(true, it.moveToFirst())
+                    assertEquals(q('d'), it.getString(0))
+                }
+                sql.query("SELECT id FROM orphan_received_notes").use { assertEquals(true, it.moveToFirst()) }
+                assertNull(store.keyIndexOrNull("gone", "one.example", KeyCounter.Wallet))
+                assertEquals(emptyList(), store.mints("ghost").first())
+                assertEquals(listOf("one.example", "two.example"), store.mints("w1").first().map { it.host })
+
+                // From now on the database keeps it that way: no row of an account that doesn't exist.
+                assertFailsWith<SQLiteConstraintException> { store.setKeyIndex("gone", "one.example", KeyCounter.Wallet, 1) }
+                Migration6To7.forgetSplitHomes(sql)
+                assertEquals(emptyMap(), Migration6To7.splitHomes(sql))
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `collecting becomes the wallet's, off if any account had it off or homes differed, and other homes stay trusted`() =
+        runBlocking<Unit> {
+            val file = File(context.filesDir, "collect.preferences_pb").apply { delete() }
+            val before = SupervisorJob()
+            PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO + before)) { file }
+                .edit {
+                    it[booleanPreferencesKey("collect_at_home_a0")] = true
+                    it[booleanPreferencesKey("collect_at_home_a1")] = false
+                    it[intPreferencesKey("collect_fee_cap_a0")] = 3
+                    it[intPreferencesKey("collect_fee_cap_a1")] = 9
+                    it[booleanPreferencesKey("collect_at_home_b0")] = true
+                    it[booleanPreferencesKey("collect_at_home_c0")] = true
+                    it[stringSetPreferencesKey("untrusted_mints_c")] = setOf("three.example pk3")
+                }
+            before.cancelAndJoin()
+            val wallets =
+                listOf(
+                    MigratingWallet("a", listOf("a0", "a1")),
+                    MigratingWallet("b", listOf("b0")),
+                    MigratingWallet("c", listOf("c0"), listOf("two.example" to "pk2", "three.example" to "pk3", "four.example" to null)),
+                )
+            var done = false
+            val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+            try {
+                val store =
+                    PreferenceDataStoreFactory.create(
+                        migrations = DataStorePreferences.migrations({ wallets }) { done = true },
+                        scope = scope,
+                    ) {
+                        file
+                    }
+                val prefs = DataStorePreferences(store)
+                assertEquals(false, prefs.collect("a").first(), "one account had it off")
+                assertEquals(3, prefs.collectFeeCap("a").first(), "the first account's fee cap")
+                assertEquals(true, prefs.collect("b").first())
+                assertNull(prefs.collectFeeCap("b").first())
+                assertEquals(false, prefs.collect("c").first(), "its accounts had different homes")
+                // The other home stays trusted with its key; one the user untrusted stays untrusted; one without a key can't be.
+                assertEquals(setOf(MintKey("two.example", "pk2")), prefs.trusted("c").first())
+                assertEquals(setOf(MintKey("three.example", "pk3")), prefs.untrusted("c").first())
+                assertEquals(emptyList(), store.data.first().asMap().keys.map { it.name }.filter { it.startsWith("collect_") })
+                assertEquals(true, done)
+            } finally {
+                scope.cancel()
+            }
+        }
+
+    @Test
     fun `the address limit set under v0_3_0 is kept under its new key`() =
         runBlocking<Unit> {
             val file = File(context.filesDir, "migrate.preferences_pb").apply { delete() }
@@ -263,7 +414,7 @@ class MigrationTest {
             val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
             try {
                 val store =
-                    PreferenceDataStoreFactory.create(migrations = DataStorePreferences.migrations { emptyList() }, scope = scope) { file }
+                    PreferenceDataStoreFactory.create(migrations = DataStorePreferences.migrations({ emptyList() }), scope = scope) { file }
                 assertEquals(3, DataStorePreferences(store).maxAddressesPerMint.first())
                 assertNull(store.data.first()[old])
             } finally {
@@ -285,7 +436,13 @@ class MigrationTest {
             val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
             try {
                 val store =
-                    PreferenceDataStoreFactory.create(migrations = DataStorePreferences.migrations { listOf("w1", "w2") }, scope = scope) {
+                    PreferenceDataStoreFactory.create(
+                        migrations =
+                            DataStorePreferences.migrations({
+                                listOf(MigratingWallet("w1", emptyList()), MigratingWallet("w2", emptyList()))
+                            }),
+                        scope = scope,
+                    ) {
                         file
                     }
                 val prefs = DataStorePreferences(store)

@@ -56,7 +56,12 @@ object DataModule {
         val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         // Only this provider opens the file, once (@Singleton); its migrations read the wallets from the database.
         val settings =
-            PreferenceDataStoreFactory.create(migrations = DataStorePreferences.migrations { db.dao().wallets().first().map { it.id } }) {
+            PreferenceDataStoreFactory.create(
+                migrations =
+                    DataStorePreferences.migrations({ migratingWallets(db) }) {
+                        Migration6To7.forgetSplitHomes(db.openHelper.writableDatabase)
+                    }
+            ) {
                 context.preferencesDataStoreFile("settings")
             }
         return DataStorePreferences(
@@ -71,4 +76,11 @@ object DataModule {
     @Provides internal fun notePolicies(preferences: DataStorePreferences): NotePolicies = preferences
 
     @Provides internal fun mintTrust(preferences: DataStorePreferences): MintTrustStore = preferences
+}
+
+/** Every wallet with its accounts and the homes they had besides its own, for the settings migrations (see [Migration6To7.SPLIT_HOMES]). */
+internal suspend fun migratingWallets(db: WalletDatabase): List<MigratingWallet> {
+    val accounts = db.dao().accountsByIndex().groupBy { it.walletId }
+    val split = Migration6To7.splitHomes(db.openHelper.readableDatabase)
+    return db.dao().wallets().first().map { w -> MigratingWallet(w.id, accounts[w.id].orEmpty().map { it.id }, split[w.id].orEmpty()) }
 }

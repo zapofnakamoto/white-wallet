@@ -6,16 +6,13 @@
       brand/res/values*/strings.xml. All other strings are written without either word (developer options
       aside). See docs/WHITE_LABEL.md.
     -->
-    <string name="money_error_address_fee">This mint charges for an address, so nothing moved. Pay for it under Settings, Addresses, or change mints without an address.</string>
-    <string name="money_error_mint_too_old">This mint can only give an address to the first account of a wallet. Change mints without an address.</string>
     <string name="settings_home_mint">Home mint</string>
     <string name="settings_mints">Mints</string>
-    <string name="addresses_home_mint">Home mint: %1$s</string>
     <string name="mint_change_home">Change home mint</string>
     <string name="mint_make_home">Make this my home mint</string>
     <string name="settings_account_mints">Your mints</string>
-    <string name="mints_home_mint_of">Home mint of %1$s</string>
     <string name="mints_remove_mint">Remove mint</string>
+    <string name="addresses_home_mint">Home mint: %1$s</string>
     <string name="addresses_add_elsewhere">Add an address on another mint</string>
     <string name="settings_strategy_single_hint">Combine all notes into one per mint. Free.</string>
     <string name="mint_title">Mint</string>
@@ -44,8 +41,12 @@
     <string name="notes_collect_hint">Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too.</string>
     <string name="notes_collect_pending">Moving the notes from %1$s; they arrive shortly.</string>
     <string name="mints_add_invalid">That address can\'t hold notes.</string>
-    <string name="mints_remove_body">This wallet forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the wallet remembers. An account whose home mint it is has none until you choose another.</string>
+    <string name="mints_remove_body">This wallet forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the wallet remembers. If it is the wallet\'s home mint, the wallet has none until you choose another.</string>
     <string name="settings_notices_hint">A short message when the wallet combined, split, renewed or moved your notes by itself.</string>
+    <string name="notes_pay_from_others_first">Pay from other mints first</string>
+    <string name="notes_pay_from_others_first_hint">Payments use notes on your other mints before those at %1$s, so your money gathers at your home mint.</string>
+    <string name="notes_collect_confirm_body">Turning this on moves your notes on other mints there now:</string>
+    <string name="money_change_body">Pick the new home mint. Invoices are made there, and moving everything to it collects your notes there. Your addresses stay where they are.</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_recovery_phrase">Recovery phrase</string>
@@ -64,7 +65,6 @@
     <string name="addresses_checking">Checking…</string>
     <string name="addresses_not_checked">Not checked yet</string>
     <string name="addresses_primary">Primary</string>
-    <string name="addresses_primary_hint">The primary address can\'t be unregistered. Make another address primary first.</string>
     <string name="addresses_make_primary">Make primary</string>
     <string name="addresses_unregister">Unregister</string>
     <string name="addresses_keep">Keep</string>
@@ -72,7 +72,7 @@
     <string name="addresses_status_free">Not registered anymore: payments to it fail</string>
     <string name="addresses_status_failed">Couldn\'t check: %1$s</string>
     <string name="addresses_add">Add address</string>
-    <string name="addresses_add_elsewhere_hint">Same recovery phrase. Payments to it arrive in this account; your primary address stays here.</string>
+    <string name="addresses_add_elsewhere_hint">Same recovery phrase. Payments to it arrive in this account.</string>
     <string name="addresses_over_limit">More addresses than the current limit (%1$d). They keep working; unregister ones you don\'t use.</string>
     <string name="addresses_change_primary">Change primary address</string>
     <string name="addresses_change_primary_hint">Registers a new name and makes it primary. The current one stays registered until you unregister it.</string>
@@ -260,7 +260,7 @@
     <string name="keys_scanned">Checked #%1$d–#%2$d: %3$d with funds, %4$d new · index now #%5$d</string>
     <string name="keys_behind">Behind used key #%1$d. Find index fixes this.</string>
     <string name="settings_address_unconfirmed">Registered (the app can\'t confirm it)</string>
-    <string name="addresses_intro">Payments to any of these addresses arrive in this account. The primary address is the one shown on Home and Receive.</string>
+    <string name="addresses_intro">Payments to any of these addresses arrive in this account. Receive offers the primary address first.</string>
     <plurals name="addresses_limit">
         <item quantity="one">%1$d of %2$d address</item>
         <item quantity="other">%1$d of %2$d addresses</item>
@@ -337,6 +337,7 @@
     <string name="addresses_get">Get a Lightning address</string>
     <string name="settings_no_address">None yet: you receive by invoice</string>
     <string name="notes_collect_title">Move everything to %1$s</string>
+    <string name="notes_collect_confirm">Turn on</string>
     <string name="notes_collect_fee_cap">Only when the fees are at most</string>
     <string name="notes_collect_fee_cap_option">%1$d%%</string>
     <string name="notes_collect_moved">Moved %1$s from %2$s (fee %3$s)</string>
@@ -367,23 +368,11 @@
     <string name="money_move_from">All your money on %1$s goes to the one you pick, combined into one payment.</string>
     <string name="money_move_target">To</string>
     <string name="money_move_no_mints">There is nowhere else to move it. Add one under Settings first.</string>
-    <string name="money_change_body">Pick the new home. Your primary address moves there, under the name you choose; your old address keeps working.</string>
-    <string name="money_change_body_no_address">Pick the new home. New payments arrive there.</string>
-    <string name="money_name_label">Name</string>
-    <string name="money_address_preview">Your new address: %1$s</string>
-    <string name="money_name_checking">Checking…</string>
-    <string name="money_name_available">Available</string>
-    <string name="money_name_yours">Already yours</string>
-    <string name="money_name_taken">Taken, try another one</string>
-    <string name="money_name_unknown">Couldn\'t check; you can still try</string>
-    <string name="money_error_name">That name doesn\'t work: %1$s</string>
-    <string name="money_error_registration">Couldn\'t register the name: %1$s</string>
     <string name="money_error_mint">That one doesn\'t answer as expected: %1$s</string>
     <string name="money_error_network">No connection: %1$s</string>
     <string name="money_continue">Continue</string>
     <string name="money_back">Back</string>
     <string name="money_review_to">To %1$s</string>
-    <string name="money_review_address">Your new address: %1$s</string>
     <string name="money_review_moves">%1$s on %2$s: %3$s arrives, the fee is %4$s</string>
     <string name="money_review_over_cap">%1$s on %2$s stays: moving it costs more than %3$d %%</string>
     <string name="money_review_too_small">%1$s on %2$s stays: too little to move</string>
@@ -396,7 +385,6 @@
     <string name="money_move_amount">Move %1$s</string>
     <string name="money_change_and_move">Change and move %1$s</string>
     <string name="money_home_changed">New home: %1$s</string>
-    <string name="money_result_address">Your primary address is now %1$s.</string>
     <string name="money_result_money_stays">Your money stayed where it was.</string>
     <string name="money_result_moved">%1$s arrived from %2$s (fee %3$s)</string>
     <string name="money_result_pending">%1$s from %2$s is on its way</string>

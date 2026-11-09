@@ -93,11 +93,11 @@ data class AddressShare(val share: Long, val address: String?) {
 internal class KeyInspector(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
 
-    /** Mints the account has keys on: its home mint plus any its notes live on. */
+    /** Mints the account has keys on: its wallet's home mint plus any its notes live on. */
     suspend fun hosts(accountId: String): List<String> {
-        val profileHost = wallet.store.account(accountId)?.host
+        val home = wallet.homeOf(accountId)
         val noteHosts = wallet.store.notes(accountId).first().map { it.host }
-        return (listOfNotNull(profileHost) + noteHosts + wallet.store.counterHosts(accountId)).distinct()
+        return (listOfNotNull(home) + noteHosts + wallet.store.counterHosts(accountId)).distinct()
     }
 
     /** The tab's one index: the wallet or change counter, or where the scan of a share or legacy purpose starts. */

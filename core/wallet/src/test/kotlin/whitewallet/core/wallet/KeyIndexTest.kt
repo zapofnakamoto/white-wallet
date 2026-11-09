@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.NoteState
-import whitewallet.core.model.Profile
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -33,7 +32,7 @@ class KeyIndexTest {
                         LnurlcashClient(),
                         policies = NotePolicies.InMemory(ManualStrategy.ID),
                     )
-                store.addAccount("a", "Main", Profile("alice", mint.host))
+                store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
                 Fixture(mint, store, wallet, testKeys(words, mint.host)).test()
             }
@@ -62,7 +61,7 @@ class KeyIndexTest {
         val store2 = InMemoryWalletStore()
         val wallet2 =
             Wallet(store2, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
-        store2.addAccount("a", "Main", Profile("alice", mint.host))
+        store2.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
         assertIs<ConnectResult.Connected>(wallet2.connectMint(mint.host))
         return store2 to wallet2
     }
