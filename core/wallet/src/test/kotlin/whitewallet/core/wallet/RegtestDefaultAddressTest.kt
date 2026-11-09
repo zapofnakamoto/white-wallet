@@ -16,20 +16,25 @@ class RegtestDefaultAddressTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 
     @Test
-    fun `the suggested name comes from the phrase the account gets, and a restore finds it again`() =
+    fun `the suggested name comes from the wallet's phrase, and a restore finds it again`() =
         runBlocking<Unit> {
             val first = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
+            assertEquals(null, first.defaultUsername(HOST), "no wallet, no phrase to derive from")
+            val main = assertIs<CreateAccountResult.Created>(first.createWallet("Main")).accountId
             val name = assertNotNull(first.defaultUsername(HOST))
-            assertEquals(name, first.defaultUsername(HOST), "stable until an account is made")
-            assertIs<OnboardResult.Ready>(first.onboard(name, HOST, "Main"))
+            assertEquals(name, first.defaultUsername(HOST), "the same phrase, the same name")
+            assertIs<OnboardResult.Ready>(first.claimAddress(name, HOST))
+            first.setSetupStep(null)
             assertEquals(emptyList(), first.addressesToWriteDown())
-            assertNotEquals(name, first.defaultUsername(HOST), "the next account gets a new phrase")
+            assertIs<CreateAccountResult.Created>(first.createWallet("Other"))
+            assertNotEquals(name, first.defaultUsername(HOST), "another wallet, another phrase")
+            first.switchAccount(main)
             val words = first.recoveryPhrase()
 
             val restored = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
             assertIs<RestoreResult.Restored>(restored.restore(words.joinToString(" "), HOST, "Restored"))
             assertEquals(name, restored.recoverableUsername(HOST))
-            assertIs<OnboardResult.Ready>(restored.onboard(name, HOST, null))
+            assertIs<OnboardResult.Ready>(restored.claimAddress(name, HOST))
             assertEquals("$name@$HOST", restored.primaryAddress.first()?.address)
         }
 
@@ -37,15 +42,15 @@ class RegtestDefaultAddressTest {
     fun `a taken derived name offers the next one, and other names are to be written down`() =
         runBlocking<Unit> {
             val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
+            assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
             val name = assertNotNull(wallet.defaultUsername(HOST))
             // Someone else registers it first.
             val other = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
             assertIs<OnboardResult.Ready>(other.onboard(name, HOST, "Other"))
 
-            val taken = assertIs<OnboardResult.UsernameTaken>(wallet.onboard(name, HOST, "Main"))
-            assertEquals(name, wallet.defaultUsername(HOST), "the phrase is kept for the next attempt")
+            val taken = assertIs<OnboardResult.UsernameTaken>(wallet.claimAddress(name, HOST))
             val second = taken.suggestions.first()
-            assertIs<OnboardResult.Ready>(wallet.onboard(second, HOST, "Main"))
+            assertIs<OnboardResult.Ready>(wallet.claimAddress(second, HOST))
             assertEquals(second, wallet.recoverableUsername(HOST))
 
             val handpicked = "picked" + System.nanoTime().toString(16).takeLast(8)

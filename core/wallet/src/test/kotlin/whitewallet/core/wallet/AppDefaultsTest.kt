@@ -27,11 +27,10 @@ class AppDefaultsTest {
     }
 
     @Test
-    fun `setup may go on without a mint only where one can be added later and no address is required`() {
+    fun `setup may go on without a mint only where one can be added later`() {
         val open = defaults.copy(allowMintChange = true)
         assertEquals(true, open.mintOptional)
         assertEquals(false, defaults.mintOptional, "mints.changeable=false")
-        assertEquals(false, open.copy(address = AddressPolicy.Required).mintOptional)
         assertEquals(false, open.copy(showMints = false).mintOptional)
     }
 
@@ -92,9 +91,10 @@ class AppDefaultsTest {
     }
 
     @Test
-    fun `a brand requires an address, lets users skip it, or leaves it out of setup`() {
+    fun `a brand asks for an address at setup, or leaves it out`() {
         assertEquals(AddressPolicy.Optional, defaults.address)
-        assertEquals(AddressPolicy.Required, AddressPolicy.fromConfig("required"))
+        assertEquals(AddressPolicy.Optional, AddressPolicy.fromConfig("optional"))
+        assertFailsWith<IllegalStateException>("an address is never required") { AddressPolicy.fromConfig("required") }
         assertEquals(AddressPolicy.None, AddressPolicy.fromConfig(" None "))
         assertFailsWith<IllegalStateException> { AddressPolicy.fromConfig("true") }
     }

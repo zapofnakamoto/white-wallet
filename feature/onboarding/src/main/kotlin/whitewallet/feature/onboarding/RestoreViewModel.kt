@@ -3,15 +3,12 @@ package whitewallet.feature.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
-import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.PhraseCheck
 import whitewallet.core.wallet.RecoveryPhrase
 import whitewallet.core.wallet.RestoreResult
@@ -22,31 +19,16 @@ sealed interface RestoreError {
     data class AlreadyInWallet(val accountName: String) : RestoreError
 
     data class AccountLimit(val limit: Int) : RestoreError
-
-    data object Mint : RestoreError
-
-    data object Network : RestoreError
 }
 
 data class RestoreState(
     val phrase: String = "",
-    val host: String,
-    val mintOptions: List<MintOption> = emptyList(),
-    val selectedMint: MintOption = MintOption.Custom,
-    val customHost: String = "",
-    /** Asked for when the restored account joins existing ones; the first account gets the default name. */
-    val askAccountName: Boolean = false,
-    val accountName: String = "",
     val busy: Boolean = false,
     val error: RestoreError? = null,
     /** Developer mode offers the BIP-39 test phrase (see [RestoreViewModel.useTestPhrase]). */
     val developerMode: Boolean = false,
-    /** Set once restored: the host the account was restored on (its address is picked there next). */
-    val restoredOn: String? = null,
-    /** Set once restored without a mint: the wallet opens and asks for one there. */
-    val restoredWithoutMint: Boolean = false,
-    /** The user may restore without a mint ([AppDefaults.mintOptional]), and add the one they used later. */
-    val canSkipMint: Boolean = false,
+    /** Set once restored: the wallet's mints come next, each finding what the phrase holds there. */
+    val restored: Boolean = false,
 ) {
     val check: PhraseCheck
         get() = RecoveryPhrase.check(phrase)
@@ -55,51 +37,18 @@ data class RestoreState(
     val hint: PhraseCheck
         get() = RecoveryPhrase.checkWhileTyping(phrase)
 
-    /** The mint picker: when the brand offers more than one mint or lets users type one. */
-    val showMintPicker: Boolean
-        get() = mintOptions.hasChoice()
-
     val canSubmit: Boolean
-        get() = canSkipMintNow && host.isNotBlank()
-
-    val canSkipMintNow: Boolean
-        get() = !busy && check is PhraseCheck.Valid && (!askAccountName || accountName.isNotBlank())
+        get() = !busy && check is PhraseCheck.Valid
 }
 
+/** Brings a wallet back from its recovery phrase alone: what it holds is found as its mints are added, in the next steps. */
 @HiltViewModel
-class RestoreViewModel
-@Inject
-constructor(
-    private val wallet: Wallet,
-    private val defaults: AppDefaults,
-    private val preferences: AppPreferences,
-) : ViewModel() {
-    private val _state = MutableStateFlow(RestoreState(host = defaults.defaultMintHost, canSkipMint = defaults.mintOptional))
+class RestoreViewModel @Inject constructor(private val wallet: Wallet, preferences: AppPreferences) : ViewModel() {
+    private val _state = MutableStateFlow(RestoreState())
     val state: StateFlow<RestoreState> = _state
-    private var initialized = false
-    private var defaultAccountName = ""
 
-    /** Call once from the screen. [asNewAccount]: the wallet already has accounts, so the restored one gets a name. */
-    fun init(asNewAccount: Boolean, defaultAccountName: String, newAccountName: String) {
-        if (initialized) return
-        initialized = true
-        this.defaultAccountName = defaultAccountName
-        _state.update { it.copy(askAccountName = asNewAccount, accountName = if (asNewAccount) newAccountName else "") }
-        viewModelScope.launch {
-            preferences.developerMode.collect { developerMode ->
-                _state.update { s ->
-                    val options = mintOptions(defaults, developerMode)
-                    val selected = keepSelection(options, s.mintOptions, s.selectedMint, s.host)
-                    s.copy(
-                        mintOptions = options,
-                        selectedMint = selected,
-                        developerMode = developerMode,
-                        host = selected.host ?: s.host,
-                        customHost = if (selected == MintOption.Custom) s.host else s.customHost,
-                    )
-                }
-            }
-        }
+    init {
+        viewModelScope.launch { preferences.developerMode.collect { on -> _state.update { it.copy(developerMode = on) } } }
     }
 
     fun onPhraseChange(value: String) = _state.update { it.copy(phrase = value, error = null) }
@@ -109,55 +58,24 @@ constructor(
         if (_state.value.developerMode) onPhraseChange(TEST_PHRASE)
     }
 
-    fun onAccountNameChange(value: String) = _state.update { it.copy(accountName = value) }
-
-    fun onMintSelected(option: MintOption) = _state.update {
-        it.copy(selectedMint = option, host = option.host ?: it.customHost, error = null)
-    }
-
-    fun onCustomHostChange(value: String) = _state.update { it.copy(customHost = value, host = value, error = null) }
-
-    fun restore() {
-        if (_state.value.canSubmit) restore(_state.value.host)
-    }
-
-    /** Restores only the phrase: the wallet has no mint until the user adds one, which finds what it holds there. */
-    fun restoreWithoutMint() {
+    /** Restores the phrase as a wallet named [name] (the app's word for a first wallet, in the user's language). */
+    fun restore(name: String) {
         val s = _state.value
-        if (s.canSkipMint && s.canSkipMintNow) restore(host = null)
-    }
-
-    private fun restore(host: String?) {
-        val s = _state.value
+        if (!s.canSubmit) return
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            val name = if (s.askAccountName) s.accountName.trim() else defaultAccountName
-            val result =
-                try {
-                    wallet.restore(s.phrase, host, name)
-                } catch (e: IOException) {
-                    return@launch _state.update { it.copy(busy = false, error = RestoreError.Network) }
-                } catch (e: MintKeyChangedException) {
-                    return@launch _state.update { it.copy(busy = false, error = RestoreError.Mint) }
-                }
             val error =
-                when (result) {
+                when (val result = wallet.restore(s.phrase, null, name)) {
                     is RestoreResult.Restored -> {
                         // The phrase isn't needed any more; don't keep it in memory longer than the screen.
-                        _state.update {
-                            it.copy(
-                                busy = false,
-                                phrase = "",
-                                restoredOn = host?.trim()?.lowercase(),
-                                restoredWithoutMint = host == null,
-                            )
-                        }
+                        _state.update { it.copy(busy = false, phrase = "", restored = true) }
                         return@launch
                     }
                     is RestoreResult.AlreadyInWallet -> RestoreError.AlreadyInWallet(result.accountName)
                     is RestoreResult.AccountLimitReached -> RestoreError.AccountLimit(result.limit)
-                    is RestoreResult.MintInvalid -> RestoreError.Mint
-                    is RestoreResult.NetworkError -> RestoreError.Network
+                    // Only with a mint, which this step doesn't contact.
+                    is RestoreResult.MintInvalid,
+                    is RestoreResult.NetworkError,
                     // The button is only enabled for a valid phrase.
                     is RestoreResult.InvalidPhrase -> null
                 }

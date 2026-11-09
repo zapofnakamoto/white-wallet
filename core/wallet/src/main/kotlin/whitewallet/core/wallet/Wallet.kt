@@ -40,6 +40,7 @@ import whitewallet.core.model.OperationType
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.SetupStep
 import whitewallet.core.model.WalletRecord
 import whitewallet.core.model.isShared
 import whitewallet.core.wallet.legacy.Legacy
@@ -72,10 +73,10 @@ class Wallet(
     /** How many recovery phrases the app may hold (brand `wallets.max`); [AppDefaults.UNLIMITED] for no limit. */
     val maxWallets: Int = AppDefaults.UNLIMITED,
     /**
-     * Whether every account needs a Lightning address (brand `addresses.lightning=required`). Without, an account is set up with just its
-     * mint ([createAccount]) and receives by invoice ([requestInvoice]) until it registers one.
+     * The name of an account a scan finds on a mint ([addMint], [restore]), by its index: the app's own words for it, in the user's
+     * language.
      */
-    val requireAddress: Boolean = true,
+    internal val accountName: (index: Long) -> String = { "${it + 1}" },
     /** The most an address fee may be (brand `addresses.fee.max`), or null for whatever the mint advertises. */
     internal val maxAddressFeeMsat: Long? = null,
     /** The user's trust choices for mints (see [mints]). */
@@ -299,31 +300,57 @@ class Wallet(
         applyPolicies(id)
     }
 
-    suspend fun isSetUp(): Boolean = store.currentAccountId()?.let { !requireAddress || hasAddress(it) } ?: false
+    /** Whether there is an active account whose wallet is set up (no [setupStep] left). */
+    suspend fun isSetUp(): Boolean = store.currentAccountId()?.let { store.wallet(walletOf(it))?.setupStep == null } ?: false
 
-    /**
-     * The active account exists but has no address yet although this app requires one: it was restored and the address step wasn't
-     * finished.
-     */
-    suspend fun needsAddress(): Boolean = requireAddress && store.currentAccountId()?.let { !hasAddress(it) } ?: false
+    /** Where the active wallet's setup is ([SetupStep]); null once it is set up, or without a wallet. Survives a restart. */
+    val setupStep: Flow<SetupStep?> = activeWallet.map { it?.setupStep }.distinctUntilChanged()
 
-    /** Whether [accountId] has a registered Lightning address (not one held for its fee). */
-    private suspend fun hasAddress(accountId: String): Boolean = store.addresses(accountId).first().any { it.feeInvoice == null }
-
-    /**
-     * Creates an account on the mint at [host] without a Lightning address, with a fresh recovery phrase, and makes it active. Only where
-     * addresses aren't required ([requireAddress]); otherwise accounts start with [onboard]. Without [host], a wallet without a mint: it
-     * can't receive until one is added ([addMint]).
-     */
-    suspend fun createAccount(host: String?, name: String, inActiveWallet: Boolean = false): CreateAccountResult = lock.withLock {
-        check(!requireAddress) { "this app requires an address; use onboard" }
-        onboarding.createAccount(host, name, inActiveWallet)
+    /** Moves the active wallet's setup on to [step], or ends it (null): from then on it opens as any wallet. */
+    suspend fun setSetupStep(step: SetupStep?) = lock.withLock {
+        val walletId = walletOf(activeId())
+        store.wallet(walletId)?.let {
+            store.saveWallet(it.copy(setupStep = step, activeBeforeSetup = it.activeBeforeSetup.takeIf { step != null }))
+        }
     }
 
     /**
-     * Recovers an account from its recovery phrase on [host] and makes it active (see [Restore]). The account has no address afterwards;
-     * give it one with [onboard] (no new account name), which accepts an address it already owns. Without [host], only the phrase comes in:
-     * adding a mint later finds what it holds there.
+     * Creates a wallet: a fresh recovery phrase and its first account, named [name], with no mint and no address. It becomes active, at the
+     * start of its setup ([SetupStep.Mint]); the account active before comes back if the setup is abandoned ([abandonSetup]).
+     */
+    suspend fun createWallet(name: String): CreateAccountResult = lock.withLock { onboarding.createWallet(name) }
+
+    /**
+     * Adds the active wallet's next account, named [name], and makes it active. Contacts no mint: it exists on each of the wallet's mints.
+     */
+    suspend fun createAccount(name: String): CreateAccountResult = lock.withLock { onboarding.createAccount(name) }
+
+    /**
+     * Gives up the active wallet's setup: the wallet goes from this device, and the account active before it is active again. Refused for a
+     * wallet created here and never backed up once it holds something (a note, a received note, an open operation, an address, registered
+     * or held): its phrase would be gone with it.
+     */
+    suspend fun abandonSetup(): AbandonResult = lock.withLock {
+        val id = activeId()
+        val walletId = walletOf(id)
+        val record = checkNotNull(store.wallet(walletId)?.takeIf { it.setupStep != null }) { "no setup in progress" }
+        if (!seeds.backupVerified(walletId).first() && holdsAnything(siblings(id).map { it.id }.toSet()))
+            return@withLock AbandonResult.Refused
+        AbandonResult.Abandoned(deleteActive(prefer = record.activeBeforeSetup, wholeWallet = true))
+    }
+
+    private suspend fun holdsAnything(ids: Set<String>): Boolean =
+        store.journal(UNSETTLED).any { it.accountId in ids } ||
+            ids.any { id ->
+                store.notes(id).first().isNotEmpty() ||
+                    store.receivedNotes(id).first().isNotEmpty() ||
+                    store.addresses(id).first().isNotEmpty()
+            }
+
+    /**
+     * Recovers a wallet from its recovery phrase and makes its first account active (see [Restore]), at the start of its setup: without
+     * [host] only the phrase comes in ([SetupStep.Mint]), and adding a mint ([addMint]) finds what it holds there; with [host], what it
+     * holds there is found now ([SetupStep.Address]). No address comes back by itself: [claimAddress] accepts one it already owns.
      */
     suspend fun restore(phrase: String, host: String?, accountName: String): RestoreResult = lock.withLock {
         restorer.restore(phrase, host, accountName)
@@ -334,15 +361,8 @@ class Wallet(
 
     suspend fun markBackupVerified() = seeds.setBackupVerified(walletOf(activeId()))
 
-    /**
-     * Claims [username] on [host] and confirms the claim. With [newAccountName], creates a new account with its own recovery phrase (kept
-     * only if the claim succeeds) and makes it active; without, changes the active account's address. The very first call always creates an
-     * account.
-     */
-    suspend fun onboard(username: String, host: String, newAccountName: String? = null, inActiveWallet: Boolean = false): OnboardResult =
-        lock.withLock {
-            onboarding.onboard(username, host, newAccountName, inActiveWallet)
-        }
+    /** Claims [username] on [host] as the active account's primary address and confirms the claim (or takes back one it owns). */
+    suspend fun claimAddress(username: String, host: String): OnboardResult = lock.withLock { onboarding.claimAddress(username, host) }
 
     /** Validates and stores a mint (and pins its key) without registering a username. */
     suspend fun connectMint(host: String): ConnectResult = lock.withLock {
@@ -472,25 +492,13 @@ class Wallet(
     }
 
     /**
-     * The name a new account on [host] suggests first: derived from the recovery phrase it is about to get, so a restore finds the address
-     * again. Null for an invalid host.
+     * The name the active account suggests first on [host]: derived from its recovery phrase, so a restore finds the address again. Null
+     * for an invalid host, or without a phrase on this device.
      */
     suspend fun defaultUsername(host: String): String? {
         val h = Onboarding.normalizeHost(host) ?: return null
-        val prepared = prepared()
-        prepared.names[h]?.let {
-            return it
-        }
-        val words = prepared.words.toList()
-        return withContext(Dispatchers.Default) {
-                val seed = RecoveryPhrase.seed(words)
-                try {
-                    DefaultAddress.names(ServiceRoot.fromSeed(seed, h).account(0).share(0).cx1()).first()
-                } finally {
-                    seed.fill(0)
-                }
-            }
-            .also { prepared.names[h] = it }
+        val keys = keysIfSeeded(store.currentAccountId(), h) ?: return null
+        return withContext(Dispatchers.Default) { DefaultAddress.names(keys).first() }
     }
 
     /**
@@ -703,22 +711,29 @@ class Wallet(
         if (updated.isNotEmpty()) store.upsertNotes(updated)
     }
 
+    /** What the mint at [host] is, as asked now: for the user to look at before adding it. Writes nothing, pins nothing. */
+    suspend fun previewMint(host: String): MintPreview = mintInspector.preview(host)
+
     /**
-     * Connects to a mint the user names (pinning its key), so it can be trusted before any note from it arrives, and finds what every
-     * account of the active wallet already holds there, as a restore does; accounts the phone didn't have are created. A scan that stops is
-     * [ConnectResult.Failed]: adding the mint again goes on from what it found, and a new mint where it found nothing is forgotten, so that
-     * it can be added again. Runs to its end if the screen that asked is left: a mint in the list with its scan cut off would look empty.
+     * Connects to a mint the user names (pinning its key; with [expectedKey], only that one, as [previewMint] showed it), so it can be
+     * trusted before any note from it arrives, and finds what every account of the active wallet already holds there, as a restore does;
+     * accounts the phone didn't have are created. [onProgress] follows that scan. A wallet created on this phone and still in its setup has
+     * nothing there yet, so it isn't scanned. A scan that stops is [ConnectResult.Failed]: adding the mint again goes on from what it
+     * found, and a new mint where it found nothing is forgotten, so that it can be added again. Runs to its end if the screen that asked is
+     * left: a mint in the list with its scan cut off would look empty.
      */
-    suspend fun addMint(host: String): ConnectResult =
+    suspend fun addMint(host: String, expectedKey: String? = null, onProgress: (ScanProgress) -> Unit = {}): ConnectResult =
         withContext(NonCancellable) {
             lock.withLock {
                 val id = store.currentAccountId() ?: return@withLock ConnectResult.Failed(OnboardResult.MintInvalid("no account"))
                 val walletId = walletOf(id)
                 val known = Onboarding.normalizeHost(host)?.let { store.mint(walletId, it) } != null
-                val connected = onboarding.connectMint(walletId, host)
+                val connected = onboarding.connectMint(walletId, host, expectedKey)
                 if (connected !is ConnectResult.Connected) return@withLock connected
                 val h = connected.mint.host
-                val failed = restorer.scanAddedMint(walletId, h)
+                val created = store.wallet(walletId)?.setupStep != null && !seeds.backupVerified(walletId).first()
+                if (created) return@withLock connected
+                val failed = restorer.scanAddedMint(walletId, h, onProgress)
                 if (failed != null && !known && siblings(id).none { a -> store.notes(a.id).first().any { it.host == h } }) {
                     store.removeMint(walletId, h)
                     return@withLock ConnectResult.Failed(failed)
@@ -726,6 +741,22 @@ class Wallet(
                 if (failed == null) connected else ConnectResult.Failed(failed)
             }
         }
+
+    /** What the active wallet's accounts hold at [host], by account, those holding something only: what adding it found. */
+    suspend fun heldAt(host: String): List<Pair<Account, Long>> {
+        val h = Onboarding.normalizeHost(host) ?: return emptyList()
+        return siblings(activeId())
+            .sortedBy { it.index }
+            .mapNotNull { account ->
+                store
+                    .notes(account.id)
+                    .first()
+                    .filter { it.host == h && it.state == NoteState.Outstanding }
+                    .sumOf { it.amountMsat }
+                    .takeIf { it > 0 }
+                    ?.let { account to it }
+            }
+    }
 
     /** Whether [mint] (this host with this key) is trusted in the wallet [walletId]. */
     internal suspend fun isTrusted(walletId: String, mint: MintKey): Boolean {
@@ -996,21 +1027,6 @@ class Wallet(
      */
     suspend fun deleteActiveAccount(): Boolean = lock.withLock { deleteActive(prefer = null, wholeWallet = true) }
 
-    /**
-     * Undoes a restore whose address step isn't done (see [needsAddress]): the restored account is removed from this device (the whole
-     * wallet, unless another of its accounts is set up), and the account that was active before it (if still known) is active again.
-     * Nothing changes at the mint: the money stays under the recovery phrase and can be restored again. Returns whether an account remains.
-     */
-    suspend fun abortRestore(): Boolean = lock.withLock {
-        check(store.currentAccountId()?.let { !hasAddress(it) } == true) { "no restore in progress" }
-        val others = siblings(activeId()).filter { it.id != activeId() }
-        val alone = others.none { hasAddress(it.id) }
-        deleteActive(prefer = activeBeforeRestore, wholeWallet = alone).also { activeBeforeRestore = null }
-    }
-
-    /** The account that was active when a restore started; kept in memory only (after a restart, any account is fine). */
-    internal var activeBeforeRestore: String? = null
-
     private suspend fun deleteActive(prefer: String?, wholeWallet: Boolean): Boolean {
         val active = activeId()
         val walletId = walletOf(active)
@@ -1270,51 +1286,18 @@ class Wallet(
         if (status == null) it - (accountId to address) else it + ((accountId to address) to status)
     }
 
-    /**
-     * The recovery phrase the next new account gets, made ahead so onboarding can suggest its seed-derived name ([DefaultAddress]). Held in
-     * memory only until an account is created with it or [forgetPreparedPhrase] is called. Its entries are the wordlist's own strings, so
-     * emptying the list leaves nothing of the phrase behind.
-     */
-    @Volatile private var prepared: PreparedPhrase? = null
-
-    /**
-     * A phrase made ahead and the names already derived from it, by host: deriving one runs PBKDF2 and BIP-32, which leave copies behind
-     * that can't be zeroed, so each mint's name is derived once. The names are public.
-     */
-    private class PreparedPhrase(val words: MutableList<String>) {
-        val names = ConcurrentHashMap<String, String>()
+    /** Stores a fresh recovery phrase for the wallet [walletId]. */
+    internal suspend fun createSeed(walletId: String) {
+        val entropy = ByteArray(16).also(random::nextBytes)
+        try {
+            seeds.save(walletId, MnemonicCode.toMnemonics(entropy))
+        } finally {
+            entropy.fill(0)
+        }
     }
 
-    private fun prepared(): PreparedPhrase =
-        prepared
-            ?: run {
-                val entropy = ByteArray(16).also(random::nextBytes)
-                try {
-                    PreparedPhrase(MnemonicCode.toMnemonics(entropy).toMutableList()).also { prepared = it }
-                } finally {
-                    entropy.fill(0)
-                }
-            }
-
-    /**
-     * Drops the phrase made ahead for the next new account. Call it when onboarding is left: a later one gets a new phrase (and so other
-     * suggested names).
-     */
-    fun forgetPreparedPhrase() {
-        prepared?.words?.clear()
-        prepared = null
-    }
-
-    /** Stores the prepared recovery phrase (or a fresh one) for [accountId]. */
-    internal suspend fun createSeed(accountId: String) {
-        // A copy: the store may keep the list it is given, and the prepared one is emptied next.
-        seeds.save(accountId, prepared().words.toList())
-        forgetPreparedPhrase()
-    }
-
-    /** Drops [accountId]'s phrase; with [keepForRetry] it becomes the prepared one again, so its names stay the same. */
-    internal suspend fun discardSeed(accountId: String, keepForRetry: Boolean = false) {
-        if (keepForRetry) seeds.load(accountId)?.let { prepared = PreparedPhrase(it.toMutableList()) }
+    /** Drops [accountId]'s phrase. */
+    internal suspend fun discardSeed(accountId: String) {
         seeds.clear(accountId)
         // The phrase was the wallet's: what it connected to and chose goes with it.
         store.removeMints(accountId)

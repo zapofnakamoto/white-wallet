@@ -5,6 +5,8 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlinx.coroutines.runBlocking
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -38,12 +40,15 @@ class SecretsInMemoryTest {
     }
 
     @Test
-    fun `a forgotten prepared phrase is replaced by a new one`() =
+    fun `the suggested name comes from the active wallet's own phrase, so each wallet has its own`() =
         runBlocking<Unit> {
             val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
+            assertNull(wallet.defaultUsername("mint.example"), "no wallet yet")
+            wallet.createWallet("One")
             val name = wallet.defaultUsername("mint.example")
-            assertEquals(name, wallet.defaultUsername("mint.example"), "stable while kept")
-            wallet.forgetPreparedPhrase()
+            assertNotNull(name)
+            assertEquals(name, wallet.defaultUsername("mint.example"), "the same every time")
+            wallet.createWallet("Two")
             assertNotEquals(name, wallet.defaultUsername("mint.example"))
         }
 }

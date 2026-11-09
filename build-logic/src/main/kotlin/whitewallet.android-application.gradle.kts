@@ -39,7 +39,7 @@ val renamedKeys =
         "maxAccounts" to "accounts.max",
         "maxAddresses" to "addresses.max",
         "lightningAddress" to "addresses.lightning",
-        "requireAddress" to "addresses.lightning=required|optional|none",
+        "requireAddress" to "addresses.lightning=optional|none",
         "defaultAmountUnit" to "amounts.unit.default",
         "allowUnitChange" to "amounts.unit.changeable",
         "noteStrategies" to "notes.strategies",

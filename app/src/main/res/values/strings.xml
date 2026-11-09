@@ -4,4 +4,6 @@
     <string name="lock_title">Unlock %1$s</string>
     <string name="lock_subtitle">Use your fingerprint, face or screen lock</string>
     <string name="lock_unlock">Unlock</string>
+    <!-- An account a scan found on a mint, by its number in the wallet; the user can rename it. -->
+    <string name="scanned_account_name">Account %1$d</string>
 </resources>

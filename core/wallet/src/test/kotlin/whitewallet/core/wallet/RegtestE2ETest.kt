@@ -198,7 +198,7 @@ class RegtestE2ETest {
             val restored = assertIs<RestoreResult.Restored>(phone2.restore(words.joinToString(" "), HOST, "Main"))
             assertEquals(2, restored.notes)
             assertEquals(3_498_000, phone2.balanceMsat.first())
-            assertTrue(phone2.needsAddress())
+            assertTrue(phone2.addresses.first().isEmpty())
 
             // Typing the old address re-attaches it without registering anything (the mint already maps it to this seed).
             val ready = assertIs<OnboardResult.Ready>(phone2.onboard(username(phone1), HOST))

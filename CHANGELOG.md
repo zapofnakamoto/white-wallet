@@ -20,10 +20,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   names the accounts it takes with it. A restore finds a wallet's accounts on that mint, up to the first unused one.
   On a legacy mint only a wallet's first account can have an address. Database version 5.
 
-- A wallet without a mint: setup and restore may go on without one where the brand lets users add a mint later
-  (`mints.changeable=true`, `mints.visible=true`, an address not required). Home asks for a mint until there is one,
-  and Receive points there; the first mint added becomes the home of every account, and finds what the phrase holds
-  there. A restore is the phrase, then adding the mint picked.
+- A wallet without a mint: setup may go on without one where the brand lets users add a mint later
+  (`mints.changeable=true`, `mints.visible=true`). Home asks for a mint until there is one, and Receive points there;
+  the first mint added becomes the wallet's home, and finds what the phrase holds there.
 - The seed-derived default address of a new account comes from its first share, so each account of a wallet has its
   own; those made before are still found by a restore. The watch-only key moved from the mint's page to each
   address: a key only ever shows what was paid to its own address.
@@ -37,6 +36,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   until the user picks one, which Receive asks for.
 - A refresh, in the app or in the background, looks after the active wallet only. Another wallet's payments,
   received notes and open operations are taken care of once it is active.
+- Simpler setup. The first screen only offers to create a wallet or restore one (a phrase, nothing else). Then the
+  wallet's mint: pick it, see what it says about itself (fees, limits, address fee, signing key) before anything is
+  saved, and add it; a restored wallet shows, account by account, what it finds there. Then a Lightning address on
+  that mint, which a restored wallet gets back by itself where it can; it can always be skipped. A closed app goes on
+  where the setup was, and back on its first step gives the setup up (not for a new wallet that already holds money
+  and isn't backed up). Adding a mint from Home or Settings → Mints goes through the same steps. Adding an account
+  only asks for its name: it is on every mint of the wallet at once. A restore left without its address by an older
+  version opens on the main screen.
 - The home mint is the wallet's: the mint you trust most, where invoices are made and where collecting moves your
   notes. Changing it is a setting; it no longer needs an address there, the old home stays trusted, and your addresses
   stay where they are. An update gives each wallet the home of its first account; a wallet whose accounts had
@@ -78,6 +85,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### For brands
 
 - New keys: `wallets.max`, `addresses.fee.onboarding` (`ask`, `reserve` or `skip`), `addresses.fee.max`.
+- `addresses.lightning=required` is gone: an address is never needed to set a wallet up (`optional`, the default, or
+  `none`).
 - `accounts.max` now counts accounts per recovery phrase, not per app. A brand that wants one account in all sets
   `wallets.max=1` and `accounts.max=1`: `wallets.max` defaults to no limit, so with `accounts.max=1` alone users can
   still add wallets.
@@ -96,6 +105,18 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `money_address_preview`, `money_review_address`, `money_result_address`, `money_error_name`,
   `money_error_registration`, `money_error_address_fee`, `money_error_mint_too_old`. `money_change_body`,
   `addresses_intro`, `addresses_add_elsewhere_hint`, `receive_no_home` and `home_address_inactive_*` say something new.
+- Setup: `Wallet.createWallet(name)`, `createAccount(name)` (no mint), `claimAddress`, `previewMint` (writes nothing),
+  `addMint(host, expectedKey, onProgress)`, `heldAt`, `setupStep`/`setSetupStep`, `abandonSetup`. Gone:
+  `Wallet.onboard`, `createAccount(host, …)`, `needsAddress`, `abortRestore`, `forgetPreparedPhrase`, the
+  `requireAddress` parameter, `AddressPolicy.Required` and `OnboardResult.AccountLimitReached`. `OnboardingMode` is
+  `Setup`, `ChangeAddress`, `AddAddress` or `AddAddressElsewhere`; `RestoreScreen` only takes the phrase.
+- New strings: `add_mint_*` (brand terms where they name the mint), `setup_abandon_*`, `setup_address_*`,
+  `welcome_create`, `welcome_restore`, `account_name_body`, `account_name_limit`, `scanned_account_name`, and
+  `mints_add` names the mint now (a brand term). Gone: `onboarding_start`, `onboarding_restore`,
+  `onboarding_restore_instead`, `onboarding_new_account_body*`, `restore_default_account_name`, `restore_searching`,
+  `restore_skip_mint*`, `restore_error_mint`, `restore_error_network`, `restore_address_*`, `restore_cancel*`,
+  `mints_add_field`, `mints_add_hint`, `mints_add_offered_hint`, `mints_add_unreachable`, `mints_add_invalid`,
+  `regtest_add_account`.
 
 ## [0.7.0]
 

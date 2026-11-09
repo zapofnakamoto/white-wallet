@@ -193,11 +193,10 @@ class RoomWalletStoreTest {
                     TestSeeds(),
                     LnurlcashClient(),
                     policies = NotePolicies.InMemory(ManualStrategy.ID),
-                    requireAddress = false,
                     maxWallets = 2,
                 )
-            assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main"))
-            assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true))
+            assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
+            assertIs<CreateAccountResult.Created>(wallet.createAccount("Savings"))
             assertEquals(listOf(0L, 1L), wallet.activeWalletAccounts.first().map { it.account.index })
             assertTrue(wallet.canAddWallet.first(), "one wallet of two, of two allowed")
 

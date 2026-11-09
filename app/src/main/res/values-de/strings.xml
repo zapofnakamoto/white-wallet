@@ -3,4 +3,6 @@
     <string name="lock_title">%1$s entsperren</string>
     <string name="lock_subtitle">Mit Fingerabdruck, Gesicht oder Displaysperre</string>
     <string name="lock_unlock">Entsperren</string>
+    <!-- An account a scan found on a mint, by its number in the wallet; the user can rename it. -->
+    <string name="scanned_account_name">Konto %1$d</string>
 </resources>

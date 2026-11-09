@@ -39,8 +39,8 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 | `mints.trusted` | Mints shown as trusted from the start (Settings → Mints; a check mark on their notes, a hint when claiming), comma-separated `host:pubkey` with the mint's signing key (66 hex characters). Trust names the key: a mint presenting another key isn't trusted. Users can untrust them. Each wallet's home mint is trusted by default anyway. Default empty |
 | `accounts.max` | How many accounts one recovery phrase may hold. `0` = no limit. With `wallets.max=1`, `1` hides everything about accounts (no switcher, no "Add account"). Set both for an app of one account: `wallets.max` has no limit by default |
 | `wallets.max` | How many recovery phrases the app holds, each backed up and deleted as one. `0` = no limit |
-| `addresses.lightning` | Whether accounts get a Lightning address at setup. `required`: setup asks for a name and can't go on without one. `optional` (default): setup asks for a name, and users may "Continue without an address", also on the address step after a restore. `none`: setup only creates the account on its mint, which is a single "Get started" button when there is only one mint to pick, and restoring skips the address step. Without an address, users receive by invoice (Receive → amount → QR) and can still get one later in Settings → Account → Lightning addresses. |
-| `addresses.fee.onboarding` | When a mint charges for an address, what setup does: `ask` (default) shows the fee and lets users choose, `reserve` holds the name and asks for the fee, `skip` goes on without an address (asks instead if `addresses.lightning=required`). Settings always shows the fee first |
+| `addresses.lightning` | Whether setup asks for a Lightning address. `optional` (default): after the mint, setup asks for a name for the wallet's first account, and users may skip it. `none`: setup doesn't ask. Without an address, users receive by invoice (Receive → amount → QR) and can still get one later in Settings → Account → Lightning addresses. |
+| `addresses.fee.onboarding` | When a mint charges for an address, what setup does: `ask` (default) shows the fee and lets users choose, `reserve` holds the name and asks for the fee, `skip` goes on without an address. Settings always shows the fee first |
 | `addresses.fee.max` | The most an address may cost, in sats. Default `0`: what the mint advertises |
 | `addresses.max` | Lightning addresses an account may register per mint. Default `1`; `0` = no limit. Developer mode can override it for testing |
 | `amounts.unit.default` | How amounts are shown (until the user picks another unit under Settings → Amounts, if allowed): `bitcoin` (default, [BIP-177](https://github.com/bitcoin/bips/blob/master/bip-0177.mediawiki): the smallest unit as a whole number with the sign, `₿1,000`) or `sats` (`1,000 sats`). The numbers are the same either way |
@@ -106,7 +106,6 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `onboarding_mint_custody` | Your funds are held by the mint you choose. Keep amounts small. |
 | `onboarding_add_elsewhere_title` | Address on another mint |
 | `onboarding_add_elsewhere_body` | A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is. |
-| `restore_error_mint` | This mint can't be used for a restore. Check that it's the one you used before. |
 | `settings_home_mint` | Home mint |
 | `settings_mints` | Mints |
 | `addresses_home_mint` | Home mint: %1$s |
@@ -119,7 +118,6 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `mint_title` | Mint |
 | `about_body` | A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device. |
 | `mints_intro` | Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted. |
-| `mints_add_field` | Mint, e.g. example.com |
 | `notice_moved_home` | Moved %1$s to your home mint |
 | `notes_checked_unknown` | The mint doesn't know %1$d note. It's set aside, out of your balance, and your wallet asks again by itself. / The mint doesn't know %1$d notes. They're set aside, out of your balance, and your wallet asks again by itself. (plural) |
 | `notes_state_unknown` | Unknown to the mint |
@@ -131,7 +129,23 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `claim_key_changed` | %1$s now signs with another key than the one your wallet knows, so nothing is sent there yet. Keep it, and your wallet claims it once you accept the new key in the mint's details. |
 | `claim_kept_key_changed` | Kept. Your wallet claims it once you accept the mint's new signing key in its details. |
 | `home_working_moving_home` | Moving your money to your home mint… |
-| `mints_add_offered_hint` | Add one of these mints to trust it before you receive anything from there, or to make it your home mint. |
+| `mints_add` | Add a mint |
+| `add_mint_setup_title` | Choose your mint |
+| `add_mint_title` | Add a mint |
+| `add_mint_setup_body` | The mint holds your money and makes the invoices you get paid with. Pick one; you can add more later. |
+| `add_mint_body` | Pick a mint. If your recovery phrase holds money there, it is found. |
+| `add_mint_error_not_allowed` | This app doesn't work with that mint. Pick another one. |
+| `add_mint_error_invalid` | That isn't a mint this app can use: %1$s |
+| `add_mint_known` | This wallet has this mint already. Adding it again looks for your money there again. |
+| `add_mint_legacy` | This mint speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there. |
+| `add_mint_use` | Use this mint |
+| `add_mint_add` | Add this mint |
+| `add_mint_other` | Pick another mint |
+| `add_mint_adding_title` | Adding the mint |
+| `add_mint_adding_body` | Looking for what your recovery phrase holds on this mint, account by account. |
+| `add_mint_failed_key` | This mint now shows another signing key than a moment ago, so it wasn't added. Check that it is the mint you meant. |
+| `add_mint_added_body` | The mint is added. Your new wallet uses it from now on. |
+| `add_mint_found_none` | The mint is added. Nothing of your recovery phrase was found on it. |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 
@@ -231,7 +245,6 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notes_collect_hint` | Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too. |
 | `settings_notices_hint` | A short message when the wallet combined, split, renewed or moved your notes by itself. |
 | `notes_collect_pending` | Moving the notes from %1$s; they arrive shortly. |
-| `mints_add_invalid` | That address can't hold notes. |
 | `mints_remove_body` | The app forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it's like the first time: the key it shows then is the one the app remembers. |
 | `notes_pay_from_others_first` | Pay from other mints first |
 | `notes_pay_from_others_first_hint` | Payments use notes on your other mints before those at %1$s, so your money gathers at your home mint. |

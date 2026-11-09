@@ -19,7 +19,7 @@ class RegtestWalletAccountsTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 
     private fun restored(store: InMemoryWalletStore = InMemoryWalletStore()) =
-        Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false, policies = NotePolicies.InMemory(ManualStrategy.ID))
+        Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
 
     private suspend fun Wallet.balances() = accounts.first().associate { it.account.index to it.balanceMsat }
 
@@ -76,7 +76,7 @@ class RegtestWalletAccountsTest {
         }
 
     @Test
-    fun `giving up the address step of a restored further account removes that account, not the wallet`() =
+    fun `giving up a restore's setup removes the wallet it brought, and its phrase can come back again`() =
         runBlocking<Unit> {
             val phone = phone()
             val name = phone.address.substringBefore('@')
@@ -86,12 +86,14 @@ class RegtestWalletAccountsTest {
             val other = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
             assertIs<RestoreResult.Restored>(other.restore(phone.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
             assertIs<OnboardResult.Ready>(other.onboard(name, HOST))
-            other.switchAccount(store.accounts.first().single { it.account.index == 1L }.account.id)
-            assertTrue(other.needsAddress())
+            assertTrue(other.inSetup(), "until the address step is done")
+            assertEquals(listOf(0L, 1L), store.accounts.first().map { it.account.index }.sorted())
 
-            assertTrue(other.abortRestore())
-            assertEquals(listOf(0L), store.accounts.first().map { it.account.index })
-            assertEquals(phone.wallet.recoveryPhrase(), other.recoveryPhrase())
+            // A restored wallet has its phrase written down: it can always go, whatever it holds.
+            assertEquals(AbandonResult.Abandoned(remains = false), other.abandonSetup())
+            assertTrue(store.accounts.first().isEmpty())
+            assertIs<RestoreResult.Restored>(other.restore(phone.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
+            assertEquals(listOf(0L, 1L), store.accounts.first().map { it.account.index }.sorted())
         }
 
     @Test

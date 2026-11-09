@@ -13,8 +13,6 @@
     <string name="mint_title">Mint</string>
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einer Mint deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
     <string name="mints_intro">Vertraue einer Mint anhand ihres Signaturschlüssels: Scheine von vertrauten Mints sind mit einem Haken markiert. Signiert eine Mint einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut.</string>
-    <string name="mints_add_field">Mint, z. B. example.com</string>
-    <string name="mints_add_offered_hint">Füge eine dieser Mints hinzu, um ihr zu vertrauen, bevor du von dort etwas empfängst, oder um sie zu deiner Haupt-Mint zu machen.</string>
     <string name="mint_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Scheine dort sind unverändert.</string>
     <string name="settings_notes">Schein-Einstellungen</string>
     <string name="settings_note_list">Scheine</string>
@@ -35,13 +33,13 @@
     <string name="addresses_watch_only_hint">Damit kann eine andere App die Scheine sehen, die an diese Adresse gezahlt wurden, aber nie ausgeben.</string>
     <string name="notes_collect_hint">Scheine, die du anderswo bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Scheinen“ oben.</string>
     <string name="notes_collect_pending">Die Scheine von %1$s werden verschoben; sie kommen gleich an.</string>
-    <string name="mints_add_invalid">Diese Adresse kann keine Scheine verwahren.</string>
     <string name="mints_remove_body">Diese Wallet vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die Wallet merkt. Ist er die Haupt-Mint der Wallet, hat sie keine mehr, bis du eine andere wählst.</string>
     <string name="settings_notices_hint">Eine kurze Nachricht, wenn die Wallet deine Scheine von selbst zusammengelegt, geteilt, erneuert oder verschoben hat.</string>
     <string name="notes_pay_from_others_first">Zuerst von anderen Mints zahlen</string>
     <string name="notes_pay_from_others_first_hint">Zahlungen nehmen zuerst Scheine deiner anderen Mints, dann die von %1$s; so sammelt sich dein Geld bei deiner Haupt-Mint.</string>
     <string name="notes_collect_confirm_body">Wenn du das einschaltest, werden deine Scheine anderer Mints jetzt dorthin verschoben:</string>
     <string name="money_change_body">Wähle die neue Haupt-Mint. Rechnungen werden dort erstellt, und „Alles verschieben“ sammelt deine Scheine dort. Deine Adressen bleiben, wo sie sind.</string>
+    <string name="mints_add">Mint hinzufügen</string>
 
     <string name="settings_title">Einstellungen</string>
     <string name="settings_recovery_phrase">Wiederherstellungsphrase</string>
@@ -217,7 +215,6 @@
     <string name="regtest_fee">Gebühr der Mint: %1$d msat + %2$d ppm</string>
     <string name="regtest_recheck">Erneut prüfen</string>
     <string name="regtest_fix">Starte auf deinem Computer den Stack und leite den Port an dieses Gerät weiter:</string>
-    <string name="regtest_add_account">Neues Konto auf %1$s</string>
     <string name="regtest_commands">Befehle (auf deinem Computer ausführen)</string>
     <string name="regtest_pay_address">Zahle vom Regtest-Knoten an deine Adresse:</string>
     <string name="regtest_pay_invoice">Eine Rechnung bezahlen:</string>
@@ -343,9 +340,6 @@
     <string name="mints_default_home">Standardmäßig vertraut: das Zuhause deines Kontos</string>
     <string name="mints_default_brand">Standardmäßig vertraut in dieser App</string>
     <string name="mints_untrusted_default">Standardmäßig vertraut, aber von dir ausgeschaltet</string>
-    <string name="mints_add_hint">Füge eine Adresse hinzu, um ihr zu vertrauen, bevor du von dort etwas empfängst.</string>
-    <string name="mints_add">Hinzufügen</string>
-    <string name="mints_add_unreachable">Keine Verbindung. Prüfe die Adresse und deine Verbindung.</string>
     <plurals name="settings_mints_summary">
         <item quantity="one">%1$d bekannt, %2$d vertraut</item>
         <item quantity="other">%1$d bekannt, %2$d vertraut</item>

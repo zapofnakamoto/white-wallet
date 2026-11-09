@@ -91,6 +91,65 @@ abstract class AddMintTest {
         }
 
     @Test
+    fun `adding a mint reports its scan account by account, and says what each account holds there`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val first = credit(words, home, KeySet.Wallet, 0, SATS)
+            val second = credit(words, home, KeySet.Change, 0, SATS, account = 1)
+            val phone = Fresh()
+            assertIs<RestoreResult.Restored>(phone.restore(words, host = null))
+            val reports = mutableListOf<ScanProgress>()
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(home, onProgress = { reports += it }))
+
+            val last = reports.last().accounts
+            assertEquals(listOf(true, true), last.take(2).map { it.done })
+            assertEquals(listOf(first, second), last.take(2).map { it.foundMsat })
+            assertEquals(true, last.all { it.keysChecked > 0 })
+            assertEquals(
+                true,
+                reports.map { it.accounts.sumOf { a -> a.keysChecked } }.zipWithNext().all { (a, b) -> a <= b },
+                "only forward",
+            )
+            assertEquals(listOf(0L to first, 1L to second), phone.wallet.heldAt(home).map { it.first.index to it.second })
+        }
+
+    @Test
+    fun `a preview writes nothing, and the mint is only added with the key it showed`() =
+        runBlocking<Unit> {
+            val phone = Fresh()
+            val id = assertIs<RestoreResult.Restored>(phone.restore(phrase(), host = null)).accountId
+            val preview = assertIs<MintPreview.Ready>(phone.wallet.previewMint(other))
+            assertNotNull(preview.signingKey)
+            assertNull(preview.knownKey)
+            assertNull(phone.store.mint(other), "nothing saved, nothing pinned")
+            assertNull(phone.store.homeOf(id))
+            assertIs<MintPreview.Unreachable>(phone.wallet.previewMint("localhost:1"))
+
+            val wrong = assertIs<ConnectResult.Failed>(phone.wallet.addMint(other, expectedKey = "02" + "00".repeat(32)))
+            assertEquals(OnboardResult.MintInvalid(MINT_KEY_CHANGED), wrong.result)
+            assertNull(phone.store.mint(other))
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other, expectedKey = preview.signingKey))
+            assertEquals(preview.signingKey, assertIs<MintPreview.Ready>(phone.wallet.previewMint(other)).knownKey)
+        }
+
+    @Test
+    fun `a wallet created on this phone isn't scanned while it is set up, and is once it is`() =
+        runBlocking<Unit> {
+            val phone = Fresh()
+            assertIs<CreateAccountResult.Created>(phone.wallet.createWallet("New"))
+            val words = phone.wallet.recoveryPhrase()
+            val msat = credit(words, home, KeySet.Wallet, 0, SATS)
+            var scanned = false
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(home, onProgress = { scanned = true }))
+            assertEquals(false, scanned, "nothing of a phrase made here can be at a mint yet")
+            assertEquals(0, phone.balance())
+
+            phone.wallet.setSetupStep(null)
+            assertIs<ConnectResult.Connected>(phone.wallet.addMint(home))
+            assertEquals(msat, phone.balance())
+        }
+
+    @Test
     fun `a mint with nothing of the phrase is added, and nothing is found`() =
         runBlocking<Unit> {
             val phone = Fresh()
@@ -146,7 +205,7 @@ abstract class AddMintTest {
             assertEquals(mapOf(0L to 0L, 1L to found), phone.balances())
             val created = assertNotNull(phone.store.account(phone.ids().getValue(1)))
             assertEquals(phone.store.homeOf(id), phone.store.homeOf(created.id), "one home for the whole wallet")
-            assertEquals("Restored 2", created.name)
+            assertEquals("2", created.name, "named by the app, by its index")
             assertEquals(id, created.walletId)
             assertEquals(id, phone.store.currentAccountId())
         }

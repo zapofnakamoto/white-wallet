@@ -28,35 +28,20 @@ import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.wallet.PhraseCheck
 
-/**
- * Restores an account from its recovery phrase on a chosen mint, or without one where the brand allows. [onRestored] gets the host, where
- * the account's address is picked next (addresses aren't part of the phrase); null without a mint.
- */
+/** The recovery phrase, and nothing else: [onRestored] once the wallet is back, to add its mints next. */
 @Composable
-fun RestoreRoute(
-    asNewAccount: Boolean,
-    onBack: () -> Unit,
-    onRestored: (host: String?) -> Unit,
-    viewModel: RestoreViewModel = hiltViewModel(),
-) {
-    val defaultName = stringResource(R.string.default_account_name)
-    val newName = stringResource(R.string.restore_default_account_name)
-    LaunchedEffect(Unit) { viewModel.init(asNewAccount, defaultName, newName) }
+fun RestoreRoute(onBack: () -> Unit, onRestored: () -> Unit, viewModel: RestoreViewModel = hiltViewModel()) {
+    val name = stringResource(R.string.default_account_name)
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(state.restoredOn, state.restoredWithoutMint) {
-        if (state.restoredWithoutMint) onRestored(null) else state.restoredOn?.let(onRestored)
-    }
+    LaunchedEffect(state.restored) { if (state.restored) onRestored() }
     // The phrase is on screen: keep it out of screenshots and the recent-apps preview.
     SecureScreen {
         RestoreScreen(
             state,
             onBack,
             onPhraseChange = viewModel::onPhraseChange,
-            onAccountNameChange = viewModel::onAccountNameChange,
-            mint = MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange),
-            onRestore = viewModel::restore,
+            onRestore = { viewModel.restore(name) },
             onUseTestPhrase = viewModel::useTestPhrase,
-            onRestoreWithoutMint = viewModel::restoreWithoutMint,
         )
     }
 }
@@ -66,11 +51,8 @@ fun RestoreScreen(
     state: RestoreState,
     onBack: () -> Unit,
     onPhraseChange: (String) -> Unit,
-    onAccountNameChange: (String) -> Unit,
-    mint: MintActions,
     onRestore: () -> Unit,
     onUseTestPhrase: () -> Unit = {},
-    onRestoreWithoutMint: () -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.restore_title), onBack.takeIf { !state.busy }) }) { padding ->
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
@@ -92,49 +74,16 @@ fun RestoreScreen(
                     Text(stringResource(R.string.restore_test_phrase))
                 }
             }
-            if (state.askAccountName) {
-                WalletTextField(
-                    value = state.accountName,
-                    onValueChange = onAccountNameChange,
-                    label = { Text(stringResource(R.string.onboarding_account_name)) },
-                    singleLine = true,
-                    enabled = !state.busy,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (state.showMintPicker)
-                MintPicker(options = state.mintOptions, selected = state.selectedMint, state.customHost, state.busy, mint)
             state.error?.let { error ->
                 val message =
                     when (error) {
                         is RestoreError.AlreadyInWallet -> stringResource(R.string.restore_error_already, error.accountName)
                         is RestoreError.AccountLimit ->
                             pluralStringResource(R.plurals.restore_error_account_limit, error.limit, error.limit)
-                        RestoreError.Mint -> stringResource(R.string.restore_error_mint)
-                        RestoreError.Network -> stringResource(R.string.restore_error_network)
                     }
                 Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             }
             PrimaryButton(stringResource(R.string.restore_start), onRestore, enabled = state.canSubmit, busy = state.busy)
-            if (state.canSkipMint) {
-                WalletButton(kind = ButtonKind.Text, onClick = onRestoreWithoutMint, enabled = state.canSkipMintNow) {
-                    Text(stringResource(R.string.restore_skip_mint))
-                }
-                Text(
-                    stringResource(R.string.restore_skip_mint_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            if (state.busy) {
-                Text(
-                    stringResource(R.string.restore_searching),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
             Text(
                 stringResource(R.string.restore_what),
                 style = MaterialTheme.typography.bodySmall,

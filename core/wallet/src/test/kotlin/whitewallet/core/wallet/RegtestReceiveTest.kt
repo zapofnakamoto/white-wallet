@@ -29,7 +29,6 @@ class RegtestReceiveTest {
                     InMemorySeedStore(),
                     LnurlcashClient(),
                     policies = NotePolicies.InMemory(ManualStrategy.ID),
-                    requireAddress = false,
                 )
             assertIs<CreateAccountResult.Created>(wallet.createAccount(HOST, "Main"))
             val request = assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(2_000_000))
@@ -65,7 +64,6 @@ class RegtestReceiveTest {
                     InMemorySeedStore(),
                     LnurlcashClient(),
                     policies = NotePolicies.InMemory(ManualStrategy.ID),
-                    requireAddress = false,
                 )
             assertIs<CreateAccountResult.Created>(wallet.createAccount(HOST, "Main"))
             val request = assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(3_000_000))
@@ -97,7 +95,6 @@ class RegtestReceiveTest {
                     LnurlcashClient(),
                     now = { clock },
                     policies = NotePolicies.InMemory(ManualStrategy.ID),
-                    requireAddress = false,
                 )
             assertIs<CreateAccountResult.Created>(wallet.createAccount(HOST, "Main"))
             suspend fun open() = store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).size

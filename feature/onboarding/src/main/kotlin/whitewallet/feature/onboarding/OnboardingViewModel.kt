@@ -13,12 +13,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.wallet.AbandonResult
 import whitewallet.core.wallet.AddressFeeChoice
-import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
-import whitewallet.core.wallet.CreateAccountResult
 import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.PayPreview
@@ -51,11 +50,11 @@ data class HeldAddress(val address: RegisteredAddress, val amountMsat: Long, val
 
 /** What the address form is for. */
 enum class OnboardingMode {
-    /** First launch: creates the first account. */
-    FirstRun,
-
-    /** Adds another account with its own recovery phrase. */
-    NewAccount,
+    /**
+     * The address step of a wallet's setup, after its mint: the first account's address there. One it owns already (seed-derived) comes
+     * back by itself; the user may type one they had, pick a new one, or go on without.
+     */
+    Setup,
 
     /** Picks a different primary address for the active account, on its current mint. The old one stays registered. */
     ChangeAddress,
@@ -68,12 +67,6 @@ enum class OnboardingMode {
      * it arrive as notes there.
      */
     AddAddressElsewhere,
-
-    /**
-     * Gives a just-restored account (no address yet) its address on the mint it was restored from: one it already owns (taken back without
-     * registering again) or a new one.
-     */
-    RestoreAddress,
 }
 
 /** An entry of the mint dropdown. */
@@ -100,8 +93,7 @@ data class OnboardingState(
     val mintOptions: List<MintOption> = emptyList(),
     val selectedMint: MintOption = MintOption.Custom,
     val customHost: String = "",
-    val mode: OnboardingMode = OnboardingMode.FirstRun,
-    val accountName: String = "",
+    val mode: OnboardingMode = OnboardingMode.Setup,
     val availability: Availability = Availability.Idle,
     val suggestions: List<String> = emptyList(),
     val busy: Boolean = false,
@@ -111,19 +103,16 @@ data class OnboardingState(
     val feePrompt: Long? = null,
     val held: HeldAddress? = null,
     val done: Boolean = false,
-    /** For [OnboardingMode.RestoreAddress]: what the restore found. */
-    val restoredMsat: Long = 0,
-    /** Set once a restore was cancelled: whether another account remains on this device. */
-    val restoreCancelled: Boolean? = null,
-    /** False when a new account starts without a Lightning address (brand `addresses.lightning=none`): only its mint is asked for. */
-    val withAddress: Boolean = true,
-    /** The user may go on without an address (brand `addresses.lightning=optional`): first run, new account, after a restore. */
+    /** For [OnboardingMode.Setup]: the wallet's phrase is written down (a restore), so no backup comes next. */
+    val backedUp: Boolean = false,
+    /** Set once the setup was given up: whether another account remains on this device. */
+    val abandoned: Boolean? = null,
+    /** The user may go on without an address: the setup's address step. */
     val canSkipAddress: Boolean = false,
-    /** The user may set up a new account without a mint ([AppDefaults.mintOptional]), and add one later. */
-    val canSkipMint: Boolean = false,
-    /** A new account joins the active wallet (its recovery phrase) instead of starting a wallet of its own. */
-    val inActiveWallet: Boolean = false,
 ) {
+    val inSetup: Boolean
+        get() = mode == OnboardingMode.Setup
+
     val changingAddress: Boolean
         get() = mode == OnboardingMode.ChangeAddress
 
@@ -133,29 +122,15 @@ data class OnboardingState(
     val addingElsewhere: Boolean
         get() = mode == OnboardingMode.AddAddressElsewhere
 
-    val restoringAddress: Boolean
-        get() = mode == OnboardingMode.RestoreAddress
-
-    /** The address belongs to the active account (not to an account being created). */
-    val forExistingAccount: Boolean
-        get() = changingAddress || addingAddress || addingElsewhere || restoringAddress
-
     /** The mint picker: when this step lets the user pick, and the brand offers more than one mint or lets them type one. */
     val showMintPicker: Boolean
         get() = canChangeHost && mintOptions.hasChoice()
 
     val canSubmit: Boolean
-        get() = !busy && host.isNotBlank() && (!withAddress || addressOk) && (mode != OnboardingMode.NewAccount || accountName.isNotBlank())
+        get() = !busy && host.isNotBlank() && addressOk
 
     val canSkip: Boolean
-        get() = canSkipAddress && !busy && host.isNotBlank() && (mode != OnboardingMode.NewAccount || accountName.isNotBlank())
-
-    /** A new account may be set up now without a mint. */
-    val showSkipMint: Boolean
-        get() = canSkipMint && (mode == OnboardingMode.FirstRun || mode == OnboardingMode.NewAccount)
-
-    val canSkipMintNow: Boolean
-        get() = showSkipMint && !busy && (mode != OnboardingMode.NewAccount || accountName.isNotBlank())
+        get() = canSkipAddress && !busy
 
     private val addressOk: Boolean
         get() = username.isNotBlank() && availability !is Availability.Taken && availability !is Availability.Invalid
@@ -188,12 +163,6 @@ sealed interface OnboardingError {
         override val detail: String
             get() = limit.toString()
     }
-
-    /** The wallet holds as many accounts as this app allows. */
-    data class AccountLimit(val limit: Int) : OnboardingError {
-        override val detail: String
-            get() = limit.toString()
-    }
 }
 
 @HiltViewModel
@@ -205,50 +174,34 @@ constructor(
     private val preferences: AppPreferences,
 ) : ViewModel() {
     private val _state =
-        MutableStateFlow(
-            OnboardingState(
-                username = UsernameSuggestions.random(),
-                host = defaults.defaultMintHost,
-                canChangeHost = true,
-                withAddress = defaults.address != AddressPolicy.None,
-                canSkipAddress = defaults.address == AddressPolicy.Optional,
-                canSkipMint = defaults.mintOptional,
-            )
-        )
+        MutableStateFlow(OnboardingState(username = UsernameSuggestions.random(), host = defaults.defaultMintHost, canChangeHost = true))
     val state: StateFlow<OnboardingState> = _state
     private var checkJob: Job? = null
     private var initialized = false
 
-    private var defaultAccountName = ""
-
-    /**
-     * Call once from the screen. [defaultAccountName] names the first account (localized by the caller); a new account starts with
-     * [newAccountName]. When changing the address, the mint is fixed to the current one.
-     */
-    fun init(
-        mode: OnboardingMode,
-        defaultAccountName: String,
-        newAccountName: String,
-        presetHost: String? = null,
-        inActiveWallet: Boolean = false,
-    ) {
+    /** Call once from the screen. [presetHost]: the mint of the setup's address step (else the home mint). */
+    fun init(mode: OnboardingMode, presetHost: String? = null) {
         if (initialized) return
         initialized = true
-        _state.update { it.copy(inActiveWallet = inActiveWallet) }
-        this.defaultAccountName = defaultAccountName
         viewModelScope.launch {
             when (mode) {
-                OnboardingMode.FirstRun -> suggestDefaultName()
-                OnboardingMode.NewAccount -> {
-                    _state.update {
-                        it.copy(mode = mode, accountName = newAccountName, canChangeHost = true, host = presetHost ?: it.host)
+                OnboardingMode.Setup -> {
+                    val host = presetHost ?: wallet.homeHost.first().orEmpty()
+                    val backedUp = wallet.backupVerified.first()
+                    _state.update { it.copy(mode = mode, host = host, canChangeHost = false, canSkipAddress = true, backedUp = backedUp) }
+                    // An address the wallet owns there (seed-derived, still registered to it) comes back by itself.
+                    wallet.recoverableUsername(host)?.let { name ->
+                        _state.update { it.copy(username = name, availability = Availability.Yours) }
+                        start()
+                        return@launch
                     }
-                    suggestDefaultName()
+                    // The name derived from the phrase first: a restore finds it again.
+                    wallet.defaultUsername(host)?.let { name -> _state.update { it.copy(username = name) } }
                 }
                 OnboardingMode.ChangeAddress,
                 OnboardingMode.AddAddress -> {
                     val host = wallet.homeHost.first() ?: _state.value.host
-                    _state.update { it.copy(mode = mode, host = host, canChangeHost = false, withAddress = true, canSkipAddress = false) }
+                    _state.update { it.copy(mode = mode, host = host, canChangeHost = false, canSkipAddress = false) }
                 }
                 OnboardingMode.AddAddressElsewhere -> {
                     homeHost = wallet.homeHost.first()
@@ -257,29 +210,7 @@ constructor(
                     // The same name as the primary address is the natural first try.
                     val name = wallet.primaryAddress.first()?.username.orEmpty()
                     _state.update {
-                        it.copy(
-                            mode = mode,
-                            host = other.orEmpty(),
-                            canChangeHost = true,
-                            withAddress = true,
-                            canSkipAddress = false,
-                            username = name,
-                        )
-                    }
-                }
-                OnboardingMode.RestoreAddress -> {
-                    // The mint the account was restored from (also after an app restart half way through).
-                    val host = presetHost ?: wallet.keyHosts().firstOrNull() ?: _state.value.host
-                    val restored = wallet.balanceMsat.first()
-                    // Empty: the user most likely types the address they had rather than taking a suggestion.
-                    _state.update {
-                        it.copy(mode = mode, host = host, canChangeHost = false, username = "", restoredMsat = restored, withAddress = true)
-                    }
-                    // The seed-derived address, if it is still registered to this wallet, comes back by itself.
-                    wallet.recoverableUsername(host)?.let { name ->
-                        _state.update { it.copy(username = name, availability = Availability.Yours) }
-                        start()
-                        return@launch
+                        it.copy(mode = mode, host = other.orEmpty(), canChangeHost = true, canSkipAddress = false, username = name)
                     }
                 }
             }
@@ -299,25 +230,7 @@ constructor(
         onHostChanged()
     }
 
-    /** The derived name depends on the mint; it follows the host unless the user typed their own. */
-    private fun onHostChanged() {
-        viewModelScope.launch {
-            suggestDefaultName()
-            scheduleCheck()
-        }
-    }
-
-    /** The name suggested first for a new account (see [Wallet.defaultUsername]), unless the user typed another. */
-    private var defaultName: String? = null
-
-    private suspend fun suggestDefaultName() {
-        val s = _state.value
-        if (s.mode != OnboardingMode.FirstRun && s.mode != OnboardingMode.NewAccount || !s.withAddress) return
-        if (defaultName != null && s.username != defaultName) return
-        val name = wallet.defaultUsername(s.host) ?: return
-        defaultName = name
-        _state.update { it.copy(username = name) }
-    }
+    private fun onHostChanged() = scheduleCheck()
 
     /** For [OnboardingMode.AddAddressElsewhere]: the home mint, left out of the choice. */
     private var homeHost: String? = null
@@ -344,8 +257,6 @@ constructor(
         // A choice no longer offered (the custom mint, a local one) picks another mint: its name and availability follow.
         if (_state.value.host != before) onHostChanged()
     }
-
-    fun onAccountNameChange(value: String) = _state.update { it.copy(accountName = value) }
 
     fun onUsernameChange(value: String) {
         _state.update { it.copy(username = value, error = null, suggestions = emptyList()) }
@@ -420,17 +331,14 @@ constructor(
     }
 
     private suspend fun submit(s: OnboardingState) {
-        if (!s.withAddress) return createAccount(s)
         val fee =
             try {
                 wallet.addressFeeMsat(s.host)
             } catch (e: ProtocolViolation) {
                 null
             }
-        // Only a new account follows the brand's choice; from Settings the user always sees the fee first.
-        val choice =
-            if (fee == null) AddressFeeChoice.Reserve
-            else if (s.forExistingAccount && !s.restoringAddress) AddressFeeChoice.Ask else defaults.addressFee
+        // Only the setup follows the brand's choice; from Settings the user always sees the fee first.
+        val choice = if (fee == null) AddressFeeChoice.Reserve else if (s.inSetup) defaults.addressFee else AddressFeeChoice.Ask
         when {
             choice == AddressFeeChoice.Reserve -> claim(s)
             choice == AddressFeeChoice.Skip && s.canSkip -> {
@@ -444,12 +352,10 @@ constructor(
     private suspend fun claim(s: OnboardingState) {
         val result =
             when (s.mode) {
-                OnboardingMode.FirstRun -> wallet.onboard(s.username, s.host, defaultAccountName)
-                OnboardingMode.NewAccount -> wallet.onboard(s.username, s.host, s.accountName.trim(), s.inActiveWallet)
-                OnboardingMode.ChangeAddress -> wallet.onboard(s.username, s.host, null)
+                OnboardingMode.Setup,
+                OnboardingMode.ChangeAddress -> wallet.claimAddress(s.username, s.host)
                 OnboardingMode.AddAddress -> wallet.addAddress(s.username, addressLimit())
                 OnboardingMode.AddAddressElsewhere -> wallet.addAddress(s.username, addressLimit(), s.host)
-                OnboardingMode.RestoreAddress -> wallet.onboard(s.username, s.host, null)
             }
         when (result) {
             is OnboardResult.Ready ->
@@ -471,51 +377,39 @@ constructor(
             is OnboardResult.MintInvalid -> fail(OnboardingError.Mint(result.reason))
             is OnboardResult.NetworkError -> fail(OnboardingError.Network(result.reason))
             is OnboardResult.LimitReached -> fail(OnboardingError.Limit(result.limit))
-            is OnboardResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
             OnboardResult.MintTooOld -> fail(OnboardingError.MintTooOld())
         }
     }
 
-    /** A new account without an address (on no mint, when [host] is null): nothing to show afterwards, it opens right away. */
-    private suspend fun createAccount(s: OnboardingState, host: String? = s.host) {
-        val name = if (s.mode == OnboardingMode.NewAccount) s.accountName.trim() else defaultAccountName
-        when (val result = wallet.createAccount(host, name, s.inActiveWallet)) {
-            is CreateAccountResult.Created -> _state.update { it.copy(busy = false, done = true) }
-            is CreateAccountResult.AccountLimitReached -> fail(OnboardingError.AccountLimit(result.limit))
-            is CreateAccountResult.MintInvalid -> fail(OnboardingError.Mint(result.reason))
-            is CreateAccountResult.NetworkError -> fail(OnboardingError.Network(result.reason))
+    /** Goes on: the setup is done (the wallet opens next), or back where the address was asked for. */
+    fun onContinue() {
+        viewModelScope.launch {
+            if (_state.value.inSetup) wallet.setSetupStep(null)
+            _state.update { it.copy(done = true) }
         }
     }
 
-    fun onContinue() = _state.update { it.copy(done = true) }
-
-    /**
-     * Goes on without an address: a new account is set up with just its mint; a restored one already exists and opens as it is. Either can
-     * get an address later in Settings.
-     */
+    /** Goes on without an address: the setup is done; one can be added later in Settings. */
     fun skipAddress() {
-        val s = _state.value
-        if (!s.canSkip) return
+        if (!_state.value.canSkip) return
         checkJob?.cancel()
-        if (s.restoringAddress) onContinue() else busy { createAccount(s) }
+        onContinue()
     }
 
-    /** Sets the new account up without a mint (and so without an address): Home asks for a mint until one is added. */
-    fun skipMint() {
+    /** Gives the setup up (see [Wallet.abandonSetup]); a wallet that must stay opens as it is. */
+    fun abandonSetup() {
         val s = _state.value
-        if (!s.canSkipMintNow) return
-        checkJob?.cancel()
-        busy { createAccount(s, host = null) }
-    }
-
-    /** Removes the just-restored account again, before it has an address (see [Wallet.abortRestore]). */
-    fun cancelRestore() {
-        if (_state.value.busy || _state.value.claimed != null) return
+        if (!s.inSetup || s.busy || s.claimed != null) return
         checkJob?.cancel()
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
-            val remains = wallet.abortRestore()
-            _state.update { it.copy(busy = false, restoreCancelled = remains) }
+            when (val result = wallet.abandonSetup()) {
+                is AbandonResult.Abandoned -> _state.update { it.copy(busy = false, abandoned = result.remains) }
+                AbandonResult.Refused -> {
+                    wallet.setSetupStep(null)
+                    _state.update { it.copy(busy = false, done = true) }
+                }
+            }
         }
     }
 
@@ -530,15 +424,13 @@ constructor(
         checkJob = viewModelScope.launch {
             if (!immediately) delay(DEBOUNCE_MILLIS)
             val s = _state.value
-            if (!s.withAddress) return@launch
             if (s.username.isBlank() || s.host.isBlank()) {
                 _state.update { it.copy(availability = Availability.Idle, suggestions = emptyList()) }
                 return@launch
             }
             _state.update { it.copy(availability = Availability.Checking) }
-            val forNewAccount = !s.forExistingAccount
             val availability =
-                when (val status = wallet.checkAddress(s.username, s.host, forNewAccount)) {
+                when (val status = wallet.checkAddress(s.username, s.host)) {
                     AddressStatus.Available -> Availability.Available
                     AddressStatus.Ours -> Availability.Yours
                     // A name registered without a published owner cannot be shown to be ours, so it is someone else's.
@@ -561,12 +453,6 @@ constructor(
         val random = java.security.SecureRandom()
         return listOf("$base${10 + random.nextInt(90)}", "$base${1000 + random.nextInt(9000)}", UsernameSuggestions.random(random))
             .distinct()
-    }
-
-    /** A new account's recovery phrase, made ahead for the suggested name, isn't kept once this screen is gone. */
-    override fun onCleared() {
-        val mode = _state.value.mode
-        if (mode == OnboardingMode.FirstRun || mode == OnboardingMode.NewAccount) wallet.forgetPreparedPhrase()
     }
 
     private companion object {

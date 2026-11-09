@@ -35,6 +35,7 @@ import java.util.Optional
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.BrandScreen
@@ -47,7 +48,7 @@ import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletTheme
-import whitewallet.core.wallet.AddressPolicy
+import whitewallet.core.model.SetupStep
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.BackupRequired
 import whitewallet.core.wallet.IncomingLink
@@ -62,9 +63,13 @@ import whitewallet.feature.notes.NoteSettingsButton
 import whitewallet.feature.notes.NotesRoute
 import whitewallet.feature.notes.NotesTab
 import whitewallet.feature.notes.NotesViewModel
+import whitewallet.feature.onboarding.AccountNameRoute
+import whitewallet.feature.onboarding.AddMintFinish
+import whitewallet.feature.onboarding.AddMintRoute
 import whitewallet.feature.onboarding.OnboardingMode
 import whitewallet.feature.onboarding.OnboardingRoute
 import whitewallet.feature.onboarding.RestoreRoute
+import whitewallet.feature.onboarding.WelcomeRoute
 import whitewallet.feature.receive.NoHome
 import whitewallet.feature.receive.ReceiveRoute
 import whitewallet.feature.send.CreateNoteRoute
@@ -127,7 +132,6 @@ class MainActivity : FragmentActivity() {
                                 incoming,
                                 brand = BrandScreens(brandScreens),
                                 showNotesTab = defaults.notesView == NotesView.Tab,
-                                addressAfterRestore = defaults.address != AddressPolicy.None,
                                 backupAtSetup = defaults.backupRequired == BackupRequired.Setup,
                                 onIncomingHandled = { incoming.value = null },
                             )
@@ -160,23 +164,34 @@ class StartViewModel @Inject constructor(wallet: Wallet) : ViewModel() {
 
     init {
         viewModelScope.launch {
+            // A wallet whose setup the app left half way opens on the step it was at.
             _start.value =
                 when {
-                    wallet.isSetUp() -> Routes.HOME
-                    // Restored, but the app closed before the address was picked.
-                    wallet.needsAddress() -> Routes.RESTORE_ADDRESS
-                    else -> Routes.ONBOARDING
+                    wallet.activeAccount.first() == null -> Routes.WELCOME
+                    else ->
+                        when (wallet.setupStep.first()) {
+                            SetupStep.Mint -> Routes.SETUP_MINT
+                            SetupStep.Address -> Routes.SETUP_ADDRESS
+                            null -> Routes.HOME
+                        }
                 }
         }
     }
 }
 
 internal object Routes {
-    const val ONBOARDING = "onboarding"
-    const val RESTORE = "restore"
-    const val RESTORE_ACCOUNT = "account/restore"
-    const val RESTORE_ADDRESS = "restore/address"
-    const val RESTORE_ADDRESS_ON = "restore/address?host={host}"
+    /** Where the app starts without a wallet: create or restore one. */
+    const val WELCOME = "setup/welcome"
+    /** The same, from Settings, with a way back. */
+    const val ADD_WALLET = "wallet/new"
+    const val RESTORE = "setup/restore"
+    /** A wallet's setup: its mint, then its address (see [SetupStep]). */
+    const val SETUP_MINT = "setup/mint"
+    const val SETUP_ADDRESS = "setup/address?host={host}"
+
+    fun setupAddress(host: String) = "setup/address?host=${Uri.encode(host)}"
+
+    const val ADD_MINT = "mint/add"
     const val HOME = "home"
     const val RECEIVE = "receive"
     const val SEND = "send"
@@ -231,8 +246,6 @@ internal object Routes {
     const val MOVE_HOME = "settings/mint/move-home"
     const val DELETE = "delete"
     const val NEW_ACCOUNT = "account/new"
-    const val NEW_ACCOUNT_ON = "account/new?host={host}&inWallet={inWallet}"
-    const val NEW_ACCOUNT_IN_WALLET = "account/new?inWallet=true"
     const val MOVE_FUNDS = "move"
     const val DEVELOPER = "settings/developer"
     const val BRAND = "brand/{id}"
@@ -245,7 +258,6 @@ private fun WalletApp(
     incoming: StateFlow<String?>,
     brand: BrandScreens,
     showNotesTab: Boolean,
-    addressAfterRestore: Boolean,
     backupAtSetup: Boolean,
     onIncomingHandled: () -> Unit,
     start: StartViewModel = hiltViewModel(),
@@ -259,12 +271,14 @@ private fun WalletApp(
             }
     val appName = stringResource(R.string.app_name)
     val nav = rememberNavController()
-    // A restored account has no address yet; picking one (unless this app has none) replaces everything before it, so
-    // back can't return there.
-    val afterRestore = { host: String? ->
-        val next = if (host != null && addressAfterRestore) "restore/address?host=$host" else Routes.HOME
-        nav.navigate(next) { popUpTo(0) { inclusive = true } }
+    // Each setup step replaces everything before it: back can't return to a step that is done.
+    val replaceAll = { route: String -> nav.navigate(route) { popUpTo(0) { inclusive = true } } }
+    // Then the brand's welcome page, if it has one, before the wallet; a new wallet's backup first with backup.required=setup.
+    val finishSetup = { backedUp: Boolean ->
+        val next = brand.afterOnboarding?.let { Routes.brand(it.id) } ?: Routes.HOME
+        replaceAll(if (backupAtSetup && !backedUp) Routes.backupAtSetup(next) else next)
     }
+    val leftSetup = { remains: Boolean -> replaceAll(if (remains) Routes.HOME else Routes.WELCOME) }
     // Links from outside open once the wallet is set up (Home is on the back stack): a note in Claim, anything else
     // in Send. Nothing is claimed or paid until the user confirms there.
     val pending by incoming.collectAsStateWithLifecycle()
@@ -279,30 +293,37 @@ private fun WalletApp(
         }
         onIncomingHandled()
     }
-    NavHost(nav, startDestination = if (first == Routes.RESTORE_ADDRESS) Routes.RESTORE_ADDRESS_ON else first) {
-        composable(Routes.ONBOARDING) {
-            OnboardingRoute(
-                appName = appName,
-                logo = { Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null) },
-                // The brand's welcome page, if it has one, comes between setup and the wallet.
-                // With backup.required=setup, the new account's backup comes first.
-                onDone = {
-                    val next = brand.afterOnboarding?.let { Routes.brand(it.id) } ?: Routes.HOME
-                    nav.navigate(if (backupAtSetup) Routes.backupAtSetup(next) else next) {
-                        popUpTo(Routes.ONBOARDING) { inclusive = true }
-                    }
-                },
+    val logo = @Composable { Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null) }
+    NavHost(nav, startDestination = first) {
+        composable(Routes.WELCOME) {
+            WelcomeRoute(appName, logo, onCreated = { replaceAll(Routes.SETUP_MINT) }, onRestore = { nav.navigate(Routes.RESTORE) })
+        }
+        composable(Routes.ADD_WALLET) {
+            WelcomeRoute(
+                appName,
+                logo,
+                onCreated = { replaceAll(Routes.SETUP_MINT) },
                 onRestore = { nav.navigate(Routes.RESTORE) },
+                onBack = { nav.popBackStack() },
             )
         }
         composable(Routes.RESTORE) {
-            RestoreRoute(asNewAccount = false, onBack = { nav.popBackStack() }, onRestored = afterRestore)
+            RestoreRoute(onBack = { nav.popBackStack() }, onRestored = { replaceAll(Routes.SETUP_MINT) })
         }
-        composable(Routes.RESTORE_ACCOUNT) {
-            RestoreRoute(asNewAccount = true, onBack = { nav.popBackStack() }, onRestored = afterRestore)
+        composable(Routes.SETUP_MINT) {
+            AddMintRoute(
+                setup = true,
+                onFinish = { finish ->
+                    when (finish) {
+                        is AddMintFinish.Address -> replaceAll(Routes.setupAddress(finish.host))
+                        is AddMintFinish.Done -> finishSetup(finish.backedUp ?: true)
+                        is AddMintFinish.Abandoned -> leftSetup(finish.remains)
+                    }
+                },
+            )
         }
         composable(
-            Routes.RESTORE_ADDRESS_ON,
+            Routes.SETUP_ADDRESS,
             arguments =
                 listOf(
                     navArgument("host") {
@@ -313,15 +334,14 @@ private fun WalletApp(
                 ),
         ) { entry ->
             OnboardingRoute(
-                appName,
-                logo = {},
-                mode = OnboardingMode.RestoreAddress,
+                onDone = finishSetup,
+                mode = OnboardingMode.Setup,
                 presetHost = entry.arguments?.getString("host"),
-                onDone = { nav.navigate(Routes.HOME) { popUpTo(0) { inclusive = true } } },
-                onRestoreCancelled = { remains ->
-                    nav.navigate(if (remains) Routes.HOME else Routes.ONBOARDING) { popUpTo(0) { inclusive = true } }
-                },
+                onAbandoned = leftSetup,
             )
+        }
+        composable(Routes.ADD_MINT) {
+            AddMintRoute(setup = false, onFinish = { nav.popBackStack() })
         }
         composable(Routes.HOME) {
             HomeRoute(
@@ -334,10 +354,10 @@ private fun WalletApp(
                 onSettings = { nav.navigate(Routes.SETTINGS) },
                 onBackup = { nav.navigate(Routes.BACKUP) },
                 onOpenAddresses = { nav.navigate(Routes.ADDRESSES) },
-                onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT_IN_WALLET) },
-                onAddWallet = { nav.navigate(Routes.NEW_ACCOUNT) },
+                onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
+                onAddWallet = { nav.navigate(Routes.ADD_WALLET) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
-                onAddMint = { nav.navigate(Routes.MINTS) },
+                onAddMint = { nav.navigate(Routes.ADD_MINT) },
                 menu =
                     brand.on(BrandScreenEntry.HomeMenu).map { screen ->
                         HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) }
@@ -355,37 +375,9 @@ private fun WalletApp(
                 onOpenShared = { id -> nav.navigate(Routes.note(id)) },
             )
         }
-        composable(
-            Routes.NEW_ACCOUNT_ON,
-            arguments =
-                listOf(
-                    navArgument("host") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("inWallet") {
-                        type = NavType.BoolType
-                        defaultValue = false
-                    },
-                ),
-        ) { entry ->
-            val inWallet = entry.arguments?.getBoolean("inWallet") == true
-            OnboardingRoute(
-                appName,
-                logo = {},
-                onDone = {
-                    // An account in an existing wallet comes with no new phrase to back up.
-                    if (backupAtSetup && !inWallet)
-                        nav.navigate(Routes.backupAtSetup(next = null)) { popUpTo(Routes.NEW_ACCOUNT_ON) { inclusive = true } }
-                    else nav.popBackStack()
-                },
-                mode = OnboardingMode.NewAccount,
-                onBack = { nav.popBackStack() },
-                presetHost = entry.arguments?.getString("host"),
-                onRestore = if (inWallet) null else ({ nav.navigate(Routes.RESTORE_ACCOUNT) }),
-                inActiveWallet = inWallet,
-            )
+        // The new account is active: the wallet opens on it.
+        composable(Routes.NEW_ACCOUNT) {
+            AccountNameRoute(onBack = { nav.popBackStack() }, onCreated = { replaceAll(Routes.HOME) })
         }
         composable(Routes.MOVE_FUNDS) {
             MoveFundsRoute(onBack = { nav.popBackStack() })
@@ -423,7 +415,7 @@ private fun WalletApp(
                 onBack = { nav.popBackStack() },
                 onClaim = { nav.navigate(Routes.CLAIM) { popUpTo(Routes.HOME) } },
                 onNoHome = { noHome ->
-                    nav.navigate(if (noHome == NoHome.NoMint) Routes.MINTS else Routes.changeMint(null)) { popUpTo(Routes.HOME) }
+                    nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) { popUpTo(Routes.HOME) }
                 },
             )
         }
@@ -472,16 +464,14 @@ private fun WalletApp(
             DerivedKeysRoute(onBack = { nav.popBackStack() })
         }
         developerComposable(DeveloperPages.LOCAL_REGTEST, onLocked = { nav.popBackStack() }) {
-            LocalRegtestRoute(onBack = { nav.popBackStack() }, onAddAccount = { host -> nav.navigate("account/new?host=$host") })
+            LocalRegtestRoute(onBack = { nav.popBackStack() })
         }
         composable(Routes.DELETE) {
             DeleteWalletRoute(
                 onBack = { nav.popBackStack() },
                 onBackup = { nav.navigate(Routes.BACKUP) },
                 // Nothing of the deleted account stays reachable: continue with the remaining one, or start over.
-                onDeleted = { remains ->
-                    nav.navigate(if (remains) Routes.HOME else Routes.ONBOARDING) { popUpTo(0) { inclusive = true } }
-                },
+                onDeleted = { remains -> replaceAll(if (remains) Routes.HOME else Routes.WELCOME) },
             )
         }
         composable(
@@ -539,7 +529,11 @@ private fun WalletApp(
             AccountMintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.mint(host)) })
         }
         composable(Routes.MINTS) {
-            MintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.mint(host, device = true)) })
+            MintsRoute(
+                onBack = { nav.popBackStack() },
+                onOpen = { host -> nav.navigate(Routes.mint(host, device = true)) },
+                onAdd = { nav.navigate(Routes.ADD_MINT) },
+            )
         }
         composable(Routes.SECURITY) {
             SecuritySettingsRoute(onBack = { nav.popBackStack() })
@@ -563,8 +557,6 @@ private fun WalletApp(
         }
         composable(Routes.ADD_ADDRESS) {
             OnboardingRoute(
-                appName,
-                logo = {},
                 onDone = { nav.popBackStack() },
                 mode = OnboardingMode.AddAddress,
                 onBack = { nav.popBackStack() },
@@ -572,8 +564,6 @@ private fun WalletApp(
         }
         composable(Routes.ADD_ADDRESS_ELSEWHERE) {
             OnboardingRoute(
-                appName,
-                logo = {},
                 onDone = { nav.popBackStack() },
                 mode = OnboardingMode.AddAddressElsewhere,
                 onBack = { nav.popBackStack() },
@@ -581,8 +571,6 @@ private fun WalletApp(
         }
         composable(Routes.CHANGE_ADDRESS) {
             OnboardingRoute(
-                appName,
-                logo = {},
                 onDone = { nav.popBackStack() },
                 mode = OnboardingMode.ChangeAddress,
                 onBack = { nav.popBackStack() },

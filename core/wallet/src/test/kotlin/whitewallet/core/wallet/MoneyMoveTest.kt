@@ -50,7 +50,6 @@ class MoneyMoveTest {
                         InMemorySeedStore(mapOf("a" to words)),
                         LnurlcashClient(),
                         now = { clock },
-                        requireAddress = false,
                         policies = NotePolicies.InMemory(ManualStrategy.ID),
                     )
                 wallet.payWaitMillis = 3_000

@@ -10,17 +10,29 @@
     <string name="onboarding_mint_custody">Dein Guthaben verwahrt die Mint, die du wählst. Halte die Beträge klein.</string>
     <string name="onboarding_add_elsewhere_title">Adresse bei einer anderen Mint</string>
     <string name="onboarding_add_elsewhere_body">Ein Name für dieses Konto bei einer anderen Mint, mit derselben Wiederherstellungsphrase. Zahlungen daran kommen als Scheine bei dieser Mint an, in diesem Konto. Deine Hauptadresse bleibt, wo sie ist.</string>
-    <string name="restore_error_mint">Diese Mint geht für eine Wiederherstellung nicht. Prüfe, ob es die ist, die du vorher benutzt hast.</string>
     <string name="onboarding_skip_mint">Ohne Mint weitermachen</string>
     <string name="onboarding_skip_mint_hint">Du kannst später eine Mint hinzufügen. Bis dahin kann nichts empfangen werden.</string>
-    <string name="restore_skip_mint">Ohne Mint wiederherstellen</string>
-    <string name="restore_skip_mint_hint">Dein Geld wird gefunden, sobald du die Mint hinzufügst, die du vorher benutzt hast.</string>
     <string name="onboarding_tagline">Inhaberscheine auf Lightning. Mit einem Tipp startklar.</string>
+    <string name="add_mint_setup_title">Wähle deine Mint</string>
+    <string name="add_mint_title">Mint hinzufügen</string>
+    <string name="add_mint_setup_body">Die Mint verwahrt dein Geld und erstellt die Rechnungen, mit denen du bezahlt wirst. Wähle eine; weitere kannst du später hinzufügen.</string>
+    <string name="add_mint_body">Wähle eine Mint. Hält deine Wiederherstellungsphrase dort Geld, wird es gefunden.</string>
+    <string name="add_mint_error_not_allowed">Diese App arbeitet nicht mit dieser Mint. Wähle eine andere.</string>
+    <string name="add_mint_error_invalid">Das ist keine Mint, die diese App nutzen kann: %1$s</string>
+    <string name="add_mint_known">Diese Wallet hat diese Mint schon. Fügst du sie noch einmal hinzu, wird dort noch einmal nach deinem Geld gesucht.</string>
+    <string name="add_mint_legacy">Diese Mint spricht eine ältere Version des Protokolls. Sie funktioniert, aber nur das erste Konto einer Wallet kann dort eine Adresse haben.</string>
+    <string name="add_mint_use">Diese Mint nutzen</string>
+    <string name="add_mint_add">Diese Mint hinzufügen</string>
+    <string name="add_mint_other">Andere Mint wählen</string>
+    <string name="add_mint_adding_body">Es wird gesucht, was deine Wiederherstellungsphrase bei dieser Mint hält, Konto für Konto.</string>
+    <string name="add_mint_failed_key">Diese Mint zeigt jetzt einen anderen Signaturschlüssel als eben, daher wurde sie nicht hinzugefügt. Prüfe, ob es die gemeinte Mint ist.</string>
+    <string name="add_mint_added_body">Die Mint ist hinzugefügt. Deine neue Wallet nutzt sie ab jetzt.</string>
+    <string name="add_mint_found_none">Die Mint ist hinzugefügt. Von deiner Wiederherstellungsphrase wurde dort nichts gefunden.</string>
+    <string name="add_mint_adding_title">Mint wird hinzugefügt</string>
 
     <string name="onboarding_username">Dein Name</string>
     <!-- %1$s: die ganze Lightning-Adresse, name@dienst -->
     <string name="onboarding_address_preview">Deine Adresse: %1$s</string>
-    <string name="onboarding_start">Los geht\'s</string>
     <string name="onboarding_skip_address">Ohne Adresse weiter</string>
     <string name="onboarding_skip_address_hint">Du kannst mit einer Rechnung empfangen und dir später in den Einstellungen eine Adresse holen.</string>
     <string name="onboarding_claim">Diese Adresse sichern</string>
@@ -28,8 +40,6 @@
     <string name="default_account_name">Haupt</string>
     <string name="new_account_default_name">Ersparnisse</string>
     <string name="onboarding_new_account_title">Konto hinzufügen</string>
-    <string name="onboarding_new_account_body">Ein neues Konto hat seine eigene Wiederherstellungsphrase, Adresse und sein eigenes Guthaben. Es braucht eine eigene Sicherung.</string>
-    <string name="onboarding_new_account_body_no_address">Ein neues Konto hat seine eigene Wiederherstellungsphrase und sein eigenes Guthaben. Es braucht eine eigene Sicherung.</string>
     <string name="onboarding_account_name">Name des Kontos</string>
     <string name="onboarding_create_account">Konto erstellen</string>
     <string name="onboarding_add_title">Adresse hinzufügen</string>
@@ -67,8 +77,6 @@
         <item quantity="other">Diese App hat höchstens %1$d Wallets. Um eines wiederherzustellen, lösche zuerst eines auf diesem Handy (Einstellungen → Konto).</item>
     </plurals>
     <string name="onboarding_error_network">Keine Verbindung: %1$s</string>
-    <string name="onboarding_restore">Mit Wiederherstellungsphrase wiederherstellen</string>
-    <string name="onboarding_restore_instead">Stattdessen ein Konto wiederherstellen</string>
 
     <string name="restore_title">Konto wiederherstellen</string>
     <string name="restore_body">Tippe oder füge die Wiederherstellungsphrase ein, die du aufgeschrieben hast.</string>
@@ -80,23 +88,10 @@
     </plurals>
     <string name="restore_phrase_unknown">„%1$s“ ist kein Wort einer Wiederherstellungsphrase. Prüfe die Schreibweise.</string>
     <string name="restore_phrase_checksum">Die Wörter passen nicht zusammen. Ein Wort ist vielleicht falsch oder an der falschen Stelle.</string>
-    <string name="restore_default_account_name">Wiederhergestellt</string>
     <string name="restore_start">Wiederherstellen</string>
-    <string name="restore_searching">Dein Geld wird gesucht. Das kann eine Minute dauern.</string>
     <string name="restore_what">Dein Guthaben kommt zurück, ebenso die Adresse, die die App bei der Einrichtung vorgeschlagen hat. Der bisherige Verlauf und andere Adressen sind nicht Teil der Wiederherstellungsphrase.</string>
     <string name="restore_error_already">Diese Wiederherstellungsphrase ist schon in dieser Wallet, als Konto „%1$s“. Für eine weitere Adresse füge eine unter Einstellungen → Konto → Lightning-Adressen hinzu.</string>
-    <string name="restore_error_network">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts geändert.</string>
 
-    <string name="restore_address_title">Deine Adresse</string>
-    <string name="restore_address_found">Wiederhergestellt: %1$s gefunden.</string>
-    <string name="restore_address_found_none">Wiederhergestellt. Zu dieser Wiederherstellungsphrase wurde kein Geld gefunden.</string>
-    <string name="restore_address_body">Deine Adresse wurde nicht von selbst gefunden. Tippe die Adresse ein, die du auf %1$s hattest, um sie zurückzuholen, oder wähle eine neue.</string>
-    <string name="restore_address_submit">Diese Adresse verwenden</string>
-    <string name="restore_cancel">Wiederherstellung abbrechen</string>
-    <string name="restore_cancel_title">Wiederherstellung abbrechen?</string>
-    <string name="restore_cancel_body">Das wiederhergestellte Konto wird von diesem Handy entfernt. Sein Geld bleibt bei der Wiederherstellungsphrase, und du kannst es jederzeit erneut wiederherstellen.</string>
-    <string name="restore_cancel_confirm">Wiederherstellung abbrechen</string>
-    <string name="restore_cancel_keep">Weitermachen</string>
     <string name="restore_test_phrase">Testphrase verwenden (Entwicklermodus)</string>
 
     <string name="claimed_body_unconfirmed">Sie ist registriert, aber die App kann nicht gegenprüfen, ob Zahlungen diese Wallet erreichen. Probier zuerst eine kleine Zahlung.</string>
@@ -111,4 +106,47 @@
     <string name="address_held_later">Später bezahlen</string>
     <string name="onboarding_error_fee_not_paid">Die Gebühr konnte nicht bezahlt werden. Der Name bleibt reserviert.</string>
     <string name="onboarding_error_hold_expired">Die Reservierung ist abgelaufen, bevor die Gebühr bezahlt wurde. Du kannst es erneut versuchen.</string>
+    <string name="add_mint_done_title">Fertig</string>
+    <string name="add_mint_failed_title">Fehler beim Wiederherstellen</string>
+    <string name="add_mint_error_unreachable">Nicht erreichbar: %1$s. Prüfe die Adresse und deine Verbindung.</string>
+    <string name="add_mint_next">Weiter</string>
+    <string name="add_mint_fees">Gebühren pro Zahlung</string>
+    <string name="add_mint_fees_value">%1$s + %2$s %%</string>
+    <string name="add_mint_fees_unknown">Nicht angegeben</string>
+    <string name="add_mint_limits">Eine Zahlung</string>
+    <string name="add_mint_limits_value">%1$s bis %2$s</string>
+    <string name="add_mint_address_fee">Lightning-Adresse</string>
+    <string name="add_mint_address_free">Kostenlos</string>
+    <string name="add_mint_key">Signaturschlüssel</string>
+    <string name="add_mint_key_none">Nicht angegeben</string>
+    <string name="add_mint_account">Konto %1$d</string>
+    <string name="add_mint_account_looking">Wird gesucht…</string>
+    <string name="add_mint_account_empty">Nichts</string>
+    <string name="add_mint_failed_body">Es hat aufgehört, bevor es fertig war: %1$s. Versuch es noch einmal; was gefunden wurde, bleibt.</string>
+    <string name="add_mint_failed_kept">Bisher gefunden: %1$s.</string>
+    <string name="add_mint_found_total">%1$s gefunden</string>
+    <string name="add_mint_try_again">Noch einmal versuchen</string>
+    <string name="add_mint_ok">OK</string>
+    <string name="setup_abandon_title">Einrichtung dieser Wallet abbrechen?</string>
+    <string name="setup_abandon_body">Die Wallet wird von diesem Handy entfernt. Das Geld einer wiederhergestellten Wallet bleibt bei ihrer Wiederherstellungsphrase; du kannst sie jederzeit wiederherstellen.</string>
+    <string name="setup_abandon_confirm">Wallet entfernen</string>
+    <string name="setup_abandon_keep">Weitermachen</string>
+    <string name="welcome_create">Neue Wallet erstellen</string>
+    <string name="welcome_restore">Ich habe schon eine Wallet</string>
+    <string name="account_name_body">Ein neues Konto in dieser Wallet: eigenes Guthaben und eigene Adressen, dieselbe Wiederherstellungsphrase. Sonst ist nichts einzurichten.</string>
+    <string name="setup_address_title">Deine Lightning-Adresse</string>
+    <string name="setup_address_body">Unter dieser Adresse bei %1$s wirst du bezahlt. Hattest du dort eine, gib sie ein, um sie zurückzuholen.</string>
+    <string name="setup_address_submit">Diese Adresse nutzen</string>
+    <plurals name="add_mint_keys_checked">
+        <item quantity="one">%1$d Schlüssel abgefragt</item>
+        <item quantity="other">%1$d Schlüssel abgefragt</item>
+    </plurals>
+    <plurals name="add_mint_found_accounts">
+        <item quantity="one">In %1$d Konto:</item>
+        <item quantity="other">In %1$d Konten:</item>
+    </plurals>
+    <plurals name="account_name_limit">
+        <item quantity="one">Diese Wallet hat %1$d Konto, so viele, wie diese App erlaubt.</item>
+        <item quantity="other">Diese Wallet hat %1$d Konten, so viele, wie diese App erlaubt.</item>
+    </plurals>
 </resources>

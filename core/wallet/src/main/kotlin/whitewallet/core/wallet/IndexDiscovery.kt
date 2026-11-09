@@ -32,6 +32,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         host: String,
         set: KeySet,
         gap: Int = wallet.settings.scanStopAfterUnusedKeys,
+        onProbe: (KeyProbe) -> Unit = {},
     ): DiscoveryResult {
         val current = wallet.store.indexOf(accountId, host, set)
         val mint = wallet.mintOf(accountId, host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
@@ -43,6 +44,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         while (unused < gap) {
             val probe = prober.probe(set.key(accountId, host, index), mint)
             checked++
+            onProbe(probe)
             when (probe) {
                 is KeyProbe.Outstanding -> {
                     lastUsed = index

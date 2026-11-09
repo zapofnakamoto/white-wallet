@@ -50,11 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.walletColors
-import whitewallet.core.designsystem.BrandDecoration
-import whitewallet.core.designsystem.BrandTitle
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.R as DesignR
@@ -64,41 +61,27 @@ import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletSuggestionChip
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
-import whitewallet.core.designsystem.WithReleaseBadge
 import whitewallet.core.designsystem.formatAmount
-import whitewallet.core.designsystem.releaseNotice
 
 /**
- * First launch, adding an account, or choosing a new address for the active one (see [OnboardingMode]). [logo] and [appName] come from the
- * app module so the brand stays in brand/; a brand design may replace both (the [Anchor.OnboardingHeader] and [Anchor.OnboardingTitle]
- * decorations).
+ * A Lightning address for the active account (see [OnboardingMode]): the setup's address step, or one from Settings. [onDone] goes on, with
+ * whether the wallet's phrase is written down (a restore: no backup step); [onAbandoned] once the setup was given up.
  */
 @Composable
 fun OnboardingRoute(
-    appName: String,
-    logo: @Composable () -> Unit,
-    onDone: () -> Unit,
-    mode: OnboardingMode = OnboardingMode.FirstRun,
+    onDone: (backedUp: Boolean) -> Unit,
+    mode: OnboardingMode = OnboardingMode.Setup,
     onBack: (() -> Unit)? = null,
-    /** Offers restoring from a recovery phrase instead (first run and new account). */
-    onRestore: (() -> Unit)? = null,
-    /** Preselects the mint for a new account (e.g. the local regtest mint). */
+    /** For [OnboardingMode.Setup]: the mint of the address. */
     presetHost: String? = null,
-    /** For [OnboardingMode.RestoreAddress]: the restore was cancelled; whether another account remains. */
-    onRestoreCancelled: (remains: Boolean) -> Unit = {},
-    /** For [OnboardingMode.NewAccount]: the account joins the active wallet. */
-    inActiveWallet: Boolean = false,
+    onAbandoned: (remains: Boolean) -> Unit = {},
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
-    val defaultName = stringResource(R.string.default_account_name)
-    val newName = stringResource(R.string.new_account_default_name)
-    LaunchedEffect(Unit) { viewModel.init(mode, defaultName, newName, presetHost, inActiveWallet) }
+    LaunchedEffect(Unit) { viewModel.init(mode, presetHost) }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(state.done) { if (state.done) onDone() }
-    LaunchedEffect(state.restoreCancelled) { state.restoreCancelled?.let(onRestoreCancelled) }
+    LaunchedEffect(state.done) { if (state.done) onDone(state.backedUp) }
+    LaunchedEffect(state.abandoned) { state.abandoned?.let(onAbandoned) }
     OnboardingScreen(
-        appName,
-        logo,
         state,
         onBack,
         onUsernameChange = viewModel::onUsernameChange,
@@ -106,19 +89,14 @@ fun OnboardingRoute(
         onSuggestion = viewModel::onSuggestion,
         onStart = viewModel::start,
         onContinue = viewModel::onContinue,
-        onAccountNameChange = viewModel::onAccountNameChange,
-        onRestore,
-        onCancelRestore = viewModel::cancelRestore,
+        onAbandon = viewModel::abandonSetup,
         onSkipAddress = viewModel::skipAddress,
         fee = FeeActions(viewModel::acceptFee, viewModel::declineFee, viewModel::payFee),
-        onSkipMint = viewModel::skipMint,
     )
 }
 
 @Composable
 fun OnboardingScreen(
-    appName: String,
-    logo: @Composable () -> Unit,
     state: OnboardingState,
     onBack: (() -> Unit)?,
     onUsernameChange: (String) -> Unit,
@@ -126,12 +104,9 @@ fun OnboardingScreen(
     onSuggestion: (String) -> Unit,
     onStart: () -> Unit,
     onContinue: () -> Unit,
-    onAccountNameChange: (String) -> Unit,
-    onRestore: (() -> Unit)? = null,
-    onCancelRestore: () -> Unit = {},
+    onAbandon: () -> Unit = {},
     onSkipAddress: () -> Unit = {},
     fee: FeeActions = FeeActions({}, {}, {}),
-    onSkipMint: () -> Unit = {},
 ) {
     val claimed = state.claimed
     state.feePrompt?.let { AddressFeeDialog(it, state.canSkip, fee) }
@@ -144,166 +119,51 @@ fun OnboardingScreen(
         }
         return
     }
-    var confirmCancel by rememberSaveable { mutableStateOf(false) }
-    val askCancel = { confirmCancel = true }.takeIf { state.restoringAddress && claimed == null && !state.busy }
-    // Back on the address step of a restore asks to cancel it; there is nothing else to go back to.
-    BackHandler(enabled = askCancel != null) { askCancel?.invoke() }
-    if (confirmCancel)
-        CancelRestoreDialog(
+    var confirmAbandon by rememberSaveable { mutableStateOf(false) }
+    val askAbandon = { confirmAbandon = true }.takeIf { state.inSetup && claimed == null && !state.busy }
+    // Back on the setup's address step asks whether to give the setup up; the mint before it is added already.
+    BackHandler(enabled = askAbandon != null) { askAbandon?.invoke() }
+    if (confirmAbandon)
+        AbandonSetupDialog(
             onConfirm = {
-                confirmCancel = false
-                onCancelRestore()
+                confirmAbandon = false
+                onAbandon()
             },
-            onDismiss = { confirmCancel = false },
+            onDismiss = { confirmAbandon = false },
         )
-    if (state.mode != OnboardingMode.FirstRun) {
-        val title =
-            stringResource(
-                when {
-                    state.changingAddress -> R.string.onboarding_change_title
-                    state.addingAddress -> R.string.onboarding_add_title
-                    state.addingElsewhere -> R.string.onboarding_add_elsewhere_title
-                    state.restoringAddress -> R.string.restore_address_title
-                    else -> R.string.onboarding_new_account_title
-                }
-            )
-        Scaffold(topBar = { WalletTopBar(title, (onBack ?: askCancel).takeIf { claimed == null }) }) { padding ->
-            ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-                if (claimed != null) {
-                    ClaimedContent(claimed, onContinue)
-                } else if (state.changingAddress) {
-                    Text(stringResource(R.string.onboarding_change_body, state.host), textAlign = TextAlign.Center)
-                    AddressForm(
-                        state,
-                        onUsernameChange,
-                        mint,
-                        onSuggestion,
-                        onStart,
-                        submitLabel = stringResource(R.string.onboarding_claim),
-                    )
-                } else if (state.restoringAddress) {
-                    Text(
-                        if (state.restoredMsat > 0) stringResource(R.string.restore_address_found, formatAmount(state.restoredMsat))
-                        else stringResource(R.string.restore_address_found_none),
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text(stringResource(R.string.restore_address_body, state.host), textAlign = TextAlign.Center)
-                    AddressForm(
-                        state,
-                        onUsernameChange,
-                        mint,
-                        onSuggestion,
-                        onStart,
-                        submitLabel = stringResource(R.string.restore_address_submit),
-                    )
-                    SkipAddress(state, onSkipAddress)
-                    WalletButton(kind = ButtonKind.Text, onClick = { confirmCancel = true }, enabled = !state.busy) {
-                        Text(stringResource(R.string.restore_cancel))
-                    }
-                } else if (state.addingAddress) {
-                    Text(stringResource(R.string.onboarding_add_body, state.host), textAlign = TextAlign.Center)
-                    AddressForm(
-                        state,
-                        onUsernameChange,
-                        mint,
-                        onSuggestion,
-                        onStart,
-                        submitLabel = stringResource(R.string.onboarding_claim),
-                    )
-                } else if (state.addingElsewhere) {
-                    Text(stringResource(R.string.onboarding_add_elsewhere_body), textAlign = TextAlign.Center)
-                    AddressForm(
-                        state,
-                        onUsernameChange,
-                        mint,
-                        onSuggestion,
-                        onStart,
-                        submitLabel = stringResource(R.string.onboarding_claim),
-                    )
-                } else {
-                    Text(
-                        stringResource(
-                            if (state.withAddress) R.string.onboarding_new_account_body else R.string.onboarding_new_account_body_no_address
-                        ),
-                        textAlign = TextAlign.Center,
-                    )
-                    WalletTextField(
-                        value = state.accountName,
-                        onValueChange = onAccountNameChange,
-                        label = { Text(stringResource(R.string.onboarding_account_name)) },
-                        singleLine = true,
-                        enabled = !state.busy,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    if (state.withAddress) {
-                        AddressForm(
-                            state,
-                            onUsernameChange,
-                            mint,
-                            onSuggestion,
-                            onStart,
-                            submitLabel = stringResource(R.string.onboarding_create_account),
-                        )
-                        SkipAddress(state, onSkipAddress)
-                    } else {
-                        MintForm(state, mint, onStart, stringResource(R.string.onboarding_create_account))
-                    }
-                    SkipMint(state, onSkipMint)
-                    onRestore?.let {
-                        WalletButton(kind = ButtonKind.Text, onClick = it, enabled = !state.busy) {
-                            Text(stringResource(R.string.onboarding_restore_instead))
-                        }
-                    }
-                }
+    val title =
+        stringResource(
+            when (state.mode) {
+                OnboardingMode.Setup -> R.string.setup_address_title
+                OnboardingMode.ChangeAddress -> R.string.onboarding_change_title
+                OnboardingMode.AddAddress -> R.string.onboarding_add_title
+                OnboardingMode.AddAddressElsewhere -> R.string.onboarding_add_elsewhere_title
             }
-        }
-        return
-    }
-    Surface(Modifier.fillMaxSize()) {
-        ScreenColumn(Modifier.safeDrawingPadding().imePadding().verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.height(24.dp))
+        )
+    Scaffold(topBar = { WalletTopBar(title, (onBack ?: askAbandon).takeIf { claimed == null }) }) { padding ->
+        ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             if (claimed != null) {
                 ClaimedContent(claimed, onContinue)
                 return@ScreenColumn
             }
-            BrandDecoration(Anchor.OnboardingHeader) { logo() }
-            WithReleaseBadge {
-                BrandTitle(Anchor.OnboardingTitle, appName) { Text(appName, style = MaterialTheme.typography.headlineMedium) }
-            }
             Text(
-                stringResource(R.string.onboarding_tagline),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                when (state.mode) {
+                    OnboardingMode.Setup -> stringResource(R.string.setup_address_body, state.host)
+                    OnboardingMode.ChangeAddress -> stringResource(R.string.onboarding_change_body, state.host)
+                    OnboardingMode.AddAddress -> stringResource(R.string.onboarding_add_body, state.host)
+                    OnboardingMode.AddAddressElsewhere -> stringResource(R.string.onboarding_add_elsewhere_body)
+                },
                 textAlign = TextAlign.Center,
             )
-            if (state.withAddress) {
-                AddressForm(state, onUsernameChange, mint, onSuggestion, onStart, submitLabel = stringResource(R.string.onboarding_start))
-                SkipAddress(state, onSkipAddress)
-            } else {
-                // Without an address and with a single mint, this is just the button.
-                MintForm(state, mint, onStart, stringResource(R.string.onboarding_start))
-            }
-            SkipMint(state, onSkipMint)
-            onRestore?.let {
-                WalletButton(kind = ButtonKind.Text, onClick = it, enabled = !state.busy) {
-                    Text(stringResource(R.string.onboarding_restore))
-                }
-            }
-            Text(
-                stringResource(R.string.onboarding_mint_custody),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
+            AddressForm(
+                state,
+                onUsernameChange,
+                mint,
+                onSuggestion,
+                onStart,
+                submitLabel = stringResource(if (state.inSetup) R.string.setup_address_submit else R.string.onboarding_claim),
             )
-            releaseNotice()?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
+            SkipAddress(state, onSkipAddress)
         }
     }
 }
@@ -419,29 +279,6 @@ private fun SkipAddress(state: OnboardingState, onSkip: () -> Unit) {
     )
 }
 
-/** Where the brand lets a new account start without a mint: the way past it, and what that means until one is added. */
-@Composable
-private fun SkipMint(state: OnboardingState, onSkip: () -> Unit) {
-    if (!state.showSkipMint) return
-    WalletButton(kind = ButtonKind.Text, onClick = onSkip, enabled = state.canSkipMintNow) {
-        Text(stringResource(R.string.onboarding_skip_mint))
-    }
-    Text(
-        stringResource(R.string.onboarding_skip_mint_hint),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-    )
-}
-
-/** A new account without a Lightning address: the mint (when there is a choice) and the button. */
-@Composable
-private fun MintForm(state: OnboardingState, mint: MintActions, onStart: () -> Unit, submitLabel: String) {
-    if (state.showMintPicker) MintPicker(options = state.mintOptions, selected = state.selectedMint, state.customHost, state.busy, mint)
-    ErrorText(state)
-    PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
-}
-
 @Composable
 private fun ErrorText(state: OnboardingState) {
     state.error?.let { error ->
@@ -457,7 +294,6 @@ private fun ErrorText(state: OnboardingState) {
                 is OnboardingError.Mint -> stringResource(R.string.onboarding_error_mint, error.detail)
                 is OnboardingError.Network -> stringResource(R.string.onboarding_error_network, error.detail)
                 is OnboardingError.Limit -> pluralStringResource(R.plurals.onboarding_error_limit, error.limit, error.limit)
-                is OnboardingError.AccountLimit -> pluralStringResource(R.plurals.onboarding_error_account_limit, error.limit, error.limit)
             }
         Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
     }
@@ -582,18 +418,18 @@ private fun ClaimedContent(claimed: Claimed, onContinue: () -> Unit) {
     PrimaryButton(stringResource(R.string.claimed_continue), onContinue)
 }
 
-/** Cancelling only removes the account from this device; the money stays with the recovery phrase. */
+/** Giving the setup up removes the wallet from this phone; its money stays with the recovery phrase. */
 @Composable
-private fun CancelRestoreDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun AbandonSetupDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     WalletDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.restore_cancel_title)) },
-        text = { Text(stringResource(R.string.restore_cancel_body)) },
+        title = { Text(stringResource(R.string.setup_abandon_title)) },
+        text = { Text(stringResource(R.string.setup_abandon_body)) },
         confirmButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = onConfirm) { Text(stringResource(R.string.restore_cancel_confirm)) }
+            WalletButton(kind = ButtonKind.Text, onClick = onConfirm) { Text(stringResource(R.string.setup_abandon_confirm)) }
         },
         dismissButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.restore_cancel_keep)) }
+            WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.setup_abandon_keep)) }
         },
     )
 }

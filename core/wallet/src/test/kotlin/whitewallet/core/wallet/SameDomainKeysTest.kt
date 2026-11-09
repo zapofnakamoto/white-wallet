@@ -46,7 +46,7 @@ class SameDomainKeysTest {
     }
 
     private fun phone(store: InMemoryWalletStore) =
-        Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false, policies = NotePolicies.InMemory(ManualStrategy.ID))
+        Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
 
     /** Buys the phone's next note on its home mint, by invoice. */
     private suspend fun Wallet.firstNote(store: InMemoryWalletStore, sats: Long): Note {

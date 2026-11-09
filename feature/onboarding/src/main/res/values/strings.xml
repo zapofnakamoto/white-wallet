@@ -15,17 +15,29 @@
     <string name="onboarding_mint_custody">Your funds are held by the mint you choose. Keep amounts small.</string>
     <string name="onboarding_add_elsewhere_title">Address on another mint</string>
     <string name="onboarding_add_elsewhere_body">A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is.</string>
-    <string name="restore_error_mint">This mint can\'t be used for a restore. Check that it\'s the one you used before.</string>
     <string name="onboarding_skip_mint">Continue without a mint</string>
     <string name="onboarding_skip_mint_hint">You can add a mint later. Until then, nothing can be received.</string>
-    <string name="restore_skip_mint">Restore without a mint</string>
-    <string name="restore_skip_mint_hint">Your money is found once you add the mint you used before.</string>
     <string name="onboarding_tagline">Bearer notes on Lightning. Ready in one tap.</string>
+    <string name="add_mint_setup_title">Choose your mint</string>
+    <string name="add_mint_title">Add a mint</string>
+    <string name="add_mint_setup_body">The mint holds your money and makes the invoices you get paid with. Pick one; you can add more later.</string>
+    <string name="add_mint_body">Pick a mint. If your recovery phrase holds money there, it is found.</string>
+    <string name="add_mint_error_not_allowed">This app doesn\'t work with that mint. Pick another one.</string>
+    <string name="add_mint_error_invalid">That isn\'t a mint this app can use: %1$s</string>
+    <string name="add_mint_known">This wallet has this mint already. Adding it again looks for your money there again.</string>
+    <string name="add_mint_legacy">This mint speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there.</string>
+    <string name="add_mint_use">Use this mint</string>
+    <string name="add_mint_add">Add this mint</string>
+    <string name="add_mint_other">Pick another mint</string>
+    <string name="add_mint_adding_body">Looking for what your recovery phrase holds on this mint, account by account.</string>
+    <string name="add_mint_failed_key">This mint now shows another signing key than a moment ago, so it wasn\'t added. Check that it is the mint you meant.</string>
+    <string name="add_mint_added_body">The mint is added. Your new wallet uses it from now on.</string>
+    <string name="add_mint_found_none">The mint is added. Nothing of your recovery phrase was found on it.</string>
+    <string name="add_mint_adding_title">Adding the mint</string>
 
     <string name="onboarding_username">Your name</string>
     <!-- %1$s: the whole Lightning address, name@host -->
     <string name="onboarding_address_preview">Your address: %1$s</string>
-    <string name="onboarding_start">Get started</string>
     <string name="onboarding_skip_address">Continue without an address</string>
     <string name="onboarding_skip_address_hint">You can receive with an invoice and get an address later in Settings.</string>
     <string name="onboarding_claim">Claim this address</string>
@@ -33,8 +45,6 @@
     <string name="default_account_name">Main</string>
     <string name="new_account_default_name">Savings</string>
     <string name="onboarding_new_account_title">Add account</string>
-    <string name="onboarding_new_account_body">A new account has its own recovery phrase, address and balance. It needs its own backup.</string>
-    <string name="onboarding_new_account_body_no_address">A new account has its own recovery phrase and balance. It needs its own backup.</string>
     <string name="onboarding_account_name">Account name</string>
     <string name="onboarding_create_account">Create account</string>
     <string name="onboarding_add_title">Add an address</string>
@@ -72,8 +82,6 @@
         <item quantity="other">This app holds %1$d wallets at most. To restore another one, delete one on this phone first (Settings → Account).</item>
     </plurals>
     <string name="onboarding_error_network">Couldn\'t connect: %1$s</string>
-    <string name="onboarding_restore">Restore from recovery phrase</string>
-    <string name="onboarding_restore_instead">Restore an account instead</string>
 
     <string name="restore_title">Restore account</string>
     <string name="restore_body">Type or paste the recovery phrase you wrote down.</string>
@@ -85,23 +93,10 @@
     </plurals>
     <string name="restore_phrase_unknown">“%1$s” isn\'t a recovery phrase word. Check the spelling.</string>
     <string name="restore_phrase_checksum">The words don\'t fit together. A word may be wrong or out of order.</string>
-    <string name="restore_default_account_name">Restored</string>
     <string name="restore_start">Restore</string>
-    <string name="restore_searching">Looking for your money. This can take a minute.</string>
     <string name="restore_what">Your balance comes back, and so does the address the app suggested when you set it up. Past activity and other addresses aren\'t part of the recovery phrase.</string>
     <string name="restore_error_already">This recovery phrase is already in this wallet, as the account “%1$s”. For another address, add one under Settings → Account → Lightning addresses.</string>
-    <string name="restore_error_network">Couldn\'t connect. Check your connection and try again. Nothing was changed.</string>
 
-    <string name="restore_address_title">Your address</string>
-    <string name="restore_address_found">Restored: %1$s found.</string>
-    <string name="restore_address_found_none">Restored. No money was found on this recovery phrase.</string>
-    <string name="restore_address_body">Your address wasn\'t found by itself. Type the address you had on %1$s to take it back, or choose a new one.</string>
-    <string name="restore_address_submit">Use this address</string>
-    <string name="restore_cancel">Cancel restore</string>
-    <string name="restore_cancel_title">Cancel the restore?</string>
-    <string name="restore_cancel_body">The restored account is removed from this phone. Its money stays with the recovery phrase, and you can restore it again any time.</string>
-    <string name="restore_cancel_confirm">Cancel restore</string>
-    <string name="restore_cancel_keep">Keep going</string>
     <string name="restore_test_phrase">Use test phrase (developer mode)</string>
 
     <string name="claimed_body_unconfirmed">It\'s registered, but the app can\'t double-check that payments reach this wallet. Try a small payment first.</string>
@@ -116,4 +111,47 @@
     <string name="address_held_later">Pay later</string>
     <string name="onboarding_error_fee_not_paid">The fee could not be paid. The name stays reserved.</string>
     <string name="onboarding_error_hold_expired">The reservation ran out before the fee was paid. You can try again.</string>
+    <string name="add_mint_done_title">Done</string>
+    <string name="add_mint_failed_title">Error while restoring</string>
+    <string name="add_mint_error_unreachable">Couldn\'t reach it: %1$s. Check the address and your connection.</string>
+    <string name="add_mint_next">Next</string>
+    <string name="add_mint_fees">Fees per payment</string>
+    <string name="add_mint_fees_value">%1$s + %2$s %%</string>
+    <string name="add_mint_fees_unknown">Not stated</string>
+    <string name="add_mint_limits">One payment</string>
+    <string name="add_mint_limits_value">%1$s to %2$s</string>
+    <string name="add_mint_address_fee">Lightning address</string>
+    <string name="add_mint_address_free">Free</string>
+    <string name="add_mint_key">Signing key</string>
+    <string name="add_mint_key_none">Not shown</string>
+    <string name="add_mint_account">Account %1$d</string>
+    <string name="add_mint_account_looking">Looking…</string>
+    <string name="add_mint_account_empty">Nothing</string>
+    <string name="add_mint_failed_body">It stopped before it was done: %1$s. Try again; what was found stays.</string>
+    <string name="add_mint_failed_kept">Found so far: %1$s.</string>
+    <string name="add_mint_found_total">%1$s found</string>
+    <string name="add_mint_try_again">Try again</string>
+    <string name="add_mint_ok">OK</string>
+    <string name="setup_abandon_title">Stop setting up this wallet?</string>
+    <string name="setup_abandon_body">The wallet is removed from this phone. Money of a restored wallet stays with its recovery phrase; you can restore it again any time.</string>
+    <string name="setup_abandon_confirm">Remove the wallet</string>
+    <string name="setup_abandon_keep">Keep going</string>
+    <string name="welcome_create">Create a new wallet</string>
+    <string name="welcome_restore">I already have a wallet</string>
+    <string name="account_name_body">A new account in this wallet: its own balance and addresses, the same recovery phrase. Nothing else to set up.</string>
+    <string name="setup_address_title">Your Lightning address</string>
+    <string name="setup_address_body">People pay you at this address, on %1$s. If you had one there, type it to take it back.</string>
+    <string name="setup_address_submit">Use this address</string>
+    <plurals name="add_mint_keys_checked">
+        <item quantity="one">%1$d key looked up</item>
+        <item quantity="other">%1$d keys looked up</item>
+    </plurals>
+    <plurals name="add_mint_found_accounts">
+        <item quantity="one">In %1$d account:</item>
+        <item quantity="other">In %1$d accounts:</item>
+    </plurals>
+    <plurals name="account_name_limit">
+        <item quantity="one">This wallet holds %1$d account, the most this app allows.</item>
+        <item quantity="other">This wallet holds %1$d accounts, the most this app allows.</item>
+    </plurals>
 </resources>

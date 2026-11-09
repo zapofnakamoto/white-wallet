@@ -20,7 +20,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
-import whitewallet.core.wallet.CreateAccountResult
+import whitewallet.core.wallet.ConnectResult
 import whitewallet.core.wallet.InvoiceRequest
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.NotePolicies
@@ -50,7 +50,7 @@ class RegtestRoomTest {
     }
 
     /** Opens the wallet over the database, closing the one before: an app start. */
-    private fun start(client: LnurlcashClient = LnurlcashClient(), requireAddress: Boolean = true): Wallet {
+    private fun start(client: LnurlcashClient = LnurlcashClient()): Wallet {
         db?.close()
         val opened =
             Room.databaseBuilder(RuntimeEnvironment.getApplication(), WalletDatabase::class.java, dbName).allowMainThreadQueries().build()
@@ -60,8 +60,19 @@ class RegtestRoomTest {
             seeds,
             client,
             policies = NotePolicies.InMemory(ManualStrategy.ID),
-            requireAddress = requireAddress,
         )
+    }
+
+    /** A new wallet with [name]@[host] as its address, its setup done: what the app's setup screens do. */
+    private suspend fun Wallet.setUp(name: String, host: String): OnboardResult {
+        createWallet("Main")
+        return claimAddress(name, host).also { setSetupStep(null) }
+    }
+
+    /** A new wallet on [host] without an address, its setup done. */
+    private suspend fun Wallet.setUpWithout(host: String): ConnectResult {
+        createWallet("Main")
+        return addMint(host).also { setSetupStep(null) }
     }
 
     @Test
@@ -69,7 +80,7 @@ class RegtestRoomTest {
         runBlocking<Unit> {
             var wallet = start()
             val name = name()
-            assertIs<OnboardResult.Ready>(wallet.onboard(name, host))
+            assertIs<OnboardResult.Ready>(wallet.setUp(name, host))
             regtest("pay", "$name@$host", "3000")
             wallet.refresh()
             val rows = wallet.activity.first()
@@ -90,7 +101,7 @@ class RegtestRoomTest {
         runBlocking<Unit> {
             val bob = start()
             val bobName = name()
-            assertIs<OnboardResult.Ready>(bob.onboard(bobName, host))
+            assertIs<OnboardResult.Ready>(bob.setUp(bobName, host))
             bob.refresh()
 
             // Alice on her own database; her connection goes for good once the transfer reached the mint.
@@ -125,7 +136,7 @@ class RegtestRoomTest {
             try {
                 var alice = Wallet(RoomWalletStore(aliceDatabase), aliceSeeds, client, policies = NotePolicies.InMemory(ManualStrategy.ID))
                 val aliceName = name()
-                assertIs<OnboardResult.Ready>(alice.onboard(aliceName, host))
+                assertIs<OnboardResult.Ready>(alice.setUp(aliceName, host))
                 regtest("pay", "$aliceName@$host", "2000")
                 alice.refresh()
                 val preview = assertIs<PayPreview.Ready>(alice.previewPayment("$bobName@$host"))
@@ -157,11 +168,11 @@ class RegtestRoomTest {
     @Test
     fun `an invoice shown before a restart and paid after it is received`() =
         runBlocking<Unit> {
-            var wallet = start(requireAddress = false)
-            assertIs<CreateAccountResult.Created>(wallet.createAccount(host, "Main"))
+            var wallet = start()
+            assertIs<ConnectResult.Connected>(wallet.setUpWithout(host))
             val request = assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(2_000_000))
 
-            wallet = start(requireAddress = false)
+            wallet = start()
             regtest("pay", request.invoice, "2000")
             var balance = 0L
             for (attempt in 1..20) {

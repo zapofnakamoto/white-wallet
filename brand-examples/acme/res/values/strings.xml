@@ -16,7 +16,6 @@
     <string name="activity_moved_mint_other">Moved to another provider</string>
     <string name="onboarding_add_elsewhere_title">Address with another provider</string>
     <string name="onboarding_add_elsewhere_body">A name for this account with another provider, with the same recovery phrase. Payments to it arrive as banknotes with that provider, in this account. Your primary address stays where it is.</string>
-    <string name="restore_error_mint">This provider can\'t be used for a restore. Check that it\'s the one you used before.</string>
     <plurals name="notes_mints">
         <item quantity="one">%1$d provider</item>
         <item quantity="other">%1$d providers</item>
@@ -29,8 +28,6 @@
     <string name="mint_title">Provider</string>
     <string name="about_body">A Lightning wallet that keeps your money as banknotes with a provider you choose. Your recovery phrase stays on this device.</string>
     <string name="mints_intro">Trust a provider by its signing key: banknotes from trusted providers are marked with a check. If a provider ever signs with a different key, it is no longer trusted.</string>
-    <string name="mints_add_field">Provider, e.g. example.com</string>
-    <string name="mints_add_offered_hint">Add one of these providers to trust it before you receive anything from there, or to make it your provider.</string>
     <string name="onboarding_tagline">Pocket money on Lightning.</string>
     <string name="claim_title">Claim a banknote</string>
     <string name="claim_input">Paste a banknote link</string>
@@ -159,7 +156,6 @@
     <string name="addresses_watch_only_hint">Lets another app see the banknotes paid to this address, but never spend them.</string>
     <string name="notes_collect_hint">Banknotes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the banknote strategy above applies to them too.</string>
     <string name="notes_collect_pending">Moving the banknotes from %1$s; they arrive shortly.</string>
-    <string name="mints_add_invalid">That address can\'t hold banknotes.</string>
     <string name="mints_remove_body">The app forgets it, its signing key and whether you trust it. Banknotes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the app remembers.</string>
     <string name="claim_not_spendable">This link doesn\'t unlock the banknote it names, so it can\'t be claimed.</string>
     <string name="claim_other_paths">This banknote can also be spent another way, so someone else may take it before you claim it.</string>
@@ -193,4 +189,21 @@
     <string name="home_working_renewing">Renewing your banknotes…</string>
     <string name="home_working_moving_home">Moving your money to your provider…</string>
     <string name="settings_notices_hint">A short message when the wallet combined, split, renewed or moved your banknotes by itself.</string>
+    <string name="mints_add">Add a provider</string>
+    <string name="add_mint_setup_title">Your provider</string>
+    <string name="add_mint_title">Add a provider</string>
+    <string name="add_mint_setup_body">The provider holds your money and makes the invoices you get paid with.</string>
+    <string name="add_mint_body">Pick a provider. If your recovery phrase holds money there, it is found.</string>
+    <string name="add_mint_error_not_allowed">This app doesn\'t work with that provider. Pick another one.</string>
+    <string name="add_mint_error_invalid">That isn\'t a provider this app can use: %1$s</string>
+    <string name="add_mint_known">This wallet has this provider already. Adding it again looks for your money there again.</string>
+    <string name="add_mint_legacy">This provider speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there.</string>
+    <string name="add_mint_use">Use this provider</string>
+    <string name="add_mint_add">Add this provider</string>
+    <string name="add_mint_other">Pick another provider</string>
+    <string name="add_mint_adding_title">Adding the provider</string>
+    <string name="add_mint_adding_body">Looking for what your recovery phrase holds with this provider, account by account.</string>
+    <string name="add_mint_failed_key">This provider now shows another signing key than a moment ago, so it wasn\'t added. Check that it is the provider you meant.</string>
+    <string name="add_mint_added_body">The provider is added. Your new wallet uses it from now on.</string>
+    <string name="add_mint_found_none">The provider is added. Nothing of your recovery phrase was found there.</string>
 </resources>

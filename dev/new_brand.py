@@ -462,7 +462,7 @@ mints.suggestions={suggestions}
 # notes from any mint can still be claimed.
 mints.custom={"false" if o.lock else "true"}
 # true: after setup, users can add an address on another mint, change their home mint and move money between mints.
-# false: each account stays on the mint it was set up with.
+# false: each wallet stays on the mint it was set up with.
 mints.changeable={"false" if o.lock else "true"}
 # false hides everything about mints: Settings → Mints, the home mint's page, which mint a claimed note is on, and
 # the mints in the notes view.
@@ -477,9 +477,8 @@ mints.trusted={",".join(o.trusted_mint)}
 accounts.max={o.max_accounts}
 wallets.max={1 if o.max_accounts == 1 else 0}
 addresses.max={o.max_addresses}
-# Lightning addresses at setup: required = setup asks for a name, optional = it asks but users may continue without
-# one, none = setup only creates the account (a single button when there is only one mint to pick). Without an address,
-# users receive by invoice and can still get one later in Settings.
+# Lightning addresses at setup: optional = after the mint, setup asks for a name, which users may skip; none = setup
+# doesn't ask. Without an address, users receive by invoice and can still get one later in Settings.
 addresses.lightning={"none" if o.no_address else "optional"}
 
 # Amounts

@@ -8,6 +8,7 @@ import whitewallet.core.model.Account
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.SetupStep
 import whitewallet.core.model.WalletRecord
 import whitewallet.lnurl.Bolt11
 import whitewallet.lnurlcash.AddressProof
@@ -48,9 +49,6 @@ sealed interface OnboardResult {
     /** The account already holds [limit] addresses on this mint (see [Wallet.addAddress]). Nothing changed. */
     data class LimitReached(val limit: Int) : OnboardResult
 
-    /** The wallet already holds [limit] accounts, or the app [limit] wallets, the most it allows. Nothing changed. */
-    data class AccountLimitReached(val limit: Int) : OnboardResult
-
     /** A legacy 2f17578 mint knows one address key per recovery phrase, the first account's: another account can't get an address there. */
     data object MintTooOld : OnboardResult
 }
@@ -72,79 +70,74 @@ sealed interface UnregisterResult {
     data class NetworkError(val reason: String) : UnregisterResult
 }
 
+/** Why [Wallet.addMint] refused a mint that presents another signing key than the one pinned, or than the one it showed. */
+const val MINT_KEY_CHANGED = "the signing key of this host changed"
+
 sealed interface ConnectResult {
     data class Connected(val mint: Mint) : ConnectResult
 
     data class Failed(val result: OnboardResult) : ConnectResult
 }
 
-/** The outcome of [Wallet.createAccount]. */
+/** The outcome of [Wallet.createWallet] and [Wallet.createAccount]. */
 sealed interface CreateAccountResult {
     /** The account exists and is active. */
     data class Created(val accountId: String) : CreateAccountResult
 
     /** The wallet already holds [limit] accounts, or the app [limit] wallets, the most it allows. Nothing changed. */
     data class AccountLimitReached(val limit: Int) : CreateAccountResult
+}
 
-    data class MintInvalid(val reason: String) : CreateAccountResult
+/** The outcome of [Wallet.abandonSetup]. */
+sealed interface AbandonResult {
+    /** The wallet is gone from this device; [remains]: another account is active now. */
+    data class Abandoned(val remains: Boolean) : AbandonResult
 
-    data class NetworkError(val reason: String) : CreateAccountResult
+    /** A wallet created here, never backed up, holds something: it stays, and opens as any wallet. */
+    data object Refused : AbandonResult
+}
+
+/**
+ * How far adding a mint has looked ([Wallet.addMint]): per account index, in order, the keys looked up so far and what the found notes
+ * hold.
+ */
+data class ScanProgress(val accounts: List<AccountScan>) {
+    /** [done]: every key set of the account was looked through. */
+    data class AccountScan(val index: Long, val keysChecked: Int, val foundMsat: Long, val done: Boolean)
 }
 
 internal class Onboarding(private val wallet: Wallet) {
     private val addresses = AddressCheck(wallet)
 
-    /**
-     * Claims [username] on [host] as the account's primary address and confirms it by looking the address up afterwards. Never registers a
-     * different name than the one asked for. A new account (see [Wallet.onboard]) gets a fresh recovery phrase, which is discarded again
-     * unless the claim succeeds; with [inActiveWallet], the next free account of the active wallet's phrase instead.
-     */
-    suspend fun onboard(username: String, host: String, newAccountName: String?, inActiveWallet: Boolean = false): OnboardResult {
+    /** Claims [username] on [host] as the active account's primary address and confirms it by looking the address up afterwards. */
+    suspend fun claimAddress(username: String, host: String): OnboardResult {
         val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
         val h = normalizeHost(host) ?: return OnboardResult.MintInvalid("not a valid host")
-        val existing = wallet.store.currentAccountId()
-        val creating = newAccountName != null || existing == null
-        val accountName = newAccountName?.trim()?.ifEmpty { null } ?: DEFAULT_ACCOUNT_NAME
-        limit(creating, inActiveWallet)?.let {
-            return OnboardResult.AccountLimitReached(it)
-        }
-        if (!creating) return claim(name, h, checkNotNull(existing), creating = false, primary = true)
-        // The account is saved before anything of it is (its counters, its wallet's mint), and removed again unless the claim holds.
-        val accountId = saveNew(accountName, inActiveWallet)
-        val result = claim(name, h, accountId, creating = true, primary = true)
-        if (result !is OnboardResult.Ready && result !is OnboardResult.AwaitingFee) unsaveNew(accountId, inActiveWallet)
-        return result
+        val accountId = wallet.store.currentAccountId() ?: return OnboardResult.MintInvalid("no account")
+        return claim(name, h, accountId, primary = true)
     }
 
-    /** Saves a new account: the next one of the active wallet, or the first of a new wallet with a new phrase, saved before it. */
-    private suspend fun saveNew(name: String, inActiveWallet: Boolean): String {
-        val accountId = UUID.randomUUID().toString()
-        if (inActiveWallet) {
-            wallet.store.saveAccount(sibling(accountId, name))
-        } else {
-            wallet.createSeed(accountId)
-            wallet.store.saveWallet(WalletRecord(accountId, name, wallet.now()))
-            wallet.store.saveAccount(Account(accountId, name, wallet.now()))
-        }
-        return accountId
+    /** See [Wallet.createWallet]: the wallet row, then its phrase and its first account, each before anything of it. */
+    suspend fun createWallet(name: String): CreateAccountResult {
+        if (!wallet.canAddWallet.first()) return CreateAccountResult.AccountLimitReached(wallet.maxWallets)
+        val id = UUID.randomUUID().toString()
+        val before = wallet.store.currentAccountId()
+        wallet.store.saveWallet(WalletRecord(id, name, wallet.now(), setupStep = SetupStep.Mint, activeBeforeSetup = before))
+        wallet.createSeed(id)
+        wallet.store.saveAccount(Account(id, name, wallet.now()))
+        wallet.store.setActiveAccount(id)
+        return CreateAccountResult.Created(id)
     }
 
-    /**
-     * Removes an account [saveNew] saved, before it was ever active: with its own wallet, the phrase is kept for the next attempt, so the
-     * seed-derived names offered stay the same.
-     */
-    private suspend fun unsaveNew(accountId: String, inActiveWallet: Boolean) {
-        wallet.store.deleteAccount(accountId)
-        if (inActiveWallet) wallet.forgetKeys(accountId) else wallet.discardSeed(accountId, keepForRetry = true)
+    /** See [Wallet.createAccount]. */
+    suspend fun createAccount(name: String): CreateAccountResult {
+        val active = wallet.activeId()
+        if (wallet.siblings(active).size >= wallet.maxAccounts) return CreateAccountResult.AccountLimitReached(wallet.maxAccounts)
+        val account = sibling(UUID.randomUUID().toString(), name)
+        wallet.store.saveAccount(account)
+        wallet.store.setActiveAccount(account.id)
+        return CreateAccountResult.Created(account.id)
     }
-
-    /** The limit a new account would pass, if any: of accounts in the active wallet, or of wallets. */
-    private suspend fun limit(creating: Boolean, inActiveWallet: Boolean): Int? =
-        when {
-            !creating -> null
-            inActiveWallet -> wallet.maxAccounts.takeIf { wallet.siblings(wallet.activeId()).size >= it }
-            else -> wallet.maxWallets.takeIf { wallet.canAddWallet.first().not() }
-        }
 
     /** The active wallet's next account: its lowest free index, so a restore, which stops at the first unused one, finds no gap. */
     private suspend fun sibling(accountId: String, name: String): Account {
@@ -167,27 +160,7 @@ internal class Onboarding(private val wallet: Wallet) {
                 ?: return OnboardResult.MintInvalid("no mint")
         val onHost = wallet.store.addresses(accountId).first().filter { it.host == h }
         if (onHost.none { it.username == name } && onHost.size >= limit) return OnboardResult.LimitReached(limit)
-        return claim(name, h, accountId, creating = false, primary = false)
-    }
-
-    /** See [Wallet.createAccount]. The account is saved first; it stays only if the mint answers as one. */
-    suspend fun createAccount(host: String?, name: String, inActiveWallet: Boolean = false): CreateAccountResult {
-        val h = host?.let { normalizeHost(it) ?: return CreateAccountResult.MintInvalid("not a valid host") }
-        limit(creating = true, inActiveWallet)?.let {
-            return CreateAccountResult.AccountLimitReached(it)
-        }
-        val accountId = saveNew(name.trim().ifEmpty { DEFAULT_ACCOUNT_NAME }, inActiveWallet)
-        val failed = h?.let { connectMint(wallet.walletOf(accountId), it) as? ConnectResult.Failed }
-        if (failed != null) {
-            unsaveNew(accountId, inActiveWallet)
-            return when (val r = failed.result) {
-                is OnboardResult.NetworkError -> CreateAccountResult.NetworkError(r.reason)
-                is OnboardResult.MintInvalid -> CreateAccountResult.MintInvalid(r.reason)
-                else -> CreateAccountResult.MintInvalid(r.toString())
-            }
-        }
-        wallet.store.setActiveAccount(accountId)
-        return CreateAccountResult.Created(accountId)
+        return claim(name, h, accountId, primary = false)
     }
 
     /**
@@ -241,7 +214,7 @@ internal class Onboarding(private val wallet: Wallet) {
     }
 
     /** Claims [name] on [h] for the account: as its primary address with [primary], else only if it has none. */
-    private suspend fun claim(name: String, h: String, accountId: String, creating: Boolean, primary: Boolean): OnboardResult {
+    private suspend fun claim(name: String, h: String, accountId: String, primary: Boolean): OnboardResult {
         when (val connected = connectMint(wallet.walletOf(accountId), h)) {
             is ConnectResult.Failed -> return connected.result
             is ConnectResult.Connected -> Unit
@@ -272,7 +245,7 @@ internal class Onboarding(private val wallet: Wallet) {
                 val held = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == h }
                 val invoice = held?.feeInvoice?.let(Bolt11::decode)?.takeUnless { it.isExpired(wallet.now()) }
                 if (held != null && invoice?.amountMsat != null) return OnboardResult.AwaitingFee(held, invoice.amountMsat!!)
-                claimShare(name, h, accountId, ready) { n, pr -> hold(pr, n, name, h, accountId, creating) }
+                claimShare(name, h, accountId, ready) { n, pr -> hold(pr, n, name, h, accountId) }
             }
             MintDialect.Legacy -> wallet.legacy.claim(this, name, h, accountId, ready)
         }
@@ -325,7 +298,6 @@ internal class Onboarding(private val wallet: Wallet) {
         name: String,
         h: String,
         accountId: String,
-        creating: Boolean,
     ): OnboardResult {
         val advertised =
             try {
@@ -338,7 +310,6 @@ internal class Onboarding(private val wallet: Wallet) {
         val amount = Bolt11.decode(invoice)?.amountMsat ?: return OnboardResult.RegistrationFailed("the fee invoice can't be read")
         val max = minOf(advertised, wallet.maxAddressFeeMsat ?: advertised)
         if (amount > max) return OnboardResult.FeeRefused(amount, max)
-        if (creating) wallet.store.setActiveAccount(accountId)
         val address = RegisteredAddress(name, h, wallet.now(), share, invoice)
         wallet.store.saveAddress(accountId, address)
         return OnboardResult.AwaitingFee(address, amount)
@@ -379,18 +350,21 @@ internal class Onboarding(private val wallet: Wallet) {
         }
 
     /**
-     * Connects the wallet [walletId] to the mint at [host]: fetches what it is and pins its key for that wallet on first contact. The
-     * wallet's first mint becomes its home mint.
+     * Connects the wallet [walletId] to the mint at [host]: fetches what it is and pins its key for that wallet on first contact (only
+     * [expectedKey], if given). The wallet's first mint becomes its home mint.
      */
-    suspend fun connectMint(walletId: String, host: String): ConnectResult {
+    suspend fun connectMint(walletId: String, host: String, expectedKey: String? = null): ConnectResult {
         val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid("not a valid host"))
         return try {
             val pay = wallet.client.servicePayRequest(h)
             val discovered = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey }.getOrNull()
             val existing = wallet.store.mint(walletId, h)
             val pinned = existing?.mintPubkey
-            if (pinned != null && discovered != null && pinned != discovered.toHex()) {
-                return ConnectResult.Failed(OnboardResult.MintInvalid("the signing key of this host changed"))
+            if (
+                pinned != null && discovered != null && pinned != discovered.toHex() ||
+                    expectedKey != null && expectedKey != discovered?.toHex()
+            ) {
+                return ConnectResult.Failed(OnboardResult.MintInvalid(MINT_KEY_CHANGED))
             }
             val mint =
                 Mint(
@@ -447,7 +421,6 @@ internal class Onboarding(private val wallet: Wallet) {
     }
 
     companion object {
-        const val DEFAULT_ACCOUNT_NAME = "Main"
         const val USERNAME_RULE = "use 1-32 lowercase letters, digits, '.', '-' or '_'"
         private val USERNAME = Regex("^[a-z0-9._-]{1,32}$")
         private val HOST = Regex("^[a-z0-9.-]+(:[0-9]{1,5})?$")

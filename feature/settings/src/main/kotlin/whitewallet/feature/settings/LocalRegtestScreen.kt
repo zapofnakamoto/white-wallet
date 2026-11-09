@@ -34,7 +34,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Tone
-import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletTopBar
@@ -108,9 +107,9 @@ constructor(
 }
 
 @Composable
-fun LocalRegtestRoute(onBack: () -> Unit, onAddAccount: (host: String) -> Unit, viewModel: LocalRegtestViewModel = hiltViewModel()) {
+fun LocalRegtestRoute(onBack: () -> Unit, viewModel: LocalRegtestViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LocalRegtestScreen(state, onBack, viewModel::check, onAddAccount)
+    LocalRegtestScreen(state, onBack, viewModel::check)
 }
 
 /**
@@ -118,7 +117,7 @@ fun LocalRegtestRoute(onBack: () -> Unit, onAddAccount: (host: String) -> Unit, 
  * from the computer.
  */
 @Composable
-fun LocalRegtestScreen(state: LocalRegtestState, onBack: () -> Unit, onRecheck: () -> Unit, onAddAccount: (host: String) -> Unit) {
+fun LocalRegtestScreen(state: LocalRegtestState, onBack: () -> Unit, onRecheck: () -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.regtest_title), onBack) }) { padding ->
         Column(
             Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
@@ -129,7 +128,7 @@ fun LocalRegtestScreen(state: LocalRegtestState, onBack: () -> Unit, onRecheck: 
                 Command("./dev/regtest/regtest.sh up")
                 Command("./dev/regtest/regtest.sh connect")
             }
-            state.mints.forEach { mint -> MintCard(mint, onRecheck) { onAddAccount(mint.host) } }
+            state.mints.forEach { mint -> MintCard(mint, onRecheck) }
             Text(stringResource(R.string.regtest_multi_hint), style = MaterialTheme.typography.bodySmall)
 
             Text(stringResource(R.string.regtest_commands), style = MaterialTheme.typography.titleSmall)
@@ -144,9 +143,8 @@ fun LocalRegtestScreen(state: LocalRegtestState, onBack: () -> Unit, onRecheck: 
 }
 
 @Composable
-private fun MintCard(mint: LocalMint, onRecheck: () -> Unit, onAddAccount: () -> Unit) {
+private fun MintCard(mint: LocalMint, onRecheck: () -> Unit) {
     StatusCard(mint.host, mint.status, onRecheck)
-    PrimaryButton(stringResource(R.string.regtest_add_account, mint.host), onAddAccount, enabled = mint.status is LocalMintStatus.Reachable)
     Text(stringResource(R.string.regtest_pay_address), style = MaterialTheme.typography.bodySmall)
     Command("./dev/regtest/regtest.sh pay ${mint.address ?: "<name>@${mint.host}"} 1000")
     Text(stringResource(R.string.regtest_make_note), style = MaterialTheme.typography.bodySmall)

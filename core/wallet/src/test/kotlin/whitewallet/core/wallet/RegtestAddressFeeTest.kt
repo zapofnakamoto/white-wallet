@@ -29,7 +29,6 @@ class RegtestAddressFeeTest {
             InMemorySeedStore(),
             LnurlcashClient(),
             now = now,
-            requireAddress = false,
             maxAddressFeeMsat = maxFee,
             policies = NotePolicies.InMemory(ManualStrategy.ID),
         )

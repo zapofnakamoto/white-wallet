@@ -128,9 +128,6 @@ enum class AddressFeeChoice {
 }
 
 enum class AddressPolicy {
-    /** Setup asks for a name and can't continue without one. */
-    Required,
-
     /** Setup asks for a name, and the user may continue without one (receiving by invoice until they add one). */
     Optional,
 
@@ -219,7 +216,7 @@ data class AppDefaults(
     val maxWallets: Int = UNLIMITED,
     /** Lightning addresses an account may hold per mint (brand `addresses.max`); [UNLIMITED] for no limit. */
     val maxAddresses: Int = 1,
-    /** Whether setup asks for a Lightning address and may go on without one (brand `addresses.lightning`); see [Wallet.requireAddress]. */
+    /** Whether setup asks for a Lightning address, which users may always skip (brand `addresses.lightning`). */
     val address: AddressPolicy = AddressPolicy.Optional,
     /** What setup does when a mint charges for an address (brand `addresses.fee.onboarding`). */
     val addressFee: AddressFeeChoice = AddressFeeChoice.Ask,
@@ -254,11 +251,11 @@ data class AppDefaults(
     }
 
     /**
-     * Whether setup and restore may go on without a mint: the wallet asks for one on Home, and can't receive until then. Only where an
-     * address isn't required and users can add a mint later (brand `mints.changeable`, `mints.visible`).
+     * Whether setup may go on without a mint: the wallet asks for one on the main screen, and can't receive until then. Only where users
+     * can add a mint later (brand `mints.changeable`, `mints.visible`).
      */
     val mintOptional: Boolean
-        get() = address != AddressPolicy.Required && allowMintChange && showMints
+        get() = allowMintChange && showMints
 
     /** The mint preselected at setup and restore; empty when users bring their own. */
     val defaultMintHost: String

@@ -40,8 +40,8 @@ that doesn't know LNURLcash sees a normal withdraw link and can still cash it ou
 
 ## Principles
 
-1. **Works on first try.** Sane defaults everywhere; setup is one or two taps. A brand can reduce it further
-   (`addresses.lightning=none`: one "Get started" button), and with `optional` users may skip the name.
+1. **Works on first try.** Sane defaults everywhere. Setup is create or restore, then a mint, then an address; the
+   mint step can be skipped where the brand lets users add one later, and the address step always.
 2. **Few, plain features.** Receive (a Lightning address, an invoice for a set amount, or a note someone hands over),
    send (pay an invoice, address or LNURL-pay link, or hand out a note), balance and history. No protocol words in
    the main flows; the bearer nature of a shared note is always stated.

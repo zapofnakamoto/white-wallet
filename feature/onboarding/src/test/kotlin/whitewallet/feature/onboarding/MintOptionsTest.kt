@@ -58,10 +58,9 @@ class MintOptionsTest {
     }
 
     @Test
-    fun `setup can't go on without a mint`() {
+    fun `an address needs its mint`() {
         val state = OnboardingState(username = "alice", host = "", canChangeHost = true, availability = Availability.Unknown)
         assertFalse(state.canSubmit)
         assertTrue(state.copy(host = "mint.example").canSubmit)
-        assertFalse(OnboardingState(username = "", host = " ", canChangeHost = true, withAddress = false).canSubmit)
     }
 }

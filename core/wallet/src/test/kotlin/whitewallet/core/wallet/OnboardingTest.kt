@@ -275,7 +275,7 @@ class OnboardingTest {
     @Test
     fun `an account set up without an address gets its first one as primary, on its home mint`() = withMint { _, host ->
         val store = InMemoryWalletStore()
-        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
+        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient())
         assertIs<CreateAccountResult.Created>(wallet.createAccount(host, "Main"))
         assertIs<OnboardResult.Ready>(wallet.addAddress("alice", limit = 1))
         assertEquals("alice@$host", wallet.primaryAddress.first()?.address)
@@ -463,7 +463,7 @@ class OnboardingTest {
 
     @Test
     fun `an account without an address changes its wallet's home too`() = withTwoMints { _, homeHost, _, otherHost ->
-        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
+        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
         assertIs<CreateAccountResult.Created>(wallet.createAccount(homeHost, "Main"))
         assertIs<ConnectResult.Connected>(wallet.setHomeMint(otherHost).result)
         assertEquals(otherHost, wallet.homeHost.first())
@@ -474,7 +474,7 @@ class OnboardingTest {
     @Test
     fun `a wallet set up without a mint can't receive, and its first mint becomes its home`() = withTwoMints { _, homeHost, _, otherHost ->
         val store = InMemoryWalletStore()
-        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
+        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient())
         val main = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main")).accountId
         val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true)).accountId
         assertNull(store.homeOf(main))
@@ -507,7 +507,7 @@ class OnboardingTest {
             server.dispatcher = FakeMint(server, publishCpub = true, registrationEnabled = true)
             server.start()
             val otherHost = "localhost:${server.port}"
-            val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), requireAddress = false)
+            val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
             assertIs<CreateAccountResult.Created>(wallet.createAccount(homeHost, "Main"))
             assertIs<OnboardResult.Ready>(wallet.addAddress("alice", limit = 1, host = otherHost))
             assertEquals("alice@$otherHost", wallet.primaryAddress.first()?.address)

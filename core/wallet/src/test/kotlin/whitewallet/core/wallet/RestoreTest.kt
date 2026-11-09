@@ -4,7 +4,6 @@ import fr.acinq.bitcoin.MnemonicCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
@@ -14,6 +13,7 @@ import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import whitewallet.core.model.SetupStep
 import whitewallet.core.wallet.legacy.LegacyChange
 import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.Cp1
@@ -70,7 +70,8 @@ class RestoreTest {
         assertEquals(1, store.indexOf(restored.accountId, mint.host, KeySet.Change))
         assertEquals(6, store.indexOf(restored.accountId, mint.host, KeySet.share(0)))
         assertTrue(wallet.backupVerified.first(), "the user already has the phrase written down")
-        assertTrue(wallet.needsAddress(), "addresses can't be recovered from the seed")
+        assertTrue(wallet.addresses.first().isEmpty(), "addresses can't be recovered from the seed")
+        assertEquals(SetupStep.Address, wallet.setupStep.first(), "the address step is next")
         assertTrue(wallet.activity.first().isEmpty(), "no history is invented")
     }
 
@@ -93,30 +94,29 @@ class RestoreTest {
         assertEquals(1, store.indexOf(restored.accountId, mint.host, KeySet.LegacyChange))
         assertEquals(6, store.addressScanFrom(restored.accountId, mint.host))
         assertTrue(wallet.backupVerified.first(), "the user already has the phrase written down")
-        assertTrue(wallet.needsAddress(), "addresses can't be recovered from the seed")
+        assertTrue(wallet.addresses.first().isEmpty(), "addresses can't be recovered from the seed")
         assertTrue(wallet.activity.first().isEmpty(), "no history is invented")
         assertEquals(0, store.indexOf(restored.accountId, mint.host, KeySet.Wallet), "new keys start the new chain")
     }
 
     @Test
-    fun `aborting a restore before the address step removes the account and goes back to the one before`() =
-        withMint { mint, store, wallet ->
-            store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
-            seeds.save("a", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "))
-            mint.credit(key(mint.host, KeySet.Wallet, 0), 1_000)
-            assertFailsWith<IllegalStateException>("an account with an address is never removed this way") { wallet.abortRestore() }
+    fun `giving up a restore's setup removes its wallet and goes back to the account before`() = withMint { mint, store, wallet ->
+        store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
+        seeds.save("a", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" "))
+        mint.credit(key(mint.host, KeySet.Wallet, 0), 1_000)
+        assertFailsWith<IllegalStateException>("a wallet set up is never removed this way") { wallet.abandonSetup() }
 
-            val restored = assertIs<RestoreResult.Restored>(wallet.restore(phrase, mint.host, "Restored"))
-            assertEquals(1_000, restored.balanceMsat)
-            assertTrue(wallet.abortRestore(), "the earlier account remains")
-            assertEquals("a", store.currentAccountId())
-            assertEquals(listOf("a"), store.accounts.first().map { it.account.id })
-            assertEquals(setOf("a"), seeds.walletIds())
-            assertTrue(store.notes(restored.accountId).first().isEmpty())
+        val restored = assertIs<RestoreResult.Restored>(wallet.restore(phrase, mint.host, "Restored"))
+        assertEquals(1_000, restored.balanceMsat)
+        assertEquals(AbandonResult.Abandoned(remains = true), wallet.abandonSetup(), "the earlier account remains")
+        assertEquals("a", store.currentAccountId())
+        assertEquals(listOf("a"), store.accounts.first().map { it.account.id })
+        assertEquals(setOf("a"), seeds.walletIds())
+        assertTrue(store.notes(restored.accountId).first().isEmpty())
 
-            // The money is still there: restoring again finds it.
-            assertEquals(1_000, assertIs<RestoreResult.Restored>(wallet.restore(phrase, mint.host, "Restored")).balanceMsat)
-        }
+        // The money is still there: restoring again finds it.
+        assertEquals(1_000, assertIs<RestoreResult.Restored>(wallet.restore(phrase, mint.host, "Restored")).balanceMsat)
+    }
 
     @Test
     fun `restoring a phrase that is already in the wallet is refused`() = withMint { mint, store, wallet ->
@@ -132,7 +132,6 @@ class RestoreTest {
         assertIs<RestoreResult.NetworkError>(wallet.restore(phrase, "localhost:1", "Restored"))
         assertTrue(store.accounts.first().isEmpty())
         assertTrue(seeds.walletIds().isEmpty())
-        assertFalse(wallet.needsAddress())
     }
 
     @Test

@@ -29,7 +29,7 @@ class LimitsTest {
         store.addAccount("a", "Main", PrimaryAddress("alice", "mint.example"))
         val wallet = wallet(store, maxWallets = 1)
         assertFalse(wallet.canAddWallet.first())
-        assertEquals(OnboardResult.AccountLimitReached(1), wallet.onboard("bob", "mint.example", "Savings"))
+        assertEquals(CreateAccountResult.AccountLimitReached(1), wallet.createWallet("Savings"))
         assertEquals(RestoreResult.AccountLimitReached(1), wallet.restore(phrase, "mint.example", "Old"))
         assertEquals(1, store.accounts.first().size)
     }

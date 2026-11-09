@@ -2,7 +2,6 @@ package whitewallet.core.wallet
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
@@ -32,7 +31,7 @@ class NoAddressTest {
             FakeMint(feeMsat) { clock }
                 .use { mint ->
                     val store = InMemoryWalletStore()
-                    val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), now = { clock }, requireAddress = false)
+                    val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), now = { clock })
                     test(mint, store, wallet)
                 }
         }
@@ -42,7 +41,6 @@ class NoAddressTest {
         assertFalse(wallet.isSetUp())
         val created = assertIs<CreateAccountResult.Created>(wallet.createAccount(mint.host, "Main"))
         assertTrue(wallet.isSetUp())
-        assertFalse(wallet.needsAddress(), "no address step")
         assertEquals(mint.host, store.homeOf(created.accountId))
         assertNull(wallet.primaryAddress.first())
         assertEquals(mint.host, wallet.homeHost.first())
@@ -108,16 +106,12 @@ class NoAddressTest {
     }
 
     @Test
-    fun `accounts without addresses respect the account limit, and require-address brands can't create them`() = runBlocking {
+    fun `accounts without addresses respect the wallet limit, and are set up`() = runBlocking {
         val store = InMemoryWalletStore()
         store.addAccount("a", "Main", null)
-        val limited = Wallet(store, InMemorySeedStore(), LnurlcashClient(), requireAddress = false, maxWallets = 1)
+        val limited = Wallet(store, InMemorySeedStore(), LnurlcashClient(), maxWallets = 1)
         assertEquals(CreateAccountResult.AccountLimitReached(1), limited.createAccount("mint.example", "Second"))
-        assertFailsWith<IllegalStateException> {
-            Wallet(store, InMemorySeedStore(), LnurlcashClient()).createAccount("mint.example", "Second")
-        }
         assertTrue(limited.isSetUp(), "an account without an address is set up")
-        assertFalse(Wallet(store, InMemorySeedStore(), LnurlcashClient()).isSetUp(), "unless the brand requires an address")
     }
 
     /** A mint whose invoices (valid BOLT11, 10 minutes) mint to the commented key once [payAll] pays them. */
