@@ -31,7 +31,7 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
         dao.accountSummaries().map { rows ->
             rows.map { r ->
                 val profile = if (r.username != null && r.addressHost != null) Profile(r.username, r.addressHost) else null
-                AccountSummary(Account(r.id, r.name, r.createdAtMillis, r.host), profile, r.balanceMsat)
+                AccountSummary(Account(r.id, r.name, r.createdAtMillis, r.host, r.walletId, r.accountIndex), profile, r.balanceMsat)
             }
         }
     override val activeAccountId: Flow<String?> = dao.activeAccountId()

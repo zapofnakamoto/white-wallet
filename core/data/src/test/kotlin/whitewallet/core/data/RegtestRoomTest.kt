@@ -12,10 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.junit.Assume.assumeTrue
 import org.junit.runner.RunWith
@@ -30,7 +27,6 @@ import whitewallet.core.wallet.NotePolicies
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayResult
-import whitewallet.core.wallet.SeedStore
 import whitewallet.core.wallet.Wallet
 import whitewallet.lnurlcash.client.LnurlcashClient
 
@@ -42,7 +38,7 @@ import whitewallet.lnurlcash.client.LnurlcashClient
 class RegtestRoomTest {
     private val host = "localhost:8111"
     private val dbName = "regtest-${System.nanoTime()}.db"
-    private val seeds = Seeds()
+    private val seeds = TestSeeds()
     private var db: WalletDatabase? = null
 
     @BeforeTest fun requireStack() = assumeTrue("LNURLCASH_REGTEST not set", System.getenv("LNURLCASH_REGTEST") == "1")
@@ -124,7 +120,7 @@ class RegtestRoomTest {
                 Room.databaseBuilder(RuntimeEnvironment.getApplication(), WalletDatabase::class.java, aliceDb)
                     .allowMainThreadQueries()
                     .build()
-            val aliceSeeds = Seeds()
+            val aliceSeeds = TestSeeds()
             var aliceDatabase = open()
             try {
                 var alice = Wallet(RoomWalletStore(aliceDatabase), aliceSeeds, client, policies = NotePolicies.InMemory(ManualStrategy.ID))
@@ -178,28 +174,6 @@ class RegtestRoomTest {
             assertEquals(0, wallet.unresolvedOperations())
             assertEquals(listOf(ActivityKind.Received to 1_999_000L), wallet.activity.first().map { it.kind to it.amountMsat })
         }
-
-    /** The phrases, kept across restarts as the Keystore keeps them on a phone. */
-    private class Seeds : SeedStore {
-        private val words = mutableMapOf<String, List<String>>()
-        private val verified = MutableStateFlow<Set<String>>(emptySet())
-
-        override suspend fun load(accountId: String) = words[accountId]
-
-        override suspend fun save(accountId: String, words: List<String>) {
-            this.words[accountId] = words
-        }
-
-        override fun backupVerified(accountId: String): Flow<Boolean> = verified.map { accountId in it }
-
-        override suspend fun setBackupVerified(accountId: String) {
-            verified.value = verified.value + accountId
-        }
-
-        override suspend fun clear(accountId: String) {
-            words.remove(accountId)
-        }
-    }
 
     private companion object {
         val script: File = File("../../dev/regtest/regtest.sh").canonicalFile

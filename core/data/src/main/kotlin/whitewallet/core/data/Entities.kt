@@ -57,6 +57,9 @@ internal data class AccountSummaryRow(
     val createdAtMillis: Long,
     /** The account's home mint; null without one. */
     val host: String?,
+    /** Its wallet and index there: without them, every account would look like the first of a wallet of its own. */
+    val walletId: String,
+    val accountIndex: Long,
     val username: String?,
     val addressHost: String?,
     val balanceMsat: Long,

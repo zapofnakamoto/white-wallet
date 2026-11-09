@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 internal interface WalletDao {
     @Query(
         """
-        SELECT a.id, a.name, a.createdAtMillis, a.host, p.username, p.host AS addressHost,
+        SELECT a.id, a.name, a.createdAtMillis, a.host, a.walletId, a.accountIndex, p.username, p.host AS addressHost,
                COALESCE((SELECT SUM(n.amountMsat) FROM notes n WHERE n.accountId = a.id AND n.state = 'Outstanding'), 0) AS balanceMsat
         FROM accounts a LEFT JOIN profile p ON p.accountId = a.id
         ORDER BY a.createdAtMillis

@@ -4,7 +4,10 @@ import androidx.room.Room
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.runner.RunWith
@@ -26,9 +29,14 @@ import whitewallet.core.model.OutputRef
 import whitewallet.core.model.Profile
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.wallet.CreateAccountResult
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
 import whitewallet.core.wallet.KeySet
+import whitewallet.core.wallet.ManualStrategy
+import whitewallet.core.wallet.NotePolicies
+import whitewallet.core.wallet.Wallet
+import whitewallet.lnurlcash.client.LnurlcashClient
 
 /**
  * What the wallet stores comes back as it was written: the journal above all, which settles every operation whose outcome is unknown, after
@@ -149,6 +157,39 @@ class RoomWalletStoreTest {
             store.putActivity(row)
             store.settleActivities("j1", ActivityStatus.Done)
             assertEquals(listOf(row.copy(status = ActivityStatus.Done)), store.activities("acc").first())
+        }
+
+    @Test
+    fun `the account list says which wallet each account is in, and at which index`() =
+        runBlocking<Unit> {
+            store.saveAccount(Account("w", "Main", 1, "mint.example", walletId = "w", index = 0))
+            store.saveAccount(Account("s", "Savings", 2, "mint.example", walletId = "w", index = 1))
+            store.saveAccount(Account("o", "Other", 3, null, walletId = "o", index = 0))
+            assertEquals(
+                listOf(Triple("w", "w", 0L), Triple("s", "w", 1L), Triple("o", "o", 0L)),
+                store.accounts.first().map { Triple(it.account.id, it.account.walletId, it.account.index) },
+            )
+        }
+
+    @Test
+    fun `a wallet of two accounts counts once, and deleting it takes both accounts`() =
+        runBlocking<Unit> {
+            val wallet =
+                Wallet(
+                    store,
+                    TestSeeds(),
+                    LnurlcashClient(),
+                    policies = NotePolicies.InMemory(ManualStrategy.ID),
+                    requireAddress = false,
+                    maxWallets = 2,
+                )
+            assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main"))
+            assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true))
+            assertEquals(listOf(0L, 1L), wallet.activeWalletAccounts.first().map { it.account.index })
+            assertTrue(wallet.canAddWallet.first(), "one wallet of two, of two allowed")
+
+            assertFalse(wallet.deleteActiveAccount(), "nothing left")
+            assertEquals(emptyList(), store.accounts.first())
         }
 
     @Test
