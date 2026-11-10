@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -188,7 +189,12 @@ class RegtestWalletAccountsTest {
             val store = InMemoryWalletStore()
             val seeds = InMemorySeedStore()
             val wallet = Wallet(store, seeds, LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
-            val address = Regtest.name().let { name -> "$name@$HOST".also { assertIs<OnboardResult.Ready>(wallet.onboard(name, HOST)) } }
+            // The address the app suggests, derived from the phrase: the only kind an account can find again by itself.
+            assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
+            val name = assertNotNull(wallet.defaultUsername(HOST))
+            assertIs<OnboardResult.Ready>(wallet.claimAddress(name, HOST))
+            wallet.setSetupStep(null)
+            val address = "$name@$HOST"
             val phone = Regtest.Phone(store, wallet, address)
             val first = wallet.activeId()
             assertEquals(RemoveAccountResult.LastAccount, wallet.removeAccount(), "a wallet keeps one account")
@@ -233,6 +239,12 @@ class RegtestWalletAccountsTest {
             assertEquals(true to 1_999_000L, progress?.let { it.done to it.foundMsat })
             wallet.refresh()
             assertEquals(mapOf(0L to 1_999_000L, 1L to 2_999_000L), wallet.balances(), "counted once")
+
+            // Its address is listed again, and goes on being paid to it.
+            assertEquals(address, wallet.primaryAddress.first()?.address)
+            assertEquals(listOf(address), wallet.accountRemoval().addresses)
+            phone.fund(1000)
+            assertEquals(mapOf(0L to 2_998_000L, 1L to 2_999_000L), wallet.balances())
         }
 
     @Test

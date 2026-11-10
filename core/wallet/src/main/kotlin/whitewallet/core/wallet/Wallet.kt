@@ -341,11 +341,30 @@ class Wallet(
      * Adds the active wallet's next account, named [name], at its lowest free index, and makes it active. It exists on each of the wallet's
      * mints at once, and its index may have been used before (on another phone, or by an account removed from this one): what it already
      * holds there is looked for first, as a restore does ([onProgress] follows that scan). A scan that stops before it is through leaves no
-     * account ([CreateAccountResult.ScanFailed]): try again once every mint of the wallet answers. Runs to its end if the screen that asked
-     * is left.
+     * account ([CreateAccountResult.ScanFailed]): try again once every mint of the wallet answers. An address derived from the phrase that
+     * is still registered to the account is listed again. Runs to its end if the screen that asked is left.
      */
     suspend fun createAccount(name: String, onProgress: (ScanProgress) -> Unit = {}): CreateAccountResult =
-        withContext(NonCancellable) { lock.withLock { onboarding.createAccount(name) { restorer.scanAccount(it, onProgress) } } }
+        withContext(NonCancellable) {
+            lock.withLock {
+                onboarding
+                    .createAccount(name) { restorer.scanAccount(it, onProgress) }
+                    .also { if (it is CreateAccountResult.Created) takeBackAddresses() }
+            }
+        }
+
+    /**
+     * The active account's seed-derived address on each of its wallet's mints, if still registered to it (an account added again after it
+     * was removed): listed again, the first as its primary one. Only lookups are sent; an address not found here still receives.
+     */
+    private suspend fun takeBackAddresses() {
+        val id = activeId()
+        for (mint in store.mints(walletOf(id)).first()) {
+            val name = recoverableUsername(mint.host) ?: continue
+            if (store.addresses(id).first().isEmpty()) onboarding.claimAddress(name, mint.host)
+            else onboarding.addAddress(name, Int.MAX_VALUE, mint.host)
+        }
+    }
 
     /** What removing the active account would meet: what stands against it, the money it holds and the addresses it would leave. */
     suspend fun accountRemoval(): AccountRemoval = lock.withLock { removal(activeId()) }

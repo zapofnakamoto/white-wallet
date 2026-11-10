@@ -140,7 +140,6 @@
     <string name="backup_success_body">Store your paper somewhere safe. Nobody, including us, can recover your recovery phrase for you.</string>
     <string name="backup_done">Done</string>
 
-    <string name="settings_account_section">Account: %1$s</string>
     <string name="settings_backup_now">Back up your recovery phrase</string>
     <string name="settings_backup_now_hint">Without it, your money is gone if you lose this phone.</string>
     <string name="settings_app_lock_on">App lock on</string>
@@ -331,6 +330,7 @@
     <string name="addresses_none">This account has no Lightning address yet. With one, anyone can pay you from any Lightning wallet without asking you for an invoice first.</string>
     <string name="addresses_get">Get a Lightning address</string>
     <string name="settings_no_address">None yet: you receive by invoice</string>
+    <string name="settings_account_no_address">No Lightning address yet</string>
     <string name="notes_collect_title">Move everything to %1$s</string>
     <string name="notes_collect_confirm">Turn on</string>
     <string name="notes_collect_fee_cap">Only when the fees are at most</string>
@@ -421,7 +421,6 @@
     <!-- A wallet the user hasn't named: its number among the wallets, oldest first. -->
     <string name="wallet_numbered">Wallet %1$d</string>
     <!-- The wallet and the account in use. %1$s: the wallet's name, %2$s: the account's name. -->
-    <string name="wallet_and_account">%1$s · %2$s</string>
     <string name="wallets_intro">Each wallet has its own recovery phrase and its own accounts. One account is in use at a time.</string>
     <plurals name="wallets_accounts">
         <item quantity="one">%1$d account</item>

@@ -57,7 +57,9 @@ fun SettingsScreen(
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             if (state.accountName != null && !state.backupVerified) BackupWarning { open(SettingsTarget.Backup) }
-            Hub(state, versionName, open, brandPages) { onNavigate(SettingsDestination.Route(it)) }
+            Hub(state, versionName, open, { onNavigate(SettingsDestination.Account(it)) }, brandPages) {
+                onNavigate(SettingsDestination.Route(it))
+            }
         }
     }
 }
@@ -67,20 +69,29 @@ private fun Hub(
     state: SettingsState,
     versionName: String,
     open: (SettingsTarget) -> Unit,
+    openAccount: (accountId: String) -> Unit,
     brandPages: List<BrandPage>,
     openRoute: (String) -> Unit,
 ) {
-    // Only links: the wallets first (the one in use and its account named), the app-wide pages below (Design Guide: multiple wallets).
+    // Only links: the account in use first, straight to its page, then every wallet, then the app-wide pages (Design Guide: multiple
+    // wallets).
     state.accountName?.let { name ->
         val (status, color) = addressSummary(state.addressStatus)
         SummaryRow(
             leading = { WalletAccountMark(name, state.accountPlace) },
-            title = stringResource(R.string.settings_wallets),
-            summary = stringResource(R.string.wallet_and_account, walletName(state.walletName, state.walletNumber), name),
+            title = name,
+            summary = state.address ?: stringResource(R.string.settings_account_no_address),
             extra =
                 state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) }
                     ?: status.takeIf { color == MaterialTheme.colorScheme.error },
             extraColor = MaterialTheme.colorScheme.error,
+        ) {
+            state.accountId?.let(openAccount)
+        }
+        SummaryRow(
+            pageIcon(SettingsTarget.Wallets),
+            stringResource(R.string.settings_wallets),
+            walletName(state.walletName, state.walletNumber),
         ) {
             open(SettingsTarget.Wallets)
         }

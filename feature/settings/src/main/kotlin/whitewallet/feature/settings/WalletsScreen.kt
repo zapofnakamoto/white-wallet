@@ -319,7 +319,7 @@ fun AccountSettingsScreen(
 ) {
     val name = state.accountName.orEmpty()
     var renaming by rememberSaveable { mutableStateOf(false) }
-    Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_account_section, name), onBack) }) { padding ->
+    Scaffold(topBar = { WalletTopBar(name, onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             SummaryRow({ WalletAccountMark(name, state.accountPlace) }, stringResource(R.string.wallet_name), name) { renaming = true }
             val address = state.address
@@ -471,7 +471,7 @@ internal fun AccountRemovalDialog(name: String, removal: AccountRemoval, onDismi
 @Composable
 fun AccountNotInUseScreen(summary: AccountSummary, place: Int, onBack: () -> Unit, onUse: () -> Unit) {
     val name = summary.account.name
-    Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_account_section, name), onBack) }) { padding ->
+    Scaffold(topBar = { WalletTopBar(name, onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             WalletListItem(
                 leadingContent = { WalletAccountMark(name, place) },

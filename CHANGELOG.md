@@ -25,13 +25,15 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   the first mint added becomes its accounts' home, and finds what the phrase holds there.
 - Settings → Wallets: every wallet on the phone, then a wallet's page (its name, recovery phrase, mints, accounts,
   "Add account", deleting it) and an account's page (its name, Lightning addresses, mints, notes, note settings).
-  It replaces "Account: …" on top of Settings, in every app. Wallets and accounts can be renamed; a wallet is
-  "Wallet 1", "Wallet 2" by age until it has a name. The pages show everything of the wallet and account in use; another
-  account offers "Use this account" first. "Add wallet" is here now.
+  On top of Settings the account in use opens its page directly, and "Wallets" is the row below, in every app.
+  Wallets and accounts can be renamed; a wallet is "Wallet 1", "Wallet 2" by age until it has a name. The pages show
+  everything of the wallet and account in use; another account offers "Use this account" first. "Add wallet" is
+  here now.
 - "Add account" looks for what the new account already holds on each of the wallet's mints before it opens, and
   shows how far it is: its place under the recovery phrase may have been used before, on another phone or by an
   account removed here. If a mint doesn't answer, no account is added and the screen names that mint; try again
   later. The suggested name is "Account 2", "Account 3", …; the new account's page opens afterwards.
+  An address derived from the recovery phrase that is still registered to the account is listed again.
 - Remove an account (its page, in a wallet with more than one): only while it holds no money and nothing of it is
   unfinished. Its history and settings go from the phone; its Lightning addresses stay registered and are named
   before it goes. The next account added takes the freed place and finds what was paid there meanwhile.

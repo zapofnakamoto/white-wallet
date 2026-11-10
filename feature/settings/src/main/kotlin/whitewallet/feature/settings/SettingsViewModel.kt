@@ -20,6 +20,8 @@ import whitewallet.core.wallet.Wallet
 
 /** What the settings hub summarizes; each part is edited on its own page. */
 data class SettingsState(
+    /** The account in use. */
+    val accountId: String? = null,
     val accountName: String? = null,
     /** The account's place among the accounts, oldest first: its mark's colour. */
     val accountPlace: Int = 0,
@@ -82,6 +84,7 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
     private val account =
         combine(wallet.activeAccount, wallet.backupVerified, wallet.accounts, wallet.walletGroups) { active, backedUp, accounts, groups ->
             ActiveAccount(
+                active?.account?.id,
                 active?.account?.name,
                 backedUp,
                 accounts.indexOfFirst { it.account.id == active?.account?.id }.coerceAtLeast(0),
@@ -100,6 +103,7 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
                 (homeHost, mints) ->
                 val (developer, unlocked) = developerState
                 SettingsState(
+                    accountId = account.id,
                     accountName = account.name,
                     accountPlace = account.place,
                     walletName = account.wallet?.wallet?.name,
@@ -122,7 +126,7 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
 
-    private class ActiveAccount(val name: String?, val backedUp: Boolean, val place: Int, val wallet: WalletGroup?)
+    private class ActiveAccount(val id: String?, val name: String?, val backedUp: Boolean, val place: Int, val wallet: WalletGroup?)
 
     init {
         // Refreshing also re-checks that the address still points at this wallet.

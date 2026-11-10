@@ -142,7 +142,6 @@ class WalletsScreenTest {
     fun anAccountNotInUseOnlyOffersToUseIt() {
         var used = false
         compose.setContent { AccountNotInUseScreen(work, 2, {}) { used = true } }
-        compose.onNodeWithText("Konto: Work").assertExists()
         compose.onNodeWithText("Dieses Konto verwenden").performClick()
         assertEquals(true, used)
     }

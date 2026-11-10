@@ -135,7 +135,6 @@
     <string name="backup_success_body">Bewahre dein Papier sicher auf. Niemand, auch wir nicht, kann deine Wiederherstellungsphrase für dich wiederherstellen.</string>
     <string name="backup_done">Fertig</string>
 
-    <string name="settings_account_section">Konto: %1$s</string>
     <string name="settings_backup_now">Sichere deine Wiederherstellungsphrase</string>
     <string name="settings_backup_now_hint">Ohne sie ist dein Geld weg, wenn du dieses Handy verlierst.</string>
     <string name="settings_app_lock_on">App-Sperre an</string>
@@ -324,6 +323,7 @@
     <string name="addresses_none">Dieses Konto hat noch keine Lightning-Adresse. Mit einer kann dir jeder aus jeder Lightning-Wallet zahlen, ohne dich vorher um eine Rechnung zu bitten.</string>
     <string name="addresses_get">Lightning-Adresse holen</string>
     <string name="settings_no_address">Noch keine: du empfängst per Rechnung</string>
+    <string name="settings_account_no_address">Noch keine Lightning-Adresse</string>
     <string name="notes_collect_title">Alles zu %1$s verschieben</string>
     <string name="notes_collect_confirm">Einschalten</string>
     <string name="notes_collect_fee_cap">Nur wenn die Gebühren höchstens</string>
@@ -410,7 +410,6 @@
 
     <string name="settings_wallets">Wallets</string>
     <string name="wallet_numbered">Wallet %1$d</string>
-    <string name="wallet_and_account">%1$s · %2$s</string>
     <string name="wallets_intro">Jede Wallet hat ihre eigene Wiederherstellungsphrase und ihre eigenen Konten. Es ist immer ein Konto in Verwendung.</string>
     <plurals name="wallets_accounts">
         <item quantity="one">%1$d Konto</item>
