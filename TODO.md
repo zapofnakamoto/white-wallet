@@ -96,14 +96,14 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     invoice. Open: whether paying an invoice can spend a note at its own mint or the send path assumes the home mint;
     what becomes optional (onboarding, restore, the backup screen, collect at home mint, the mint and account
     settings pages); what such a wallet's setup and Receive look like. Asked for on 2026-10-29.
-12. **A restore that survives a bad connection and a large wallet.** A restore looks keys up one at a time, from key
-    0, and one lookup without an answer (dropped twice, a timeout, a rate limit, a proxy's error page) ends it: the
+12. **A restore that survives a bad connection and a large wallet.** A restore looks keys up from key 0, several at a
+    time (`scan.lookups.at.once`), and one lookup without an answer (dropped twice, a timeout, a rate limit, a proxy's error page) ends it: the
     account is removed and the next try starts at key 0 again. With Developer options → Network → Flaky, even an
     empty wallet's 60 or so lookups rarely all get through. A wallet that used tens of thousands of keys (Zap's
     single strategy uses new ones on every payment, combine and renew) needs as many lookups, which takes the better
     part of an hour, so one failure near the end throws it all away. Ideas: retry a key with growing waits instead of
     ending ("Waiting for the mint…", longer when rate limited); keep the account and save progress per purpose, so an
-    interrupted restore goes on from the last confirmed key; a few lookups at once; show progress ("Checked 1,240
+    interrupted restore goes on from the last confirmed key; show progress ("Checked 1,240
     keys, found 12 zaps"). Open: where progress lives, what the user sees, whether the wallet can be used meanwhile.
     A rate limit shows "Couldn't connect…" today. Asked for on 2026-10-31.
 13. **A time limit on a handed-out note.** When handing out a note, the user can set a limit ("take back if not
@@ -132,3 +132,12 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    selection strategies: largest first (today), oldest first, an exact combination before any split, fewest requests,
    lowest fee. Open: what each does to the notes left behind, whether a brand or the note strategy should choose, and
    how many combinations are worth trying on a wallet of many notes.
+17. **The fallback of a scan's lookups at once.** When one of several lookups gets no answer, `IndexDiscovery.discover`
+    asks that key again alone and goes on one at a time, but only for the rest of that key chain (the wallet chain,
+    the change chain or one share): the next chain starts at `scan.lookups.at.once` again. What makes a lookup fail
+    (an overloaded or rate-limiting mint, a bad network) belongs to the mint and the connection, not to a chain, so a
+    mint that can't take that many at once is hit again on each of a restore's 40 or more chains. Suggestion: drop
+    the fallback. lnurl-mint has no rate limit, and dead pooled connections are retried on a fresh one in
+    `LnurlcashClient`, so what's left is a real failure, which ends the scan as one at a time does (adding the mint
+    again goes on from there). If a mint ever limits parallel requests, add a back-off for the whole scan then,
+    against that case. Raised on 2026-11-10.

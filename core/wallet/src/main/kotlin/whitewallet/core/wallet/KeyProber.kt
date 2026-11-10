@@ -7,6 +7,7 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.isShared
+import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
@@ -53,13 +54,33 @@ sealed interface KeyProbe {
  * note the wallet holds follows the mint's state (outstanding, spent, or unknown when the mint doesn't know it).
  */
 internal class KeyProber(private val wallet: Wallet) {
-    suspend fun probe(id: KeyId, mint: Mint): KeyProbe {
+    suspend fun probe(id: KeyId, mint: Mint): KeyProbe = apply(id, mint, lookup(id, mint))
+
+    /**
+     * Only the mint's answer for [id]'s key, nothing changed in the wallet yet: a scan sends several of these at once and [apply]s the
+     * answers in key order. A failure is kept as the answer, for [apply] to judge.
+     */
+    suspend fun lookup(id: KeyId, mint: Mint): Result<NoteInfo> {
+        val q = wallet.keys(id.accountId, id.host).pubkey(id)
+        return try {
+            Result.success(wallet.client.lookup(mint.withdrawUrl, q))
+        } catch (e: NoteLookupError) {
+            Result.failure(e)
+        } catch (e: IOException) {
+            Result.failure(e)
+        } catch (e: ProtocolViolation) {
+            Result.failure(e)
+        }
+    }
+
+    /** Brings the wallet in line with the mint's [answer] for [id] (see the class). */
+    suspend fun apply(id: KeyId, mint: Mint, answer: Result<NoteInfo>): KeyProbe {
         val q = wallet.keys(id.accountId, id.host).pubkey(id)
         val noteId = q.toHex()
         val now = wallet.now()
         val result =
             try {
-                val info = wallet.client.lookup(mint.withdrawUrl, q)
+                val info = answer.getOrThrow()
                 val pinned = Pinning.check(wallet, mint, info.mintPubkey)
                 val certificate =
                     info.certificate?.takeIf { certifies(it, id.host, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }

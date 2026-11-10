@@ -1,5 +1,8 @@
 package whitewallet.core.wallet
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.OutputRef
 import whitewallet.lnurlcash.spendDomain
@@ -41,37 +44,50 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         var unused = 0
         var checked = 0
         var imported = 0
+        var atOnce = wallet.settings.scanLookupsAtOnce
         while (unused < gap) {
-            val probe = prober.probe(set.key(accountId, host, index), mint)
-            checked++
-            onProbe(probe)
-            when (probe) {
-                is KeyProbe.Outstanding -> {
-                    lastUsed = index
-                    unused = 0
-                    if (probe.imported) imported++
+            // Several lookups go out together, never past the end of the gap; their answers are applied in key order, so the scan finds
+            // and stops at the same keys as one at a time would.
+            val ids = (0 until minOf(atOnce, gap - unused)).map { set.key(accountId, host, index + it) }
+            val answers = coroutineScope { ids.map { async { prober.lookup(it, mint) } }.awaitAll() }
+            for ((id, answer) in ids.zip(answers)) {
+                val probe = prober.apply(id, mint, answer)
+                // One of several lookups failed, perhaps one too many for the mint: that key again, alone, before giving up.
+                if (probe is KeyProbe.Failed && atOnce > 1) {
+                    atOnce = 1
+                    break
                 }
-                is KeyProbe.Spent -> {
-                    lastUsed = index
-                    unused = 0
-                }
-                is KeyProbe.Refused ->
-                    if (probe.pending) {
+                checked++
+                onProbe(probe)
+                when (probe) {
+                    is KeyProbe.Outstanding -> {
                         lastUsed = index
                         unused = 0
-                    } else {
-                        return DiscoveryResult(
-                            next = wallet.store.indexOf(accountId, host, set),
-                            checked,
-                            imported,
-                            stoppedEarly = probe.reason ?: "refused",
-                            refused = true,
-                        )
+                        if (probe.imported) imported++
                     }
-                is KeyProbe.Unused -> unused++
-                is KeyProbe.Failed -> return DiscoveryResult(wallet.store.indexOf(accountId, host, set), checked, imported, probe.reason)
+                    is KeyProbe.Spent -> {
+                        lastUsed = index
+                        unused = 0
+                    }
+                    is KeyProbe.Refused ->
+                        if (probe.pending) {
+                            lastUsed = index
+                            unused = 0
+                        } else {
+                            return DiscoveryResult(
+                                next = wallet.store.indexOf(accountId, host, set),
+                                checked,
+                                imported,
+                                stoppedEarly = probe.reason ?: "refused",
+                                refused = true,
+                            )
+                        }
+                    is KeyProbe.Unused -> unused++
+                    is KeyProbe.Failed ->
+                        return DiscoveryResult(wallet.store.indexOf(accountId, host, set), checked, imported, probe.reason)
+                }
+                index++
             }
-            index++
         }
         val next = maxOf(lastUsed + 1, wallet.store.indexOf(accountId, host, set))
         wallet.store.setIndexOf(accountId, host, set, next)

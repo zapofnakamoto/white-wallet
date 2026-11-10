@@ -75,6 +75,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   They now merge 10 notes per request.
 - An address the mint refused at registration, a name held for someone else's fee say, used up a share, which left a
   gap a restore had to look across. The next address now gets that share.
+- A restore, or adding a mint, looks keys up several at a time, so it waits for far fewer round trips to the mint. It
+  finds and stops at the same keys as before.
 - A restore stopped after 3 unused shares, so money on an address after three that were never paid was missed. It now
   stops after 20.
 

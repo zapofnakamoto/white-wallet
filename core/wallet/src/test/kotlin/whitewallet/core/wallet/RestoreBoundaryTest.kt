@@ -5,6 +5,7 @@ package whitewallet.core.wallet
 import fr.acinq.bitcoin.MnemonicCode
 import java.io.IOException
 import java.security.SecureRandom
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -343,6 +344,56 @@ abstract class RestoreBoundaryTest {
         }
 
     /** A phone with nothing on it yet. */
+    @Test
+    fun `looking keys up several at once finds the same notes, indexes and number of lookups as one at a time`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            credit(words, KeySet.Wallet, 3, SATS)
+            credit(words, KeySet.Wallet, 15, SATS)
+            credit(words, KeySet.Change, 7, SATS)
+            credit(words, KeySet.share(1), 2, SATS)
+            credit(words, KeySet.Wallet, 4, SATS, account = 1)
+
+            suspend fun restore(atOnce: Int): Triple<Map<Long, Long>, List<List<Long>>, Int> {
+                val lookups = AtomicInteger()
+                val phone = Fresh(lookupsCounted(lookups), WalletSettings(scanLookupsAtOnce = atOnce))
+                assertIs<RestoreResult.Restored>(phone.restore(words))
+                return Triple(phone.balances(), phone.ids().values.map { phone.indexes(it) }.sortedBy { it.toString() }, lookups.get())
+            }
+            val alone = restore(1)
+            assertEquals(alone, restore(8))
+            assertEquals(alone, restore(32))
+        }
+
+    @Test
+    fun `a lookup that fails among several is asked again alone, and the restore goes on`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val msat = credit(words, KeySet.Wallet, 10, SATS)
+            val phone = Fresh(failingTwice(words), WalletSettings(scanLookupsAtOnce = 8))
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+            assertEquals(mapOf(0L to msat), phone.balances())
+
+            val alone = Fresh(failingTwice(words), WalletSettings(scanLookupsAtOnce = 1))
+            assertIs<RestoreResult.NetworkError>(alone.restore(words), "one at a time, a failed lookup ends the restore, as before")
+        }
+
+    /** Counts the key lookups (`p=`) into [lookups]. */
+    private fun lookupsCounted(lookups: AtomicInteger) = Interceptor { chain ->
+        if ("p=cp1" in chain.request().url.toString()) lookups.incrementAndGet()
+        chain.proceed(chain.request())
+    }
+
+    /** Fails the first two lookups of key 2 of [words]' wallet chain: the client's own retry, and so the whole lookup, fail. */
+    private fun failingTwice(words: List<String>): Interceptor {
+        val p = Cp1.encode(keys(words).pubkey(KeySet.Wallet, 2))
+        val failures = AtomicInteger()
+        return Interceptor { chain ->
+            if (p in chain.request().url.toString() && failures.incrementAndGet() <= 2) throw IOException("connection dropped")
+            chain.proceed(chain.request())
+        }
+    }
+
     private inner class Fresh(intercept: Interceptor? = null, settings: WalletSettings = WalletSettings()) {
         val store = InMemoryWalletStore()
         val seeds = InMemorySeedStore()
