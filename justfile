@@ -170,6 +170,18 @@ regtest-down:
     REGTEST_PROTOCOL=current dev/regtest/regtest.sh down
     REGTEST_PROTOCOL=legacy dev/regtest/regtest.sh down
 
+# Pay notes (1,000 sats each) into account `account` of the test phrase that developer mode offers at restore, on the
+# first mint of the regtest stack that is up; restore it in the app to see them found. Running it again adds more.
+[group('regtest')]
+regtest-fund-test-wallet notes="3" account="0":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Both stacks use the same ports: whichever is up gets the notes.
+    if [[ -n "$(docker compose -p whitewallet-regtest-current ps -q user-lnd 2>/dev/null)" ]]; then protocol=current
+    elif [[ -n "$(docker compose -p whitewallet-regtest ps -q user-lnd 2>/dev/null)" ]]; then protocol=legacy
+    else echo "No regtest stack is up: start one with 'just regtest up'." >&2; exit 1; fi
+    REGTEST_PROTOCOL=$protocol ./gradlew -q :core:wallet:fundTestWallet --args="{{ notes }} {{ account }}"
+
 # Mint a note on the local mint (add --mint2 for the second one) and type it into the focused field on the device
 [group('regtest')]
 note sats="1000" *flags:

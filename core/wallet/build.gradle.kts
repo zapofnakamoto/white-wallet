@@ -26,3 +26,11 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
 }
+
+// `just regtest-fund-test-wallet`: notes for the test phrase on the regtest stack that is up (see FundTestWallet.kt).
+tasks.register<JavaExec>("fundTestWallet") {
+    description = "Pays notes into an account of the BIP-39 test phrase on the regtest stack"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("whitewallet.core.wallet.FundTestWalletKt")
+    workingDir = projectDir
+}

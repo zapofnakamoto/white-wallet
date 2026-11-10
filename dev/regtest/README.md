@@ -65,6 +65,17 @@ Sending works the same way: on **Send**, **Developer: pay a regtest invoice of â
 | `down` | Stop, keeping state |
 | `reset` | Stop and delete everything (fresh chain, fresh mints, mint4 back on `0.12.2`) |
 
+### Money for the test phrase
+
+Developer mode offers the BIP-39 test phrase ("abandon â€¦ about") on the restore screen. To give a restore something to find:
+
+```sh
+just regtest-fund-test-wallet            # 3 notes of 1000 sats into account 0
+just regtest-fund-test-wallet 5 1        # 5 notes into account 1
+```
+
+It pays the notes on the first mint (`localhost:8111`) of whichever stack is up, by restoring the phrase in a wallet of its own and paying invoices it asks for, so the keys are right on either protocol and running it again adds notes. A restore stops at the first account that holds nothing: fund the accounts before the one you want found. The phrase is public, so every device that restores it shares these notes; `reset` empties it.
+
 The mint's own address `mint@localhost:8111` only accepts payments that name a note (a `cp1` comment), as LUD-25 requires; `pay` shows the mint's refusal for it. Pay a registered username instead, or an invoice the mint issued for a note:
 
 ```sh
