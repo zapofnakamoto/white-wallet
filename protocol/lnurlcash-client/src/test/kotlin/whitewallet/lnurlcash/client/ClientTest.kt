@@ -2,11 +2,15 @@
 
 package whitewallet.lnurlcash.client
 
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -95,6 +99,30 @@ class ClientTest {
                 server.start()
                 assertFailsWith<java.io.IOException> { LnurlcashClient().get(server.url("/w?p=cp1x").toString()) }
                 assertEquals(2, server.requestCount)
+            }
+        }
+
+    @Test
+    fun `a read-only request gets through when every pooled connection was closed by the server`() =
+        runBlocking<Unit> {
+            MockWebServer().use { server ->
+                // Three lookups at once leave three pooled connections, each of which the server closes once it answered (idle timeout).
+                repeat(3) {
+                    server.enqueue(
+                        MockResponse.Builder()
+                            .body("""{"status":"OK"}""")
+                            .headersDelay(300, TimeUnit.MILLISECONDS)
+                            .onResponseEnd(SocketEffect.ShutdownConnection)
+                            .build()
+                    )
+                }
+                server.enqueue(MockResponse(body = """{"status":"OK"}"""))
+                server.start()
+                val client = LnurlcashClient()
+                coroutineScope { List(3) { async { client.get(server.url("/w?p=cp1$it").toString()) } }.awaitAll() }
+                assertEquals(3, (0 until 3).map { server.takeRequest().connectionIndex }.distinct().size, "three connections")
+
+                assertIs<whitewallet.lnurl.LnurlResponse.Ok>(client.get(server.url("/w?p=cp1x").toString()))
             }
         }
 

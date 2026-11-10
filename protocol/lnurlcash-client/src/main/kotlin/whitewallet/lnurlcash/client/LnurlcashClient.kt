@@ -34,8 +34,9 @@ import whitewallet.lnurlcash.protocol.WithdrawDiscovery
  * rotate/split/merge, which LUD-25 requires a service to answer with its original success. A melt is never replayed.
  *
  * Servers close idle keep-alive connections (uvicorn after ~5 s), and OkHttp would otherwise reuse such a dead pooled connection after any
- * pause. So read-only requests retry once on a connection failure (they change nothing), and mutations and registrations always go out on a
- * fresh connection, never an idle pooled one.
+ * pause. So read-only requests retry once on a connection failure (they change nothing), on a fresh connection after dropping the idle
+ * ones, which idled as long (a scan leaves several); mutations and registrations always go out on a fresh connection, never an idle pooled
+ * one.
  *
  * A note's spend (`k1`) leaves only with [mutate]: whoever gets it can claim the note, so a note is checked by its key ([lookup]).
  * [SpendGuard], the last step before the wire, refuses any other request carrying a spend, also one an interceptor of [http] rewrote.
@@ -61,7 +62,7 @@ public class LnurlcashClient(
      */
     public suspend fun get(url: String): LnurlResponse {
         val request = Request.Builder().url(url).get().build()
-        val result = execute(request).let { if (it is HttpResult.TransportFailure) execute(request) else it }
+        val result = readOnce(request)
         return when (result) {
             is HttpResult.TransportFailure -> throw IOException(result.message)
             is HttpResult.Response ->
@@ -111,7 +112,7 @@ public class LnurlcashClient(
     public suspend fun dialect(host: String): MintDialect {
         val probe = Registration.dialectProbe(host)
         val request = Request.Builder().url(probe.url).method(probe.method, formBody(probe.fields)).build()
-        val result = execute(request).let { if (it is HttpResult.TransportFailure) execute(request) else it }
+        val result = readOnce(request)
         return when (result) {
             is HttpResult.TransportFailure -> throw IOException(result.message)
             is HttpResult.Response ->
@@ -122,6 +123,14 @@ public class LnurlcashClient(
                 }
         }
     }
+
+    /** A read-only [request], retried once after a connection failure (see the class). */
+    private suspend fun readOnce(request: Request): HttpResult =
+        execute(request).let {
+            if (it !is HttpResult.TransportFailure) return it
+            http.connectionPool.evictAll()
+            execute(request, freshConnectionHttp)
+        }
 
     private suspend fun registration(form: FormRequest): RegistrationOutcome =
         registration(Request.Builder().url(form.url).method(form.method, formBody(form.fields)).build())
