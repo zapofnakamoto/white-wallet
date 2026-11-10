@@ -97,6 +97,8 @@ import whitewallet.feature.settings.SecuritySettingsRoute
 import whitewallet.feature.settings.SettingsDestination
 import whitewallet.feature.settings.SettingsRoute
 import whitewallet.feature.settings.SettingsTarget
+import whitewallet.feature.settings.WalletRoute
+import whitewallet.feature.settings.WalletsRoute
 
 @AndroidEntryPoint
 // FragmentActivity because the recovery phrase screen uses BiometricPrompt.
@@ -211,7 +213,16 @@ internal object Routes {
     fun claim(input: String) = "claim?input=${Uri.encode(input)}"
 
     const val SETTINGS = "settings"
-    const val ACCOUNT_SETTINGS = "settings/account"
+    /** Every wallet on the phone; a wallet's page and an account's page. */
+    const val WALLETS = "settings/wallets"
+    const val WALLET = "settings/wallet/{id}"
+
+    fun wallet(id: String) = "settings/wallet/${Uri.encode(id)}"
+
+    const val ACCOUNT_SETTINGS = "settings/account/{id}"
+
+    fun account(id: String) = "settings/account/${Uri.encode(id)}"
+
     const val BACKUP = "backup"
     const val BACKUP_AT_SETUP = "backup/setup?next={next}"
 
@@ -354,8 +365,7 @@ private fun WalletApp(
                 onSettings = { nav.navigate(Routes.SETTINGS) },
                 onBackup = { nav.navigate(Routes.BACKUP) },
                 onOpenAddresses = { nav.navigate(Routes.ADDRESSES) },
-                onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
-                onAddWallet = { nav.navigate(Routes.ADD_WALLET) },
+                onManageWallets = { nav.navigate(Routes.WALLETS) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
                 onAddMint = { nav.navigate(Routes.ADD_MINT) },
                 menu =
@@ -440,18 +450,30 @@ private fun WalletApp(
                 versionName = BuildConfig.VERSION_NAME,
                 brandPages = brand.on(BrandScreenEntry.Settings).map { BrandPage(it.title, Routes.brand(it.id), it.icon) },
                 onBack = { nav.popBackStack() },
-                onNavigate = { destination ->
-                    nav.navigate(
-                        when (destination) {
-                            is SettingsDestination.Route -> destination.route
-                            is SettingsDestination.Page -> settingsRoute(destination.target)
-                        }
-                    )
-                },
+                onNavigate = { nav.navigate(settingsRoute(it)) },
             )
         }
-        composable(Routes.ACCOUNT_SETTINGS) {
-            AccountSettingsRoute(onBack = { nav.popBackStack() }, onOpen = { nav.navigate(settingsRoute(it)) })
+        composable(Routes.WALLETS) {
+            WalletsRoute(
+                onBack = { nav.popBackStack() },
+                onOpen = { id -> nav.navigate(Routes.wallet(id)) },
+                onAdd = { nav.navigate(Routes.ADD_WALLET) },
+            )
+        }
+        composable(Routes.WALLET, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+            WalletRoute(
+                walletId = entry.arguments?.getString("id").orEmpty(),
+                onBack = { nav.popBackStack() },
+                onNavigate = { nav.navigate(settingsRoute(it)) },
+                onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
+            )
+        }
+        composable(Routes.ACCOUNT_SETTINGS, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+            AccountSettingsRoute(
+                accountId = entry.arguments?.getString("id").orEmpty(),
+                onBack = { nav.popBackStack() },
+                onOpen = { nav.navigate(settingsRoute(it)) },
+            )
         }
         composable(Routes.DEVELOPER) {
             DeveloperSettingsRoute(DeveloperPages.all, onBack = { nav.popBackStack() }, onOpenPage = { nav.navigate(it) })
@@ -644,9 +666,17 @@ private fun notesTab(onSettings: () -> Unit, onOpenShared: (String) -> Unit, vie
     )
 }
 
+private fun settingsRoute(destination: SettingsDestination): String =
+    when (destination) {
+        is SettingsDestination.Route -> destination.route
+        is SettingsDestination.Page -> settingsRoute(destination.target)
+        is SettingsDestination.Wallet -> Routes.wallet(destination.walletId)
+        is SettingsDestination.Account -> Routes.account(destination.accountId)
+    }
+
 private fun settingsRoute(target: SettingsTarget): String =
     when (target) {
-        SettingsTarget.Account -> Routes.ACCOUNT_SETTINGS
+        SettingsTarget.Wallets -> Routes.WALLETS
         SettingsTarget.Backup -> Routes.BACKUP
         SettingsTarget.Addresses -> Routes.ADDRESSES
         SettingsTarget.Notes -> Routes.NOTES
@@ -658,4 +688,5 @@ private fun settingsRoute(target: SettingsTarget): String =
         SettingsTarget.About -> Routes.ABOUT
         SettingsTarget.Delete -> Routes.DELETE
         SettingsTarget.Developer -> Routes.DEVELOPER
+        SettingsTarget.Keys -> DeveloperPages.DERIVED_KEYS
     }

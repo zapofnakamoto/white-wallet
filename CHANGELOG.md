@@ -23,6 +23,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A wallet without a mint: setup may go on without one where the brand lets users add a mint later
   (`mints.changeable=true`, `mints.visible=true`). Home asks for a mint until there is one, and Receive points there;
   the first mint added becomes its accounts' home, and finds what the phrase holds there.
+- Settings → Wallets: every wallet on the phone, then a wallet's page (its name, recovery phrase, mints, accounts,
+  "Add account", deleting it) and an account's page (its name, Lightning addresses, mints, notes, note settings).
+  It replaces "Account: …" on top of Settings, in every app. Wallets and accounts can be renamed; a wallet is
+  "Wallet 1", "Wallet 2" by age until it has a name. The pages show everything of the wallet and account in use; another
+  account offers "Use this account" first. "Add wallet" is here now.
 - The seed-derived default address of a new account comes from its first share, so each account of a wallet has its
   own; those made before are still found by a restore. The watch-only key moved from the mint's page to each
   address: a key only ever shows what was paid to its own address.
@@ -54,7 +59,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - New account setting: pay from other mints first, so money gathers at the home mint.
 - Any address can be the primary one, on any mint, and the primary one can be unregistered, which leaves none.
   Receive offers the primary address, else one on the home mint, else an invoice, and lets you pick another. The main
-  screen warns about any address that no longer reaches the account. The account switcher shows balances only.
+  screen warns about any address that no longer reaches the account. The account switcher shows balances only; it
+  switches, moves funds and links to Settings → Wallets, where accounts and wallets are added.
+- Derived keys (developer mode) are on the account's page instead of under Developer options.
+- Deleting says "wallet" throughout: it always removed the recovery phrase with all its accounts.
 - The database checks that every row belongs to an account and every account to a wallet. An update keeps notes,
   received notes and operations of an account that is gone aside instead of dropping them, and merges a duplicate
   account. Database version 7.

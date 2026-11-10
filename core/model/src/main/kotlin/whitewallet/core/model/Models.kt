@@ -52,7 +52,8 @@ enum class NoteKind {
  */
 data class WalletRecord(
     val id: String,
-    val name: String,
+    /** The name the user gave it; null until they do: the app then shows its number, by age. */
+    val name: String?,
     val createdAtMillis: Long,
     /** The setup step the wallet was left at; null once it is set up. */
     val setupStep: SetupStep? = null,
@@ -105,6 +106,12 @@ enum class KeyCounter {
 
 /** An account with what the switcher shows about it. */
 data class AccountSummary(val account: Account, val balanceMsat: Long)
+
+/** A wallet with its accounts, lowest index first, and its [number] among the phone's wallets, oldest first, from 1. */
+data class WalletGroup(val wallet: WalletRecord, val number: Int, val accounts: List<AccountSummary>) {
+    val balanceMsat: Long
+        get() = accounts.sumOf { it.balanceMsat }
+}
 
 /** A note this wallet holds or held, identified by its output key `Q`. */
 data class Note(

@@ -58,7 +58,7 @@ class RoomWalletStoreTest {
 
     /** Saves account [id] (index [index] of wallet [walletId], saved first if new): its rows need it, as the foreign keys say. */
     private suspend fun account(id: String, walletId: String = id, index: Long = 0, home: String? = "mint.example") {
-        if (store.wallet(walletId) == null) store.saveWallet(WalletRecord(walletId, id, 1))
+        if (store.wallet(walletId) == null) store.saveWallet(WalletRecord(walletId, null, 1))
         store.saveAccount(Account(id, id, 1, walletId, index, home))
     }
 
@@ -285,6 +285,7 @@ class RoomWalletStoreTest {
             assertEquals(3, store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
             assertEquals("Renamed", store.account("acc")?.name)
             assertEquals("other.example", store.account("acc")?.homeHost)
+            assertEquals("Renamed too", store.wallet("acc")?.name)
             assertEquals("other.example", store.accounts.first().single().account.homeHost)
 
             // The database refuses to drop an account that still has notes; deleteAccount deletes them by name first.

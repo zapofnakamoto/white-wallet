@@ -314,7 +314,7 @@ class InMemoryWalletStore : WalletStore {
      * successful onboarding would.
      */
     suspend fun addAccount(id: String, name: String, primary: PrimaryAddress?, host: String = primary?.host ?: "mint.example") {
-        if (id !in walletMap.value) saveWallet(WalletRecord(id, name, accountMap.value.size.toLong()))
+        if (id !in walletMap.value) saveWallet(WalletRecord(id, null, accountMap.value.size.toLong()))
         saveAccount(Account(id, name, accountMap.value.size.toLong(), homeHost = host))
         primary?.let {
             saveAddress(id, RegisteredAddress(it.username, it.host, 0, share = 0))

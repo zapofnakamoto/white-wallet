@@ -55,7 +55,7 @@ internal class Restore(private val wallet: Wallet) {
         // The wallet and its first account are saved before anything of theirs (the mint, what the scan finds), and removed on failure.
         val before = wallet.store.currentAccountId()
         val step = if (h == null) SetupStep.Mint else SetupStep.Address
-        wallet.store.saveWallet(WalletRecord(accountId, accountName, wallet.now(), setupStep = step, activeBeforeSetup = before))
+        wallet.store.saveWallet(WalletRecord(accountId, null, wallet.now(), setupStep = step, activeBeforeSetup = before))
         wallet.seeds.save(accountId, words)
         // The user had the phrase written down; no need to ask them to back it up again.
         wallet.seeds.setBackupVerified(accountId)

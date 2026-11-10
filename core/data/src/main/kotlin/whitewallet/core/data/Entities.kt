@@ -59,7 +59,8 @@ internal data class AccountEntity(
 @Entity(tableName = "wallets")
 internal data class WalletEntity(
     @PrimaryKey val id: String,
-    val name: String,
+    /** The name the user gave it; null until they do. */
+    val name: String?,
     val createdAtMillis: Long,
     /** [SetupStep] name. */
     val setupStep: String?,

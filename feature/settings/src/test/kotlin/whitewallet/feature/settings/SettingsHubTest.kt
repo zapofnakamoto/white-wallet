@@ -28,8 +28,10 @@ class SettingsHubTest {
         compose.onNodeWithText(text(R.string.settings_delete)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_app_lock_off)).assertExists()
         compose.onNodeWithText("M").assertExists() // the account's mark
-        compose.onNodeWithText(text(R.string.settings_account_section, "Main")).performClick()
-        assertEquals(listOf(SettingsTarget.Account), opened)
+        // The wallets come first, naming the wallet and the account in use.
+        compose.onNodeWithText(text(R.string.wallet_and_account, text(R.string.wallet_numbered, 1), "Main")).assertExists()
+        compose.onNodeWithText(text(R.string.settings_wallets)).performClick()
+        assertEquals(listOf(SettingsTarget.Wallets), opened)
     }
 
     @Test
@@ -72,11 +74,18 @@ class SettingsHubTest {
     }
 
     @Test
+    fun aNamedWalletShowsItsNameInTheHub() {
+        compose.setContent { SettingsScreen(SettingsState(accountName = "Main", walletName = "Family", walletNumber = 2), "1.0", {}) {} }
+        compose.onNodeWithText(text(R.string.wallet_and_account, "Family", "Main")).assertExists()
+    }
+
+    @Test
     @Config(qualifiers = "de")
     fun theAccountPageHoldsTheAccountsSettings() {
         compose.setContent { AccountSettingsScreen(SettingsState(accountName = "Main", address = address), {}, {}) }
         compose.onNodeWithText("Konto: Main").assertExists()
-        compose.onNodeWithText("Wiederherstellungsphrase").assertExists()
         compose.onNodeWithText("alice@mint.example").assertExists()
+        // What belongs to the recovery phrase is on the wallet's page.
+        compose.onNodeWithText("Wiederherstellungsphrase").assertDoesNotExist()
     }
 }

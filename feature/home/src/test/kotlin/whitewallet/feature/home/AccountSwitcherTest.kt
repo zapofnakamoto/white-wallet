@@ -23,7 +23,7 @@ class AccountSwitcherTest {
     private fun summary(id: String, name: String) = AccountSummary(Account(id, name, 0), 0)
 
     private fun show(accounts: List<AccountSummary>, activeId: String, onSelect: (String) -> Unit = {}) = compose.setContent {
-        AccountSwitcher(accounts, activeId, canAdd = true, onSelect = onSelect, onAdd = {}, onMove = {}, onDismiss = {})
+        AccountSwitcher(accounts, activeId, onSelect = onSelect, onManage = {}, onMove = {}, onDismiss = {})
     }
 
     @Test
@@ -52,18 +52,18 @@ class AccountSwitcherTest {
     }
 
     @Test
-    fun severalWalletsAreShownApartAndAnotherOneCanBeAdded() {
-        var added = false
+    fun severalWalletsAreShownApartByNameOrNumberAndManagedInSettings() {
+        var managing = false
         val first = AccountSummary(Account("a", "Main", 0), 0)
         val sibling = AccountSummary(Account("b", "Savings", 1, walletId = "a", index = 1), 0)
         val other = AccountSummary(Account("c", "Work", 2), 0)
         compose.setContent {
-            AccountSwitcher(listOf(first, sibling, other), "a", true, {}, {}, {}, {}, canAddWallet = true, onAddWallet = { added = true })
+            AccountSwitcher(listOf(first, sibling, other), "a", {}, { managing = true }, {}, {}, walletNames = mapOf("c" to "Family"))
         }
         compose.onNodeWithText(text(R.string.accounts_wallet, 1)).assertExists()
-        compose.onNodeWithText(text(R.string.accounts_wallet, 2)).assertExists()
-        compose.onNodeWithText(text(R.string.accounts_wallet, 3)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.accounts_add_wallet)).performScrollTo().performClick()
-        assertEquals(true, added)
+        compose.onNodeWithText("Family").assertExists()
+        compose.onNodeWithText(text(R.string.accounts_wallet, 2)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.accounts_manage)).performScrollTo().performClick()
+        assertEquals(true, managing)
     }
 }

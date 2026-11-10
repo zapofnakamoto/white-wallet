@@ -22,7 +22,8 @@ import whitewallet.feature.settings.DeveloperPage
 import whitewallet.feature.settings.R as SettingsR
 
 /**
- * Pages listed under Settings > Developer options while developer mode is on. To add one:
+ * Pages listed under Settings > Developer options while developer mode is on; the derived keys are an account's, and listed on its page
+ * (Settings > Wallets > a wallet > an account). To add one:
  * 1. add a [DeveloperPage] here with a route under `developer/`, and
  * 2. register its screen in the nav graph with [developerComposable], so it can't be opened while the mode is off.
  */
@@ -34,7 +35,6 @@ object DeveloperPages {
     val all: List<DeveloperPage> =
         listOf(
             DeveloperPage(SettingsR.string.logs_title, SettingsR.string.logs_description, REQUEST_LOG),
-            DeveloperPage(SettingsR.string.keys_title, SettingsR.string.keys_description, DERIVED_KEYS),
             DeveloperPage(SettingsR.string.regtest_title, SettingsR.string.regtest_description, LOCAL_REGTEST),
         )
 }

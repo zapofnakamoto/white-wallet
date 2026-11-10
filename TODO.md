@@ -3,7 +3,8 @@
 Ideas and follow-ups noted for later. Not a plan: each item still needs its own design.
 
 1. **Better account management.** Open questions: should accounts get their own place in the bottom navigation
-   (today: the chip under the balance opens the switcher sheet; settings per account under Settings → Account), and
+   (today: the chip under the balance opens the switcher sheet; wallets and accounts are managed under Settings →
+   Wallets), and
    should that be a brand option white-label apps can turn on or off? Related: `accounts.max=1` already hides
    accounts entirely, and with the Notes tab the bar already has three.
 2. **A changed signing key on the Mints list.** A mint that signs with a new key isn't recognizable on Settings →
@@ -24,8 +25,9 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    per mint only once the account has key counters there (`Wallet.keyHosts`), and none while there's just one. The
    keys belong to an account on a mint, so the view fits on the mint's page under Account → Your mints (account
    mode, next to its other details): a "Derived keys" row, shown only while developer options are on, opening the
-   view for that mint (a mint without counters yet shows its empty indexes rather than nothing). Then the developer
-   entry can go, or stay as a shortcut to the home mint's.
+   view for that mint (a mint without counters yet shows its empty indexes rather than nothing). Since 2026-11-10
+   the view is a row on the account's page (Settings → Wallets → a wallet → an account) instead of a developer
+   entry; the per-mint row is still open.
 5. **Mint pickers that say more than the name.** New mints are added at setup, when adding an account, under
    Settings → Mints, or by claiming a note from one (`NoteClaimer.rememberService`); everywhere else (change home, move money) a dropdown of known mints shows only hosts. Each entry
    should show what helps choosing: the host, trusted (or a changed key, as a warning), the active account's money
@@ -80,7 +82,7 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    too); a test that decodes every brand's code with the logo on (zxing reads back what the app encoded) so a brand
    can't ship an unscannable one; and dark mode (the code stays black on white). Asked for on 2026-10-29.
 10. **A failed note maintenance on the Wallet tab.** When a run of the note strategy fails partway (the mint doesn't
-    answer, a combine or a move home is rejected), the user only learns it under Settings → Account → Note settings,
+    answer, a combine or a move home is rejected), the user only learns it under Settings → Wallets → the account → Note settings,
     in small text below the strategy ("Stopped: …", `PolicyRun.stoppedEarly`, `failed`, `NotCollected.Reason.Failed`).
     Nobody looks there unless something already seems wrong, while a success is now told on Home. Idea: a card on the
     Wallet tab, like the offline problem card, saying the wallet couldn't keep the notes as set and will try again,
@@ -141,3 +143,20 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     `LnurlcashClient`, so what's left is a real failure, which ends the scan as one at a time does (adding the mint
     again goes on from there). If a mint ever limits parallel requests, add a back-off for the whole scan then,
     against that case. Raised on 2026-11-10.
+18. **Managing a wallet that isn't in use.** Settings → Wallets shows everything of the wallet and account in use;
+    another wallet only lists its accounts, and another account only offers "Use this account", because every
+    settings page reads the active account. Nicer: open any wallet and see its phrase, mints, addresses and notes
+    while the one in use stays in use. Cost: every settings view model takes a wallet or account id. Open: pages that
+    talk to the mint (addresses, notes, mints) would use a wallet that isn't active, against "only the active wallet
+    is ever used"; they could be read-only there, or only the pages that never touch a mint (showing the phrase,
+    deleting the wallet) work without switching. Decided on 2026-11-10 to start with "use it first".
+19. **Move funds as "pay one of my accounts".** What a move should mean (2026-11-10): the money ends up as a note
+    at the same mint on the receiving account's next unused receive key, asked from the mint rather than read from
+    the other account's counters; the sender needs only something public of the receiver (its own phrase for an
+    account of the same wallet; a stored public key per account, or its Lightning address there, for another
+    wallet); the receiver learns it from the mint on its next refresh; only mints both wallets have are offered.
+    Today's Move funds (`FundsMover`, Home's switcher sheet) isn't checked against this yet. It would then fit under
+    Send ("To one of my accounts") rather than in the sheet.
+20. **Scan for notes with chosen limits.** Settings → Wallets → a wallet → "Scan for notes": repeat the restore's
+    scan with gap limits the user picks (accounts, keys, addresses), and show what it is doing. Belongs with the
+    restore refinement (errors and retry when adding a mint).

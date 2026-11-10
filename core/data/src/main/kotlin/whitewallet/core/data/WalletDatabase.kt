@@ -288,8 +288,8 @@ internal object Migration5To6 : Migration(5, 6) {
 
 /**
  * The wallet model, cleaned up: an account's home mint stays its own (`host` is `homeHost` now); an account's primary address is a flag on
- * its address (`profile` goes); a wallet's setup step is kept; every table points at its wallet or account with a foreign key, and one
- * (wallet, index) is one account.
+ * its address (`profile` goes); a wallet has a name of its own, none so far, and its setup step is kept; every table points at its wallet
+ * or account with a foreign key, and one (wallet, index) is one account.
  *
  * Nothing that holds money is dropped. Duplicate accounts at one (wallet, index) (an old scan bug) are merged into the oldest: the others'
  * rows move to it, counters keep the highest index (no key is used twice), scans the lowest (a scan goes back rather than skip), and it
@@ -309,7 +309,8 @@ internal object Migration6To7 : Migration(6, 7) {
             db.execSQL(table.createSql)
             val columns = table.columns.joinToString(", ") { "`$it`" }
             when (table.name) {
-                "wallets" -> db.execSQL("INSERT INTO wallets_new (id, name, createdAtMillis) SELECT id, name, createdAtMillis FROM wallets")
+                // A wallet's name was its first account's and never shown: it has none until the user gives it one.
+                "wallets" -> db.execSQL("INSERT INTO wallets_new (id, createdAtMillis) SELECT id, createdAtMillis FROM wallets")
                 "accounts" ->
                     db.execSQL(
                         "INSERT INTO accounts_new (id, name, createdAtMillis, walletId, accountIndex, homeHost) " +
@@ -422,7 +423,7 @@ internal object Migration6To7 : Migration(6, 7) {
         listOf(
             Table(
                 "wallets",
-                "CREATE TABLE IF NOT EXISTS `wallets_new` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `setupStep` TEXT, `activeBeforeSetup` TEXT, PRIMARY KEY(`id`))",
+                "CREATE TABLE IF NOT EXISTS `wallets_new` (`id` TEXT NOT NULL, `name` TEXT, `createdAtMillis` INTEGER NOT NULL, `setupStep` TEXT, `activeBeforeSetup` TEXT, PRIMARY KEY(`id`))",
                 listOf("id", "name", "createdAtMillis", "setupStep", "activeBeforeSetup"),
                 listOf(),
             ),

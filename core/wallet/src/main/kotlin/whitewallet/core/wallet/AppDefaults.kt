@@ -46,7 +46,7 @@ enum class NotesView {
     /** A Notes tab next to Wallet and History. */
     Tab,
 
-    /** A page under Settings → Account. */
+    /** A page on the account's page (Settings → Wallets). */
     Settings,
 
     /** Nowhere: the note strategy keeps the notes, and users only see their balance and history. */

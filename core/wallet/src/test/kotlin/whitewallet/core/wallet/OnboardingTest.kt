@@ -8,6 +8,7 @@ import fr.acinq.secp256k1.Hex
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
@@ -469,6 +470,33 @@ class OnboardingTest {
         assertEquals(otherHost, wallet.homeHost.first())
         assertNull(wallet.primaryAddress.first())
         assertIs<ConnectResult.Failed>(wallet.setHomeMint(otherHost).result, "already home")
+    }
+
+    @Test
+    fun `wallets are listed oldest first with their accounts, and the active wallet and account can be renamed`() = runBlocking {
+        val store = InMemoryWalletStore()
+        var clock = 1L
+        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), now = { clock++ })
+        val main = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main")).accountId
+        val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true)).accountId
+        val work = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Work")).accountId
+        val groups = wallet.walletGroups.first()
+        assertEquals(
+            listOf(1 to listOf(main, savings), 2 to listOf(work)),
+            groups.map { g -> g.number to g.accounts.map { it.account.id } },
+        )
+        assertEquals(listOf<String?>(null, null), groups.map { it.wallet.name }, "a wallet has no name until the user gives it one")
+
+        // Only the wallet and the account in use are renamed.
+        wallet.renameWallet("  Business ")
+        wallet.renameAccount(" Shop ")
+        assertEquals(listOf(null, "Business"), wallet.walletGroups.first().map { it.wallet.name })
+        assertEquals(listOf("Main", "Savings", "Shop"), listOf(main, savings, work).map { store.account(it)?.name })
+        assertFailsWith<IllegalArgumentException> { wallet.renameAccount("  ") }
+        // An empty wallet name takes the name away: it shows its number again.
+        wallet.renameWallet(" ")
+        assertEquals(listOf<String?>(null, null), wallet.walletGroups.first().map { it.wallet.name })
+        assertEquals(2, wallet.walletGroups.first().single { it.wallet.id == store.account(work)?.walletId }.number)
     }
 
     @Test

@@ -73,8 +73,8 @@
         <item quantity="other">Hier lässt sich nichts mehr hinzufügen: Diese App erlaubt höchstens %1$d.</item>
     </plurals>
     <plurals name="restore_error_account_limit">
-        <item quantity="one">Diese App hat höchstens %1$d Wallet. Um ein anderes wiederherzustellen, lösche zuerst das Wallet auf diesem Handy (Einstellungen → Konto).</item>
-        <item quantity="other">Diese App hat höchstens %1$d Wallets. Um eines wiederherzustellen, lösche zuerst eines auf diesem Handy (Einstellungen → Konto).</item>
+        <item quantity="one">Diese App hat höchstens %1$d Wallet. Um ein anderes wiederherzustellen, lösche zuerst das Wallet auf diesem Handy (Einstellungen → Wallets).</item>
+        <item quantity="other">Diese App hat höchstens %1$d Wallets. Um eines wiederherzustellen, lösche zuerst eines auf diesem Handy (Einstellungen → Wallets).</item>
     </plurals>
     <string name="onboarding_error_network">Keine Verbindung: %1$s</string>
 
@@ -90,7 +90,7 @@
     <string name="restore_phrase_checksum">Die Wörter passen nicht zusammen. Ein Wort ist vielleicht falsch oder an der falschen Stelle.</string>
     <string name="restore_start">Wiederherstellen</string>
     <string name="restore_what">Dein Guthaben kommt zurück, ebenso die Adresse, die die App bei der Einrichtung vorgeschlagen hat. Der bisherige Verlauf und andere Adressen sind nicht Teil der Wiederherstellungsphrase.</string>
-    <string name="restore_error_already">Diese Wiederherstellungsphrase ist schon in dieser Wallet, als Konto „%1$s“. Für eine weitere Adresse füge eine unter Einstellungen → Konto → Lightning-Adressen hinzu.</string>
+    <string name="restore_error_already">Diese Wiederherstellungsphrase ist schon in dieser Wallet, als Konto „%1$s“. Für eine weitere Adresse füge eine auf der Seite dieses Kontos unter Einstellungen → Wallets hinzu.</string>
 
     <string name="restore_test_phrase">Testphrase verwenden (Entwicklermodus)</string>
 

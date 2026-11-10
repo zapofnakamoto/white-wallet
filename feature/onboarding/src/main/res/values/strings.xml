@@ -78,8 +78,8 @@
         <item quantity="other">Nothing more can be added here: this app allows %1$d at most.</item>
     </plurals>
     <plurals name="restore_error_account_limit">
-        <item quantity="one">This app holds %1$d wallet at most. To restore another one, delete the wallet on this phone first (Settings → Account).</item>
-        <item quantity="other">This app holds %1$d wallets at most. To restore another one, delete one on this phone first (Settings → Account).</item>
+        <item quantity="one">This app holds %1$d wallet at most. To restore another one, delete the wallet on this phone first (Settings → Wallets).</item>
+        <item quantity="other">This app holds %1$d wallets at most. To restore another one, delete one on this phone first (Settings → Wallets).</item>
     </plurals>
     <string name="onboarding_error_network">Couldn\'t connect: %1$s</string>
 
@@ -95,7 +95,7 @@
     <string name="restore_phrase_checksum">The words don\'t fit together. A word may be wrong or out of order.</string>
     <string name="restore_start">Restore</string>
     <string name="restore_what">Your balance comes back, and so does the address the app suggested when you set it up. Past activity and other addresses aren\'t part of the recovery phrase.</string>
-    <string name="restore_error_already">This recovery phrase is already in this wallet, as the account “%1$s”. For another address, add one under Settings → Account → Lightning addresses.</string>
+    <string name="restore_error_already">This recovery phrase is already in this wallet, as the account “%1$s”. For another address, add one on that account\'s page under Settings → Wallets.</string>
 
     <string name="restore_test_phrase">Use test phrase (developer mode)</string>
 

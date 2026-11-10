@@ -122,7 +122,7 @@ internal class Onboarding(private val wallet: Wallet) {
         if (!wallet.canAddWallet.first()) return CreateAccountResult.AccountLimitReached(wallet.maxWallets)
         val id = UUID.randomUUID().toString()
         val before = wallet.store.currentAccountId()
-        wallet.store.saveWallet(WalletRecord(id, name, wallet.now(), setupStep = SetupStep.Mint, activeBeforeSetup = before))
+        wallet.store.saveWallet(WalletRecord(id, null, wallet.now(), setupStep = SetupStep.Mint, activeBeforeSetup = before))
         wallet.createSeed(id)
         wallet.store.saveAccount(Account(id, name, wallet.now()))
         wallet.store.setActiveAccount(id)

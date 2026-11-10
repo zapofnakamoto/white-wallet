@@ -70,19 +70,19 @@ private fun Hub(
     brandPages: List<BrandPage>,
     openRoute: (String) -> Unit,
 ) {
-    // Only links: the account's own page first, the app-wide pages below (Design Guide: multiple wallets).
+    // Only links: the wallets first (the one in use and its account named), the app-wide pages below (Design Guide: multiple wallets).
     state.accountName?.let { name ->
         val (status, color) = addressSummary(state.addressStatus)
         SummaryRow(
             leading = { WalletAccountMark(name, state.accountPlace) },
-            title = stringResource(R.string.settings_account_section, name),
-            summary = state.address ?: stringResource(R.string.settings_account_contents),
+            title = stringResource(R.string.settings_wallets),
+            summary = stringResource(R.string.wallet_and_account, walletName(state.walletName, state.walletNumber), name),
             extra =
                 state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) }
                     ?: status.takeIf { color == MaterialTheme.colorScheme.error },
             extraColor = MaterialTheme.colorScheme.error,
         ) {
-            open(SettingsTarget.Account)
+            open(SettingsTarget.Wallets)
         }
         HorizontalDivider()
     }
@@ -129,7 +129,7 @@ private fun Hub(
     }
 }
 
-/** Shown above everything while the account's recovery phrase isn't backed up: one level down, it would be missed. */
+/** Shown above everything while the active wallet's recovery phrase isn't backed up: one level down, it would be missed. */
 @Composable
 private fun BackupWarning(onClick: () -> Unit) {
     SummaryRow(
@@ -141,108 +141,11 @@ private fun BackupWarning(onClick: () -> Unit) {
     )
 }
 
-@Composable
-fun AccountSettingsRoute(onBack: () -> Unit, onOpen: (SettingsTarget) -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    AccountSettingsScreen(state, onBack, onOpen)
-}
-
-/** Everything that belongs to the active account: its recovery phrase, addresses, home mint, notes, and deleting it. */
-@Composable
-fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (SettingsTarget) -> Unit) {
-    val title =
-        state.accountName?.let { stringResource(R.string.settings_account_section, it) } ?: stringResource(R.string.settings_account)
-    Scaffold(topBar = { WalletTopBar(title, onBack) }) { padding ->
-        Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            SummaryRow(
-                pageIcon(SettingsTarget.Backup, if (state.backupVerified) Tone.Neutral else Tone.Danger),
-                stringResource(R.string.settings_recovery_phrase),
-                stringResource(if (state.backupVerified) R.string.settings_backed_up else R.string.settings_not_backed_up),
-                if (state.backupVerified) Color.Unspecified else MaterialTheme.colorScheme.error,
-            ) {
-                open(SettingsTarget.Backup)
-            }
-            val address = state.address
-            if (address != null) {
-                val (status, color) = addressSummary(state.addressStatus)
-                val summary =
-                    if (state.otherAddresses > 0) {
-                        pluralStringResource(
-                            R.plurals.settings_address_with_more,
-                            state.otherAddresses,
-                            address,
-                            state.otherAddresses,
-                        )
-                    } else {
-                        address
-                    }
-                SummaryRow(
-                    leading = pageIcon(SettingsTarget.Addresses),
-                    title = stringResource(R.string.addresses_title),
-                    summary,
-                    extra = status,
-                    extraColor = color,
-                ) {
-                    open(SettingsTarget.Addresses)
-                }
-            } else if (state.accountName != null) {
-                SummaryRow(
-                    pageIcon(SettingsTarget.Addresses),
-                    stringResource(R.string.addresses_title),
-                    stringResource(R.string.settings_no_address),
-                ) {
-                    open(SettingsTarget.Addresses)
-                }
-            }
-            state.homeHost
-                ?.takeIf { SettingsTarget.AccountMints !in state.hidden }
-                ?.let { host ->
-                    SummaryRow(
-                        pageIcon(SettingsTarget.AccountMints),
-                        stringResource(R.string.settings_account_mints),
-                        stringResource(R.string.addresses_home_mint, host),
-                    ) {
-                        open(SettingsTarget.AccountMints)
-                    }
-                }
-            if (SettingsTarget.NoteList !in state.hidden) {
-                SummaryRow(
-                    pageIcon(SettingsTarget.NoteList),
-                    stringResource(R.string.settings_note_list),
-                    stringResource(R.string.settings_note_list_hint),
-                ) {
-                    open(SettingsTarget.NoteList)
-                }
-            }
-            if (SettingsTarget.Notes !in state.hidden) {
-                SummaryRow(
-                    leading = pageIcon(SettingsTarget.Notes),
-                    title = stringResource(R.string.settings_notes),
-                    summary = notesSummary(state),
-                    extra = state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) },
-                    extraColor = MaterialTheme.colorScheme.error,
-                ) {
-                    open(SettingsTarget.Notes)
-                }
-            }
-            HorizontalDivider()
-            SummaryRow(
-                pageIcon(SettingsTarget.Delete, Tone.Danger),
-                stringResource(R.string.settings_delete),
-                stringResource(R.string.settings_delete_hint),
-                titleColor = MaterialTheme.colorScheme.error,
-            ) {
-                open(SettingsTarget.Delete)
-            }
-        }
-    }
-}
-
 /** The mark of a page, the same in the hub and on the account's page. */
 @DrawableRes
 private fun iconOf(target: SettingsTarget): Int =
     when (target) {
-        SettingsTarget.Account -> DesignR.drawable.ic_account
+        SettingsTarget.Wallets -> DesignR.drawable.ic_wallet
         SettingsTarget.Backup -> DesignR.drawable.ic_key
         SettingsTarget.Addresses -> DesignR.drawable.ic_address
         SettingsTarget.Notes -> DesignR.drawable.ic_tune
@@ -253,17 +156,18 @@ private fun iconOf(target: SettingsTarget): Int =
         SettingsTarget.Display -> DesignR.drawable.ic_amounts
         SettingsTarget.Security -> DesignR.drawable.ic_lock
         SettingsTarget.About -> DesignR.drawable.ic_info
-        SettingsTarget.Developer -> DesignR.drawable.ic_developer
+        SettingsTarget.Developer,
+        SettingsTarget.Keys -> DesignR.drawable.ic_developer
     }
 
 /** A page's icon as a [SummaryRow]'s leading mark. */
-private fun pageIcon(@DrawableRes icon: Int, tone: Tone = Tone.Neutral): @Composable () -> Unit = { WalletListIcon(icon, tone = tone) }
+internal fun pageIcon(@DrawableRes icon: Int, tone: Tone = Tone.Neutral): @Composable () -> Unit = { WalletListIcon(icon, tone = tone) }
 
-private fun pageIcon(target: SettingsTarget, tone: Tone = Tone.Neutral) = pageIcon(iconOf(target), tone)
+internal fun pageIcon(target: SettingsTarget, tone: Tone = Tone.Neutral) = pageIcon(iconOf(target), tone)
 
 /** One hub row: a leading mark, the page, a one-line summary of it (plus an optional status line), and a chevron. */
 @Composable
-private fun SummaryRow(
+internal fun SummaryRow(
     leading: @Composable () -> Unit,
     title: String,
     summary: String,
@@ -288,7 +192,7 @@ private fun SummaryRow(
 }
 
 @Composable
-private fun notesSummary(state: SettingsState): String {
+internal fun notesSummary(state: SettingsState): String {
     val strategy = state.noteStrategy ?: return ""
     val title = stringResource(strategy.title)
     val withRotate =
@@ -298,7 +202,7 @@ private fun notesSummary(state: SettingsState): String {
 }
 
 @Composable
-private fun addressSummary(status: AddressStatus?): Pair<String?, Color> =
+internal fun addressSummary(status: AddressStatus?): Pair<String?, Color> =
     when (status) {
         AddressStatus.Ours -> stringResource(R.string.settings_address_active) to MaterialTheme.colorScheme.primary
         AddressStatus.Unconfirmed -> stringResource(R.string.settings_address_unconfirmed) to Color.Unspecified

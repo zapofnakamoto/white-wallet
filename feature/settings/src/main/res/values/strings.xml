@@ -22,7 +22,7 @@
     <string name="settings_notes">Note settings</string>
     <string name="settings_note_list">Notes</string>
     <string name="settings_note_list_hint">See your notes one by one, share, split or combine them</string>
-    <string name="settings_account_contents">Recovery phrase, addresses, notes</string>
+    <string name="settings_account_contents">Addresses and notes</string>
     <string name="delete_what">This removes this wallet from this phone: its recovery phrase and its accounts, with their notes and settings. Other wallets are not affected.</string>
     <string name="settings_note_strategy">Note strategy</string>
     <string name="settings_strategy_manual_hint">Keep notes as they arrive.</string>
@@ -142,28 +142,27 @@
     <string name="backup_done">Done</string>
 
     <string name="settings_account_section">Account: %1$s</string>
-    <string name="settings_account">Account</string>
     <string name="settings_backup_now">Back up your recovery phrase</string>
     <string name="settings_backup_now_hint">Without it, your money is gone if you lose this phone.</string>
     <string name="settings_app_lock_on">App lock on</string>
     <string name="settings_app_lock_off">App lock off</string>
-    <string name="settings_delete">Delete this account from this device</string>
-    <string name="settings_delete_hint">Removes the account and its recovery phrase from this phone</string>
+    <string name="settings_delete">Delete this wallet from this device</string>
+    <string name="settings_delete_hint">Removes the wallet, its accounts and its recovery phrase from this phone</string>
 
-    <string name="delete_title">Delete account</string>
+    <string name="delete_title">Delete wallet</string>
     <string name="delete_funds">Your money is not deleted. It stays at %1$s, and the only way to get it back is your recovery phrase.</string>
     <string name="delete_address">Your address %1$s stays linked to that recovery phrase.</string>
     <string name="delete_balance">Balance in this account: %1$s</string>
     <string name="delete_backed_up">Your recovery phrase is backed up. Make sure you can find the paper before you continue.</string>
-    <string name="delete_not_backed_up">You haven\'t backed up your recovery phrase. If you delete the account now, this money is lost for good.</string>
+    <string name="delete_not_backed_up">You haven\'t backed up your recovery phrase. If you delete the wallet now, this money is lost for good.</string>
     <string name="delete_backup_first">Back up first</string>
     <string name="delete_acknowledge">I understand that I will lose %1$s</string>
     <string name="delete_continue">Continue</string>
-    <string name="delete_confirm_title">Delete this account?</string>
-    <string name="delete_confirm_body">This can\'t be undone. Without your recovery phrase, nobody can restore this account, including us.</string>
-    <string name="delete_confirm_action">Delete account</string>
+    <string name="delete_confirm_title">Delete this wallet?</string>
+    <string name="delete_confirm_body">This can\'t be undone. Without your recovery phrase, nobody can restore this wallet, including us.</string>
+    <string name="delete_confirm_action">Delete wallet</string>
     <string name="delete_auth_title">Confirm it\'s you</string>
-    <string name="delete_auth_subtitle">Unlock to delete this account</string>
+    <string name="delete_auth_subtitle">Unlock to delete this wallet</string>
 
     <string name="settings_developer">Developer options</string>
     <string name="settings_on">On</string>
@@ -417,4 +416,30 @@
     <string name="addresses_held_pay">Pay from balance</string>
     <string name="addresses_held_not_paid">The fee for %1$s could not be paid.</string>
     <string name="delete_accounts">All of its accounts go with it: %1$s.</string>
+
+    <!-- Settings → Wallets: every wallet (recovery phrase) on the phone, a wallet's page and an account's page. -->
+    <string name="settings_wallets">Wallets</string>
+    <!-- A wallet the user hasn't named: its number among the wallets, oldest first. -->
+    <string name="wallet_numbered">Wallet %1$d</string>
+    <!-- The wallet and the account in use. %1$s: the wallet's name, %2$s: the account's name. -->
+    <string name="wallet_and_account">%1$s · %2$s</string>
+    <string name="wallets_intro">Each wallet has its own recovery phrase and its own accounts. One account is in use at a time.</string>
+    <plurals name="wallets_accounts">
+        <item quantity="one">%1$d account</item>
+        <item quantity="other">%1$d accounts</item>
+    </plurals>
+    <string name="wallet_in_use">In use</string>
+    <string name="wallets_add">Add wallet</string>
+    <string name="wallet_accounts">Accounts</string>
+    <string name="wallet_add_account">Add account</string>
+    <string name="wallet_not_in_use">To manage this wallet, use one of its accounts.</string>
+    <string name="wallet_name">Name</string>
+    <string name="wallet_rename_title">Rename wallet</string>
+    <string name="wallet_rename_hint">Leave it empty to show the wallet\'s number again. The name stays on this phone.</string>
+    <string name="account_rename_title">Rename account</string>
+    <string name="account_rename_hint">The name stays on this phone.</string>
+    <string name="rename_save">Save</string>
+    <string name="rename_cancel">Cancel</string>
+    <string name="account_not_in_use">This account is not in use. Use it to see what it holds and to change its settings.</string>
+    <string name="account_use">Use this account</string>
 </resources>

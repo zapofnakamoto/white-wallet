@@ -26,26 +26,26 @@ import whitewallet.core.designsystem.WalletSheet
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.AccountSummary
 
-/** What the account switcher can ask for. */
-class AccountActions(val onSwitch: (String) -> Unit, val onAdd: () -> Unit, val onMove: () -> Unit, val onAddWallet: () -> Unit = {})
+/** What the account switcher can ask for: another account, the page where wallets and accounts are managed, moving funds. */
+class AccountActions(val onSwitch: (String) -> Unit, val onManage: () -> Unit, val onMove: () -> Unit)
 
-/** Bottom sheet listing every account with its address and balance (Design Guide: wallet switcher). */
+/**
+ * Bottom sheet listing every account with its balance, by wallet (Design Guide: wallet switcher). It switches and moves funds; adding,
+ * renaming and removing are in Settings → Wallets ([onManage]).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSwitcher(
     accounts: List<AccountSummary>,
     activeId: String?,
-    /** False once the active wallet holds as many accounts as the brand allows. */
-    canAdd: Boolean,
     onSelect: (String) -> Unit,
-    onAdd: () -> Unit,
+    onManage: () -> Unit,
     onMove: () -> Unit,
     onDismiss: () -> Unit,
-    /** False once the app holds as many wallets as the brand allows. */
-    canAddWallet: Boolean = false,
-    onAddWallet: () -> Unit = {},
+    /** The names the user gave wallets, by wallet id; a wallet without one shows its number. */
+    walletNames: Map<String, String> = emptyMap(),
 ) {
-    val wallets = accounts.groupBy { it.account.walletId }.values.toList()
+    val wallets = accounts.groupBy { it.account.walletId }.toList()
     WalletSheet(onDismissRequest = onDismiss) {
         // Scrolls: with many accounts, the buttons and the backup hint below them would be cut off.
         Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 16.dp)) {
@@ -56,10 +56,10 @@ fun AccountSwitcher(
             )
             // One choice among the accounts: each row is a radio button to screen readers; the active one's mark has a check.
             Column(Modifier.selectableGroup()) {
-                wallets.forEachIndexed { number, members ->
+                wallets.forEachIndexed { number, (walletId, members) ->
                     if (wallets.size > 1) {
                         Text(
-                            stringResource(R.string.accounts_wallet, number + 1),
+                            walletNames[walletId] ?: stringResource(R.string.accounts_wallet, number + 1),
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp),
                         )
@@ -76,17 +76,11 @@ fun AccountSwitcher(
                 }
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (canAdd)
-                    WalletButton(kind = ButtonKind.Secondary, onClick = onAdd, modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.accounts_add))
-                    }
+                WalletButton(kind = ButtonKind.Secondary, onClick = onManage, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.accounts_manage))
+                }
                 WalletButton(kind = ButtonKind.Secondary, onClick = onMove, enabled = accounts.size > 1, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.accounts_move))
-                }
-            }
-            if (canAddWallet) {
-                WalletButton(kind = ButtonKind.Text, onClick = onAddWallet, modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Text(stringResource(R.string.accounts_add_wallet))
                 }
             }
             Text(

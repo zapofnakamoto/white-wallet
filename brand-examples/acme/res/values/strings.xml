@@ -140,7 +140,7 @@
     <string name="settings_notes">Banknote settings</string>
     <string name="settings_note_list">Banknotes</string>
     <string name="settings_note_list_hint">See your banknotes one by one, share, split or combine them</string>
-    <string name="settings_account_contents">Recovery phrase, addresses, banknotes</string>
+    <string name="settings_account_contents">Addresses and banknotes</string>
     <string name="delete_what">This removes this account from this phone: its recovery phrase, its banknotes and its settings. Other accounts are not affected.</string>
     <string name="settings_note_strategy">Banknote strategy</string>
     <string name="settings_strategy_manual_hint">Keep banknotes as they arrive.</string>

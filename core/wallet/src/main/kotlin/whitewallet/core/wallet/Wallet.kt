@@ -41,6 +41,7 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.SetupStep
+import whitewallet.core.model.WalletGroup
 import whitewallet.core.model.WalletRecord
 import whitewallet.core.model.isShared
 import whitewallet.core.wallet.legacy.Legacy
@@ -155,6 +156,14 @@ class Wallet(
     val activeWallet: Flow<WalletRecord?> =
         combine(store.wallets, activeAccount) { wallets, active -> wallets.firstOrNull { it.id == active?.account?.walletId } }
 
+    /** Every wallet on the phone, oldest first, with its accounts. Only the active one is ever used; the others are listed. */
+    val walletGroups: Flow<List<WalletGroup>> =
+        combine(store.wallets, store.accounts) { wallets, accounts ->
+            wallets
+                .sortedBy { it.createdAtMillis }
+                .mapIndexed { i, w -> WalletGroup(w, i + 1, accounts.filter { it.account.walletId == w.id }.sortedBy { it.account.index }) }
+        }
+
     /** The active account's home mint, the one the user trusts most for its money; null while it has none. */
     val homeHost: Flow<String?> = activeAccount.map { it?.account?.homeHost }.distinctUntilChanged()
     val notes: Flow<List<Note>> = ofActive(emptyList(), store::notes)
@@ -231,6 +240,17 @@ class Wallet(
     val maintenanceNoticesChoice: Flow<Boolean?> = ofActive(null, policies::maintenanceNotices)
 
     suspend fun setMaintenanceNotices(enabled: Boolean) = policies.setMaintenanceNotices(activeId(), enabled)
+
+    /** Names the active wallet; a blank [name] takes its name away, and it shows its number again. A name is only on this phone. */
+    suspend fun renameWallet(name: String) = lock.withLock {
+        store.wallet(walletOf(activeId()))?.let { store.saveWallet(it.copy(name = name.trim().ifEmpty { null })) }
+    }
+
+    /** Names the active account; [name] must not be blank. A name is only on this phone. */
+    suspend fun renameAccount(name: String) = lock.withLock {
+        require(name.isNotBlank()) { "an account needs a name" }
+        accountOf(activeId())?.let { store.saveAccount(it.copy(name = name.trim())) }
+    }
 
     /** Switches collecting at its home mint on or off for the active account and applies it right away. */
     suspend fun setCollectAtHome(enabled: Boolean) = lock.withLock {

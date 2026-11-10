@@ -305,6 +305,8 @@ class MigrationTest {
                     .build()
             try {
                 val store = RoomWalletStore(db)
+                // A wallet's name was its first account's, never shown: it has none now, and shows its number.
+                assertEquals(listOf<String?>(null, null), db.dao().wallets().first().map { it.name })
                 // Each account keeps its own home, also where the accounts of one wallet had different ones.
                 assertEquals(
                     listOf("a0" to "one.example", "a1" to "two.example", "old" to "one.example"),

@@ -121,7 +121,7 @@
     <string name="home_address_inactive_action">Show addresses</string>
     <string name="home_unknown_action">Check again</string>
     <string name="accounts_title">Accounts</string>
-    <string name="accounts_add">Add account</string>
+    <string name="accounts_manage">Manage wallets</string>
     <string name="accounts_move">Move funds</string>
     <string name="accounts_separate_backups">Accounts in a wallet share its recovery phrase. Each wallet has its own: back up every wallet.</string>
     <string name="move_title">Move funds</string>
@@ -154,5 +154,4 @@
     <string name="home_working_updating">Updating your balance…</string>
     <string name="home_scan">Scan a QR code</string>
     <string name="accounts_wallet">Wallet %1$d</string>
-    <string name="accounts_add_wallet">New wallet with its own recovery phrase</string>
 </resources>

@@ -17,7 +17,7 @@
     <string name="settings_notes">Schein-Einstellungen</string>
     <string name="settings_note_list">Scheine</string>
     <string name="settings_note_list_hint">Deine Scheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>
-    <string name="settings_account_contents">Wiederherstellungsphrase, Adressen, Scheine</string>
+    <string name="settings_account_contents">Adressen und Scheine</string>
     <string name="delete_what">Das entfernt dieses Wallet von diesem Handy: seine Wiederherstellungsphrase und seine Konten, mit ihren Scheinen und Einstellungen. Andere Wallets sind nicht betroffen.</string>
     <string name="settings_note_strategy">Umgang mit Scheinen</string>
     <string name="settings_strategy_manual_hint">Scheine so behalten, wie sie ankommen.</string>
@@ -137,28 +137,27 @@
     <string name="backup_done">Fertig</string>
 
     <string name="settings_account_section">Konto: %1$s</string>
-    <string name="settings_account">Konto</string>
     <string name="settings_backup_now">Sichere deine Wiederherstellungsphrase</string>
     <string name="settings_backup_now_hint">Ohne sie ist dein Geld weg, wenn du dieses Handy verlierst.</string>
     <string name="settings_app_lock_on">App-Sperre an</string>
     <string name="settings_app_lock_off">App-Sperre aus</string>
-    <string name="settings_delete">Dieses Konto von diesem Gerät löschen</string>
-    <string name="settings_delete_hint">Entfernt das Konto und seine Wiederherstellungsphrase von diesem Handy</string>
+    <string name="settings_delete">Dieses Wallet von diesem Gerät löschen</string>
+    <string name="settings_delete_hint">Entfernt das Wallet, seine Konten und seine Wiederherstellungsphrase von diesem Handy</string>
 
-    <string name="delete_title">Konto löschen</string>
+    <string name="delete_title">Wallet löschen</string>
     <string name="delete_funds">Dein Geld wird nicht gelöscht. Es bleibt bei %1$s, und zurück bekommst du es nur mit deiner Wiederherstellungsphrase.</string>
     <string name="delete_address">Deine Adresse %1$s bleibt mit dieser Wiederherstellungsphrase verknüpft.</string>
     <string name="delete_balance">Guthaben in diesem Konto: %1$s</string>
     <string name="delete_backed_up">Deine Wiederherstellungsphrase ist gesichert. Stell sicher, dass du das Papier findest, bevor du weitermachst.</string>
-    <string name="delete_not_backed_up">Du hast deine Wiederherstellungsphrase nicht gesichert. Löschst du das Konto jetzt, ist dieses Geld für immer verloren.</string>
+    <string name="delete_not_backed_up">Du hast deine Wiederherstellungsphrase nicht gesichert. Löschst du das Wallet jetzt, ist dieses Geld für immer verloren.</string>
     <string name="delete_backup_first">Zuerst sichern</string>
     <string name="delete_acknowledge">Mir ist klar, dass ich %1$s verliere</string>
     <string name="delete_continue">Weiter</string>
-    <string name="delete_confirm_title">Dieses Konto löschen?</string>
-    <string name="delete_confirm_body">Das lässt sich nicht rückgängig machen. Ohne deine Wiederherstellungsphrase kann niemand dieses Konto wiederherstellen, auch wir nicht.</string>
-    <string name="delete_confirm_action">Konto löschen</string>
+    <string name="delete_confirm_title">Dieses Wallet löschen?</string>
+    <string name="delete_confirm_body">Das lässt sich nicht rückgängig machen. Ohne deine Wiederherstellungsphrase kann niemand dieses Wallet wiederherstellen, auch wir nicht.</string>
+    <string name="delete_confirm_action">Wallet löschen</string>
     <string name="delete_auth_title">Bestätige, dass du es bist</string>
-    <string name="delete_auth_subtitle">Entsperren, um dieses Konto zu löschen</string>
+    <string name="delete_auth_subtitle">Entsperren, um dieses Wallet zu löschen</string>
 
     <string name="settings_developer">Entwickleroptionen</string>
     <string name="settings_on">An</string>
@@ -409,4 +408,27 @@
     <string name="addresses_held_pay">Vom Guthaben bezahlen</string>
     <string name="addresses_held_not_paid">Die Gebühr für %1$s konnte nicht bezahlt werden.</string>
     <string name="delete_accounts">Alle seine Konten werden mit entfernt: %1$s.</string>
+
+    <string name="settings_wallets">Wallets</string>
+    <string name="wallet_numbered">Wallet %1$d</string>
+    <string name="wallet_and_account">%1$s · %2$s</string>
+    <string name="wallets_intro">Jedes Wallet hat seine eigene Wiederherstellungsphrase und seine eigenen Konten. Es ist immer ein Konto in Verwendung.</string>
+    <plurals name="wallets_accounts">
+        <item quantity="one">%1$d Konto</item>
+        <item quantity="other">%1$d Konten</item>
+    </plurals>
+    <string name="wallet_in_use">In Verwendung</string>
+    <string name="wallets_add">Wallet hinzufügen</string>
+    <string name="wallet_accounts">Konten</string>
+    <string name="wallet_add_account">Konto hinzufügen</string>
+    <string name="wallet_not_in_use">Um dieses Wallet zu verwalten, verwende eines seiner Konten.</string>
+    <string name="wallet_name">Name</string>
+    <string name="wallet_rename_title">Wallet umbenennen</string>
+    <string name="wallet_rename_hint">Lass das Feld leer, um wieder die Nummer des Wallets zu zeigen. Der Name bleibt auf diesem Handy.</string>
+    <string name="account_rename_title">Konto umbenennen</string>
+    <string name="account_rename_hint">Der Name bleibt auf diesem Handy.</string>
+    <string name="rename_save">Speichern</string>
+    <string name="rename_cancel">Abbrechen</string>
+    <string name="account_not_in_use">Dieses Konto ist nicht in Verwendung. Verwende es, um zu sehen, was es enthält, und seine Einstellungen zu ändern.</string>
+    <string name="account_use">Dieses Konto verwenden</string>
 </resources>

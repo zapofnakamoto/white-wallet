@@ -102,8 +102,8 @@ fun HomeRoute(
     onSettings: () -> Unit,
     onBackup: () -> Unit,
     onOpenAddresses: () -> Unit,
-    onAddAccount: () -> Unit,
-    onAddWallet: () -> Unit = {},
+    /** Opens Settings → Wallets, where wallets and accounts are added, renamed and removed. */
+    onManageWallets: () -> Unit,
     onMoveFunds: () -> Unit,
     /** Null until sending exists; the Send button shows disabled. */
     onSend: (() -> Unit)? = null,
@@ -139,7 +139,7 @@ fun HomeRoute(
         onBackup,
         onDismissBackup = viewModel::dismissBackupPrompt,
         onOpenAddresses,
-        accountActions = AccountActions(viewModel::switchAccount, onAddAccount, onMoveFunds, onAddWallet),
+        accountActions = AccountActions(viewModel::switchAccount, onManageWallets, onMoveFunds),
         onOpenNote,
         onToggleBalance = viewModel::toggleBalanceHidden,
         onOpenMint,
@@ -310,19 +310,14 @@ fun HomeScreen(
         AccountSwitcher(
             accounts = state.accounts,
             activeId = state.activeAccountId,
-            canAdd = state.canAddAccount,
-            canAddWallet = state.canAddWallet,
-            onAddWallet = {
-                showAccounts = false
-                accountActions.onAddWallet()
-            },
+            walletNames = state.walletNames,
             onSelect = {
                 showAccounts = false
                 accountActions.onSwitch(it)
             },
-            onAdd = {
+            onManage = {
                 showAccounts = false
-                accountActions.onAdd()
+                accountActions.onManage()
             },
             onMove = {
                 showAccounts = false

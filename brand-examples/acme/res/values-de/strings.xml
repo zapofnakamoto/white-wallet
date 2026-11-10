@@ -139,7 +139,7 @@
     <string name="settings_notes">Geldschein-Einstellungen</string>
     <string name="settings_note_list">Geldscheine</string>
     <string name="settings_note_list_hint">Deine Geldscheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>
-    <string name="settings_account_contents">Wiederherstellungsphrase, Adressen, Geldscheine</string>
+    <string name="settings_account_contents">Adressen und Geldscheine</string>
     <string name="delete_what">Das entfernt dieses Konto von diesem Handy: seine Wiederherstellungsphrase, seine Geldscheine und seine Einstellungen. Andere Konten sind nicht betroffen.</string>
     <string name="settings_note_strategy">Umgang mit Geldscheinen</string>
     <string name="settings_strategy_manual_hint">Geldscheine so behalten, wie sie ankommen.</string>

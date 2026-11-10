@@ -240,13 +240,13 @@ class HomeScreenTest {
     }
 
     @Test
-    fun theSwitcherOffersNoNewAccountAtTheLimit() {
+    fun theSwitcherSwitchesAndLinksToWhereWalletsAreManaged() {
         val main = AccountSummary(Account("a", "Main", 0), 0)
         val savings = AccountSummary(Account("b", "Savings", 1), 0)
-        show(HomeState(accounts = listOf(main, savings), activeAccountId = "a", canAddAccount = false))
+        show(HomeState(accounts = listOf(main, savings), activeAccountId = "a"))
         compose.onNodeWithText("Main").performClick()
         compose.onNodeWithText("Savings").assertExists()
-        compose.onNodeWithText(text(R.string.accounts_add)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.accounts_manage)).assertExists()
     }
 
     @Test

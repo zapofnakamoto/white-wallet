@@ -62,10 +62,8 @@ data class HomeState(
     val backupPromptDismissed: Boolean = false,
     /** The balance shows as dots until tapped (kept across launches). */
     val balanceHidden: Boolean = false,
-    /** The active wallet may hold another account (brand `accounts.max`). */
-    val canAddAccount: Boolean = true,
-    /** Another wallet may be created or restored (brand `wallets.max`). */
-    val canAddWallet: Boolean = false,
+    /** The names the user gave wallets, by wallet id. */
+    val walletNames: Map<String, String> = emptyMap(),
     /** Accounts are a thing in this app: hidden when the brand allows one and there is one. */
     val showAccounts: Boolean = true,
     /** Which filters History offers (brand `history.filter`). */
@@ -133,16 +131,17 @@ class HomeViewModel(
         combine(wallet.task, wallet.noteStrategy) { task, strategy ->
             task to strategy.workingText?.takeIf { task is WalletTask.Maintaining && task.strategyId == strategy.id }
         }
-    private val accountInfo = combine(wallet.accounts, wallet.activeAccount, work, ::Triple)
+    private val walletNames =
+        wallet.walletGroups.map { groups -> groups.mapNotNull { g -> g.wallet.name?.let { g.wallet.id to it } }.toMap() }
+    private val accountInfo = combine(wallet.accounts, wallet.activeAccount, work, walletNames, ::AccountInfo)
 
     val state: StateFlow<HomeState> =
         combine(accountInfo, wallet.activity, walletFlags, status) {
-                (accounts, active, work),
+                (accounts, active, work, names),
                 activity,
                 (backedUp, inactive, hidden, hasMint),
                 s ->
                 val balance = active?.balanceMsat ?: 0
-                val walletId = active?.account?.walletId
                 s.copy(
                     task = work.first,
                     strategyText = work.second,
@@ -154,8 +153,7 @@ class HomeViewModel(
                     showBackupPrompt = defaults.remindBackup(balance) && !backedUp && !s.backupPromptDismissed,
                     showAddMintPrompt = active != null && !hasMint,
                     balanceHidden = hidden,
-                    canAddAccount = accounts.count { it.account.walletId == walletId } < wallet.maxAccounts,
-                    canAddWallet = accounts.map { it.account.walletId }.distinct().size < wallet.maxWallets,
+                    walletNames = names,
                     showAccounts = wallet.maxAccounts > 1 || wallet.maxWallets > 1 || accounts.size > 1,
                 )
             }
@@ -263,3 +261,10 @@ class HomeViewModel(
 }
 
 private data class WalletFlags(val backedUp: Boolean, val inactiveAddress: String?, val hidden: Boolean, val hasMint: Boolean)
+
+private data class AccountInfo(
+    val accounts: List<AccountSummary>,
+    val active: AccountSummary?,
+    val work: Pair<WalletTask?, Int?>,
+    val walletNames: Map<String, String>,
+)

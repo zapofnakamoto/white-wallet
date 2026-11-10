@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.brand.NoteStrategy
+import whitewallet.core.model.WalletGroup
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
@@ -22,6 +23,9 @@ data class SettingsState(
     val accountName: String? = null,
     /** The account's place among the accounts, oldest first: its mark's colour. */
     val accountPlace: Int = 0,
+    /** The active wallet's own name, if the user gave it one, and its number among the wallets. */
+    val walletName: String? = null,
+    val walletNumber: Int = 1,
     /** The account's primary address, else its first one; null without any. */
     val address: String? = null,
     val backupVerified: Boolean = false,
@@ -76,25 +80,32 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
     private val address = combine(wallet.primaryAddress, wallet.addressStatus, wallet.addresses, ::Triple)
     private val home = combine(wallet.homeHost, wallet.mints, ::Pair)
     private val account =
-        combine(wallet.activeAccount, wallet.backupVerified, wallet.accounts) { active, backedUp, accounts ->
-            Triple(active, backedUp, accounts.indexOfFirst { it.account.id == active?.account?.id }.coerceAtLeast(0))
+        combine(wallet.activeAccount, wallet.backupVerified, wallet.accounts, wallet.walletGroups) { active, backedUp, accounts, groups ->
+            ActiveAccount(
+                active?.account?.name,
+                backedUp,
+                accounts.indexOfFirst { it.account.id == active?.account?.id }.coerceAtLeast(0),
+                groups.firstOrNull { it.wallet.id == active?.account?.walletId },
+            )
         }
     private val developer = combine(preferences.developerMode, preferences.developerOptionsUnlocked, ::Pair)
     private val app = combine(developer, preferences.appLock, wallet.collectAtHome, ::Triple)
 
     val state: StateFlow<SettingsState> =
         combine(account, address, notes, app, home) {
-                (account, backedUp, place),
+                account,
                 (primary, status, addresses),
                 (strategy, rotate, run),
                 (developerState, appLock, collect),
                 (homeHost, mints) ->
                 val (developer, unlocked) = developerState
                 SettingsState(
-                    accountName = account?.account?.name,
-                    accountPlace = place,
-                    (primary ?: addresses.firstOrNull()?.address)?.address,
-                    backupVerified = backedUp,
+                    accountName = account.name,
+                    accountPlace = account.place,
+                    walletName = account.wallet?.wallet?.name,
+                    walletNumber = account.wallet?.number ?: 1,
+                    address = (primary ?: addresses.firstOrNull()?.address)?.address,
+                    backupVerified = account.backedUp,
                     addressStatus = status,
                     otherAddresses = (addresses.size - 1).coerceAtLeast(0),
                     developerMode = developer,
@@ -110,6 +121,8 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
+
+    private class ActiveAccount(val name: String?, val backedUp: Boolean, val place: Int, val wallet: WalletGroup?)
 
     init {
         // Refreshing also re-checks that the address still points at this wallet.

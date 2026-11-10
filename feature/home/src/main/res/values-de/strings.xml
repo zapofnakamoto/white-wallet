@@ -109,7 +109,7 @@
     <string name="home_address_inactive_action">Adressen anzeigen</string>
     <string name="home_unknown_action">Erneut prüfen</string>
     <string name="accounts_title">Konten</string>
-    <string name="accounts_add">Konto hinzufügen</string>
+    <string name="accounts_manage">Wallets verwalten</string>
     <string name="accounts_move">Guthaben verschieben</string>
     <string name="accounts_separate_backups">Konten in einem Wallet teilen sich seine Wiederherstellungsphrase. Jedes Wallet hat seine eigene: Sichere jedes Wallet.</string>
     <string name="move_title">Guthaben verschieben</string>
@@ -140,5 +140,4 @@
     <string name="home_working_updating">Dein Guthaben wird aktualisiert …</string>
     <string name="home_scan">QR-Code scannen</string>
     <string name="accounts_wallet">Wallet %1$d</string>
-    <string name="accounts_add_wallet">Neues Wallet mit eigener Wiederherstellungsphrase</string>
 </resources>
