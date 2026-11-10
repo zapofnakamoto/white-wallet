@@ -218,7 +218,7 @@ private fun ResultContent(state: AddMintState, onDone: () -> Unit) {
 }
 
 @Composable
-private fun Hint(text: String) =
+internal fun Hint(text: String) =
     Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
 
 /** Giving a setup up removes the wallet from this phone; its money stays with the recovery phrase. */

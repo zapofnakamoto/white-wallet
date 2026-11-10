@@ -139,6 +139,9 @@
     <string name="welcome_create">Create a new wallet</string>
     <string name="welcome_restore">I already have a wallet</string>
     <string name="account_name_body">A new account in this wallet: its own balance and addresses, the same recovery phrase. Nothing else to set up.</string>
+    <string name="account_name_looking">Checking what this account already holds. This can take a moment.</string>
+    <string name="account_name_found">%1$s · found %2$s</string>
+    <string name="account_name_scan_failed">Couldn\'t check what this account already holds: %1$s. The account wasn\'t added.</string>
     <string name="setup_address_title">Your Lightning address</string>
     <string name="setup_address_body">People pay you at this address, on %1$s. If you had one there, type it to take it back.</string>
     <string name="setup_address_submit">Use this address</string>

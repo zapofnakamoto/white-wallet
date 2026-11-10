@@ -442,4 +442,18 @@
     <string name="rename_cancel">Cancel</string>
     <string name="account_not_in_use">This account is not in use. Use it to see what it holds and to change its settings.</string>
     <string name="account_use">Use this account</string>
+    <string name="account_remove">Remove this account</string>
+    <string name="account_remove_hint">Takes it off this phone. Only possible while it holds nothing.</string>
+    <string name="account_remove_title">Remove “%1$s”?</string>
+    <string name="account_remove_body">The account goes from this phone with its history and its settings. It holds no money. The wallet and its other accounts stay.</string>
+    <plurals name="account_remove_addresses">
+        <item quantity="one">Its Lightning address %1$s stays registered. Money sent to it later only shows up once you add an account to this wallet again.</item>
+        <item quantity="other">Its Lightning addresses %1$s stay registered. Money sent to them later only shows up once you add an account to this wallet again.</item>
+    </plurals>
+    <string name="account_remove_confirm">Remove account</string>
+    <string name="account_remove_ok">OK</string>
+    <string name="account_remove_blocked_title">This account can\'t be removed yet</string>
+    <string name="account_remove_blocked_money">It still holds %1$s. Send or move that money first; then the account can be removed.</string>
+    <string name="account_remove_blocked_open">Something of this account isn\'t finished yet: a payment under way, or money that is still arriving. Try again once that is done.</string>
+    <string name="account_remove_blocked_last">It is the only account of its wallet. To remove it, delete the wallet.</string>
 </resources>

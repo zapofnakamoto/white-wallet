@@ -18,6 +18,7 @@ internal suspend fun Wallet.onboard(
     val before = store.currentAccountId()
     val created = if (inActiveWallet) createAccount(name) else createWallet(name)
     if (created is CreateAccountResult.AccountLimitReached) return OnboardResult.RegistrationFailed("limit ${created.limit}")
+    if (created is CreateAccountResult.ScanFailed) return created.result
     val result = claimAddress(username, host)
     if (result is OnboardResult.Ready || result is OnboardResult.AwaitingFee) {
         setSetupStep(null)

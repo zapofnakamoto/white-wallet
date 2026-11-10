@@ -431,4 +431,18 @@
     <string name="rename_cancel">Abbrechen</string>
     <string name="account_not_in_use">Dieses Konto ist nicht in Verwendung. Verwende es, um zu sehen, was es enthält, und seine Einstellungen zu ändern.</string>
     <string name="account_use">Dieses Konto verwenden</string>
+    <string name="account_remove">Dieses Konto entfernen</string>
+    <string name="account_remove_hint">Entfernt es von diesem Telefon. Nur möglich, solange es nichts hält.</string>
+    <string name="account_remove_title">„%1$s“ entfernen?</string>
+    <string name="account_remove_body">Das Konto wird mit seinem Verlauf und seinen Einstellungen von diesem Telefon entfernt. Es hält kein Geld. Die Wallet und ihre anderen Konten bleiben.</string>
+    <plurals name="account_remove_addresses">
+        <item quantity="one">Seine Lightning-Adresse %1$s bleibt registriert. Geld, das später dorthin gesendet wird, erscheint erst, wenn du dieser Wallet wieder ein Konto hinzufügst.</item>
+        <item quantity="other">Seine Lightning-Adressen %1$s bleiben registriert. Geld, das später dorthin gesendet wird, erscheint erst, wenn du dieser Wallet wieder ein Konto hinzufügst.</item>
+    </plurals>
+    <string name="account_remove_confirm">Konto entfernen</string>
+    <string name="account_remove_ok">OK</string>
+    <string name="account_remove_blocked_title">Dieses Konto kann noch nicht entfernt werden</string>
+    <string name="account_remove_blocked_money">Es hält noch %1$s. Sende oder verschiebe dieses Geld zuerst; danach kann das Konto entfernt werden.</string>
+    <string name="account_remove_blocked_open">Bei diesem Konto ist noch etwas nicht abgeschlossen: eine laufende Zahlung oder Geld, das noch ankommt. Versuche es erneut, sobald das erledigt ist.</string>
+    <string name="account_remove_blocked_last">Es ist das einzige Konto seiner Wallet. Um es zu entfernen, lösche die Wallet.</string>
 </resources>

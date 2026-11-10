@@ -20,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import whitewallet.brand.ReleaseStage
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
@@ -28,6 +29,7 @@ import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.LocalAppName
 import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.wallet.ScanProgress
 
 /** The welcome screen (create or restore a wallet), the phrase-only restore and the new account's name. */
 @RunWith(RobolectricTestRunner::class)
@@ -167,5 +169,27 @@ class WelcomeScreenTest {
         compose.setContent { AccountNameScreen(CreateState(limit = 2), "Savings", onBack = {}, onCreate = {}) }
         compose.onNodeWithText(plural(R.plurals.account_name_limit, 2, 2)).assertExists()
         compose.onNodeWithText(text(R.string.onboarding_create_account)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun whileANewAccountIsLookedForTheScreenSaysHowFarItIs() {
+        val scan = ScanProgress.AccountScan(index = 1, keysChecked = 40, foundMsat = 0, done = false)
+        compose.setContent { AccountNameScreen(CreateState(busy = true, scan = scan), "Savings", onBack = {}, onCreate = {}) }
+        compose.onNodeWithText(text(R.string.account_name_looking)).assertExists()
+        compose.onNodeWithText(plural(R.plurals.add_mint_keys_checked, 40, 40)).assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun aNewAccountThatCouldntBeLookedForIsNotAddedAndCanBeTriedAgain() {
+        var tried: String? = null
+        compose.setContent {
+            AccountNameScreen(CreateState(scanFailed = "timeout"), "Sparen", onBack = {}, onCreate = { tried = it })
+        }
+        compose
+            .onNodeWithText("Es konnte nicht geprüft werden, was dieses Konto bereits hält: timeout. Das Konto wurde nicht hinzugefügt.")
+            .assertExists()
+        compose.onNodeWithText("Noch einmal versuchen").performClick()
+        assertEquals("Sparen", tried)
     }
 }

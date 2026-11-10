@@ -160,3 +160,8 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
 20. **Scan for notes with chosen limits.** Settings → Wallets → a wallet → "Scan for notes": repeat the restore's
     scan with gap limits the user picks (accounts, keys, addresses), and show what it is doing. Belongs with the
     restore refinement (errors and retry when adding a mint).
+21. **Adding an account while a mint is down.** "Add account" scans every mint of the wallet and adds nothing if one
+    doesn't answer (2026-11-10), so a wallet with a dead mint can't get another account until that mint is removed.
+    Could offer "Add anyway" and repeat the scan for that mint later (needs item 20's rescan).
+22. **Removing an account that holds dust.** An account can only be removed once it holds nothing; an amount below
+    what a move or payment costs keeps it forever. Could let the user give the dust up explicitly.

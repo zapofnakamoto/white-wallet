@@ -385,9 +385,15 @@ private fun WalletApp(
                 onOpenShared = { id -> nav.navigate(Routes.note(id)) },
             )
         }
-        // The new account is active: the wallet opens on it.
+        // The new account is in use: its page opens over the wallet's.
         composable(Routes.NEW_ACCOUNT) {
-            AccountNameRoute(onBack = { nav.popBackStack() }, onCreated = { replaceAll(Routes.HOME) })
+            AccountNameRoute(
+                onBack = { nav.popBackStack() },
+                onCreated = { id ->
+                    nav.popBackStack()
+                    nav.navigate(Routes.account(id))
+                },
+            )
         }
         composable(Routes.MOVE_FUNDS) {
             MoveFundsRoute(onBack = { nav.popBackStack() })

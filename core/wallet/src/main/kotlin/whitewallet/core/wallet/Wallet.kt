@@ -338,9 +338,49 @@ class Wallet(
     suspend fun createWallet(name: String): CreateAccountResult = lock.withLock { onboarding.createWallet(name) }
 
     /**
-     * Adds the active wallet's next account, named [name], and makes it active. Contacts no mint: it exists on each of the wallet's mints.
+     * Adds the active wallet's next account, named [name], at its lowest free index, and makes it active. It exists on each of the wallet's
+     * mints at once, and its index may have been used before (on another phone, or by an account removed from this one): what it already
+     * holds there is looked for first, as a restore does ([onProgress] follows that scan). A scan that stops before it is through leaves no
+     * account ([CreateAccountResult.ScanFailed]): try again once every mint of the wallet answers. Runs to its end if the screen that asked
+     * is left.
      */
-    suspend fun createAccount(name: String): CreateAccountResult = lock.withLock { onboarding.createAccount(name) }
+    suspend fun createAccount(name: String, onProgress: (ScanProgress) -> Unit = {}): CreateAccountResult =
+        withContext(NonCancellable) { lock.withLock { onboarding.createAccount(name) { restorer.scanAccount(it, onProgress) } } }
+
+    /** What removing the active account would meet: what stands against it, the money it holds and the addresses it would leave. */
+    suspend fun accountRemoval(): AccountRemoval = lock.withLock { removal(activeId()) }
+
+    private suspend fun removal(id: String): AccountRemoval {
+        val notes = store.notes(id).first()
+        val incoming = store.receivedNotes(id).first().filter { it.isPending }
+        val blocked =
+            when {
+                siblings(id).size <= 1 -> RemoveAccountResult.LastAccount
+                notes.any { it.state != NoteState.Spent } || incoming.isNotEmpty() -> RemoveAccountResult.InUse(AccountUse.Money)
+                store.journal(UNSETTLED).any { it.accountId == id } -> RemoveAccountResult.InUse(AccountUse.OpenOperation)
+                else -> null
+            }
+        val held =
+            notes.filter { it.state == NoteState.Outstanding }.sumOf { it.amountMsat } +
+                incoming.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
+        return AccountRemoval(blocked, held, store.addresses(id).first().map { it.address })
+    }
+
+    /**
+     * Removes the active account from this phone, if it holds nothing and isn't its wallet's last ([accountRemoval]): its history, its
+     * addresses as this phone knows them and its settings go. Nothing changes at a mint: its addresses stay registered, and whatever is
+     * paid to its keys later is found when an account is added again, which takes the lowest free index ([createAccount]). Another account
+     * of the wallet becomes active.
+     */
+    suspend fun removeAccount(): RemoveAccountResult = lock.withLock {
+        val id = activeId()
+        removal(id).blocked?.let {
+            return@withLock it
+        }
+        val next = siblings(id).filter { it.id != id }.minBy { it.index }.id
+        deleteActive(prefer = next, wholeWallet = false)
+        RemoveAccountResult.Removed(next)
+    }
 
     /**
      * Gives up the active wallet's setup: the wallet goes from this device, and the account active before it is active again. Refused for a

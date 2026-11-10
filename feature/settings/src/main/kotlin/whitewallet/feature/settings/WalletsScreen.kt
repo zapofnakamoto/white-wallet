@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -48,6 +49,9 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.WalletGroup
+import whitewallet.core.wallet.AccountRemoval
+import whitewallet.core.wallet.AccountUse
+import whitewallet.core.wallet.RemoveAccountResult
 import whitewallet.core.wallet.Wallet
 
 /** Every wallet on the phone with its accounts, and which account is in use. */
@@ -98,6 +102,27 @@ class WalletsViewModel @Inject constructor(private val wallet: Wallet) : ViewMod
 
     fun renameAccount(name: String) {
         viewModelScope.launch { wallet.renameAccount(name) }
+    }
+
+    private val _removal = MutableStateFlow<AccountRemoval?>(null)
+
+    /** What removing the account in use would meet, while the user is asked about it. */
+    val removal: StateFlow<AccountRemoval?> = _removal
+
+    fun askRemoval() {
+        viewModelScope.launch { _removal.value = wallet.accountRemoval() }
+    }
+
+    fun dismissRemoval() {
+        _removal.value = null
+    }
+
+    /** Removes the account in use; if something stands against it by now, the question shows that instead. */
+    fun removeAccount() {
+        viewModelScope.launch {
+            val result = wallet.removeAccount()
+            _removal.value = if (result is RemoveAccountResult.Removed) null else wallet.accountRemoval()
+        }
     }
 }
 
@@ -264,19 +289,34 @@ fun AccountSettingsRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val active by settings.state.collectAsStateWithLifecycle()
+    val removal by viewModel.removal.collectAsStateWithLifecycle()
     val summary = state.account(accountId)
     // Removed meanwhile: nothing to show.
     LaunchedEffect(state.loaded, summary == null) { if (state.loaded && summary == null) onBack() }
     when {
         summary == null -> Unit
-        accountId == state.activeAccountId -> AccountSettingsScreen(active, onBack, onOpen, viewModel::renameAccount)
+        accountId == state.activeAccountId -> {
+            // A wallet's only account goes with the wallet, on the wallet's page.
+            val siblings = state.wallet(summary.account.walletId)?.accounts?.size ?: 1
+            AccountSettingsScreen(active, onBack, onOpen, viewModel::renameAccount, viewModel::askRemoval.takeIf { siblings > 1 })
+            removal?.let { AccountRemovalDialog(summary.account.name, it, viewModel::dismissRemoval, viewModel::removeAccount) }
+        }
         else -> AccountNotInUseScreen(summary, state.places[accountId] ?: 0, onBack) { viewModel.use(accountId) }
     }
 }
 
-/** Everything that belongs to the account in use: its name, addresses, mints (its home among them), notes and note settings. */
+/**
+ * Everything that belongs to the account in use: its name, addresses, mints (its home among them), notes and note settings, and, with
+ * [onRemove], the way to take it off this phone.
+ */
 @Composable
-fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (SettingsTarget) -> Unit, onRename: (String) -> Unit = {}) {
+fun AccountSettingsScreen(
+    state: SettingsState,
+    onBack: () -> Unit,
+    open: (SettingsTarget) -> Unit,
+    onRename: (String) -> Unit = {},
+    onRemove: (() -> Unit)? = null,
+) {
     val name = state.accountName.orEmpty()
     var renaming by rememberSaveable { mutableStateOf(false) }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_account_section, name), onBack) }) { padding ->
@@ -350,6 +390,16 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
                     open(SettingsTarget.Keys)
                 }
             }
+            if (onRemove != null) {
+                HorizontalDivider()
+                SummaryRow(
+                    pageIcon(SettingsTarget.Delete, Tone.Danger),
+                    stringResource(R.string.account_remove),
+                    stringResource(R.string.account_remove_hint),
+                    titleColor = MaterialTheme.colorScheme.error,
+                    onClick = onRemove,
+                )
+            }
         }
     }
     if (renaming) {
@@ -364,6 +414,57 @@ fun AccountSettingsScreen(state: SettingsState, onBack: () -> Unit, open: (Setti
             onRename(it)
         }
     }
+}
+
+/**
+ * Asked before the account [name] is removed: what goes and which addresses it leaves behind, or, if it still holds something, why it can't
+ * go yet.
+ */
+@Composable
+internal fun AccountRemovalDialog(name: String, removal: AccountRemoval, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    val blocked = removal.blocked
+    if (blocked != null) {
+        val holdsMoney = (blocked as? RemoveAccountResult.InUse)?.use == AccountUse.Money && removal.heldMsat > 0
+        WalletDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.account_remove_ok)) }
+            },
+            title = { Text(stringResource(R.string.account_remove_blocked_title)) },
+            text = {
+                Text(
+                    when {
+                        blocked is RemoveAccountResult.LastAccount -> stringResource(R.string.account_remove_blocked_last)
+                        holdsMoney -> stringResource(R.string.account_remove_blocked_money, formatAmount(removal.heldMsat))
+                        else -> stringResource(R.string.account_remove_blocked_open)
+                    }
+                )
+            },
+        )
+        return
+    }
+    WalletDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            WalletButton(kind = ButtonKind.Text, onClick = onConfirm) {
+                Text(stringResource(R.string.account_remove_confirm), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.rename_cancel)) } },
+        title = { Text(stringResource(R.string.account_remove_title, name)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.account_remove_body))
+                if (removal.addresses.isNotEmpty()) {
+                    val count = removal.addresses.size
+                    Text(
+                        pluralStringResource(R.plurals.account_remove_addresses, count, removal.addresses.joinToString(", ")),
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
+        },
+    )
 }
 
 /** An account that isn't in use: what the list knows of it, and the way to use it. Its pages work on the account in use only. */

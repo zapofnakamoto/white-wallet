@@ -134,6 +134,9 @@
     <string name="welcome_create">Neue Wallet erstellen</string>
     <string name="welcome_restore">Ich habe schon eine Wallet</string>
     <string name="account_name_body">Ein neues Konto in dieser Wallet: eigenes Guthaben und eigene Adressen, dieselbe Wiederherstellungsphrase. Sonst ist nichts einzurichten.</string>
+    <string name="account_name_looking">Es wird geprüft, was dieses Konto bereits hält. Das kann einen Moment dauern.</string>
+    <string name="account_name_found">%1$s · %2$s gefunden</string>
+    <string name="account_name_scan_failed">Es konnte nicht geprüft werden, was dieses Konto bereits hält: %1$s. Das Konto wurde nicht hinzugefügt.</string>
     <string name="setup_address_title">Deine Lightning-Adresse</string>
     <string name="setup_address_body">Unter dieser Adresse bei %1$s wirst du bezahlt. Hattest du dort eine, gib sie ein, um sie zurückzuholen.</string>
     <string name="setup_address_submit">Diese Adresse nutzen</string>

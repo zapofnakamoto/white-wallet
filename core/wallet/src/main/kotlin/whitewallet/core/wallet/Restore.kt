@@ -99,6 +99,30 @@ internal class Restore(private val wallet: Wallet) {
         }
 
     /**
+     * Finds what [account], just added to its wallet, already holds on each of the wallet's mints: its index may have been used before, on
+     * another phone or by an account removed from this one. Null once every mint was looked through; otherwise why the scan stopped.
+     */
+    suspend fun scanAccount(account: Account, onProgress: (ScanProgress) -> Unit = {}): OnboardResult? {
+        var progress = ScanProgress.AccountScan(account.index, 0, 0, done = false)
+        val report = { probe: KeyProbe ->
+            progress =
+                progress.copy(
+                    keysChecked = progress.keysChecked + 1,
+                    foundMsat = progress.foundMsat + ((probe as? KeyProbe.Outstanding)?.amountMsat ?: 0),
+                )
+            onProgress(ScanProgress(listOf(progress)))
+        }
+        for (mint in wallet.store.mints(account.walletId).first()) {
+            val found = scan(account.id, mint.host, report)
+            if (found is Scan.Failed) {
+                return found.failure.let { if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason) }
+            }
+        }
+        onProgress(ScanProgress(listOf(progress.copy(done = true))))
+        return null
+    }
+
+    /**
      * Finds what every account of the wallet [walletId] holds on [host]: each account it has, then further ones up to a gap of ones never
      * used (BIP-44). An account the wallet has counts as used, and created ones before a used one stay, to keep its index. A created one's
      * home is [host], where it was found. Null once every account was looked through; otherwise why the scan stopped, and the created

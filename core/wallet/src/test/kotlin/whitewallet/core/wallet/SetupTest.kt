@@ -56,6 +56,29 @@ class SetupTest {
         }
 
     @Test
+    fun `an account that holds nothing is removed unless it is its wallet's last, and the next one added takes its index`() =
+        runBlocking<Unit> {
+            val wallet = Wallet(store, seeds, LnurlcashClient(), maxAccounts = 3)
+            val first = assertIs<CreateAccountResult.Created>(wallet.createWallet("Main")).accountId
+            wallet.setSetupStep(null)
+            assertEquals(RemoveAccountResult.LastAccount, wallet.removeAccount())
+            assertEquals(AccountRemoval(RemoveAccountResult.LastAccount, 0, emptyList()), wallet.accountRemoval())
+            val second = assertIs<CreateAccountResult.Created>(wallet.createAccount("Savings")).accountId
+            val third = assertIs<CreateAccountResult.Created>(wallet.createAccount("Travel")).accountId
+
+            // The one in use goes; the wallet's oldest other account is in use then.
+            wallet.switchAccount(second)
+            assertEquals(AccountRemoval(null, 0, emptyList()), wallet.accountRemoval())
+            assertEquals(RemoveAccountResult.Removed(first), wallet.removeAccount())
+            assertEquals(first, store.currentAccountId())
+            assertEquals(listOf(0L, 2L), wallet.accounts.first().map { it.account.index }.sorted())
+            assertEquals(listOf(first, third), wallet.walletGroups.first().single().accounts.map { it.account.id })
+
+            val again = assertIs<CreateAccountResult.Created>(wallet.createAccount("Again")).accountId
+            assertEquals(1L, store.account(again)?.index, "the lowest free index")
+        }
+
+    @Test
     fun `giving up a new wallet's setup removes it and goes back to the account before`() =
         runBlocking<Unit> {
             val before = assertIs<CreateAccountResult.Created>(wallet.createWallet("Main")).accountId

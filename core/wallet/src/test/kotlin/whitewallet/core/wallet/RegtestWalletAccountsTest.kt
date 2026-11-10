@@ -1,5 +1,6 @@
 package whitewallet.core.wallet
 
+import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -179,6 +180,59 @@ class RegtestWalletAccountsTest {
             val ofSavings = phone.store.notes(savings).first().filter { it.state == NoteState.Outstanding }
             assertEquals(setOf(HOST2), ofSavings.map { it.host }.toSet())
             assertTrue(phone.wallet.mints.first().filter { it.host in setOf(HOST, HOST2) }.all { it.trusted }, "both homes are trusted")
+        }
+
+    @Test
+    fun `an account that holds nothing is removed, and one added again takes its index and finds what was paid there since`() =
+        runBlocking<Unit> {
+            val store = InMemoryWalletStore()
+            val seeds = InMemorySeedStore()
+            val wallet = Wallet(store, seeds, LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
+            val address = Regtest.name().let { name -> "$name@$HOST".also { assertIs<OnboardResult.Ready>(wallet.onboard(name, HOST)) } }
+            val phone = Regtest.Phone(store, wallet, address)
+            val first = wallet.activeId()
+            assertEquals(RemoveAccountResult.LastAccount, wallet.removeAccount(), "a wallet keeps one account")
+            secondAccount(phone, 3000)
+            val second = wallet.activeId()
+
+            // Money keeps an account on the phone.
+            assertEquals(AccountRemoval(RemoveAccountResult.InUse(AccountUse.Money), 2_999_000, emptyList()), wallet.accountRemoval())
+            assertEquals(RemoveAccountResult.InUse(AccountUse.Money), wallet.removeAccount())
+            assertEquals(listOf(0L, 1L), store.accounts.first().map { it.account.index }.sorted())
+
+            // The first one holds nothing: it goes, the address it leaves is named, and the other one is in use.
+            wallet.switchAccount(first)
+            assertEquals(AccountRemoval(null, 0, listOf(address)), wallet.accountRemoval())
+            assertEquals(RemoveAccountResult.Removed(second), wallet.removeAccount())
+            assertEquals(second, wallet.activeId())
+            assertEquals(mapOf(1L to 2_999_000L), wallet.balances())
+
+            // Its address is still registered at the mint and is paid; the account left doesn't see that money.
+            Regtest.pay(address, 2000)
+            wallet.refresh()
+            assertEquals(mapOf(1L to 2_999_000L), wallet.balances())
+
+            // While the mint doesn't answer no account is added: an account that looks empty would hide that money.
+            val offline =
+                Wallet(
+                    store,
+                    seeds,
+                    Regtest.client { throw IOException("the mint is down") },
+                    policies = NotePolicies.InMemory(ManualStrategy.ID),
+                )
+            assertIs<CreateAccountResult.ScanFailed>(offline.createAccount("Again"))
+            assertEquals(second, store.currentAccountId())
+            assertEquals(listOf(1L), store.accounts.first().map { it.account.index })
+
+            // The next account takes the free index, is looked for at the mint, and has what was paid to the address.
+            var progress: ScanProgress.AccountScan? = null
+            val again = assertIs<CreateAccountResult.Created>(wallet.createAccount("Again") { progress = it.accounts.single() }).accountId
+            assertEquals(again, wallet.activeId())
+            assertEquals(0L, store.account(again)?.index)
+            assertEquals(mapOf(0L to 1_999_000L, 1L to 2_999_000L), wallet.balances())
+            assertEquals(true to 1_999_000L, progress?.let { it.done to it.foundMsat })
+            wallet.refresh()
+            assertEquals(mapOf(0L to 1_999_000L, 1L to 2_999_000L), wallet.balances(), "counted once")
         }
 
     @Test

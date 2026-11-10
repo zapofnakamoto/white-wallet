@@ -28,6 +28,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   It replaces "Account: …" on top of Settings, in every app. Wallets and accounts can be renamed; a wallet is
   "Wallet 1", "Wallet 2" by age until it has a name. The pages show everything of the wallet and account in use; another
   account offers "Use this account" first. "Add wallet" is here now.
+- "Add account" looks for what the new account already holds on each of the wallet's mints before it opens, and
+  shows how far it is: its place under the recovery phrase may have been used before, on another phone or by an
+  account removed here. If a mint doesn't answer, no account is added; try again later. The new account's page
+  opens afterwards.
+- Remove an account (its page, in a wallet with more than one): only while it holds no money and nothing of it is
+  unfinished. Its history and settings go from the phone; its Lightning addresses stay registered and are named
+  before it goes. The next account added takes the freed place and finds what was paid there meanwhile.
 - The seed-derived default address of a new account comes from its first share, so each account of a wallet has its
   own; those made before are still found by a restore. The watch-only key moved from the mint's page to each
   address: a key only ever shows what was paid to its own address.

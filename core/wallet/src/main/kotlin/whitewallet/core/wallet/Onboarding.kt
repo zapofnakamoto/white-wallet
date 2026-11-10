@@ -84,9 +84,39 @@ sealed interface CreateAccountResult {
     /** The account exists and is active. */
     data class Created(val accountId: String) : CreateAccountResult
 
+    /** Looking for what the account already holds on the wallet's mints stopped before it was through ([result]). Nothing changed. */
+    data class ScanFailed(val result: OnboardResult) : CreateAccountResult
+
     /** The wallet already holds [limit] accounts, or the app [limit] wallets, the most it allows. Nothing changed. */
     data class AccountLimitReached(val limit: Int) : CreateAccountResult
 }
+
+/** The outcome of [Wallet.removeAccount]. */
+sealed interface RemoveAccountResult {
+    /** The account is gone from this phone; [nowActive] is the account of its wallet in use instead. */
+    data class Removed(val nowActive: String) : RemoveAccountResult
+
+    /** It is its wallet's only account: removing it is deleting the wallet. Nothing changed. */
+    data object LastAccount : RemoveAccountResult
+
+    /** It still holds something ([use]). Nothing changed. */
+    data class InUse(val use: AccountUse) : RemoveAccountResult
+}
+
+/** What keeps an account from being removed. */
+enum class AccountUse {
+    /** A note that isn't spent, or a received note not claimed yet. */
+    Money,
+
+    /** An operation not settled yet. */
+    OpenOperation,
+}
+
+/**
+ * What removing the active account would meet ([Wallet.accountRemoval]): what stands against it ([blocked], null if nothing), the money it
+ * holds, and its Lightning addresses, which stay registered at their mints and would no longer be looked at.
+ */
+data class AccountRemoval(val blocked: RemoveAccountResult?, val heldMsat: Long, val addresses: List<String>)
 
 /** The outcome of [Wallet.abandonSetup]. */
 sealed interface AbandonResult {
@@ -129,12 +159,18 @@ internal class Onboarding(private val wallet: Wallet) {
         return CreateAccountResult.Created(id)
     }
 
-    /** See [Wallet.createAccount]. */
-    suspend fun createAccount(name: String): CreateAccountResult {
+    /** See [Wallet.createAccount]: [scan] looks for what the saved account already holds, and says why it stopped if it did. */
+    suspend fun createAccount(name: String, scan: suspend (Account) -> OnboardResult?): CreateAccountResult {
         val active = wallet.activeId()
         if (wallet.siblings(active).size >= wallet.maxAccounts) return CreateAccountResult.AccountLimitReached(wallet.maxAccounts)
         val account = sibling(UUID.randomUUID().toString(), name)
         wallet.store.saveAccount(account)
+        // A scan that stopped leaves no account: one that shows less than it holds would hide money. What it found is still at the
+        // mint, and the next try finds it again.
+        scan(account)?.let {
+            wallet.store.deleteAccount(account.id)
+            return CreateAccountResult.ScanFailed(it)
+        }
         wallet.store.setActiveAccount(account.id)
         return CreateAccountResult.Created(account.id)
     }

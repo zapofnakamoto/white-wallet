@@ -17,6 +17,9 @@ import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.WalletGroup
 import whitewallet.core.model.WalletRecord
+import whitewallet.core.wallet.AccountRemoval
+import whitewallet.core.wallet.AccountUse
+import whitewallet.core.wallet.RemoveAccountResult
 
 @RunWith(RobolectricTestRunner::class)
 class WalletsScreenTest {
@@ -142,5 +145,50 @@ class WalletsScreenTest {
         compose.onNodeWithText("Konto: Work").assertExists()
         compose.onNodeWithText("Dieses Konto verwenden").performClick()
         assertEquals(true, used)
+    }
+
+    @Test
+    fun anAccountCanBeRemovedOnlyWhereTheWalletHasAnother() {
+        var asked = false
+        compose.setContent { AccountSettingsScreen(active, {}, {}, onRemove = { asked = true }) }
+        compose.onNodeWithText(text(R.string.account_remove)).performScrollTo().performClick()
+        assertEquals(true, asked)
+    }
+
+    @Test
+    fun aWalletsOnlyAccountHasNoRemoveRow() {
+        compose.setContent { AccountSettingsScreen(active, {}, {}) }
+        compose.onNodeWithText(text(R.string.account_remove)).assertDoesNotExist()
+    }
+
+    @Test
+    fun removingAnAccountNamesTheAddressesItLeaves() {
+        var removed = false
+        val removal = AccountRemoval(null, 0, listOf("alice@mint.example", "shop@mint.example"))
+        compose.setContent { AccountRemovalDialog("Savings", removal, {}) { removed = true } }
+        compose.onNodeWithText(text(R.string.account_remove_title, "Savings")).assertExists()
+        compose.onNodeWithText(plural(R.plurals.account_remove_addresses, 2, "alice@mint.example, shop@mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.account_remove_confirm)).performClick()
+        assertEquals(true, removed)
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun anAccountThatHoldsMoneyCantBeRemoved() {
+        var removed = false
+        val removal = AccountRemoval(RemoveAccountResult.InUse(AccountUse.Money), 3_000_000, emptyList())
+        compose.setContent { AccountRemovalDialog("Sparen", removal, {}) { removed = true } }
+        compose.onNodeWithText("Dieses Konto kann noch nicht entfernt werden").assertExists()
+        compose.onNodeWithText("Es hält noch", substring = true).assertExists()
+        compose.onNodeWithText("Konto entfernen").assertDoesNotExist()
+        assertEquals(false, removed)
+    }
+
+    @Test
+    fun anAccountWithSomethingUnfinishedCantBeRemoved() {
+        val removal = AccountRemoval(RemoveAccountResult.InUse(AccountUse.OpenOperation), 0, emptyList())
+        compose.setContent { AccountRemovalDialog("Savings", removal, {}, {}) }
+        compose.onNodeWithText(text(R.string.account_remove_blocked_open)).assertExists()
+        compose.onNodeWithText(text(R.string.account_remove_confirm)).assertDoesNotExist()
     }
 }
