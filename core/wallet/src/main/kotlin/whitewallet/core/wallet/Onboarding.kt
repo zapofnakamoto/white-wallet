@@ -272,9 +272,12 @@ internal class Onboarding(private val wallet: Wallet) {
                     when (outcome.kind) {
                         // Another phone with this phrase registered that share already: take the next one.
                         RegistrationRejection.Cx1AlreadyUsed -> continue
-                        else ->
+                        else -> {
+                            // The mint refused the name, not the share: the next address gets this share, so a restore meets no gap.
+                            giveBackShare(accountId, domain, n)
                             return if (addresses.check(name, h, accountId) == AddressStatus.Taken) taken(name, accountId, h)
                             else OnboardResult.RegistrationFailed(outcome.reason)
+                        }
                     }
                 is RegistrationOutcome.AwaitingFee -> return hold(n, outcome.invoice)
                 // The answer may have been lost; the lookup below shows whether it landed.
@@ -286,6 +289,13 @@ internal class Onboarding(private val wallet: Wallet) {
             }
         }
         return OnboardResult.RegistrationFailed("no free share")
+    }
+
+    /** Share [n], reserved for a registration the mint refused, is the next one handed out again; claims hold the wallet's lock. */
+    private suspend fun giveBackShare(accountId: String, domain: String, n: Long) {
+        if (wallet.store.keyIndexOrNull(accountId, domain, KeyCounter.Shares) == n + 1) {
+            wallet.store.setKeyIndex(accountId, domain, KeyCounter.Shares, n)
+        }
     }
 
     /**

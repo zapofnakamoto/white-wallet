@@ -9,9 +9,11 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import whitewallet.core.model.KeyCounter
 import whitewallet.core.wallet.Regtest.HOST5
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
+import whitewallet.lnurlcash.spendDomain
 
 /** An address on a mint that charges for one (LUD-26): held until the fee is paid, from outside or from the account's notes. */
 class RegtestAddressFeeTest {
@@ -98,5 +100,24 @@ class RegtestAddressFeeTest {
             clock += 2 * 60 * 60_000L
             wallet.refresh()
             assertEquals(emptyList(), store.addresses(wallet.activeId()).first(), "${held.address.username} is gone")
+        }
+
+    @Test
+    fun `a name the mint refuses at registration leaves no unused share behind`() =
+        runBlocking<Unit> {
+            // Held for its fee, the name isn't published: the check before the claim finds it free, and the mint refuses the registration.
+            val name = Regtest.name()
+            assertIs<OnboardResult.AwaitingFee>(wallet().onboard(name, HOST5))
+
+            val store = InMemoryWalletStore()
+            val wallet = wallet(store)
+            assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
+            val refused = wallet.claimAddress(name, HOST5)
+            assertTrue(refused is OnboardResult.UsernameTaken || refused is OnboardResult.RegistrationFailed, "$refused")
+            assertEquals(0L, store.keyIndexOrNull(wallet.activeId(), spendDomain(HOST5), KeyCounter.Shares), "share 0 given back")
+
+            // The mint kept nothing of share 0: the next name gets it.
+            val held = assertIs<OnboardResult.AwaitingFee>(wallet.claimAddress(Regtest.name(), HOST5))
+            assertEquals(0L, held.address.share)
         }
 }
