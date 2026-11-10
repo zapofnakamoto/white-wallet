@@ -49,8 +49,8 @@ class EncryptedStorageTest {
                     .openHelperFactory(SupportOpenHelperFactory(passphrase))
                     .build()
             val store = RoomWalletStore(db)
-            store.saveWallet(WalletRecord("a", "Main", 1, homeHost = "mint.example"))
-            store.saveAccount(Account("a", "Main", 1))
+            store.saveWallet(WalletRecord("a", "Main", 1))
+            store.saveAccount(Account("a", "Main", 1, homeHost = "mint.example"))
             db.close()
 
             val bytes = context.getDatabasePath(name).readBytes()

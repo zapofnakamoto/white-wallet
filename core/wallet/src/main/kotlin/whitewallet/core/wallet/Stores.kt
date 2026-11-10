@@ -235,9 +235,9 @@ interface AppPreferences {
 }
 
 /**
- * Note policies. Per account: auto-rotate of notes on Lightning address keys (off by default), the id of the chosen note strategy (null
- * until the user picks one; the brand's default applies, see [NoteStrategies]) and maintenance notices. Per wallet: collecting at its home
- * mint, the fee cap for that, and which mint payments come from first.
+ * Note policies, each account's own: auto-rotate of notes on Lightning address keys (off by default), the id of the chosen note strategy
+ * (null until the user picks one; the brand's default applies, see [NoteStrategies]), maintenance notices, collecting at its home mint, the
+ * fee cap for that, and which mint its payments come from first.
  */
 interface NotePolicies {
     fun autoRotate(accountId: String): Flow<Boolean>
@@ -248,20 +248,20 @@ interface NotePolicies {
 
     suspend fun setStrategy(accountId: String, strategyId: String)
 
-    /** Whether the wallet's notes on other mints are moved to its home mint; null until the user chooses (the brand's default). */
-    fun collect(walletId: String): Flow<Boolean?>
+    /** Whether the account's notes on other mints are moved to its home mint; null until the user chooses (the brand's default). */
+    fun collect(accountId: String): Flow<Boolean?>
 
-    suspend fun setCollect(walletId: String, enabled: Boolean)
+    suspend fun setCollect(accountId: String, enabled: Boolean)
 
     /** The most an automatic move may cost, in percent of what it moves; null until chosen (the brand's default). */
-    fun collectFeeCap(walletId: String): Flow<Int?>
+    fun collectFeeCap(accountId: String): Flow<Int?>
 
-    suspend fun setCollectFeeCap(walletId: String, percent: Int)
+    suspend fun setCollectFeeCap(accountId: String, percent: Int)
 
-    /** Whether payments use notes on other mints before the home mint's; off (home mint first) until chosen. */
-    fun payFromOtherMintsFirst(walletId: String): Flow<Boolean>
+    /** Whether the account's payments use notes on other mints before its home mint's; off (home mint first) until chosen. */
+    fun payFromOtherMintsFirst(accountId: String): Flow<Boolean>
 
-    suspend fun setPayFromOtherMintsFirst(walletId: String, enabled: Boolean)
+    suspend fun setPayFromOtherMintsFirst(accountId: String, enabled: Boolean)
 
     /** Whether the user is told what the note policies did by themselves; null until chosen (the brand's default). */
     fun maintenanceNotices(accountId: String): Flow<Boolean?>
@@ -270,9 +270,6 @@ interface NotePolicies {
 
     /** Forgets the account's policies. */
     suspend fun clear(accountId: String)
-
-    /** Forgets the wallet's policies. */
-    suspend fun clearWallet(walletId: String)
 
     /** Keeps policies in memory only; the default when no persistent store is given. */
     class InMemory(private val defaultStrategy: String? = null) : NotePolicies {
@@ -291,18 +288,18 @@ interface NotePolicies {
 
         override suspend fun setStrategy(accountId: String, strategyId: String) = strategies.update { it + (accountId to strategyId) }
 
-        override fun collect(walletId: String): Flow<Boolean?> = collect.map { it[walletId] }
+        override fun collect(accountId: String): Flow<Boolean?> = collect.map { it[accountId] }
 
-        override suspend fun setCollect(walletId: String, enabled: Boolean) = collect.update { it + (walletId to enabled) }
+        override suspend fun setCollect(accountId: String, enabled: Boolean) = collect.update { it + (accountId to enabled) }
 
-        override fun collectFeeCap(walletId: String): Flow<Int?> = feeCaps.map { it[walletId] }
+        override fun collectFeeCap(accountId: String): Flow<Int?> = feeCaps.map { it[accountId] }
 
-        override suspend fun setCollectFeeCap(walletId: String, percent: Int) = feeCaps.update { it + (walletId to percent) }
+        override suspend fun setCollectFeeCap(accountId: String, percent: Int) = feeCaps.update { it + (accountId to percent) }
 
-        override fun payFromOtherMintsFirst(walletId: String): Flow<Boolean> = otherMintsFirst.map { it[walletId] ?: false }
+        override fun payFromOtherMintsFirst(accountId: String): Flow<Boolean> = otherMintsFirst.map { it[accountId] ?: false }
 
-        override suspend fun setPayFromOtherMintsFirst(walletId: String, enabled: Boolean) = otherMintsFirst.update {
-            it + (walletId to enabled)
+        override suspend fun setPayFromOtherMintsFirst(accountId: String, enabled: Boolean) = otherMintsFirst.update {
+            it + (accountId to enabled)
         }
 
         override fun maintenanceNotices(accountId: String): Flow<Boolean?> = notices.map { it[accountId] }
@@ -313,12 +310,9 @@ interface NotePolicies {
             autoRotate.update { it - accountId }
             strategies.update { it - accountId }
             notices.update { it - accountId }
-        }
-
-        override suspend fun clearWallet(walletId: String) {
-            collect.update { it - walletId }
-            feeCaps.update { it - walletId }
-            otherMintsFirst.update { it - walletId }
+            collect.update { it - accountId }
+            feeCaps.update { it - accountId }
+            otherMintsFirst.update { it - accountId }
         }
     }
 }

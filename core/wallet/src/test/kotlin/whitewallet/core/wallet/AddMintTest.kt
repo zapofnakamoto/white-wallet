@@ -6,6 +6,7 @@ import java.security.SecureRandom
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlinx.coroutines.Dispatchers
@@ -81,12 +82,12 @@ abstract class AddMintTest {
 
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(home))
             assertEquals(mapOf(0L to onHome), phone.balances())
-            assertEquals(home, phone.store.homeOf(id), "the wallet's first mint is its home")
+            assertEquals(home, phone.store.homeOf(id), "the first mint of its wallet is the account's home")
 
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
             assertEquals(mapOf(0L to onHome, 1L to found), phone.balances())
             assertEquals(home, phone.store.homeOf(id), "a mint added later doesn't take the home's place")
-            assertEquals(home, phone.store.homeOf(phone.ids().getValue(1)), "the home is the wallet's: every account's")
+            assertEquals(other, phone.store.homeOf(phone.ids().getValue(1)), "an account found on a mint has its home there")
             assertEquals(id, phone.store.currentAccountId())
         }
 
@@ -204,7 +205,8 @@ abstract class AddMintTest {
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
             assertEquals(mapOf(0L to 0L, 1L to found), phone.balances())
             val created = assertNotNull(phone.store.account(phone.ids().getValue(1)))
-            assertEquals(phone.store.homeOf(id), phone.store.homeOf(created.id), "one home for the whole wallet")
+            assertEquals(other, created.homeHost, "its home is where it was found")
+            assertNotEquals(other, phone.store.homeOf(id), "the account the wallet had keeps its own")
             assertEquals("2", created.name, "named by the app, by its index")
             assertEquals(id, created.walletId)
             assertEquals(id, phone.store.currentAccountId())

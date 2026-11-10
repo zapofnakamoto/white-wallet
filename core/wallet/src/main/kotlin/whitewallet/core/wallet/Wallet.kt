@@ -155,8 +155,8 @@ class Wallet(
     val activeWallet: Flow<WalletRecord?> =
         combine(store.wallets, activeAccount) { wallets, active -> wallets.firstOrNull { it.id == active?.account?.walletId } }
 
-    /** The active wallet's home mint, the one the user trusts most; null before it has a mint. */
-    val homeHost: Flow<String?> = activeWallet.map { it?.homeHost }.distinctUntilChanged()
+    /** The active account's home mint, the one the user trusts most for its money; null while it has none. */
+    val homeHost: Flow<String?> = activeAccount.map { it?.account?.homeHost }.distinctUntilChanged()
     val notes: Flow<List<Note>> = ofActive(emptyList(), store::notes)
     val balanceMsat: Flow<Long> = notes.map { notes -> notes.filter { it.state == NoteState.Outstanding }.sumOf { it.amountMsat } }
 
@@ -209,23 +209,20 @@ class Wallet(
     val noteStrategies: List<NoteStrategy>
         get() = strategies.offered
 
-    /**
-     * Whether the active wallet moves the active account's notes from other mints to its home mint (see [CollectDefaults.active]). Only
-     * ever the active account's: notes of different accounts are never mixed.
-     */
-    val collectAtHome: Flow<Boolean> = ofActiveWallet(false) { id -> policies.collect(id).map(collectDefaults::active) }
+    /** Whether the active account's notes on other mints are moved to its home mint (see [CollectDefaults.active]). */
+    val collectAtHome: Flow<Boolean> = ofActive(false) { id -> policies.collect(id).map(collectDefaults::active) }
 
-    /** The active wallet's fee cap for those moves, in percent. */
-    val collectFeeCap: Flow<Int> = ofActiveWallet(collectDefaults.feeCapPercent, ::collectFeeCap)
+    /** The active account's fee cap for those moves, in percent. */
+    val collectFeeCap: Flow<Int> = ofActive(collectDefaults.feeCapPercent, ::collectFeeCap)
 
-    /** The wallet [walletId]'s fee cap for collecting, in percent: its own setting, or the brand's default. */
-    private fun collectFeeCap(walletId: String): Flow<Int> = policies.collectFeeCap(walletId).map { it ?: collectDefaults.feeCapPercent }
+    /** [accountId]'s fee cap for collecting, in percent: its own setting, or the brand's default. */
+    private fun collectFeeCap(accountId: String): Flow<Int> = policies.collectFeeCap(accountId).map { it ?: collectDefaults.feeCapPercent }
 
-    /** Whether the active wallet pays from notes on other mints before its home mint's; off: the home mint's first. */
-    val payFromOtherMintsFirst: Flow<Boolean> = ofActiveWallet(false, policies::payFromOtherMintsFirst)
+    /** Whether the active account pays from notes on other mints before its home mint's; off: the home mint's first. */
+    val payFromOtherMintsFirst: Flow<Boolean> = ofActive(false, policies::payFromOtherMintsFirst)
 
-    /** Sets which mint the active wallet's payments use first: other mints ([enabled]) or the home mint. */
-    suspend fun setPayFromOtherMintsFirst(enabled: Boolean) = policies.setPayFromOtherMintsFirst(walletOf(activeId()), enabled)
+    /** Sets which mint the active account's payments use first: other mints ([enabled]) or the home mint. */
+    suspend fun setPayFromOtherMintsFirst(enabled: Boolean) = policies.setPayFromOtherMintsFirst(activeId(), enabled)
 
     /**
      * Whether the active account's user wants to be told what the note policies did by themselves; null until they choose (then
@@ -235,19 +232,19 @@ class Wallet(
 
     suspend fun setMaintenanceNotices(enabled: Boolean) = policies.setMaintenanceNotices(activeId(), enabled)
 
-    /** Switches collecting at the home mint on or off for the active wallet and applies it to the active account right away. */
+    /** Switches collecting at its home mint on or off for the active account and applies it right away. */
     suspend fun setCollectAtHome(enabled: Boolean) = lock.withLock {
         check(collectDefaults.offered) { "collecting at the home mint is not offered" }
         val id = activeId()
-        policies.setCollect(walletOf(id), enabled)
+        policies.setCollect(id, enabled)
         applyPolicies(id)
     }
 
-    /** Sets the active wallet's fee cap for collecting, in percent, and applies it to the active account right away. */
+    /** Sets the active account's fee cap for collecting, in percent, and applies it right away. */
     suspend fun setCollectFeeCap(percent: Int) = lock.withLock {
         require(percent in 0..100) { "fee cap must be 0 to 100 percent" }
         val id = activeId()
-        policies.setCollectFeeCap(walletOf(id), percent)
+        policies.setCollectFeeCap(id, percent)
         applyPolicies(id)
     }
 
@@ -421,10 +418,10 @@ class Wallet(
     }
 
     /**
-     * Makes the mint at [host] the active wallet's home mint, the one the user trusts most: invoices are made there, and collecting moves
-     * notes there. Connects to it first (pinning its key) if the wallet doesn't have it yet. Then [moveMoney] of [lines] (the active
-     * account's, as the user confirmed them) to it, with nothing in between: a refresh slipping in would collect the money itself (when the
-     * wallet collects) and leave the move nothing to do. Nothing moves unless the change succeeds. Addresses stay where they are, and the
+     * Makes the mint at [host] the active account's home mint, the one the user trusts most for its money: its invoices are made there, and
+     * collecting moves its notes there. Connects to it first (pinning its key) if the wallet doesn't have it yet. Then [moveMoney] of
+     * [lines] (as the user confirmed them) to it, with nothing in between: a refresh slipping in would collect the money itself (when the
+     * account collects) and leave the move nothing to do. Nothing moves unless the change succeeds. Addresses stay where they are, and the
      * old home stays trusted if it was.
      */
     suspend fun setHomeMint(host: String, lines: List<MovePreview.Line> = emptyList()): HomeChanged<ConnectResult> = lock.withLock {
@@ -433,7 +430,7 @@ class Wallet(
         val walletId = walletOf(id)
         val result = onboarding.connectMint(walletId, host)
         if (result !is ConnectResult.Connected) return@withLock HomeChanged(result)
-        store.wallet(walletId)?.let { store.saveWallet(it.copy(homeHost = result.mint.host)) }
+        accountOf(id)?.let { store.saveAccount(it.copy(homeHost = result.mint.host)) }
         keepTrusted?.let { trust.setTrusted(walletId, it, true) }
         HomeChanged(result, moneyMove.move(id, result.mint.host, lines))
     }
@@ -446,7 +443,7 @@ class Wallet(
     suspend fun previewMove(toHost: String, fromHost: String? = null): MovePreview? {
         val id = activeId()
         val h = Onboarding.normalizeHost(toHost) ?: return null
-        return moneyMove.preview(id, h, fromHost, collectFeeCap(walletOf(id)).first())
+        return moneyMove.preview(id, h, fromHost, collectFeeCap(id).first())
     }
 
     /**
@@ -459,8 +456,8 @@ class Wallet(
     }
 
     /**
-     * The active account and its wallet's home mint's trusted key, about to be left for [host]; null if [host] already is the home. Its
-     * trust is read now: once the account has moved, the home default no longer covers it.
+     * The active account and its home mint's trusted key, about to be left for [host]; null if [host] already is the home. Its trust is
+     * read now: once the account has moved, the home default may no longer cover it.
      */
     private suspend fun leavingHome(host: String): Pair<String, MintKey?>? {
         val id = activeId()
@@ -563,23 +560,27 @@ class Wallet(
     /** The active wallet's Lightning addresses, every account's. */
     private val walletAddresses: Flow<List<RegisteredAddress>> = ofActiveWalletAccounts(store::addresses)
 
+    /** The active account's home mint, and the homes of every account of its wallet: each is trusted by default. */
+    private val walletHomes: Flow<Pair<String?, Set<String>>> =
+        combine(homeHost, activeWalletAccounts) { home, accounts -> home to accounts.mapNotNull { it.account.homeHost }.toSet() }
+
     /** The active wallet's trust choices: trusted and untrusted mints. */
     private val walletTrust: Flow<Pair<Set<MintKey>, Set<MintKey>>> =
         ofActiveWallet(emptySet<MintKey>() to emptySet()) { combine(trust.trusted(it), trust.untrusted(it), ::Pair) }
 
     /**
      * Every mint the active wallet has used (connected to, or holding any of its accounts' notes), until removed ([removeMint]): its key,
-     * whether it's trusted and why, whether it is the home mint, and whether it can be removed. The home first, then by host. Trust follows
-     * [isTrusted]. Nothing about one account's money: see [accountMints]. Another wallet's mints, keys and trust are its own.
+     * whether it's trusted and why, whether it is the active account's home mint, and whether it can be removed. That home first, then by
+     * host. Trust follows [isTrusted]. Nothing about one account's money: see [accountMints]. Another wallet's mints, keys and trust are
+     * its own.
      */
     val mints: Flow<List<MintInfo>> =
-        combine(ofActiveWallet(emptyList(), store::mints), homeHost, walletNotes, walletAddresses, walletTrust) {
+        combine(ofActiveWallet(emptyList(), store::mints), walletHomes, walletNotes, walletAddresses, walletTrust) {
             mints,
-            home,
+            (home, homes),
             notes,
             addresses,
             (trusted, untrusted) ->
-            val homes = setOfNotNull(home)
             val keys = mints.associate { it.host to it.mintPubkey }
             val held = notes.filter { it.state != NoteState.Spent }
             (keys.keys + held.map { it.host })
@@ -627,8 +628,8 @@ class Wallet(
     /**
      * Forgets the active wallet's mint at [host]: its pinned signing key and the user's trust choice for it, so adding it again is a first
      * contact (as after a restore). Only if no account of the wallet has a note that isn't spent, an address or an unsettled operation
-     * there ([RemoveMintResult.InUse] says which); notes and history are never touched. If it was the wallet's home mint, the wallet has
-     * none afterwards, until the user picks one. Another wallet's mint stays.
+     * there ([RemoveMintResult.InUse] says which); notes and history are never touched. An account that had it as its home mint has none
+     * afterwards, until the user picks one. Another wallet's mint stays.
      */
     suspend fun removeMint(host: String): RemoveMintResult = lock.withLock {
         val h = Onboarding.normalizeHost(host) ?: host
@@ -646,7 +647,8 @@ class Wallet(
         if (use != null) return@withLock RemoveMintResult.InUse(use)
         store.mint(walletId, h)?.mintPubkey?.let { trust.forget(walletId, MintKey(h, it)) }
         store.removeMint(walletId, h)
-        store.wallet(walletId)?.takeIf { it.homeHost == h }?.let { store.saveWallet(it.copy(homeHost = null)) }
+        // Nothing of any account is left there: the ones that had it as home have none now.
+        accounts.filter { it.homeHost == h }.forEach { store.saveAccount(it.copy(homeHost = null)) }
         RemoveMintResult.Removed
     }
 
@@ -760,13 +762,14 @@ class Wallet(
 
     /** Whether [mint] (this host with this key) is trusted in the wallet [walletId]. */
     internal suspend fun isTrusted(walletId: String, mint: MintKey): Boolean {
-        val homes = setOfNotNull(store.wallet(walletId)?.homeHost)
+        val homes = store.accounts.first().map { it.account }.filter { it.walletId == walletId }.mapNotNull { it.homeHost }.toSet()
         val default = trustDefault(mint, store.mint(walletId, mint.host)?.mintPubkey, homes)
         return isTrusted(mint, default, trust.trusted(walletId).first(), trust.untrusted(walletId).first())
     }
 
     /**
-     * The wallet's home mint ([homes]) is trusted by default with the key it [pinned] for it; a brand's mint only with the key it ships.
+     * A home mint of the wallet's accounts ([homes]) is trusted by default with the key it [pinned] for it; a brand's mint only with the
+     * key it ships.
      */
     private fun trustDefault(mint: MintKey, pinned: String?, homes: Set<String>): TrustDefault? =
         when {
@@ -1042,7 +1045,6 @@ class Wallet(
         if (wholeWallet) {
             seeds.clear(walletId)
             trust.forgetWallet(walletId)
-            policies.clearWallet(walletId)
         }
         val remaining = store.accounts.first().map { it.account.id }
         val next = prefer?.takeIf { it in remaining } ?: remaining.firstOrNull()
@@ -1167,13 +1169,12 @@ class Wallet(
     private suspend fun walletAccountIds(): Set<String> =
         store.currentAccountId()?.let { active -> siblings(active).map { it.id }.toSet() }.orEmpty()
 
-    /** Applies [accountId]'s note policies, and its wallet's collecting, to its notes only; must be called under the lock. */
+    /** Applies [accountId]'s note policies, collecting at its home mint among them, to its notes only; must be called under the lock. */
     private suspend fun applyPolicies(accountId: String) {
-        val walletId = walletOf(accountId)
         val collect =
             collectDefaults
-                .takeIf { it.active(policies.collect(walletId).first()) }
-                ?.let { homeOf(accountId)?.let { home -> CollectPolicy(home, collectFeeCap(walletId).first()) } }
+                .takeIf { it.active(policies.collect(accountId).first()) }
+                ?.let { homeOf(accountId)?.let { home -> CollectPolicy(home, collectFeeCap(accountId).first()) } }
         val run =
             policyEngine.apply(
                 accountId,
@@ -1244,8 +1245,8 @@ class Wallet(
     /** The wallet (recovery phrase) of [accountId]. An account not saved yet is its own wallet's first. */
     internal suspend fun walletOf(accountId: String): String = accountOf(accountId)?.walletId ?: accountId
 
-    /** The home mint of [accountId]'s wallet; null while it has none. */
-    internal suspend fun homeOf(accountId: String): String? = store.wallet(walletOf(accountId))?.homeHost
+    /** [accountId]'s home mint; null while it has none. */
+    internal suspend fun homeOf(accountId: String): String? = accountOf(accountId)?.homeHost
 
     /**
      * Where [accountId]'s payments take notes from first: 0 for the mint at [host] if it comes first, else 1 (see
@@ -1253,7 +1254,7 @@ class Wallet(
      */
     internal suspend fun payOrder(accountId: String): (host: String) -> Int {
         val home = homeOf(accountId)
-        val homeLast = policies.payFromOtherMintsFirst(walletOf(accountId)).first()
+        val homeLast = policies.payFromOtherMintsFirst(accountId).first()
         return { host -> if ((host == home) != homeLast) 0 else 1 }
     }
 
@@ -1302,7 +1303,6 @@ class Wallet(
         // The phrase was the wallet's: what it connected to and chose goes with it.
         store.removeMints(accountId)
         trust.forgetWallet(accountId)
-        policies.clearWallet(accountId)
         keySets.keys.removeAll { it.first == accountId }
     }
 

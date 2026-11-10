@@ -47,15 +47,13 @@ enum class NoteKind {
 }
 
 /**
- * A wallet: one recovery phrase (kept in the seed store under [id]) and the accounts below it. Its mints, the user's trust in them and its
- * [homeHost] are the wallet's, shared by all its accounts.
+ * A wallet: one recovery phrase (kept in the seed store under [id]) and the accounts below it. Its mints and the user's trust in them are
+ * the wallet's, shared by all its accounts; which of them is home is each account's ([Account.homeHost]).
  */
 data class WalletRecord(
     val id: String,
     val name: String,
     val createdAtMillis: Long,
-    /** The mint the user trusts most: notes are collected there and invoices made there. Null while the wallet has no mint. */
-    val homeHost: String? = null,
     /** The setup step the wallet was left at; null once it is set up. */
     val setupStep: SetupStep? = null,
     /** The account that was active before this wallet's setup started, to go back to if the setup is abandoned. */
@@ -72,7 +70,18 @@ enum class SetupStep {
  * One account: account [index] (LUD-26 `S/a'`) of its wallet's recovery phrase. It exists on every mint of its wallet at once; its notes,
  * addresses and key counters are its own. An account made before wallets held several is its own wallet, with the same id, at index 0.
  */
-data class Account(val id: String, val name: String, val createdAtMillis: Long, val walletId: String = id, val index: Long = 0)
+data class Account(
+    val id: String,
+    val name: String,
+    val createdAtMillis: Long,
+    val walletId: String = id,
+    val index: Long = 0,
+    /**
+     * Its home mint, one of its wallet's: the mint the user trusts most for this account's money. Its notes are collected there and its
+     * invoices made there. Null while it has none.
+     */
+    val homeHost: String? = null,
+)
 
 /** How a key-path note's key derives from the seed. */
 enum class KeyScheme(val value: Int) {

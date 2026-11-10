@@ -139,17 +139,21 @@ internal class Onboarding(private val wallet: Wallet) {
         return CreateAccountResult.Created(account.id)
     }
 
-    /** The active wallet's next account: its lowest free index, so a restore, which stops at the first unused one, finds no gap. */
+    /**
+     * The active wallet's next account: its lowest free index, so a restore, which stops at the first unused one, finds no gap. It starts
+     * with the active account's home mint.
+     */
     private suspend fun sibling(accountId: String, name: String): Account {
-        val siblings = wallet.siblings(wallet.activeId())
+        val active = wallet.activeId()
+        val siblings = wallet.siblings(active)
         val used = siblings.map { it.index }.toSet()
         val index = generateSequence(0L) { it + 1 }.first { it !in used }
-        return Account(accountId, name, wallet.now(), siblings.first().walletId, index)
+        return Account(accountId, name, wallet.now(), siblings.first().walletId, index, wallet.homeOf(active))
     }
 
     /**
-     * Registers [username] as another address of the active account, on [host] or else its wallet's home mint: the primary one only if the
-     * account has none.
+     * Registers [username] as another address of the active account, on [host] or else its home mint: the primary one only if the account
+     * has none.
      */
     suspend fun addAddress(username: String, limit: Int, host: String? = null): OnboardResult {
         val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
@@ -388,7 +392,14 @@ internal class Onboarding(private val wallet: Wallet) {
                     feePpm = pay.fee?.ppm,
                 )
             wallet.store.saveMint(mint)
-            wallet.store.wallet(walletId)?.takeIf { it.homeHost == null }?.let { wallet.store.saveWallet(it.copy(homeHost = h)) }
+            // An account of the wallet without a home takes this one.
+            wallet.store.accounts
+                .first()
+                .map { it.account }
+                .filter { it.walletId == walletId && it.homeHost == null }
+                .forEach {
+                    wallet.store.saveAccount(it.copy(homeHost = h))
+                }
             ConnectResult.Connected(mint)
         } catch (e: ProtocolViolation) {
             ConnectResult.Failed(OnboardResult.MintInvalid(e.message ?: "not an LNURLcash server"))

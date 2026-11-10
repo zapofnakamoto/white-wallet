@@ -22,7 +22,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - A wallet without a mint: setup may go on without one where the brand lets users add a mint later
   (`mints.changeable=true`, `mints.visible=true`). Home asks for a mint until there is one, and Receive points there;
-  the first mint added becomes the wallet's home, and finds what the phrase holds there.
+  the first mint added becomes its accounts' home, and finds what the phrase holds there.
 - The seed-derived default address of a new account comes from its first share, so each account of a wallet has its
   own; those made before are still found by a restore. The watch-only key moved from the mint's page to each
   address: a key only ever shows what was paid to its own address.
@@ -32,8 +32,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Each wallet has its own mints: the signing key it pinned there and whether you trust a mint are the wallet's, and
   another wallet on the phone never sees or changes them. A mint's new key is accepted per wallet. An update gives
   every wallet the mints and trust choices the phone had. Database version 6.
-- A home mint can be removed like any other mint, once nothing of the wallet is left there: its accounts have no home
-  until the user picks one, which Receive asks for.
+- A home mint can be removed like any other mint, once nothing of the wallet is left there: the accounts that had it
+  have no home until the user picks one, which Receive asks for.
 - A refresh, in the app or in the background, looks after the active wallet only. Another wallet's payments,
   received notes and open operations are taken care of once it is active.
 - Simpler setup. The first screen only offers to create a wallet or restore one (a phrase, nothing else). Then the
@@ -44,13 +44,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   and isn't backed up). Adding a mint from Home or Settings → Mints goes through the same steps. Adding an account
   only asks for its name: it is on every mint of the wallet at once. A restore left without its address by an older
   version opens on the main screen.
-- The home mint is the wallet's: the mint you trust most, where invoices are made and where collecting moves your
-  notes. Changing it is a setting; it no longer needs an address there, the old home stays trusted, and your addresses
-  stay where they are. An update gives each wallet the home of its first account; a wallet whose accounts had
-  different homes keeps all of them trusted and starts with collecting off.
-- Collecting at the home mint is a wallet setting, off if any account had it off, and turning it on first shows what
-  it would move now and at what fee. It, and every automatic step, only touches the active account's notes.
-- New wallet setting: pay from other mints first, so money gathers at the home mint.
+- The home mint is each account's own choice among its wallet's mints: the mint you trust most for that account's
+  money, where its invoices are made and where collecting moves its notes. So one account can collect at one mint and
+  another account at another. Changing it is a setting; it no longer needs an address there, the old home stays
+  trusted, and your addresses stay where they are. A new account starts with the home of the account in use. An update
+  keeps every account's home.
+- Turning collecting at the home mint on first shows what it would move now and at what fee. It stays each account's
+  setting, and it, like every automatic step, only touches the active account's notes.
+- New account setting: pay from other mints first, so money gathers at the home mint.
 - Any address can be the primary one, on any mint, and the primary one can be unregistered, which leaves none.
   Receive offers the primary address, else one on the home mint, else an invoice, and lets you pick another. The main
   screen warns about any address that no longer reaches the account. The account switcher shows balances only.

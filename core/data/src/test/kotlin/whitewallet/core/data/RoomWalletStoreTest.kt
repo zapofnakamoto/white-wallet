@@ -58,8 +58,8 @@ class RoomWalletStoreTest {
 
     /** Saves account [id] (index [index] of wallet [walletId], saved first if new): its rows need it, as the foreign keys say. */
     private suspend fun account(id: String, walletId: String = id, index: Long = 0, home: String? = "mint.example") {
-        if (store.wallet(walletId) == null) store.saveWallet(WalletRecord(walletId, id, 1, homeHost = home))
-        store.saveAccount(Account(id, id, 1, walletId, index))
+        if (store.wallet(walletId) == null) store.saveWallet(WalletRecord(walletId, id, 1))
+        store.saveAccount(Account(id, id, 1, walletId, index, home))
     }
 
     @Test
@@ -279,11 +279,13 @@ class RoomWalletStoreTest {
             store.upsertNotes(listOf(Note(q1, "acc", "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, NoteState.Outstanding, 1)))
             store.setKeyIndex("acc", "mint.example", KeyCounter.Wallet, 3)
             // Saving the account or its wallet again (a rename, a new home) changes them in place.
-            store.saveAccount(Account("acc", "Renamed", 1))
-            store.saveWallet(WalletRecord("acc", "acc", 1, homeHost = "other.example"))
+            store.saveAccount(Account("acc", "Renamed", 1, homeHost = "other.example"))
+            store.saveWallet(WalletRecord("acc", "Renamed too", 1))
             assertEquals(1, store.notes("acc").first().size)
             assertEquals(3, store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
             assertEquals("Renamed", store.account("acc")?.name)
+            assertEquals("other.example", store.account("acc")?.homeHost)
+            assertEquals("other.example", store.accounts.first().single().account.homeHost)
 
             // The database refuses to drop an account that still has notes; deleteAccount deletes them by name first.
             val sql = db.openHelper.writableDatabase

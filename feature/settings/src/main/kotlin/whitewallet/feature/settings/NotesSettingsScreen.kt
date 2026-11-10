@@ -62,7 +62,7 @@ data class NotesSettingsState(
     /** The fee caps to pick from: the brand's, and [collectFeeCap] if it is another one. */
     val collectFeeCaps: List<Int> = emptyList(),
     val homeHost: String? = null,
-    /** Payments take notes on other mints before those at [homeHost] (a wallet setting). */
+    /** Payments take notes on other mints before those at [homeHost]. */
     val payFromOtherMintsFirst: Boolean = false,
     val lastPolicyRun: PolicyRun? = null,
     /** A policy change is being applied (it may merge or rotate notes right away). */

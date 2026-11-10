@@ -130,22 +130,22 @@ internal class DataStorePreferences(
         prefs.edit { it[strategyKey(accountId)] = strategyId }
     }
 
-    override fun collect(walletId: String): Flow<Boolean?> = prefs.data.map { it[collectKey(walletId)] }
+    override fun collect(accountId: String): Flow<Boolean?> = prefs.data.map { it[collectKey(accountId)] }
 
-    override suspend fun setCollect(walletId: String, enabled: Boolean) {
-        prefs.edit { it[collectKey(walletId)] = enabled }
+    override suspend fun setCollect(accountId: String, enabled: Boolean) {
+        prefs.edit { it[collectKey(accountId)] = enabled }
     }
 
-    override fun collectFeeCap(walletId: String): Flow<Int?> = prefs.data.map { it[feeCapKey(walletId)] }
+    override fun collectFeeCap(accountId: String): Flow<Int?> = prefs.data.map { it[feeCapKey(accountId)] }
 
-    override suspend fun setCollectFeeCap(walletId: String, percent: Int) {
-        prefs.edit { it[feeCapKey(walletId)] = percent }
+    override suspend fun setCollectFeeCap(accountId: String, percent: Int) {
+        prefs.edit { it[feeCapKey(accountId)] = percent }
     }
 
-    override fun payFromOtherMintsFirst(walletId: String): Flow<Boolean> = prefs.data.map { it[otherMintsFirstKey(walletId)] ?: false }
+    override fun payFromOtherMintsFirst(accountId: String): Flow<Boolean> = prefs.data.map { it[otherMintsFirstKey(accountId)] ?: false }
 
-    override suspend fun setPayFromOtherMintsFirst(walletId: String, enabled: Boolean) {
-        prefs.edit { it[otherMintsFirstKey(walletId)] = enabled }
+    override suspend fun setPayFromOtherMintsFirst(accountId: String, enabled: Boolean) {
+        prefs.edit { it[otherMintsFirstKey(accountId)] = enabled }
     }
 
     override fun maintenanceNotices(accountId: String): Flow<Boolean?> = prefs.data.map { it[noticesKey(accountId)] }
@@ -159,14 +159,9 @@ internal class DataStorePreferences(
             it.remove(autoRotateKey(accountId))
             it.remove(strategyKey(accountId))
             it.remove(noticesKey(accountId))
-        }
-    }
-
-    override suspend fun clearWallet(walletId: String) {
-        prefs.edit {
-            it.remove(collectKey(walletId))
-            it.remove(feeCapKey(walletId))
-            it.remove(otherMintsFirstKey(walletId))
+            it.remove(collectKey(accountId))
+            it.remove(feeCapKey(accountId))
+            it.remove(otherMintsFirstKey(accountId))
         }
     }
 
@@ -185,11 +180,11 @@ internal class DataStorePreferences(
 
         private fun strategyKey(accountId: String) = stringPreferencesKey("note_strategy_$accountId")
 
-        internal fun collectKey(walletId: String) = booleanPreferencesKey("wallet_collect_at_home_$walletId")
+        private fun collectKey(accountId: String) = booleanPreferencesKey("collect_at_home_$accountId")
 
-        internal fun feeCapKey(walletId: String) = intPreferencesKey("wallet_collect_fee_cap_$walletId")
+        private fun feeCapKey(accountId: String) = intPreferencesKey("collect_fee_cap_$accountId")
 
-        private fun otherMintsFirstKey(walletId: String) = booleanPreferencesKey("wallet_pay_from_other_mints_first_$walletId")
+        private fun otherMintsFirstKey(accountId: String) = booleanPreferencesKey("pay_from_other_mints_first_$accountId")
 
         private fun noticesKey(accountId: String) = booleanPreferencesKey("maintenance_notices_$accountId")
 
@@ -199,74 +194,14 @@ internal class DataStorePreferences(
 
         /**
          * Keys changed since v0.3.0: an installed app keeps the value under the new name. Trust choices were the device's until each wallet
-         * ([wallets], every one on the phone) had its own; each wallet starts with them. Collecting and the home mint were each account's
-         * until they were its wallet's (see [WalletHomes]); [homesMigrated] runs once that is done.
+         * ([walletIds], every one on the phone) had its own; each wallet starts with them.
          */
-        fun migrations(
-            wallets: suspend () -> List<MigratingWallet>,
-            homesMigrated: suspend () -> Unit = {},
-        ): List<DataMigration<Preferences>> =
+        fun migrations(walletIds: suspend () -> List<String>): List<DataMigration<Preferences>> =
             listOf(
                 RenamedKey(intPreferencesKey("max_addresses_per_service"), MAX_ADDRESSES),
-                PerWallet(stringSetPreferencesKey("trusted_mints"), { wallets().map { it.id } }, ::trustedKey),
-                PerWallet(stringSetPreferencesKey("untrusted_mints"), { wallets().map { it.id } }, ::untrustedKey),
-                WalletHomes(wallets, homesMigrated),
+                PerWallet(stringSetPreferencesKey("trusted_mints"), walletIds, ::trustedKey),
+                PerWallet(stringSetPreferencesKey("untrusted_mints"), walletIds, ::untrustedKey),
             )
-    }
-}
-
-/**
- * A wallet as the settings migrations see it: its accounts' ids, lowest index first, and the homes its accounts had besides the one the
- * wallet kept ([otherHomes], host to the key it pinned there, if any).
- */
-internal data class MigratingWallet(
-    val id: String,
-    val accountIds: List<String>,
-    val otherHomes: List<Pair<String, String?>> = emptyList(),
-)
-
-/**
- * Collecting at the home mint, once each account's, becomes its wallet's: off if any account had it off, or if its accounts had different
- * homes (collecting at one home would move the others' money); the fee cap of its first account. The accounts' keys go. A home an account
- * had besides the wallet's stays trusted with the key it pinned (a home was trusted by default), unless the user untrusted it.
- */
-private class WalletHomes(private val wallets: suspend () -> List<MigratingWallet>, private val done: suspend () -> Unit) :
-    DataMigration<Preferences> {
-    override suspend fun shouldMigrate(currentData: Preferences) =
-        currentData.asMap().keys.any { it.name.startsWith(OLD_COLLECT) || it.name.startsWith(OLD_FEE_CAP) } ||
-            wallets().any { it.otherHomes.isNotEmpty() }
-
-    override suspend fun migrate(currentData: Preferences): Preferences {
-        val wallets = wallets()
-        return currentData
-            .toMutablePreferences()
-            .apply {
-                for (wallet in wallets) {
-                    val collectKey = DataStorePreferences.collectKey(wallet.id)
-                    val collect = wallet.accountIds.mapNotNull { this[booleanPreferencesKey(OLD_COLLECT + it)] }
-                    when {
-                        collectKey in this -> Unit
-                        wallet.otherHomes.isNotEmpty() || false in collect -> this[collectKey] = false
-                        true in collect -> this[collectKey] = true
-                    }
-                    val feeCapKey = DataStorePreferences.feeCapKey(wallet.id)
-                    val feeCap = wallet.accountIds.firstOrNull()?.let { this[intPreferencesKey(OLD_FEE_CAP + it)] }
-                    if (feeCap != null && feeCapKey !in this) this[feeCapKey] = feeCap
-                    val trusted = DataStorePreferences.trustedKey(wallet.id)
-                    val untrusted = this[DataStorePreferences.untrustedKey(wallet.id)].orEmpty()
-                    val keep = wallet.otherHomes.mapNotNull { (host, key) -> key?.let { "$host $it" } }.filter { it !in untrusted }
-                    if (keep.isNotEmpty()) this[trusted] = this[trusted].orEmpty() + keep
-                }
-                asMap().keys.filter { it.name.startsWith(OLD_COLLECT) || it.name.startsWith(OLD_FEE_CAP) }.forEach { remove(it) }
-            }
-            .toPreferences()
-    }
-
-    override suspend fun cleanUp() = done()
-
-    private companion object {
-        const val OLD_COLLECT = "collect_at_home_"
-        const val OLD_FEE_CAP = "collect_fee_cap_"
     }
 }
 

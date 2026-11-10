@@ -17,7 +17,7 @@ import whitewallet.core.wallet.Wallet
 data class DeleteWalletState(
     /** The active account's primary address. */
     val address: RegisteredAddress? = null,
-    /** The wallet's home mint, where its funds are. */
+    /** The active account's home mint. */
     val host: String? = null,
     val balanceMsat: Long = 0,
     val backupVerified: Boolean = false,

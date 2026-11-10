@@ -51,7 +51,7 @@ interface MintTrustStore {
 
 /** Why a mint is trusted without the user saying so. */
 enum class TrustDefault {
-    /** The wallet's home mint. */
+    /** The home mint of an account of the wallet. */
     Home,
 
     /** Shipped as trusted by the brand (`mints.trusted`), with this key. */
@@ -66,7 +66,7 @@ data class MintInfo(
     val trusted: Boolean,
     /** Trusted unless the user says otherwise, and why; null if only the user's choice counts. */
     val trustedByDefault: TrustDefault?,
-    /** Whether it is the wallet's home mint. */
+    /** Whether it is the active account's home mint. */
     val isHome: Boolean = false,
     /** Nothing ties an account to it (see [Wallet.removeMint]), so it can be removed. */
     val removable: Boolean = false,

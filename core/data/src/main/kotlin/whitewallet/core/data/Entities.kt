@@ -45,11 +45,13 @@ internal data class AccountEntity(
     val walletId: String,
     /** Its LUD-26 account index `a` in that wallet. */
     val accountIndex: Long,
+    /** Its home mint, one of its wallet's mints; null while it has none. */
+    val homeHost: String?,
 ) {
-    fun toModel() = Account(id, name, createdAtMillis, walletId, accountIndex)
+    fun toModel() = Account(id, name, createdAtMillis, walletId, accountIndex, homeHost)
 
     companion object {
-        fun from(a: Account) = AccountEntity(a.id, a.name, a.createdAtMillis, a.walletId, a.index)
+        fun from(a: Account) = AccountEntity(a.id, a.name, a.createdAtMillis, a.walletId, a.index, a.homeHost)
     }
 }
 
@@ -59,7 +61,6 @@ internal data class WalletEntity(
     @PrimaryKey val id: String,
     val name: String,
     val createdAtMillis: Long,
-    val homeHost: String?,
     /** [SetupStep] name. */
     val setupStep: String?,
     val activeBeforeSetup: String?,
@@ -69,13 +70,12 @@ internal data class WalletEntity(
             id,
             name,
             createdAtMillis,
-            homeHost,
             setupStep?.let { s -> SetupStep.entries.firstOrNull { it.name == s } },
             activeBeforeSetup,
         )
 
     companion object {
-        fun from(w: WalletRecord) = WalletEntity(w.id, w.name, w.createdAtMillis, w.homeHost, w.setupStep?.name, w.activeBeforeSetup)
+        fun from(w: WalletRecord) = WalletEntity(w.id, w.name, w.createdAtMillis, w.setupStep?.name, w.activeBeforeSetup)
     }
 }
 
@@ -90,6 +90,7 @@ internal data class AccountSummaryRow(
     /** Its wallet and index there: without them, every account would look like the first of a wallet of its own. */
     val walletId: String,
     val accountIndex: Long,
+    val homeHost: String?,
     val balanceMsat: Long,
 )
 

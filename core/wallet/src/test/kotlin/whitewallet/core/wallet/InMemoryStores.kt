@@ -306,16 +306,16 @@ class InMemoryWalletStore : WalletStore {
 
     fun allNotes() = noteMap.value.values.toList()
 
-    /** The home mint of [accountId]'s wallet. */
-    suspend fun homeOf(accountId: String): String? = account(accountId)?.let { wallet(it.walletId)?.homeHost }
+    /** [accountId]'s home mint. */
+    suspend fun homeOf(accountId: String): String? = account(accountId)?.homeHost
 
     /**
-     * Creates an account in a wallet of its own (home mint [host], unless the wallet has one) with [primary] as its primary address, and
-     * makes it active, as a successful onboarding would.
+     * Creates an account in a wallet of its own (home mint [host]) with [primary] as its primary address, and makes it active, as a
+     * successful onboarding would.
      */
     suspend fun addAccount(id: String, name: String, primary: PrimaryAddress?, host: String = primary?.host ?: "mint.example") {
-        if (id !in walletMap.value) saveWallet(WalletRecord(id, name, accountMap.value.size.toLong(), homeHost = host))
-        saveAccount(Account(id, name, accountMap.value.size.toLong()))
+        if (id !in walletMap.value) saveWallet(WalletRecord(id, name, accountMap.value.size.toLong()))
+        saveAccount(Account(id, name, accountMap.value.size.toLong(), homeHost = host))
         primary?.let {
             saveAddress(id, RegisteredAddress(it.username, it.host, 0, share = 0))
             setPrimaryAddress(id, it.username, it.host)

@@ -462,7 +462,7 @@ class OnboardingTest {
     }
 
     @Test
-    fun `an account without an address changes its wallet's home too`() = withTwoMints { _, homeHost, _, otherHost ->
+    fun `an account without an address changes its home too`() = withTwoMints { _, homeHost, _, otherHost ->
         val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())
         assertIs<CreateAccountResult.Created>(wallet.createAccount(homeHost, "Main"))
         assertIs<ConnectResult.Connected>(wallet.setHomeMint(otherHost).result)
@@ -472,34 +472,42 @@ class OnboardingTest {
     }
 
     @Test
-    fun `a wallet set up without a mint can't receive, and its first mint becomes its home`() = withTwoMints { _, homeHost, _, otherHost ->
-        val store = InMemoryWalletStore()
-        val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient())
-        val main = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main")).accountId
-        val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true)).accountId
-        assertNull(store.homeOf(main))
-        assertFalse(wallet.hasMint.first())
-        assertEquals(InvoiceRequest.Unreachable, wallet.requestInvoice(1_000_000))
-        assertEquals(emptyList(), wallet.mints.first())
+    fun `a wallet set up without a mint can't receive, and its first mint becomes its accounts' home`() =
+        withTwoMints { _, homeHost, _, otherHost ->
+            val store = InMemoryWalletStore()
+            val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient())
+            val main = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main")).accountId
+            val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true)).accountId
+            assertNull(store.homeOf(main))
+            assertFalse(wallet.hasMint.first())
+            assertEquals(InvoiceRequest.Unreachable, wallet.requestInvoice(1_000_000))
+            assertEquals(emptyList(), wallet.mints.first())
 
-        assertIs<ConnectResult.Connected>(wallet.addMint(homeHost))
-        assertTrue(wallet.hasMint.first())
-        assertEquals(homeHost, store.homeOf(main))
-        assertEquals(homeHost, store.homeOf(savings))
+            assertIs<ConnectResult.Connected>(wallet.addMint(homeHost))
+            assertTrue(wallet.hasMint.first())
+            assertEquals(homeHost, store.homeOf(main))
+            assertEquals(homeHost, store.homeOf(savings))
 
-        // A second mint is only added; the home stays.
-        assertIs<ConnectResult.Connected>(wallet.addMint(otherHost))
-        assertEquals(homeHost, store.homeOf(savings))
+            // A second mint is only added; the home stays.
+            assertIs<ConnectResult.Connected>(wallet.addMint(otherHost))
+            assertEquals(homeHost, store.homeOf(savings))
 
-        // The home may be removed: the wallet has none until one is picked, while it still has a mint.
-        assertEquals(RemoveMintResult.Removed, wallet.removeMint(homeHost))
-        assertNull(store.homeOf(main))
-        assertNull(store.homeOf(savings))
-        assertTrue(wallet.hasMint.first())
-        assertIs<ConnectResult.Connected>(wallet.setHomeMint(otherHost).result)
-        assertEquals(otherHost, wallet.homeHost.first())
-        assertEquals(otherHost, store.homeOf(main), "one home for the whole wallet")
-    }
+            // Each account's home is its own: Savings moves to the other mint, Main stays.
+            assertIs<ConnectResult.Connected>(wallet.setHomeMint(otherHost).result)
+            assertEquals(otherHost, wallet.homeHost.first())
+            assertEquals(otherHost, store.homeOf(savings))
+            assertEquals(homeHost, store.homeOf(main))
+            assertTrue(wallet.mints.first().all { it.trusted }, "every account's home is trusted by default")
+            // A new account starts with the home of the account in use.
+            val third = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Third", inActiveWallet = true)).accountId
+            assertEquals(otherHost, store.homeOf(third))
+
+            // A home may be removed while nothing is there: the accounts that had it have none until one is picked.
+            assertEquals(RemoveMintResult.Removed, wallet.removeMint(homeHost))
+            assertNull(store.homeOf(main))
+            assertEquals(otherHost, store.homeOf(savings))
+            assertTrue(wallet.hasMint.first())
+        }
 
     @Test
     fun `an account's first address is its primary one, on whichever mint, and the home stays`() = withMint { _, homeHost ->

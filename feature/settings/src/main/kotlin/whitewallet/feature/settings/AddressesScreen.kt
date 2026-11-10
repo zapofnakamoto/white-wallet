@@ -72,7 +72,7 @@ data class AddressesState(
     val message: AddressesMessage? = null,
     /** The address whose watch-only key is showing, and that key. */
     val watchOnly: WatchOnlyKey? = null,
-    /** The wallet's home mint, where new addresses are added. */
+    /** The account's home mint, where new addresses are added. */
     val homeHost: String? = null,
     /**
      * The brand lets users pick other mints (`mints.changeable`) and the wallet has another one it allows, so addresses can go there too.

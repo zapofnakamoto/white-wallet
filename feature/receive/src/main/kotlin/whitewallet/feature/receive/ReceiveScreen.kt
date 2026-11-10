@@ -54,7 +54,7 @@ import whitewallet.core.wallet.InvoiceStatus
 fun ReceiveRoute(
     onBack: () -> Unit,
     onClaim: () -> Unit,
-    /** Opens where a mint is added ([NoHome.NoMint]) or the wallet's home is picked ([NoHome.PickHome]). */
+    /** Opens where a mint is added ([NoHome.NoMint]) or the account's home is picked ([NoHome.PickHome]). */
     onNoHome: (NoHome) -> Unit = {},
     viewModel: ReceiveViewModel = hiltViewModel(),
 ) {

@@ -29,7 +29,9 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
 
     override val accounts: Flow<List<AccountSummary>> =
         dao.accountSummaries().map { rows ->
-            rows.map { r -> AccountSummary(Account(r.id, r.name, r.createdAtMillis, r.walletId, r.accountIndex), r.balanceMsat) }
+            rows.map { r ->
+                AccountSummary(Account(r.id, r.name, r.createdAtMillis, r.walletId, r.accountIndex, r.homeHost), r.balanceMsat)
+            }
         }
     override val activeAccountId: Flow<String?> = dao.activeAccountId()
 

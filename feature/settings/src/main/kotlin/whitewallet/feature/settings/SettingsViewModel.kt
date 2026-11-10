@@ -34,7 +34,7 @@ data class SettingsState(
     val autoRotate: Boolean = false,
     val lastPolicyRun: PolicyRun? = null,
     val appLock: Boolean = false,
-    /** The wallet's home mint. */
+    /** The account's home mint. */
     val homeHost: String? = null,
     /** Notes on other mints are moved to [homeHost] automatically. */
     val collectAtHome: Boolean = false,

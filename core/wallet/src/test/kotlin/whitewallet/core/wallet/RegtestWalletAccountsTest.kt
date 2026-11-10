@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.KeyCounter
+import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
+import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.spendDomain
@@ -137,6 +139,46 @@ class RegtestWalletAccountsTest {
             other.switchAccount(ids.getValue(1))
             assertTrue(assertIs<OnboardResult.Ready>(other.onboard(names[3], HOST)).confirmed)
             assertEquals(1L, store.addresses(ids.getValue(1)).first().single { it.username == names[3] }.share)
+        }
+
+    @Test
+    fun `two accounts of one wallet collect at different home mints, each only its own notes`() =
+        runBlocking<Unit> {
+            val phone = phone()
+            val main = phone.wallet.activeId()
+            suspend fun claim(second: Boolean) =
+                assertIs<ClaimResult.Claimed>(
+                    phone.wallet.claim(assertIs<ClaimPreview.Ready>(phone.wallet.previewClaim(Regtest.note(3000, second = second))))
+                )
+            // Main (home: the first mint) doesn't collect: a note claimed on the other mint stays there.
+            claim(second = true)
+            assertEquals(1, phone.notes(HOST2).size)
+
+            // Savings starts with Main's home, moves it to the other mint and collects there.
+            assertIs<CreateAccountResult.Created>(phone.wallet.createAccount(HOST, "Savings", inActiveWallet = true))
+            val savings = phone.wallet.activeId()
+            assertEquals(HOST, phone.wallet.homeHost.first(), "a new account starts with the home of the account in use")
+            assertIs<ConnectResult.Connected>(phone.wallet.setHomeMint(HOST2).result)
+            phone.wallet.setCollectAtHome(true)
+            claim(second = false)
+            assertEquals(emptyList(), phone.notes(HOST), "Savings' note went to its home")
+            assertTrue(phone.notes(HOST2).sumOf { it.amountMsat } > 2_990_000, "there, less the move's fees: ${phone.notes(HOST2)}")
+            assertEquals(1, phone.store.notes(main).first().count { it.host == HOST2 && it.state == NoteState.Outstanding })
+
+            // Main's settings are its own: still home on the first mint, still not collecting, its note where it was.
+            phone.wallet.switchAccount(main)
+            assertEquals(HOST, phone.wallet.homeHost.first())
+            assertEquals(false, phone.wallet.collectAtHome.first())
+            phone.wallet.refresh()
+            assertEquals(1, phone.notes(HOST2).size)
+
+            // Collecting for Main moves its note the other way, to its own home; Savings' money stays on the other mint.
+            phone.wallet.setCollectAtHome(true)
+            assertEquals(emptyList(), phone.notes(HOST2))
+            assertTrue(phone.notes(HOST).sumOf { it.amountMsat } > 2_990_000, "home, less the move's fees: ${phone.notes(HOST)}")
+            val ofSavings = phone.store.notes(savings).first().filter { it.state == NoteState.Outstanding }
+            assertEquals(setOf(HOST2), ofSavings.map { it.host }.toSet())
+            assertTrue(phone.wallet.mints.first().filter { it.host in setOf(HOST, HOST2) }.all { it.trusted }, "both homes are trusted")
         }
 
     @Test

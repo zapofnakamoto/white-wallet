@@ -100,8 +100,9 @@ internal class Restore(private val wallet: Wallet) {
 
     /**
      * Finds what every account of the wallet [walletId] holds on [host]: each account it has, then further ones up to a gap of ones never
-     * used (BIP-44). An account the wallet has counts as used, and created ones before a used one stay, to keep its index. Null once every
-     * account was looked through; otherwise why the scan stopped, and the created accounts that hold nothing are gone again.
+     * used (BIP-44). An account the wallet has counts as used, and created ones before a used one stay, to keep its index. A created one's
+     * home is [host], where it was found. Null once every account was looked through; otherwise why the scan stopped, and the created
+     * accounts that hold nothing are gone again.
      */
     private suspend fun scanWallet(walletId: String, host: String, onProgress: (ScanProgress) -> Unit = {}): Failure? {
         val accounts = wallet.store.accounts.first().map { it.account }.filter { it.walletId == walletId }
@@ -115,7 +116,7 @@ internal class Restore(private val wallet: Wallet) {
             val had = byIndex[index]
             val account =
                 had
-                    ?: Account(UUID.randomUUID().toString(), wallet.accountName(index), wallet.now(), walletId, index)
+                    ?: Account(UUID.randomUUID().toString(), wallet.accountName(index), wallet.now(), walletId, index, host)
                         .takeIf { index < creatable }
                         ?.also { wallet.store.saveAccount(it) }
             val at = index++

@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
 internal interface WalletDao {
     @Query(
         """
-        SELECT a.id, a.name, a.createdAtMillis, a.walletId, a.accountIndex,
+        SELECT a.id, a.name, a.createdAtMillis, a.walletId, a.accountIndex, a.homeHost,
                COALESCE((SELECT SUM(n.amountMsat) FROM notes n WHERE n.accountId = a.id AND n.state = 'Outstanding'), 0) AS balanceMsat
         FROM accounts a
         ORDER BY a.createdAtMillis
@@ -287,36 +287,16 @@ internal object Migration5To6 : Migration(5, 6) {
 }
 
 /**
- * The wallet model, cleaned up: the home mint is the wallet's (its first account's, of those that had one), not each account's; an
- * account's primary address is a flag on its address (`profile` goes); a wallet's setup step is kept; every table points at its wallet or
- * account with a foreign key, and one (wallet, index) is one account.
+ * The wallet model, cleaned up: an account's home mint stays its own (`host` is `homeHost` now); an account's primary address is a flag on
+ * its address (`profile` goes); a wallet's setup step is kept; every table points at its wallet or account with a foreign key, and one
+ * (wallet, index) is one account.
  *
  * Nothing that holds money is dropped. Duplicate accounts at one (wallet, index) (an old scan bug) are merged into the oldest: the others'
- * rows move to it, counters keep the highest index (no key is used twice), scans the lowest (a scan goes back rather than skip). Notes,
- * received notes and journal entries of an account that doesn't exist move to `orphan_*` tables; rows derived from the seed (counters,
- * scans, key checks), history, addresses and mints of a missing account or wallet go. Wallets whose accounts had different homes are noted
- * in [SPLIT_HOMES] for the settings migration (see [DataStorePreferences.migrations]): it keeps those homes trusted and collecting off.
+ * rows move to it, counters keep the highest index (no key is used twice), scans the lowest (a scan goes back rather than skip), and it
+ * takes another's home if it had none. Notes, received notes and journal entries of an account that doesn't exist move to `orphan_*`
+ * tables; rows derived from the seed (counters, scans, key checks), history, addresses and mints of a missing account or wallet go.
  */
 internal object Migration6To7 : Migration(6, 7) {
-    /** Each account home other than its wallet's new home, with the key the wallet pinned for it; emptied by the settings migration. */
-    const val SPLIT_HOMES = "migration_split_homes"
-
-    /** The other homes per wallet in [SPLIT_HOMES] (host to pinned key); none on a database that never had them. */
-    fun splitHomes(db: SupportSQLiteDatabase): Map<String, List<Pair<String, String?>>> {
-        db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '$SPLIT_HOMES'").use {
-            if (!it.moveToFirst()) return emptyMap()
-        }
-        val homes = mutableMapOf<String, MutableList<Pair<String, String?>>>()
-        db.query("SELECT walletId, host, mintPubkey FROM $SPLIT_HOMES").use { c ->
-            while (c.moveToNext()) homes.getOrPut(c.getString(0)) { mutableListOf() } +=
-                c.getString(1) to if (c.isNull(2)) null else c.getString(2)
-        }
-        return homes
-    }
-
-    /** Forgets [SPLIT_HOMES] once the settings migration has used it. */
-    fun forgetSplitHomes(db: SupportSQLiteDatabase) = db.execSQL("DROP TABLE IF EXISTS $SPLIT_HOMES")
-
     override fun migrate(db: SupportSQLiteDatabase) {
         // Every account's wallet exists.
         db.execSQL(
@@ -324,17 +304,16 @@ internal object Migration6To7 : Migration(6, 7) {
         )
         mergeDuplicates(db)
         keepOrphans(db)
-        noteSplitHomes(db)
 
         for (table in TABLES) {
             db.execSQL(table.createSql)
             val columns = table.columns.joinToString(", ") { "`$it`" }
             when (table.name) {
-                "wallets" ->
+                "wallets" -> db.execSQL("INSERT INTO wallets_new (id, name, createdAtMillis) SELECT id, name, createdAtMillis FROM wallets")
+                "accounts" ->
                     db.execSQL(
-                        "INSERT INTO wallets_new (id, name, createdAtMillis, homeHost) SELECT w.id, w.name, w.createdAtMillis, " +
-                            "(SELECT a.host FROM accounts a WHERE a.walletId = w.id AND a.host IS NOT NULL " +
-                            "ORDER BY a.accountIndex, a.createdAtMillis LIMIT 1) FROM wallets w"
+                        "INSERT INTO accounts_new (id, name, createdAtMillis, walletId, accountIndex, homeHost) " +
+                            "SELECT id, name, createdAtMillis, walletId, accountIndex, host FROM accounts"
                     )
                 "addresses" -> {
                     db.execSQL(
@@ -392,6 +371,10 @@ internal object Migration6To7 : Migration(6, 7) {
             )
             db.execSQL("INSERT OR IGNORE INTO profile SELECT ?, username, host FROM profile WHERE accountId = ?", ids)
             db.execSQL("UPDATE app_state SET activeAccountId = ? WHERE activeAccountId = ?", ids)
+            db.execSQL(
+                "UPDATE accounts SET host = COALESCE(host, (SELECT d.host FROM accounts d WHERE d.id = ?)) WHERE id = ?",
+                arrayOf<Any>(dup, keep),
+            )
             for (table in listOf("addresses", "profile", "key_checks", "counters", "key_counters", "address_scan", "share_scan")) {
                 db.execSQL("DELETE FROM $table WHERE accountId = ?", arrayOf<Any>(dup))
             }
@@ -432,20 +415,6 @@ internal object Migration6To7 : Migration(6, 7) {
         db.execSQL("UPDATE app_state SET activeAccountId = NULL WHERE activeAccountId NOT IN (SELECT id FROM accounts)")
     }
 
-    /** Notes each account home that isn't its wallet's new home, with the key the wallet pinned for it. */
-    private fun noteSplitHomes(db: SupportSQLiteDatabase) {
-        db.execSQL(
-            "CREATE TABLE IF NOT EXISTS $SPLIT_HOMES (`walletId` TEXT NOT NULL, `host` TEXT NOT NULL, `mintPubkey` TEXT, " +
-                "PRIMARY KEY(`walletId`, `host`))"
-        )
-        db.execSQL(
-            "INSERT OR IGNORE INTO $SPLIT_HOMES SELECT a.walletId, a.host, " +
-                "(SELECT m.mintPubkey FROM mints m WHERE m.walletId = a.walletId AND m.host = a.host) FROM accounts a " +
-                "WHERE a.host IS NOT NULL AND a.host IS NOT (SELECT b.host FROM accounts b WHERE b.walletId = a.walletId " +
-                "AND b.host IS NOT NULL ORDER BY b.accountIndex, b.createdAtMillis LIMIT 1)"
-        )
-    }
-
     private class Table(val name: String, val createSql: String, val columns: List<String>, val indices: List<String>)
 
     /** Version 7's tables with their foreign keys, in the order they are rebuilt (parents first), as Room creates them. */
@@ -453,14 +422,14 @@ internal object Migration6To7 : Migration(6, 7) {
         listOf(
             Table(
                 "wallets",
-                "CREATE TABLE IF NOT EXISTS `wallets_new` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `homeHost` TEXT, `setupStep` TEXT, `activeBeforeSetup` TEXT, PRIMARY KEY(`id`))",
-                listOf("id", "name", "createdAtMillis", "homeHost", "setupStep", "activeBeforeSetup"),
+                "CREATE TABLE IF NOT EXISTS `wallets_new` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `setupStep` TEXT, `activeBeforeSetup` TEXT, PRIMARY KEY(`id`))",
+                listOf("id", "name", "createdAtMillis", "setupStep", "activeBeforeSetup"),
                 listOf(),
             ),
             Table(
                 "accounts",
-                "CREATE TABLE IF NOT EXISTS `accounts_new` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `walletId` TEXT NOT NULL, `accountIndex` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
-                listOf("id", "name", "createdAtMillis", "walletId", "accountIndex"),
+                "CREATE TABLE IF NOT EXISTS `accounts_new` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `walletId` TEXT NOT NULL, `accountIndex` INTEGER NOT NULL, `homeHost` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+                listOf("id", "name", "createdAtMillis", "walletId", "accountIndex", "homeHost"),
                 listOf(
                     "CREATE UNIQUE INDEX IF NOT EXISTS `index_accounts_walletId_accountIndex` ON `accounts` (`walletId`, `accountIndex`)"
                 ),

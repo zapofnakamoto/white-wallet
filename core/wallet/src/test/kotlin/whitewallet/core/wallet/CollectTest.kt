@@ -47,8 +47,8 @@ class CollectTest {
 
         suspend fun melts() = store.journal(JournalStatus.entries.toSet()).count { it.type == OperationType.Melt }
 
-        /** Makes [host] the wallet's home mint, as the setting would (without connecting to it). */
-        suspend fun moveHomeTo(host: String) = store.saveWallet(store.wallet("a")!!.copy(homeHost = host))
+        /** Makes [host] the account's home mint, as the setting would (without connecting to it). */
+        suspend fun moveHomeTo(host: String) = store.saveAccount(store.account("a")!!.copy(homeHost = host))
     }
 
     private fun withMint(vararg flags: String, defaults: CollectDefaults = CollectDefaults(), test: suspend Fixture.() -> Unit) =
@@ -117,33 +117,45 @@ class CollectTest {
         }
 
     @Test
-    fun `collecting is the wallet's, and moves only the active account's notes`() = withMint {
+    fun `collecting and the home mint are each account's, and only the active account's notes move`() = withMint {
         fund(30)
-        store.saveAccount(Account("b", "Savings", clock, walletId = "a", index = 1))
-        wallet.switchAccount("b")
         NotesTest.TargetMint(feeMsat = 0).use { home ->
-            moveHomeTo(home.host)
+            // Another account of the same wallet, with another home, collects there.
+            store.saveAccount(Account("b", "Savings", clock, walletId = "a", index = 1, homeHost = home.host))
+            wallet.switchAccount("b")
             wallet.setCollectAtHome(true)
             wallet.refresh()
             assertEquals(true, wallet.collectAtHome.first())
+            assertEquals(home.host, wallet.homeHost.first())
             assertEquals(listOf(30_000L), on(mint.host), "account a isn't active: its notes stay")
             assertEquals(0, melts())
 
+            // Account a never chose to collect, and its home is where its notes are: nothing of b's settings applies to it.
             wallet.switchAccount("a")
-            assertEquals(true, wallet.collectAtHome.first(), "the same setting for every account of the wallet")
+            assertEquals(false, wallet.collectAtHome.first(), "its own setting")
+            assertEquals(mint.host, wallet.homeHost.first(), "its own home")
             wallet.refresh()
+            assertEquals(listOf(30_000L), on(mint.host))
+            assertEquals(0, melts())
+
+            // Once a collects at that mint too, its notes move there.
+            moveHomeTo(home.host)
+            wallet.setCollectAtHome(true)
             assertEquals(listOf(30_000L), on(home.host))
+            assertEquals(home.host, store.homeOf("b"), "b's home is untouched")
         }
     }
 
     @Test
-    fun `payments take the home mint's notes first, or the other mints' if the wallet says so`() = withMint {
+    fun `payments take the home mint's notes first, or the other mints' if the account says so`() = withMint {
         moveHomeTo("home.example")
-        val order = { listOf("other.example", "home.example", "third.example").sortedBy(runBlocking { wallet.payOrder("a") }) }
-        assertEquals(listOf("home.example", "other.example", "third.example"), order())
+        store.saveAccount(Account("b", "Savings", clock, walletId = "a", index = 1, homeHost = "third.example"))
+        val order = { id: String -> listOf("other.example", "home.example", "third.example").sortedBy(runBlocking { wallet.payOrder(id) }) }
+        assertEquals(listOf("home.example", "other.example", "third.example"), order("a"))
         wallet.setPayFromOtherMintsFirst(true)
         assertEquals(true, wallet.payFromOtherMintsFirst.first())
-        assertEquals(listOf("other.example", "third.example", "home.example"), order())
+        assertEquals(listOf("other.example", "third.example", "home.example"), order("a"))
+        assertEquals(listOf("third.example", "other.example", "home.example"), order("b"), "another account: its own home, its own order")
     }
 
     @Test

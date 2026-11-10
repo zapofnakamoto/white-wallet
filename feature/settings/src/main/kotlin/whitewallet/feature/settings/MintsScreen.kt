@@ -52,9 +52,9 @@ data class MintsState(
 }
 
 /**
- * The active wallet's mints, for all its accounts: which of them the user trusts (by signing key), which is the home, and the way to add
- * one (removing one is on its page): by its address if the brand lets users (`mints.custom`), or one of the brand's suggested mints.
- * Nothing about one account's money: see Account → Mints.
+ * The active wallet's mints, for all its accounts: which of them the user trusts (by signing key), which is the active account's home, and
+ * the way to add one (removing one is on its page): by its address if the brand lets users (`mints.custom`), or one of the brand's
+ * suggested mints. Nothing about one account's money: see Account → Mints.
  */
 @HiltViewModel
 class MintsViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {

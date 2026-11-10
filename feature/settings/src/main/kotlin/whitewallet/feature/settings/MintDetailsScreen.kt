@@ -78,7 +78,7 @@ data class MintDetailsState(
 class MintDetailsViewModel
 @Inject
 constructor(private val wallet: Wallet, savedState: SavedStateHandle, private val defaults: AppDefaults) : ViewModel() {
-    /** The mint to show: the route's `host`, else the wallet's home mint. */
+    /** The mint to show: the route's `host`, else the active account's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
     private val _state = MutableStateFlow(MintDetailsState(device = savedState.get<Boolean>("device") ?: false))
     val state: StateFlow<MintDetailsState> = _state

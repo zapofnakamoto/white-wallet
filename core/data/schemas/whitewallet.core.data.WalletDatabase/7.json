@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 7,
-    "identityHash": "b4df55747e565c2cfe0a7bf239f909b4",
+    "identityHash": "b752d817e4aecea6152f106d90fa19d5",
     "entities": [
       {
         "tableName": "accounts",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `walletId` TEXT NOT NULL, `accountIndex` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `walletId` TEXT NOT NULL, `accountIndex` INTEGER NOT NULL, `homeHost` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "id",
@@ -37,6 +37,11 @@
             "columnName": "accountIndex",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "homeHost",
+            "columnName": "homeHost",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -73,7 +78,7 @@
       },
       {
         "tableName": "wallets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `homeHost` TEXT, `setupStep` TEXT, `activeBeforeSetup` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `setupStep` TEXT, `activeBeforeSetup` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -92,11 +97,6 @@
             "columnName": "createdAtMillis",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "homeHost",
-            "columnName": "homeHost",
-            "affinity": "TEXT"
           },
           {
             "fieldPath": "setupStep",
@@ -1048,7 +1048,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b4df55747e565c2cfe0a7bf239f909b4')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b752d817e4aecea6152f106d90fa19d5')"
     ]
   }
 }

@@ -38,7 +38,7 @@
     <string name="addresses_watch_only_hint">Lets another app see the notes paid to this address, but never spend them.</string>
     <string name="notes_collect_hint">Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too.</string>
     <string name="notes_collect_pending">Moving the notes from %1$s; they arrive shortly.</string>
-    <string name="mints_remove_body">This wallet forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the wallet remembers. If it is the wallet\'s home mint, the wallet has none until you choose another.</string>
+    <string name="mints_remove_body">This wallet forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the wallet remembers. An account that has it as its home mint has none until you choose another.</string>
     <string name="settings_notices_hint">A short message when the wallet combined, split, renewed or moved your notes by itself.</string>
     <string name="notes_pay_from_others_first">Pay from other mints first</string>
     <string name="notes_pay_from_others_first_hint">Payments use notes on your other mints before those at %1$s, so your money gathers at your home mint.</string>
