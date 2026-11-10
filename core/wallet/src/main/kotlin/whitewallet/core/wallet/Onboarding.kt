@@ -84,8 +84,8 @@ sealed interface CreateAccountResult {
     /** The account exists and is active. */
     data class Created(val accountId: String) : CreateAccountResult
 
-    /** Looking for what the account already holds on the wallet's mints stopped before it was through ([result]). Nothing changed. */
-    data class ScanFailed(val result: OnboardResult) : CreateAccountResult
+    /** Looking for what the account already holds stopped at the wallet's mint [host] ([result]). Nothing changed. */
+    data class ScanFailed(val host: String, val result: OnboardResult) : CreateAccountResult
 
     /** The wallet already holds [limit] accounts, or the app [limit] wallets, the most it allows. Nothing changed. */
     data class AccountLimitReached(val limit: Int) : CreateAccountResult
@@ -160,7 +160,7 @@ internal class Onboarding(private val wallet: Wallet) {
     }
 
     /** See [Wallet.createAccount]: [scan] looks for what the saved account already holds, and says why it stopped if it did. */
-    suspend fun createAccount(name: String, scan: suspend (Account) -> OnboardResult?): CreateAccountResult {
+    suspend fun createAccount(name: String, scan: suspend (Account) -> CreateAccountResult.ScanFailed?): CreateAccountResult {
         val active = wallet.activeId()
         if (wallet.siblings(active).size >= wallet.maxAccounts) return CreateAccountResult.AccountLimitReached(wallet.maxAccounts)
         val account = sibling(UUID.randomUUID().toString(), name)
@@ -169,7 +169,7 @@ internal class Onboarding(private val wallet: Wallet) {
         // mint, and the next try finds it again.
         scan(account)?.let {
             wallet.store.deleteAccount(account.id)
-            return CreateAccountResult.ScanFailed(it)
+            return it
         }
         wallet.store.setActiveAccount(account.id)
         return CreateAccountResult.Created(account.id)

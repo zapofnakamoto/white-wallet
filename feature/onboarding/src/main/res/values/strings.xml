@@ -43,7 +43,7 @@
     <string name="onboarding_claim">Claim this address</string>
     <string name="onboarding_change_title">Choose a new address</string>
     <string name="default_account_name">Main</string>
-    <string name="new_account_default_name">Savings</string>
+    <string name="new_account_default_name">Account %1$d</string>
     <string name="onboarding_new_account_title">Add account</string>
     <string name="onboarding_account_name">Account name</string>
     <string name="onboarding_create_account">Create account</string>
@@ -141,7 +141,7 @@
     <string name="account_name_body">A new account in this wallet: its own balance and addresses, the same recovery phrase. Nothing else to set up.</string>
     <string name="account_name_looking">Checking what this account already holds. This can take a moment.</string>
     <string name="account_name_found">%1$s · found %2$s</string>
-    <string name="account_name_scan_failed">Couldn\'t check what this account already holds: %1$s. The account wasn\'t added.</string>
+    <string name="account_name_scan_failed">%1$s couldn\'t be reached to check what this account already holds, so it wasn\'t added. Try again in a moment.</string>
     <string name="setup_address_title">Your Lightning address</string>
     <string name="setup_address_body">People pay you at this address, on %1$s. If you had one there, type it to take it back.</string>
     <string name="setup_address_submit">Use this address</string>

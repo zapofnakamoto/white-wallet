@@ -22,7 +22,6 @@
     <string name="settings_notes">Note settings</string>
     <string name="settings_note_list">Notes</string>
     <string name="settings_note_list_hint">See your notes one by one, share, split or combine them</string>
-    <string name="settings_account_contents">Addresses and notes</string>
     <string name="delete_what">This removes this wallet from this phone: its recovery phrase and its accounts, with their notes and settings. Other wallets are not affected.</string>
     <string name="settings_note_strategy">Note strategy</string>
     <string name="settings_strategy_manual_hint">Keep notes as they arrive.</string>
@@ -146,7 +145,7 @@
     <string name="settings_backup_now_hint">Without it, your money is gone if you lose this phone.</string>
     <string name="settings_app_lock_on">App lock on</string>
     <string name="settings_app_lock_off">App lock off</string>
-    <string name="settings_delete">Delete this wallet from this device</string>
+    <string name="settings_delete">Delete this wallet</string>
     <string name="settings_delete_hint">Removes the wallet, its accounts and its recovery phrase from this phone</string>
 
     <string name="delete_title">Delete wallet</string>

@@ -184,11 +184,9 @@ class WelcomeScreenTest {
     fun aNewAccountThatCouldntBeLookedForIsNotAddedAndCanBeTriedAgain() {
         var tried: String? = null
         compose.setContent {
-            AccountNameScreen(CreateState(scanFailed = "timeout"), "Sparen", onBack = {}, onCreate = { tried = it })
+            AccountNameScreen(CreateState(scanFailed = "mint.example"), "Sparen", onBack = {}, onCreate = { tried = it })
         }
-        compose
-            .onNodeWithText("Es konnte nicht geprüft werden, was dieses Konto bereits hält: timeout. Das Konto wurde nicht hinzugefügt.")
-            .assertExists()
+        compose.onNodeWithText("mint.example war nicht erreichbar", substring = true).assertExists()
         compose.onNodeWithText("Noch einmal versuchen").performClick()
         assertEquals("Sparen", tried)
     }

@@ -30,8 +30,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   account offers "Use this account" first. "Add wallet" is here now.
 - "Add account" looks for what the new account already holds on each of the wallet's mints before it opens, and
   shows how far it is: its place under the recovery phrase may have been used before, on another phone or by an
-  account removed here. If a mint doesn't answer, no account is added; try again later. The new account's page
-  opens afterwards.
+  account removed here. If a mint doesn't answer, no account is added and the screen names that mint; try again
+  later. The suggested name is "Account 2", "Account 3", …; the new account's page opens afterwards.
 - Remove an account (its page, in a wallet with more than one): only while it holds no money and nothing of it is
   unfinished. Its history and settings go from the phone; its Lightning addresses stay registered and are named
   before it goes. The next account added takes the freed place and finds what was paid there meanwhile.

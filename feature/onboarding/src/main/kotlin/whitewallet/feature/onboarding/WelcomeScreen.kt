@@ -17,9 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -32,6 +34,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.Anchor
@@ -47,7 +50,6 @@ import whitewallet.core.designsystem.WithReleaseBadge
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.releaseNotice
 import whitewallet.core.wallet.CreateAccountResult
-import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.ScanProgress
 import whitewallet.core.wallet.Wallet
 
@@ -60,7 +62,7 @@ data class CreateState(
     val accountId: String? = null,
     /** Adding an account: how far looking for what it already holds is. */
     val scan: ScanProgress.AccountScan? = null,
-    /** Adding an account: why that look stopped. The account wasn't added. */
+    /** Adding an account: the mint where that look stopped. The account wasn't added. */
     val scanFailed: String? = null,
 )
 
@@ -75,6 +77,12 @@ class CreateViewModel @Inject constructor(private val wallet: Wallet) : ViewMode
 
     fun createWallet(name: String) = create { wallet.createWallet(name) }
 
+    /** The names of the active wallet's accounts: the next one is suggested a number none of them has. */
+    suspend fun accountNames(): List<String> {
+        val active = wallet.activeAccount.first()?.account ?: return emptyList()
+        return wallet.accounts.first().filter { it.account.walletId == active.walletId }.map { it.account.name }
+    }
+
     fun createAccount(name: String) = create {
         wallet.createAccount(name.trim()) { progress -> _state.update { it.copy(scan = progress.accounts.firstOrNull()) } }
     }
@@ -86,8 +94,7 @@ class CreateViewModel @Inject constructor(private val wallet: Wallet) : ViewMode
             when (val result = block()) {
                 is CreateAccountResult.Created -> _state.update { it.copy(busy = false, created = true, accountId = result.accountId) }
                 is CreateAccountResult.AccountLimitReached -> _state.update { it.copy(busy = false, limit = result.limit) }
-                is CreateAccountResult.ScanFailed ->
-                    _state.update { it.copy(busy = false, scan = null, scanFailed = failureReason(result.result)) }
+                is CreateAccountResult.ScanFailed -> _state.update { it.copy(busy = false, scan = null, scanFailed = result.host) }
             }
         }
     }
@@ -168,7 +175,17 @@ fun WelcomeScreen(
 fun AccountNameRoute(onBack: () -> Unit, onCreated: (accountId: String) -> Unit, viewModel: CreateViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.accountId) { state.accountId?.let(onCreated) }
-    AccountNameScreen(state, stringResource(R.string.new_account_default_name), onBack, viewModel::createAccount)
+    val resources = LocalResources.current
+    // "Account 2" in a wallet of one account; a number already taken as a name is passed over.
+    val suggested by
+        produceState<String?>(null) {
+            val taken = viewModel.accountNames()
+            value =
+                generateSequence(taken.size + 1) { it + 1 }
+                    .map { resources.getString(R.string.new_account_default_name, it) }
+                    .first { it !in taken }
+        }
+    suggested?.let { AccountNameScreen(state, it, onBack, viewModel::createAccount) }
 }
 
 @Composable
@@ -215,11 +232,3 @@ fun AccountNameScreen(state: CreateState, defaultName: String, onBack: () -> Uni
         }
     }
 }
-
-/** Why a scan stopped, in the mint's or the network's words. */
-internal fun failureReason(result: OnboardResult): String =
-    when (result) {
-        is OnboardResult.MintInvalid -> result.reason
-        is OnboardResult.NetworkError -> result.reason
-        else -> result.toString()
-    }

@@ -220,7 +220,7 @@ class RegtestWalletAccountsTest {
                     Regtest.client { throw IOException("the mint is down") },
                     policies = NotePolicies.InMemory(ManualStrategy.ID),
                 )
-            assertIs<CreateAccountResult.ScanFailed>(offline.createAccount("Again"))
+            assertEquals(HOST, assertIs<CreateAccountResult.ScanFailed>(offline.createAccount("Again")).host)
             assertEquals(second, store.currentAccountId())
             assertEquals(listOf(1L), store.accounts.first().map { it.account.index })
 

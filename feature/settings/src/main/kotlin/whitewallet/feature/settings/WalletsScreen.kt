@@ -241,7 +241,7 @@ fun WalletScreen(
                             {
                                 Column {
                                     InUse()
-                                    Text(active.address ?: stringResource(R.string.settings_account_contents))
+                                    active.address?.let { Text(it) }
                                 }
                             }
                         } else {

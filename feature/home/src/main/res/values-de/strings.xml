@@ -111,7 +111,7 @@
     <string name="accounts_title">Konten</string>
     <string name="accounts_manage">Wallets verwalten</string>
     <string name="accounts_move">Guthaben verschieben</string>
-    <string name="accounts_separate_backups">Konten in einem Wallet teilen sich seine Wiederherstellungsphrase. Jedes Wallet hat seine eigene: Sichere jedes Wallet.</string>
+    <string name="accounts_separate_backups">Konten in einer Wallet teilen sich ihre Wiederherstellungsphrase. Jede Wallet hat ihre eigene: Sichere jede Wallet.</string>
     <string name="move_title">Guthaben verschieben</string>
     <string name="move_from">Von %1$s (%2$s)</string>
     <string name="move_to">Nach</string>

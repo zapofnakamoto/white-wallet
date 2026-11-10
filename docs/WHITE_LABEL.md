@@ -231,7 +231,6 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `settings_notes` | Note settings |
 | `settings_note_list` | Notes |
 | `settings_note_list_hint` | See your notes one by one, share, split or combine them |
-| `settings_account_contents` | Addresses and notes |
 | `delete_what` | This removes this account from this phone: its recovery phrase, its notes and its settings. Other accounts are not affected. |
 | `settings_note_strategy` | Note strategy |
 | `settings_strategy_manual_hint` | Keep notes as they arrive. |

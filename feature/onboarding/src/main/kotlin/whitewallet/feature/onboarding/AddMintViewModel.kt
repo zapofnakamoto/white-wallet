@@ -167,7 +167,12 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
         }
     }
 
-    private fun failure(result: OnboardResult): String = failureReason(result)
+    private fun failure(result: OnboardResult): String =
+        when (result) {
+            is OnboardResult.MintInvalid -> result.reason
+            is OnboardResult.NetworkError -> result.reason
+            else -> result.toString()
+        }
 
     /** After the result: in a setup, on to the address (where there is one to pick) or done; otherwise back where it was opened. */
     fun done() {

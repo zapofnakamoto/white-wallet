@@ -100,9 +100,10 @@ internal class Restore(private val wallet: Wallet) {
 
     /**
      * Finds what [account], just added to its wallet, already holds on each of the wallet's mints: its index may have been used before, on
-     * another phone or by an account removed from this one. Null once every mint was looked through; otherwise why the scan stopped.
+     * another phone or by an account removed from this one. Null once every mint was looked through; otherwise where and why the scan
+     * stopped.
      */
-    suspend fun scanAccount(account: Account, onProgress: (ScanProgress) -> Unit = {}): OnboardResult? {
+    suspend fun scanAccount(account: Account, onProgress: (ScanProgress) -> Unit = {}): CreateAccountResult.ScanFailed? {
         var progress = ScanProgress.AccountScan(account.index, 0, 0, done = false)
         val report = { probe: KeyProbe ->
             progress =
@@ -115,7 +116,9 @@ internal class Restore(private val wallet: Wallet) {
         for (mint in wallet.store.mints(account.walletId).first()) {
             val found = scan(account.id, mint.host, report)
             if (found is Scan.Failed) {
-                return found.failure.let { if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason) }
+                val why =
+                    found.failure.let { if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason) }
+                return CreateAccountResult.ScanFailed(mint.host, why)
             }
         }
         onProgress(ScanProgress(listOf(progress.copy(done = true))))

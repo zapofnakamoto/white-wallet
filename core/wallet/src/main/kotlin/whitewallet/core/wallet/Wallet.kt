@@ -161,7 +161,7 @@ class Wallet(
         combine(store.wallets, store.accounts) { wallets, accounts ->
             wallets
                 .sortedBy { it.createdAtMillis }
-                .mapIndexed { i, w -> WalletGroup(w, i + 1, accounts.filter { it.account.walletId == w.id }.sortedBy { it.account.index }) }
+                .mapIndexed { i, w -> WalletGroup(w, i + 1, accounts.filter { it.account.walletId == w.id }) }
         }
 
     /** The active account's home mint, the one the user trusts most for its money; null while it has none. */

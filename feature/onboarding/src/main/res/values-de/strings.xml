@@ -38,7 +38,7 @@
     <string name="onboarding_claim">Diese Adresse sichern</string>
     <string name="onboarding_change_title">Neue Adresse wählen</string>
     <string name="default_account_name">Haupt</string>
-    <string name="new_account_default_name">Ersparnisse</string>
+    <string name="new_account_default_name">Konto %1$d</string>
     <string name="onboarding_new_account_title">Konto hinzufügen</string>
     <string name="onboarding_account_name">Name des Kontos</string>
     <string name="onboarding_create_account">Konto erstellen</string>
@@ -73,8 +73,8 @@
         <item quantity="other">Hier lässt sich nichts mehr hinzufügen: Diese App erlaubt höchstens %1$d.</item>
     </plurals>
     <plurals name="restore_error_account_limit">
-        <item quantity="one">Diese App hat höchstens %1$d Wallet. Um ein anderes wiederherzustellen, lösche zuerst das Wallet auf diesem Handy (Einstellungen → Wallets).</item>
-        <item quantity="other">Diese App hat höchstens %1$d Wallets. Um eines wiederherzustellen, lösche zuerst eines auf diesem Handy (Einstellungen → Wallets).</item>
+        <item quantity="one">Diese App hat höchstens %1$d Wallet. Um eine andere wiederherzustellen, lösche zuerst die Wallet auf diesem Handy (Einstellungen → Wallets).</item>
+        <item quantity="other">Diese App hat höchstens %1$d Wallets. Um eine wiederherzustellen, lösche zuerst eine auf diesem Handy (Einstellungen → Wallets).</item>
     </plurals>
     <string name="onboarding_error_network">Keine Verbindung: %1$s</string>
 
@@ -136,7 +136,7 @@
     <string name="account_name_body">Ein neues Konto in dieser Wallet: eigenes Guthaben und eigene Adressen, dieselbe Wiederherstellungsphrase. Sonst ist nichts einzurichten.</string>
     <string name="account_name_looking">Es wird geprüft, was dieses Konto bereits hält. Das kann einen Moment dauern.</string>
     <string name="account_name_found">%1$s · %2$s gefunden</string>
-    <string name="account_name_scan_failed">Es konnte nicht geprüft werden, was dieses Konto bereits hält: %1$s. Das Konto wurde nicht hinzugefügt.</string>
+    <string name="account_name_scan_failed">%1$s war nicht erreichbar, um zu prüfen, was dieses Konto bereits hält. Es wurde deshalb nicht hinzugefügt. Versuche es gleich noch einmal.</string>
     <string name="setup_address_title">Deine Lightning-Adresse</string>
     <string name="setup_address_body">Unter dieser Adresse bei %1$s wirst du bezahlt. Hattest du dort eine, gib sie ein, um sie zurückzuholen.</string>
     <string name="setup_address_submit">Diese Adresse nutzen</string>

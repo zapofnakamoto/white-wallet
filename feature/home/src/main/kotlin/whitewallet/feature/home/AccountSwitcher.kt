@@ -46,7 +46,7 @@ fun AccountSwitcher(
     walletNames: Map<String, String> = emptyMap(),
 ) {
     val wallets = accounts.groupBy { it.account.walletId }.toList()
-    WalletSheet(onDismissRequest = onDismiss) {
+    WalletSheet(onDismissRequest = onDismiss, openFully = true) {
         // Scrolls: with many accounts, the buttons and the backup hint below them would be cut off.
         Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 16.dp)) {
             Text(
