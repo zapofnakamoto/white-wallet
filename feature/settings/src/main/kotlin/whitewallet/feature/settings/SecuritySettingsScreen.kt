@@ -24,6 +24,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.core.designsystem.WalletListItem
@@ -37,7 +38,9 @@ import whitewallet.core.wallet.Timings
 
 @HiltViewModel
 class SecuritySettingsViewModel @Inject constructor(private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
-    val appLock: StateFlow<Boolean> = preferences.appLock.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    /** Null until the setting is read. */
+    val appLock: StateFlow<Boolean?> =
+        preferences.appLock.map<Boolean, Boolean?> { it }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The brand's `security.appLock=always`: on, with no switch. */
     val always = defaults.appLock == AppLockPolicy.Always
@@ -71,7 +74,7 @@ fun SecuritySettingsRoute(onBack: () -> Unit, viewModel: SecuritySettingsViewMod
 /** App lock: opening the app (and returning to it after a while) asks for the phone's own lock. */
 @Composable
 fun SecuritySettingsScreen(
-    appLock: Boolean,
+    appLock: Boolean?,
     available: Boolean,
     onBack: () -> Unit,
     always: Boolean = false,
@@ -80,6 +83,8 @@ fun SecuritySettingsScreen(
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.security_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
+            // Not read yet (a moment): nothing, rather than a switch that is off first.
+            if (appLock == null) return@Column
             WalletListItem(
                 headlineContent = { Text(stringResource(R.string.security_app_lock)) },
                 supportingContent = {

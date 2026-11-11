@@ -99,6 +99,7 @@ fun ReceiveScreen(
     onNoHome: (NoHome) -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.receive_title), onBack) }) { padding ->
+        if (!state.loaded) return@Scaffold
         val arrived = state.arrivedMsat
         if (arrived != null) {
             SuccessScreen(

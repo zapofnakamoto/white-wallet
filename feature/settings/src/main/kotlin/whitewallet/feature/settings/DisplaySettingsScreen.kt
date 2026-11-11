@@ -36,10 +36,11 @@ import whitewallet.core.wallet.AppPreferences
 
 @HiltViewModel
 class DisplaySettingsViewModel @Inject constructor(private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
-    val unit: StateFlow<AmountUnit> =
+    /** Null until the choice is read. */
+    val unit: StateFlow<AmountUnit?> =
         preferences.amountUnit
-            .map(defaults::amountUnit)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), defaults.defaultAmountUnit)
+            .map<AmountUnit?, AmountUnit?>(defaults::amountUnit)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun setUnit(unit: AmountUnit) {
         viewModelScope.launch { preferences.setAmountUnit(unit) }
@@ -54,9 +55,11 @@ fun DisplaySettingsRoute(onBack: () -> Unit, viewModel: DisplaySettingsViewModel
 
 /** How amounts are shown: ₿ as whole numbers (BIP-177) or sats; the numbers are the same either way. */
 @Composable
-fun DisplaySettingsScreen(unit: AmountUnit, onBack: () -> Unit, onUnit: (AmountUnit) -> Unit) {
+fun DisplaySettingsScreen(unit: AmountUnit?, onBack: () -> Unit, onUnit: (AmountUnit) -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_amounts), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
+            // Not read yet (a moment): nothing, rather than the brand's unit picked first.
+            if (unit == null) return@Column
             Text(
                 stringResource(R.string.settings_amounts_hint),
                 style = MaterialTheme.typography.bodyMedium,

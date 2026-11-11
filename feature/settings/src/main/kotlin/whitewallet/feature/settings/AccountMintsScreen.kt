@@ -24,6 +24,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTopBar
@@ -33,8 +34,11 @@ import whitewallet.core.wallet.Wallet
 
 @HiltViewModel
 class AccountMintsViewModel @Inject constructor(wallet: Wallet) : ViewModel() {
-    val mints: StateFlow<List<AccountMint>> =
-        wallet.accountMints.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /** Null until read. */
+    val mints: StateFlow<List<AccountMint>?> =
+        wallet.accountMints
+            .map<List<AccountMint>, List<AccountMint>?> { it }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 }
 
 @Composable
@@ -48,8 +52,10 @@ fun AccountMintsRoute(onBack: () -> Unit, onOpen: (host: String) -> Unit, viewMo
  * has what the account can do on it (change home, move money); the device's list of mints is Settings → Mints.
  */
 @Composable
-fun AccountMintsScreen(mints: List<AccountMint>, onBack: () -> Unit, onOpen: (String) -> Unit) {
+fun AccountMintsScreen(mints: List<AccountMint>?, onBack: () -> Unit, onOpen: (String) -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_account_mints), onBack) }) { padding ->
+        // Not read yet (a moment): nothing, rather than an empty list first.
+        if (mints == null) return@Scaffold
         LazyColumn(Modifier.padding(padding).fillMaxWidth()) {
             item {
                 Text(

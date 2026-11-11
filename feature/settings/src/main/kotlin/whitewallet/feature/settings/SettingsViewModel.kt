@@ -52,6 +52,8 @@ data class SettingsState(
     val trustedCount: Int = 0,
     /** Mints whose keys weren't looked through to the end: the wallet may hold more there than it shows. */
     val unscannedCount: Int = 0,
+    /** The wallet was read: until then the pages that show this draw nothing (rather than "no address", no mints, and so on). */
+    val loaded: Boolean = true,
 )
 
 /**
@@ -128,7 +130,7 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
                     unscannedCount = mints.count { it.scan != null && it.scan != MintScan.Finished },
                 )
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState(loaded = false))
 
     private class ActiveAccount(val id: String?, val name: String?, val backedUp: Boolean, val place: Int, val wallet: WalletGroup?)
 

@@ -274,4 +274,22 @@ class SettingsScreensTest {
         compose.onNodeWithText("other.example").performClick()
         assertEquals("other.example", opened)
     }
+
+    @Test
+    fun pagesDrawNothingUntilWhatTheyShowIsRead() {
+        compose.setContent {
+            androidx.compose.foundation.layout.Column {
+                SecuritySettingsScreen(appLock = null, available = true, onBack = {}, onAppLock = {})
+                DisplaySettingsScreen(null, {}, {})
+                AccountMintsScreen(null, {}, {})
+                DeleteWalletScreen(DeleteWalletState(loaded = false), {}, {}, {}, {}, {}, {})
+                MintDetailsScreen(MintDetailsState(), {}, {})
+            }
+        }
+        compose.onNodeWithText(text(R.string.security_app_lock)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_amounts_hint)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.account_mints_intro)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.delete_what)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_title)).assertDoesNotExist()
+    }
 }

@@ -113,4 +113,10 @@ class AddressesScreenTest {
         show(AddressesState(listOf(home), homeHost = "home.example", otherMints = true))
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Adresse bei einer anderen Mint hinzufügen"))
     }
+
+    @Test
+    fun untilTheAddressesAreReadThePageDoesNotSayThereAreNone() {
+        show(AddressesState(loaded = false))
+        compose.onNodeWithText(text(R.string.addresses_none)).assertDoesNotExist()
+    }
 }

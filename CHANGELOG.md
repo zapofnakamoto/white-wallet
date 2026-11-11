@@ -90,6 +90,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - The address form showed a random name, and in a setup the brand's first mint, for a moment before the right ones.
   It now shows once the mint and the name are known, and in a setup stays locked while the mint is asked whether the
   wallet already owns an address there.
+- Screens showed something else for a moment before what they are about: adding a mint showed the brand's mint as
+  text before the list to pick from, Receive the amount form before the address, Settings "no address" and no mints,
+  switches off before on, lists empty before filled, a total of nothing before the notes. Every screen now draws
+  nothing until what it shows is read from the phone.
+- A note claimed from a mint the wallet hadn't met started at the wallet's first key there, whatever keys its phrase
+  had already used on that mint, and left the notes on them unfound. The mint is now connected before the claim, so
+  the claim takes the first free key and the notes on the wallet's keys there are found.
 - A restored wallet taking back an address it had paid for was asked about the mint's address fee again, and a brand
   with `addresses.fee.onboarding=skip` left it without that address. A name that is the wallet's already costs nothing.
 - Adding a mint finds what every account of the wallet already holds there, as a restore does on its mint, and creates
@@ -115,6 +122,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### For developers
 
+- `dev/check-flash.sh` (in `just check` and CI) fails on a screen state that starts with a value the screen would
+  draw before the real one: start it with `null` or `loaded = false` (see "No flashing screens" in
+  `docs/DEVELOPMENT.md`).
 - Debug builds in developer mode can get a note from any local regtest mint on "Claim a note" (the faucet makes it),
   whichever mint the account is on: a note from a mint the wallet hasn't added is one from an unknown mint. From the
   terminal, `regtest.sh note --open` opens a note in the app, and `--mint4`/`--mint5` join `--mint2`/`--mint3`.

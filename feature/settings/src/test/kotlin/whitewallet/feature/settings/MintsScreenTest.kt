@@ -79,4 +79,11 @@ class MintsScreenTest {
         show(MintsState(listOf(home.copy(trustedByDefault = TrustDefault.Brand))))
         compose.onNodeWithText("Standardmäßig vertraut in dieser App").assertExists()
     }
+
+    @Test
+    fun untilTheMintsAreReadThePageDrawsNoneAndNoButton() {
+        show(MintsState(loaded = false))
+        compose.onNodeWithText(text(R.string.mints_intro)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mints_add)).assertDoesNotExist()
+    }
 }

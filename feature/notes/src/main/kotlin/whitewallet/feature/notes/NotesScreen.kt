@@ -183,6 +183,7 @@ fun NoteSettingsButton(onClick: () -> Unit) {
 fun NotesContent(state: NotesState, actions: NotesActions) {
     // Back ends selecting before it leaves the tab.
     BackHandler(enabled = state.selecting) { actions.stopSelecting() }
+    if (!state.loaded) return
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize()) {
             item { Summary(state) }
@@ -190,7 +191,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
             state.outcome
                 ?.takeIf { state.open == null }
                 ?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
-            if (state.loaded && state.mints.isEmpty() && state.shared.isEmpty() && state.received.isEmpty()) {
+            if (state.mints.isEmpty() && state.shared.isEmpty() && state.received.isEmpty()) {
                 item {
                     Column(Modifier.padding(16.dp)) {
                         WalletStatusScope(WalletStatus.Empty) { BrandDecoration(Anchor.NotesEmpty) }

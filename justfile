@@ -143,13 +143,19 @@ check-brand brand=brand:
 check-design:
     dev/check-design.sh
 
-# Everything CI checks: formatting, tests, both builds, lint, brand and design checks, scaffolder tests
+# Screen states that start with a value the screen would draw before the real one
+[group('checks')]
+check-flash:
+    dev/check-flash.sh
+
+# Everything CI checks: formatting, tests, both builds, lint, brand, design and flash checks, scaffolder tests
 [group('checks')]
 check: test
     ./gradlew spotlessCheck
     ./gradlew :app:assembleDebug :app:assembleRelease :app:lintDebug
     for b in brand brand-examples/*/; do dev/check-brand.sh "${b%/}"; done
     dev/check-design.sh
+    dev/check-flash.sh
     dev/check-legacy.sh
     python3 -m unittest discover -s dev -p 'test_*.py'
     ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme

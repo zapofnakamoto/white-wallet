@@ -42,6 +42,7 @@ fun ScanRoute(start: Boolean, onBack: () -> Unit, viewModel: ScanViewModel = hil
 fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.scan_title), onBack) }) { padding ->
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
+            if (!state.loaded) return@ScreenColumn
             Text(stringResource(R.string.scan_body), textAlign = TextAlign.Center)
             Column(Modifier.fillMaxWidth()) {
                 state.mints.forEach { mint ->

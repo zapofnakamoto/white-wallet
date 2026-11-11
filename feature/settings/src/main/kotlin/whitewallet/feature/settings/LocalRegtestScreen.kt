@@ -61,7 +61,8 @@ data class LocalMint(
     val address: String? = null,
 )
 
-data class LocalRegtestState(val mints: List<LocalMint> = emptyList())
+/** [loaded]: the account's addresses on the mints were read; until then the page draws nothing (rather than a placeholder address). */
+data class LocalRegtestState(val mints: List<LocalMint> = emptyList(), val loaded: Boolean = true)
 
 @HiltViewModel
 class LocalRegtestViewModel
@@ -73,12 +74,21 @@ constructor(
 ) : ViewModel() {
     private val _state =
         MutableStateFlow(
-            LocalRegtestState(defaults.localDevMints.mapIndexed { i, host -> LocalMint(host, if (i == 0) "" else " --mint${i + 1}") })
+            LocalRegtestState(
+                defaults.localDevMints.mapIndexed { i, host -> LocalMint(host, if (i == 0) "" else " --mint${i + 1}") },
+                loaded = false,
+            )
         )
     val state: StateFlow<LocalRegtestState> = _state
 
     init {
-        check()
+        viewModelScope.launch {
+            val addresses = wallet.addresses.first().map { it.address }
+            _state.update { s ->
+                s.copy(mints = s.mints.map { m -> m.copy(address = addresses.firstOrNull { it.host == m.host }?.address) }, loaded = true)
+            }
+            check()
+        }
     }
 
     fun check() {
@@ -123,6 +133,7 @@ fun LocalRegtestScreen(state: LocalRegtestState, onBack: () -> Unit, onRecheck: 
             Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (!state.loaded) return@Column
             if (state.mints.any { it.status is LocalMintStatus.Unreachable }) {
                 Text(stringResource(R.string.regtest_fix), style = MaterialTheme.typography.bodyMedium)
                 Command("./dev/regtest/regtest.sh up")

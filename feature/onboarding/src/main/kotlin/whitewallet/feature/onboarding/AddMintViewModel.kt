@@ -79,6 +79,8 @@ data class AddMintState(
     /** Asking whether to give the setup up (back on the first step). */
     val confirmAbandon: Boolean = false,
     val finish: AddMintFinish? = null,
+    /** The mints to pick from are known: until then the screen draws nothing, not one mint first and a list of them after. */
+    val loaded: Boolean = true,
 ) {
     val showMintPicker: Boolean
         get() = mintOptions.hasChoice()
@@ -94,7 +96,7 @@ data class AddMintState(
 class AddMintViewModel
 @Inject
 constructor(private val wallet: Wallet, private val defaults: AppDefaults, private val preferences: AppPreferences) : ViewModel() {
-    private val _state = MutableStateFlow(AddMintState(host = defaults.defaultMintHost))
+    private val _state = MutableStateFlow(AddMintState(host = defaults.defaultMintHost, loaded = false))
     val state: StateFlow<AddMintState> = _state
     private var initialized = false
 
@@ -117,6 +119,7 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
                         selectedMint = selected,
                         host = selected.host ?: s.host,
                         customHost = if (selected == MintOption.Custom) s.host else s.customHost,
+                        loaded = true,
                     )
                 }
                 // A brand with a single mint has nothing to pick: straight to what it is.

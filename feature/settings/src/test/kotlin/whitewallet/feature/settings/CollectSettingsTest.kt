@@ -123,4 +123,10 @@ class CollectSettingsTest {
         compose.onNodeWithText("49 ₿ von other.example verschoben (Gebühr 1 ₿)").performScrollTo().assertExists()
         compose.onNodeWithText("2 %").performScrollTo().assertExists()
     }
+
+    @Test
+    fun untilTheSettingsAreReadThePageDrawsNothing() {
+        show(state(collect = true).copy(loaded = false))
+        compose.onNodeWithText(text(R.string.notes_pay_from_others_first)).assertDoesNotExist()
+    }
 }

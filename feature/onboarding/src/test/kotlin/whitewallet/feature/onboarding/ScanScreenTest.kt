@@ -87,4 +87,11 @@ class ScanScreenTest {
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
     }
+
+    @Test
+    fun untilTheMintsAreReadThePageShowsNoneAndNoButton() {
+        show(ScanState(loaded = false))
+        compose.onNodeWithText(text(R.string.scan_body)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.scan_action)).assertDoesNotExist()
+    }
 }

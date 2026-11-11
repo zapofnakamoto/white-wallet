@@ -29,6 +29,8 @@ data class RestoreState(
     val developerMode: Boolean = false,
     /** Set once restored: the wallet's mints come next, each finding what the phrase holds there. */
     val restored: Boolean = false,
+    /** Whether developer mode is on is known: until then the form isn't drawn, so its test-phrase button doesn't come in late. */
+    val loaded: Boolean = true,
 ) {
     val check: PhraseCheck
         get() = RecoveryPhrase.check(phrase)
@@ -44,11 +46,11 @@ data class RestoreState(
 /** Brings a wallet back from its recovery phrase alone: what it holds is found as its mints are added, in the next steps. */
 @HiltViewModel
 class RestoreViewModel @Inject constructor(private val wallet: Wallet, preferences: AppPreferences) : ViewModel() {
-    private val _state = MutableStateFlow(RestoreState())
+    private val _state = MutableStateFlow(RestoreState(loaded = false))
     val state: StateFlow<RestoreState> = _state
 
     init {
-        viewModelScope.launch { preferences.developerMode.collect { on -> _state.update { it.copy(developerMode = on) } } }
+        viewModelScope.launch { preferences.developerMode.collect { on -> _state.update { it.copy(developerMode = on, loaded = true) } } }
     }
 
     fun onPhraseChange(value: String) = _state.update { it.copy(phrase = value, error = null) }

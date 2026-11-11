@@ -2,6 +2,7 @@ package whitewallet.feature.settings
 
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -97,6 +99,8 @@ data class MoneyMoveState(
     val outcome: MoneyMoveOutcome? = null,
     /** The home already changed (a retry after it): the summary only moves money. */
     val homeChanged: Boolean = false,
+    /** What the page is for and the mints to pick from are known: until then it draws nothing. */
+    val loaded: Boolean = true,
 ) {
     val changingHome: Boolean
         get() = mode == MoneyMoveMode.ChangeHome && !homeChanged
@@ -128,7 +132,7 @@ data class MoneyMoveState(
 
 @HiltViewModel
 class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {
-    private val _state = MutableStateFlow(MoneyMoveState())
+    private val _state = MutableStateFlow(MoneyMoveState(loaded = false))
     val state: StateFlow<MoneyMoveState> = _state
     private var initialized = false
 
@@ -143,7 +147,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
             val targets =
                 moveTargets(mode, known = wallet.mints.first().map { it.host }, home, from, collects, allowed = defaults::mintAllowed)
             val preset = host.takeIf { mode == MoneyMoveMode.ChangeHome && it in targets } ?: targets.firstOrNull()
-            _state.update { it.copy(mode = mode, from = from, targets = targets, target = preset, collects = collects) }
+            _state.update { it.copy(mode = mode, from = from, targets = targets, target = preset, collects = collects, loaded = true) }
         }
     }
 
@@ -262,6 +266,11 @@ fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, view
  */
 @Composable
 fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMoveActions) {
+    // Before the page knows what it is for and the mints to pick from (a moment): nothing, not another page's title and "no mints".
+    if (!state.loaded) {
+        Surface(Modifier.fillMaxSize()) {}
+        return
+    }
     val title =
         stringResource(
             when (state.mode) {

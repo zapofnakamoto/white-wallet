@@ -78,6 +78,8 @@ data class AddressesState(
      * The brand lets users pick other mints (`mints.changeable`) and the wallet has another one it allows, so addresses can go there too.
      */
     val otherMints: Boolean = false,
+    /** The addresses were read: until then the page draws none (rather than "no address" first). */
+    val loaded: Boolean = true,
 ) {
     /** Addresses on the home mint, where new ones are added. */
     val onHomeMint: Int
@@ -135,7 +137,7 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
                     otherMints = defaults.allowMintChange && mints.any { it.host != home && defaults.mintAllowed(it.host) },
                 )
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState(loaded = false))
 
     /** How soon a copied key is cleared from the clipboard. */
     val clipboardClearMillis = defaults.timings.clipboardClearMillis
@@ -274,6 +276,7 @@ fun AddressesScreen(
             }
         }
     ) { padding ->
+        if (!state.loaded) return@Scaffold
         LazyColumn(Modifier.padding(padding).fillMaxWidth()) {
             item {
                 Text(

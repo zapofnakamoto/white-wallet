@@ -31,7 +31,7 @@ import java.text.NumberFormat
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
@@ -47,20 +47,22 @@ import whitewallet.lnurlcash.client.NetworkConditions
 /** A page that is only reachable while developer mode is on. Registered by the app module. */
 data class DeveloperPage(@StringRes val title: Int, @StringRes val description: Int, val route: String)
 
+data class DeveloperSettingsState(val enabled: Boolean, val maxAddresses: Int, val network: NetworkConditions.Profile)
+
 @HiltViewModel
 class DeveloperSettingsViewModel @Inject constructor(private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
-    val enabled: StateFlow<Boolean> = preferences.developerMode.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
     /** The developer limit, starting from the brand's until changed here. */
     private val brandLimit = defaults.maxAddresses.coerceIn(1, MAX_ADDRESSES)
-    val maxAddresses: StateFlow<Int> =
-        preferences.maxAddressesPerMint.map { it ?: brandLimit }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), brandLimit)
 
     /** A bad connection can be chosen (debug builds only). */
     val networkOffered: Boolean = defaults.simulatedFailures
 
-    val networkProfile: StateFlow<NetworkConditions.Profile> =
-        preferences.networkProfile.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NetworkConditions.Profile.Normal)
+    /** Null until the settings are read: one value for all of them, so the page shows them together. */
+    val state: StateFlow<DeveloperSettingsState?> =
+        combine(preferences.developerMode, preferences.maxAddressesPerMint, preferences.networkProfile) { enabled, max, network ->
+                DeveloperSettingsState(enabled, max ?: brandLimit, network)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun setNetworkProfile(profile: NetworkConditions.Profile) {
         viewModelScope.launch { preferences.setNetworkProfile(profile) }
@@ -86,25 +88,24 @@ fun DeveloperSettingsRoute(
     onOpenPage: (route: String) -> Unit,
     viewModel: DeveloperSettingsViewModel = hiltViewModel(),
 ) {
-    val enabled by viewModel.enabled.collectAsStateWithLifecycle()
-    val maxAddresses by viewModel.maxAddresses.collectAsStateWithLifecycle()
-    val network by viewModel.networkProfile.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     DeveloperSettingsScreen(
-        enabled,
+        state?.enabled,
         pages,
         onBack,
         onToggle = viewModel::setEnabled,
         onOpenPage,
-        maxAddresses,
+        state?.maxAddresses ?: 1,
         onMaxAddresses = viewModel::setMaxAddresses,
-        network = network.takeIf { viewModel.networkOffered },
+        network = state?.network?.takeIf { viewModel.networkOffered },
         onNetwork = viewModel::setNetworkProfile,
     )
 }
 
 @Composable
 fun DeveloperSettingsScreen(
-    enabled: Boolean,
+    /** Null until read: the page draws nothing then (rather than the switch off first). */
+    enabled: Boolean?,
     pages: List<DeveloperPage>,
     onBack: () -> Unit,
     onToggle: (Boolean) -> Unit,
@@ -117,6 +118,7 @@ fun DeveloperSettingsScreen(
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.developer_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
+            if (enabled == null) return@Column
             WalletListItem(
                 headlineContent = { Text(stringResource(R.string.developer_mode)) },
                 supportingContent = { Text(stringResource(R.string.developer_mode_hint)) },

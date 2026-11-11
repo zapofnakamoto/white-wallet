@@ -103,6 +103,10 @@ data class DerivedKeysState(
     val rotateRequest: RotateRequest? = null,
     /** The outcome of the last rotate on this page. */
     val lastRotate: RotateOutcome? = null,
+    /** The tabs are those of [host]: false until first read and while another mint's are read; then no tab is drawn. */
+    val tabsLoaded: Boolean = true,
+    /** The index and the keys are those of [host] and [set]: false while they are read; then neither is drawn. */
+    val loaded: Boolean = true,
 ) {
     /** The tabs: the account's LUD-26 chains and shares, then the legacy 2f17578 purposes its older notes are on. */
     val sets: List<KeySet>
@@ -144,7 +148,7 @@ sealed interface RotateOutcome {
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
-    private val _state = MutableStateFlow(DerivedKeysState())
+    private val _state = MutableStateFlow(DerivedKeysState(tabsLoaded = false, loaded = false))
     val state: StateFlow<DerivedKeysState> = _state
 
     init {
@@ -167,9 +171,11 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
         }
     }
 
-    fun selectHost(host: String) = update { copy(host = host, expanded = null, lastRotate = null, indexMessage = null) }
+    fun selectHost(host: String) = update {
+        copy(host = host, expanded = null, lastRotate = null, indexMessage = null, tabsLoaded = false, loaded = false)
+    }
 
-    fun selectSet(set: KeySet) = update { copy(set = set, expanded = null, lastRotate = null, indexMessage = null) }
+    fun selectSet(set: KeySet) = update { copy(set = set, expanded = null, lastRotate = null, indexMessage = null, loaded = false) }
 
     fun toggle(index: Long) = _state.update { it.copy(expanded = if (it.expanded == index) null else index) }
 
@@ -269,12 +275,16 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
 
     private suspend fun reload() {
         val s = _state.value
-        val host = s.host ?: return
+        val host = s.host ?: return _state.update { it.copy(tabsLoaded = true, loaded = true) }
         val indexes = wallet.keyIndexes(host)
         val shares = wallet.addressShares(host)
         val health = wallet.keyIndexHealth(host, s.set)
         val keys = wallet.derivedKeys(host, s.set, s.gapLimit)
-        _state.update { it.copy(indexes = indexes, shares = shares, keys = keys, health = health) }
+        _state.update {
+            // Another mint or tab was picked meanwhile: what was read is not what it shows; its own reload follows.
+            if (it.host != host || it.set != s.set) it
+            else it.copy(indexes = indexes, shares = shares, keys = keys, health = health, tabsLoaded = true, loaded = true)
+        }
     }
 
     private companion object {
@@ -334,6 +344,8 @@ fun DerivedKeysScreen(
                     }
                 }
             }
+            // Read from the phone (a moment): no tabs before the mint's shares are known, no keys before they are this tab's.
+            if (!state.tabsLoaded) return@LazyColumn
             item {
                 PrimaryScrollableTabRow(selectedTabIndex = state.sets.indexOf(state.set).coerceAtLeast(0), edgePadding = 0.dp) {
                     state.sets.forEach { set ->
@@ -355,6 +367,7 @@ fun DerivedKeysScreen(
                     }
                 }
             }
+            if (!state.loaded) return@LazyColumn
             item { IndexCard(state, rotate.onAskAll, index) }
             if (state.host == null) item { Text(stringResource(R.string.keys_no_mint), modifier = Modifier.padding(16.dp)) }
             items(state.keys, key = { it.id.index }) { key ->

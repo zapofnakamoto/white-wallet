@@ -1,6 +1,7 @@
 package whitewallet.feature.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -8,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +74,8 @@ data class MintDetailsState(
     val removed: Boolean = false,
     /** The account has money on other mints (on the home's page: "Move all money here"). */
     val moneyElsewhere: Boolean = false,
+    /** The mint the page is about, known before it is asked anything: the page's title from the start. */
+    val host: String? = null,
 )
 
 @HiltViewModel
@@ -80,7 +84,7 @@ class MintDetailsViewModel
 constructor(private val wallet: Wallet, savedState: SavedStateHandle, private val defaults: AppDefaults) : ViewModel() {
     /** The mint to show: the route's `host`, else the active account's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
-    private val _state = MutableStateFlow(MintDetailsState(device = savedState.get<Boolean>("device") ?: false))
+    private val _state = MutableStateFlow(MintDetailsState(host = requestedHost, device = savedState.get<Boolean>("device") ?: false))
     val state: StateFlow<MintDetailsState> = _state
 
     init {
@@ -104,8 +108,12 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
         _state.update { it.copy(loading = true) }
         viewModelScope.launch {
             val host = requestedHost ?: wallet.homeHost.first() ?: return@launch _state.update { it.copy(loading = false) }
+            _state.update { it.copy(host = host) }
             val details = wallet.mintDetails(host)
             val mint = wallet.mints.first().firstOrNull { it.host == details.host }
+            // Read here too, so the page shows with them: the collectors above may not have had their first value yet.
+            val collects = wallet.collectAtHome.first()
+            val moneyElsewhere = wallet.accountMints.first().any { !it.isHome && it.balanceMsat > 0 }
             val canChangeHome =
                 defaults.allowMintChange &&
                     if (details.isHome) defaults.otherMintsAllowed(details.host) else defaults.mintAllowed(details.host)
@@ -115,6 +123,8 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
                     loading = false,
                     mint = mint,
                     canChangeHome = canChangeHome,
+                    collects = collects,
+                    moneyElsewhere = moneyElsewhere,
                 )
             }
         }
@@ -184,7 +194,12 @@ fun MintDetailsScreen(
     onRemove: () -> Unit = {},
 ) {
     val details = state.details
-    Scaffold(topBar = { WalletTopBar(details?.host ?: stringResource(R.string.mint_title), onBack) }) { padding ->
+    // Which mint it is (the account's home, read from the phone) isn't known yet (a moment): nothing, not a title that changes.
+    if (details == null && state.host == null && state.loading) {
+        Surface(Modifier.fillMaxSize()) {}
+        return
+    }
+    Scaffold(topBar = { WalletTopBar(details?.host ?: state.host ?: stringResource(R.string.mint_title), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             if (details == null) {
                 if (state.loading) WalletCircularProgress(Modifier.padding(24.dp).align(Alignment.CenterHorizontally))

@@ -25,6 +25,8 @@ data class ScanState(
     val progress: ScanProgress? = null,
     /** What the last scan here came to. */
     val result: ScanResult? = null,
+    /** The wallet's mints were read: until then the page shows none, and no button. */
+    val loaded: Boolean = true,
 )
 
 private data class Run(
@@ -43,7 +45,7 @@ class ScanViewModel @Inject constructor(private val wallet: Wallet) : ViewModel(
         combine(wallet.mints, run) { mints, run ->
                 ScanState(mints.filter { it.scan != null }, run.scanning, run.host, run.progress, run.result)
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ScanState())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ScanState(loaded = false))
 
     /** Call once from the screen; [start]: the scan begins at once (opened from the main screen's notice). */
     fun init(start: Boolean) {

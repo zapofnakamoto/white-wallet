@@ -100,6 +100,7 @@ fun ClaimScreen(
     val scope = rememberCoroutineScope()
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.claim_title), onBack) }) { padding ->
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
+            if (!state.loaded) return@ScreenColumn
             when (val result = state.result) {
                 null -> Unit
                 else -> {

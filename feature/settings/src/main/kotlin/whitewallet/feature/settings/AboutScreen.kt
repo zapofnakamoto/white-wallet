@@ -80,6 +80,7 @@ class AboutViewModel @Inject constructor(private val preferences: AppPreferences
         combine(preferences.developerMode, preferences.developerOptionsUnlocked) { mode, unlocked ->
                 defaults.developerOptions == DeveloperOptions.Unlock && !defaults.developerOptionsVisible(mode, unlocked)
             }
+            // no-flash: nothing is drawn from it; it only decides what tapping the version does.
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     fun unlock() {

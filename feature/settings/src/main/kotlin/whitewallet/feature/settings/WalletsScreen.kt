@@ -64,7 +64,7 @@ data class WalletsState(
     val canAddWallet: Boolean = false,
     val canAddAccount: Boolean = false,
     /** False until the wallets were read: a page of a wallet that isn't there closes only once this is true. */
-    val loaded: Boolean = false,
+    val loaded: Boolean = true,
 ) {
     val activeWalletId: String?
         get() = wallets.firstOrNull { group -> group.accounts.any { it.account.id == activeAccountId } }?.wallet?.id
@@ -89,7 +89,7 @@ class WalletsViewModel @Inject constructor(private val wallet: Wallet) : ViewMod
                     loaded = true,
                 )
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WalletsState())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WalletsState(loaded = false))
 
     /** Makes [accountId] the account in use: from then on its pages show everything of it. */
     fun use(accountId: String) {
@@ -144,7 +144,8 @@ fun WalletsRoute(
     val active by settings.state.collectAsStateWithLifecycle()
     val only = state.wallets.singleOrNull()
     when {
-        !state.loaded -> Unit
+        // Both are read first (a moment): a page drawn from one of them alone would change under the eye.
+        !state.loaded || !active.loaded -> Unit
         only != null ->
             WalletScreen(
                 only,
@@ -200,7 +201,7 @@ fun WalletRoute(
     val group = state.wallet(walletId)
     // Deleted meanwhile: nothing to show.
     LaunchedEffect(state.loaded, group == null) { if (state.loaded && group == null) onBack() }
-    if (group != null) WalletScreen(group, state, active, onBack, onNavigate, onAddAccount, viewModel::renameWallet)
+    if (group != null && active.loaded) WalletScreen(group, state, active, onBack, onNavigate, onAddAccount, viewModel::renameWallet)
 }
 
 /**
@@ -338,7 +339,7 @@ fun AccountSettingsRoute(
     // Removed meanwhile: nothing to show.
     LaunchedEffect(state.loaded, summary == null) { if (state.loaded && summary == null) onBack() }
     when {
-        summary == null -> Unit
+        summary == null || !active.loaded -> Unit
         accountId == state.activeAccountId -> {
             // A wallet's only account goes with the wallet, on the wallet's page.
             val siblings = state.wallet(summary.account.walletId)?.accounts?.size ?: 1

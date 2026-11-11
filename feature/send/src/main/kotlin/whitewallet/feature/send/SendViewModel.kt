@@ -43,6 +43,8 @@ data class SendState(
     val faucet: FaucetState? = null,
     /** A note link was scanned or pasted here: Claim takes it over, so one scanner does for both. */
     val claim: String? = null,
+    /** Whether the faucet can be offered is known: until then nothing is drawn, so its button doesn't come in late. */
+    val loaded: Boolean = true,
 ) {
     /** The amount to pay in msat, or null while none is entered. */
     val amountMsat: Long?
@@ -60,14 +62,14 @@ constructor(
     private val faucet: RegtestFaucet,
     savedState: SavedStateHandle,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(SendState())
+    private val _state = MutableStateFlow(SendState(loaded = false))
     val state: StateFlow<SendState> = _state
     private var quoteJob: Job? = null
 
     init {
         viewModelScope.launch {
             faucet.available.collect { available ->
-                _state.update { it.copy(faucet = if (available) it.faucet ?: FaucetState() else null) }
+                _state.update { it.copy(faucet = if (available) it.faucet ?: FaucetState() else null, loaded = true) }
             }
         }
         // Opened from a link, shared text or NFC tag: check it right away.

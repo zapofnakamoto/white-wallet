@@ -62,7 +62,8 @@ data class MintNotes(
 }
 
 data class NotesState(
-    val loaded: Boolean = false,
+    /** The notes were read: until then the view draws nothing (rather than a total of nothing). */
+    val loaded: Boolean = true,
     /** Notes in the balance or on their way, per mint: the home mint first, then the others by name. */
     val mints: List<MintNotes> = emptyList(),
     /** Notes handed out as links that nobody has claimed yet. */
@@ -274,7 +275,7 @@ constructor(
                     knownHosts = (listOfNotNull(c.home) + mints.map { it.host } + c.devHosts).distinct(),
                 )
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesState())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesState(loaded = false))
 
     /** Forgets a received note that can no longer be claimed. */
     fun dismissReceived(id: String) {

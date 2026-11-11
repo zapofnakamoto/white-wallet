@@ -30,6 +30,8 @@ data class DeleteWalletState(
     val otherAccountRemains: Boolean = false,
     /** Every account the wallet's recovery phrase holds: all of them go. */
     val accounts: List<String> = emptyList(),
+    /** The wallet was read: until then the page draws nothing (rather than a balance of nothing). */
+    val loaded: Boolean = true,
 ) {
     /** Money would be lost for good: there is a balance and no verified backup. */
     val atRisk: Boolean
@@ -40,7 +42,8 @@ data class DeleteWalletState(
 }
 
 private data class Local(
-    val unresolved: Int = 0,
+    /** Null until counted. */
+    val unresolved: Int? = null,
     val acknowledged: Boolean = false,
     val confirming: Boolean = false,
     val deleting: Boolean = false,
@@ -64,16 +67,17 @@ class DeleteWalletViewModel @Inject constructor(private val wallet: Wallet) : Vi
                     home,
                     balanceMsat = members.sumOf { it.balanceMsat },
                     backupVerified = backedUp,
-                    l.unresolved,
+                    l.unresolved ?: 0,
                     l.acknowledged,
                     l.confirming,
                     l.deleting,
                     l.deleted,
                     l.otherAccountRemains,
                     accounts = members.map { it.account.name },
+                    loaded = l.unresolved != null,
                 )
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeleteWalletState())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeleteWalletState(loaded = false))
 
     init {
         viewModelScope.launch { local.update { it.copy(unresolved = wallet.unresolvedOperations()) } }

@@ -190,4 +190,11 @@ class WelcomeScreenTest {
         compose.onNodeWithText("Noch einmal versuchen").performClick()
         assertEquals("Sparen", tried)
     }
+
+    @Test
+    fun untilDeveloperModeIsKnownTheRestoreFormIsNotDrawn() {
+        compose.setContent { RestoreScreen(RestoreState(loaded = false), onBack = {}, onPhraseChange = {}, onRestore = {}) }
+        compose.onNodeWithText(text(R.string.restore_body)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.restore_start)).assertDoesNotExist()
+    }
 }

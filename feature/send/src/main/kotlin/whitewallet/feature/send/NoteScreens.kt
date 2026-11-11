@@ -153,6 +153,8 @@ fun CreateNoteRoute(onBack: () -> Unit, onCreated: (String) -> Unit, viewModel: 
 fun CreateNoteScreen(state: CreateNoteState, onBack: () -> Unit, onAmountChange: (String) -> Unit, onCreate: () -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_create_title), onBack.takeIf { !state.creating }) }) { padding ->
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
+            // What can be sent is read first (a moment), so it doesn't come in under the field afterwards.
+            if (state.availableMsat == null) return@ScreenColumn
             Text(stringResource(R.string.note_create_body))
             WalletTextField(
                 value = state.amountText,
@@ -300,7 +302,8 @@ fun SharedNoteScreen(
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             val note = state.note
             if (note == null) {
-                if (state.loading) WalletCircularProgress() else Text(stringResource(R.string.note_not_found))
+                // Read from the phone (a moment): nothing meanwhile, not a spinner that is gone at once.
+                if (!state.loading) Text(stringResource(R.string.note_not_found))
                 return@ScreenColumn
             }
             WalletStatusScope(sharedNoteStatus(state, note)) { BrandDecoration(Anchor.NoteShared) }

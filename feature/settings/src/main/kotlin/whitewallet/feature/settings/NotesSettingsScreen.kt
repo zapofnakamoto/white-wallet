@@ -72,6 +72,8 @@ data class NotesSettingsState(
     /** The brand lets users choose whether they are told what the wallet did to their notes by itself. */
     val noticesOffered: Boolean = false,
     val notices: Boolean = false,
+    /** The settings were read: until then the page draws nothing (rather than every switch off first). */
+    val loaded: Boolean = true,
 )
 
 /** The account's rules for its notes. The notes themselves are managed in the notes view (feature/notes). */
@@ -113,7 +115,7 @@ class NotesSettingsViewModel @Inject constructor(private val wallet: Wallet, pri
                     payFromOtherMintsFirst = home.third,
                 )
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesSettingsState())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesSettingsState(loaded = false))
 
     fun setNoteStrategy(strategy: NoteStrategy) = applyPolicy { wallet.setNoteStrategy(strategy.id) }
 
@@ -209,6 +211,7 @@ fun NotesSettingsScreen(
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_notes), onBack) }) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
+            if (!state.loaded) return@Column
             NotePolicySettings(state, onNoteStrategy, onAutoRotate)
             CollectSettings(state, collect)
             state.homeHost?.let { home ->

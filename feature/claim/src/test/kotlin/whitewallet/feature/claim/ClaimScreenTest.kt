@@ -259,4 +259,10 @@ class ClaimScreenTest {
         compose.onNodeWithText("Bis zu 1 Stunde gesperrt. Behalte ihn, und deine Wallet löst ihn ein, sobald er frei ist.").assertExists()
         compose.onNodeWithText("Behalten und später einlösen").assertExists()
     }
+
+    @Test
+    fun untilTheFaucetsMintsAreKnownNothingIsDrawn() {
+        show(ClaimState(loaded = false))
+        compose.onNodeWithText(text(R.string.claim_check)).assertDoesNotExist()
+    }
 }

@@ -91,4 +91,11 @@ class SettingsHubTest {
         // What belongs to the recovery phrase is on the wallet's page.
         compose.onNodeWithText("Wiederherstellungsphrase").assertDoesNotExist()
     }
+
+    @Test
+    fun untilTheWalletIsReadTheHubDrawsNoRows() {
+        compose.setContent { SettingsScreen(SettingsState(loaded = false), "1.0", {}) {} }
+        compose.onNodeWithText(text(R.string.security_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.about_title)).assertDoesNotExist()
+    }
 }

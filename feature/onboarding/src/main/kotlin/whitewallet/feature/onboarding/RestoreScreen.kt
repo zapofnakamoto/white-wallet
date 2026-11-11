@@ -56,6 +56,7 @@ fun RestoreScreen(
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.restore_title), onBack.takeIf { !state.busy }) }) { padding ->
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
+            if (!state.loaded) return@ScreenColumn
             Text(stringResource(R.string.restore_body), textAlign = TextAlign.Center)
             WalletTextField(
                 value = state.phrase,

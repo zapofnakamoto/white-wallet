@@ -54,4 +54,10 @@ class DeveloperSettingsTest {
         compose.setContent { DeveloperSettingsScreen(true, emptyList(), onBack = {}, onToggle = {}, onOpenPage = {}, network = null) }
         compose.onNodeWithText(text(R.string.developer_network)).assertDoesNotExist()
     }
+
+    @Test
+    fun untilTheSettingsAreReadThePageDrawsNoSwitch() {
+        compose.setContent { DeveloperSettingsScreen(null, emptyList(), onBack = {}, onToggle = {}, onOpenPage = {}) }
+        compose.onNodeWithText(text(R.string.developer_mode)).assertDoesNotExist()
+    }
 }

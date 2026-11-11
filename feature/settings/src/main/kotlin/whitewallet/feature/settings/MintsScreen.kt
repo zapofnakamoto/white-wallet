@@ -45,6 +45,8 @@ data class MintsState(
     val offered: List<String> = emptyList(),
     /** The brand lets users add a mint by typing it (`mints.custom`); without, only [offered] ones can be added. */
     val custom: Boolean = true,
+    /** The mints were read: until then the page draws none, and no button under them. */
+    val loaded: Boolean = true,
 ) {
     /** Whether there is anything to add: without [custom], only while a suggested mint is missing from the list. */
     val canAdd: Boolean
@@ -64,7 +66,7 @@ class MintsViewModel @Inject constructor(private val wallet: Wallet, private val
                 val known = mints.map { it.host }
                 MintsState(mints, offered = defaults.mintSuggestions.filter { it !in known }, custom = defaults.customMints)
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MintsState(custom = defaults.customMints))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MintsState(custom = defaults.customMints, loaded = false))
 
     fun setTrusted(mint: MintInfo, trusted: Boolean) {
         if (mint.pubkey == null) return
@@ -87,6 +89,7 @@ fun MintsScreen(
     onAdd: () -> Unit,
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_mints), onBack) }) { padding ->
+        if (!state.loaded) return@Scaffold
         LazyColumn(Modifier.padding(padding).imePadding().fillMaxWidth()) {
             item {
                 Text(stringResource(R.string.mints_intro), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))

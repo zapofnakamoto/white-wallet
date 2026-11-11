@@ -36,6 +36,8 @@ data class ClaimState(
     /** Developer: the local regtest mints the faucet makes a note on, and its last attempt. Empty outside developer mode. */
     val faucetMints: List<String> = emptyList(),
     val faucet: FaucetState = FaucetState(),
+    /** [faucetMints] are known: until then nothing is drawn, so their buttons don't come in late. */
+    val loaded: Boolean = true,
 )
 
 /** What the regtest faucet's note is made for; the mint's fee comes off. */
@@ -46,11 +48,11 @@ class ClaimViewModel
 @Inject
 constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, savedState: SavedStateHandle, defaults: AppDefaults) :
     ViewModel() {
-    private val _state = MutableStateFlow(ClaimState(showMints = defaults.showMints))
+    private val _state = MutableStateFlow(ClaimState(showMints = defaults.showMints, loaded = false))
     val state: StateFlow<ClaimState> = _state
 
     init {
-        viewModelScope.launch { faucet.noteMints.collect { mints -> _state.update { it.copy(faucetMints = mints) } } }
+        viewModelScope.launch { faucet.noteMints.collect { mints -> _state.update { it.copy(faucetMints = mints, loaded = true) } } }
         // Opened from a link, shared text or NFC tag: check it right away.
         savedState.get<String>("input")?.takeIf { it.isNotBlank() }?.let(::onScanned)
     }
@@ -59,7 +61,7 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
 
     /** The screen as it starts, with [input] and what doesn't depend on the note. */
     private fun fresh(from: ClaimState, input: String = "", pay: String? = null) =
-        ClaimState(input = input, showMints = from.showMints, pay = pay, faucetMints = from.faucetMints)
+        ClaimState(input = input, showMints = from.showMints, pay = pay, faucetMints = from.faucetMints, loaded = from.loaded)
 
     /** Developer: has the regtest faucet make a note on the local mint [mint], and checks it as if it was pasted. */
     fun noteFromFaucet(mint: String) {

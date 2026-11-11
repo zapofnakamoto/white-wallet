@@ -465,4 +465,10 @@ class NotesScreenTest {
         compose.onNodeWithText(text(DesignR.string.received_on, "mint.example")).assertExists()
         compose.onNodeWithText("No notes yet", substring = true).assertDoesNotExist()
     }
+
+    @Test
+    fun untilTheNotesAreReadNothingIsDrawnNotATotalOfNothing() {
+        compose.setContent { NotesContent(NotesState(loaded = false), NotesActions()) }
+        compose.onNodeWithText(text(R.string.notes_empty)).assertDoesNotExist()
+    }
 }

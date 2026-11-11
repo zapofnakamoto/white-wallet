@@ -97,4 +97,16 @@ class SendScreenTest {
         preview = payLink.copy(destination = PayDestination.Invoice(invoice))
         compose.onNodeWithText(text(R.string.send_try_again)).assertDoesNotExist()
     }
+
+    @Test
+    fun untilTheFaucetIsKnownNothingIsDrawn() {
+        compose.setContent { SendScreen(SendState(loaded = false), onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_continue)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNotesFormIsNotDrawnBeforeWhatCanBeSentIsRead() {
+        compose.setContent { CreateNoteScreen(CreateNoteState(), onBack = {}, onAmountChange = {}, onCreate = {}) }
+        compose.onNodeWithText(text(R.string.note_bearer_warning)).assertDoesNotExist()
+    }
 }

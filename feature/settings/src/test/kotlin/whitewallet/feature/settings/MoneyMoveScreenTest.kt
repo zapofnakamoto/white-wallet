@@ -130,4 +130,11 @@ class MoneyMoveScreenTest {
         compose.setContent { MoneyMoveScreen(state, {}, MoneyMoveActions()) }
         compose.onNodeWithText(text(R.string.money_move_amount, "₿110")).assertExists()
     }
+
+    @Test
+    fun untilThePageKnowsWhatItIsForNothingShows() {
+        compose.setContent { MoneyMoveScreen(MoneyMoveState(loaded = false), {}, MoneyMoveActions()) }
+        compose.onNodeWithText(text(R.string.mint_change_home)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.money_move_no_mints)).assertDoesNotExist()
+    }
 }

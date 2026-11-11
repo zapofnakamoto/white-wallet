@@ -154,4 +154,12 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(R.string.add_mint_later)).performClick()
         assertEquals(1 to 1, again to done)
     }
+
+    @Test
+    fun untilTheMintsToPickFromAreKnownNothingShows() {
+        show(AddMintState(host = "mint.example", loaded = false))
+        compose.onNodeWithText("mint.example").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_next)).assertDoesNotExist()
+    }
 }

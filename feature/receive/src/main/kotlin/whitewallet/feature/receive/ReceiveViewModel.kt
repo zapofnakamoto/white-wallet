@@ -62,6 +62,8 @@ data class ReceiveState(
     val faucet: FaucetState? = null,
     /** Set while the account has no home mint: nothing can be received until it has one. */
     val noHome: NoHome? = null,
+    /** The account's addresses and home mint were read: until then nothing is drawn, not the amount form first and the address after. */
+    val loaded: Boolean = true,
 ) {
     /** The amount form shows: always without an address, else once asked for; never without a home mint. */
     val showAmountForm: Boolean
@@ -124,7 +126,7 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
                     noHome = noHome,
                 )
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState(loaded = false))
 
     /** The primary address first, else one on the home mint; addresses still held for their fee aren't offered. */
     private fun addressChoice() =

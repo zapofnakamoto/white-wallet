@@ -119,9 +119,11 @@ class MainActivity : FragmentActivity() {
         if (savedInstanceState == null) incoming.value = linkText(intent)
         setContent {
             val display: DisplayViewModel = hiltViewModel()
-            val unit by display.amountUnit.collectAsStateWithLifecycle()
+            val shownUnit by display.amountUnit.collectAsStateWithLifecycle()
             val appName = stringResource(R.string.app_name)
             WalletTheme(design.orElse(DefaultBrandDesign)) {
+                // Nothing of the wallet until the unit of its amounts is known (a moment).
+                val unit = shownUnit ?: return@WalletTheme Surface(Modifier.fillMaxSize()) {}
                 CompositionLocalProvider(
                     LocalAmountUnit provides unit,
                     LocalAppName provides appName,

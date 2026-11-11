@@ -15,6 +15,7 @@ import whitewallet.core.wallet.AppPreferences
 /** The unit every amount in the app is shown in: the user's choice (if the brand allows one), else the brand's default. */
 @HiltViewModel
 class DisplayViewModel @Inject constructor(preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
-    val amountUnit: StateFlow<AmountUnit> =
-        preferences.amountUnit.map(defaults::amountUnit).stateIn(viewModelScope, SharingStarted.Eagerly, defaults.defaultAmountUnit)
+    /** Null until the choice is read, so no amount shows in one unit first and then in another. */
+    val amountUnit: StateFlow<AmountUnit?> =
+        preferences.amountUnit.map<AmountUnit?, AmountUnit?>(defaults::amountUnit).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 }

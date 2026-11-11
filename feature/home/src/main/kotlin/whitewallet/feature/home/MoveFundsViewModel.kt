@@ -65,6 +65,7 @@ class MoveFundsViewModel @Inject constructor(private val wallet: Wallet) : ViewM
                     i.result,
                 )
             }
+            // no-flash: without the account it moves from (null here), the screen draws nothing.
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MoveFundsState())
 
     fun onTarget(id: String) = input.update { it.copy(targetId = id) }

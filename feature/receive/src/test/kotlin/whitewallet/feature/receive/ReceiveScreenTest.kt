@@ -105,4 +105,10 @@ class ReceiveScreenTest {
         compose.onNodeWithText("₿20").assertExists()
         compose.onNodeWithText(text(R.string.receive_invoice_waiting)).assertDoesNotExist()
     }
+
+    @Test
+    fun untilTheAddressesAreReadNothingIsDrawnNotTheAmountFormFirst() {
+        compose.setContent { ReceiveScreen(ReceiveState(loaded = false), onBack = {}, onClaim = {}) }
+        compose.onNodeWithText(text(R.string.receive_claim)).assertDoesNotExist()
+    }
 }
