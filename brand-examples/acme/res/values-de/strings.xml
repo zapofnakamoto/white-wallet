@@ -207,4 +207,5 @@
     <string name="add_mint_failed_key">Dieser Anbieter zeigt jetzt einen anderen Signaturschlüssel als eben, daher wurde er nicht hinzugefügt. Prüfe, ob es der gemeinte Anbieter ist.</string>
     <string name="add_mint_added_body">Der Anbieter ist hinzugefügt. Deine neue Wallet nutzt ihn ab jetzt.</string>
     <string name="add_mint_found_none">Der Anbieter ist hinzugefügt. Von deiner Wiederherstellungsphrase wurde dort nichts gefunden.</string>
+    <string name="address_fee_notice">Dieser Anbieter verlangt einmalig %1$s für eine Adresse.</string>
 </resources>

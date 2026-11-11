@@ -13,7 +13,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - One share per Lightning address on a current mint, so addresses of an account can't be linked by their keys.
   Whether an address is yours is now proven to the mint, without changing anything there.
 - Address fees: a mint may charge for an address. Setup shows the fee and lets the user reserve the name, pay later or
-  go on without one. A reserved name is on the addresses screen until paid or expired.
+  go on without one. A reserved name is on the addresses screen until paid or expired. The address form says what
+  the mint charges before "Use this address", not only after it.
 - Payments to someone on the same mint go through the payee's pay callback, for free and with nothing pending.
 - Wallets of several accounts: a recovery phrase can hold several accounts, each with its own money and addresses,
   and the app can hold several wallets. The switcher groups them; backup and delete act on the wallet, and delete
@@ -86,6 +87,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Fixed
 
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.
+- A restored wallet taking back an address it had paid for was asked about the mint's address fee again, and a brand
+  with `addresses.fee.onboarding=skip` left it without that address. A name that is the wallet's already costs nothing.
 - Adding a mint finds what every account of the wallet already holds there, as a restore does on its mint, and creates
   the accounts this phone didn't have yet. Payments to addresses found there keep arriving. A scan that fails says so,
   and adding the mint again goes on from there.

@@ -2,6 +2,7 @@
 <resources>
     <!-- Brand terms (see values/strings.xml). -->
     <string name="address_fee_body">Diese Mint verlangt einmalig %1$s für eine Adresse. Du kannst den Namen jetzt reservieren und bezahlen, wann du möchtest.</string>
+    <string name="address_fee_notice">Diese Mint verlangt einmalig %1$s für eine Adresse.</string>
     <string name="address_held_body">Bezahle %1$s, um abzuschließen. Die Mint hält den Namen nur begrenzte Zeit; läuft die Rechnung ab, kannst du es erneut versuchen.</string>
     <string name="onboarding_error_fee">Diese Mint verlangt %1$s für eine Adresse, mehr als die %2$s, die diese App akzeptiert.</string>
     <string name="onboarding_error_mint_too_old">Diese Mint kann nur dem ersten Konto eines Wallets eine Adresse geben. Wähle eine andere Mint oder mach ohne Adresse weiter.</string>

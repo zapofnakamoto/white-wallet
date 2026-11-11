@@ -99,6 +99,8 @@ data class OnboardingState(
     val busy: Boolean = false,
     val error: OnboardingError? = null,
     val claimed: Claimed? = null,
+    /** What [host] charges for an address, shown with the form before anything is asked for; null for none, or while it isn't known. */
+    val feeMsat: Long? = null,
     /** The address fee the mint asks, for the user to accept or decline. */
     val feePrompt: Long? = null,
     val held: HeldAddress? = null,
@@ -131,6 +133,10 @@ data class OnboardingState(
 
     val canSkip: Boolean
         get() = canSkipAddress && !busy
+
+    /** The fee to say on the form: none for a name that is the wallet's already, which is taken back without registering again. */
+    val feeToShow: Long?
+        get() = feeMsat.takeIf { availability != Availability.Yours }
 
     private val addressOk: Boolean
         get() = username.isNotBlank() && availability !is Availability.Taken && availability !is Availability.Invalid
@@ -216,6 +222,7 @@ constructor(
             }
             // The dropdown follows developer mode (the local mint appears while it is on).
             launch { preferences.developerMode.collect(::updateMintOptions) }
+            loadFee()
             scheduleCheck(immediately = true)
         }
     }
@@ -230,7 +237,31 @@ constructor(
         onHostChanged()
     }
 
-    private fun onHostChanged() = scheduleCheck()
+    private fun onHostChanged() {
+        loadFee()
+        scheduleCheck()
+    }
+
+    private var feeJob: Job? = null
+
+    /** Asks the mint what an address costs, so the form says it before "Use this address"; the claim asks again and decides. */
+    private fun loadFee() {
+        feeJob?.cancel()
+        _state.update { it.copy(feeMsat = null) }
+        val host = _state.value.host
+        if (host.isBlank()) return
+        feeJob = viewModelScope.launch {
+            val fee =
+                try {
+                    wallet.addressFeeMsat(host)
+                } catch (e: IOException) {
+                    null
+                } catch (e: ProtocolViolation) {
+                    null
+                }
+            _state.update { if (it.host == host) it.copy(feeMsat = fee) else it }
+        }
+    }
 
     /** For [OnboardingMode.AddAddressElsewhere]: the home mint, left out of the choice. */
     private var homeHost: String? = null
@@ -337,8 +368,10 @@ constructor(
             } catch (e: ProtocolViolation) {
                 null
             }
+        // A name that is the wallet's already (a restore's) is taken back without registering again: there is no fee to ask about.
+        val free = fee == null || wallet.checkAddress(s.username, s.host) == AddressStatus.Ours
         // Only the setup follows the brand's choice; from Settings the user always sees the fee first.
-        val choice = if (fee == null) AddressFeeChoice.Reserve else if (s.inSetup) defaults.addressFee else AddressFeeChoice.Ask
+        val choice = if (free) AddressFeeChoice.Reserve else if (s.inSetup) defaults.addressFee else AddressFeeChoice.Ask
         when {
             choice == AddressFeeChoice.Reserve -> claim(s)
             choice == AddressFeeChoice.Skip && s.canSkip -> {

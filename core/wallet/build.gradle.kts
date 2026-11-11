@@ -1,5 +1,7 @@
 plugins {
     id("whitewallet.jvm-library")
+    // The in-memory stores (src/testFixtures), for this module's tests and for a feature's tests that run a real Wallet.
+    `java-test-fixtures`
 }
 
 // wallet.properties as the data class WalletSettings (see "Wallet settings" in docs/DEVELOPMENT.md).

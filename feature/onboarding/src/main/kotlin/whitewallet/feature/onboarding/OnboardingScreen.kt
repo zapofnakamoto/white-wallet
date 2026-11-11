@@ -260,6 +260,8 @@ private fun AddressForm(
         }
     }
     if (state.showMintPicker) MintPicker(options = state.mintOptions, selected = state.selectedMint, state.customHost, state.busy, mint)
+    // Said before the button: what the address costs is part of choosing it.
+    state.feeToShow?.let { Text(stringResource(R.string.address_fee_notice, formatAmount(it)), textAlign = TextAlign.Center) }
     ErrorText(state)
     PrimaryButton(submitLabel, onStart, enabled = state.canSubmit, busy = state.busy)
 }

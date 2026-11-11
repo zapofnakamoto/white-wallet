@@ -207,4 +207,5 @@
     <string name="add_mint_failed_key">This provider now shows another signing key than a moment ago, so it wasn\'t added. Check that it is the provider you meant.</string>
     <string name="add_mint_added_body">The provider is added. Your new wallet uses it from now on.</string>
     <string name="add_mint_found_none">The provider is added. Nothing of your recovery phrase was found there.</string>
+    <string name="address_fee_notice">This provider charges %1$s for an address, once.</string>
 </resources>

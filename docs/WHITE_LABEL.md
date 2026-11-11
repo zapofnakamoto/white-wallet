@@ -139,6 +139,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `add_mint_error_invalid` | That isn't a mint this app can use: %1$s |
 | `add_mint_known` | This wallet has this mint already. Adding it again looks for your money there again. |
 | `scan_title` | Scan for notes |
+| `address_fee_notice` | This mint charges %1$s for an address, once. |
 | `add_mint_legacy` | This mint speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there. |
 | `add_mint_use` | Use this mint |
 | `add_mint_add` | Add this mint |
