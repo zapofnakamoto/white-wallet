@@ -236,7 +236,33 @@ data class Mint(
     val maxSendableMsat: Long,
     val feeBaseMsat: Long?,
     val feePpm: Long?,
-)
+    /**
+     * When the wallet's keys were last begun to be looked through here, and when that last came to its end (a scan, as a restore does).
+     * Neither: never scanned, as a mint the wallet met by claiming a note. See [scan].
+     */
+    val scanStartedAtMillis: Long? = null,
+    val scanFinishedAtMillis: Long? = null,
+) {
+    val scan: MintScan
+        get() {
+            val started = scanStartedAtMillis
+            val finished = scanFinishedAtMillis
+            return when {
+                started == null && finished == null -> MintScan.Never
+                finished == null || (started != null && finished < started) -> MintScan.Unfinished
+                else -> MintScan.Finished
+            }
+        }
+}
+
+/** Whether a wallet's keys were looked through at a mint: until [Finished], the wallet may hold more there than it shows. */
+enum class MintScan {
+    Never,
+
+    /** Begun and stopped before its end, or cut off with the app. */
+    Unfinished,
+    Finished,
+}
 
 /**
  * A Lightning address registered to an account. An account can hold several on a mint; all of them pay into the same note keys (LUD-26

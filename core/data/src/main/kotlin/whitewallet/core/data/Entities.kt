@@ -174,12 +174,37 @@ internal data class MintEntity(
     val maxSendableMsat: Long,
     val feeBaseMsat: Long?,
     val feePpm: Long?,
+    val scanStartedAtMillis: Long?,
+    val scanFinishedAtMillis: Long?,
 ) {
-    fun toModel() = Mint(walletId, host, withdrawUrl, mintPubkey, minSendableMsat, maxSendableMsat, feeBaseMsat, feePpm)
+    fun toModel() =
+        Mint(
+            walletId,
+            host,
+            withdrawUrl,
+            mintPubkey,
+            minSendableMsat,
+            maxSendableMsat,
+            feeBaseMsat,
+            feePpm,
+            scanStartedAtMillis,
+            scanFinishedAtMillis,
+        )
 
     companion object {
         fun from(s: Mint) =
-            MintEntity(s.walletId, s.host, s.withdrawUrl, s.mintPubkey, s.minSendableMsat, s.maxSendableMsat, s.feeBaseMsat, s.feePpm)
+            MintEntity(
+                s.walletId,
+                s.host,
+                s.withdrawUrl,
+                s.mintPubkey,
+                s.minSendableMsat,
+                s.maxSendableMsat,
+                s.feeBaseMsat,
+                s.feePpm,
+                s.scanStartedAtMillis,
+                s.scanFinishedAtMillis,
+            )
     }
 }
 

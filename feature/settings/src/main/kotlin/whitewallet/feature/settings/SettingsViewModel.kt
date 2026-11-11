@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.brand.NoteStrategy
+import whitewallet.core.model.MintScan
 import whitewallet.core.model.WalletGroup
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
@@ -49,6 +50,8 @@ data class SettingsState(
     /** Mints the wallet knows, and how many of them are trusted. */
     val mintCount: Int = 0,
     val trustedCount: Int = 0,
+    /** Mints whose keys weren't looked through to the end: the wallet may hold more there than it shows. */
+    val unscannedCount: Int = 0,
 )
 
 /**
@@ -122,6 +125,7 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
                     hidden = hiddenPages(defaults, wallet, strategy, developer, unlocked),
                     mintCount = mints.size,
                     trustedCount = mints.count { it.trusted },
+                    unscannedCount = mints.count { it.scan != null && it.scan != MintScan.Finished },
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())

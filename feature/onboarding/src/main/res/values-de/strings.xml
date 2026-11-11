@@ -20,6 +20,7 @@
     <string name="add_mint_error_not_allowed">Diese App arbeitet nicht mit dieser Mint. Wähle eine andere.</string>
     <string name="add_mint_error_invalid">Das ist keine Mint, die diese App nutzen kann: %1$s</string>
     <string name="add_mint_known">Diese Wallet hat diese Mint schon. Fügst du sie noch einmal hinzu, wird dort noch einmal nach deinem Geld gesucht.</string>
+    <string name="scan_title">Nach Scheinen suchen</string>
     <string name="add_mint_legacy">Diese Mint spricht eine ältere Version des Protokolls. Sie funktioniert, aber nur das erste Konto einer Wallet kann dort eine Adresse haben.</string>
     <string name="add_mint_use">Diese Mint nutzen</string>
     <string name="add_mint_add">Diese Mint hinzufügen</string>
@@ -127,6 +128,17 @@
     <string name="add_mint_found_total">%1$s gefunden</string>
     <string name="add_mint_try_again">Noch einmal versuchen</string>
     <string name="add_mint_ok">OK</string>
+    <string name="add_mint_later">Später</string>
+    <string name="scan_body">Sucht nach allem, was zu deiner Wiederherstellungsphrase gehört, und fügt hinzu, was gefunden wird. Es wird nur nachgesehen, nichts wird bewegt.</string>
+    <string name="scan_mint_scanning">Wird durchsucht…</string>
+    <string name="scan_mint_never">Noch nicht durchsucht</string>
+    <string name="scan_mint_unfinished">Suche nicht abgeschlossen</string>
+    <string name="scan_mint_finished">Durchsucht</string>
+    <string name="scan_mint_finished_at">Zuletzt durchsucht: %1$s</string>
+    <string name="scan_action">Suchen</string>
+    <string name="scan_again">Noch einmal suchen</string>
+    <string name="scan_result_none">Nichts Neues gefunden.</string>
+    <string name="scan_result_stopped">Die Suche kam nicht überall durch. Versuch es noch einmal; was gefunden wurde, bleibt.</string>
     <string name="setup_abandon_title">Einrichtung dieser Wallet abbrechen?</string>
     <string name="setup_abandon_body">Die Wallet wird von diesem Handy entfernt. Das Geld einer wiederhergestellten Wallet bleibt bei ihrer Wiederherstellungsphrase; du kannst sie jederzeit wiederherstellen.</string>
     <string name="setup_abandon_confirm">Wallet entfernen</string>

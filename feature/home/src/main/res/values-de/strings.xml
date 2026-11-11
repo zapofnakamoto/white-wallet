@@ -104,6 +104,9 @@
     <string name="home_backup_body">Wenn du dieses Handy verlierst, bekommst du dein Geld nur mit deiner Wiederherstellungsphrase zurück. Es dauert zwei Minuten.</string>
     <string name="home_backup_action">Sichern</string>
     <string name="home_backup_later">Später</string>
+    <string name="home_scan_title">Suche nicht abgeschlossen</string>
+    <string name="home_scan_body">Diese Wallet hat vielleicht mehr, als sie zeigt: Es wurde noch nicht nach allem gesucht, was zu deiner Wiederherstellungsphrase gehört.</string>
+    <string name="home_scan_action">Suchen</string>
     <string name="home_address_inactive_title">Eine Adresse ist nicht aktiv</string>
     <string name="home_address_inactive_body">Zahlungen an %1$s erreichen diese Wallet nicht. Sieh dir deine Adressen an, um weiter Zahlungen zu erhalten.</string>
     <string name="home_address_inactive_action">Adressen anzeigen</string>

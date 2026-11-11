@@ -244,6 +244,15 @@ fun WalletScreen(
                         open(SettingsTarget.Mints)
                     }
                 }
+                val unscanned = active.unscannedCount
+                SummaryRow(
+                    pageIcon(SettingsTarget.Scan, if (unscanned == 0) Tone.Neutral else Tone.Danger),
+                    stringResource(R.string.settings_scan),
+                    stringResource(if (unscanned == 0) R.string.settings_scan_done else R.string.settings_scan_unfinished),
+                    if (unscanned == 0) Color.Unspecified else MaterialTheme.colorScheme.error,
+                ) {
+                    open(SettingsTarget.Scan)
+                }
                 HorizontalDivider()
             } else {
                 Text(

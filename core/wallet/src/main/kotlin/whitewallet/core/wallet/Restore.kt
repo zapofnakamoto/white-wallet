@@ -4,6 +4,8 @@ import java.util.UUID
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Account
 import whitewallet.core.model.KeyCounter
+import whitewallet.core.model.Mint
+import whitewallet.core.model.MintScan
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.SetupStep
 import whitewallet.core.model.WalletRecord
@@ -80,7 +82,7 @@ internal class Restore(private val wallet: Wallet) {
                 }
             }
         }
-        h?.let { scanWallet(accountId, it) }
+        h?.let { scanMint(accountId, it) }
             ?.let {
                 return failed(it)
             }
@@ -90,13 +92,33 @@ internal class Restore(private val wallet: Wallet) {
     }
 
     /**
-     * Finds what the wallet [walletId], which exists already, holds on the mint at [host]: what a restore does on its mint, here for one
-     * the wallet adds later. Null once every account was looked through; otherwise why the scan stopped. What it found until then stays.
+     * Finds what the wallet [walletId], which exists already, holds on its mint at [host]: what a restore does on its mint, here for one
+     * the wallet adds later, or to look again. Null once every account was looked through; otherwise why the scan stopped. What it found
+     * until then stays, and the mint says its scan isn't finished ([Mint.scan]).
      */
     suspend fun scanAddedMint(walletId: String, host: String, onProgress: (ScanProgress) -> Unit = {}): OnboardResult? =
-        scanWallet(walletId, host, onProgress)?.let {
+        scanMint(walletId, host, onProgress)?.let {
             if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason)
         }
+
+    /**
+     * [scanWallet], with when it began and when it came to its end kept on the mint. Looking again through a mint whose scan was finished
+     * leaves it finished if this one stops: nothing is missing that the earlier one didn't find.
+     */
+    private suspend fun scanMint(walletId: String, host: String, onProgress: (ScanProgress) -> Unit = {}): Failure? {
+        mark(walletId, host) { if (it.scan == MintScan.Finished) it else it.copy(scanStartedAtMillis = wallet.now()) }
+        val failed = scanWallet(walletId, host, onProgress)
+        if (failed == null) mark(walletId, host) { it.copy(scanFinishedAtMillis = wallet.now()) }
+        return failed
+    }
+
+    /** The wallet's keys can hold nothing at [host] that this phone doesn't know: its scan counts as done. */
+    suspend fun markScanned(walletId: String, host: String) =
+        mark(walletId, host) { it.copy(scanStartedAtMillis = wallet.now(), scanFinishedAtMillis = wallet.now()) }
+
+    private suspend fun mark(walletId: String, host: String, change: (Mint) -> Mint) {
+        wallet.store.mint(walletId, host)?.let { wallet.store.saveMint(change(it)) }
+    }
 
     /**
      * Finds what [account], just added to its wallet, already holds on each of the wallet's mints: its index may have been used before, on

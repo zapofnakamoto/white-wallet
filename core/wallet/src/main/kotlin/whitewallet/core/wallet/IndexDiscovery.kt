@@ -26,9 +26,13 @@ data class IndexHealth(val next: Long, val highestUsed: Long, val lastVerifiedAt
 internal class IndexDiscovery(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
 
-    /** The highest index of [set] on [host] (its domain, for a counter) that the wallet holds (or held) a note at, or -1. */
+    /**
+     * The highest index of [set] that the wallet holds (or held) a note at on [host] itself, or -1. Mints on one domain share their keys
+     * and their counter, but each holds its own notes: what is known at another mint of the domain says nothing about the keys below it
+     * here, so a scan of this mint doesn't start past them.
+     */
     suspend fun highestKnownUsed(accountId: String, host: String, set: KeySet): Long =
-        wallet.store.notes(accountId).first().filter { set.holds(it, host) }.maxOfOrNull { it.index ?: -1 } ?: -1
+        wallet.store.notes(accountId).first().filter { it.host == host && set.holds(it, host) }.maxOfOrNull { it.index ?: -1 } ?: -1
 
     suspend fun discover(
         accountId: String,

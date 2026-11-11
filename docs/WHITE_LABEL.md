@@ -108,6 +108,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `onboarding_add_elsewhere_body` | A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is. |
 | `settings_home_mint` | Home mint |
 | `settings_mints` | Mints |
+| `settings_scan` | Scan for notes |
 | `addresses_home_mint` | Home mint: %1$s |
 | `mint_change_home` | Change home mint |
 | `mint_make_home` | Make this my home mint |
@@ -137,6 +138,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `add_mint_error_not_allowed` | This app doesn't work with that mint. Pick another one. |
 | `add_mint_error_invalid` | That isn't a mint this app can use: %1$s |
 | `add_mint_known` | This wallet has this mint already. Adding it again looks for your money there again. |
+| `scan_title` | Scan for notes |
 | `add_mint_legacy` | This mint speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there. |
 | `add_mint_use` | Use this mint |
 | `add_mint_add` | Add this mint |

@@ -157,12 +157,12 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     wallet); the receiver learns it from the mint on its next refresh; only mints both wallets have are offered.
     Today's Move funds (`FundsMover`, Home's switcher sheet) isn't checked against this yet. It would then fit under
     Send ("To one of my accounts") rather than in the sheet.
-20. **Scan for notes with chosen limits.** Settings → Wallets → a wallet → "Scan for notes": repeat the restore's
-    scan with gap limits the user picks (accounts, keys, addresses), and show what it is doing. Belongs with the
-    restore refinement (errors and retry when adding a mint).
+20. **Scan for notes with chosen limits.** "Scan for notes" on a wallet's page repeats the restore's scan and
+    remembers per mint whether it got through (2026-11-11). Open: gap limits the user picks (accounts, keys,
+    addresses), and history entries for what a scan finds.
 21. **Adding an account while a mint is down.** "Add account" scans every mint of the wallet and adds nothing if one
     doesn't answer (2026-11-10), so a wallet with a dead mint can't get another account until that mint is removed.
-    Could offer "Add anyway" and repeat the scan for that mint later (needs item 20's rescan).
+    Could offer "Add anyway" and mark that mint as not scanned (`Mint.scan`), so the main screen offers the scan.
 22. **Removing an account that holds dust.** An account can only be removed once it holds nothing; an amount below
     what a move or payment costs keeps it forever. Could let the user give the dust up explicitly.
 23. **How long "Add account" takes on a real mint.** The scan looks up about 400 keys per mint: roughly 10 seconds

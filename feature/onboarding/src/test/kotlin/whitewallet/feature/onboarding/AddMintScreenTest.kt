@@ -4,6 +4,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -137,5 +138,20 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(R.string.add_mint_failed_title)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_failed_key)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_try_again)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_later)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aScanThatStoppedIsTriedAgainRightThereOrLater() {
+        var again = 0
+        var done = 0
+        show(
+            pick.copy(step = AddMintStep.Result, preview = preview, failed = "timeout", kept = true),
+            AddMintActions(onAdd = { again++ }, onDone = { done++ }),
+        )
+        compose.onNodeWithText(text(R.string.add_mint_failed_body, "timeout")).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_try_again)).performClick()
+        compose.onNodeWithText(text(R.string.add_mint_later)).performClick()
+        assertEquals(1 to 1, again to done)
     }
 }

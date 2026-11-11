@@ -33,6 +33,7 @@ import whitewallet.core.model.Activity
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
+import whitewallet.core.model.MintScan
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -661,6 +662,7 @@ class Wallet(
             addresses,
             (trusted, untrusted) ->
             val keys = mints.associate { it.host to it.mintPubkey }
+            val known = mints.associateBy { it.host }
             val held = notes.filter { it.state != NoteState.Spent }
             (keys.keys + held.map { it.host })
                 .distinct()
@@ -674,6 +676,8 @@ class Wallet(
                         trustedByDefault = default,
                         isHome = host == home,
                         removable = held.none { it.host == host } && addresses.none { it.host == host },
+                        scan = known[host]?.scan,
+                        scannedAtMillis = known[host]?.scanFinishedAtMillis,
                     )
                 }
                 .sortedWith(compareBy({ !it.isHome }, { it.host }))
@@ -799,27 +803,54 @@ class Wallet(
      * Connects to a mint the user names (pinning its key; with [expectedKey], only that one, as [previewMint] showed it), so it can be
      * trusted before any note from it arrives, and finds what every account of the active wallet already holds there, as a restore does;
      * accounts the phone didn't have are created. [onProgress] follows that scan. A wallet created on this phone and still in its setup has
-     * nothing there yet, so it isn't scanned. A scan that stops is [ConnectResult.Failed]: adding the mint again goes on from what it
-     * found, and a new mint where it found nothing is forgotten, so that it can be added again. Runs to its end if the screen that asked is
-     * left: a mint in the list with its scan cut off would look empty.
+     * nothing there yet, so its scan counts as done. A scan that stops is [ConnectResult.Failed]: the mint stays with what was found and
+     * says its scan isn't finished ([unscannedMints]), until [scan] gets through. Runs to its end if the screen that asked is left.
      */
     suspend fun addMint(host: String, expectedKey: String? = null, onProgress: (ScanProgress) -> Unit = {}): ConnectResult =
         withContext(NonCancellable) {
             lock.withLock {
                 val id = store.currentAccountId() ?: return@withLock ConnectResult.Failed(OnboardResult.MintInvalid("no account"))
                 val walletId = walletOf(id)
-                val known = Onboarding.normalizeHost(host)?.let { store.mint(walletId, it) } != null
                 val connected = onboarding.connectMint(walletId, host, expectedKey)
                 if (connected !is ConnectResult.Connected) return@withLock connected
                 val h = connected.mint.host
                 val created = store.wallet(walletId)?.setupStep != null && !seeds.backupVerified(walletId).first()
-                if (created) return@withLock connected
-                val failed = restorer.scanAddedMint(walletId, h, onProgress)
-                if (failed != null && !known && siblings(id).none { a -> store.notes(a.id).first().any { it.host == h } }) {
-                    store.removeMint(walletId, h)
-                    return@withLock ConnectResult.Failed(failed)
+                if (created) {
+                    restorer.markScanned(walletId, h)
+                    return@withLock connected
                 }
+                val failed = restorer.scanAddedMint(walletId, h, onProgress)
                 if (failed == null) connected else ConnectResult.Failed(failed)
+            }
+        }
+
+    /**
+     * The active wallet's mints whose keys weren't looked through to the end ([Mint.scan]): one a scan stopped at, or one the wallet met
+     * without a scan (a note claimed from it, money moved there). The wallet may hold more there than it shows, until [scan] is through.
+     */
+    val unscannedMints: Flow<List<Mint>> =
+        ofActiveWallet(emptyList(), store::mints).map { mints -> mints.filter { it.scan != MintScan.Finished } }.distinctUntilChanged()
+
+    /**
+     * Looks through the active wallet's keys at each of its mints, as a restore does: every account from its first key, and further
+     * accounts until one was never used. Only lookups are sent, so it can be repeated at any time; what it finds is added. [onProgress]
+     * follows it mint by mint. A mint that doesn't answer is passed over and named in the result; the others are still scanned. Runs to its
+     * end if the screen that asked is left.
+     */
+    suspend fun scan(onProgress: (host: String, ScanProgress) -> Unit = { _, _ -> }): ScanResult =
+        withContext(NonCancellable) {
+            lock.withLock {
+                val walletId = walletOf(activeId())
+                val held = suspend {
+                    siblings(activeId()).sumOf { a ->
+                        store.notes(a.id).first().filter { it.state == NoteState.Outstanding }.sumOf { it.amountMsat }
+                    }
+                }
+                val before = held()
+                // Those never finished first: they are what the user is waiting for.
+                val mints = store.mints(walletId).first().sortedBy { it.scan == MintScan.Finished }
+                val stopped = mints.map { it.host }.filter { h -> restorer.scanAddedMint(walletId, h) { onProgress(h, it) } != null }
+                ScanResult(foundMsat = held() - before, stoppedAt = stopped)
             }
         }
 

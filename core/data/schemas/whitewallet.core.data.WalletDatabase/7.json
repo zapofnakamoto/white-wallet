@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 7,
-    "identityHash": "b19edd1a15785ee8648c5d36ac514d56",
+    "identityHash": "a5b774f8145e2e01cbe3ca0bc27446b0",
     "entities": [
       {
         "tableName": "accounts",
@@ -250,7 +250,7 @@
       },
       {
         "tableName": "mints",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`walletId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, `mintPubkey` TEXT, `minSendableMsat` INTEGER NOT NULL, `maxSendableMsat` INTEGER NOT NULL, `feeBaseMsat` INTEGER, `feePpm` INTEGER, PRIMARY KEY(`walletId`, `host`), FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`walletId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, `mintPubkey` TEXT, `minSendableMsat` INTEGER NOT NULL, `maxSendableMsat` INTEGER NOT NULL, `feeBaseMsat` INTEGER, `feePpm` INTEGER, `scanStartedAtMillis` INTEGER, `scanFinishedAtMillis` INTEGER, PRIMARY KEY(`walletId`, `host`), FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "walletId",
@@ -295,6 +295,16 @@
           {
             "fieldPath": "feePpm",
             "columnName": "feePpm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "scanStartedAtMillis",
+            "columnName": "scanStartedAtMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "scanFinishedAtMillis",
+            "columnName": "scanFinishedAtMillis",
             "affinity": "INTEGER"
           }
         ],
@@ -1047,7 +1057,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b19edd1a15785ee8648c5d36ac514d56')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a5b774f8145e2e01cbe3ca0bc27446b0')"
     ]
   }
 }

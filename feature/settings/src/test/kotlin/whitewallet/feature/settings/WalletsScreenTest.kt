@@ -70,6 +70,8 @@ class WalletsScreenTest {
         compose.setContent { WalletScreen(first, state, active, {}, { opened += it }, { adding = true }, {}) }
         compose.onNodeWithText(text(R.string.settings_recovery_phrase)).performClick()
         compose.onNodeWithText(text(R.string.settings_mints)).performClick()
+        compose.onNodeWithText(text(R.string.settings_scan_done)).assertExists()
+        compose.onNodeWithText(text(R.string.settings_scan)).performClick()
         compose.onNodeWithText("alice@mint.example").assertExists() // the account in use shows its address
         compose.onNodeWithText("Savings").performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.wallet_add_account)).performScrollTo().performClick()
@@ -78,12 +80,20 @@ class WalletsScreenTest {
             listOf(
                 SettingsDestination.Page(SettingsTarget.Backup),
                 SettingsDestination.Page(SettingsTarget.Mints),
+                SettingsDestination.Page(SettingsTarget.Scan),
                 SettingsDestination.Account("b"),
                 SettingsDestination.Page(SettingsTarget.Delete),
             ),
             opened,
         )
         assertEquals(true, adding)
+    }
+
+    @Test
+    fun aWalletWhoseScanIsNotFinishedSaysSo() {
+        compose.setContent { WalletScreen(first, state, active.copy(unscannedCount = 1), {}, {}, {}, {}) }
+        compose.onNodeWithText(text(R.string.settings_scan_unfinished)).assertExists()
+        compose.onNodeWithText(text(R.string.settings_scan_done)).assertDoesNotExist()
     }
 
     @Test

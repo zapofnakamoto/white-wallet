@@ -163,6 +163,7 @@ private fun iconOf(target: SettingsTarget): Int =
         SettingsTarget.NoteList -> DesignR.drawable.ic_notes
         SettingsTarget.Mints,
         SettingsTarget.AccountMints -> DesignR.drawable.ic_mint
+        SettingsTarget.Scan -> DesignR.drawable.ic_refresh
         SettingsTarget.Delete -> DesignR.drawable.ic_delete
         SettingsTarget.Display -> DesignR.drawable.ic_amounts
         SettingsTarget.Security -> DesignR.drawable.ic_lock

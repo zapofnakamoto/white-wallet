@@ -91,6 +91,12 @@ sealed interface CreateAccountResult {
     data class AccountLimitReached(val limit: Int) : CreateAccountResult
 }
 
+/**
+ * The outcome of [Wallet.scan]: what it added to the wallet's money ([foundMsat]: notes the phone didn't know), and the mints where it
+ * stopped before its end ([stoppedAt]), none if it got through everywhere.
+ */
+data class ScanResult(val foundMsat: Long, val stoppedAt: List<String>)
+
 /** The outcome of [Wallet.removeAccount]. */
 sealed interface RemoveAccountResult {
     /** The account is gone from this phone; [nowActive] is the account of its wallet in use instead. */
@@ -426,6 +432,9 @@ internal class Onboarding(private val wallet: Wallet) {
                     maxSendableMsat = pay.pay.maxSendable,
                     feeBaseMsat = pay.fee?.baseMsat,
                     feePpm = pay.fee?.ppm,
+                    // A mint met here for the first time was never scanned.
+                    scanStartedAtMillis = existing?.scanStartedAtMillis,
+                    scanFinishedAtMillis = existing?.scanFinishedAtMillis,
                 )
             wallet.store.saveMint(mint)
             // An account of the wallet without a home takes this one.

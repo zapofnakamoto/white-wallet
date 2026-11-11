@@ -9,6 +9,7 @@
     <string name="claim_home_mint">On %1$s, your provider</string>
     <string name="notes_home_mint">Provider</string>
     <string name="settings_mints">Providers</string>
+    <string name="settings_scan">Scan for banknotes</string>
     <string name="mint_change_home">Change provider</string>
     <string name="mint_make_home">Make this my provider</string>
     <string name="settings_account_mints">Your providers</string>
@@ -196,6 +197,7 @@
     <string name="add_mint_error_not_allowed">This app doesn\'t work with that provider. Pick another one.</string>
     <string name="add_mint_error_invalid">That isn\'t a provider this app can use: %1$s</string>
     <string name="add_mint_known">This wallet has this provider already. Adding it again looks for your money there again.</string>
+    <string name="scan_title">Scan for banknotes</string>
     <string name="add_mint_legacy">This provider speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there.</string>
     <string name="add_mint_use">Use this provider</string>
     <string name="add_mint_add">Add this provider</string>

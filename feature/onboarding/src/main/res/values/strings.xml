@@ -25,6 +25,7 @@
     <string name="add_mint_error_not_allowed">This app doesn\'t work with that mint. Pick another one.</string>
     <string name="add_mint_error_invalid">That isn\'t a mint this app can use: %1$s</string>
     <string name="add_mint_known">This wallet has this mint already. Adding it again looks for your money there again.</string>
+    <string name="scan_title">Scan for notes</string>
     <string name="add_mint_legacy">This mint speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there.</string>
     <string name="add_mint_use">Use this mint</string>
     <string name="add_mint_add">Add this mint</string>
@@ -132,6 +133,18 @@
     <string name="add_mint_found_total">%1$s found</string>
     <string name="add_mint_try_again">Try again</string>
     <string name="add_mint_ok">OK</string>
+    <string name="add_mint_later">Later</string>
+    <string name="scan_body">Looks for everything your recovery phrase holds and adds what it finds. It only looks; nothing is moved.</string>
+    <string name="scan_mint_scanning">Scanning…</string>
+    <string name="scan_mint_never">Not scanned yet</string>
+    <string name="scan_mint_unfinished">Scan not finished</string>
+    <string name="scan_mint_finished">Scanned</string>
+    <!-- %1$s: when, as briefly as it stays clear: a time of day, or a date with it. -->
+    <string name="scan_mint_finished_at">Last scanned: %1$s</string>
+    <string name="scan_action">Scan</string>
+    <string name="scan_again">Scan again</string>
+    <string name="scan_result_none">Nothing new found.</string>
+    <string name="scan_result_stopped">The scan didn\'t get through everywhere. Try again; what was found stays.</string>
     <string name="setup_abandon_title">Stop setting up this wallet?</string>
     <string name="setup_abandon_body">The wallet is removed from this phone. Money of a restored wallet stays with its recovery phrase; you can restore it again any time.</string>
     <string name="setup_abandon_confirm">Remove the wallet</string>

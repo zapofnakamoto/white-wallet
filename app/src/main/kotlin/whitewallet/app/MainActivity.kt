@@ -69,6 +69,7 @@ import whitewallet.feature.onboarding.AddMintRoute
 import whitewallet.feature.onboarding.OnboardingMode
 import whitewallet.feature.onboarding.OnboardingRoute
 import whitewallet.feature.onboarding.RestoreRoute
+import whitewallet.feature.onboarding.ScanRoute
 import whitewallet.feature.onboarding.WelcomeRoute
 import whitewallet.feature.receive.NoHome
 import whitewallet.feature.receive.ReceiveRoute
@@ -194,6 +195,11 @@ internal object Routes {
     fun setupAddress(host: String) = "setup/address?host=${Uri.encode(host)}"
 
     const val ADD_MINT = "mint/add"
+    /** Looking through the wallet's keys at its mints; [scanNotes] with start: it begins at once. */
+    const val SCAN_NOTES = "mint/scan?start={start}"
+
+    fun scanNotes(start: Boolean) = "mint/scan?start=$start"
+
     const val HOME = "home"
     const val RECEIVE = "receive"
     const val SEND = "send"
@@ -354,6 +360,9 @@ private fun WalletApp(
         composable(Routes.ADD_MINT) {
             AddMintRoute(setup = false, onFinish = { nav.popBackStack() })
         }
+        composable(Routes.SCAN_NOTES, arguments = listOf(navArgument("start") { defaultValue = false })) { entry ->
+            ScanRoute(start = entry.arguments?.getBoolean("start") == true, onBack = { nav.popBackStack() })
+        }
         composable(Routes.HOME) {
             HomeRoute(
                 appName,
@@ -368,6 +377,7 @@ private fun WalletApp(
                 onManageWallets = { nav.navigate(Routes.WALLETS) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
                 onAddMint = { nav.navigate(Routes.ADD_MINT) },
+                onScanMints = { nav.navigate(Routes.scanNotes(start = true)) },
                 menu =
                     brand.on(BrandScreenEntry.HomeMenu).map { screen ->
                         HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) }
@@ -690,6 +700,7 @@ private fun settingsRoute(target: SettingsTarget): String =
         SettingsTarget.Notes -> Routes.NOTES
         SettingsTarget.NoteList -> Routes.NOTE_LIST
         SettingsTarget.Mints -> Routes.MINTS
+        SettingsTarget.Scan -> Routes.SCAN_NOTES
         SettingsTarget.Display -> Routes.DISPLAY
         SettingsTarget.AccountMints -> Routes.ACCOUNT_MINTS
         SettingsTarget.Security -> Routes.SECURITY

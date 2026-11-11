@@ -89,7 +89,7 @@ fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
                 AddMintStep.Pick -> PickContent(state, actions)
                 AddMintStep.Info -> state.preview?.let { InfoContent(it, state, actions) }
                 AddMintStep.Adding -> AddingContent(state.progress)
-                AddMintStep.Result -> ResultContent(state, actions.onDone)
+                AddMintStep.Result -> ResultContent(state, actions)
             }
         }
     }
@@ -166,6 +166,12 @@ private fun shortKey(key: String): String = if (key.length <= 20) key else "${ke
 private fun AddingContent(progress: ScanProgress?) {
     Text(stringResource(R.string.add_mint_adding_body), textAlign = TextAlign.Center)
     WalletLinearProgress(Modifier.fillMaxWidth())
+    ScanAccounts(progress)
+}
+
+/** A scan's accounts so far: how many keys it looked up for each and what it found. */
+@Composable
+internal fun ScanAccounts(progress: ScanProgress?) {
     progress?.accounts?.forEach { account ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
@@ -186,7 +192,7 @@ private fun AddingContent(progress: ScanProgress?) {
 }
 
 @Composable
-private fun ResultContent(state: AddMintState, onDone: () -> Unit) {
+private fun ResultContent(state: AddMintState, actions: AddMintActions) {
     val failed = state.failed
     when {
         failed != null -> {
@@ -214,7 +220,15 @@ private fun ResultContent(state: AddMintState, onDone: () -> Unit) {
             }
         }
     }
-    PrimaryButton(stringResource(if (failed != null) R.string.add_mint_try_again else R.string.add_mint_ok), onDone)
+    when {
+        failed == null -> PrimaryButton(stringResource(R.string.add_mint_ok), actions.onDone)
+        // The mint is added, only its scan stopped: again right here, or later from the main screen.
+        state.kept -> {
+            PrimaryButton(stringResource(R.string.add_mint_try_again), actions.onAdd)
+            WalletButton(kind = ButtonKind.Text, onClick = actions.onDone) { Text(stringResource(R.string.add_mint_later)) }
+        }
+        else -> PrimaryButton(stringResource(R.string.add_mint_try_again), actions.onDone)
+    }
 }
 
 @Composable

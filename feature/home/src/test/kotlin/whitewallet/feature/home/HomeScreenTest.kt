@@ -112,6 +112,30 @@ class HomeScreenTest {
     }
 
     @Test
+    fun aWalletWhoseScanIsNotFinishedOffersItUntilItIs() {
+        var scans = 0
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                HomeState(activeAccountId = "a", showScanPrompt = true),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onOpenAddresses = {},
+                accountActions = AccountActions({}, {}, {}),
+                onScanMints = { scans++ },
+            )
+        }
+        compose.onNodeWithText(text(R.string.home_scan_title)).assertExists()
+        compose.onNodeWithText(text(R.string.home_scan_body)).assertExists()
+        compose.onNodeWithText(text(R.string.home_scan_action)).performClick()
+        assertEquals(1, scans)
+    }
+
+    @Test
     fun withoutAScanHomeShowsNoScanButton() {
         show(HomeState(balanceMsat = 845_000))
         compose.onNodeWithContentDescription(text(R.string.home_scan)).assertDoesNotExist()

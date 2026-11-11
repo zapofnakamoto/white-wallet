@@ -29,6 +29,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.KeyScheme
+import whitewallet.core.model.MintScan
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OutputRef
 import whitewallet.core.model.ReceivedNote
@@ -171,6 +172,7 @@ class MigrationTest {
                 execSQL("INSERT INTO notes VALUES ('n1', 'acc', 'mint.example', 'KeyPath', 0, 2, 21000, NULL, 'Outstanding', 2, 5)")
                 execSQL("INSERT INTO counters VALUES ('acc', 'mint.example', 0, 3)")
                 execSQL("INSERT INTO mints VALUES ('mint.example', 'https://mint.example/w', 'pk', 1000, 1000000, 0, 0)")
+                execSQL("INSERT INTO mints VALUES ('other.example', 'https://other.example/w', 'pk2', 1000, 1000000, 0, 0)")
                 execSQL("INSERT INTO address_scan VALUES ('acc', 'mint.example', 4)")
                 execSQL("INSERT INTO key_checks VALUES ('acc', 'mint.example', 2, 7, 'Outstanding', 1000, 1, 0, NULL, 9)")
                 execSQL("INSERT INTO addresses VALUES ('acc', 'mint.example', 'alice', 3)")
@@ -191,8 +193,14 @@ class MigrationTest {
                 assertEquals("acc2", store.account("acc2")?.walletId)
                 assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
                 // The mints were the device's: each wallet has them now, with the key pinned for them.
-                assertEquals(listOf("pk"), store.mints("acc").first().map { it.mintPubkey })
-                assertEquals(listOf("pk"), store.mints("acc2").first().map { it.mintPubkey })
+                assertEquals(listOf("pk", "pk2"), store.mints("acc").first().map { it.mintPubkey })
+                assertEquals(listOf("pk", "pk2"), store.mints("acc2").first().map { it.mintPubkey })
+                // Only the home mint was ever looked through for the wallet's keys; a mint added later never was, so the app offers to.
+                assertEquals(
+                    listOf(MintScan.Finished, MintScan.Never),
+                    store.mints("acc").first().map { it.scan },
+                )
+                assertEquals(0L to 0L, store.mint("acc", "mint.example")?.let { it.scanStartedAtMillis to it.scanFinishedAtMillis })
 
                 val n1 = store.note("n1")!!
                 assertEquals(KeyScheme.Legacy, n1.scheme)
@@ -240,12 +248,12 @@ class MigrationTest {
                 store.deleteAccount("acc")
                 assertEquals(listOf("acc", "acc2"), db.dao().wallets().first().map { it.id })
                 assertNull(store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
-                assertEquals(listOf("mint.example"), store.mints("acc").first().map { it.host })
+                assertEquals(listOf("mint.example", "other.example"), store.mints("acc").first().map { it.host })
                 store.deleteAccount("acc3")
                 assertEquals(listOf("acc2"), db.dao().wallets().first().map { it.id })
                 // A wallet's mints go with it; another wallet's stay.
                 assertEquals(emptyList(), store.mints("acc").first())
-                assertEquals(listOf("mint.example"), store.mints("acc2").first().map { it.host })
+                assertEquals(listOf("mint.example", "other.example"), store.mints("acc2").first().map { it.host })
             } finally {
                 db.close()
             }

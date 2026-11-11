@@ -9,6 +9,7 @@
     <string name="claim_home_mint">Auf %1$s, deinem Anbieter</string>
     <string name="notes_home_mint">Anbieter</string>
     <string name="settings_mints">Anbieter</string>
+    <string name="settings_scan">Nach Geldscheinen suchen</string>
     <string name="mint_change_home">Anbieter wechseln</string>
     <string name="mint_make_home">Zu meinem Anbieter machen</string>
     <string name="settings_account_mints">Deine Anbieter</string>
@@ -196,6 +197,7 @@
     <string name="add_mint_error_not_allowed">Diese App arbeitet nicht mit diesem Anbieter. Wähle einen anderen.</string>
     <string name="add_mint_error_invalid">Das ist kein Anbieter, den diese App nutzen kann: %1$s</string>
     <string name="add_mint_known">Diese Wallet hat diesen Anbieter schon. Fügst du ihn noch einmal hinzu, wird dort noch einmal nach deinem Geld gesucht.</string>
+    <string name="scan_title">Nach Geldscheinen suchen</string>
     <string name="add_mint_legacy">Dieser Anbieter spricht eine ältere Version des Protokolls. Er funktioniert, aber nur das erste Konto einer Wallet kann dort eine Adresse haben.</string>
     <string name="add_mint_use">Diesen Anbieter nutzen</string>
     <string name="add_mint_add">Diesen Anbieter hinzufügen</string>

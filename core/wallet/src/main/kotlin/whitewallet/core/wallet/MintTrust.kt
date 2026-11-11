@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import whitewallet.core.model.MintScan
 
 /** A mint as the user knows it: its host and the signing key it presents (lowercase hex, compressed). */
 data class MintKey(val host: String, val pubkey: String)
@@ -70,6 +71,11 @@ data class MintInfo(
     val isHome: Boolean = false,
     /** Nothing ties an account to it (see [Wallet.removeMint]), so it can be removed. */
     val removable: Boolean = false,
+    /**
+     * Whether its keys were looked through ([Mint.scan]), and when that finished (0: before it was recorded); null without a pinned key.
+     */
+    val scan: MintScan? = null,
+    val scannedAtMillis: Long? = null,
 )
 
 /** One of the active account's mints, as Account → Mints shows it: the home mint, or where it has money or addresses. */

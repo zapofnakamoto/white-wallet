@@ -332,6 +332,14 @@ internal object Migration6To7 : Migration(6, 7) {
                     )
                     db.execSQL("DROP TABLE profile")
                 }
+                // Only an account's home was ever looked through for the wallet's keys (it was set up or restored there, time unknown):
+                // adding a mint later didn't scan it, so every other mint counts as never scanned and the app offers to.
+                "mints" ->
+                    db.execSQL(
+                        "INSERT INTO mints_new ($columns, scanStartedAtMillis, scanFinishedAtMillis) SELECT $columns, home, home FROM " +
+                            "(SELECT *, CASE WHEN EXISTS (SELECT 1 FROM accounts a WHERE a.walletId = mints.walletId AND " +
+                            "a.homeHost = mints.host) THEN 0 END AS home FROM mints)"
+                    )
                 else -> db.execSQL("INSERT INTO ${table.name}_new ($columns) SELECT $columns FROM ${table.name}")
             }
             db.execSQL("DROP TABLE ${table.name}")
@@ -437,7 +445,7 @@ internal object Migration6To7 : Migration(6, 7) {
             ),
             Table(
                 "mints",
-                "CREATE TABLE IF NOT EXISTS `mints_new` (`walletId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, `mintPubkey` TEXT, `minSendableMsat` INTEGER NOT NULL, `maxSendableMsat` INTEGER NOT NULL, `feeBaseMsat` INTEGER, `feePpm` INTEGER, PRIMARY KEY(`walletId`, `host`), FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                "CREATE TABLE IF NOT EXISTS `mints_new` (`walletId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, `mintPubkey` TEXT, `minSendableMsat` INTEGER NOT NULL, `maxSendableMsat` INTEGER NOT NULL, `feeBaseMsat` INTEGER, `feePpm` INTEGER, `scanStartedAtMillis` INTEGER, `scanFinishedAtMillis` INTEGER, PRIMARY KEY(`walletId`, `host`), FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
                 listOf("walletId", "host", "withdrawUrl", "mintPubkey", "minSendableMsat", "maxSendableMsat", "feeBaseMsat", "feePpm"),
                 listOf(),
             ),

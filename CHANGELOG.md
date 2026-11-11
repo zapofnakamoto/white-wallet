@@ -35,6 +35,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   account removed here. If a mint doesn't answer, no account is added and the screen names that mint; try again
   later. The suggested name is "Account 2", "Account 3", …; the new account's page opens afterwards.
   An address derived from the recovery phrase that is still registered to the account is listed again.
+- "Scan for notes" on a wallet's page: looks through the wallet's keys at each of its mints again, as a restore
+  does, and adds what it finds; each mint says when it was last scanned. A scan that stopped, or a mint the wallet
+  met without one (a note claimed from it, money moved there), is remembered: the main screen says "Scan not
+  finished" until a scan gets through, and the wallet's page too. After an update, mints other than an account's
+  home mint count as not scanned once. A mint whose scan stops while it is added stays added, with "Try again"
+  right there or "Later".
 - Remove an account (its page, in a wallet with more than one): only while it holds no money and nothing of it is
   unfinished. Its history and settings go from the phone; its Lightning addresses stay registered and are named
   before it goes. The next account added takes the freed place and finds what was paid there meanwhile.
@@ -84,6 +90,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   the accounts this phone didn't have yet. Payments to addresses found there keep arriving. A scan that fails says so,
   and adding the mint again goes on from there.
 - A lookup on one mint no longer marks a note of another mint on the same domain as unknown or spent.
+- A scan of one mint started past the keys the wallet knew at another mint on the same domain, and so missed
+  earlier keys used only at the scanned mint.
 - A refused payment says why: an invoice of your own mint, one already used, or else the mint's own words. A bare invoice
   whose payment failed no longer offers "Try again", which a mint always refuses.
 - The developer key screen has a tab per address, so address notes on new keys can be scanned and renewed there. Its

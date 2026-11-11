@@ -57,6 +57,8 @@ data class HomeState(
     val showBackupPrompt: Boolean = false,
     /** The active wallet has no mint yet: nothing can be received until one is added. */
     val showAddMintPrompt: Boolean = false,
+    /** A mint's keys weren't looked through to the end: the wallet may hold more than it shows, until a scan is through. */
+    val showScanPrompt: Boolean = false,
     /** An address of the active account that its mint no longer routes to this wallet (checked on refresh); null if none. */
     val inactiveAddress: String? = null,
     val backupPromptDismissed: Boolean = false,
@@ -126,7 +128,15 @@ class HomeViewModel(
         wallet.addresses.map { entries ->
             entries.firstOrNull { it.status == AddressStatus.Taken || it.status == AddressStatus.Available }?.address?.address
         }
-    private val walletFlags = combine(wallet.backupVerified, inactiveAddress, preferences.balanceHidden, wallet.hasMint, ::WalletFlags)
+    private val walletFlags =
+        combine(
+            wallet.backupVerified,
+            inactiveAddress,
+            preferences.balanceHidden,
+            wallet.hasMint,
+            wallet.unscannedMints.map { it.isNotEmpty() },
+            ::WalletFlags,
+        )
     private val work =
         combine(wallet.task, wallet.noteStrategy) { task, strategy ->
             task to strategy.workingText?.takeIf { task is WalletTask.Maintaining && task.strategyId == strategy.id }
@@ -139,7 +149,7 @@ class HomeViewModel(
         combine(accountInfo, wallet.activity, walletFlags, status) {
                 (accounts, active, work, names),
                 activity,
-                (backedUp, inactive, hidden, hasMint),
+                (backedUp, inactive, hidden, hasMint, unscanned),
                 s ->
                 val balance = active?.balanceMsat ?: 0
                 s.copy(
@@ -152,6 +162,7 @@ class HomeViewModel(
                     activity = activity,
                     showBackupPrompt = defaults.remindBackup(balance) && !backedUp && !s.backupPromptDismissed,
                     showAddMintPrompt = active != null && !hasMint,
+                    showScanPrompt = active != null && unscanned,
                     balanceHidden = hidden,
                     walletNames = names,
                     showAccounts = wallet.maxAccounts > 1 || wallet.maxWallets > 1 || accounts.size > 1,
@@ -260,7 +271,13 @@ class HomeViewModel(
     }
 }
 
-private data class WalletFlags(val backedUp: Boolean, val inactiveAddress: String?, val hidden: Boolean, val hasMint: Boolean)
+private data class WalletFlags(
+    val backedUp: Boolean,
+    val inactiveAddress: String?,
+    val hidden: Boolean,
+    val hasMint: Boolean,
+    val unscanned: Boolean,
+)
 
 private data class AccountInfo(
     val accounts: List<AccountSummary>,

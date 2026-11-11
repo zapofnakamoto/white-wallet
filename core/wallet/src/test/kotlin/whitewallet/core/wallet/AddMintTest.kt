@@ -21,6 +21,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.KeyCounter
+import whitewallet.core.model.MintScan
 import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -144,6 +145,7 @@ abstract class AddMintTest {
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(home, onProgress = { scanned = true }))
             assertEquals(false, scanned, "nothing of a phrase made here can be at a mint yet")
             assertEquals(0, phone.balance())
+            assertEquals(MintScan.Finished, phone.store.mint(home)?.scan, "nothing to look for: it counts as scanned")
 
             phone.wallet.setSetupStep(null)
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(home))
@@ -277,7 +279,7 @@ abstract class AddMintTest {
         }
 
     @Test
-    fun `a mint that stops answering before anything is found is not left behind, and adding it again finds the notes`() =
+    fun `a mint that stops answering before anything is found stays, its scan unfinished, and a scan finds the notes`() =
         runBlocking<Unit> {
             val words = phrase()
             val msat = credit(words, other, KeySet.Wallet, 0, SATS)
@@ -288,15 +290,22 @@ abstract class AddMintTest {
             answering = false
             val failed = assertIs<ConnectResult.Failed>(phone.wallet.addMint(other))
             assertIs<OnboardResult.NetworkError>(failed.result)
-            assertNull(phone.store.mint(other))
+            assertEquals(MintScan.Unfinished, phone.store.mint(other)?.scan)
+            assertEquals(listOf(other), phone.wallet.unscannedMints.first().map { it.host })
+            // While it doesn't answer, a scan says where it stopped and changes nothing.
+            assertEquals(ScanResult(0, listOf(other)), phone.wallet.scan())
+            assertEquals(listOf(other), phone.wallet.unscannedMints.first().map { it.host })
 
             answering = true
-            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            assertEquals(ScanResult(msat, emptyList()), phone.wallet.scan())
+            assertEquals(msat, phone.balance())
+            assertEquals(emptyList(), phone.wallet.unscannedMints.first())
+            assertEquals(ScanResult(0, emptyList()), phone.wallet.scan(), "again finds nothing new and counts nothing twice")
             assertEquals(msat, phone.balance())
         }
 
     @Test
-    fun `a scan cut off half way keeps what it found, and adding the mint again finds the rest`() =
+    fun `a scan cut off half way keeps what it found and says it isn't finished, and a scan finds the rest`() =
         runBlocking<Unit> {
             val words = phrase()
             val msat = credit(words, other, KeySet.Wallet, 0, SATS)
@@ -309,12 +318,15 @@ abstract class AddMintTest {
 
             limit = 2
             assertIs<ConnectResult.Failed>(phone.wallet.addMint(other))
-            assertNotNull(phone.store.mint(other), "it holds a note now")
+            assertEquals(MintScan.Unfinished, phone.store.mint(other)?.scan)
             assertEquals(msat, phone.balance())
 
             limit = Int.MAX_VALUE
-            assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
+            val scanned = mutableSetOf<String>()
+            assertEquals(ScanResult(rest, emptyList()), phone.wallet.scan { host, _ -> scanned += host })
             assertEquals(msat + rest, phone.balance())
+            assertEquals(MintScan.Finished, phone.store.mint(other)?.scan)
+            assertEquals(setOf(home, other), scanned, "every mint of the wallet is looked through")
         }
 
     @Test
@@ -343,13 +355,67 @@ abstract class AddMintTest {
         }
 
     @Test
-    fun `a mint that refuses a lookup can't be added`() =
+    fun `a mint that refuses a lookup stays, its scan unfinished`() =
         runBlocking<Unit> {
             val phone = Fresh(onLookup(other) { chain -> Regtest.answer(chain, """{"status":"ERROR","reason":"not today"}""") })
             assertIs<RestoreResult.Restored>(phone.restore(phrase()))
             val failed = assertIs<ConnectResult.Failed>(phone.wallet.addMint(other))
             assertIs<OnboardResult.MintInvalid>(failed.result)
-            assertNull(phone.store.mint(other))
+            assertEquals(MintScan.Unfinished, phone.store.mint(other)?.scan)
+        }
+
+    @Test
+    fun `a mint the wallet meets without adding it was never scanned, until a scan looks through it`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val msat = credit(words, other, KeySet.Change, 0, SATS)
+            val phone = Fresh()
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+            assertEquals(MintScan.Finished, phone.store.mint(home)?.scan, "the restore looked through its mint")
+            assertEquals(emptyList(), phone.wallet.unscannedMints.first())
+
+            // As claiming a note from it, or getting an address there, does.
+            assertIs<ConnectResult.Connected>(phone.wallet.connectMint(other))
+            assertEquals(MintScan.Never, phone.store.mint(other)?.scan)
+            assertEquals(listOf(other), phone.wallet.unscannedMints.first().map { it.host })
+            assertEquals(0, phone.balance())
+            // Connecting again (its fees are refreshed) doesn't forget what is known of its scan.
+            assertIs<ConnectResult.Connected>(phone.wallet.connectMint(home))
+            assertEquals(MintScan.Finished, phone.store.mint(home)?.scan)
+
+            assertEquals(ScanResult(msat, emptyList()), phone.wallet.scan())
+            assertEquals(msat, phone.balance())
+            assertEquals(emptyList(), phone.wallet.unscannedMints.first())
+        }
+
+    @Test
+    fun `a scan passes over a mint that doesn't answer and still looks through the others`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val msat = credit(words, other, KeySet.Wallet, 0, SATS)
+            val later = credit(words, home, KeySet.Change, 3, SATS)
+            var answering = false
+            val phone = Fresh(onLookup(other) { chain -> if (answering) chain.proceed(chain.request()) else throw IOException("dropped") })
+            answering = true
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+            assertIs<ConnectResult.Connected>(phone.wallet.connectMint(other))
+            answering = false
+            val more = credit(words, home, KeySet.Wallet, 5, SATS)
+
+            assertEquals(ScanResult(more, listOf(other)), phone.wallet.scan())
+            assertEquals(later + more, phone.balance())
+            assertEquals(MintScan.Unfinished, phone.store.mint(other)?.scan)
+
+            answering = true
+            // Mints on one domain share their keys: what is known at the home mint (keys 3 and 5) doesn't hide key 0 here.
+            assertEquals(ScanResult(msat, emptyList()), phone.wallet.scan())
+            assertEquals(later + more + msat, phone.balance())
+            assertEquals(emptyList(), phone.wallet.unscannedMints.first())
+
+            // Looked through once, it stays so when looking again stops: nothing is missing that wasn't found then.
+            answering = false
+            assertEquals(ScanResult(0, listOf(other)), phone.wallet.scan())
+            assertEquals(MintScan.Finished, phone.store.mint(other)?.scan)
         }
 
     @Test

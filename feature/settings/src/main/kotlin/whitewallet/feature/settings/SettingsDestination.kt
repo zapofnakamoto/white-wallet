@@ -10,6 +10,9 @@ enum class SettingsTarget {
     Notes,
     NoteList,
     Mints,
+
+    /** Looking through the active wallet's keys at its mints again. */
+    Scan,
     Delete,
     Display,
     Security,

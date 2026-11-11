@@ -73,6 +73,8 @@ data class AddMintState(
     val found: List<FoundAccount> = emptyList(),
     /** Why adding stopped; null once it went through. */
     val failed: String? = null,
+    /** The mint was added all the same and only its scan stopped: it can be scanned again right here, or later. */
+    val kept: Boolean = false,
     val keyChanged: Boolean = false,
     /** Asking whether to give the setup up (back on the first step). */
     val confirmAbandon: Boolean = false,
@@ -148,10 +150,12 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
     /** Adds the mint shown, with the key it showed, and finds what the wallet holds there. */
     fun add() {
         val preview = _state.value.preview ?: return
-        _state.update { it.copy(step = AddMintStep.Adding, progress = null, failed = null, keyChanged = false) }
+        _state.update { it.copy(step = AddMintStep.Adding, progress = null, failed = null, kept = false, keyChanged = false) }
         viewModelScope.launch {
             val result = wallet.addMint(preview.host, preview.signingKey) { progress -> _state.update { it.copy(progress = progress) } }
             val found = wallet.heldAt(preview.host).map { (account, msat) -> FoundAccount(account.name, msat) }
+            val keyChanged = ((result as? ConnectResult.Failed)?.result as? OnboardResult.MintInvalid)?.reason == MINT_KEY_CHANGED
+            val kept = !keyChanged && wallet.unscannedMints.first().any { it.host == preview.host }
             _state.update {
                 when (result) {
                     is ConnectResult.Connected -> it.copy(step = AddMintStep.Result, found = found)
@@ -160,7 +164,8 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
                             step = AddMintStep.Result,
                             found = found,
                             failed = failure(result.result),
-                            keyChanged = (result.result as? OnboardResult.MintInvalid)?.reason == MINT_KEY_CHANGED,
+                            kept = kept,
+                            keyChanged = keyChanged,
                         )
                 }
             }
@@ -174,10 +179,13 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
             else -> result.toString()
         }
 
-    /** After the result: in a setup, on to the address (where there is one to pick) or done; otherwise back where it was opened. */
+    /**
+     * After the result (a mint that wasn't added: back to the pick): in a setup, on to the address (where there is one to pick) or done;
+     * otherwise back where it was opened.
+     */
     fun done() {
         val s = _state.value
-        if (s.failed != null)
+        if (s.failed != null && !s.kept)
             return _state.update { it.copy(step = AddMintStep.Pick, preview = null, progress = null, found = emptyList()) }
         viewModelScope.launch {
             if (!s.setup) return@launch _state.update { it.copy(finish = AddMintFinish.Done(null)) }
