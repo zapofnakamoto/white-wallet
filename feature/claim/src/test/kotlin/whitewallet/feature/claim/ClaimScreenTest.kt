@@ -1,5 +1,6 @@
 package whitewallet.feature.claim
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -11,16 +12,19 @@ import androidx.compose.ui.test.performScrollTo
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.PublicKey
 import fr.acinq.secp256k1.Hex
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
+import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.ReclaimResult
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
@@ -48,6 +52,45 @@ class ClaimScreenTest {
             isOwnMint = false,
             trusted = true,
         )
+
+    @Test
+    fun inDeveloperModeTheFaucetMakesANoteOnAnyLocalMint() {
+        val asked = mutableListOf<String>()
+        val mints = listOf("localhost:8111", "localhost:8112")
+        var label = ""
+        compose.setContent {
+            label = stringResource(R.string.regtest_note, formatAmount(FAUCET_SATS * 1_000), "localhost:8112")
+            ClaimScreen(
+                ClaimState(faucetMints = mints),
+                onBack = {},
+                onInputChange = {},
+                onCheck = {},
+                onClaim = {},
+                onFaucet = { asked += it },
+            )
+        }
+        compose.onNodeWithText(label).performScrollTo().performClick()
+        assertEquals(listOf("localhost:8112"), asked)
+    }
+
+    @Test
+    fun withoutDeveloperModeThereIsNoFaucet() {
+        show(ClaimState())
+        compose.onNodeWithText("localhost", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("regtest", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun aFaucetThatMadeNoNoteSaysWhy() {
+        show(ClaimState(faucetMints = listOf("localhost:8112"), faucet = FaucetState(error = "connection refused")))
+        compose.onNodeWithText(text(R.string.regtest_note_failed, "connection refused")).assertExists()
+    }
+
+    @Test
+    fun aCheckedNoteHasNoFaucetButtons() {
+        show(ClaimState(input = "x", preview = ready, faucetMints = listOf("localhost:8112")))
+        compose.onNodeWithText("localhost:8112", substring = true).assertDoesNotExist()
+    }
 
     @Test
     fun aCheckedNoteSaysWhereItIsAndWhetherItsMintIsTrusted() {

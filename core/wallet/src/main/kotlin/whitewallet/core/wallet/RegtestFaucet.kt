@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -18,15 +19,15 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
- * The local regtest stack's faucet (dev/regtest/faucet.py, reached over `adb reverse`): pays this wallet, or makes an invoice for it to
- * pay, from the stack's own Lightning nodes, so receiving and sending can be tried without a terminal. [host] is null in release builds,
- * where there is no faucet.
+ * The local regtest stack's faucet (dev/regtest/faucet.py, reached over `adb reverse`): pays this wallet, makes an invoice for it to pay,
+ * or a note for it to claim, from the stack's own Lightning nodes, so receiving and sending can be tried without a terminal. [host] is null
+ * in release builds, where there is no faucet.
  */
 class RegtestFaucet(
     val host: String?,
     developerMode: Flow<Boolean> = flowOf(false),
     homeHost: Flow<String?> = flowOf(null),
-    localDevMints: List<String> = emptyList(),
+    private val localDevMints: List<String> = emptyList(),
     private val http: OkHttpClient = OkHttpClient(),
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) {
@@ -36,6 +37,12 @@ class RegtestFaucet(
             developer && host != null && home in localDevMints
         }
 
+    /**
+     * The local mints it can make a note on, to claim: in a debug build with developer mode, whichever mint the account is on (or none). A
+     * note from one the wallet hasn't added is a note from an unknown mint.
+     */
+    val noteMints: Flow<List<String>> = developerMode.map { developer -> if (developer && host != null) localDevMints else emptyList() }
+
     /** Pays [target] (a Lightning address on a local mint, or an invoice) [sats]; returns what arrived. */
     suspend fun pay(target: String, sats: Long): Long =
         call("pay", "target" to target, "sats" to sats.toString())["paid_sats"]?.jsonPrimitive?.longOrNull ?: sats
@@ -44,6 +51,11 @@ class RegtestFaucet(
     suspend fun invoice(sats: Long, home: String): String =
         call("invoice", "sats" to sats.toString(), "host" to home)["invoice"]?.jsonPrimitive?.content
             ?: throw IOException("the faucet made no invoice")
+
+    /** A bearer note for [sats] (less the mint's fee) on the local mint [mint]: its link, to claim. */
+    suspend fun note(sats: Long, mint: String): String =
+        call("note", "sats" to sats.toString(), "host" to mint)["link"]?.jsonPrimitive?.content
+            ?: throw IOException("the faucet made no note")
 
     private suspend fun call(path: String, vararg query: Pair<String, String>): JsonObject =
         withContext(io) {

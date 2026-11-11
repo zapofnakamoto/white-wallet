@@ -76,6 +76,7 @@ fun ClaimRoute(onBack: () -> Unit, onPay: (String) -> Unit = {}, viewModel: Clai
             onStopScan = viewModel::stopScan,
             onKeep = viewModel::keep,
             onTakeBack = viewModel::takeBack,
+            onFaucet = viewModel::noteFromFaucet,
         )
     }
 }
@@ -92,6 +93,8 @@ fun ClaimScreen(
     onStopScan: () -> Unit = {},
     onKeep: () -> Unit = {},
     onTakeBack: () -> Unit = {},
+    /** Developer: have the regtest faucet make a note on this local mint. */
+    onFaucet: (String) -> Unit = {},
 ) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
@@ -188,9 +191,28 @@ fun ClaimScreen(
                 else -> {
                     preview?.let { Text(previewMessage(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
                     PrimaryButton(stringResource(R.string.claim_check), onCheck, enabled = state.input.isNotBlank(), busy = state.busy)
+                    FaucetButtons(state, onFaucet)
                 }
             }
         }
+    }
+}
+
+/** Developer mode in a debug build: the regtest faucet makes a note on a local mint, as `regtest.sh note` would, and it is checked here. */
+@Composable
+private fun FaucetButtons(state: ClaimState, onFaucet: (String) -> Unit) {
+    state.faucetMints.forEach { mint ->
+        WalletButton(kind = ButtonKind.Secondary, onClick = { onFaucet(mint) }, enabled = !state.busy && !state.faucet.busy) {
+            Text(stringResource(R.string.regtest_note, formatAmount(FAUCET_SATS * 1_000), mint))
+        }
+    }
+    state.faucet.error?.let {
+        Text(
+            stringResource(R.string.regtest_note_failed, it),
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 

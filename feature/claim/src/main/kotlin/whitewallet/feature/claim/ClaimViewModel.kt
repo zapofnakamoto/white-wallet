@@ -13,9 +13,11 @@ import kotlinx.coroutines.launch
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
+import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.ReclaimResult
+import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
 import whitewallet.lnurlcash.protocol.RejectionKind
 
@@ -31,19 +33,45 @@ data class ClaimState(
     val showMints: Boolean = true,
     /** An invoice, address or pay link was scanned or pasted here: Send takes it over, so one scanner does for both. */
     val pay: String? = null,
+    /** Developer: the local regtest mints the faucet makes a note on, and its last attempt. Empty outside developer mode. */
+    val faucetMints: List<String> = emptyList(),
+    val faucet: FaucetState = FaucetState(),
 )
 
+/** What the regtest faucet's note is made for; the mint's fee comes off. */
+internal const val FAUCET_SATS = 1_000L
+
 @HiltViewModel
-class ClaimViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) : ViewModel() {
+class ClaimViewModel
+@Inject
+constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, savedState: SavedStateHandle, defaults: AppDefaults) :
+    ViewModel() {
     private val _state = MutableStateFlow(ClaimState(showMints = defaults.showMints))
     val state: StateFlow<ClaimState> = _state
 
     init {
+        viewModelScope.launch { faucet.noteMints.collect { mints -> _state.update { it.copy(faucetMints = mints) } } }
         // Opened from a link, shared text or NFC tag: check it right away.
         savedState.get<String>("input")?.takeIf { it.isNotBlank() }?.let(::onScanned)
     }
 
-    fun onInputChange(value: String) = _state.update { ClaimState(input = value, showMints = it.showMints) }
+    fun onInputChange(value: String) = _state.update { fresh(it, input = value) }
+
+    /** The screen as it starts, with [input] and what doesn't depend on the note. */
+    private fun fresh(from: ClaimState, input: String = "", pay: String? = null) =
+        ClaimState(input = input, showMints = from.showMints, pay = pay, faucetMints = from.faucetMints)
+
+    /** Developer: has the regtest faucet make a note on the local mint [mint], and checks it as if it was pasted. */
+    fun noteFromFaucet(mint: String) {
+        if (_state.value.busy || _state.value.faucet.busy) return
+        _state.update { it.copy(faucet = FaucetState(busy = true)) }
+        viewModelScope.launch {
+            val link = runCatching { faucet.note(FAUCET_SATS, mint) }
+            link.onSuccess(::onScanned).onFailure { e ->
+                _state.update { it.copy(faucet = FaucetState(error = e.message ?: e.javaClass.simpleName)) }
+            }
+        }
+    }
 
     fun startScan() = _state.update { it.copy(scanning = true) }
 
@@ -51,7 +79,7 @@ class ClaimViewModel @Inject constructor(private val wallet: Wallet, savedState:
 
     /** A scanned or pasted note is checked right away. */
     fun onScanned(text: String) {
-        _state.update { ClaimState(input = text.trim(), showMints = it.showMints) }
+        _state.update { fresh(it, input = text.trim()) }
         check()
     }
 
@@ -59,7 +87,7 @@ class ClaimViewModel @Inject constructor(private val wallet: Wallet, savedState:
         val input = _state.value.input.trim()
         if (input.isEmpty() || _state.value.busy) return
         (IncomingLink.classify(input) as? IncomingLink.Pay)?.let { link ->
-            _state.update { ClaimState(showMints = it.showMints, pay = link.text) }
+            _state.update { fresh(it, pay = link.text) }
             return
         }
         _state.update { it.copy(busy = true, preview = null) }

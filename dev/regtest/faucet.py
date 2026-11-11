@@ -1,7 +1,7 @@
 """Regtest faucet: pays a Lightning address or invoice from the stack's own Lightning node, or makes an invoice for
 the wallet to pay, on request over HTTP.
 
-It is `regtest.sh pay` and `regtest.sh invoice` for the app: a debug build in developer mode asks it (through
+It is `regtest.sh pay`, `regtest.sh invoice` and `regtest.sh note` for the app: a debug build in developer mode asks it (through
 `adb reverse tcp:8114`), so receiving and sending can be tried without a terminal. Regtest only, no real funds; it
 listens on 127.0.0.1 of the computer, like the mints.
 
@@ -11,9 +11,14 @@ listens on 127.0.0.1 of the computer, like the mints.
     POST /invoice?sats=<amount>&host=<the wallet's mint, localhost:8111>
     200 {"invoice": "lnbcrt…"}   on the node that doesn't fund that mint, which couldn't pay its own invoice
 
+    POST /note?sats=<amount>&host=<a mint, localhost:8112>
+    200 {"link": "lnurlw://localhost:8112/w?k1=…&amount=…", "amount_msat": 999000}   a bearer note on that mint, to claim
+
 Python standard library only; it runs in the mint image, with both LND volumes mounted read-only.
 """
+import hashlib
 import json
+import secrets
 import ssl
 import time
 import urllib.error
@@ -157,6 +162,33 @@ def pay(request):
     raise Refused("payment did not finish", 502)
 
 
+def note(sats, host):
+    """A bearer note for [sats] on the mint at [host], as `regtest.sh note` makes one: its link, and what it is worth
+    after the mint's fee."""
+    if host not in MINTS:
+        raise Refused(f"not a regtest mint: {host}")
+    pay_info = get_json(f"{MINTS[host]}/.well-known/lnurlp/_")
+    msat = sats * 1000
+    if not pay_info.get("minSendable", 0) <= msat <= pay_info.get("maxSendable", 0):
+        raise Refused(f"amount must be between {pay_info.get('minSendable', 0) // 1000} and {pay_info.get('maxSendable', 0) // 1000} sats")
+    # LUD-25: the comment is sha256(secret); the mint keys the note by it and never sees the secret.
+    secret = secrets.token_hex(32)
+    h = hashlib.sha256(bytes.fromhex(secret)).hexdigest()
+    response = get_json(f"{inside(pay_info['callback'])}?amount={msat}&comment={h}")
+    if response.get("status") == "ERROR":
+        raise Refused(f"the mint says: {response.get('reason')}")
+    pay(response["pr"])
+    # What the note is worth comes from the mint, asked by the hash; it may take a moment to settle.
+    withdraw = pay_info["withdrawLink"]
+    for _ in range(30):
+        info = get_json(f"{inside(withdraw)}?p={h}")
+        if info.get("tag") == "withdrawRequest" and info.get("maxWithdrawable"):
+            amount = int(info["maxWithdrawable"])
+            return {"link": f"{withdraw.replace('http://', 'lnurlw://', 1)}?k1={secret}&amount={amount}", "amount_msat": amount}
+        time.sleep(0.5)
+    raise Refused("the mint did not issue the note", 502)
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         url = urllib.parse.urlparse(self.path)
@@ -170,8 +202,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, pay(invoice_for(target, sats)))
             elif url.path == "/invoice":
                 self.reply(200, invoice(sats, query.get("host", [""])[0]))
+            elif url.path == "/note":
+                self.reply(200, note(sats, query.get("host", [""])[0]))
             else:
-                raise Refused("unknown path; POST /pay?target=…&sats=… or /invoice?sats=…&host=…", 404)
+                raise Refused("unknown path; POST /pay?target=…&sats=…, /invoice?sats=…&host=… or /note?sats=…&host=…", 404)
         except Refused as e:
             self.reply(e.status, {"error": str(e)})
         except (ValueError, KeyError, OSError) as e:

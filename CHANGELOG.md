@@ -115,6 +115,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### For developers
 
+- Debug builds in developer mode can get a note from any local regtest mint on "Claim a note" (the faucet makes it),
+  whichever mint the account is on: a note from a mint the wallet hasn't added is one from an unknown mint. From the
+  terminal, `regtest.sh note --open` opens a note in the app, and `--mint4`/`--mint5` join `--mint2`/`--mint3`.
 - `wallet.properties` holds the numbers that decide how the wallet behaves, such as how far a restore or adding a mint
   looks (`scan.*`) and how many notes one merge request spends. A build can override one with `-P` or a `WW_` variable, a release build can't.
   Brands don't set these (see "Wallet settings" in `docs/DEVELOPMENT.md`).

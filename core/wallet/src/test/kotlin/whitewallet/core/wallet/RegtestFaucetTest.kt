@@ -6,6 +6,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.wallet.Regtest.HOST
@@ -39,6 +41,28 @@ class RegtestFaucetTest {
             assertEquals(1_000_000, preview.fixedAmountMsat)
             assertIs<PayResult.Paid>(alice.wallet.pay(preview, 1_000_000))
             assertTrue(Regtest.settled(invoice))
+        }
+
+    @Test
+    fun `the faucet makes a note on a mint the wallet has not added, and the wallet claims it`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            val link = faucet.note(1000, HOST2)
+            val preview = assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(link))
+            assertEquals(HOST2, preview.link.host)
+            assertEquals(false, preview.isOwnMint)
+            assertIs<ClaimResult.Claimed>(alice.wallet.claim(preview))
+            assertEquals(preview.amountMsat, alice.balance())
+            assertFailsWith<IOException> { faucet.note(1000, "localhost:9") }
+        }
+
+    @Test
+    fun `the faucet offers notes in developer mode, whichever mint the account is on`() =
+        runBlocking<Unit> {
+            val mints = listOf(HOST, HOST2)
+            assertEquals(mints, RegtestFaucet("localhost:8114", flowOf(true), flowOf(null), mints).noteMints.first())
+            assertEquals(emptyList(), RegtestFaucet("localhost:8114", flowOf(false), flowOf(HOST), mints).noteMints.first())
+            assertEquals(emptyList(), RegtestFaucet(null, flowOf(true), flowOf(HOST), mints).noteMints.first())
         }
 
     @Test

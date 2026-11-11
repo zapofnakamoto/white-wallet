@@ -59,4 +59,8 @@
     <string name="claim_take_back_failed">It couldn\'t be taken back. Try again later.</string>
     <string name="claim_trusted">✓ Trusted</string>
     <string name="claim_not_trusted">Not trusted (see Settings).</string>
+    <!-- Developer mode in a debug build: dev/regtest's faucet makes a note to claim. %1$s: an amount, %2$s: a local mint's host -->
+    <string name="regtest_note">Developer: %1$s note from %2$s</string>
+    <!-- %1$s: the faucet's or the connection's error, as it came -->
+    <string name="regtest_note_failed">The regtest faucet made no note: %1$s. Is dev/regtest up and connected?</string>
 </resources>

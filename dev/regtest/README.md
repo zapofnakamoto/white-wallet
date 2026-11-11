@@ -46,6 +46,8 @@ Or without the terminal: on **Receive**, a debug build in developer mode with an
 
 Sending works the same way: on **Send**, **Developer: pay a regtest invoice of ₿1,000** has the faucet make an invoice and fills it in, as if pasted; review and pay it as usual.
 
+And notes: on **Receive → Claim a note**, a debug build in developer mode shows **Developer: ₿1,000 note from localhost:811x** for each local mint, whichever mint the account is on (or none). The faucet makes the note there, as `note` does, and the screen checks it as if pasted. A note from a mint the wallet hasn't added is a note from an unknown mint.
+
 ## Commands
 
 | Command | |
