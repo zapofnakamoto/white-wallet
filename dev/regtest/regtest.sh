@@ -316,14 +316,17 @@ pay_invoice() {
 # Receive > Claim a note. The note is a plain bearer note: the secret is the money, so whoever holds the link can
 # claim it (fine on regtest). With --type, the link is also typed into the focused text field on the device.
 cmd_note() {
-    local sats=1000 type=false bech32=false mint_url="$MINT_URL" arg
+    local sats=1000 type=false open=false bech32=false mint_url="$MINT_URL" arg
     for arg in "$@"; do
         case "$arg" in
             --type) type=true ;;
+            --open) open=true ;;
             --bech32) bech32=true ;;
             --mint2) mint_url="$MINT2_URL" ;;
             --mint3) mint_url="$MINT3_URL" ;;
-            ''|*[!0-9]*) die "usage: $0 note [sats] [--mint2|--mint3] [--bech32] [--type]" ;;
+            --mint4) mint_url="$MINT4_URL" ;;
+            --mint5) mint_url="$MINT5_URL" ;;
+            ''|*[!0-9]*) die "usage: $0 note [sats] [--mint2|--mint3|--mint4|--mint5] [--bech32] [--type|--open]" ;;
             *) sats="$arg" ;;
         esac
     done
@@ -361,6 +364,14 @@ cmd_note() {
     fi
     log "note worth $((amount / 1000)) sats; claim it in the app under Receive > Claim a note"
     echo "$link"
+    # As a tapped link: the app opens on the note, ready to claim. With --mint3 and up, a note from a mint the wallet
+    # doesn't know yet (unless it was added).
+    if $open; then
+        [[ -x "$ADB" ]] && "$ADB" get-state >/dev/null 2>&1 || die "no Android device or emulator connected"
+        "$ADB" shell am start -a android.intent.action.VIEW -d "'$link'" >/dev/null
+        log "opened on the device"
+        return # nothing to type it into: `just note` always passes --type
+    fi
     if $type; then
         [[ -x "$ADB" ]] && "$ADB" get-state >/dev/null 2>&1 || die "no Android device or emulator connected"
         "$ADB" shell input text "'$link'"
@@ -435,9 +446,12 @@ usage: [REGTEST_PROTOCOL=current|legacy] $0 <command>
   pay <target> [sats]      pay an invoice (lnbcrt...), a Lightning address (alice@localhost:8111, or :8112 on mint2)
                            or an LNURL-pay
   invoice <sats> [memo]    create an invoice on the user node
-  note [sats] [--mint2|--mint3] [--bech32] [--type]
+  note [sats] [--mint2|--mint3|--mint4|--mint5] [--bech32] [--type|--open]
                            mint a bearer note (default 1000 sats) and print its link, to claim in the app;
-                           --mint2 mints it on the second mint (localhost:8112), --mint3 on the third (localhost:8113);
+                           --mint2 mints it on the second mint (localhost:8112), --mint3 on the third (localhost:8113),
+                           --mint4 and --mint5 on the fourth and fifth (localhost:8115, localhost:8116);
+                           --open opens it on the device like a tapped link: the app shows the note, ready to claim
+                           (from a mint the wallet hasn't added: a note from an unknown mint);
                            --bech32 prints it as an uppercase LNURL1... instead of lnurlw://;
                            --type also types it into the focused field on the device
   rotate-mint3             give the third mint (localhost:8113) a new signing key: move it to the other LND node
