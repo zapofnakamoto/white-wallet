@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.8.0]
+
 ### Added
 
 - LUD-25/26 at luds `92e430f` (lnurl-mint 0.13), next to the draft `2f17578` (lnurl-mint 0.12): the wallet asks each
