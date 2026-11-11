@@ -23,6 +23,12 @@ value class Anchor(val id: String) {
          */
         val Loading = Anchor("home.loading")
 
+        /**
+         * The picture of a page that is still reading what it shows, centred on the otherwise empty page. It comes up only when that takes
+         * more than a moment and then stays for a short time, so it never blinks; most pages are never seen loading. Default: a spinner.
+         */
+        val PageLoading = Anchor("page.loading")
+
         /** The title of the wallet tab's top bar. Default: the app's name. */
         val HomeTitle = Anchor("home.title")
 

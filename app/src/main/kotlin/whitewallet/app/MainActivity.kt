@@ -7,14 +7,12 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -42,18 +40,24 @@ import whitewallet.brand.ui.BrandScreen
 import whitewallet.brand.ui.BrandScreenEntry
 import whitewallet.brand.ui.DefaultBrandDesign
 import whitewallet.brand.ui.LocalWalletEvents
+import whitewallet.core.designsystem.LoadingCarry
+import whitewallet.core.designsystem.LoadingTimes
 import whitewallet.core.designsystem.LocalAmountUnit
 import whitewallet.core.designsystem.LocalAppName
 import whitewallet.core.designsystem.LocalBuildLabel
+import whitewallet.core.designsystem.LocalLoadingCarry
+import whitewallet.core.designsystem.LocalLoadingTimes
 import whitewallet.core.designsystem.LocalReleaseStage
-import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletTheme
+import whitewallet.core.designsystem.pageLoaded
+import whitewallet.core.designsystem.screenLoaded
 import whitewallet.core.model.SetupStep
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.BackupRequired
 import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.WalletSettings
 import whitewallet.feature.claim.ClaimRoute
 import whitewallet.feature.home.HomeMenuItem
 import whitewallet.feature.home.HomeRoute
@@ -113,6 +117,11 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var events: WalletEventHub
     @Inject lateinit var defaults: AppDefaults
 
+    /** When a page says that it is loading: wallet.properties. */
+    private val loadingCarry = LoadingCarry()
+    private val loadingTimes =
+        WalletSettings().let { LoadingTimes(it.loadingIndicatorShownAfterMillis, it.loadingIndicatorShownAtLeastMillis) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -122,24 +131,27 @@ class MainActivity : FragmentActivity() {
             val shownUnit by display.amountUnit.collectAsStateWithLifecycle()
             val appName = stringResource(R.string.app_name)
             WalletTheme(design.orElse(DefaultBrandDesign)) {
-                // Nothing of the wallet until the unit of its amounts is known (a moment).
-                val unit = shownUnit ?: return@WalletTheme Surface(Modifier.fillMaxSize()) {}
-                CompositionLocalProvider(
-                    LocalAmountUnit provides unit,
-                    LocalAppName provides appName,
-                    LocalReleaseStage provides defaults.releaseStage,
-                    LocalBuildLabel provides BuildConfig.BUILD_LABEL.ifEmpty { null },
-                    LocalWalletEvents provides events.events,
-                ) {
-                    Surface(Modifier.fillMaxSize()) {
-                        AppLockGate(appName) {
-                            WalletApp(
-                                incoming,
-                                brand = BrandScreens(brandScreens),
-                                showNotesTab = defaults.notesView == NotesView.Tab,
-                                backupAtSetup = defaults.backupRequired == BackupRequired.Setup,
-                                onIncomingHandled = { incoming.value = null },
-                            )
+                CompositionLocalProvider(LocalLoadingTimes provides loadingTimes, LocalLoadingCarry provides loadingCarry) {
+                    // Nothing of the wallet until the unit of its amounts is known (a moment).
+                    if (!screenLoaded(shownUnit != null)) return@CompositionLocalProvider
+                    val unit = shownUnit ?: return@CompositionLocalProvider
+                    CompositionLocalProvider(
+                        LocalAmountUnit provides unit,
+                        LocalAppName provides appName,
+                        LocalReleaseStage provides defaults.releaseStage,
+                        LocalBuildLabel provides BuildConfig.BUILD_LABEL.ifEmpty { null },
+                        LocalWalletEvents provides events.events,
+                    ) {
+                        Surface(Modifier.fillMaxSize()) {
+                            AppLockGate(appName) {
+                                WalletApp(
+                                    incoming,
+                                    brand = BrandScreens(brandScreens),
+                                    showNotesTab = defaults.notesView == NotesView.Tab,
+                                    backupAtSetup = defaults.backupRequired == BackupRequired.Setup,
+                                    onIncomingHandled = { incoming.value = null },
+                                )
+                            }
                         }
                     }
                 }
@@ -282,12 +294,9 @@ private fun WalletApp(
     start: StartViewModel = hiltViewModel(),
 ) {
     val startRoute by start.start.collectAsStateWithLifecycle()
-    val first =
-        startRoute
-            ?: run {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { WalletCircularProgress() }
-                return
-            }
+    // Where the app opens isn't known yet (a moment).
+    if (!pageLoaded(startRoute != null)) return
+    val first = startRoute ?: return
     val appName = stringResource(R.string.app_name)
     val nav = rememberNavController()
     // Each setup step replaces everything before it: back can't return to a step that is done.

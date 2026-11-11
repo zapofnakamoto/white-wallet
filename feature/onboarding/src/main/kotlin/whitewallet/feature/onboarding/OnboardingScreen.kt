@@ -62,6 +62,7 @@ import whitewallet.core.designsystem.WalletSuggestionChip
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.screenLoaded
 
 /**
  * A Lightning address for the active account (see [OnboardingMode]): the setup's address step, or one from Settings. [onDone] goes on, with
@@ -109,10 +110,7 @@ fun OnboardingScreen(
     fee: FeeActions = FeeActions({}, {}, {}),
 ) {
     // Before the mint and the first name are known (a moment): nothing, so the form doesn't show one thing and then another.
-    if (!state.ready) {
-        Surface(Modifier.fillMaxSize()) {}
-        return
-    }
+    if (!screenLoaded(state.ready)) return
     val claimed = state.claimed
     state.feePrompt?.let { AddressFeeDialog(it, state.canSkip, fee) }
     state.held?.let { held ->

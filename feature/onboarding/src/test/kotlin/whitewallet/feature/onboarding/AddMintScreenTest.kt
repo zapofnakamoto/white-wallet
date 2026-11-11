@@ -156,10 +156,11 @@ class AddMintScreenTest {
     }
 
     @Test
-    fun untilTheMintsToPickFromAreKnownNothingShows() {
+    fun untilTheMintsToPickFromAreKnownOnlyTheTitleShows() {
         show(AddMintState(host = "mint.example", loaded = false))
         compose.onNodeWithText("mint.example").assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.add_mint_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_title)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_body)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.add_mint_next)).assertDoesNotExist()
     }
 }

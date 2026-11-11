@@ -47,6 +47,7 @@ import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.screenLoaded
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.WalletGroup
 import whitewallet.core.wallet.AccountRemoval
@@ -143,9 +144,9 @@ fun WalletsRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val active by settings.state.collectAsStateWithLifecycle()
     val only = state.wallets.singleOrNull()
+    // Both are read first (a moment): a page drawn from one of them alone would change under the eye.
+    if (!screenLoaded(state.loaded && active.loaded)) return
     when {
-        // Both are read first (a moment): a page drawn from one of them alone would change under the eye.
-        !state.loaded || !active.loaded -> Unit
         only != null ->
             WalletScreen(
                 only,
@@ -201,7 +202,8 @@ fun WalletRoute(
     val group = state.wallet(walletId)
     // Deleted meanwhile: nothing to show.
     LaunchedEffect(state.loaded, group == null) { if (state.loaded && group == null) onBack() }
-    if (group != null && active.loaded) WalletScreen(group, state, active, onBack, onNavigate, onAddAccount, viewModel::renameWallet)
+    if (!screenLoaded(state.loaded && active.loaded)) return
+    if (group != null) WalletScreen(group, state, active, onBack, onNavigate, onAddAccount, viewModel::renameWallet)
 }
 
 /**
@@ -338,8 +340,9 @@ fun AccountSettingsRoute(
     val summary = state.account(accountId)
     // Removed meanwhile: nothing to show.
     LaunchedEffect(state.loaded, summary == null) { if (state.loaded && summary == null) onBack() }
+    if (!screenLoaded(state.loaded && active.loaded)) return
     when {
-        summary == null || !active.loaded -> Unit
+        summary == null -> Unit
         accountId == state.activeAccountId -> {
             // A wallet's only account goes with the wallet, on the wallet's page.
             val siblings = state.wallet(summary.account.walletId)?.accounts?.size ?: 1

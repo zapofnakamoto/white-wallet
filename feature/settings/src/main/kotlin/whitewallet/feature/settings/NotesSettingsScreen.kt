@@ -42,6 +42,8 @@ import whitewallet.core.designsystem.WalletRadioButton
 import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
+import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.MovePreview
 import whitewallet.core.wallet.NotCollected
@@ -210,8 +212,8 @@ fun NotesSettingsScreen(
     onPayFromOtherMintsFirst: (Boolean) -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_notes), onBack) }) { padding ->
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            if (!state.loaded) return@Column
             NotePolicySettings(state, onNoteStrategy, onAutoRotate)
             CollectSettings(state, collect)
             state.homeHost?.let { home ->
@@ -354,7 +356,7 @@ private fun CollectDialog(preview: MovePreview, home: String, actions: CollectAc
 /** What the last automatic run did: the counts, and per mint what collecting moved or left ("Move anyway" is on the Notes page). */
 @Composable
 private fun LastRun(state: NotesSettingsState) {
-    if (state.applyingPolicy) {
+    if (showsWorking(state.applyingPolicy)) {
         WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
     }
     val run = state.lastPolicyRun ?: return

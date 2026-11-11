@@ -34,6 +34,7 @@ import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.TrustDefault
@@ -89,7 +90,7 @@ fun MintsScreen(
     onAdd: () -> Unit,
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_mints), onBack) }) { padding ->
-        if (!state.loaded) return@Scaffold
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         LazyColumn(Modifier.padding(padding).imePadding().fillMaxWidth()) {
             item {
                 Text(stringResource(R.string.mints_intro), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))

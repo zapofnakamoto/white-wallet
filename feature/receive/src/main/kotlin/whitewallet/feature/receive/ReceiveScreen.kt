@@ -47,6 +47,7 @@ import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceStatus
 
@@ -99,7 +100,7 @@ fun ReceiveScreen(
     onNoHome: (NoHome) -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.receive_title), onBack) }) { padding ->
-        if (!state.loaded) return@Scaffold
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         val arrived = state.arrivedMsat
         if (arrived != null) {
             SuccessScreen(

@@ -22,6 +22,7 @@ import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.MintScan
 import whitewallet.core.wallet.MintInfo
@@ -41,8 +42,8 @@ fun ScanRoute(start: Boolean, onBack: () -> Unit, viewModel: ScanViewModel = hil
 @Composable
 fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.scan_title), onBack) }) { padding ->
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            if (!state.loaded) return@ScreenColumn
             Text(stringResource(R.string.scan_body), textAlign = TextAlign.Center)
             Column(Modifier.fillMaxWidth()) {
                 state.mints.forEach { mint ->

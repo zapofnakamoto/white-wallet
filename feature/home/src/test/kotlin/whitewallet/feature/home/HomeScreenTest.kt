@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -481,7 +482,11 @@ class HomeScreenTest {
                 accountActions = AccountActions({}, {}, {}),
             )
         }
-        return { state = it }
+        return {
+            state = it
+            // A write from the test is seen by the next frame, as one from the app is.
+            Snapshot.sendApplyNotifications()
+        }
     }
 
     @Test
@@ -499,7 +504,7 @@ class HomeScreenTest {
         // Never shown yet: not shown stale either.
         compose.onNodeWithText("₿845").assertDoesNotExist()
         compose.onNodeWithText(text(R.string.home_working_updating)).assertDoesNotExist()
-        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER + 100)
         compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
         compose.onNodeWithText("₿845").assertDoesNotExist()
 
@@ -507,10 +512,58 @@ class HomeScreenTest {
         compose.mainClock.advanceTimeByFrame()
         compose.onNodeWithText(text(R.string.home_working_combining)).assertExists()
 
+        // The work ended just after the loading screen came up: it stays for its shortest time rather than blinking.
         set(HomeState(activeAccountId = "a", balanceMsat = 900_000))
         compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText(text(R.string.home_working_combining)).assertExists()
+        compose.onNodeWithText("₿900").assertDoesNotExist()
+        compose.mainClock.advanceTimeBy(SHOWN_AT_LEAST)
         compose.onNodeWithText(text(R.string.home_working_combining)).assertDoesNotExist()
         compose.onNodeWithText("₿900").assertExists()
+    }
+
+    @Test
+    fun figuresThatTakeAWhileToReadShowTheLoadingIndicator() {
+        compose.mainClock.autoAdvance = false
+        val set = showLive(HomeState(activeAccountId = "a", balanceMsat = 845_000, loaded = false))
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER / 2)
+        compose.onNodeWithContentDescription(text(DesignR.string.loading)).assertDoesNotExist()
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER)
+        compose.onNodeWithContentDescription(text(DesignR.string.loading)).assertExists()
+        compose.onNodeWithText("₿845").assertDoesNotExist()
+        set(HomeState(activeAccountId = "a", balanceMsat = 845_000))
+        compose.mainClock.advanceTimeBy(SHOWN_AT_LEAST)
+        compose.onNodeWithContentDescription(text(DesignR.string.loading)).assertDoesNotExist()
+        compose.onNodeWithText("₿845").assertExists()
+    }
+
+    @Test
+    fun aSlowStartIsOneWaitThroughTheRefreshAlreadyRunning() {
+        compose.mainClock.autoAdvance = false
+        val set = showLive(HomeState(activeAccountId = "a", balanceMsat = 845_000, loaded = false))
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER + SHOWN_AT_LEAST + 100)
+        compose.onNodeWithContentDescription(text(DesignR.string.loading)).assertExists()
+        // The figures are read while the first refresh runs: they don't show between the two waits.
+        set(HomeState(activeAccountId = "a", balanceMsat = 845_000, refreshing = true))
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER / 2)
+        compose.onNodeWithText("₿845").assertDoesNotExist()
+        set(HomeState(activeAccountId = "a", balanceMsat = 845_000, refreshing = true, task = WalletTask.Updating))
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER / 2)
+        compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
+        compose.onNodeWithText("₿845").assertDoesNotExist()
+        set(HomeState(activeAccountId = "a", balanceMsat = 900_000))
+        compose.mainClock.advanceTimeBy(100)
+        compose.onNodeWithText("₿900").assertExists()
+    }
+
+    @Test
+    fun aQuickStartShowsTheBalanceAtOnceWhileItRefreshes() {
+        compose.mainClock.autoAdvance = false
+        val set = showLive(HomeState(activeAccountId = "a", balanceMsat = 845_000, loaded = false))
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER / 2)
+        set(HomeState(activeAccountId = "a", balanceMsat = 845_000, refreshing = true))
+        compose.mainClock.advanceTimeBy(100)
+        compose.onNodeWithText("₿845").assertExists()
     }
 
     @Test
@@ -519,10 +572,10 @@ class HomeScreenTest {
         val set = showLive(HomeState(activeAccountId = "a", balanceMsat = 845_000))
         compose.mainClock.advanceTimeByFrame()
         set(HomeState(activeAccountId = "a", balanceMsat = 845_000, task = WalletTask.Updating))
-        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS / 2)
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER / 2)
         compose.onNodeWithText("₿845").assertExists()
         set(HomeState(activeAccountId = "a", balanceMsat = 845_000))
-        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS)
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER)
         compose.onNodeWithText(text(R.string.home_working_updating)).assertDoesNotExist()
         compose.onNodeWithText("₿845").assertExists()
     }
@@ -531,7 +584,7 @@ class HomeScreenTest {
     fun checkingTheNotesCountsThemOff() {
         compose.mainClock.autoAdvance = false
         showLive(HomeState(task = WalletTask.CheckingNotes(2, 5)))
-        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER + 100)
         compose.onNodeWithText("Checking note 3 of 5…").assertExists()
     }
 
@@ -539,7 +592,7 @@ class HomeScreenTest {
     fun aStrategyNamesItsOwnSteps() {
         compose.mainClock.autoAdvance = false
         showLive(HomeState(task = WalletTask.Maintaining(MaintenanceStep.Splitting, "small"), strategyText = R.string.home_send))
-        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER + 100)
         compose.onNodeWithText(text(R.string.home_send)).assertExists()
         compose.onNodeWithText(text(R.string.home_working_splitting)).assertDoesNotExist()
     }
@@ -548,7 +601,7 @@ class HomeScreenTest {
     fun withoutNotesOrMintsMaintenanceIsUpdatingTheBalance() {
         compose.mainClock.autoAdvance = false
         val set = showLive(HomeState(task = WalletTask.Maintaining(MaintenanceStep.Combining, "single"), notesVisible = false))
-        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER + 100)
         compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
         set(HomeState(task = WalletTask.Maintaining(MaintenanceStep.MovingHome), mintsVisible = false))
         compose.mainClock.advanceTimeByFrame()
@@ -581,7 +634,7 @@ class HomeScreenTest {
                 )
             }
         }
-        compose.mainClock.advanceTimeBy(LOADING_GRACE_MILLIS + 100)
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER + 100)
         compose.onNodeWithText("brand: ${WalletStatus.Working(WalletTask.Updating)}", useUnmergedTree = true).assertExists()
         compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
     }
@@ -698,5 +751,11 @@ class HomeScreenTest {
         compose.onNodeWithText("received, not claimed yet", substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.received_dismiss)).performClick()
         assertEquals(refused.id, dismissed)
+    }
+
+    private companion object {
+        /** The loading times a test gets (LocalLoadingTimes). */
+        const val SHOWN_AFTER = 400L
+        const val SHOWN_AT_LEAST = 500L
     }
 }

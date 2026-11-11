@@ -402,6 +402,7 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   | `OnboardingTitle` | the app's name at setup | the name as a headline |
   | `HomeHeader` | above the balance | nothing |
   | `Loading` | the home screen's loading screen, over the balance, notes and history while the wallet works for more than a moment (status `Working`) | a spinner, filling up while the notes are checked |
+  | `PageLoading` | centred on a page that is still reading what it shows. Seen only when that takes more than a moment, and then for a short time at least, so it never blinks | a spinner |
   | `HomeTitle` | the wallet tab's top bar | the app's name |
   | `ReceiveHeader` | above the address or invoice | nothing |
   | `ReceiveSuccess` | the screen after a payment arrived (status `PaymentReceived`) | a check mark that draws itself |

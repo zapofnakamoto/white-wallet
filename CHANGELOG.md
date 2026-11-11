@@ -51,6 +51,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- A page that takes more than a moment to read what it shows (0.4 s) now says so with a spinner, which then stays
+  for half a second at least, so it never blinks; a page that is ready sooner shows nothing in between, as before.
+  Home's loading screen follows the same rule: it no longer blinks when the work ends just after it came up.
+  Progress bars and spinners for work on a page (the notes, a mint's page, note settings) follow it too, and a slow
+  start of the app is one wait instead of the balance between two.
+  "Add a mint", "Change home mint" and "Move money" show their title from the start.
 - Each wallet has its own mints: the signing key it pinned there and whether you trust a mint are the wallet's, and
   another wallet on the phone never sees or changes them. A mint's new key is accepted per wallet. An update gives
   every wallet the mints and trust choices the phone had. Database version 6.
@@ -128,12 +134,17 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Debug builds in developer mode can get a note from any local regtest mint on "Claim a note" (the faucet makes it),
   whichever mint the account is on: a note from a mint the wallet hasn't added is one from an unknown mint. From the
   terminal, `regtest.sh note --open` opens a note in the app, and `--mint4`/`--mint5` join `--mint2`/`--mint3`.
+- `pageLoaded`/`screenLoaded` (`core/designsystem`) gate every page that reads what it shows, and draw the loading
+  indicator when it is due; `showsWorking` does the same for the sign of work on a page that stays; `loading.indicator.shown.after.millis` and `loading.indicator.shown.at.least.millis` in
+  `wallet.properties` set its times.
 - `wallet.properties` holds the numbers that decide how the wallet behaves, such as how far a restore or adding a mint
   looks (`scan.*`) and how many notes one merge request spends. A build can override one with `-P` or a `WW_` variable, a release build can't.
   Brands don't set these (see "Wallet settings" in `docs/DEVELOPMENT.md`).
 
 ### For brands
 
+- New anchor `PageLoading`: the picture of a page that is still loading (default: a spinner). A `Decoration` with an
+  `else` branch needs no change.
 - New keys: `wallets.max`, `addresses.fee.onboarding` (`ask`, `reserve` or `skip`), `addresses.fee.max`.
 - `addresses.lightning=required` is gone: an address is never needed to set a wallet up (`optional`, the default, or
   `none`).

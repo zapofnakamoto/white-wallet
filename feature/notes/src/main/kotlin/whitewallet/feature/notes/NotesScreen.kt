@@ -66,7 +66,9 @@ import whitewallet.core.designsystem.WalletNoteGroupHeader
 import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.recentTime
+import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.NoteAction
@@ -183,11 +185,12 @@ fun NoteSettingsButton(onClick: () -> Unit) {
 fun NotesContent(state: NotesState, actions: NotesActions) {
     // Back ends selecting before it leaves the tab.
     BackHandler(enabled = state.selecting) { actions.stopSelecting() }
-    if (!state.loaded) return
+    if (!pageLoaded(state.loaded)) return
+    val working = showsWorking(state.busy)
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize()) {
             item { Summary(state) }
-            if (state.busy) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
+            if (working) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
             state.outcome
                 ?.takeIf { state.open == null }
                 ?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }

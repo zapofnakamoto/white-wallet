@@ -44,6 +44,7 @@ import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.scanner.QrScanner
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.PayDestination
@@ -116,7 +117,7 @@ class SendActions(
 fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions: SendActions) {
     BackHandler(enabled = state.scanning || state.preview != null) { onBack() }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.send_title), onBack.takeIf { !state.paying }) }) { padding ->
-        if (!state.loaded) return@Scaffold
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         val paid = state.result as? PayResult.Paid
         if (paid != null) {
             val to = state.preview?.payee

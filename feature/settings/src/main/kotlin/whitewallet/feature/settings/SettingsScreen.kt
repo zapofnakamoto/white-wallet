@@ -27,6 +27,7 @@ import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletListIcon
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.AddressStatus
 
 @Composable
@@ -55,8 +56,8 @@ fun SettingsScreen(
 ) {
     val open = { target: SettingsTarget -> onNavigate(SettingsDestination.Page(target)) }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_title), onBack) }) { padding ->
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            if (!state.loaded) return@Column
             if (state.accountName != null && !state.backupVerified) BackupWarning { open(SettingsTarget.Backup) }
             Hub(state, versionName, open, { onNavigate(SettingsDestination.Account(it)) }, brandPages) {
                 onNavigate(SettingsDestination.Route(it))

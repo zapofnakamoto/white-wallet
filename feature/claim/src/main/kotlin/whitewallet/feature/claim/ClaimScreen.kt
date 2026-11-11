@@ -45,6 +45,7 @@ import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.scanner.QrScanner
@@ -99,8 +100,8 @@ fun ClaimScreen(
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.claim_title), onBack) }) { padding ->
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-            if (!state.loaded) return@ScreenColumn
             when (val result = state.result) {
                 null -> Unit
                 else -> {

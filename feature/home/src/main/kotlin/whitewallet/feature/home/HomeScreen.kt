@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.node.Ref
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -54,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import whitewallet.brand.MaintenanceStep
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.WalletTask
@@ -68,6 +68,8 @@ import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.BrandTitle
+import whitewallet.core.designsystem.LoadingIndicator
+import whitewallet.core.designsystem.LoadingPhase
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteRow
@@ -86,6 +88,7 @@ import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.WithReleaseBadge
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.loadingPhase
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
@@ -270,7 +273,7 @@ fun HomeScreen(
         },
     ) { padding ->
         val notes = notesTab?.takeIf { tab == HomeTab.Notes }
-        val cover = figuresCover(state.loaded, state.task)
+        val cover = figuresCover(state.loaded, state.task, state.refreshing)
         PullToRefreshBox(
             isRefreshing = cover == null && (notes?.refreshing ?: state.refreshing),
             onRefresh = notes?.onRefresh ?: onRefresh,
@@ -278,6 +281,7 @@ fun HomeScreen(
         ) {
             when {
                 cover is Cover.Working -> LoadingScreen(cover.task, state)
+                cover == Cover.Loading -> LoadingIndicator(Modifier.fillMaxSize())
                 cover == Cover.Blank -> Box(Modifier.fillMaxSize())
                 else ->
                     when (tab) {
@@ -365,37 +369,39 @@ private sealed interface Cover {
     /** Not read yet, or about to change before they were ever shown: nothing, for a moment. */
     data object Blank : Cover
 
+    /** Still not read after a while: the loading indicator of every page. */
+    data object Loading : Cover
+
     /** The wallet has worked on [task] for a while: the loading screen. */
     data class Working(val task: WalletTask) : Cover
 }
 
-/** How long work may run before the loading screen comes up: quick work only spins the pull-to-refresh indicator. */
-internal const val LOADING_GRACE_MILLIS = 400L
-
 /**
- * Whether Home shows its figures. Work that takes a while ([task]) covers them with the loading screen, since they are about to change;
- * quick work doesn't. Figures never shown yet aren't shown stale in the meantime.
+ * Whether Home shows its figures, by the rule of every page that loads ([loadingPhase]). Work that takes a while ([task]) covers them with
+ * the loading screen, since they are about to change, and that stays for its shortest time even when the work ends sooner; quick work only
+ * spins the pull-to-refresh indicator. Figures never shown yet aren't shown stale in the meantime. A cover that is up stays up through a
+ * refresh that is already running ([refreshing]): opening the app slowly is one wait, not the figures between two.
  */
 @Composable
-private fun figuresCover(loaded: Boolean, task: WalletTask?): Cover? {
+private fun figuresCover(loaded: Boolean, task: WalletTask?, refreshing: Boolean): Cover? {
     var shown by remember { mutableStateOf(false) }
-    var late by remember { mutableStateOf(false) }
-    val busy = task != null
-    LaunchedEffect(busy) {
-        late = false
-        if (busy) {
-            delay(LOADING_GRACE_MILLIS)
-            late = true
+    var covered by remember { mutableStateOf(false) }
+    // The work the loading screen is about while it stays up after the work ended.
+    val last = remember { Ref<WalletTask>() }
+    if (task != null) last.value = task
+    val cover =
+        when (loadingPhase(loading = !loaded || task != null || (covered && refreshing))) {
+            LoadingPhase.Indicator -> (task ?: last.value)?.let(Cover::Working) ?: Cover.Loading
+            LoadingPhase.Blank -> if (loaded && shown) null else Cover.Blank
+            LoadingPhase.Content -> null
+        }
+    SideEffect { covered = cover is Cover.Working || cover == Cover.Loading }
+    if (cover == null) {
+        SideEffect {
+            shown = true
+            if (task == null) last.value = null
         }
     }
-    val cover =
-        when {
-            !loaded -> Cover.Blank
-            task != null && late -> Cover.Working(task)
-            task != null && !shown -> Cover.Blank
-            else -> null
-        }
-    if (cover == null) SideEffect { shown = true }
     return cover
 }
 

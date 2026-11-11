@@ -31,6 +31,7 @@ import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.WholeDuration
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppLockPolicy
 import whitewallet.core.wallet.AppPreferences
@@ -82,9 +83,10 @@ fun SecuritySettingsScreen(
     onAppLock: (Boolean) -> Unit,
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.security_title), onBack) }) { padding ->
+        // Not read yet (a moment): nothing, rather than a switch that is off first.
+        if (!pageLoaded(appLock != null, Modifier.padding(padding))) return@Scaffold
+        appLock ?: return@Scaffold
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            // Not read yet (a moment): nothing, rather than a switch that is off first.
-            if (appLock == null) return@Column
             WalletListItem(
                 headlineContent = { Text(stringResource(R.string.security_app_lock)) },
                 supportingContent = {

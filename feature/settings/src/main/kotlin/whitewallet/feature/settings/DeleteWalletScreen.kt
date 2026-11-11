@@ -32,6 +32,7 @@ import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 
 /**
  * Deletes the wallet from this device, following the Bitcoin Design Guide (Settings > Security): an explanation screen in plain language,
@@ -79,8 +80,8 @@ fun DeleteWalletScreen(
     onConfirm: () -> Unit,
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.delete_title), onBack) }) { padding ->
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            if (!state.loaded) return@ScreenColumn
             Text(stringResource(R.string.delete_what), modifier = Modifier.fillMaxWidth())
             if (state.accounts.size > 1) {
                 Text(stringResource(R.string.delete_accounts, state.accounts.joinToString(", ")), modifier = Modifier.fillMaxWidth())

@@ -5,7 +5,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -13,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,6 +33,7 @@ import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.MintPreview
 import whitewallet.core.wallet.ScanProgress
 
@@ -48,7 +47,8 @@ fun AddMintRoute(setup: Boolean, onFinish: (AddMintFinish) -> Unit, viewModel: A
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.finish) { state.finish?.let(onFinish) }
     AddMintScreen(
-        state,
+        // The title is the route's from the first frame, before the view model knows it.
+        if (state.loaded) state else state.copy(setup = setup),
         AddMintActions(
             onBack = viewModel::back,
             mint = MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange),
@@ -76,11 +76,6 @@ class AddMintActions(
 @Composable
 fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
     BackHandler(enabled = state.step != AddMintStep.Adding) { actions.onBack() }
-    // Before the mints to pick from are known (a moment): nothing, so the screen doesn't show one thing and then another.
-    if (!state.loaded) {
-        Surface(Modifier.fillMaxSize()) {}
-        return
-    }
     if (state.confirmAbandon) AbandonDialog(actions)
     val title =
         stringResource(
@@ -92,6 +87,8 @@ fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
         )
     val back = actions.onBack.takeIf { state.step == AddMintStep.Pick || state.step == AddMintStep.Info }
     Scaffold(topBar = { WalletTopBar(title, back) }) { padding ->
+        // Before the mints to pick from are known (a moment): only the title, so the page doesn't show one thing and then another.
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             when (state.step) {
                 AddMintStep.Pick -> PickContent(state, actions)

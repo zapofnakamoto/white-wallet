@@ -45,6 +45,7 @@ import whitewallet.core.designsystem.WalletSheet
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.recentTime
+import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
@@ -130,7 +131,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 }
             }
             if (state.failuresOffered) SimulatedFailureChips(state.simulatedFailure, actions.simulateFailure)
-            if (state.busy) WalletLinearProgress(Modifier.fillMaxWidth())
+            if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth())
             state.outcome?.let {
                 Box(Modifier.bringIntoViewRequester(outcomeView)) { Outcome(it, state.showMints, actions.dismissOutcome) }
             }
@@ -274,7 +275,8 @@ internal fun MoveDialog(d: NotesDialog.Move, state: NotesState, actions: NotesAc
                     }
                 }
                 when {
-                    d.quoting -> WalletLinearProgress(Modifier.fillMaxWidth())
+                    showsWorking(d.quoting) -> WalletLinearProgress(Modifier.fillMaxWidth())
+                    d.quoting -> Unit
                     d.quote is MintMoveQuote.Ready -> {
                         Text(
                             stringResource(

@@ -40,6 +40,7 @@ import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.lnurlcash.client.NetworkConditions
@@ -117,8 +118,9 @@ fun DeveloperSettingsScreen(
     onNetwork: (NetworkConditions.Profile) -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.developer_title), onBack) }) { padding ->
+        if (!pageLoaded(enabled != null, Modifier.padding(padding))) return@Scaffold
+        enabled ?: return@Scaffold
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            if (enabled == null) return@Column
             WalletListItem(
                 headlineContent = { Text(stringResource(R.string.developer_mode)) },
                 supportingContent = { Text(stringResource(R.string.developer_mode_hint)) },

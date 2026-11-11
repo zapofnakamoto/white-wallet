@@ -38,6 +38,7 @@ import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.Wallet
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -129,11 +130,11 @@ fun LocalRegtestRoute(onBack: () -> Unit, viewModel: LocalRegtestViewModel = hil
 @Composable
 fun LocalRegtestScreen(state: LocalRegtestState, onBack: () -> Unit, onRecheck: () -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.regtest_title), onBack) }) { padding ->
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         Column(
             Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (!state.loaded) return@Column
             if (state.mints.any { it.status is LocalMintStatus.Unreachable }) {
                 Text(stringResource(R.string.regtest_fix), style = MaterialTheme.typography.bodyMedium)
                 Command("./dev/regtest/regtest.sh up")

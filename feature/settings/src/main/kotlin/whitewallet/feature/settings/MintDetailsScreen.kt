@@ -1,7 +1,6 @@
 package whitewallet.feature.settings
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -9,7 +8,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -48,6 +45,9 @@ import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
+import whitewallet.core.designsystem.screenLoaded
+import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
@@ -195,16 +195,12 @@ fun MintDetailsScreen(
 ) {
     val details = state.details
     // Which mint it is (the account's home, read from the phone) isn't known yet (a moment): nothing, not a title that changes.
-    if (details == null && state.host == null && state.loading) {
-        Surface(Modifier.fillMaxSize()) {}
-        return
-    }
+    if (!screenLoaded(details != null || state.host != null || !state.loading)) return
     Scaffold(topBar = { WalletTopBar(details?.host ?: state.host ?: stringResource(R.string.mint_title), onBack) }) { padding ->
+        // The mint is asked what it is: nothing of it before it answers.
+        if (!pageLoaded(details != null || !state.loading, Modifier.padding(padding))) return@Scaffold
+        details ?: return@Scaffold
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            if (details == null) {
-                if (state.loading) WalletCircularProgress(Modifier.padding(24.dp).align(Alignment.CenterHorizontally))
-                return@Column
-            }
             if (details.reachability == MintDetails.Reachability.KeyChanged) {
                 KeyChangedCard(details.host, details.mint?.mintPubkey, details.presentedKey, onAcceptKey.takeUnless { state.loading })
             }
@@ -212,8 +208,11 @@ fun MintDetailsScreen(
                 headlineContent = { Text(stringResource(reachabilityText(details.reachability))) },
                 supportingContent = details.description?.let { { Text(it) } },
                 trailingContent = {
-                    if (state.loading) WalletCircularProgress()
-                    else WalletButton(kind = ButtonKind.Text, onClick = onRefresh) { Text(stringResource(R.string.mint_check_again)) }
+                    if (showsWorking(state.loading)) WalletCircularProgress()
+                    else
+                        WalletButton(kind = ButtonKind.Text, onClick = onRefresh, enabled = !state.loading) {
+                            Text(stringResource(R.string.mint_check_again))
+                        }
                 },
             )
             if (state.device) {

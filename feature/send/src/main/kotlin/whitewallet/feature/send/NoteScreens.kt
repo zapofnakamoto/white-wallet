@@ -63,8 +63,10 @@ import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.amountInputLabel
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.printBitmap
 import whitewallet.core.designsystem.recentTime
+import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.CreateNoteResult
 import whitewallet.core.wallet.NoteAction
@@ -152,9 +154,9 @@ fun CreateNoteRoute(onBack: () -> Unit, onCreated: (String) -> Unit, viewModel: 
 @Composable
 fun CreateNoteScreen(state: CreateNoteState, onBack: () -> Unit, onAmountChange: (String) -> Unit, onCreate: () -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_create_title), onBack.takeIf { !state.creating }) }) { padding ->
+        // What can be sent is read first (a moment), so it doesn't come in under the field afterwards.
+        if (!pageLoaded(state.availableMsat != null, Modifier.padding(padding))) return@Scaffold
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-            // What can be sent is read first (a moment), so it doesn't come in under the field afterwards.
-            if (state.availableMsat == null) return@ScreenColumn
             Text(stringResource(R.string.note_create_body))
             WalletTextField(
                 value = state.amountText,
@@ -366,7 +368,7 @@ fun SharedNoteScreen(
                         WalletButton(kind = ButtonKind.Text, onClick = onAskReclaim, enabled = !state.reclaiming) {
                             Text(stringResource(R.string.note_reclaim))
                         }
-                        if (state.reclaiming) WalletCircularProgress()
+                        if (showsWorking(state.reclaiming)) WalletCircularProgress()
                     }
                 SharedNoteState.Spent ->
                     Text(

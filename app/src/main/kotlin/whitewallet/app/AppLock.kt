@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.stateIn
 import whitewallet.brand.ui.Anchor
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.screenLoaded
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppLockPolicy
 import whitewallet.core.wallet.AppPreferences
@@ -83,8 +84,10 @@ fun AppLockGate(appName: String, viewModel: AppLockViewModel = hiltViewModel(), 
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     Box(Modifier.fillMaxSize()) {
         Box(if (locked != false) Modifier.clearAndSetSemantics {} else Modifier) { content() }
+        // Whether the app is locked isn't read yet (a moment): the wallet stays covered.
+        if (!screenLoaded(locked != null)) return@Box
         when (locked) {
-            null -> Surface(Modifier.fillMaxSize()) {}
+            null -> Unit
             // Without a screen lock on the phone there is nothing to ask for: the app opens rather than locking its owner out.
             true ->
                 if (DeviceAuth.isAvailable(LocalContext.current)) LockScreen(appName, viewModel::unlock)

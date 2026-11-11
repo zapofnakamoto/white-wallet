@@ -132,9 +132,9 @@ class MoneyMoveScreenTest {
     }
 
     @Test
-    fun untilThePageKnowsWhatItIsForNothingShows() {
-        compose.setContent { MoneyMoveScreen(MoneyMoveState(loaded = false), {}, MoneyMoveActions()) }
-        compose.onNodeWithText(text(R.string.mint_change_home)).assertDoesNotExist()
+    fun untilTheMintsToPickFromAreKnownOnlyTheTitleShows() {
+        compose.setContent { MoneyMoveScreen(MoneyMoveState(mode = MoneyMoveMode.Move, loaded = false), {}, MoneyMoveActions()) }
+        compose.onNodeWithText(text(R.string.money_move_title)).assertExists()
         compose.onNodeWithText(text(R.string.money_move_no_mints)).assertDoesNotExist()
     }
 }

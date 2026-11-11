@@ -51,6 +51,7 @@ import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.AddressEntry
 import whitewallet.core.wallet.AddressStatus
@@ -276,7 +277,7 @@ fun AddressesScreen(
             }
         }
     ) { padding ->
-        if (!state.loaded) return@Scaffold
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         LazyColumn(Modifier.padding(padding).fillMaxWidth()) {
             item {
                 Text(

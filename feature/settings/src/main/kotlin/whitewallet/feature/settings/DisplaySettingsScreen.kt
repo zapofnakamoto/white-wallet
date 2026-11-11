@@ -30,6 +30,7 @@ import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletRadioButton
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
@@ -57,9 +58,10 @@ fun DisplaySettingsRoute(onBack: () -> Unit, viewModel: DisplaySettingsViewModel
 @Composable
 fun DisplaySettingsScreen(unit: AmountUnit?, onBack: () -> Unit, onUnit: (AmountUnit) -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_amounts), onBack) }) { padding ->
+        // Not read yet (a moment): nothing, rather than the brand's unit picked first.
+        if (!pageLoaded(unit != null, Modifier.padding(padding))) return@Scaffold
+        unit ?: return@Scaffold
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            // Not read yet (a moment): nothing, rather than the brand's unit picked first.
-            if (unit == null) return@Column
             Text(
                 stringResource(R.string.settings_amounts_hint),
                 style = MaterialTheme.typography.bodyMedium,

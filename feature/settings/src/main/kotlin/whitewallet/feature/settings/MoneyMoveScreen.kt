@@ -2,7 +2,6 @@ package whitewallet.feature.settings
 
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -16,7 +15,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +47,7 @@ import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ConnectResult
 import whitewallet.core.wallet.MintKeyChangedException
@@ -246,7 +245,8 @@ fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, view
     LaunchedEffect(Unit) { viewModel.init(mode, host) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     MoneyMoveScreen(
-        state,
+        // The title is the route's from the first frame, before the view model knows it.
+        if (state.loaded) state else state.copy(mode = mode),
         onClose,
         MoneyMoveActions(
             onTarget = viewModel::onTarget,
@@ -266,11 +266,6 @@ fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, view
  */
 @Composable
 fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMoveActions) {
-    // Before the page knows what it is for and the mints to pick from (a moment): nothing, not another page's title and "no mints".
-    if (!state.loaded) {
-        Surface(Modifier.fillMaxSize()) {}
-        return
-    }
     val title =
         stringResource(
             when (state.mode) {
@@ -280,6 +275,8 @@ fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMo
             }
         )
     Scaffold(topBar = { WalletTopBar(title, onClose.takeIf { state.outcome == null && !state.busy }) }) { padding ->
+        // Before the mints to pick from are known (a moment): only the title, not "no mints".
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             val outcome = state.outcome
             val preview = state.preview

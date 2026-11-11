@@ -26,6 +26,7 @@ import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.PhraseCheck
 
 /** The recovery phrase, and nothing else: [onRestored] once the wallet is back, to add its mints next. */
@@ -55,8 +56,8 @@ fun RestoreScreen(
     onUseTestPhrase: () -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.restore_title), onBack.takeIf { !state.busy }) }) { padding ->
+        if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-            if (!state.loaded) return@ScreenColumn
             Text(stringResource(R.string.restore_body), textAlign = TextAlign.Center)
             WalletTextField(
                 value = state.phrase,

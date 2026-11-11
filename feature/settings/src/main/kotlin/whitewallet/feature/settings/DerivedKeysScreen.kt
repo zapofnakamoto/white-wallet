@@ -50,6 +50,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.LoadingIndicator
+import whitewallet.core.designsystem.LoadingPhase
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletDialog
@@ -57,6 +59,7 @@ import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.loadingPhase
 import whitewallet.core.designsystem.localTime
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.NoteState
@@ -333,6 +336,8 @@ fun DerivedKeysScreen(
     rotate: RotateActions,
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.keys_title), onBack) }) { padding ->
+        val tabs = loadingPhase(loading = !state.tabsLoaded)
+        val keys = loadingPhase(loading = !state.loaded)
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {
             if (state.hosts.size > 1) {
                 item {
@@ -345,7 +350,10 @@ fun DerivedKeysScreen(
                 }
             }
             // Read from the phone (a moment): no tabs before the mint's shares are known, no keys before they are this tab's.
-            if (!state.tabsLoaded) return@LazyColumn
+            if (tabs != LoadingPhase.Content) {
+                if (tabs == LoadingPhase.Indicator) item { LoadingIndicator(Modifier.fillMaxWidth().padding(24.dp)) }
+                return@LazyColumn
+            }
             item {
                 PrimaryScrollableTabRow(selectedTabIndex = state.sets.indexOf(state.set).coerceAtLeast(0), edgePadding = 0.dp) {
                     state.sets.forEach { set ->
@@ -367,7 +375,10 @@ fun DerivedKeysScreen(
                     }
                 }
             }
-            if (!state.loaded) return@LazyColumn
+            if (keys != LoadingPhase.Content) {
+                if (keys == LoadingPhase.Indicator) item { LoadingIndicator(Modifier.fillMaxWidth().padding(24.dp)) }
+                return@LazyColumn
+            }
             item { IndexCard(state, rotate.onAskAll, index) }
             if (state.host == null) item { Text(stringResource(R.string.keys_no_mint), modifier = Modifier.padding(16.dp)) }
             items(state.keys, key = { it.id.index }) { key ->

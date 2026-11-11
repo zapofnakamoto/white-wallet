@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.stateIn
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.Wallet
 
@@ -55,7 +56,8 @@ fun AccountMintsRoute(onBack: () -> Unit, onOpen: (host: String) -> Unit, viewMo
 fun AccountMintsScreen(mints: List<AccountMint>?, onBack: () -> Unit, onOpen: (String) -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_account_mints), onBack) }) { padding ->
         // Not read yet (a moment): nothing, rather than an empty list first.
-        if (mints == null) return@Scaffold
+        if (!pageLoaded(mints != null, Modifier.padding(padding))) return@Scaffold
+        mints ?: return@Scaffold
         LazyColumn(Modifier.padding(padding).fillMaxWidth()) {
             item {
                 Text(
