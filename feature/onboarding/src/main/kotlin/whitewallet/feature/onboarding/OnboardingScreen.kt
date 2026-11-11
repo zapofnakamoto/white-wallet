@@ -108,6 +108,11 @@ fun OnboardingScreen(
     onSkipAddress: () -> Unit = {},
     fee: FeeActions = FeeActions({}, {}, {}),
 ) {
+    // Before the mint and the first name are known (a moment): nothing, so the form doesn't show one thing and then another.
+    if (!state.ready) {
+        Surface(Modifier.fillMaxSize()) {}
+        return
+    }
     val claimed = state.claimed
     state.feePrompt?.let { AddressFeeDialog(it, state.canSkip, fee) }
     state.held?.let { held ->

@@ -1,5 +1,6 @@
 package whitewallet.feature.onboarding
 
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -44,6 +45,21 @@ class OnboardingScreenTest {
             mode = OnboardingMode.Setup,
             canSkipAddress = true,
         )
+
+    @Test
+    fun untilTheMintAndTheNameAreKnownNothingShows() {
+        show(setup("").copy(ready = false))
+        compose.onNodeWithText(text(R.string.setup_address_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.setup_address_submit)).assertDoesNotExist()
+    }
+
+    @Test
+    fun whileTheMintIsAskedAboutTheNameTheFormIsLocked() {
+        show(setup("calmotter4821").copy(busy = true, availability = Availability.Checking))
+        compose.onNodeWithText("calmotter4821").assertIsNotEnabled()
+        compose.onNodeWithText(text(R.string.availability_checking)).assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_skip_address)).assertIsNotEnabled()
+    }
 
     @Test
     fun aTakenNameOffersOthers() {

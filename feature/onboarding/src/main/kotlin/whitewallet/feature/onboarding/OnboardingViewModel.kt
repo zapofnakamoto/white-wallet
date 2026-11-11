@@ -111,6 +111,8 @@ data class OnboardingState(
     val abandoned: Boolean? = null,
     /** The user may go on without an address: the setup's address step. */
     val canSkipAddress: Boolean = false,
+    /** The mint and the name to start with are known: the form can show. */
+    val ready: Boolean = true,
 ) {
     val inSetup: Boolean
         get() = mode == OnboardingMode.Setup
@@ -179,8 +181,8 @@ constructor(
     private val defaults: AppDefaults,
     private val preferences: AppPreferences,
 ) : ViewModel() {
-    private val _state =
-        MutableStateFlow(OnboardingState(username = UsernameSuggestions.random(), host = defaults.defaultMintHost, canChangeHost = true))
+    // Nothing is shown until init knows the mint and the name to start with: a form that fills in afterwards flashes other content.
+    private val _state = MutableStateFlow(OnboardingState(username = "", host = "", canChangeHost = true, ready = false))
     val state: StateFlow<OnboardingState> = _state
     private var checkJob: Job? = null
     private var initialized = false
@@ -190,24 +192,55 @@ constructor(
         if (initialized) return
         initialized = true
         viewModelScope.launch {
+            val developerMode = preferences.developerMode.first()
             when (mode) {
                 OnboardingMode.Setup -> {
                     val host = presetHost ?: wallet.homeHost.first().orEmpty()
                     val backedUp = wallet.backupVerified.first()
-                    _state.update { it.copy(mode = mode, host = host, canChangeHost = false, canSkipAddress = true, backedUp = backedUp) }
+                    // The name derived from the phrase first: a restore finds it again. It is known without asking the mint.
+                    val name = wallet.defaultUsername(host) ?: UsernameSuggestions.random()
+                    _state.update {
+                        it.copy(
+                            mode = mode,
+                            host = host,
+                            canChangeHost = false,
+                            canSkipAddress = true,
+                            backedUp = backedUp,
+                            username = name,
+                        )
+                    }
+                    updateMintOptions(developerMode)
+                    // The form stays locked while the mint is asked whether the wallet owns an address there: the answer may move on
+                    // by itself, so there is nothing to type into meanwhile.
+                    _state.update { it.copy(ready = true, busy = true, availability = Availability.Checking) }
+                    loadFee()
+                    val owned =
+                        try {
+                            wallet.recoverableUsername(host)
+                        } catch (e: IOException) {
+                            null
+                        }
+                    _state.update { it.copy(busy = false) }
                     // An address the wallet owns there (seed-derived, still registered to it) comes back by itself.
-                    wallet.recoverableUsername(host)?.let { name ->
-                        _state.update { it.copy(username = name, availability = Availability.Yours) }
+                    if (owned != null) {
+                        _state.update { it.copy(username = owned, availability = Availability.Yours) }
                         start()
                         return@launch
                     }
-                    // The name derived from the phrase first: a restore finds it again.
-                    wallet.defaultUsername(host)?.let { name -> _state.update { it.copy(username = name) } }
                 }
                 OnboardingMode.ChangeAddress,
                 OnboardingMode.AddAddress -> {
-                    val host = wallet.homeHost.first() ?: _state.value.host
-                    _state.update { it.copy(mode = mode, host = host, canChangeHost = false, canSkipAddress = false) }
+                    val host = wallet.homeHost.first() ?: defaults.defaultMintHost
+                    _state.update {
+                        it.copy(
+                            mode = mode,
+                            host = host,
+                            canChangeHost = false,
+                            canSkipAddress = false,
+                            username = UsernameSuggestions.random(),
+                        )
+                    }
+                    updateMintOptions(developerMode)
                 }
                 OnboardingMode.AddAddressElsewhere -> {
                     homeHost = wallet.homeHost.first()
@@ -218,11 +251,13 @@ constructor(
                     _state.update {
                         it.copy(mode = mode, host = other.orEmpty(), canChangeHost = true, canSkipAddress = false, username = name)
                     }
+                    updateMintOptions(developerMode)
                 }
             }
+            _state.update { it.copy(ready = true) }
             // The dropdown follows developer mode (the local mint appears while it is on).
             launch { preferences.developerMode.collect(::updateMintOptions) }
-            loadFee()
+            if (mode != OnboardingMode.Setup) loadFee()
             scheduleCheck(immediately = true)
         }
     }

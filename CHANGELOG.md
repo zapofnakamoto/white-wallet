@@ -87,6 +87,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Fixed
 
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.
+- The address form showed a random name, and in a setup the brand's first mint, for a moment before the right ones.
+  It now shows once the mint and the name are known, and in a setup stays locked while the mint is asked whether the
+  wallet already owns an address there.
 - A restored wallet taking back an address it had paid for was asked about the mint's address fee again, and a brand
   with `addresses.fee.onboarding=skip` left it without that address. A name that is the wallet's already costs nothing.
 - Adding a mint finds what every account of the wallet already holds there, as a restore does on its mint, and creates
