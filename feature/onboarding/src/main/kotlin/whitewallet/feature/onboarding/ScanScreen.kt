@@ -17,8 +17,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
@@ -64,12 +66,20 @@ fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
                 WalletLinearProgress(Modifier.fillMaxWidth())
                 ScanAccounts(state.progress, empty = R.string.scan_account_nothing_new)
             } else {
-                state.result?.let { ScanOutcome(it) }
-                PrimaryButton(
-                    stringResource(if (state.result == null) R.string.scan_action else R.string.scan_again),
-                    onScan,
-                    enabled = state.mints.isNotEmpty(),
-                )
+                val result = state.result
+                result?.let { ScanOutcome(it) }
+                when {
+                    result == null -> PrimaryButton(stringResource(R.string.scan_action), onScan, enabled = state.mints.isNotEmpty())
+                    // A scan that got through is over: leaving is the way on, scanning again the exception.
+                    result.stoppedAt.isEmpty() -> {
+                        PrimaryButton(stringResource(R.string.scan_done), onBack)
+                        WalletButton(kind = ButtonKind.Text, onClick = onScan) { Text(stringResource(R.string.scan_again)) }
+                    }
+                    else -> {
+                        PrimaryButton(stringResource(R.string.scan_again), onScan)
+                        WalletButton(kind = ButtonKind.Text, onClick = onBack) { Text(stringResource(R.string.add_mint_later)) }
+                    }
+                }
             }
         }
     }

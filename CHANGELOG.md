@@ -37,7 +37,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   later. The suggested name is "Account 2", "Account 3", …; the new account's page opens afterwards.
   An address derived from the recovery phrase that is still registered to the account is listed again.
 - "Scan for notes" on a wallet's page: looks through the wallet's keys at each of its mints again, as a restore
-  does, and adds what it finds; each mint says when it was last scanned. A scan that stopped, or a mint the wallet
+  does, and adds what it finds; each mint says when it was last scanned. A scan that got through ends with "Done"
+  ("Scan again" below it); one that stopped offers "Scan again" or "Later". A scan that stopped, or a mint the wallet
   met without one (a note claimed from it, money moved there), is remembered: the main screen says "Scan not
   finished" until a scan gets through, and the wallet's page too. After an update, mints other than an account's
   home mint count as not scanned once. A mint whose scan stops while it is added stays added, with "Try again"

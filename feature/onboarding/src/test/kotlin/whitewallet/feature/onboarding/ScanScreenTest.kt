@@ -33,11 +33,13 @@ class ScanScreenTest {
             mint("down.example", MintScan.Unfinished),
         )
 
-    private fun show(state: ScanState, onScan: () -> Unit = {}) = compose.setContent { ScanScreen(state, {}, onScan) }
+    private fun show(state: ScanState, onBack: () -> Unit = {}, onScan: () -> Unit = {}) = compose.setContent {
+        ScanScreen(state, onBack, onScan)
+    }
 
     private fun everyMintSaysWhereItsScanIs() {
         var scans = 0
-        show(ScanState(mints)) { scans++ }
+        show(ScanState(mints), onScan = { scans++ })
         compose.onNodeWithText(text(R.string.scan_title)).assertExists()
         compose.onNodeWithText(text(R.string.scan_body)).assertExists()
         // A scan from before its time was recorded says only that it was done.
@@ -68,24 +70,43 @@ class ScanScreenTest {
     }
 
     @Test
-    fun whatWasFoundShowsAndItCanBeScannedAgain() {
-        show(ScanState(mints, result = ScanResult(foundMsat = 5_000_000, stoppedAt = emptyList())))
+    fun whatWasFoundShowsAndDoneLeaves() {
+        var left = 0
+        var scans = 0
+        show(ScanState(mints, result = ScanResult(foundMsat = 5_000_000, stoppedAt = emptyList())), { left++ }, { scans++ })
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.scan_again)).assertExists()
+        compose.onNodeWithText(text(R.string.scan_done)).performScrollTo().performClick()
+        assertEquals(1, left)
+        compose.onNodeWithText(text(R.string.scan_again)).performScrollTo().performClick()
+        assertEquals(1, scans)
     }
 
-    @Test
-    fun nothingNewSaysSo() {
-        show(ScanState(mints, result = ScanResult(foundMsat = 0, stoppedAt = emptyList())))
+    private fun nothingNewSaysSoAndDoneLeaves() {
+        var left = 0
+        show(ScanState(mints, result = ScanResult(foundMsat = 0, stoppedAt = emptyList())), { left++ })
         compose.onNodeWithText(text(R.string.scan_result_none)).assertExists()
+        compose.onNodeWithText(text(R.string.scan_again)).assertExists()
+        compose.onNodeWithText(text(R.string.scan_done)).performScrollTo().performClick()
+        assertEquals(1, left)
     }
 
+    @Test fun nothingNewSaysSoAndDoneLeavesInEnglish() = nothingNewSaysSoAndDoneLeaves()
+
+    @Test @Config(qualifiers = "de") fun nothingNewSaysSoAndDoneLeavesInGerman() = nothingNewSaysSoAndDoneLeaves()
+
     @Test
-    fun aMintThatDidNotAnswerSaysToTryAgain() {
-        show(ScanState(mints, result = ScanResult(foundMsat = 0, stoppedAt = listOf("down.example"))))
+    fun aMintThatDidNotAnswerSaysToTryAgainOrLater() {
+        var left = 0
+        var scans = 0
+        show(ScanState(mints, result = ScanResult(foundMsat = 0, stoppedAt = listOf("down.example"))), { left++ }, { scans++ })
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.scan_done)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.scan_again)).performScrollTo().performClick()
+        assertEquals(1, scans)
+        compose.onNodeWithText(text(R.string.add_mint_later)).performScrollTo().performClick()
+        assertEquals(1, left)
     }
 
     @Test

@@ -139,6 +139,7 @@
     <string name="scan_mint_finished_at">Zuletzt durchsucht: %1$s</string>
     <string name="scan_action">Suchen</string>
     <string name="scan_again">Noch einmal suchen</string>
+    <string name="scan_done">Fertig</string>
     <string name="scan_result_none">Nichts Neues gefunden.</string>
     <string name="scan_result_stopped">Die Suche kam nicht überall durch. Versuch es noch einmal; was gefunden wurde, bleibt.</string>
     <string name="setup_abandon_title">Einrichtung dieser Wallet abbrechen?</string>
