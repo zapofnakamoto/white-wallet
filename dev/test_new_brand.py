@@ -144,6 +144,20 @@ class BrandDirectoryTest(unittest.TestCase):
                     text = "".join(element.itertext())
                     self.assertIsNone(re.search(words[qualifier], text, re.I if qualifier == "values" else 0), text)
 
+    def test_the_guide_lists_every_brand_term_with_its_default(self):
+        # docs/WHITE_LABEL.md is where a brand reads what to rewrite: a term missing there, or an outdated text, misleads it.
+        guide = (nb.ROOT / "docs/WHITE_LABEL.md").read_text(encoding="utf-8")
+        rows = dict(re.findall(r"^\| `([a-z0-9_]+)` \| (.*) \|$", guide, re.M))
+
+        def plain(text):
+            return text.replace("\\'", "'").replace('\\"', '"')
+
+        for name, element in nb.brand_terms("values"):
+            items = re.findall(r"<item[^>]*>(.*?)</item>", element, re.S)
+            default = " / ".join(map(plain, items)) + " (plural)" if items else plain(re.search(r">(.*)</string>", element, re.S).group(1))
+            with self.subTest(name):
+                self.assertEqual(default, rows.get(name))
+
     def test_writes_a_complete_brand(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "acme"

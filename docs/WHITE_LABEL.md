@@ -104,6 +104,10 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `onboarding_mint` | Mint |
 | `onboarding_mint_address` | Mint address |
 | `onboarding_mint_custody` | Your funds are held by the mint you choose. Keep amounts small. |
+| `onboarding_skip_mint` | Continue without a mint |
+| `onboarding_skip_mint_hint` | You can add a mint later. Until then, nothing can be received. |
+| `onboarding_error_fee` | This mint asks %1$s for an address, more than the %2$s this app accepts. |
+| `onboarding_error_mint_too_old` | This mint can only give an address to the first account of a wallet. Choose another mint, or continue without an address. |
 | `onboarding_add_elsewhere_title` | Address on another mint |
 | `onboarding_add_elsewhere_body` | A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is. |
 | `settings_home_mint` | Home mint |
@@ -133,6 +137,13 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `mints_add` | Add a mint |
 | `add_mint_setup_title` | Choose your mint |
 | `add_mint_title` | Add a mint |
+| `home_add_mint_title` | Add a mint |
+| `home_add_mint_body` | This wallet has no mint yet, so nothing can be received. Adding the mint you use finds the money your recovery phrase holds there. |
+| `home_add_mint_action` | Add mint |
+| `receive_no_mint` | This wallet has no mint yet. Add one to receive. |
+| `receive_no_mint_action` | Add mint |
+| `receive_no_home` | This account has no home mint. Choose one of your mints to receive there. |
+| `receive_no_home_action` | Choose home mint |
 | `add_mint_setup_body` | The mint holds your money and makes the invoices you get paid with. Pick one; you can add more later. |
 | `add_mint_body` | Pick a mint. If your recovery phrase holds money there, it is found. |
 | `add_mint_error_not_allowed` | This app doesn't work with that mint. Pick another one. |
@@ -140,6 +151,8 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `add_mint_known` | This wallet has this mint already. Adding it again looks for your money there again. |
 | `scan_title` | Scan for notes |
 | `address_fee_notice` | This mint charges %1$s for an address, once. |
+| `address_fee_body` | This mint charges %1$s to register an address, once. You can reserve the name now and pay when you like. |
+| `address_held_body` | Pay %1$s to finish. The mint holds the name for a limited time; if the invoice runs out, you can try again. |
 | `add_mint_legacy` | This mint speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there. |
 | `add_mint_use` | Use this mint |
 | `add_mint_add` | Add this mint |
@@ -217,7 +230,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `send_problem_refused` | The mint refused this payment. |
 | `send_problem_own_mint_invoice` | This invoice is from your own mint, which can't pay itself over Lightning. Ask for a Lightning address instead. |
 | `send_problem_invoice_used` | This invoice was already used. Ask for a new one. |
-| `send_problem_mint_message` | Message from the mint: "%1$s" |
+| `send_problem_mint_message` | Message from the mint: “%1$s” |
 | `note_create_title` | Send as a note |
 | `note_create_body` | Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet. |
 | `note_available` | You can make a note of up to %1$s. |
@@ -234,7 +247,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `settings_notes` | Note settings |
 | `settings_note_list` | Notes |
 | `settings_note_list_hint` | See your notes one by one, share, split or combine them |
-| `delete_what` | This removes this account from this phone: its recovery phrase, its notes and its settings. Other accounts are not affected. |
+| `delete_what` | This removes this wallet from this phone: its recovery phrase and its accounts, with their notes and settings. Other wallets are not affected. |
 | `settings_note_strategy` | Note strategy |
 | `settings_strategy_manual_hint` | Keep notes as they arrive. |
 | `settings_strategy_single` | Keep only one note |
@@ -247,7 +260,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notes_collect_hint` | Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too. |
 | `settings_notices_hint` | A short message when the wallet combined, split, renewed or moved your notes by itself. |
 | `notes_collect_pending` | Moving the notes from %1$s; they arrive shortly. |
-| `mints_remove_body` | The app forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it's like the first time: the key it shows then is the one the app remembers. |
+| `mints_remove_body` | This wallet forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it's like the first time: the key it shows then is the one the wallet remembers. An account that has it as its home mint has none until you choose another. |
 | `notes_pay_from_others_first` | Pay from other mints first |
 | `notes_pay_from_others_first_hint` | Payments use notes on your other mints before those at %1$s, so your money gathers at your home mint. |
 | `notes_collect_confirm_body` | Turning this on moves your notes on other mints there now: |
