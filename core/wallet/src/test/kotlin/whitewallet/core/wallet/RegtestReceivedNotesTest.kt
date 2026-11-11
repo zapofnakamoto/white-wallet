@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalStatus
+import whitewallet.core.model.MintScan
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
@@ -265,6 +266,35 @@ class RegtestReceivedNotesTest {
             assertIs<ClaimResult.Claimed>(bob.wallet.claim(preview))
             assertEquals(Regtest.mintKey(HOST), assertNotNull(bob.store.mint(HOST)).mintPubkey)
             assertEquals(1_000_000, bob.notes(HOST).sumOf { it.amountMsat })
+        }
+
+    @Test
+    fun `a note on a mint the wallet doesn't know yet lands past the keys its phrase already used there, and their notes are found`() =
+        runBlocking<Unit> {
+            // Carol's phrase holds two notes on its wallet keys at the first mint.
+            val carol = Regtest.phone()
+            carol.fund(2000, 2000)
+            assertEquals(2, carol.wallet.rotateAllKeys(HOST, Regtest.addressSet).rotated)
+            val there = carol.notes(HOST)
+            val link = aNote()
+
+            // The same phrase on another phone, which only knows the second mint.
+            val bob = Regtest.restored(carol, host = HOST2)
+            assertNull(bob.store.mint(HOST))
+            val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+            assertIs<ClaimResult.Claimed>(bob.wallet.claim(preview))
+
+            // Both mints are on one domain and share a counter, which the restore set: the first key is refused as in use, and the keys
+            // are looked through then. (On a domain of its own they are looked through before the first request, see KeyIndexTest.)
+            assertEquals(
+                listOf(JournalStatus.Rejected, JournalStatus.Confirmed),
+                bob.store.journal.values.map { it.status },
+                "one refusal, then the first free key",
+            )
+            val claimed = bob.notes(HOST).single { note -> there.none { it.id == note.id } }
+            assertEquals(there.maxOf { it.index!! } + 1, claimed.index, "the first key past the ones in use")
+            assertEquals(there.sumOf { it.amountMsat } + 1_000_000, bob.notes(HOST).sumOf { it.amountMsat })
+            assertEquals(MintScan.Never, assertNotNull(bob.store.mint(HOST)).scan, "only the wallet's keys were looked through")
         }
 
     @Test

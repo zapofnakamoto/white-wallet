@@ -2,15 +2,23 @@
 
 package whitewallet.core.wallet
 
+import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.secp256k1.Hex
+import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import whitewallet.core.model.MintScan
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.ReceivedState
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
+import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.testkit.MockMint
 
@@ -99,6 +107,58 @@ class KeyIndexTest {
         assertEquals(1, store2.journal.size, "no request was refused as already in use")
         assertEquals(4L, store2.allNotes().single { it.state == NoteState.Outstanding && it.amountMsat == 2_000L }.index)
         assertEquals(4 * 500 + 2_000, wallet2.balanceMsat.first())
+    }
+
+    /** A second wallet on the same seed that never met the mint: its home is one nothing listens at. */
+    private suspend fun Fixture.strangerDevice(client: LnurlcashClient = LnurlcashClient()): Pair<InMemoryWalletStore, Wallet> {
+        val store2 = InMemoryWalletStore()
+        val wallet2 = Wallet(store2, InMemorySeedStore(mapOf("a" to words)), client, policies = NotePolicies.InMemory(ManualStrategy.ID))
+        store2.addAccount("a", "Main", null, "localhost:1")
+        assertNull(store2.mint(mint.host))
+        return store2 to wallet2
+    }
+
+    /** A 2000 msat bearer note at the mint, as a link. */
+    private fun Fixture.bearerLink(): String {
+        val bearer = Spend.Bearer(ByteVector32(Hex.decode("55".repeat(32))))
+        mint.credit(bearer.h.toHex(), 2_000)
+        return "lnurlw://${mint.host}/w?k1=${bearer.k1}"
+    }
+
+    @Test
+    fun `a claim at a mint the wallet doesn't know yet discovers the index first`() = withMint {
+        (0L..3L).forEach { credit(KeySet.Wallet, it, 500) }
+        val (store2, wallet2) = strangerDevice()
+        val preview = assertIs<ClaimPreview.Ready>(wallet2.previewClaim(bearerLink()))
+        assertIs<ClaimResult.Claimed>(wallet2.claim(preview))
+        assertEquals(1, store2.journal.size, "no request was refused as already in use")
+        assertEquals(4L, store2.allNotes().single { it.state == NoteState.Outstanding && it.amountMsat == 2_000L }.index)
+        assertEquals(4 * 500 + 2_000, wallet2.balanceMsat.first(), "discovery imported the notes on the wallet's keys")
+        assertEquals(MintScan.Never, assertNotNull(store2.mint(mint.host)).scan, "only the wallet's keys were looked through")
+    }
+
+    @Test
+    fun `a note of an unknown mint kept offline discovers the index when it is claimed`() = withMint {
+        (0L..3L).forEach { credit(KeySet.Wallet, it, 500) }
+        var offline = true
+        val http =
+            LnurlcashClient.defaultHttpClient()
+                .newBuilder()
+                .addInterceptor { chain -> if (offline) throw IOException("offline") else chain.proceed(chain.request()) }
+                .build()
+        val (store2, wallet2) = strangerDevice(LnurlcashClient(http = http))
+        val preview = assertIs<ClaimPreview.Offline>(wallet2.previewClaim(bearerLink()))
+        wallet2.keepClaim(preview)
+        runCatching { wallet2.refresh() }
+        assertEquals(ReceivedState.Waiting, wallet2.receivedNotes.first().single().state, "still offline: still waiting")
+        assertNull(store2.mint(mint.host))
+        assertNull(store2.indexOrNull("a", mint.host, KeySet.Wallet), "no key was taken")
+
+        offline = false
+        runCatching { wallet2.refresh() }
+        assertEquals(ReceivedState.Claimed, wallet2.receivedNotes.first().single().state)
+        assertEquals(1, store2.journal.size, "no request was refused as already in use")
+        assertEquals(4L, store2.allNotes().single { it.state == NoteState.Outstanding && it.amountMsat == 2_000L }.index)
     }
 
     @Test

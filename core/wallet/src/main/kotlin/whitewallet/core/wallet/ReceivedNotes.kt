@@ -82,9 +82,14 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     return waiting(note)
                 }
         if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
-        val pinned = wallet.mintOf(note.accountId, note.host)?.mintPubkey
+        val known = wallet.mintOf(note.accountId, note.host)
+        val pinned = known?.mintPubkey
         if (pinned != null && pinned != answer.mintPubkey.toHex())
             return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, refusedSinceMillis = null)))
+        // A mint met here for the first time is connected before the claim, with the key it just presented: the claim's new key is then
+        // found past the keys the phrase already used there (see [IndexGuard]). If it can't be connected, the claim starts at the first key
+        // and the mint is connected after it.
+        if (known == null) onboarding.connectMint(wallet.walletOf(note.accountId), note.host, expectedKey = answer.mintPubkey.toHex())
         val result =
             mutator.rotateIn(note.accountId, note.host, note.withdrawUrl, info = answer, spend, amountMsat = answer.maxWithdrawableMsat)
         return when (result) {
