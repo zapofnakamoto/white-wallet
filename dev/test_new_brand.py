@@ -132,6 +132,18 @@ class BrandDirectoryTest(unittest.TestCase):
                         with self.subTest(f"{strings.relative_to(nb.ROOT)}: {name}"):
                             self.assertIsNone(re.search(word, text, re.I if qualifier == "values" else 0), text)
 
+    def test_the_example_brand_rewrites_every_brand_term(self):
+        # brand-examples/acme says "provider" and "banknote": a term it leaves out would show the default word in its app.
+        words = {"values": r"\b(mints?|notes?)\b", "values-de": r"\b(Mint|Mints|Schein\w*)\b"}
+        for qualifier in nb.languages():
+            strings = ET.parse(nb.ROOT / "brand-examples/acme/res" / qualifier / "strings.xml").getroot()
+            with self.subTest(qualifier):
+                self.assertEqual(sorted(name for name, _ in nb.brand_terms(qualifier)), sorted(e.get("name") for e in strings))
+            for element in strings:
+                with self.subTest(f"{qualifier}: {element.get('name')}"):
+                    text = "".join(element.itertext())
+                    self.assertIsNone(re.search(words[qualifier], text, re.I if qualifier == "values" else 0), text)
+
     def test_writes_a_complete_brand(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "acme"

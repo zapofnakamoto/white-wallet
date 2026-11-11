@@ -208,4 +208,22 @@
     <string name="add_mint_added_body">The provider is added. Your new wallet uses it from now on.</string>
     <string name="add_mint_found_none">The provider is added. Nothing of your recovery phrase was found there.</string>
     <string name="address_fee_notice">This provider charges %1$s for an address, once.</string>
+    <string name="home_add_mint_title">Add a provider</string>
+    <string name="home_add_mint_body">This wallet has no provider yet, so nothing can be received. Adding the provider you use finds the money your recovery phrase holds there.</string>
+    <string name="home_add_mint_action">Add provider</string>
+    <string name="address_fee_body">This provider charges %1$s to register an address, once. You can reserve the name now and pay when you like.</string>
+    <string name="address_held_body">Pay %1$s to finish. The provider holds the name for a limited time; if the invoice runs out, you can try again.</string>
+    <string name="onboarding_error_fee">This provider asks %1$s for an address, more than the %2$s this app accepts.</string>
+    <string name="onboarding_error_mint_too_old">This provider can only give an address to the first account of a wallet. Choose another provider, or continue without an address.</string>
+    <string name="onboarding_skip_mint">Continue without a provider</string>
+    <string name="onboarding_skip_mint_hint">You can add a provider later. Until then, nothing can be received.</string>
+    <string name="receive_no_mint">This wallet has no provider yet. Add one to receive.</string>
+    <string name="receive_no_mint_action">Add provider</string>
+    <string name="receive_no_home">This account has no provider of its own. Choose one of your providers to receive there.</string>
+    <string name="receive_no_home_action">Choose provider</string>
+    <string name="send_problem_invoice_used">This invoice was already used. Ask for a new one.</string>
+    <string name="notes_pay_from_others_first">Pay from other providers first</string>
+    <string name="notes_pay_from_others_first_hint">Payments use banknotes with your other providers before those at %1$s, so your money gathers with your provider.</string>
+    <string name="notes_collect_confirm_body">Turning this on moves your banknotes with other providers there now:</string>
+    <string name="money_change_body">Pick the new provider. Invoices are made there, and moving everything to it collects your banknotes there. Your addresses stay where they are.</string>
 </resources>

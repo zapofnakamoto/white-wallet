@@ -208,4 +208,22 @@
     <string name="add_mint_added_body">Der Anbieter ist hinzugefügt. Deine neue Wallet nutzt ihn ab jetzt.</string>
     <string name="add_mint_found_none">Der Anbieter ist hinzugefügt. Von deiner Wiederherstellungsphrase wurde dort nichts gefunden.</string>
     <string name="address_fee_notice">Dieser Anbieter verlangt einmalig %1$s für eine Adresse.</string>
+    <string name="home_add_mint_title">Anbieter hinzufügen</string>
+    <string name="home_add_mint_body">Diese Wallet hat noch keinen Anbieter, deshalb kann nichts empfangen werden. Fügst du den Anbieter hinzu, den du benutzt, wird das Geld gefunden, das deine Wiederherstellungsphrase dort hat.</string>
+    <string name="home_add_mint_action">Anbieter hinzufügen</string>
+    <string name="address_fee_body">Dieser Anbieter verlangt einmalig %1$s für eine Adresse. Du kannst den Namen jetzt reservieren und bezahlen, wann du möchtest.</string>
+    <string name="address_held_body">Bezahle %1$s, um abzuschließen. Der Anbieter hält den Namen nur begrenzte Zeit; läuft die Rechnung ab, kannst du es erneut versuchen.</string>
+    <string name="onboarding_error_fee">Dieser Anbieter verlangt %1$s für eine Adresse, mehr als die %2$s, die diese App akzeptiert.</string>
+    <string name="onboarding_error_mint_too_old">Dieser Anbieter kann nur dem ersten Konto einer Wallet eine Adresse geben. Wähle einen anderen Anbieter oder mach ohne Adresse weiter.</string>
+    <string name="onboarding_skip_mint">Ohne Anbieter weitermachen</string>
+    <string name="onboarding_skip_mint_hint">Du kannst später einen Anbieter hinzufügen. Bis dahin kann nichts empfangen werden.</string>
+    <string name="receive_no_mint">Diese Wallet hat noch keinen Anbieter. Füge einen hinzu, um zu empfangen.</string>
+    <string name="receive_no_mint_action">Anbieter hinzufügen</string>
+    <string name="receive_no_home">Dieses Konto hat keinen eigenen Anbieter. Wähle einen deiner Anbieter, um dort zu empfangen.</string>
+    <string name="receive_no_home_action">Anbieter wählen</string>
+    <string name="send_problem_invoice_used">Diese Rechnung wurde schon verwendet. Frag nach einer neuen.</string>
+    <string name="notes_pay_from_others_first">Zuerst von anderen Anbietern zahlen</string>
+    <string name="notes_pay_from_others_first_hint">Zahlungen nehmen zuerst Geldscheine bei deinen anderen Anbietern, dann die bei %1$s; so sammelt sich dein Geld bei deinem Anbieter.</string>
+    <string name="notes_collect_confirm_body">Wenn du das einschaltest, werden deine Geldscheine bei anderen Anbietern jetzt dorthin verschoben:</string>
+    <string name="money_change_body">Wähle den neuen Anbieter. Rechnungen werden dort erstellt, und „Alles verschieben“ sammelt deine Geldscheine dort. Deine Adressen bleiben, wo sie sind.</string>
 </resources>
