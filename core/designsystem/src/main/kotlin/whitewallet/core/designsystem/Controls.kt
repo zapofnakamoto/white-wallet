@@ -93,6 +93,7 @@ fun WalletTextField(
     singleLine: Boolean = false,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
+    focusSelected: Boolean = false,
 ) {
     LocalBrandDesign.current.components.TextField(
         TextFieldParams(
@@ -115,6 +116,7 @@ fun WalletTextField(
             keyboardOptions,
             keyboardActions,
             visualTransformation,
+            focusSelected,
         ),
         modifier,
     )

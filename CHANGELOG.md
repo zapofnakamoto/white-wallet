@@ -28,7 +28,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   On top of Settings the account in use opens its page directly, and "Wallets" is the row below, in every app.
   Wallets and accounts can be renamed; a wallet is "Wallet 1", "Wallet 2" by age until it has a name. The pages show
   everything of the wallet and account in use; another account offers "Use this account" first. "Add wallet" is
-  here now.
+  here now; with a single wallet, "Wallets" opens that wallet's page at once, "Add wallet" on it. A rename opens
+  with the keyboard up and the name selected.
 - "Add account" looks for what the new account already holds on each of the wallet's mints before it opens, and
   shows how far it is: its place under the recovery phrase may have been used before, on another phone or by an
   account removed here. If a mint doesn't answer, no account is added and the screen names that mint; try again
@@ -139,6 +140,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `restore_skip_mint*`, `restore_error_mint`, `restore_error_network`, `restore_address_*`, `restore_cancel*`,
   `mints_add_field`, `mints_add_hint`, `mints_add_offered_hint`, `mints_add_unreachable`, `mints_add_invalid`,
   `regtest_add_account`.
+- `TextFieldParams.focusSelected` (design API): the field takes the focus when it appears, its text selected. A
+  brand that draws its own text field should honour it; ignoring it only loses that convenience.
 
 ## [0.7.0]
 

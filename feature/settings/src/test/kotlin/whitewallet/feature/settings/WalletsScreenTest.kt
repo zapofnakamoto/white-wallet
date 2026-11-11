@@ -87,6 +87,21 @@ class WalletsScreenTest {
     }
 
     @Test
+    fun theOnlyWalletsPageAlsoAddsAWallet() {
+        var added = false
+        compose.setContent { WalletScreen(first, state.copy(wallets = listOf(first)), active, {}, {}, {}, {}) { added = true } }
+        compose.onNodeWithText(text(R.string.wallets_add_hint)).assertExists()
+        compose.onNodeWithText(text(R.string.wallets_add)).performScrollTo().performClick()
+        assertEquals(true, added)
+    }
+
+    @Test
+    fun aWalletsPageOpenedFromTheListAddsNoWallet() {
+        compose.setContent { WalletScreen(first, state, active, {}, {}, {}, {}) }
+        compose.onNodeWithText(text(R.string.wallets_add)).assertDoesNotExist()
+    }
+
+    @Test
     fun aWalletNotInUseOnlyListsItsAccounts() {
         val opened = mutableListOf<SettingsDestination>()
         compose.setContent { WalletScreen(second, state, active, {}, { opened += it }, {}, {}) }

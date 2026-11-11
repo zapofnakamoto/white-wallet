@@ -129,10 +129,35 @@ class WalletsViewModel @Inject constructor(private val wallet: Wallet) : ViewMod
 /** A wallet's name: the user's, or its number among the wallets. */
 @Composable internal fun walletName(name: String?, number: Int): String = name ?: stringResource(R.string.wallet_numbered, number)
 
+/** Settings → Wallets. With a single wallet its page shows at once, "Add wallet" on it: a list of one is a tap for nothing. */
 @Composable
-fun WalletsRoute(onBack: () -> Unit, onOpen: (walletId: String) -> Unit, onAdd: () -> Unit, viewModel: WalletsViewModel = hiltViewModel()) {
+fun WalletsRoute(
+    onBack: () -> Unit,
+    onOpen: (walletId: String) -> Unit,
+    onAdd: () -> Unit,
+    onNavigate: (SettingsDestination) -> Unit,
+    onAddAccount: () -> Unit,
+    viewModel: WalletsViewModel = hiltViewModel(),
+    settings: SettingsViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    WalletsScreen(state, onBack, onOpen, onAdd)
+    val active by settings.state.collectAsStateWithLifecycle()
+    val only = state.wallets.singleOrNull()
+    when {
+        !state.loaded -> Unit
+        only != null ->
+            WalletScreen(
+                only,
+                state,
+                active,
+                onBack,
+                onNavigate,
+                onAddAccount,
+                viewModel::renameWallet,
+                onAdd.takeIf { state.canAddWallet },
+            )
+        else -> WalletsScreen(state, onBack, onOpen, onAdd)
+    }
 }
 
 /** Settings → Wallets: every wallet (recovery phrase) on the phone, the one in use marked, and the way to add one. */
@@ -180,7 +205,8 @@ fun WalletRoute(
 
 /**
  * A wallet's page: its accounts, and, while it is the wallet in use, what belongs to the recovery phrase (its name, the phrase, its mints,
- * adding an account, deleting it). A wallet not in use only lists its accounts: only the active wallet is ever used.
+ * adding an account, deleting it). A wallet not in use only lists its accounts: only the active wallet is ever used. [onAddWallet]: it is
+ * the only wallet, shown in place of the list, and another may be added.
  */
 @Composable
 fun WalletScreen(
@@ -191,6 +217,7 @@ fun WalletScreen(
     onNavigate: (SettingsDestination) -> Unit,
     onAddAccount: () -> Unit,
     onRename: (String) -> Unit,
+    onAddWallet: (() -> Unit)? = null,
 ) {
     val inUse = group.wallet.id == state.activeWalletId
     val name = walletName(group.wallet.name, group.number)
@@ -252,8 +279,16 @@ fun WalletScreen(
                 )
             }
             if (inUse && state.canAddAccount) AddButton(R.string.wallet_add_account, onAddAccount)
+            if (inUse || onAddWallet != null) HorizontalDivider()
+            if (onAddWallet != null) {
+                SummaryRow(
+                    pageIcon(SettingsTarget.Wallets),
+                    stringResource(R.string.wallets_add),
+                    stringResource(R.string.wallets_add_hint),
+                    onClick = onAddWallet,
+                )
+            }
             if (inUse) {
-                HorizontalDivider()
                 SummaryRow(
                     pageIcon(SettingsTarget.Delete, Tone.Danger),
                     stringResource(R.string.settings_delete),
@@ -537,6 +572,7 @@ private fun RenameDialog(
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.wallet_name)) },
                     singleLine = true,
+                    focusSelected = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(hint, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))

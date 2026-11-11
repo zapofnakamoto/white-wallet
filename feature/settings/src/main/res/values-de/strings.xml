@@ -417,6 +417,7 @@
     </plurals>
     <string name="wallet_in_use">In Verwendung</string>
     <string name="wallets_add">Wallet hinzufügen</string>
+    <string name="wallets_add_hint">Eine eigene Wiederherstellungsphrase mit eigenen Konten</string>
     <string name="wallet_accounts">Konten</string>
     <string name="wallet_add_account">Konto hinzufügen</string>
     <string name="wallet_not_in_use">Um diese Wallet zu verwalten, verwende eines ihrer Konten.</string>

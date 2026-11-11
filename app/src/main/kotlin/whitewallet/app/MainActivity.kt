@@ -464,6 +464,8 @@ private fun WalletApp(
                 onBack = { nav.popBackStack() },
                 onOpen = { id -> nav.navigate(Routes.wallet(id)) },
                 onAdd = { nav.navigate(Routes.ADD_WALLET) },
+                onNavigate = { nav.navigate(settingsRoute(it)) },
+                onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
             )
         }
         composable(Routes.WALLET, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->

@@ -165,3 +165,9 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     Could offer "Add anyway" and repeat the scan for that mint later (needs item 20's rescan).
 22. **Removing an account that holds dust.** An account can only be removed once it holds nothing; an amount below
     what a move or payment costs keeps it forever. Could let the user give the dust up explicitly.
+23. **How long "Add account" takes on a real mint.** The scan looks up about 400 keys per mint: roughly 10 seconds
+    on a local mint (2026-11-10), unknown over the internet. Suggestion: time it against `mint.lnurlcash.com`
+    (lookups only); if it is too long, open the account at once and let the scan go on behind it with a notice
+    until it is done.
+24. **Small things from the walk through the wallet pages (2026-11-10).** An account's page shows no balance (the
+    "not in use" page does). "Move funds" preselects no target, so "Move" does nothing until one is picked.

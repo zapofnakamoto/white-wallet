@@ -428,6 +428,7 @@
     </plurals>
     <string name="wallet_in_use">In use</string>
     <string name="wallets_add">Add wallet</string>
+    <string name="wallets_add_hint">Its own recovery phrase and its own accounts</string>
     <string name="wallet_accounts">Accounts</string>
     <string name="wallet_add_account">Add account</string>
     <string name="wallet_not_in_use">To manage this wallet, use one of its accounts.</string>

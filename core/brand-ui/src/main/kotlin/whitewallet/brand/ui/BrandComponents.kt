@@ -47,15 +47,24 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -200,6 +209,8 @@ class TextFieldParams(
     val keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     val keyboardActions: KeyboardActions = KeyboardActions.Default,
     val visualTransformation: VisualTransformation = VisualTransformation.None,
+    /** The field takes the focus when it appears, its text selected: typing replaces it (a rename). */
+    val focusSelected: Boolean = false,
 )
 
 class ListRowParams(
@@ -493,10 +504,45 @@ object DefaultComponents : BrandComponents {
 
     @Composable
     fun textField(params: TextFieldParams, modifier: Modifier) {
+        if (params.focusSelected) return focusSelectedTextField(params, modifier)
         OutlinedTextField(
             value = params.value,
             onValueChange = params.onValueChange,
             modifier = modifier,
+            enabled = params.enabled,
+            readOnly = params.readOnly,
+            textStyle = params.textStyle ?: LocalTextStyle.current,
+            label = params.label,
+            placeholder = params.placeholder,
+            leadingIcon = params.leadingIcon,
+            trailingIcon = params.trailingIcon,
+            prefix = params.prefix,
+            suffix = params.suffix,
+            supportingText = params.supportingText,
+            isError = params.isError,
+            visualTransformation = params.visualTransformation,
+            keyboardOptions = params.keyboardOptions,
+            keyboardActions = params.keyboardActions,
+            singleLine = params.singleLine,
+            maxLines = params.maxLines,
+            minLines = params.minLines,
+        )
+    }
+
+    /** [textField] with [TextFieldParams.focusSelected]: it keeps the selection itself, which a plain text value can't carry. */
+    @Composable
+    private fun focusSelectedTextField(params: TextFieldParams, modifier: Modifier) {
+        var field by remember { mutableStateOf(TextFieldValue(params.value, TextRange(0, params.value.length))) }
+        if (field.text != params.value) field = field.copy(text = params.value)
+        val focus = remember { FocusRequester() }
+        LaunchedEffect(Unit) { focus.requestFocus() }
+        OutlinedTextField(
+            value = field,
+            onValueChange = {
+                field = it
+                if (it.text != params.value) params.onValueChange(it.text)
+            },
+            modifier = modifier.focusRequester(focus),
             enabled = params.enabled,
             readOnly = params.readOnly,
             textStyle = params.textStyle ?: LocalTextStyle.current,
