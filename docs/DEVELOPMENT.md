@@ -77,7 +77,7 @@ adb shell am instrument -w com.example.whitewallet.debug.test/androidx.test.runn
 
 The brand scaffolder (`dev/new-brand.sh`, see docs/WHITE_LABEL.md) has Python tests: `python3 -m unittest discover -s dev -p 'test_*.py'`.
 
-CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the regtest tests of `core/wallet` and `core/data` against the current stack (`regtest.sh up` on the runner), failing if any was skipped other than the tests of the legacy protocol, with the wallet's coverage report and the stack's logs as artifacts; lint, the brand check (`dev/check-brand.sh`), the legacy check (`dev/check-legacy.sh`), the flash check (`dev/check-flash.sh`), builds both sample brands and generates and builds a brand with the scaffolder; on a `v*` tag it creates the GitHub release with that version's `CHANGELOG.md` section. It builds no release APK: brands sign and publish their own.
+CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the regtest tests of `core/wallet` and `core/data` against the current stack (`regtest.sh up` on the runner), failing if any was skipped other than the tests of the legacy protocol, with the wallet's coverage report and the stack's logs as artifacts; lint, the brand check (`dev/check-brand.sh`), the legacy check (`dev/check-legacy.sh`), the flash check (`dev/check-flash.sh`), the resource check (`dev/check-resources.sh`: a string or other resource name defined in two modules, of which only one reaches the app), builds both sample brands and generates and builds a brand with the scaffolder; on a `v*` tag it creates the GitHub release with that version's `CHANGELOG.md` section. It builds no release APK: brands sign and publish their own.
 
 ## Wallet settings
 

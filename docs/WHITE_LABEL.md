@@ -149,7 +149,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `add_mint_error_not_allowed` | This app doesn't work with that mint. Pick another one. |
 | `add_mint_error_invalid` | That isn't a mint this app can use: %1$s |
 | `add_mint_known` | This wallet has this mint already. Adding it again looks for your money there again. |
-| `scan_title` | Scan for notes |
+| `scan_notes_title` | Scan for notes |
 | `address_fee_notice` | This mint charges %1$s for an address, once. |
 | `address_fee_body` | This mint charges %1$s to register an address, once. You can reserve the name now and pay when you like. |
 | `address_held_body` | Pay %1$s to finish. The mint holds the name for a limited time; if the invoice runs out, you can try again. |

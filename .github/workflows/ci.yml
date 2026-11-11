@@ -46,6 +46,9 @@ jobs:
       - name: No screen state starts as something it isn't
         run: dev/check-flash.sh
 
+      - name: No resource name is defined in two modules
+        run: dev/check-resources.sh
+
       - name: Legacy stays behind its seams
         run: dev/check-legacy.sh
 

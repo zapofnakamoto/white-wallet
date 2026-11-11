@@ -197,7 +197,7 @@
     <string name="add_mint_error_not_allowed">Diese App arbeitet nicht mit diesem Anbieter. Wähle einen anderen.</string>
     <string name="add_mint_error_invalid">Das ist kein Anbieter, den diese App nutzen kann: %1$s</string>
     <string name="add_mint_known">Diese Wallet hat diesen Anbieter schon. Fügst du ihn noch einmal hinzu, wird dort noch einmal nach deinem Geld gesucht.</string>
-    <string name="scan_title">Nach Geldscheinen suchen</string>
+    <string name="scan_notes_title">Nach Geldscheinen suchen</string>
     <string name="add_mint_legacy">Dieser Anbieter spricht eine ältere Version des Protokolls. Er funktioniert, aber nur das erste Konto einer Wallet kann dort eine Adresse haben.</string>
     <string name="add_mint_use">Diesen Anbieter nutzen</string>
     <string name="add_mint_add">Diesen Anbieter hinzufügen</string>

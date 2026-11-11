@@ -148,7 +148,12 @@ check-design:
 check-flash:
     dev/check-flash.sh
 
-# Everything CI checks: formatting, tests, both builds, lint, brand, design and flash checks, scaffolder tests
+# Resource names (strings, plurals, colours) defined in more than one module
+[group('checks')]
+check-resources:
+    dev/check-resources.sh
+
+# Everything CI checks: formatting, tests, both builds, lint, brand, design, flash and resource checks, scaffolder tests
 [group('checks')]
 check: test
     ./gradlew spotlessCheck
@@ -156,6 +161,7 @@ check: test
     for b in brand brand-examples/*/; do dev/check-brand.sh "${b%/}"; done
     dev/check-design.sh
     dev/check-flash.sh
+    dev/check-resources.sh
     dev/check-legacy.sh
     python3 -m unittest discover -s dev -p 'test_*.py'
     ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme

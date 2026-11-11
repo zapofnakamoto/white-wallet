@@ -43,7 +43,7 @@ fun ScanRoute(start: Boolean, onBack: () -> Unit, viewModel: ScanViewModel = hil
 
 @Composable
 fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
-    Scaffold(topBar = { WalletTopBar(stringResource(R.string.scan_title), onBack) }) { padding ->
+    Scaffold(topBar = { WalletTopBar(stringResource(R.string.scan_notes_title), onBack) }) { padding ->
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.scan_body), textAlign = TextAlign.Center)

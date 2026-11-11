@@ -21,7 +21,7 @@
     <string name="add_mint_error_not_allowed">Diese App arbeitet nicht mit dieser Mint. Wähle eine andere.</string>
     <string name="add_mint_error_invalid">Das ist keine Mint, die diese App nutzen kann: %1$s</string>
     <string name="add_mint_known">Diese Wallet hat diese Mint schon. Fügst du sie noch einmal hinzu, wird dort noch einmal nach deinem Geld gesucht.</string>
-    <string name="scan_title">Nach Scheinen suchen</string>
+    <string name="scan_notes_title">Nach Scheinen suchen</string>
     <string name="add_mint_legacy">Diese Mint spricht eine ältere Version des Protokolls. Sie funktioniert, aber nur das erste Konto einer Wallet kann dort eine Adresse haben.</string>
     <string name="add_mint_use">Diese Mint nutzen</string>
     <string name="add_mint_add">Diese Mint hinzufügen</string>

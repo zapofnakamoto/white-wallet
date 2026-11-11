@@ -5,6 +5,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Fixed
+
+- The QR scanner was titled "Scan for notes" in 0.8.0: the new page's title had the scanner's string name
+  (`scan_title`), and the build kept only one of the two. The page's is now `scan_notes_title`; a brand that
+  overrode `scan_title` for the page renames its override, and one that meant the scanner's has its text back.
+  `dev/check-resources.sh`, in `just check` and CI, fails on a resource name defined in two modules.
+
 ## [0.8.0]
 
 ### Added

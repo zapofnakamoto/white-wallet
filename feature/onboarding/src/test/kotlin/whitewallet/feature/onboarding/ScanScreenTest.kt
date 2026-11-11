@@ -40,7 +40,7 @@ class ScanScreenTest {
     private fun everyMintSaysWhereItsScanIs() {
         var scans = 0
         show(ScanState(mints), onScan = { scans++ })
-        compose.onNodeWithText(text(R.string.scan_title)).assertExists()
+        compose.onNodeWithText(text(R.string.scan_notes_title)).assertExists()
         compose.onNodeWithText(text(R.string.scan_body)).assertExists()
         // A scan from before its time was recorded says only that it was done.
         compose.onNodeWithText(text(R.string.scan_mint_finished)).assertExists()
