@@ -109,8 +109,6 @@ internal class Legacy(private val wallet: Wallet, scanner: AddressScanner, priva
         val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Register, spendDomain(h), name)
         when (val outcome = wallet.client.legacyRegister(h, name, branch.cx1(), sig)) {
             is RegistrationOutcome.Rejected -> {
-                // The mint may have moved to LUD-26 since it was asked; ask it again next time.
-                wallet.forgetDialect(h)
                 // Lost a race for the name, or the mint refuses registrations. Look again to tell which.
                 return if (addresses.check(name, h, accountId) == AddressStatus.Taken) onboarding.taken(name, accountId, h)
                 else OnboardResult.RegistrationFailed(outcome.reason)

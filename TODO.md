@@ -171,3 +171,10 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     until it is done.
 24. **Small things from the walk through the wallet pages (2026-11-10).** An account's page shows no balance (the
     "not in use" page does). "Move funds" preselects no target, so "Move" does nothing until one is picked.
+25. **An address payment on a legacy key the wallet already passed.** A legacy mint (lnurl-mint 0.12) fixes the
+    note's key when an address invoice is fetched, not when it is paid, and the wallet only scans forward: an
+    invoice paid after a later one was received, or one fetched before the mint's upgrade and paid after the
+    address moved to a share, puts its note where neither a refresh nor "Scan for notes" looks; a restore on a
+    fresh install finds it. Reproduced on regtest on 2026-11-11 and left as it is by decision that day (the payer
+    has to hold the invoice across the payee's refresh). A fix would look again at keys that were unused when
+    passed, and keep scanning the old keys for a while after the move.

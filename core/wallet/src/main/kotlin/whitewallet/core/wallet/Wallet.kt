@@ -1069,7 +1069,8 @@ class Wallet(
             unknownNotes.recheckDue(id)
             // First: a held address that was paid may be the account's primary one now.
             store.addresses(id).first().filter { it.feeInvoice != null }.forEach { onboarding.settleHeld(id, it) }
-            legacy.migration.run(id)
+            val moved = legacy.migration.run(id)
+            if (id == active) result = RefreshResult(result.newNotes + moved.newNotes, result.receivedMsat + moved.receivedMsat)
             val addresses = store.addresses(id).first()
             for (address in addresses.filter { it.feeInvoice == null }) {
                 addressCheck.check(address.username, address.host, id).let { status ->
@@ -1375,9 +1376,10 @@ class Wallet(
     }
 
     /**
-     * Which protocol the mint at [host] speaks, asked once per process with a request that changes nothing (see LnurlcashClient.dialect). A
-     * mint that answers neither way is taken for a legacy one: only a LUD-26 mint answers the probe in LNURL form. Throws IOException when
-     * the mint can't be reached.
+     * Which protocol the mint at [host] speaks, from a request that changes nothing (see LnurlcashClient.dialect). A LUD-26 mint is asked
+     * once per process. A legacy one is asked every time: it may be upgraded at any moment, and a request of the old protocol sent after
+     * that fails (a payment to an address there, registering or freeing a name). A mint that answers neither way is taken for a legacy one:
+     * only a LUD-26 mint answers the probe in LNURL form. Throws IOException when the mint can't be reached.
      */
     internal suspend fun dialect(host: String): MintDialect =
         dialects[host]
@@ -1386,12 +1388,7 @@ class Wallet(
                 } catch (_: ProtocolViolation) {
                     MintDialect.Legacy
                 })
-                .also { dialects[host] = it }
-
-    /** Asks [host] again next time, e.g. after a request of the other protocol was refused: the mint may have been upgraded. */
-    internal fun forgetDialect(host: String) {
-        dialects.remove(host)
-    }
+                .also { if (it == MintDialect.Current) dialects[host] = it }
 
     internal fun setAddressStatus(accountId: String, address: String, status: AddressStatus?) = addressStatuses.update {
         if (status == null) it - (accountId to address) else it + ((accountId to address) to status)

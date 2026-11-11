@@ -94,6 +94,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Fixed
 
 - A mint's own name (`mint`) was offered as free on a LUD-26 mint.
+- After a mint's upgrade to LUD-26, a payment to an address on that mint failed ("This invoice is from your own
+  mint") until the app was restarted: the wallet still took the mint for a legacy one. A legacy mint is now asked
+  which protocol it speaks every time. The first refresh after the upgrade also says what arrived on the address's
+  old keys, as the Receive screen expects.
 - The address form showed a random name, and in a setup the brand's first mint, for a moment before the right ones.
   It now shows once the mint and the name are known, and in a setup stays locked while the mint is asked whether the
   wallet already owns an address there.

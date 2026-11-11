@@ -1,3 +1,5 @@
+@file:OptIn(RevealsNoteSecret::class)
+
 package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.ByteVector32
@@ -7,6 +9,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
@@ -15,6 +18,7 @@ import whitewallet.core.model.KeyScheme
 import whitewallet.core.wallet.Regtest.HOST4
 import whitewallet.core.wallet.legacy.LegacyChange
 import whitewallet.core.wallet.legacy.LegacyWallet
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.protocol.NoteLookupError
@@ -196,5 +200,71 @@ class RegtestMintUpgradeTest {
             phone.wallet.refresh()
             assertEquals(oldTotal, phone.balance())
             assertEquals(setOf(KeyScheme.Bip32), phone.notes(HOST4).map { it.scheme }.toSet(), "${phone.notes(HOST4)}")
+        }
+
+    private suspend fun paid(wallet: Wallet, id: String): InvoiceStatus {
+        var status = wallet.invoiceStatus(id)
+        repeat(20) {
+            if (status !is InvoiceStatus.Waiting) return status
+            delay(500)
+            status = wallet.invoiceStatus(id)
+        }
+        return status
+    }
+
+    @Test
+    fun `a wallet goes on paying, receiving and sending notes after its mint's upgrade, before it has refreshed`() =
+        runBlocking<Unit> {
+            Regtest.resetMint4()
+            val alice = Regtest.phone(host = HOST4)
+            val bob = Regtest.phone(host = HOST4)
+            alice.fund(3000, 4000, 5000, 6000)
+            bob.fund(2000)
+            // Left open over the upgrade: a note sent as a link, and an invoice to receive on.
+            val early = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(1_000_000)).note
+            val request = assertIs<InvoiceRequest.Ready>(alice.wallet.requestInvoice(2_000_000))
+            alice.wallet.refresh()
+            bob.wallet.refresh()
+
+            Regtest.upgradeMint4()
+
+            // Neither wallet has refreshed, and both still take the mint for a legacy one.
+            val invoice = Regtest.invoice(1500)
+            assertIs<PayResult.Paid>(alice.wallet.pay(assertIs<PayPreview.Ready>(alice.wallet.previewPayment(invoice)), 1_500_000))
+            assertTrue(Regtest.settled(invoice))
+
+            val toBob = alice.wallet.pay(assertIs<PayPreview.Ready>(alice.wallet.previewPayment(bob.address)), 700_000)
+            assertIs<PayResult.Paid>(toBob, "to an address on the same mint: $toBob")
+
+            Regtest.pay(request.invoice, 2000)
+            assertEquals(InvoiceStatus.Paid(1_999_000), paid(alice.wallet, request.id), "an invoice from before the upgrade")
+            val after = assertIs<InvoiceRequest.Ready>(alice.wallet.requestInvoice(1_000_000))
+            Regtest.pay(after.invoice, 1000)
+            assertEquals(InvoiceStatus.Paid(999_000), paid(alice.wallet, after.id), "an invoice from after it")
+
+            // A wallet that only knows the upgraded mint takes the link from before; one from before takes a new link.
+            val carol = Regtest.phone(host = HOST4)
+            assertIs<ClaimResult.Claimed>(carol.wallet.claim(assertIs<ClaimPreview.Ready>(carol.wallet.previewClaim(early.link!!))))
+            val late = assertIs<CreateNoteResult.Created>(alice.wallet.createNote(500_000)).note
+            assertIs<ClaimResult.Claimed>(bob.wallet.claim(assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(late.link!!))))
+
+            Regtest.pay(alice.address, 1000)
+            Regtest.pay(bob.address, 1000)
+            val aliceBefore = alice.balance()
+            val bobBefore = bob.balance()
+            val aliceRefresh = alice.wallet.refresh()
+            val bobRefresh = bob.wallet.refresh()
+            assertEquals(aliceBefore + 999_000, alice.balance())
+            assertEquals(bobBefore + 999_000 + 700_000, bob.balance(), "the address payment and alice's")
+            assertEquals(999_000L to 1_699_000L, aliceRefresh.receivedMsat to bobRefresh.receivedMsat, "what the refresh says it received")
+            for (phone in listOf(alice, bob)) {
+                assertEquals(setOf(KeyScheme.Bip32), phone.notes(HOST4).map { it.scheme }.toSet(), "${phone.notes(HOST4)}")
+                assertEquals(0L, phone.store.addresses(phone.wallet.activeId()).first().single().share)
+                assertEquals(0, phone.wallet.unresolvedOperations())
+                assertEquals(phone.notes(HOST4).sumOf { it.amountMsat }, phone.balance())
+            }
+            // And once both know: a payment on the same mint.
+            assertIs<PayResult.Paid>(bob.wallet.pay(assertIs<PayPreview.Ready>(bob.wallet.previewPayment(alice.address)), 300_000))
+            assertEquals(300_000, alice.wallet.refresh().receivedMsat)
         }
 }

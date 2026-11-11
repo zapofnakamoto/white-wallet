@@ -11,6 +11,7 @@ import whitewallet.core.wallet.AddressScanner
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.NoteRotator
+import whitewallet.core.wallet.RefreshResult
 import whitewallet.core.wallet.Wallet
 import whitewallet.lnurlcash.AddressProof
 import whitewallet.lnurlcash.client.MintDialect
@@ -31,21 +32,27 @@ internal class LegacyMigration(
     private val addresses: AddressCheck,
     private val rotator: NoteRotator,
 ) {
-    suspend fun run(accountId: String) {
+    /** What the last look at an address's old keys found: payments like any other a refresh brings. */
+    suspend fun run(accountId: String): RefreshResult {
+        var found = RefreshResult(0, 0)
         val unmoved = wallet.store.addresses(accountId).first().filter { it.share == null && it.feeInvoice == null }
         val notes = wallet.store.notes(accountId).first().filter { it.scheme == KeyScheme.Legacy && it.state == NoteState.Outstanding }
         for (host in (unmoved.map { it.host } + notes.map { it.host }).distinct()) {
             if (wallet.keysIfSeeded(accountId, host) == null) continue
-            // The mint may have been upgraded since it was asked.
             val here = unmoved.filter { it.host == host }
-            if (here.isNotEmpty()) wallet.forgetDialect(host)
+            // Asked anew while the mint is a legacy one: it may have been upgraded since.
             val dialect =
                 try {
                     wallet.dialect(host)
                 } catch (e: IOException) {
                     continue
                 }
-            if (dialect == MintDialect.Current) here.forEach { moveAddress(accountId, it) }
+            if (dialect == MintDialect.Current) {
+                for (address in here) {
+                    val paid = moveAddress(accountId, address) ?: continue
+                    found = RefreshResult(found.newNotes + paid.newNotes, found.receivedMsat + paid.receivedMsat)
+                }
+            }
             rotator.rotateAll(
                 accountId,
                 host,
@@ -54,15 +61,17 @@ internal class LegacyMigration(
                 quiet = true,
             )
         }
+        return found
     }
 
-    private suspend fun moveAddress(accountId: String, address: RegisteredAddress) {
+    private suspend fun moveAddress(accountId: String, address: RegisteredAddress): RefreshResult? {
         val share = move(accountId, address.username, address.host) ?: addresses.provenShare(address.username, address.host, accountId)
-        share ?: return
+        share ?: return null
         // What was paid to the old keys up to the move; from here on the name's payments are on the share.
-        scanner.scan(accountId, address.host, KeySet.LegacyAddress)
+        val paid = scanner.scan(accountId, address.host, KeySet.LegacyAddress)
         wallet.store.saveAddress(accountId, address.copy(share = share))
         wallet.setAddressStatus(accountId, address.address, AddressStatus.Ours)
+        return paid
     }
 
     /**

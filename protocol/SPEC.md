@@ -76,7 +76,7 @@ The `Regtest*Test` classes in `core/wallet` run against **`lnurlcash/lnurl-mint`
 
 ## Two dialects
 
-`Wallet.dialect(host)` asks each mint once, with a request only one draft answers (`Registration.dialectProbe`): HTTP 405 is a legacy mint, a parsed LNURL error a current one. What answers neither counts as legacy. The answer is asked again after a refused request of the other draft, and on each refresh for a host with an address still to move: the mint may have been upgraded.
+`Wallet.dialect(host)` asks a mint with a request only one draft answers (`Registration.dialectProbe`): HTTP 405 is a legacy mint, a parsed LNURL error a current one. What answers neither counts as legacy. A current mint is asked once per process. A legacy one is asked every time: it may be upgraded at any moment, and a request of the old draft sent after that fails.
 
 | | Current (`92e430f`, lnurl-mint ≥ 0.13) | Legacy (`2f17578`, lnurl-mint 0.12) |
 |---|---|---|
@@ -124,7 +124,7 @@ This list has been rehearsed: on a copy with all of it done at once, the app and
 
 | Seam | Change |
 |---|---|
-| `Wallet.dialect`, `forgetDialect`, `LnurlcashClient.dialect`, `MintDialect`, `Registration.dialectProbe` | Delete: with one dialect the `when`s over it below are their first branch |
+| `Wallet.dialect`, `LnurlcashClient.dialect`, `MintDialect`, `Registration.dialectProbe` | Delete: with one dialect the `when`s over it below are their first branch |
 | `AddressCheck.ownership` | Drop `wallet.legacy.status` |
 | `Onboarding.claim`, `unregisterAt` | Drop `wallet.legacy.claim` and `wallet.legacy.unregister` |
 | `OnboardResult.MintTooOld`, `MoneyMoveError.MintTooOld`, `OnboardingError.MintTooOld` | Delete, with `onboarding_error_mint_too_old` and `money_error_mint_too_old` |
