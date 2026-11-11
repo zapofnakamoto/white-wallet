@@ -60,7 +60,7 @@ fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
             }
             if (state.scanning) {
                 WalletLinearProgress(Modifier.fillMaxWidth())
-                ScanAccounts(state.progress)
+                ScanAccounts(state.progress, empty = R.string.scan_account_nothing_new)
             } else {
                 state.result?.let { ScanOutcome(it) }
                 PrimaryButton(

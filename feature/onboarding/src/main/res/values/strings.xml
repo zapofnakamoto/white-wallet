@@ -136,6 +136,7 @@
     <string name="add_mint_later">Later</string>
     <string name="scan_body">Looks for everything your recovery phrase holds and adds what it finds. It only looks; nothing is moved.</string>
     <string name="scan_mint_scanning">Scanning…</string>
+    <string name="scan_account_nothing_new">Nothing new</string>
     <string name="scan_mint_never">Not scanned yet</string>
     <string name="scan_mint_unfinished">Scan not finished</string>
     <string name="scan_mint_finished">Scanned</string>

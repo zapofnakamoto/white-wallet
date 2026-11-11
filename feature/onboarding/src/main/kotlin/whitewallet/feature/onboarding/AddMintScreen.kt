@@ -1,6 +1,7 @@
 package whitewallet.feature.onboarding
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -169,9 +170,12 @@ private fun AddingContent(progress: ScanProgress?) {
     ScanAccounts(progress)
 }
 
-/** A scan's accounts so far: how many keys it looked up for each and what it found. */
+/**
+ * A scan's accounts so far: how many keys it looked up for each and what it found. [empty] says an account is through with nothing found:
+ * "Nothing" on a mint just added, "Nothing new" where the account may hold money already.
+ */
 @Composable
-internal fun ScanAccounts(progress: ScanProgress?) {
+internal fun ScanAccounts(progress: ScanProgress?, @StringRes empty: Int = R.string.add_mint_account_empty) {
     progress?.accounts?.forEach { account ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
@@ -184,7 +188,7 @@ internal fun ScanAccounts(progress: ScanProgress?) {
             }
             Text(
                 if (account.foundMsat > 0) formatAmount(account.foundMsat)
-                else stringResource(if (account.done) R.string.add_mint_account_empty else R.string.add_mint_account_looking),
+                else stringResource(if (account.done) empty else R.string.add_mint_account_looking),
                 color = if (account.foundMsat > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

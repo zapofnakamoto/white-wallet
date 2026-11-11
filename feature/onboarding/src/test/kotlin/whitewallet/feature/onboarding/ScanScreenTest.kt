@@ -55,11 +55,14 @@ class ScanScreenTest {
 
     @Test
     fun whileItScansTheMintAndItsAccountsShow() {
-        val progress = ScanProgress(listOf(ScanProgress.AccountScan(0, 12, 5_000_000, true), ScanProgress.AccountScan(1, 3, 0, false)))
+        val progress = ScanProgress(listOf(ScanProgress.AccountScan(0, 12, 0, true), ScanProgress.AccountScan(1, 3, 0, false)))
         show(ScanState(mints, scanning = true, host = "new.example", progress = progress))
         compose.onNodeWithText(text(R.string.scan_mint_scanning)).assertExists()
         compose.onNodeWithText(text(R.string.scan_mint_never)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.add_mint_account, 2)).assertExists()
+        // An account that is through may hold money already: "Nothing new", not "Nothing".
+        compose.onNodeWithText(text(R.string.scan_account_nothing_new)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_account_empty)).assertDoesNotExist()
         compose.onNodeWithText(plural(R.plurals.add_mint_keys_checked, 12, 12)).assertExists()
         compose.onNodeWithText(text(R.string.scan_action)).assertDoesNotExist()
     }

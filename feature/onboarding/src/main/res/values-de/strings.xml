@@ -131,6 +131,7 @@
     <string name="add_mint_later">Später</string>
     <string name="scan_body">Sucht nach allem, was zu deiner Wiederherstellungsphrase gehört, und fügt hinzu, was gefunden wird. Es wird nur nachgesehen, nichts wird bewegt.</string>
     <string name="scan_mint_scanning">Wird durchsucht…</string>
+    <string name="scan_account_nothing_new">Nichts Neues</string>
     <string name="scan_mint_never">Noch nicht durchsucht</string>
     <string name="scan_mint_unfinished">Suche nicht abgeschlossen</string>
     <string name="scan_mint_finished">Durchsucht</string>
