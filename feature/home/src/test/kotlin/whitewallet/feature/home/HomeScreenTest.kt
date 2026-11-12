@@ -326,7 +326,6 @@ class HomeScreenTest {
                 accountActions = AccountActions({}, {}, {}),
             )
         }
-        compose.onNodeWithContentDescription(text(DesignR.string.refresh)).assertDoesNotExist()
         val actions = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions)).fetchSemanticsNode()
         val refresh = actions.config[SemanticsActions.CustomActions].single { it.label == text(DesignR.string.refresh) }
         refresh.action()
@@ -760,6 +759,21 @@ class HomeScreenTest {
         compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
         compose.onNodeWithText("b.example").performClick()
         assertEquals("b.example", opened)
+    }
+
+    @Test
+    fun theAccountMarkHasTheRefreshButtonsPlace() {
+        val main = AccountSummary(Account("a", "Main", 0), 0)
+        val savings = AccountSummary(Account("b", "Savings", 1, walletId = "a", index = 1), 0)
+        show(HomeState(accounts = listOf(main, savings), activeAccountId = "a"))
+        compose.onNodeWithContentDescription(text(DesignR.string.refresh)).assertDoesNotExist()
+    }
+
+    @Test
+    fun anAppOfOneAccountKeepsTheRefreshButton() {
+        val main = AccountSummary(Account("a", "Main", 0), 0)
+        show(HomeState(accounts = listOf(main), activeAccountId = "a", showAccounts = false))
+        compose.onNodeWithContentDescription(text(DesignR.string.refresh)).assertExists()
     }
 
     @Test

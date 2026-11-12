@@ -246,11 +246,18 @@ fun HomeScreen(
                 if (tab == HomeTab.Wallet && onScan != null) {
                     IconButton(onClick = onScan) { Icon(painterResource(DesignR.drawable.ic_qr_scan), stringResource(R.string.home_scan)) }
                 }
+                // The account in use, on every tab: its mark opens the switcher. Where it shows, it has the Refresh button's place, and
+                // the page is pulled to refresh.
+                val account = state.activeAccount?.takeIf { state.showAccounts }
+                if (account == null) {
+                    IconButton(onClick = if (tab == HomeTab.Notes) notesTab!!.onRefresh else onRefresh) {
+                        Icon(painterResource(DesignR.drawable.ic_refresh), stringResource(DesignR.string.refresh))
+                    }
+                }
                 IconButton(onClick = onSettings) {
                     Icon(painterResource(DesignR.drawable.ic_settings), stringResource(DesignR.string.settings))
                 }
-                // The account in use, on every tab: its mark opens the switcher. Refreshing is a pull on the page.
-                if (state.showAccounts) state.activeAccount?.let { AccountButton(state, it) { showAccounts = true } }
+                account?.let { AccountButton(state, it) { showAccounts = true } }
                 if (menu.isNotEmpty()) MenuButton(menu)
             }
             if (tab == HomeTab.Wallet) {
