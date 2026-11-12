@@ -27,7 +27,7 @@
     <string name="claim_finish">Fertig</string>
     <string name="claim_not_certified">Nicht zertifiziert: Der Betrag lässt sich nicht prüfen.</string>
     <string name="claim_offline">Gerade keine Verbindung. Behalte ihn, und deine Wallet löst ihn ein, sobald sie wieder online ist.</string>
-    <string name="claim_amount_declared">%1$s laut Link, noch nicht bestätigt</string>
+    <string name="claim_amount_declared">%1$s laut Link, noch nicht geprüft</string>
     <string name="claim_locked_until">Gesperrt bis %1$s. Behalte ihn, und deine Wallet löst ihn dann ein.</string>
     <string name="claim_locked_for">Bis zu %1$s gesperrt. Behalte ihn, und deine Wallet löst ihn ein, sobald er frei ist.</string>
     <plurals name="claim_duration_minutes">
@@ -48,7 +48,7 @@
     <string name="claim_kept_locked">Behalten. Deine Wallet löst ihn ein, sobald er frei ist.</string>
     <string name="claim_kept_hint">Noch nicht deiner: Der Absender kann ihn noch ausgeben, und deine Wiederherstellungsphrase deckt ihn nicht ab.</string>
     <string name="claim_failed">Das Einlösen wurde abgelehnt: %1$s</string>
-    <string name="claim_pending">Noch nicht bestätigt. Deine Wallet prüft beim nächsten Aktualisieren erneut.</string>
+    <string name="claim_pending">Noch keine Antwort. Deine Wallet fragt beim nächsten Aktualisieren erneut.</string>
     <string name="claim_take_back">%1$s zurückholen</string>
     <string name="claim_taken_back">%1$s zurückgeholt</string>
     <string name="claim_take_back_failed">Zurückholen hat nicht geklappt. Versuch es später noch einmal.</string>

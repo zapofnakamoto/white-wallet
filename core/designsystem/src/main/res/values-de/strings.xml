@@ -30,7 +30,7 @@
     <string name="received_title">Erhalten, noch nicht eingelöst</string>
     <string name="received_hint">Deine Wallet löst sie von selbst ein. Bis dahin sind sie nicht in deinem Guthaben, deine Wiederherstellungsphrase deckt sie nicht ab, und wer dir einen Link gegeben hat, kann ihn noch ausgeben.</string>
     <string name="received_total">%1$s erhalten, noch nicht eingelöst</string>
-    <string name="received_unconfirmed">%1$s, noch nicht bestätigt</string>
+    <string name="received_unconfirmed">%1$s, noch nicht geprüft</string>
     <string name="received_unknown_amount">Betrag noch nicht bekannt</string>
     <string name="received_on">Auf %1$s</string>
     <string name="received_waiting">Noch nicht eingelöst. Wird erneut versucht, sobald du online bist.</string>

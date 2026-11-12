@@ -243,7 +243,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `note_create_body` | Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet. |
 | `note_available` | You can make a note of up to %1$s. |
 | `note_create` | Create note |
-| `note_create_pending` | The note couldn't be confirmed yet, so nothing was handed out. Try again in a moment. |
+| `note_create_pending` | No answer about the note yet, so nothing was handed out. Try again in a moment. |
 | `note_title` | Note |
 | `note_qr_description` | QR code of the note |
 | `note_uncertified` | The amount of this note isn't certified. |
@@ -279,7 +279,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `home_working_combining` | Combining your notes… |
 | `home_working_splitting` | Splitting your notes… |
 | `home_working_renewing` | Renewing your notes… |
-| `note_unconfirmed` | Its mint hasn't confirmed this note yet. Your wallet checks once it's online. |
+| `note_unconfirmed` | Its mint hasn't been asked about this note yet. Your wallet asks once it's online. |
 | `note_unknown_to_mint` | Its mint doesn't know this note, so the link may not work. |
 | `scan_unknown` | This QR code isn't a payment or a note. |
 

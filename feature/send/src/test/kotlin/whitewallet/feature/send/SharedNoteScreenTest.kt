@@ -98,7 +98,7 @@ class SharedNoteScreenTest {
     fun aNoteItsMintDoesntKnowSaysSo() {
         show(note(SharedNoteState.Waiting).copy(unknownToMint = true))
         compose.onNodeWithText(text(R.string.note_unknown_to_mint)).assertExists()
-        compose.onNodeWithText("Its mint hasn't confirmed", substring = true).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.note_unconfirmed)).assertDoesNotExist()
     }
 
     @Test
@@ -111,7 +111,7 @@ class SharedNoteScreenTest {
     @Config(qualifiers = "de")
     fun germanSaysANoteHandedOutOfflineIsUnconfirmed() {
         show(note(SharedNoteState.Waiting).copy(confirmed = false))
-        compose.onNodeWithText("Die Mint hat diesen Schein noch nicht bestätigt", substring = true).assertExists()
+        compose.onNodeWithText("Die Mint wurde zu diesem Schein noch nicht gefragt", substring = true).assertExists()
     }
 
     @Test

@@ -33,7 +33,7 @@
     <string name="received_title">Received, not claimed yet</string>
     <string name="received_hint">Your wallet claims these on its own. Until then they aren\'t in your balance, your recovery phrase doesn\'t cover them, and whoever gave you a link can still spend it.</string>
     <string name="received_total">%1$s received, not claimed yet</string>
-    <string name="received_unconfirmed">%1$s, not confirmed yet</string>
+    <string name="received_unconfirmed">%1$s, not checked yet</string>
     <string name="received_unknown_amount">Amount not known yet</string>
     <string name="received_on">On %1$s</string>
     <string name="received_waiting">Not claimed yet. Tried again when online.</string>

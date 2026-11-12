@@ -86,7 +86,7 @@
     <string name="notes_checked_no_answer">No answer. Try again later.</string>
     <string name="notes_key_changed">%1$s now signs with a different key. Nothing more is done with it until you check its details.</string>
     <string name="notes_state_paying">Paying…</string>
-    <string name="notes_state_ambiguous">Confirming…</string>
+    <string name="notes_state_ambiguous">Waiting for an answer…</string>
     <string name="notes_uncertified">Amount not certified</string>
     <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Combine</string>
@@ -98,8 +98,8 @@
     <string name="notes_no_fee">No fee</string>
     <string name="notes_split_done">Split into %1$s and %2$s.</string>
     <string name="notes_moved">%1$s arrived on %2$s.</string>
-    <string name="notes_pending">Sent, but not confirmed yet. Recheck later, or refresh, to find out.</string>
-    <string name="notes_settled_landed">Confirmed: the change went through.</string>
+    <string name="notes_pending">Sent, but no answer yet. Recheck later, or refresh, to find out.</string>
+    <string name="notes_settled_landed">The change went through.</string>
     <string name="notes_settled_back">The change didn\'t go through, so nothing changed.</string>
     <string name="notes_split_range">Between %1$s and %2$s</string>
     <string name="notes_move_quote">Leaving here: %1$s. Arriving on %3$s: about %2$s.</string>

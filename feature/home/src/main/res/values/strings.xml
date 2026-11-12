@@ -127,7 +127,7 @@
     <string name="activity_moved_mint">Moved to %1$s</string>
     <string name="activity_amount_in">+%1$s</string>
     <string name="activity_amount_out">−%1$s</string>
-    <string name="activity_pending">Confirming…</string>
+    <string name="activity_pending">Waiting for an answer…</string>
     <string name="activity_failed">Failed, nothing changed</string>
     <string name="activity_uncertified">Amount not certified</string>
     <string name="activity_fee">Fee %1$s</string>
@@ -168,8 +168,8 @@
     <string name="move_nothing">There is nothing to move.</string>
     <string name="move_done">Done</string>
     <plurals name="home_unresolved">
-        <item quantity="one">%1$d operation is still being confirmed.</item>
-        <item quantity="other">%1$d operations are still being confirmed.</item>
+        <item quantity="one">%1$d operation is still waiting for an answer.</item>
+        <item quantity="other">%1$d operations are still waiting for an answer.</item>
     </plurals>
     <!-- A move that was sent to a mint whose answer didn't arrive. %1$s: the mint's host, %2$s: the amount. -->
     <string name="move_waiting">Waiting for %1$s to answer: %2$s. Your wallet asks again on the next refresh.</string>

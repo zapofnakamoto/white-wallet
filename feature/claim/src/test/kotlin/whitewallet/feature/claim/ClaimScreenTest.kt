@@ -192,9 +192,9 @@ class ClaimScreenTest {
     }
 
     @Test
-    fun anAmountOnlyTheLinkStatesIsNotConfirmed() {
+    fun anAmountOnlyTheLinkStatesIsNotChecked() {
         showKeep(ClaimPreview.Offline(link, 5_000_000, null))
-        compose.onNodeWithText("as the link says; not confirmed yet", substring = true).assertExists()
+        compose.onNodeWithText("as the link says; not checked yet", substring = true).assertExists()
     }
 
     @Test

@@ -189,14 +189,14 @@
     <string name="keys_legacy_address">Legacy address (2)</string>
     <string name="keys_scan_stopped">Stopped early: %1$s</string>
     <string name="keys_recheck">Recheck</string>
-    <string name="keys_status_confirming">confirming</string>
+    <string name="keys_status_confirming">waiting for an answer</string>
     <string name="keys_status_spent">spent</string>
     <string name="keys_status_skipped">never used</string>
     <string name="keys_status_handed_out">handed out</string>
     <string name="keys_status_next">next</string>
     <string name="keys_status_free">free</string>
     <string name="keys_hint_funded">Unspent note in this wallet</string>
-    <string name="keys_hint_confirming">An operation on this note is being confirmed</string>
+    <string name="keys_hint_confirming">An operation on this note is waiting for an answer</string>
     <string name="keys_hint_spent">Used and emptied. Never used again.</string>
     <string name="keys_hint_next">The next key this wallet uses</string>
     <string name="keys_hint_next_address">The next payment to your address lands here</string>
@@ -263,8 +263,8 @@
     <string name="developer_max_addresses">Lightning addresses per host</string>
     <string name="developer_max_addresses_hint">How many addresses an account may register on one host. Back to 1 when developer mode is off.</string>
     <plurals name="delete_unresolved">
-        <item quantity="one">%1$d operation is still being confirmed. Deleting now may lose it.</item>
-        <item quantity="other">%1$d operations are still being confirmed. Deleting now may lose them.</item>
+        <item quantity="one">%1$d operation is still waiting for an answer. Deleting now may lose it.</item>
+        <item quantity="other">%1$d operations are still waiting for an answer. Deleting now may lose them.</item>
     </plurals>
     <string name="logs_description">Every request to a server and its response</string>
     <string name="keys_hint_skipped">Handed out, but never used</string>
@@ -272,7 +272,7 @@
     <string name="keys_lookup">Lookup: %1$s (checked %2$s)</string>
     <string name="keys_lookup_none">Never looked up</string>
     <string name="keys_no_mint">This account has no address yet.</string>
-    <string name="keys_renew_pending">Not confirmed yet. The wallet checks again on the next refresh.</string>
+    <string name="keys_renew_pending">No answer yet. The wallet asks again on the next refresh.</string>
     <string name="keys_set_body">Lowest allowed: #%1$d. Used keys are never reissued, so the index can\'t go below keys this wallet has used.</string>
 
     <string name="mint_reachable">Reachable</string>

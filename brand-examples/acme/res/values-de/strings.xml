@@ -140,7 +140,7 @@
     <string name="note_create_body">Erstelle einen Geldschein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
     <string name="note_available">Du kannst einen Geldschein über bis zu %1$s erstellen.</string>
     <string name="note_create">Geldschein erstellen</string>
-    <string name="note_create_pending">Der Geldschein ließ sich noch nicht bestätigen, deshalb wurde nichts weitergegeben. Versuche es gleich noch einmal.</string>
+    <string name="note_create_pending">Noch keine Antwort zum Geldschein, deshalb wurde nichts weitergegeben. Versuche es gleich noch einmal.</string>
     <string name="note_title">Geldschein</string>
     <string name="note_qr_description">QR-Code des Geldscheins</string>
     <string name="note_uncertified">Der Betrag dieses Geldscheins ist nicht zertifiziert.</string>
@@ -148,7 +148,7 @@
     <string name="note_reclaim_title">Diesen Geldschein zurückholen?</string>
     <string name="note_already_spent">Zu spät: Dieser Geldschein wurde schon ausgegeben.</string>
     <string name="note_not_found">Dieser Geldschein ist nicht in diesem Konto.</string>
-    <string name="note_unconfirmed">Der Anbieter hat diesen Geldschein noch nicht bestätigt. Deine Wallet prüft, sobald sie online ist.</string>
+    <string name="note_unconfirmed">Der Anbieter wurde zu diesem Geldschein noch nicht gefragt. Deine Wallet fragt, sobald sie online ist.</string>
     <string name="note_unknown_to_mint">Der Anbieter kennt diesen Geldschein nicht, deshalb funktioniert der Link vielleicht nicht.</string>
     <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Geldschein.</string>
     <string name="mint_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Geldscheine dort sind unverändert.</string>

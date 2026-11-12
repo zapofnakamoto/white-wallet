@@ -16,7 +16,7 @@
     <string name="note_create_body">Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
     <string name="note_available">You can make a note of up to %1$s.</string>
     <string name="note_create">Create note</string>
-    <string name="note_create_pending">The note couldn\'t be confirmed yet, so nothing was handed out. Try again in a moment.</string>
+    <string name="note_create_pending">No answer about the note yet, so nothing was handed out. Try again in a moment.</string>
     <string name="note_title">Note</string>
     <string name="note_qr_description">QR code of the note</string>
     <string name="note_uncertified">The amount of this note isn\'t certified.</string>
@@ -24,7 +24,7 @@
     <string name="note_reclaim_title">Take this note back?</string>
     <string name="note_already_spent">Too late: this note has already been spent.</string>
     <string name="note_not_found">This note isn\'t in this account.</string>
-    <string name="note_unconfirmed">Its mint hasn\'t confirmed this note yet. Your wallet checks once it\'s online.</string>
+    <string name="note_unconfirmed">Its mint hasn\'t been asked about this note yet. Your wallet asks once it\'s online.</string>
     <string name="note_unknown_to_mint">Its mint doesn\'t know this note, so the link may not work.</string>
     <string name="scan_unknown">This QR code isn\'t a payment or a note.</string>
 
@@ -95,7 +95,7 @@
     <string name="note_reclaim_body">The money returns to your balance and this code stops working. If it\'s already been spent, nothing changes.</string>
     <string name="note_spent">Spent, usually by the recipient. It could also have been another device with your recovery phrase.</string>
     <string name="note_reclaimed">Taken back. The money is in your balance again.</string>
-    <string name="note_reclaim_pending">Taking it back… History shows when it\'s confirmed.</string>
+    <string name="note_reclaim_pending">Taking it back… History shows when it\'s done.</string>
     <!-- Developer mode on a local regtest mint (debug builds): dev/regtest's faucet makes an invoice to pay. %1$s: an amount -->
     <string name="send_faucet">Developer: pay a regtest invoice of %1$s</string>
     <!-- %1$s: the faucet's or the connection's error, as it came -->

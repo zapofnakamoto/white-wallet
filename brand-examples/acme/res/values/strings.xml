@@ -141,7 +141,7 @@
     <string name="note_create_body">Make a banknote worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
     <string name="note_available">You can make a banknote of up to %1$s.</string>
     <string name="note_create">Create banknote</string>
-    <string name="note_create_pending">The banknote couldn\'t be confirmed yet, so nothing was handed out. Try again in a moment.</string>
+    <string name="note_create_pending">No answer about the banknote yet, so nothing was handed out. Try again in a moment.</string>
     <string name="note_title">Banknote</string>
     <string name="note_qr_description">QR code of the banknote</string>
     <string name="note_uncertified">The amount of this banknote isn\'t certified.</string>
@@ -149,7 +149,7 @@
     <string name="note_reclaim_title">Take this banknote back?</string>
     <string name="note_already_spent">Too late: this banknote has already been spent.</string>
     <string name="note_not_found">This banknote isn\'t in this account.</string>
-    <string name="note_unconfirmed">The provider hasn\'t confirmed this banknote yet. Your wallet checks once it\'s online.</string>
+    <string name="note_unconfirmed">The provider hasn\'t been asked about this banknote yet. Your wallet asks once it\'s online.</string>
     <string name="note_unknown_to_mint">The provider doesn\'t know this banknote, so the link may not work.</string>
     <string name="scan_unknown">This QR code isn\'t a payment or a banknote.</string>
     <string name="mint_key_changed">%1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn\'t send or receive there. Your banknotes there are unchanged.</string>

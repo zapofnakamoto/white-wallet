@@ -32,7 +32,7 @@
     <string name="claim_finish">Done</string>
     <string name="claim_not_certified">Not certified: the amount can\'t be verified.</string>
     <string name="claim_offline">No connection right now. Keep it, and your wallet claims it as soon as it\'s back online.</string>
-    <string name="claim_amount_declared">%1$s, as the link says; not confirmed yet</string>
+    <string name="claim_amount_declared">%1$s, as the link says; not checked yet</string>
     <string name="claim_locked_until">Locked until %1$s. Keep it, and your wallet claims it then.</string>
     <string name="claim_locked_for">Locked for up to %1$s. Keep it, and your wallet claims it once it opens.</string>
     <plurals name="claim_duration_minutes">
@@ -53,7 +53,7 @@
     <string name="claim_kept_locked">Kept. Your wallet claims it once it opens.</string>
     <string name="claim_kept_hint">Not yours yet: the sender can still spend it, and your recovery phrase doesn\'t cover it.</string>
     <string name="claim_failed">The claim was refused: %1$s</string>
-    <string name="claim_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>
+    <string name="claim_pending">No answer yet. Your wallet asks again on the next refresh.</string>
     <string name="claim_take_back">Take back %1$s</string>
     <string name="claim_taken_back">Took back %1$s</string>
     <string name="claim_take_back_failed">It couldn\'t be taken back. Try again later.</string>

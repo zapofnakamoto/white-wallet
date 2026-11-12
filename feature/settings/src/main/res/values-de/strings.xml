@@ -184,14 +184,14 @@
     <string name="keys_legacy_address">Alt: Adresse (2)</string>
     <string name="keys_scan_stopped">Vorzeitig beendet: %1$s</string>
     <string name="keys_recheck">Erneut prüfen</string>
-    <string name="keys_status_confirming">wird bestätigt</string>
+    <string name="keys_status_confirming">wartet auf Antwort</string>
     <string name="keys_status_spent">ausgegeben</string>
     <string name="keys_status_skipped">nie benutzt</string>
     <string name="keys_status_handed_out">vergeben</string>
     <string name="keys_status_next">nächster</string>
     <string name="keys_status_free">frei</string>
     <string name="keys_hint_funded">Nicht ausgegebener Schein in dieser Wallet</string>
-    <string name="keys_hint_confirming">Ein Vorgang mit diesem Schein wird bestätigt</string>
+    <string name="keys_hint_confirming">Ein Vorgang mit diesem Schein wartet auf Antwort</string>
     <string name="keys_hint_spent">Benutzt und geleert. Wird nie wieder benutzt.</string>
     <string name="keys_hint_next">Der nächste Schlüssel, den diese Wallet benutzt</string>
     <string name="keys_hint_next_address">Die nächste Zahlung an deine Adresse landet hier</string>
@@ -258,8 +258,8 @@
     <string name="developer_max_addresses">Lightning-Adressen pro Host</string>
     <string name="developer_max_addresses_hint">Wie viele Adressen ein Konto auf einem Host registrieren darf. Zurück auf 1, wenn der Entwicklermodus aus ist.</string>
     <plurals name="delete_unresolved">
-        <item quantity="one">%1$d Vorgang wird noch bestätigt. Wenn du jetzt löschst, kann er verloren gehen.</item>
-        <item quantity="other">%1$d Vorgänge werden noch bestätigt. Wenn du jetzt löschst, können sie verloren gehen.</item>
+        <item quantity="one">%1$d Vorgang wartet noch auf Antwort. Wenn du jetzt löschst, kann er verloren gehen.</item>
+        <item quantity="other">%1$d Vorgänge warten noch auf Antwort. Wenn du jetzt löschst, können sie verloren gehen.</item>
     </plurals>
     <string name="logs_description">Jede Anfrage an einen Server und ihre Antwort</string>
     <string name="keys_hint_skipped">Vergeben, aber nie benutzt</string>
@@ -267,7 +267,7 @@
     <string name="keys_lookup">Abfrage: %1$s (geprüft %2$s)</string>
     <string name="keys_lookup_none">Nie abgefragt</string>
     <string name="keys_no_mint">Dieses Konto hat noch keine Adresse.</string>
-    <string name="keys_renew_pending">Noch nicht bestätigt. Die Wallet prüft beim nächsten Aktualisieren erneut.</string>
+    <string name="keys_renew_pending">Noch keine Antwort. Die Wallet fragt beim nächsten Aktualisieren erneut.</string>
     <string name="keys_set_body">Niedrigster erlaubter Wert: #%1$d. Benutzte Schlüssel werden nie neu vergeben, daher kann der Index nicht unter Schlüssel fallen, die diese Wallet benutzt hat.</string>
 
     <string name="mint_reachable">Erreichbar</string>
