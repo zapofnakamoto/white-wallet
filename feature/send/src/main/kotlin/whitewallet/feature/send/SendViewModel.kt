@@ -45,6 +45,9 @@ data class SendState(
     val claim: String? = null,
     /** Whether the faucet can be offered is known: until then nothing is drawn, so its button doesn't come in late. */
     val loaded: Boolean = true,
+    /** The account's balance, and the most one payment can be: set when that is less, its money being on several mints. */
+    val balanceMsat: Long = 0,
+    val limitMsat: Long? = null,
 ) {
     /** The amount to pay in msat, or null while none is entered. */
     val amountMsat: Long?
@@ -68,6 +71,10 @@ constructor(
 
     init {
         viewModelScope.launch {
+            // Said before anything is entered: a payment is made from one mint's money, so the balance may not be payable at once.
+            val balance = wallet.balanceMsat.first()
+            val most = wallet.sendableNoteMsat()
+            _state.update { it.copy(balanceMsat = balance, limitMsat = most.takeIf { m -> m < balance }) }
             faucet.available.collect { available ->
                 _state.update { it.copy(faucet = if (available) it.faucet ?: FaucetState() else null, loaded = true) }
             }

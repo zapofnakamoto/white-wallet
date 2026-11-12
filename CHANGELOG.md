@@ -24,6 +24,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   the home mint first, each leading to the mint's page. A payment is made from one mint's money, so the total
   alone promised more than could be sent at once. One mint, a hidden balance or `mints.visible=false` show the
   total alone. New brand term `home_mint_is_home`.
+- Send says, before a destination is entered, how much one payment can be when that is less than the balance
+  ("You can send up to ₿6,000 of your ₿8,000 in one payment…", `send_limit_one_payment`).
 - The account in use is its mark in Home's top bar, on every tab, in place of the chip under the balance; a tap
   opens the switcher. With several wallets, a line over the balance names the wallet and the account ("Wallet 2 ·
   Main", `home_account_in_wallet`). The top bar's Refresh button is gone: the page is pulled to refresh, and a

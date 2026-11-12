@@ -616,7 +616,7 @@ class Wallet(
             ?: legacy.watchOnlyKey(accountId, address.host)
     }
 
-    /** The most one note can be sent as, from the active account's notes. */
+    /** The most one note can be sent as, or one payment be, from the active account's notes: all it has on one mint. */
     suspend fun sendableNoteMsat(): Long = sender.availableMsat()
 
     /** What sending [amountMsat] as a note would cost, or why it can't be made. */

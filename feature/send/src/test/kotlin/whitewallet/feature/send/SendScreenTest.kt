@@ -25,6 +25,21 @@ class SendScreenTest {
     private fun actions(onCreateNote: () -> Unit = {}) = SendActions({}, {}, {}, {}, {}, {}, {}, {}, {}, onCreateNote)
 
     @Test
+    fun aBalanceThatCannotBePaidAtOnceIsSaidBeforeAnythingIsEntered() {
+        compose.setContent {
+            SendScreen(SendState(balanceMsat = 8_000_000, limitMsat = 6_000_000), onBack = {}, onDone = {}, actions = actions())
+        }
+        compose.onNodeWithText(text(R.string.send_limit_one_payment, "₿6,000", "₿8,000")).assertExists()
+    }
+
+    @Test
+    fun aBalanceThatCanBePaidAtOnceSaysNothingMore() {
+        compose.setContent { SendScreen(SendState(balanceMsat = 8_000_000), onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_limit_one_payment, "₿8,000", "₿8,000")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.send_continue)).assertExists()
+    }
+
+    @Test
     fun anAmountlessInvoiceIsRefusedWithAWayOut() {
         compose.setContent {
             SendScreen(SendState(input = "lnbc1…", problem = PayProblem.NoAmount), onBack = {}, onDone = {}, actions = actions())

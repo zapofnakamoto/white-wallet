@@ -182,6 +182,13 @@ internal fun problemKind(problem: PayProblem): ProblemKind =
 private fun InputContent(state: SendState, actions: SendActions) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
+    state.limitMsat?.let {
+        Text(
+            stringResource(R.string.send_limit_one_payment, formatAmount(it), formatAmount(state.balanceMsat)),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     WalletTextField(
         value = state.input,
         onValueChange = actions.onInputChange,

@@ -43,6 +43,8 @@
     <string name="send_comment">Message (optional)</string>
     <string name="send_comment_count">%1$d / %2$d</string>
     <string name="send_available">You can send up to %1$s.</string>
+    <!-- Before a destination is entered, when the balance can't be paid at once. %1$s: the most one payment can be, %2$s: the balance. -->
+    <string name="send_limit_one_payment">You can send up to %1$s of your %2$s in one payment. Your balance is held in different places, and a payment comes from one of them.</string>
     <string name="send_fee">Fee: %1$s</string>
     <string name="send_no_fee">No fee</string>
     <string name="send_not_exact">This amount can\'t be made from your balance. Send exactly %1$s, or at most %2$s.</string>

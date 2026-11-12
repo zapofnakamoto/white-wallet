@@ -38,6 +38,7 @@
     <string name="send_comment">Nachricht (optional)</string>
     <string name="send_comment_count">%1$d / %2$d</string>
     <string name="send_available">Du kannst bis zu %1$s senden.</string>
+    <string name="send_limit_one_payment">Du kannst bis zu %1$s deiner %2$s in einer Zahlung senden. Dein Guthaben liegt an verschiedenen Orten, und eine Zahlung kommt von einem davon.</string>
     <string name="send_fee">Gebühr: %1$s</string>
     <string name="send_no_fee">Keine Gebühr</string>
     <string name="send_not_exact">Dieser Betrag lässt sich aus deinem Guthaben nicht bilden. Sende genau %1$s oder höchstens %2$s.</string>
