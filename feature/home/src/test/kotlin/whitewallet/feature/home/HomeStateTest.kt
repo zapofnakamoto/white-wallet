@@ -52,6 +52,11 @@ class HomeStateTest {
     }
 
     @Test
+    fun `a wallet whose money is all in notes handed out isn't empty`() {
+        assertEquals(WalletStatus.Idle, HomeState(activeAccountId = "a", sharedMsat = 1_000).status)
+    }
+
+    @Test
     fun `the key change a refresh found comes first, then a received note's`() {
         val notes =
             listOf(received("w", ReceivedState.Waiting, host = "a.example"), received("k", ReceivedState.KeyChanged, host = "b.example"))

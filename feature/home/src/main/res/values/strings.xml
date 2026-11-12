@@ -157,4 +157,13 @@
     <string name="home_working_updating">Updating your balance…</string>
     <string name="home_scan">Scan a QR code</string>
     <string name="accounts_wallet">Wallet %1$d</string>
+    <!-- Notes handed out as links that nobody has claimed yet, under the balance. %1$s: what they are worth. -->
+    <string name="home_shared_total">%1$s shared, not claimed yet</string>
+    <!-- The same while the balance is hidden: no amount. -->
+    <string name="home_shared_title">Shared, not claimed yet</string>
+    <!-- Unfolds the accounts of the wallets not in use, in the account switcher. %1$d: how many such wallets. -->
+    <plurals name="accounts_other_wallets">
+        <item quantity="one">%1$d other wallet</item>
+        <item quantity="other">%1$d other wallets</item>
+    </plurals>
 </resources>

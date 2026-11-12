@@ -22,6 +22,7 @@ import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.isShared
 import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
@@ -78,6 +79,8 @@ data class HomeState(
     val checkingUnknown: Boolean = false,
     /** Notes received as links and not claimed yet, or no longer claimable: kept apart from the balance. */
     val received: List<ReceivedNote> = emptyList(),
+    /** What the notes handed out as links and not claimed yet are worth: out of [balanceMsat], and still the user's to take back. */
+    val sharedMsat: Long = 0,
 ) {
     /** What [received] notes not claimed yet are worth, as far as known: not in [balanceMsat]. */
     val incomingMsat: Long
@@ -93,7 +96,7 @@ data class HomeState(
             when {
                 activeAccountId == null -> WalletStatus.None
                 error != null -> WalletStatus.Problem(ProblemKind.Offline)
-                balanceMsat > 0 || received.any { it.isPending } -> WalletStatus.Idle
+                balanceMsat > 0 || sharedMsat > 0 || received.any { it.isPending } -> WalletStatus.Idle
                 else -> WalletStatus.Empty
             }
 }
@@ -191,6 +194,11 @@ class HomeViewModel(
         viewModelScope.launch { collectNotices() }
         viewModelScope.launch {
             wallet.accountMints.collect { mints -> status.update { it.copy(unknownNotes = mints.filter { m -> m.unknownCount > 0 }) } }
+        }
+        viewModelScope.launch {
+            wallet.notes.collect { notes ->
+                status.update { it.copy(sharedMsat = notes.filter { n -> n.state.isShared }.sumOf { n -> n.amountMsat }) }
+            }
         }
         viewModelScope.launch {
             wallet.receivedNotes.collect { notes -> status.update { it.copy(received = ReceivedNote.shown(notes)) } }

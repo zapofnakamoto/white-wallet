@@ -14,6 +14,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- Home says what the notes handed out as links and not claimed yet are worth, under the balance ("₿3,000 shared,
+  not claimed yet"): the money left the balance when the note was made, and is the user's to take back until
+  someone claims it. A tap opens the Notes tab, or History in an app without one. New strings `home_shared_total`
+  and `home_shared_title`; a brand that overrode `notes_waiting_total` and `notes_shared_title` words these alike.
+- The account switcher lists the accounts of the wallet in use. Other wallets' accounts show after a tap on
+  "N other wallets" (`accounts_other_wallets`), so changing to another recovery phrase is a step of its own.
 - The regtest stack has four mints on `localhost:8111` to `8114`, mint N on port 811N, and the faucet on `8110`
   (it was on `8114`, the fourth mint on `8115`). The second mint charges the 21 sat address fee; the fifth mint,
   which did, is gone, and with it `regtest.sh note --mint5`. Run `regtest.sh reset` on both stacks: accounts on

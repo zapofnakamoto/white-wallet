@@ -267,7 +267,7 @@ class HomeScreenTest {
     @Test
     fun theSwitcherSwitchesAndLinksToWhereWalletsAreManaged() {
         val main = AccountSummary(Account("a", "Main", 0), 0)
-        val savings = AccountSummary(Account("b", "Savings", 1), 0)
+        val savings = AccountSummary(Account("b", "Savings", 1, walletId = "a", index = 1), 0)
         show(HomeState(accounts = listOf(main, savings), activeAccountId = "a"))
         compose.onNodeWithText("Main").performClick()
         compose.onNodeWithText("Savings").assertExists()
@@ -679,6 +679,23 @@ class HomeScreenTest {
         compose.onNodeWithText("Locked for now. Tried again on every refresh.").assertExists()
         compose.onNodeWithText("Your wallet claims these on its own", substring = true).assertExists()
         compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
+    }
+
+    @Test
+    fun notesHandedOutAndNotClaimedYetAreShownUnderTheBalanceAndLeadToHistoryWithoutANotesTab() {
+        show(HomeState(activeAccountId = "a", balanceMsat = 5_000_000, sharedMsat = 3_000_000))
+        compose.onNodeWithText("₿5,000").assertExists()
+        compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_shared_total, "₿3,000")).performClick()
+        compose.onNodeWithText(text(R.string.home_shared_total, "₿3,000")).assertDoesNotExist()
+        compose.onAllNodesWithText(text(R.string.home_tab_history)).assertCountEquals(2)
+    }
+
+    @Test
+    fun nothingHandedOutSaysNothingAndAHiddenBalanceHidesItsAmount() {
+        show(HomeState(activeAccountId = "a", balanceMsat = 5_000_000, balanceHidden = true, sharedMsat = 3_000_000))
+        compose.onNodeWithText("₿3,000", substring = true).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_shared_title)).assertExists()
     }
 
     @Test

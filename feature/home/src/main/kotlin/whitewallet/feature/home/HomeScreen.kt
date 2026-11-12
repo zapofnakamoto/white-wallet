@@ -299,6 +299,7 @@ fun HomeScreen(
                                 onRecheckUnknown,
                                 onDismissReceived,
                                 onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
+                                onOpenShared = { saved = if (notesTab != null) HomeTab.Notes else HomeTab.History },
                                 onAddMint,
                                 onScanMints,
                             )
@@ -476,6 +477,8 @@ private fun WalletTab(
     onDismissReceived: (String) -> Unit,
     /** Opens the notes view, where received notes are listed too; null without one (the card below lists them). */
     onOpenIncoming: (() -> Unit)?,
+    /** Opens where the notes handed out are listed, each leading to its QR code and to taking it back. */
+    onOpenShared: () -> Unit,
     onAddMint: () -> Unit,
     onScanMints: () -> Unit,
 ) {
@@ -510,6 +513,17 @@ private fun WalletTab(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = onOpenIncoming?.let { Modifier.clickable(onClick = it) } ?: Modifier,
+                )
+            }
+            // Handed out as links and not claimed yet: out of the balance, and the user's until someone claims them.
+            if (state.sharedMsat > 0) {
+                Text(
+                    if (state.balanceHidden) stringResource(R.string.home_shared_title)
+                    else stringResource(R.string.home_shared_total, formatAmount(state.sharedMsat)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.clickable(onClick = onOpenShared),
                 )
             }
             if (state.received.isNotEmpty()) ReceivedCard(state, onDismissReceived)

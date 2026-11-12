@@ -20,7 +20,8 @@ import whitewallet.core.model.AccountSummary
 class AccountSwitcherTest {
     @get:Rule val compose = createComposeRule()
 
-    private fun summary(id: String, name: String) = AccountSummary(Account(id, name, 0), 0)
+    /** An account of the one wallet "w". */
+    private fun summary(id: String, name: String) = AccountSummary(Account(id, name, 0, walletId = "w"), 0)
 
     private fun show(accounts: List<AccountSummary>, activeId: String, onSelect: (String) -> Unit = {}) = compose.setContent {
         AccountSwitcher(accounts, activeId, onSelect = onSelect, onManage = {}, onMove = {}, onDismiss = {})
@@ -51,15 +52,51 @@ class AccountSwitcherTest {
         compose.onNodeWithText(text(R.string.accounts_separate_backups)).performScrollTo().assertIsDisplayed()
     }
 
+    private val first = AccountSummary(Account("a", "Main", 0), 0)
+    private val sibling = AccountSummary(Account("b", "Savings", 1, walletId = "a", index = 1), 0)
+    private val other = AccountSummary(Account("c", "Work", 2), 0)
+
+    @Test
+    fun onlyTheWalletInUseShowsItsAccountsUntilTheOthersAreAskedFor() {
+        var selected: String? = null
+        compose.setContent {
+            AccountSwitcher(listOf(first, sibling, other), "b", { selected = it }, {}, {}, {}, walletNames = mapOf("c" to "Family"))
+        }
+        compose.onNodeWithText(text(R.string.accounts_wallet, 1)).assertExists()
+        compose.onNodeWithText("Main").assertExists()
+        compose.onNodeWithText("Savings").assertExists()
+        compose.onNodeWithText("Family").assertDoesNotExist()
+        compose.onNodeWithText("Work").assertDoesNotExist()
+        compose.onNodeWithText(plural(R.plurals.accounts_other_wallets, 1, 1)).performClick()
+        compose.onNodeWithText("Family").assertExists()
+        compose.onNodeWithText(plural(R.plurals.accounts_other_wallets, 1, 1)).assertDoesNotExist()
+        compose.onNodeWithText("Work").performClick()
+        assertEquals("c", selected)
+    }
+
+    @Test
+    fun theWalletInUseIsShownWhicheverItIs() {
+        compose.setContent { AccountSwitcher(listOf(first, sibling, other), "c", {}, {}, {}, {}, walletNames = mapOf("c" to "Family")) }
+        compose.onNodeWithText("Family").assertExists()
+        compose.onNodeWithText("Work").assertExists()
+        compose.onNodeWithText("Main").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.accounts_wallet, 1)).assertDoesNotExist()
+    }
+
+    @Test
+    fun oneWalletHasNoOtherWalletsToShow() {
+        show(listOf(first, sibling), activeId = "a")
+        compose.onNodeWithText(plural(R.plurals.accounts_other_wallets, 1, 1)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.accounts_wallet, 1)).assertDoesNotExist()
+    }
+
     @Test
     fun severalWalletsAreShownApartByNameOrNumberAndManagedInSettings() {
         var managing = false
-        val first = AccountSummary(Account("a", "Main", 0), 0)
-        val sibling = AccountSummary(Account("b", "Savings", 1, walletId = "a", index = 1), 0)
-        val other = AccountSummary(Account("c", "Work", 2), 0)
         compose.setContent {
             AccountSwitcher(listOf(first, sibling, other), "a", {}, { managing = true }, {}, {}, walletNames = mapOf("c" to "Family"))
         }
+        compose.onNodeWithText(plural(R.plurals.accounts_other_wallets, 1, 1)).performClick()
         compose.onNodeWithText(text(R.string.accounts_wallet, 1)).assertExists()
         compose.onNodeWithText("Family").assertExists()
         compose.onNodeWithText(text(R.string.accounts_wallet, 2)).assertDoesNotExist()
