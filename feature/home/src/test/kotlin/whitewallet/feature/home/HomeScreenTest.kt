@@ -155,9 +155,7 @@ class HomeScreenTest {
                 onScanMints = { scans++ },
             )
         }
-        // The explanation shows once the title is tapped: the card stays small.
-        compose.onNodeWithText(text(R.string.home_scan_body)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.home_scan_title)).performClick()
+        compose.onNodeWithText(text(R.string.home_scan_title)).assertExists()
         compose.onNodeWithText(text(R.string.home_scan_body)).assertExists()
         compose.onNodeWithText(text(R.string.home_scan_action)).performClick()
         assertEquals(1, scans)
@@ -905,7 +903,7 @@ class HomeScreenTest {
         compose.onNodeWithText("m2.example").assertExists()
         compose.onNodeWithText("m3.example").assertDoesNotExist()
         compose.onNodeWithText("₿6,000").assertExists()
-        compose.onNodeWithText(plural(R.plurals.home_more_mints, 3, 3)).performClick()
+        compose.onNodeWithText(plural(R.plurals.home_more_mints, 3, 3)).performScrollTo().performClick()
         assertEquals(1, opened)
     }
 

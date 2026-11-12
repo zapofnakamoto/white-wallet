@@ -193,6 +193,4 @@
         <item quantity="other">%1$d weitere Hinweise</item>
     </plurals>
     <string name="home_alerts_fewer">Weniger zeigen</string>
-    <string name="home_alert_explain">Erklären</string>
-    <string name="home_alert_hide">Erklärung ausblenden</string>
 </resources>

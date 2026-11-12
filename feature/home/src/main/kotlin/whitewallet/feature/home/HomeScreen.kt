@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,7 +48,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.node.Ref
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -551,38 +555,48 @@ private fun WalletTab(
         Column(
             Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight).fillMaxWidth().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // One alert at a time, the most important; the others are counted, never hidden without a word.
+            // Alerts are pinned to the top, one at a time, the most important; the others are counted, never hidden without a word.
+            // The balance stays in the middle of the screen below them: as much room under it as the alerts take above, while it fits.
             val alerts = state.alerts
             var allAlerts by rememberSaveable { mutableStateOf(false) }
-            alerts.take(if (allAlerts) alerts.size else 1).forEach { alert ->
-                when (alert) {
-                    is HomeAlert.KeyChanged -> KeyChanged(alert.host) { onOpenMint(alert.host) }
-                    is HomeAlert.UnknownNotes ->
-                        UnknownNotesCard(
-                            mint = alert.mint,
-                            state.mintsVisible,
-                            state.balanceHidden,
-                            checking = state.checkingUnknown,
-                            onRecheck = onRecheckUnknown,
-                            onShowNotes = onOpenIncoming,
-                        )
-                    is HomeAlert.AddressInactive -> AddressInactive(alert.address, onOpenAddresses)
-                    HomeAlert.AddMint -> AddMintPrompt(onAddMint)
-                    HomeAlert.Backup -> BackupPrompt(onBackup, onDismissBackup)
-                    HomeAlert.Scan -> ScanPrompt(onScanMints)
+            var alertsHeight by remember { mutableStateOf(0.dp) }
+            val density = LocalDensity.current
+            Column(
+                Modifier.fillMaxWidth().onSizeChanged { alertsHeight = with(density) { it.height.toDp() } },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                alerts.take(if (allAlerts) alerts.size else 1).forEach { alert ->
+                    when (alert) {
+                        is HomeAlert.KeyChanged -> KeyChanged(alert.host) { onOpenMint(alert.host) }
+                        is HomeAlert.UnknownNotes ->
+                            UnknownNotesCard(
+                                mint = alert.mint,
+                                state.mintsVisible,
+                                state.balanceHidden,
+                                checking = state.checkingUnknown,
+                                onRecheck = onRecheckUnknown,
+                                onShowNotes = onOpenIncoming,
+                            )
+                        is HomeAlert.AddressInactive -> AddressInactive(alert.address, onOpenAddresses)
+                        HomeAlert.AddMint -> AddMintPrompt(onAddMint)
+                        HomeAlert.Backup -> BackupPrompt(onBackup, onDismissBackup)
+                        HomeAlert.Scan -> ScanPrompt(onScanMints)
+                    }
+                }
+                if (alerts.size > 1) {
+                    Text(
+                        if (allAlerts) stringResource(R.string.home_alerts_fewer)
+                        else pluralStringResource(R.plurals.home_alerts_more, alerts.size - 1, alerts.size - 1),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { allAlerts = !allAlerts }.padding(8.dp),
+                    )
                 }
             }
-            if (alerts.size > 1) {
-                Text(
-                    if (allAlerts) stringResource(R.string.home_alerts_fewer)
-                    else pluralStringResource(R.plurals.home_alerts_more, alerts.size - 1, alerts.size - 1),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { allAlerts = !allAlerts }.padding(8.dp),
-                )
-            }
+            Spacer(Modifier.weight(1f))
             WalletStatusScope(state.status) { BrandDecoration(Anchor.HomeHeader) }
             // With several wallets, an account's name alone doesn't say whose money this is: the wallet is named too.
             if (state.showAccounts && state.walletCount > 1) {
@@ -648,6 +662,8 @@ private fun WalletTab(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(alertsHeight))
         }
     }
 }
@@ -1013,30 +1029,11 @@ private fun ReceivedCard(state: HomeState, onDismiss: (String) -> Unit) {
 private fun AddressInactive(address: String, onOpenAddresses: () -> Unit) {
     WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            FoldedText(stringResource(R.string.home_address_inactive_title), stringResource(R.string.home_address_inactive_body, address))
+            Text(stringResource(R.string.home_address_inactive_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.home_address_inactive_body, address), style = MaterialTheme.typography.bodyMedium)
             WalletButton(onClick = onOpenAddresses) { Text(stringResource(R.string.home_address_inactive_action)) }
         }
     }
-}
-
-/**
- * An alert's title, its explanation shown only once the title is tapped: the card stays small. Not for alerts about the notes, which say
- * everything at once.
- */
-@Composable
-private fun FoldedText(title: String, body: String) {
-    var open by rememberSaveable { mutableStateOf(false) }
-    Text(
-        title,
-        style = MaterialTheme.typography.titleMedium,
-        modifier =
-            Modifier.fillMaxWidth().clickable(
-                onClickLabel = stringResource(if (open) R.string.home_alert_hide else R.string.home_alert_explain)
-            ) {
-                open = !open
-            },
-    )
-    if (open) Text(body, style = MaterialTheme.typography.bodyMedium)
 }
 
 /** A mint's keys weren't looked through to the end, so the wallet may hold more than it shows: stays until a scan is through. */
@@ -1044,7 +1041,8 @@ private fun FoldedText(title: String, body: String) {
 private fun ScanPrompt(onScan: () -> Unit) {
     WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            FoldedText(stringResource(R.string.home_scan_title), stringResource(R.string.home_scan_body))
+            Text(stringResource(R.string.home_scan_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.home_scan_body), style = MaterialTheme.typography.bodyMedium)
             WalletButton(onClick = onScan) { Text(stringResource(R.string.home_scan_action)) }
         }
     }
@@ -1055,7 +1053,8 @@ private fun ScanPrompt(onScan: () -> Unit) {
 private fun AddMintPrompt(onAddMint: () -> Unit) {
     WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            FoldedText(stringResource(R.string.home_add_mint_title), stringResource(R.string.home_add_mint_body))
+            Text(stringResource(R.string.home_add_mint_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.home_add_mint_body), style = MaterialTheme.typography.bodyMedium)
             WalletButton(onClick = onAddMint) { Text(stringResource(R.string.home_add_mint_action)) }
         }
     }
@@ -1065,7 +1064,8 @@ private fun AddMintPrompt(onAddMint: () -> Unit) {
 private fun BackupPrompt(onBackup: () -> Unit, onLater: () -> Unit) {
     WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            FoldedText(stringResource(R.string.home_backup_title), stringResource(R.string.home_backup_body))
+            Text(stringResource(R.string.home_backup_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.home_backup_body), style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 WalletButton(onClick = onBackup) { Text(stringResource(R.string.home_backup_action)) }
                 WalletButton(kind = ButtonKind.Text, onClick = onLater) { Text(stringResource(R.string.home_backup_later)) }
