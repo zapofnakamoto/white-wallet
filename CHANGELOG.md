@@ -20,6 +20,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   and `home_shared_title`; a brand that overrode `notes_waiting_total` and `notes_shared_title` words these alike.
 - The account switcher lists the accounts of the wallet in use. Other wallets' accounts show after a tap on
   "N other wallets" (`accounts_other_wallets`), so changing to another recovery phrase is a step of its own.
+- The account in use is its mark in Home's top bar, on every tab, in place of the chip under the balance; a tap
+  opens the switcher. With several wallets, a line over the balance names the wallet and the account ("Wallet 2 ·
+  Main", `home_account_in_wallet`). The top bar's Refresh button is gone: the page is pulled to refresh, and a
+  screen reader has "Refresh" as an action of the page.
 - The regtest stack has four mints on `localhost:8111` to `8114`, mint N on port 811N, and the faucet on `8110`
   (it was on `8114`, the fourth mint on `8115`). The second mint charges the 21 sat address fee; the fifth mint,
   which did, is gone, and with it `regtest.sh note --mint5`. Run `regtest.sh reset` on both stacks: accounts on

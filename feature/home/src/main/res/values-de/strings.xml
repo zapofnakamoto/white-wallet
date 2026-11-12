@@ -149,4 +149,5 @@
         <item quantity="one">%1$d weitere Wallet</item>
         <item quantity="other">%1$d weitere Wallets</item>
     </plurals>
+    <string name="home_account_in_wallet">%1$s · %2$s</string>
 </resources>

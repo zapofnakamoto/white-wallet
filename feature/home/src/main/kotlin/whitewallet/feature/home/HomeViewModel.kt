@@ -82,6 +82,17 @@ data class HomeState(
     /** What the notes handed out as links and not claimed yet are worth: out of [balanceMsat], and still the user's to take back. */
     val sharedMsat: Long = 0,
 ) {
+    val activeAccount: AccountSummary?
+        get() = accounts.firstOrNull { it.account.id == activeAccountId }
+
+    /** How many wallets (recovery phrases) the accounts belong to. */
+    val walletCount: Int
+        get() = accounts.distinctBy { it.account.walletId }.size
+
+    /** The active account's wallet as the how-manieth, from 1, in the accounts' order: what an unnamed wallet is called by. */
+    val activeWalletNumber: Int
+        get() = accounts.map { it.account.walletId }.distinct().indexOf(activeAccount?.account?.walletId) + 1
+
     /** What [received] notes not claimed yet are worth, as far as known: not in [balanceMsat]. */
     val incomingMsat: Long
         get() = received.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }

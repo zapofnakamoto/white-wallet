@@ -8,6 +8,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -262,6 +264,7 @@ class HomeScreenTest {
         val main = AccountSummary(Account("a", "Main", 0), 0)
         show(HomeState(accounts = listOf(main), activeAccountId = "a", showAccounts = false))
         compose.onNodeWithText("Main").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Main").assertDoesNotExist()
     }
 
     @Test
@@ -269,9 +272,64 @@ class HomeScreenTest {
         val main = AccountSummary(Account("a", "Main", 0), 0)
         val savings = AccountSummary(Account("b", "Savings", 1, walletId = "a", index = 1), 0)
         show(HomeState(accounts = listOf(main, savings), activeAccountId = "a"))
-        compose.onNodeWithText("Main").performClick()
+        // One wallet: the mark in the top bar is all there is of the account, read out by its name.
+        compose.onNodeWithText("Main").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Main").performClick()
         compose.onNodeWithText("Savings").assertExists()
         compose.onNodeWithText(text(R.string.accounts_manage)).assertExists()
+    }
+
+    @Test
+    fun theAccountMarkIsOnEveryTab() {
+        val main = AccountSummary(Account("a", "Main", 0), 0)
+        val savings = AccountSummary(Account("b", "Savings", 1, walletId = "a", index = 1), 0)
+        show(HomeState(accounts = listOf(main, savings), activeAccountId = "b"))
+        compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
+        compose.onNodeWithContentDescription("Savings").assertExists()
+    }
+
+    @Test
+    fun withSeveralWalletsTheWalletIsNamedWithTheAccount() {
+        val main = AccountSummary(Account("a", "Main", 0), 0)
+        val other = AccountSummary(Account("c", "Main", 2), 0)
+        show(HomeState(accounts = listOf(main, other), activeAccountId = "c", walletNames = mapOf("a" to "Family")))
+        val name = text(R.string.home_account_in_wallet, text(R.string.accounts_wallet, 2), "Main")
+        compose.onNodeWithContentDescription(name).assertExists()
+        compose.onNodeWithText(name).performClick()
+        // The switcher: the wallet in use, the other one a step away.
+        compose.onNodeWithText(plural(R.plurals.accounts_other_wallets, 1, 1)).assertExists()
+    }
+
+    @Test
+    fun aNamedWalletGoesByItsName() {
+        val main = AccountSummary(Account("a", "Main", 0), 0)
+        val other = AccountSummary(Account("c", "Main", 2), 0)
+        show(HomeState(accounts = listOf(main, other), activeAccountId = "a", walletNames = mapOf("a" to "Family")))
+        compose.onNodeWithText(text(R.string.home_account_in_wallet, "Family", "Main")).assertExists()
+    }
+
+    @Test
+    fun refreshingIsAPullAndAnActionForWhoCannotPull() {
+        var refreshed = 0
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                HomeState(balanceMsat = 845_000),
+                onSend = {},
+                onReceive = {},
+                onRefresh = { refreshed++ },
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onOpenAddresses = {},
+                accountActions = AccountActions({}, {}, {}),
+            )
+        }
+        compose.onNodeWithContentDescription(text(DesignR.string.refresh)).assertDoesNotExist()
+        val actions = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions)).fetchSemanticsNode()
+        val refresh = actions.config[SemanticsActions.CustomActions].single { it.label == text(DesignR.string.refresh) }
+        refresh.action()
+        assertEquals(1, refreshed)
     }
 
     @Test

@@ -166,4 +166,6 @@
         <item quantity="one">%1$d other wallet</item>
         <item quantity="other">%1$d other wallets</item>
     </plurals>
+    <!-- The account in use, with several wallets, over the balance. %1$s: the wallet's name, %2$s: the account's. -->
+    <string name="home_account_in_wallet">%1$s · %2$s</string>
 </resources>

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -41,12 +42,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.Ref
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -76,7 +82,6 @@ import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.ReleaseNotesSheet
 import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletActivityIcon
-import whitewallet.core.designsystem.WalletAssistChip
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCircularProgress
@@ -90,6 +95,7 @@ import whitewallet.core.designsystem.WithReleaseBadge
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.loadingPhase
 import whitewallet.core.designsystem.recentTime
+import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
@@ -240,12 +246,11 @@ fun HomeScreen(
                 if (tab == HomeTab.Wallet && onScan != null) {
                     IconButton(onClick = onScan) { Icon(painterResource(DesignR.drawable.ic_qr_scan), stringResource(R.string.home_scan)) }
                 }
-                IconButton(onClick = if (tab == HomeTab.Notes) notesTab!!.onRefresh else onRefresh) {
-                    Icon(painterResource(DesignR.drawable.ic_refresh), stringResource(DesignR.string.refresh))
-                }
                 IconButton(onClick = onSettings) {
                     Icon(painterResource(DesignR.drawable.ic_settings), stringResource(DesignR.string.settings))
                 }
+                // The account in use, on every tab: its mark opens the switcher. Refreshing is a pull on the page.
+                if (state.showAccounts) state.activeAccount?.let { AccountButton(state, it) { showAccounts = true } }
                 if (menu.isNotEmpty()) MenuButton(menu)
             }
             if (tab == HomeTab.Wallet) {
@@ -274,10 +279,22 @@ fun HomeScreen(
     ) { padding ->
         val notes = notesTab?.takeIf { tab == HomeTab.Notes }
         val cover = figuresCover(state.loaded, state.task, state.refreshing)
+        val refresh = notes?.onRefresh ?: onRefresh
+        val refreshLabel = stringResource(DesignR.string.refresh)
         PullToRefreshBox(
             isRefreshing = cover == null && (notes?.refreshing ?: state.refreshing),
-            onRefresh = notes?.onRefresh ?: onRefresh,
-            modifier = Modifier.padding(padding).fillMaxSize(),
+            onRefresh = refresh,
+            // Who can't pull (a screen reader, a switch) refreshes by this action.
+            modifier =
+                Modifier.padding(padding).fillMaxSize().semantics {
+                    customActions =
+                        listOf(
+                            CustomAccessibilityAction(refreshLabel) {
+                                refresh()
+                                true
+                            }
+                        )
+                },
         ) {
             when {
                 cover is Cover.Working -> LoadingScreen(cover.task, state)
@@ -461,7 +478,29 @@ private fun workingText(task: WalletTask, state: HomeState): String {
     return stringResource(words)
 }
 
-/** Balance, account and the two actions, centred; notices only when something needs the user. */
+/** The active account's wallet and name, as one line: the wallet by the name the user gave it, else its number. */
+@Composable
+private fun accountInWallet(state: HomeState, active: AccountSummary): String {
+    val wallet = state.walletNames[active.account.walletId] ?: stringResource(R.string.accounts_wallet, state.activeWalletNumber)
+    return stringResource(R.string.home_account_in_wallet, wallet, active.account.name)
+}
+
+/** The account in use as its mark, in the top bar: opens the switcher. Read out by its name (and wallet, with several). */
+@Composable
+private fun AccountButton(state: HomeState, active: AccountSummary, onClick: () -> Unit) {
+    val name = if (state.walletCount > 1) accountInWallet(state, active) else active.account.name
+    Box(
+        Modifier.size(48.dp)
+            .clip(CircleShape)
+            .clickable(onClickLabel = stringResource(R.string.home_switch_account), role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = name },
+        contentAlignment = Alignment.Center,
+    ) {
+        WalletAccountMark(active.account.name, state.accounts.indexOf(active), size = 32.dp)
+    }
+}
+
+/** Balance and the two actions, centred; notices only when something needs the user. */
 @Composable
 private fun WalletTab(
     state: HomeState,
@@ -503,6 +542,18 @@ private fun WalletTab(
             if (state.showScanPrompt) ScanPrompt(onScanMints)
             if (state.showBackupPrompt) BackupPrompt(onBackup, onDismissBackup)
             WalletStatusScope(state.status) { BrandDecoration(Anchor.HomeHeader) }
+            // With several wallets, an account's name alone doesn't say whose money this is: the wallet is named too.
+            if (state.showAccounts && state.walletCount > 1) {
+                state.activeAccount?.let {
+                    Text(
+                        accountInWallet(state, it),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.clickable(onClick = onAccounts),
+                    )
+                }
+            }
             AmountText(state.balanceMsat, hidden = state.balanceHidden, onToggleHidden = onToggleBalance)
             // Received but not claimed yet: next to the balance, never in it.
             if (state.received.any { it.isPending }) {
@@ -531,20 +582,6 @@ private fun WalletTab(
             if (state.status == WalletStatus.Empty && !state.balanceHidden) {
                 Text(stringResource(R.string.home_wallet_empty), textAlign = TextAlign.Center)
             }
-            val activeIndex = state.accounts.indexOfFirst { it.account.id == state.activeAccountId }
-            state.accounts
-                .getOrNull(activeIndex)
-                ?.takeIf { state.showAccounts }
-                ?.let { active ->
-                    WalletAssistChip(
-                        onClick = onAccounts,
-                        label = { Text(active.account.name) },
-                        leadingIcon = { WalletAccountMark(active.account.name, activeIndex, size = 24.dp) },
-                        trailingIcon = {
-                            Icon(painterResource(DesignR.drawable.ic_arrow_drop_down), stringResource(R.string.home_switch_account))
-                        },
-                    )
-                }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 val soon = stringResource(R.string.home_send_soon)
                 PrimaryButton(
