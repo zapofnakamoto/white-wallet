@@ -224,4 +224,11 @@
     </plurals>
     <!-- The account in use, with several wallets, over the balance. %1$s: the wallet's name, %2$s: the account's. -->
     <string name="home_account_in_wallet">%1$s · %2$s</string>
+    <plurals name="home_alerts_more">
+        <item quantity="one">%1$d more alert</item>
+        <item quantity="other">%1$d more alerts</item>
+    </plurals>
+    <string name="home_alerts_fewer">Show fewer</string>
+    <string name="home_alert_explain">Explain</string>
+    <string name="home_alert_hide">Hide the explanation</string>
 </resources>

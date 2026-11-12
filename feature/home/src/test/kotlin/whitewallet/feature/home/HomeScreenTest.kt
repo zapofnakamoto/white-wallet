@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -116,6 +117,27 @@ class HomeScreenTest {
     }
 
     @Test
+    fun severalAlertsShowTheMostImportantAndCountTheOthers() {
+        show(HomeState(activeAccountId = "a", inactiveAddress = "me@mint.example", showBackupPrompt = true, showScanPrompt = true))
+        compose.onNodeWithText(text(R.string.home_address_inactive_title)).assertExists()
+        compose.onNodeWithText(text(R.string.home_backup_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_scan_title)).assertDoesNotExist()
+        compose.onNodeWithText(plural(R.plurals.home_alerts_more, 2, 2)).performClick()
+        compose.onNodeWithText(text(R.string.home_backup_title)).assertExists()
+        compose.onNodeWithText(text(R.string.home_scan_title)).assertExists()
+        compose.onNodeWithText(text(R.string.home_alerts_fewer)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.home_backup_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun oneAlertIsNotCounted() {
+        show(HomeState(activeAccountId = "a", showBackupPrompt = true))
+        compose.onNodeWithText(text(R.string.home_backup_title)).assertExists()
+        compose.onNodeWithText(text(R.string.home_alerts_fewer)).assertDoesNotExist()
+        compose.onNodeWithText(plural(R.plurals.home_alerts_more, 1, 1)).assertDoesNotExist()
+    }
+
+    @Test
     fun aWalletWhoseScanIsNotFinishedOffersItUntilItIs() {
         var scans = 0
         compose.setContent {
@@ -133,7 +155,9 @@ class HomeScreenTest {
                 onScanMints = { scans++ },
             )
         }
-        compose.onNodeWithText(text(R.string.home_scan_title)).assertExists()
+        // The explanation shows once the title is tapped: the card stays small.
+        compose.onNodeWithText(text(R.string.home_scan_body)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_scan_title)).performClick()
         compose.onNodeWithText(text(R.string.home_scan_body)).assertExists()
         compose.onNodeWithText(text(R.string.home_scan_action)).performClick()
         assertEquals(1, scans)

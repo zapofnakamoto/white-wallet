@@ -122,6 +122,20 @@ data class HomeState(
     val keyChangedMint: String?
         get() = keyChangedHost ?: received.firstOrNull { it.state == ReceivedState.KeyChanged }?.host
 
+    /**
+     * What Home warns about, the most important first: the notes, then what keeps money from coming in, then the reminders. Home shows the
+     * first and says how many more there are.
+     */
+    val alerts: List<HomeAlert>
+        get() = buildList {
+            keyChangedMint?.let { add(HomeAlert.KeyChanged(it)) }
+            unknownNotes.forEach { add(HomeAlert.UnknownNotes(it)) }
+            inactiveAddress?.let { add(HomeAlert.AddressInactive(it)) }
+            if (showAddMintPrompt) add(HomeAlert.AddMint)
+            if (showBackupPrompt) add(HomeAlert.Backup)
+            if (showScanPrompt) add(HomeAlert.Scan)
+        }
+
     /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */
     val status: WalletStatus
         get() =
@@ -131,6 +145,21 @@ data class HomeState(
                 balanceMsat > 0 || sharedMsat > 0 || received.any { it.isPending } -> WalletStatus.Idle
                 else -> WalletStatus.Empty
             }
+}
+
+/** A card Home warns with, above the balance; see [HomeState.alerts]. */
+sealed interface HomeAlert {
+    data class KeyChanged(val host: String) : HomeAlert
+
+    data class UnknownNotes(val mint: AccountMint) : HomeAlert
+
+    data class AddressInactive(val address: String) : HomeAlert
+
+    data object AddMint : HomeAlert
+
+    data object Backup : HomeAlert
+
+    data object Scan : HomeAlert
 }
 
 /** What asking the mints again about the notes they don't know found ([HomeViewModel.recheckUnknown]). */

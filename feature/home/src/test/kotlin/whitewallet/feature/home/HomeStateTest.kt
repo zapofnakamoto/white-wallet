@@ -105,4 +105,30 @@ class HomeStateTest {
         assertEquals("c.example", HomeState(received = notes, keyChangedHost = "c.example").keyChangedMint)
         assertEquals(null, HomeState(received = notes.take(1)).keyChangedMint)
     }
+
+    @Test
+    fun `alerts come the notes first, then what keeps money from coming in, then the reminders`() {
+        val unknown = AccountMint("u.example", false, 0, 0, 0, trusted = true, unknownCount = 1, unknownMsat = 1_000)
+        val state =
+            HomeState(
+                keyChangedHost = "k.example",
+                unknownNotes = listOf(unknown),
+                inactiveAddress = "me@mint.example",
+                showAddMintPrompt = true,
+                showBackupPrompt = true,
+                showScanPrompt = true,
+            )
+        assertEquals(
+            listOf(
+                HomeAlert.KeyChanged("k.example"),
+                HomeAlert.UnknownNotes(unknown),
+                HomeAlert.AddressInactive("me@mint.example"),
+                HomeAlert.AddMint,
+                HomeAlert.Backup,
+                HomeAlert.Scan,
+            ),
+            state.alerts,
+        )
+        assertEquals(emptyList(), HomeState().alerts)
+    }
 }

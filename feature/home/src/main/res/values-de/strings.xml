@@ -188,4 +188,11 @@
         <item quantity="other">%1$d weitere Wallets</item>
     </plurals>
     <string name="home_account_in_wallet">%1$s · %2$s</string>
+    <plurals name="home_alerts_more">
+        <item quantity="one">%1$d weiterer Hinweis</item>
+        <item quantity="other">%1$d weitere Hinweise</item>
+    </plurals>
+    <string name="home_alerts_fewer">Weniger zeigen</string>
+    <string name="home_alert_explain">Erklären</string>
+    <string name="home_alert_hide">Erklärung ausblenden</string>
 </resources>
