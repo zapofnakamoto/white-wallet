@@ -81,15 +81,24 @@ data class HomeState(
     val received: List<ReceivedNote> = emptyList(),
     /** What the notes handed out as links and not claimed yet are worth: out of [balanceMsat], and still the user's to take back. */
     val sharedMsat: Long = 0,
-    /** The active account's mints that hold money of its balance: the home mint first, then the others by name. */
+    /** The active account's home mint, whatever it holds, then its other mints that hold money of the balance, the largest first. */
     val mints: List<AccountMint> = emptyList(),
 ) {
     /**
-     * The balance per mint, shown under it once it is on more than one: a payment is made from one mint's money, so the total alone
-     * promises more than can be sent at once. Not where the brand hides mints, nor while the balance is hidden.
+     * The balance per mint, shown under it once some of it is outside the home mint (or, without a home mint, on more than one): a payment
+     * is made from one mint's money, so the total alone promises more than can be sent at once. The home mint has its row even when empty.
+     * Not where the brand hides mints, nor while the balance is hidden.
      */
     val balanceByMint: List<AccountMint>
-        get() = mints.takeIf { mintsVisible && !balanceHidden && it.size > 1 }.orEmpty()
+        get() = mints.takeIf { mintsVisible && !balanceHidden && it.size > 1 && it.any { m -> !m.isHome } }.orEmpty()
+
+    /** The rows Home has room for: all of [balanceByMint] up to [MINT_ROWS] and one, else the first [MINT_ROWS]. */
+    val mintRows: List<AccountMint>
+        get() = balanceByMint.let { if (it.size > MINT_ROWS + 1) it.take(MINT_ROWS) else it }
+
+    /** The mints of [balanceByMint] without a row of their own: told as one row, with what they hold together. */
+    val moreMints: List<AccountMint>
+        get() = balanceByMint.drop(mintRows.size)
 
     val activeAccount: AccountSummary?
         get() = accounts.firstOrNull { it.account.id == activeAccountId }
@@ -120,6 +129,9 @@ data class HomeState(
                 else -> WalletStatus.Empty
             }
 }
+
+/** How many mints have a row of their own under the balance; one more is shown rather than counted as "1 more". */
+private const val MINT_ROWS = 3
 
 @HiltViewModel
 class HomeViewModel(
@@ -217,7 +229,10 @@ class HomeViewModel(
                 status.update {
                     it.copy(
                         unknownNotes = mints.filter { m -> m.unknownCount > 0 },
-                        mints = mints.filter { m -> m.balanceMsat > 0 }.sortedWith(compareBy({ m -> !m.isHome }, { m -> m.host })),
+                        mints =
+                            mints
+                                .filter { m -> m.isHome || m.balanceMsat > 0 }
+                                .sortedWith(compareBy({ m -> !m.isHome }, { m -> -m.balanceMsat }, { m -> m.host })),
                     )
                 }
             }

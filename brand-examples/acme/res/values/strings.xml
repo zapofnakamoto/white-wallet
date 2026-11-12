@@ -212,6 +212,10 @@
     <string name="home_add_mint_body">This wallet has no provider yet, so nothing can be received. Adding the provider you use finds the money your recovery phrase holds there.</string>
     <string name="home_add_mint_action">Add provider</string>
     <string name="home_mint_is_home">Provider</string>
+    <plurals name="home_more_mints">
+        <item quantity="one">%1$d more provider</item>
+        <item quantity="other">%1$d more providers</item>
+    </plurals>
     <string name="address_fee_body">This provider charges %1$s to register an address, once. You can reserve the name now and pay when you like.</string>
     <string name="address_held_body">Pay %1$s to finish. The provider holds the name for a limited time; if the invoice runs out, you can try again.</string>
     <string name="onboarding_error_fee">This provider asks %1$s for an address, more than the %2$s this app accepts.</string>

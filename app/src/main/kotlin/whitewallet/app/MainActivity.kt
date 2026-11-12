@@ -389,6 +389,7 @@ private fun WalletApp(
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
                 onAddMint = { nav.navigate(Routes.ADD_MINT) },
                 onScanMints = { nav.navigate(Routes.scanNotes(start = true)) },
+                onOpenMints = { nav.navigate(Routes.ACCOUNT_MINTS) },
                 menu =
                     brand.on(BrandScreenEntry.HomeMenu).map { screen ->
                         HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) }

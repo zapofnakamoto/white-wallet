@@ -130,6 +130,8 @@ fun HomeRoute(
     onAddMint: () -> Unit = {},
     /** Opens the scan of the wallet's mints, started, while one wasn't looked through. */
     onScanMints: () -> Unit = {},
+    /** Opens the account's mints (Account → Your mints). */
+    onOpenMints: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     releaseNotes: ReleaseNotesViewModel = hiltViewModel(),
 ) {
@@ -162,6 +164,7 @@ fun HomeRoute(
         onScan,
         onAddMint,
         onScanMints,
+        onOpenMints,
     )
 }
 
@@ -210,6 +213,7 @@ fun HomeScreen(
     onScan: (() -> Unit)? = null,
     onAddMint: () -> Unit = {},
     onScanMints: () -> Unit = {},
+    onOpenMints: () -> Unit = {},
 ) {
     var saved by rememberSaveable { mutableStateOf(HomeTab.Wallet) }
     val tab = saved.takeIf { it != HomeTab.Notes || notesTab != null } ?: HomeTab.Wallet
@@ -324,6 +328,7 @@ fun HomeScreen(
                                 onDismissReceived,
                                 onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
                                 onOpenShared = { saved = if (notesTab != null) HomeTab.Notes else HomeTab.History },
+                                onOpenMints,
                                 onAddMint,
                                 onScanMints,
                             )
@@ -525,6 +530,8 @@ private fun WalletTab(
     onOpenIncoming: (() -> Unit)?,
     /** Opens where the notes handed out are listed, each leading to its QR code and to taking it back. */
     onOpenShared: () -> Unit,
+    /** Opens the account's mints, all of them, for those without a row here. */
+    onOpenMints: () -> Unit,
     onAddMint: () -> Unit,
     onScanMints: () -> Unit,
 ) {
@@ -573,7 +580,7 @@ private fun WalletTab(
                     modifier = onOpenIncoming?.let { Modifier.clickable(onClick = it) } ?: Modifier,
                 )
             }
-            if (state.balanceByMint.isNotEmpty()) BalanceByMint(state.balanceByMint, onOpenMint)
+            if (state.mintRows.isNotEmpty()) BalanceByMint(state.mintRows, state.moreMints, onOpenMint, onOpenMints)
             // Handed out as links and not claimed yet: out of the balance, and the user's until someone claims them.
             if (state.sharedMsat > 0) {
                 Text(
@@ -873,9 +880,12 @@ private fun UnknownNotesCard(mint: AccountMint, mintsVisible: Boolean, balanceHi
     }
 }
 
-/** What of the balance is on which mint, a row each, leading to the mint's page. */
+/**
+ * What of the balance is on which mint, a row each, leading to the mint's page. The mints [more] share a last row, with what they hold
+ * together, leading to the account's mints.
+ */
 @Composable
-private fun BalanceByMint(mints: List<AccountMint>, onOpenMint: (String) -> Unit) {
+private fun BalanceByMint(mints: List<AccountMint>, more: List<AccountMint>, onOpenMint: (String) -> Unit, onOpenMints: () -> Unit) {
     WalletCard(modifier = Modifier.fillMaxWidth()) {
         mints.forEach { mint ->
             WalletListItem(
@@ -883,6 +893,13 @@ private fun BalanceByMint(mints: List<AccountMint>, onOpenMint: (String) -> Unit
                 supportingContent = if (mint.isHome) ({ Text(stringResource(R.string.home_mint_is_home)) }) else null,
                 trailingContent = { Text(formatAmount(mint.balanceMsat), style = MaterialTheme.typography.titleMedium) },
                 modifier = Modifier.clickable { onOpenMint(mint.host) },
+            )
+        }
+        if (more.isNotEmpty()) {
+            WalletListItem(
+                headlineContent = { Text(pluralStringResource(R.plurals.home_more_mints, more.size, more.size)) },
+                trailingContent = { Text(formatAmount(more.sumOf { it.balanceMsat }), style = MaterialTheme.typography.titleMedium) },
+                modifier = Modifier.clickable(onClick = onOpenMints),
             )
         }
     }

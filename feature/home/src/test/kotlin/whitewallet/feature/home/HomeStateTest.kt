@@ -69,6 +69,26 @@ class HomeStateTest {
     }
 
     @Test
+    fun `an empty home mint has its row once money is on another mint`() {
+        val mints = listOf(mint("a.example", 0, home = true), mint("b.example", 2_000))
+        assertEquals(mints, HomeState(mints = mints).balanceByMint)
+        // Without a home mint, one mint is the total alone.
+        assertEquals(emptyList(), HomeState(mints = mints.drop(1)).balanceByMint)
+    }
+
+    @Test
+    fun `up to four mints have a row each, more share a last one`() {
+        val mints = listOf(mint("home.example", 9_000, home = true)) + (1..9).map { mint("m$it.example", 1_000L * (10 - it)) }
+        val four = HomeState(mints = mints.take(4))
+        assertEquals(4, four.mintRows.size)
+        assertEquals(emptyList(), four.moreMints)
+        val ten = HomeState(mints = mints)
+        assertEquals(listOf("home.example", "m1.example", "m2.example"), ten.mintRows.map { it.host })
+        assertEquals(7, ten.moreMints.size)
+        assertEquals(ten.mints.sumOf { it.balanceMsat }, (ten.mintRows + ten.moreMints).sumOf { it.balanceMsat })
+    }
+
+    @Test
     fun `the key change a refresh found comes first, then a received note's`() {
         val notes =
             listOf(received("w", ReceivedState.Waiting, host = "a.example"), received("k", ReceivedState.KeyChanged, host = "b.example"))

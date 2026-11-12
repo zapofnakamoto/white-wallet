@@ -5,6 +5,10 @@
     <string name="home_add_mint_body">Diese Wallet hat noch keine Mint, deshalb kann nichts empfangen werden. Fügst du die Mint hinzu, die du benutzt, wird das Geld gefunden, das deine Wiederherstellungsphrase dort hat.</string>
     <string name="home_add_mint_action">Mint hinzufügen</string>
     <string name="home_mint_is_home">Haupt-Mint</string>
+    <plurals name="home_more_mints">
+        <item quantity="one">%1$d weitere Mint</item>
+        <item quantity="other">%1$d weitere Mints</item>
+    </plurals>
     <string name="activity_moved_mint_other">Zu einer anderen Mint verschoben</string>
     <string name="home_tab_notes">Scheine</string>
     <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Schein ein.</string>

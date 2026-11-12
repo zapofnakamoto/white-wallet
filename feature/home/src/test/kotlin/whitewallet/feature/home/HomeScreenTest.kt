@@ -762,6 +762,36 @@ class HomeScreenTest {
     }
 
     @Test
+    fun manyMintsShareALastRowThatLeadsToTheAccountsMints() {
+        var opened = 0
+        val mints =
+            listOf(AccountMint("home.example", true, 0, 0, 0, true)) +
+                (1..5).map { AccountMint("m$it.example", false, 1_000_000L * (6 - it), 1, 0, true) }
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                HomeState(activeAccountId = "a", balanceMsat = 15_000_000, mints = mints),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onOpenAddresses = {},
+                accountActions = AccountActions({}, {}, {}),
+                onOpenMints = { opened++ },
+            )
+        }
+        // The home mint has its row though empty, then the two largest; the other three share a row.
+        compose.onNodeWithText("home.example").assertExists()
+        compose.onNodeWithText("m2.example").assertExists()
+        compose.onNodeWithText("m3.example").assertDoesNotExist()
+        compose.onNodeWithText("₿6,000").assertExists()
+        compose.onNodeWithText(plural(R.plurals.home_more_mints, 3, 3)).performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
     fun theAccountMarkHasTheRefreshButtonsPlace() {
         val main = AccountSummary(Account("a", "Main", 0), 0)
         val savings = AccountSummary(Account("b", "Savings", 1, walletId = "a", index = 1), 0)

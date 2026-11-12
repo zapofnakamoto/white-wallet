@@ -20,10 +20,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   and `home_shared_title`; a brand that overrode `notes_waiting_total` and `notes_shared_title` words these alike.
 - The account switcher lists the accounts of the wallet in use. Other wallets' accounts show after a tap on
   "N other wallets" (`accounts_other_wallets`), so changing to another recovery phrase is a step of its own.
-- Home shows the balance per mint under the total once an account's money is on more than one: a row per mint,
-  the home mint first, each leading to the mint's page. A payment is made from one mint's money, so the total
-  alone promised more than could be sent at once. One mint, a hidden balance or `mints.visible=false` show the
-  total alone. New brand term `home_mint_is_home`.
+- Home shows the balance per mint under the total once some of an account's money is outside its home mint: the
+  home mint first (also when empty), then the others by amount, each row leading to the mint's page. Up to four
+  mints have a row; with more, three do and a last row ("4 more mints", with what they hold together) opens the
+  account's mints. A payment is made from one mint's money, so the total alone promised more than could be sent
+  at once. Money on the home mint alone, a hidden balance or `mints.visible=false` show the total alone. New
+  brand terms `home_mint_is_home` and `home_more_mints`.
 - Send says, before a destination is entered, how much one payment can be when that is less than the balance
   ("You can send up to ₿6,000 of your ₿8,000 in one payment…", `send_limit_one_payment`).
 - The account in use is its mark in Home's top bar, on every tab, in place of the chip under the balance; a tap

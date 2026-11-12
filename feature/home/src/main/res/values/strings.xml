@@ -10,6 +10,11 @@
     <string name="home_add_mint_body">This wallet has no mint yet, so nothing can be received. Adding the mint you use finds the money your recovery phrase holds there.</string>
     <string name="home_add_mint_action">Add mint</string>
     <string name="home_mint_is_home">Home mint</string>
+    <!-- The mints without a row of their own under the balance, as one row. %1$d: how many. -->
+    <plurals name="home_more_mints">
+        <item quantity="one">%1$d more mint</item>
+        <item quantity="other">%1$d more mints</item>
+    </plurals>
     <string name="activity_moved_mint_other">Moved to another mint</string>
     <string name="home_tab_notes">Notes</string>
     <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>
