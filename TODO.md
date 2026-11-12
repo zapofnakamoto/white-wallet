@@ -178,3 +178,13 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     fresh install finds it. Reproduced on regtest on 2026-11-11 and left as it is by decision that day (the payer
     has to hold the invoice across the payee's refresh). A fix would look again at keys that were unused when
     passed, and keep scanning the old keys for a while after the move.
+26. **Move funds shown mint by mint.** A move of everything is one operation per mint, each with its own outcome
+    (2026-11-12): today a summary says what moved, what waits for an answer and what stayed (`MoveResult`, with
+    `stayed` and `pending` per mint), and a dialog asks before a move that can't be whole (`Wallet.checkMoveFunds`).
+    With the money at more than one mint and mints shown, a row per mint would say it directly, in all three
+    moments: before (what each mint holds, whether it can take part), during (rows finishing one by one) and after
+    (moved, waiting for an answer, no answer with "Try again", a signing key to look at). The rows replace the
+    dialog, show why an amount fits no single mint, and give the mint's page a place before the move (today its
+    link is only on the result). With one mint, or `mints.visible=false`, the summary stays. Also open there: the
+    "will be added to the mints of" line isn't refreshed when the other wallet's mints change while the screen is
+    open, and nothing but History says how a move that waited for an answer ended.
