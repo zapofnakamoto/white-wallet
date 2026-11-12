@@ -131,6 +131,11 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `home_unknown_title_unnamed` | Your mint doesn't know %1$d of your notes / Your mint doesn't know %1$d of your notes (plural) |
 | `home_unknown_body` | %1$s isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it's back. / %1$s isn't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they're back. (plural) |
 | `home_unknown_body_hidden` | It isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it's back. / They aren't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they're back. (plural) |
+| `home_unknown_help` | There's nothing you need to do. If it stays this way, ask the mint's operator. |
+| `home_unknown_show` | Show note / Show notes (plural) |
+| `notice_unknown_back` | A note is back in your balance: the mint knows it again. / %1$d notes are back in your balance: the mint knows them again. (plural) |
+| `notice_unknown_still` | Asked just now: the mint still doesn't know your note. / Asked just now: the mint still doesn't know your notes. (plural) |
+| `notice_unknown_unreachable_unnamed` | Couldn't reach the mint. Your wallet asks again later. |
 | `claim_key_changed` | %1$s now signs with another key than the one your wallet knows, so nothing is sent there yet. Keep it, and your wallet claims it once you accept the new key in the mint's details. |
 | `claim_kept_key_changed` | Kept. Your wallet claims it once you accept the mint's new signing key in its details. |
 | `home_working_moving_home` | Moving your money to your home mint… |

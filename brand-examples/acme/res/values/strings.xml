@@ -97,6 +97,20 @@
         <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the banknote and asks the provider again by itself; once the provider knows it again, it\'s back.</item>
         <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, they\'re back.</item>
     </plurals>
+    <string name="home_unknown_help">There\'s nothing you need to do. If it stays this way, ask the provider.</string>
+    <plurals name="home_unknown_show">
+        <item quantity="one">Show banknote</item>
+        <item quantity="other">Show banknotes</item>
+    </plurals>
+    <plurals name="notice_unknown_back">
+        <item quantity="one">A banknote is back in your balance: the provider knows it again.</item>
+        <item quantity="other">%1$d banknotes are back in your balance: the provider knows them again.</item>
+    </plurals>
+    <plurals name="notice_unknown_still">
+        <item quantity="one">Asked just now: the provider still doesn\'t know your banknote.</item>
+        <item quantity="other">Asked just now: the provider still doesn\'t know your banknotes.</item>
+    </plurals>
+    <string name="notice_unknown_unreachable_unnamed">Couldn\'t reach the provider. Your wallet asks again later.</string>
     <string name="notes_already_spent">This banknote was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
     <string name="notes_empty">No banknotes yet. Banknotes appear here once you receive money.</string>
     <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your banknotes again on every refresh.</string>

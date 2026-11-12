@@ -126,7 +126,10 @@ class RegtestUnknownNoteTest {
             alice.store.upsertNotes(listOf(note.copy(state = NoteState.Unknown)))
             val unknown = alice.unknownNote(5000)
             assertEquals(NoteCheck.Unknown, alice.wallet.recheckNote(unknown.id))
+            val before = alice.wallet.now()
             assertEquals(NotesCheck(checked = 1, gone = 0, unreachable = emptyList(), unknown = 1), alice.wallet.recheckUnknownNotes())
+            val asked = alice.wallet.accountMints.first().single { it.unknownCount > 0 }.unknownAskedAtMillis
+            assertTrue(asked >= before, "the mint's answer is when it was last asked")
             assertEquals(NoteState.Outstanding, alice.state(note))
             assertEquals(NoteState.Unknown, alice.state(unknown))
         }

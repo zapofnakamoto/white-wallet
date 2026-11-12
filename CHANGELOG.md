@@ -14,6 +14,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- Home's card about notes a mint doesn't know answers a tap on "Check again": a short message says the notes are
+  back, that the mint still doesn't know them, or that it couldn't be reached (before, nothing showed unless the
+  notes came back). The card says when the mint was last asked and that there is nothing to do but wait or ask the
+  mint's operator, and "Show notes" opens the Notes tab in an app with one. New brand terms `home_unknown_help`,
+  `home_unknown_show`, `notice_unknown_back`, `notice_unknown_still` and `notice_unknown_unreachable_unnamed`: a
+  brand with its own words for the mint or the note rewrites them (see `docs/WHITE_LABEL.md`). Also new:
+  `home_unknown_asked`, `home_unknown_asked_now` and `notice_unknown_unreachable`.
 - Home says what the notes handed out as links and not claimed yet are worth, under the balance ("₿3,000 shared,
   not claimed yet"): the money left the balance when the note was made, and is the user's to take back until
   someone claims it. A tap opens the Notes tab, or History in an app without one. New strings `home_shared_total`

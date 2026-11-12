@@ -6,6 +6,7 @@ import whitewallet.brand.WalletStatus
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.AccountMint
+import whitewallet.core.wallet.NotesCheck
 
 /** What Home makes of received notes: shown apart from the balance, counted as incoming while they may still arrive. */
 class HomeStateTest {
@@ -55,6 +56,14 @@ class HomeStateTest {
     @Test
     fun `a wallet whose money is all in notes handed out isn't empty`() {
         assertEquals(WalletStatus.Idle, HomeState(activeAccountId = "a", sharedMsat = 1_000).status)
+    }
+
+    @Test
+    fun `asking again about unknown notes tells one thing, good news first, and nothing when there was nothing to ask`() {
+        assertEquals(UnknownCheck.Back(1), UnknownCheck.of(NotesCheck(1, 0, listOf("b.example"), unknown = 2)))
+        assertEquals(UnknownCheck.Unreachable("b.example"), UnknownCheck.of(NotesCheck(0, 0, listOf("b.example"), unknown = 2)))
+        assertEquals(UnknownCheck.Still(2), UnknownCheck.of(NotesCheck(0, 0, emptyList(), unknown = 2)))
+        assertEquals(null, UnknownCheck.of(NotesCheck(0, 0, emptyList())))
     }
 
     private fun mint(host: String, msat: Long, home: Boolean = false) = AccountMint(host, home, msat, 1, 0, trusted = true)

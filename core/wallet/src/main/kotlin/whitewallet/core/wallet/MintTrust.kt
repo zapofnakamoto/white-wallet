@@ -91,6 +91,8 @@ data class AccountMint(
     /** Notes there the mint says it doesn't know ([whitewallet.core.model.NoteState.Unknown]), and what they were worth. */
     val unknownCount: Int = 0,
     val unknownMsat: Long = 0,
+    /** When the mint last said so about one of them (0: none are unknown). */
+    val unknownAskedAtMillis: Long = 0,
 )
 
 /** What [Wallet.removeMint] did. */

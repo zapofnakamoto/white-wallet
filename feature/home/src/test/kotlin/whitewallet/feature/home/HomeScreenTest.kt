@@ -485,6 +485,100 @@ class HomeScreenTest {
         compose.onNodeWithText("3 Scheine erneuert").assertExists()
     }
 
+    private fun unknown(askedAtMillis: Long = 0) =
+        AccountMint(
+            "mint.example",
+            true,
+            0,
+            0,
+            0,
+            trusted = true,
+            unknownCount = 2,
+            unknownMsat = 5_000,
+            unknownAskedAtMillis = askedAtMillis,
+        )
+
+    @Test
+    fun askingAgainAlwaysHasAnAnswer() {
+        show(HomeState(unknownNotes = listOf(unknown()), unknownCheck = UnknownCheck.Still(2)))
+        compose.onNodeWithText(plural(R.plurals.notice_unknown_still, 2)).assertExists()
+    }
+
+    @Test
+    fun aMintThatDidNotAnswerIsNamedWhereMintsAre() {
+        show(HomeState(unknownCheck = UnknownCheck.Unreachable("mint.example")))
+        compose.onNodeWithText(text(R.string.notice_unknown_unreachable, "mint.example")).assertExists()
+    }
+
+    @Test
+    fun aMintThatDidNotAnswerIsNotNamedWhereMintsAreHidden() {
+        show(HomeState(unknownCheck = UnknownCheck.Unreachable("mint.example"), mintsVisible = false))
+        compose.onNodeWithText(text(R.string.notice_unknown_unreachable_unnamed)).assertExists()
+    }
+
+    @Test
+    fun notesBackInTheBalanceAreTold() {
+        show(HomeState(unknownCheck = UnknownCheck.Back(1)))
+        compose.onNodeWithText(plural(R.plurals.notice_unknown_back, 1, 1)).assertExists()
+    }
+
+    @Test
+    fun theUnknownNotesCardSaysWhenTheMintWasLastAskedAndThatNothingIsToDo() {
+        show(HomeState(unknownNotes = listOf(unknown(askedAtMillis = System.currentTimeMillis()))))
+        compose.onNodeWithText(text(R.string.home_unknown_help)).assertExists()
+        compose.onNodeWithText(text(R.string.home_unknown_asked_now)).assertExists()
+    }
+
+    @Test
+    fun theUnknownNotesCardSaysHowLongAgoTheMintWasAsked() {
+        show(HomeState(unknownNotes = listOf(unknown(askedAtMillis = System.currentTimeMillis() - 5 * 60_000))))
+        compose.onNodeWithText(text(R.string.home_unknown_asked, "5 minutes ago")).assertExists()
+    }
+
+    @Test
+    fun theUnknownNotesCardLeadsToTheNotesWhereTheAppShowsThem() {
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                HomeState(unknownNotes = listOf(unknown())),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onOpenAddresses = {},
+                accountActions = AccountActions({}, {}, {}),
+                notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, actions = {}, content = { Text("the notes") }),
+            )
+        }
+        compose.onNodeWithText(plural(R.plurals.home_unknown_show, 2)).performClick()
+        compose.onNodeWithText("the notes").assertExists()
+    }
+
+    @Test
+    fun withoutANotesViewTheUnknownNotesCardOnlyAsksAgain() {
+        var asked = 0
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                HomeState(unknownNotes = listOf(unknown())),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onOpenAddresses = {},
+                accountActions = AccountActions({}, {}, {}),
+                onRecheckUnknown = { asked++ },
+            )
+        }
+        compose.onNodeWithText(plural(R.plurals.home_unknown_show, 2)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_unknown_action)).performClick()
+        assertEquals(1, asked)
+    }
+
     @Test
     fun withoutNotesOnlyTheBalanceIsTold() {
         show(HomeState(notice = MaintenanceNotice.BalanceChanged(-1_000)))

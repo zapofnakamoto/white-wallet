@@ -83,6 +83,24 @@
         <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it\'s back.</item>
         <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they\'re back.</item>
     </plurals>
+    <!-- Under the card's text: the user has nothing to do, and who to turn to. -->
+    <string name="home_unknown_help">There\'s nothing you need to do. If it stays this way, ask the mint\'s operator.</string>
+    <!-- Opens the notes view, where the notes the mint doesn't know are marked. The count is how many those are. -->
+    <plurals name="home_unknown_show">
+        <item quantity="one">Show note</item>
+        <item quantity="other">Show notes</item>
+    </plurals>
+    <!-- Short messages after "Check again": what the mint answered. %1$d: how many notes. -->
+    <plurals name="notice_unknown_back">
+        <item quantity="one">A note is back in your balance: the mint knows it again.</item>
+        <item quantity="other">%1$d notes are back in your balance: the mint knows them again.</item>
+    </plurals>
+    <plurals name="notice_unknown_still">
+        <item quantity="one">Asked just now: the mint still doesn\'t know your note.</item>
+        <item quantity="other">Asked just now: the mint still doesn\'t know your notes.</item>
+    </plurals>
+    <!-- It got no answer, where mints aren't named (brand mints.visible=false) or it isn't known which; else notice_unknown_unreachable. -->
+    <string name="notice_unknown_unreachable_unnamed">Couldn\'t reach the mint. Your wallet asks again later.</string>
 
     <string name="home_receive">Receive</string>
     <string name="home_send">Send</string>
@@ -129,6 +147,11 @@
     <string name="home_address_inactive_body">Payments to %1$s won\'t reach this wallet. Check your addresses to keep receiving.</string>
     <string name="home_address_inactive_action">Show addresses</string>
     <string name="home_unknown_action">Check again</string>
+    <!-- When the mint last said it doesn't know them. %1$s: how long ago, in the phone's own words ("5 minutes ago"). -->
+    <string name="home_unknown_asked">Last asked: %1$s</string>
+    <string name="home_unknown_asked_now">Last asked: just now</string>
+    <!-- "Check again" got no answer. %1$s: the mint. -->
+    <string name="notice_unknown_unreachable">Couldn\'t reach %1$s. Your wallet asks again later.</string>
     <string name="accounts_title">Accounts</string>
     <string name="accounts_manage">Manage wallets</string>
     <string name="accounts_move">Move funds</string>

@@ -1,5 +1,6 @@
 package whitewallet.feature.home
 
+import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -37,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -61,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import whitewallet.brand.MaintenanceStep
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.WalletTask
@@ -160,6 +163,7 @@ fun HomeRoute(
         menu,
         onNoticeShown = viewModel::noticeShown,
         onRecheckUnknown = viewModel::recheckUnknown,
+        onUnknownCheckShown = viewModel::unknownCheckShown,
         onDismissReceived = viewModel::dismissReceived,
         onScan,
         onAddMint,
@@ -209,6 +213,7 @@ fun HomeScreen(
     menu: List<HomeMenuItem> = emptyList(),
     onNoticeShown: () -> Unit = {},
     onRecheckUnknown: () -> Unit = {},
+    onUnknownCheckShown: () -> Unit = {},
     onDismissReceived: (String) -> Unit = {},
     onScan: (() -> Unit)? = null,
     onAddMint: () -> Unit = {},
@@ -231,6 +236,13 @@ fun HomeScreen(
                 historyFilters = setOf(HistoryFilter.Maintenance)
                 saved = HomeTab.History
             }
+        }
+    }
+    state.unknownCheck?.let { check ->
+        val message = unknownCheckMessage(check, state.mintsVisible)
+        LaunchedEffect(check) {
+            snackbars.showSnackbar(message, duration = SnackbarDuration.Long)
+            onUnknownCheckShown()
         }
     }
     // Back from History returns to the wallet before leaving the app.
@@ -526,7 +538,7 @@ private fun WalletTab(
     onOpenMint: (String) -> Unit,
     onRecheckUnknown: () -> Unit,
     onDismissReceived: (String) -> Unit,
-    /** Opens the notes view, where received notes are listed too; null without one (the card below lists them). */
+    /** Opens the notes view, where received notes and those a mint doesn't know are listed too; null without one. */
     onOpenIncoming: (() -> Unit)?,
     /** Opens where the notes handed out are listed, each leading to its QR code and to taking it back. */
     onOpenShared: () -> Unit,
@@ -550,6 +562,7 @@ private fun WalletTab(
                     state.balanceHidden,
                     checking = state.checkingUnknown,
                     onRecheck = onRecheckUnknown,
+                    onShowNotes = onOpenIncoming,
                 )
             }
             if (state.showAddMintPrompt) AddMintPrompt(onAddMint)
@@ -652,6 +665,17 @@ private fun noticeMessage(notice: MaintenanceNotice): String {
         else -> stringResource(R.string.notice_with_balance, what, balance)
     }
 }
+
+/** What asking again about notes a mint doesn't know found, as the short message says it. */
+@Composable
+private fun unknownCheckMessage(check: UnknownCheck, mintsVisible: Boolean): String =
+    when (check) {
+        is UnknownCheck.Back -> pluralStringResource(R.plurals.notice_unknown_back, check.notes, check.notes)
+        is UnknownCheck.Still -> pluralStringResource(R.plurals.notice_unknown_still, check.notes)
+        is UnknownCheck.Unreachable ->
+            check.host?.takeIf { mintsVisible }?.let { stringResource(R.string.notice_unknown_unreachable, it) }
+                ?: stringResource(R.string.notice_unknown_unreachable_unnamed)
+    }
 
 /** The kinds of History entries a user can narrow the list to. */
 private enum class HistoryFilter(val label: Int, val icon: Int) {
@@ -857,11 +881,19 @@ private fun KeyChanged(host: String, onDetails: () -> Unit) {
 }
 
 /**
- * A mint says it doesn't know some of the account's notes: they're out of the balance, so say why, and that the wallet keeps them and asks
- * again. The amount stays hidden with the balance.
+ * A mint says it doesn't know some of the account's notes: they're out of the balance, so say why, that the wallet keeps them and asks
+ * again (and when it last did), and that there is nothing to do but wait or ask the mint's operator. The amount stays hidden with the
+ * balance. Asking now is offered, not urged; [onShowNotes] leads to the notes themselves, where the app has a notes view.
  */
 @Composable
-private fun UnknownNotesCard(mint: AccountMint, mintsVisible: Boolean, balanceHidden: Boolean, checking: Boolean, onRecheck: () -> Unit) {
+private fun UnknownNotesCard(
+    mint: AccountMint,
+    mintsVisible: Boolean,
+    balanceHidden: Boolean,
+    checking: Boolean,
+    onRecheck: () -> Unit,
+    onShowNotes: (() -> Unit)?,
+) {
     val n = mint.unknownCount
     WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -875,10 +907,40 @@ private fun UnknownNotesCard(mint: AccountMint, mintsVisible: Boolean, balanceHi
                 else pluralStringResource(R.plurals.home_unknown_body, n, formatAmount(mint.unknownMsat)),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            WalletButton(onClick = onRecheck, enabled = !checking) { Text(stringResource(R.string.home_unknown_action)) }
+            Text(stringResource(R.string.home_unknown_help), style = MaterialTheme.typography.bodyMedium)
+            if (mint.unknownAskedAtMillis > 0) Text(lastAsked(mint.unknownAskedAtMillis), style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WalletButton(kind = ButtonKind.Secondary, onClick = onRecheck, enabled = !checking) {
+                    Text(stringResource(R.string.home_unknown_action))
+                }
+                onShowNotes?.let {
+                    WalletButton(kind = ButtonKind.Text, onClick = it) { Text(pluralStringResource(R.plurals.home_unknown_show, n)) }
+                }
+            }
         }
     }
 }
+
+/** "Last asked: 5 minutes ago", in the phone's words for the time, kept current while it shows. */
+@Composable
+private fun lastAsked(atMillis: Long): String {
+    val now by
+        produceState(System.currentTimeMillis(), atMillis) {
+            while (true) {
+                value = System.currentTimeMillis()
+                delay(ASKED_TICK_MILLIS)
+            }
+        }
+    return if (now - atMillis < DateUtils.MINUTE_IN_MILLIS) stringResource(R.string.home_unknown_asked_now)
+    else
+        stringResource(
+            R.string.home_unknown_asked,
+            DateUtils.getRelativeTimeSpanString(atMillis, now, DateUtils.MINUTE_IN_MILLIS).toString(),
+        )
+}
+
+/** How often [lastAsked] looks at the clock. */
+private const val ASKED_TICK_MILLIS = 20_000L
 
 /**
  * What of the balance is on which mint, a row each, leading to the mint's page. The mints [more] share a last row, with what they hold

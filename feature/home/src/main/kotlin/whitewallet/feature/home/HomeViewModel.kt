@@ -30,6 +30,7 @@ import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.wallet.MaintenanceNotice
 import whitewallet.core.wallet.MintKeyChangedException
+import whitewallet.core.wallet.NotesCheck
 import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
@@ -77,6 +78,8 @@ data class HomeState(
     val unknownNotes: List<AccountMint> = emptyList(),
     /** The mints are being asked about those notes again ([HomeViewModel.recheckUnknown]). */
     val checkingUnknown: Boolean = false,
+    /** What asking again found, to tell the user in a short message; see [HomeViewModel.unknownCheckShown]. */
+    val unknownCheck: UnknownCheck? = null,
     /** Notes received as links and not claimed yet, or no longer claimable: kept apart from the balance. */
     val received: List<ReceivedNote> = emptyList(),
     /** What the notes handed out as links and not claimed yet are worth: out of [balanceMsat], and still the user's to take back. */
@@ -128,6 +131,29 @@ data class HomeState(
                 balanceMsat > 0 || sharedMsat > 0 || received.any { it.isPending } -> WalletStatus.Idle
                 else -> WalletStatus.Empty
             }
+}
+
+/** What asking the mints again about the notes they don't know found ([HomeViewModel.recheckUnknown]). */
+sealed interface UnknownCheck {
+    /** The mint knows [notes] of them again: they're back in the balance. */
+    data class Back(val notes: Int) : UnknownCheck
+
+    /** The mint answered, and still doesn't know the [notes] asked about. */
+    data class Still(val notes: Int) : UnknownCheck
+
+    /** No answer, from [host] if it is known which mint: nothing was learnt. */
+    data class Unreachable(val host: String?) : UnknownCheck
+
+    companion object {
+        /** The one thing to say about [check]: good news first, then a mint that didn't answer; null if there was nothing to ask. */
+        fun of(check: NotesCheck): UnknownCheck? =
+            when {
+                check.checked > 0 -> Back(check.checked)
+                check.unreachable.isNotEmpty() -> Unreachable(check.unreachable.first())
+                check.unknown > 0 -> Still(check.unknown)
+                else -> null
+            }
+    }
 }
 
 /** How many mints have a row of their own under the balance; one more is shown rather than counted as "1 more". */
@@ -252,20 +278,27 @@ class HomeViewModel(
         viewModelScope.launch { wallet.dismissReceivedNote(id) }
     }
 
-    /** Asks the mints now about the notes they said they don't know; those they know again are back in the balance. */
+    /**
+     * Asks the mints now about the notes they said they don't know; those they know again are back in the balance. What it found is told
+     * ([HomeState.unknownCheck]), also when nothing changed: a tap always has an answer.
+     */
     fun recheckUnknown() {
         if (status.value.checkingUnknown) return
-        status.update { it.copy(checkingUnknown = true) }
+        status.update { it.copy(checkingUnknown = true, unknownCheck = null) }
         viewModelScope.launch {
-            try {
-                wallet.recheckUnknownNotes()
-            } catch (e: IOException) {
-                // Still unknown; the wallet asks again on a later refresh.
-            } finally {
-                status.update { it.copy(checkingUnknown = false) }
-            }
+            val found =
+                try {
+                    UnknownCheck.of(wallet.recheckUnknownNotes())
+                } catch (e: IOException) {
+                    // Still unknown; the wallet asks again on a later refresh.
+                    UnknownCheck.Unreachable(null)
+                }
+            status.update { it.copy(checkingUnknown = false, unknownCheck = found) }
         }
     }
+
+    /** The message about [HomeState.unknownCheck] was shown. */
+    fun unknownCheckShown() = status.update { it.copy(unknownCheck = null) }
 
     /**
      * Turns the note policies' runs into messages for the user, as the brand and the user want them. A run while Home is on screen is told;

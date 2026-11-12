@@ -97,6 +97,20 @@
         <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Geldschein und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück.</item>
         <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, sind sie zurück.</item>
     </plurals>
+    <string name="home_unknown_help">Du musst nichts tun. Bleibt es dabei, frag den Anbieter.</string>
+    <plurals name="home_unknown_show">
+        <item quantity="one">Geldschein anzeigen</item>
+        <item quantity="other">Geldscheine anzeigen</item>
+    </plurals>
+    <plurals name="notice_unknown_back">
+        <item quantity="one">Ein Geldschein ist zurück in deinem Guthaben: Der Anbieter kennt ihn wieder.</item>
+        <item quantity="other">%1$d Geldscheine sind zurück in deinem Guthaben: Der Anbieter kennt sie wieder.</item>
+    </plurals>
+    <plurals name="notice_unknown_still">
+        <item quantity="one">Gerade gefragt: Der Anbieter kennt deinen Geldschein noch immer nicht.</item>
+        <item quantity="other">Gerade gefragt: Der Anbieter kennt deine Geldscheine noch immer nicht.</item>
+    </plurals>
+    <string name="notice_unknown_unreachable_unnamed">Der Anbieter war nicht erreichbar. Deine Wallet fragt später wieder.</string>
     <string name="notes_already_spent">Dieser Geldschein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
     <string name="notes_empty">Noch keine Geldscheine. Geldscheine erscheinen hier, sobald du Geld empfängst.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Geldscheine bei jedem Aktualisieren neu.</string>

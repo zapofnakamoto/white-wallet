@@ -1,6 +1,7 @@
 package whitewallet.core.wallet
 
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.lnurlcash.protocol.RejectionKind
@@ -53,7 +54,8 @@ internal class UnknownNotes(private val wallet: Wallet) {
         for (note in due) {
             wallet.unknownCheckedAt[note.id] = now
             try {
-                prober.probe(KeySet.of(note).key(accountId, note.host, note.index!!), wallet.mintOf(accountId, note.host)!!)
+                val probe = prober.probe(KeySet.of(note).key(accountId, note.host, note.index!!), wallet.mintOf(accountId, note.host)!!)
+                if (probe is KeyProbe.Unused) wallet.unknownAnsweredAt.update { it + (note.id to now) }
             } catch (e: MintKeyChangedException) {
                 // Nothing is asked of a mint with another key; the user decides first.
             }

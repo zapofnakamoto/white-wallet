@@ -132,6 +132,9 @@ class Wallet(
     /** When each unknown note was last asked about, since the app started (see [UnknownNotes.recheckDue]). */
     internal val unknownCheckedAt = mutableMapOf<String, Long>()
 
+    /** When a mint last answered that it doesn't know a note, since the app started; before that, when the note was set aside says it. */
+    internal val unknownAnsweredAt = MutableStateFlow<Map<String, Long>>(emptyMap())
+
     /**
      * Lookups that got no answer this session. Not saved: they say nothing about the key, so the last real answer stays in the store and
      * shows again after a restart.
@@ -688,7 +691,12 @@ class Wallet(
      * with its money there. What the account can do there (change home, move money) starts from here.
      */
     val accountMints: Flow<List<AccountMint>> =
-        combine(homeHost, notes, ofActive(emptyList(), store::addresses), trustedHosts()) { home, notes, addresses, trusted ->
+        combine(homeHost, notes, ofActive(emptyList(), store::addresses), trustedHosts(), unknownAnsweredAt) {
+            home,
+            notes,
+            addresses,
+            trusted,
+            answeredAt ->
             val live = notes.filter { it.state == NoteState.Outstanding }
             val unknown = notes.filter { it.state == NoteState.Unknown }
             (listOfNotNull(home) + live.map { it.host } + unknown.map { it.host } + addresses.map { it.host })
@@ -703,6 +711,8 @@ class Wallet(
                         trusted = host in trusted,
                         unknownCount = unknown.count { it.host == host },
                         unknownMsat = unknown.filter { it.host == host }.sumOf { it.amountMsat },
+                        unknownAskedAtMillis =
+                            unknown.filter { it.host == host }.maxOfOrNull { maxOf(it.updatedAtMillis, answeredAt[it.id] ?: 0) } ?: 0,
                     )
                 }
                 .sortedWith(compareBy({ !it.isHome }, { it.host }))
@@ -976,7 +986,10 @@ class Wallet(
                     unknownCheckedAt[note.id] = now()
                     when (recheck(note.id)) {
                         is NoteCheck.Ok -> back++
-                        NoteCheck.Unknown -> still++
+                        NoteCheck.Unknown -> {
+                            still++
+                            unknownAnsweredAt.update { it + (note.id to now()) }
+                        }
                         NoteCheck.Unreachable,
                         is NoteCheck.KeyChanged -> unreachable += note.host
                         NoteCheck.Spent,

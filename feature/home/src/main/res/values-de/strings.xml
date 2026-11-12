@@ -72,6 +72,20 @@
         <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Schein und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück.</item>
         <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, sind sie zurück.</item>
     </plurals>
+    <string name="home_unknown_help">Du musst nichts tun. Bleibt es dabei, frag den Betreiber der Mint.</string>
+    <plurals name="home_unknown_show">
+        <item quantity="one">Schein anzeigen</item>
+        <item quantity="other">Scheine anzeigen</item>
+    </plurals>
+    <plurals name="notice_unknown_back">
+        <item quantity="one">Ein Schein ist zurück in deinem Guthaben: Die Mint kennt ihn wieder.</item>
+        <item quantity="other">%1$d Scheine sind zurück in deinem Guthaben: Die Mint kennt sie wieder.</item>
+    </plurals>
+    <plurals name="notice_unknown_still">
+        <item quantity="one">Gerade gefragt: Die Mint kennt deinen Schein noch immer nicht.</item>
+        <item quantity="other">Gerade gefragt: Die Mint kennt deine Scheine noch immer nicht.</item>
+    </plurals>
+    <string name="notice_unknown_unreachable_unnamed">Die Mint war nicht erreichbar. Deine Wallet fragt später wieder.</string>
 
     <string name="home_receive">Empfangen</string>
     <string name="home_send">Senden</string>
@@ -116,6 +130,9 @@
     <string name="home_address_inactive_body">Zahlungen an %1$s erreichen diese Wallet nicht. Sieh dir deine Adressen an, um weiter Zahlungen zu erhalten.</string>
     <string name="home_address_inactive_action">Adressen anzeigen</string>
     <string name="home_unknown_action">Erneut prüfen</string>
+    <string name="home_unknown_asked">Zuletzt gefragt: %1$s</string>
+    <string name="home_unknown_asked_now">Zuletzt gefragt: gerade eben</string>
+    <string name="notice_unknown_unreachable">%1$s war nicht erreichbar. Deine Wallet fragt später wieder.</string>
     <string name="accounts_title">Konten</string>
     <string name="accounts_manage">Wallets verwalten</string>
     <string name="accounts_move">Guthaben verschieben</string>
