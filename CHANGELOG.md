@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.8.1]
+
 ### Fixed
 
 - The QR scanner was titled "Scan for notes" in 0.8.0: the new page's title had the scanner's string name
