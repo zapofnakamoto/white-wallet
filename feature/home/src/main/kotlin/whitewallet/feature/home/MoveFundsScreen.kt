@@ -26,6 +26,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,6 +47,7 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.wallet.MoveCheck
 import whitewallet.core.wallet.MoveFailure
+import whitewallet.core.wallet.MovePending
 import whitewallet.core.wallet.MoveResult
 import whitewallet.core.wallet.MoveStayed
 import whitewallet.core.wallet.StayReason
@@ -92,9 +94,15 @@ fun MoveFundsScreen(
             state.partial?.let { PartialDialog(it, fromName, toWallet, state.showMints, onConfirmPartial, onCancelPartial) }
             state.result?.let { result ->
                 ResultText(result)
+                // What was sent without an answer is out of the balance until a refresh finds out: nothing the user can do but wait.
+                WaitingLines(
+                    result.pending,
+                    state.showMints,
+                    if (result is MoveResult.Pending) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                )
                 val stayed = result.stayed
                 // What didn't move is safe where it was: said with the amount, why, and what the user can do about it.
-                if (result is MoveResult.Moved && stayed.isNotEmpty()) {
+                if (result !is MoveResult.Failed && stayed.isNotEmpty()) {
                     Text(
                         stringResource(R.string.move_stayed, formatAmount(stayed.sumOf { it.amountMsat }), fromName),
                         style = MaterialTheme.typography.titleSmall,
@@ -214,8 +222,27 @@ private val MoveResult.stayed: List<MoveStayed>
         when (this) {
             is MoveResult.Moved -> stayed
             is MoveResult.Failed -> stayed
-            MoveResult.Pending -> emptyList()
+            is MoveResult.Pending -> stayed
         }
+
+/** What a move sent without getting an answer, per mint. */
+private val MoveResult.pending: List<MovePending>
+    get() =
+        when (this) {
+            is MoveResult.Moved -> pending
+            is MoveResult.Failed -> emptyList()
+            is MoveResult.Pending -> pending
+        }
+
+/** What is waiting for its mint's answer, a line per mint; where mints aren't named, one line for all of it. */
+@Composable
+private fun WaitingLines(pending: List<MovePending>, showMints: Boolean, style: TextStyle) {
+    if (pending.isEmpty()) return
+    val lines =
+        if (showMints) pending.map { stringResource(R.string.move_waiting, it.host, formatAmount(it.amountMsat)) }
+        else listOf(stringResource(R.string.move_waiting_unnamed, formatAmount(pending.sumOf { it.amountMsat })))
+    lines.forEach { Text(it, style = style, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+}
 
 /**
  * Why money stayed (or would stay), a line per mint; where mints aren't named, a line per kind of reason. [toWallet] is the wallet it was
@@ -276,7 +303,8 @@ private fun ResultText(result: MoveResult) {
     val (text, error) =
         when (result) {
             is MoveResult.Moved -> stringResource(R.string.move_moved, formatAmount(result.amountMsat)) to false
-            MoveResult.Pending -> stringResource(R.string.move_pending) to false
+            // Nothing is known to have moved: what is waiting says it all.
+            is MoveResult.Pending -> return
             is MoveResult.Failed ->
                 when (result.reason) {
                     MoveFailure.InsufficientFunds -> stringResource(R.string.move_insufficient) to true

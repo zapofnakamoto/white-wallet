@@ -171,7 +171,10 @@
         <item quantity="one">%1$d operation is still being confirmed.</item>
         <item quantity="other">%1$d operations are still being confirmed.</item>
     </plurals>
-    <string name="move_pending">Not confirmed yet. Your wallet checks again on the next refresh.</string>
+    <!-- A move that was sent to a mint whose answer didn't arrive. %1$s: the mint's host, %2$s: the amount. -->
+    <string name="move_waiting">Waiting for %1$s to answer: %2$s. Your wallet asks again on the next refresh.</string>
+    <!-- The same where mints aren't named (brand mints.visible=false). %1$s: the amount. -->
+    <string name="move_waiting_unnamed">Waiting for an answer: %1$s. Your wallet asks again on the next refresh.</string>
     <string name="move_insufficient">Not enough funds for this amount, including fees.</string>
     <string name="move_split_mints">Your funds are held in different places. Move a smaller amount, or everything.</string>
     <string name="move_failed">Refused: %1$s</string>

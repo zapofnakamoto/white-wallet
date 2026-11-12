@@ -151,7 +151,8 @@
         <item quantity="one">%1$d Vorgang wird noch bestätigt.</item>
         <item quantity="other">%1$d Vorgänge werden noch bestätigt.</item>
     </plurals>
-    <string name="move_pending">Noch nicht bestätigt. Deine Wallet prüft beim nächsten Aktualisieren erneut.</string>
+    <string name="move_waiting">Warte auf Antwort von %1$s: %2$s. Deine Wallet fragt beim nächsten Aktualisieren erneut.</string>
+    <string name="move_waiting_unnamed">Warte auf Antwort: %1$s. Deine Wallet fragt beim nächsten Aktualisieren erneut.</string>
     <string name="move_insufficient">Nicht genug Guthaben für diesen Betrag samt Gebühren.</string>
     <string name="move_split_mints">Dein Guthaben liegt an verschiedenen Orten. Verschiebe einen kleineren Betrag oder alles.</string>
     <string name="move_failed">Abgelehnt: %1$s</string>

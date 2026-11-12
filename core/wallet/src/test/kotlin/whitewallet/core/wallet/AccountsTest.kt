@@ -1,5 +1,6 @@
 package whitewallet.core.wallet
 
+import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -8,6 +9,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import okhttp3.Interceptor
+import okhttp3.Response
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.Account
 import whitewallet.core.model.JournalEntry
@@ -62,12 +65,38 @@ class AccountsTest {
 
     private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val keysA: AccountKeys)
 
-    private fun withMint(test: suspend Fixture.() -> Unit) =
+    /**
+     * A connection that breaks at the first note-changing request to the mint at [host]: the mint acts, its answer is lost, and nothing
+     * more reaches that mint until the connection is [back].
+     */
+    private class LostAnswer : Interceptor {
+        var host: String? = null
+        private var down = false
+
+        val client = LnurlcashClient(http = LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor(this).build())
+
+        override fun intercept(chain: Interceptor.Chain): Response {
+            val url = chain.request().url
+            if ("${url.host}:${url.port}" != host) return chain.proceed(chain.request())
+            if (down) throw IOException("connection dropped before the request was sent")
+            if (url.queryParameter("k1") == null) return chain.proceed(chain.request())
+            down = true
+            chain.proceed(chain.request()).close()
+            throw IOException("connection dropped before the answer arrived")
+        }
+
+        fun back() {
+            host = null
+            down = false
+        }
+    }
+
+    private fun withMint(client: LnurlcashClient = LnurlcashClient(), test: suspend Fixture.() -> Unit) =
         runBlocking<Unit> {
             assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
             MockMint.start().use { mint ->
                 val store = InMemoryWalletStore()
-                val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), LnurlcashClient())
+                val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to wordsA, "b" to wordsB)), client)
                 store.addAccount("b", "Savings", PrimaryAddress("bob", mint.host))
                 store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
@@ -76,12 +105,13 @@ class AccountsTest {
         }
 
     /** As [withMint], with a second mint the wallet of account "a" is connected to as well. */
-    private fun withTwoMints(test: suspend Fixture.(other: MockMint) -> Unit) = withMint {
-        MockMint.start().use { other ->
-            assertIs<ConnectResult.Connected>(wallet.connectMint(other.host))
-            test(other)
+    private fun withTwoMints(client: LnurlcashClient = LnurlcashClient(), test: suspend Fixture.(other: MockMint) -> Unit) =
+        withMint(client) {
+            MockMint.start().use { other ->
+                assertIs<ConnectResult.Connected>(wallet.connectMint(other.host))
+                test(other)
+            }
         }
-    }
 
     /** Credits a purpose-0 note of account "a" at the mock mint [at] and records it, as a claim would have. */
     private suspend fun Fixture.give(msat: Long, at: MockMint = mint) {
@@ -243,6 +273,47 @@ class AccountsTest {
         assertEquals(3_000, moved.amountMsat)
         assertEquals(listOf(MoveStayed(other.host, 9_000, StayReason.Refused)), moved.stayed)
         assertEquals(3_000, balance("b"))
+    }
+
+    @Test
+    fun `a mint whose answer is lost leaves its notes open, the other mints' notes still move, and a refresh settles it`() {
+        val lost = LostAnswer()
+        withTwoMints(lost.client) { other ->
+            MockMint.start().use { third ->
+                assertIs<ConnectResult.Connected>(wallet.connectMint(third.host))
+                give(3_000)
+                give(9_000, other)
+                give(5_000, third)
+                lost.host = other.host
+                assertEquals(
+                    MoveResult.Moved(8_000, pending = listOf(MovePending(other.host, 9_000))),
+                    wallet.moveFunds("b", null),
+                    "the mints after the one that didn't answer are not passed over",
+                )
+                assertEquals(0, balance("a"), "what is open is out of the balance")
+                assertEquals(8_000, balance("b"))
+
+                lost.back()
+                wallet.refresh()
+                assertEquals(0, wallet.unresolvedOperations())
+                assertEquals(0, balance("a"))
+                assertEquals(17_000, balance("b"))
+            }
+        }
+    }
+
+    @Test
+    fun `a move at one mint whose answer is lost says how much is open`() {
+        val lost = LostAnswer()
+        withMint(lost.client) {
+            give(21_000)
+            lost.host = mint.host
+            assertEquals(MoveResult.Pending(listOf(MovePending(mint.host, 21_000))), wallet.moveFunds("b", null))
+            assertEquals(0, balance("a"))
+            lost.back()
+            wallet.refresh()
+            assertEquals(21_000, balance("b"))
+        }
     }
 
     @Test

@@ -10,14 +10,21 @@ import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
 
 sealed interface MoveResult {
-    /** [amountMsat] moved. A move of everything goes mint by mint: [stayed] is what it left where it was, per mint. */
-    data class Moved(val amountMsat: Long, val stayed: List<MoveStayed> = emptyList()) : MoveResult
+    /**
+     * [amountMsat] moved. A move of everything goes mint by mint: [stayed] is what it left where it was, and [pending] what was sent
+     * without an answer, per mint.
+     */
+    data class Moved(val amountMsat: Long, val stayed: List<MoveStayed> = emptyList(), val pending: List<MovePending> = emptyList()) :
+        MoveResult
 
     /** Nothing changed. If that was because of a mint, [stayed] says which and why. */
     data class Failed(val reason: MoveFailure, val detail: String? = null, val stayed: List<MoveStayed> = emptyList()) : MoveResult
 
-    /** At least one step's outcome is unknown; reconciliation settles it on the next refresh. */
-    data object Pending : MoveResult
+    /**
+     * Nothing is known to have moved: [pending] was sent without an answer, per mint, and reconciliation settles it on the next refresh;
+     * [stayed] is what other mints left where it was.
+     */
+    data class Pending(val pending: List<MovePending>, val stayed: List<MoveStayed> = emptyList()) : MoveResult
 }
 
 enum class MoveFailure {
@@ -56,6 +63,12 @@ enum class StayReason {
 data class MoveStayed(val host: String, val amountMsat: Long, val reason: StayReason)
 
 /**
+ * The money at the mint [host] whose move was sent without an answer, [amountMsat] of it: out of the balance until a refresh finds out
+ * whether it moved.
+ */
+data class MovePending(val host: String, val amountMsat: Long)
+
+/**
  * What a move would do, as its mints say now ([Wallet.checkMoveFunds]): [movableMsat] would move, [stayed] wouldn't. Nothing was changed to
  * find out, and a mint may answer differently once the move is made.
  */
@@ -80,18 +93,22 @@ internal class FundsMover(private val wallet: Wallet) {
         if (amountMsat == null) {
             var moved = 0L
             val failed = mutableListOf<MoveResult.Failed>()
+            val pending = mutableListOf<MovePending>()
             for ((host, notes) in byHost) {
-                // A mint that can't take part keeps its notes here, and the result says so; the other mints' notes still move.
+                // A mint that can't take part keeps its notes here, and one that didn't answer what it was sent leaves them open: the
+                // result says so, and the other mints' notes still move.
                 val held = notes.sumOf { it.amountMsat }
                 when (val r = at(host, held) { addMint(fromId, toId, host, held) ?: moveAll(fromId, toId, host, notes) }) {
                     is MoveResult.Moved -> moved += r.amountMsat
                     is MoveResult.Failed -> failed += r
-                    MoveResult.Pending -> return r
+                    is MoveResult.Pending -> pending += r.pending
                 }
             }
             val stayed = failed.flatMap { it.stayed }
             return when {
-                moved > 0 || failed.isEmpty() -> MoveResult.Moved(moved, stayed)
+                moved > 0 -> MoveResult.Moved(moved, stayed, pending)
+                pending.isNotEmpty() -> MoveResult.Pending(pending, stayed)
+                failed.isEmpty() -> MoveResult.Moved(moved)
                 else -> failed.singleOrNull() ?: MoveResult.Failed(MoveFailure.Refused, failed.first().detail, stayed)
             }
         }
@@ -240,7 +257,8 @@ internal class FundsMover(private val wallet: Wallet) {
         if (inputs.size > 1) {
             // Merge into one of our own notes first, then split that.
             val merged = mutator.merge(fromId, host, inputs, OutputSpec.Own(fromId, KeySet.Wallet))
-            inputs = (merged as? MutationResult.Done)?.outputs ?: return merged.toMove(host, amountMsat)
+            // A merge that is open or refused is about all it took, not only the amount asked for.
+            inputs = (merged as? MutationResult.Done)?.outputs ?: return merged.toMove(host, inputs.sumOf { it.amountMsat })
             if (inputs.single().amountMsat == amountMsat) return moveAll(fromId, toId, host, inputs)
         }
         val outputs = listOf(OutputSpec.Own(toId, KeySet.Wallet), OutputSpec.Own(fromId, KeySet.Change))
@@ -281,7 +299,7 @@ internal class FundsMover(private val wallet: Wallet) {
                     reason,
                     listOf(MoveStayed(host, amountMsat, if (keyChanged) StayReason.KeyChanged else StayReason.Unreachable)),
                 )
-            is MutationResult.Pending -> MoveResult.Pending
+            is MutationResult.Pending -> MoveResult.Pending(listOf(MovePending(host, amountMsat)))
         }
 
     private suspend fun outstanding(accountId: String): List<Note> =

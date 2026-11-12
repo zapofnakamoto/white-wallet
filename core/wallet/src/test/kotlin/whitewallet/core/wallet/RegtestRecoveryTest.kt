@@ -163,7 +163,10 @@ class RegtestRecoveryTest {
             phone.wallet.switchAccount(main)
             phone.fund(2000)
 
-            assertEquals(MoveResult.Pending, outage.during { phone.wallet.moveFunds(savings, null) })
+            assertEquals(
+                MoveResult.Pending(listOf(MovePending(HOST, 1_999_000))),
+                outage.during { phone.wallet.moveFunds(savings, null) },
+            )
             assertEquals(
                 listOf(ActivityStatus.Pending),
                 phone.wallet.activity.first().filter { it.kind == ActivityKind.MovedOut }.map { it.status },

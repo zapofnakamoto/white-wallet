@@ -100,14 +100,25 @@ class RegtestAccountsTest {
             assertEquals(1, phone.store.notes(other).first().size)
         }
 
-    /** A connection that drops every request to the mint at [down], which never sees them; while [changed], mints present another key. */
+    /**
+     * A connection that drops every request to the mint at [down], which never sees them; while [changed], mints present another key. The
+     * first note-changing request to the mint at [lose] reaches it, its answer is lost, and that mint is [down] from then on.
+     */
     private class Connection : Interceptor {
         var down: String? = null
         var changed = false
+        var lose: String? = null
 
         override fun intercept(chain: Interceptor.Chain): Response {
             val url = chain.request().url
-            if ("${url.host}:${url.port}" == down) Regtest.dropped()
+            val host = "${url.host}:${url.port}"
+            if (host == down) Regtest.dropped()
+            if (host == lose && url.isMutation) {
+                lose = null
+                down = host
+                chain.proceed(chain.request()).close()
+                Regtest.lost()
+            }
             val response = chain.proceed(chain.request())
             return if (changed) Regtest.presentingOtherKey(response) else response
         }
@@ -173,5 +184,29 @@ class RegtestAccountsTest {
             assertEquals(check.stayed.toSet(), failed.stayed.toSet())
             assertEquals(mapOf(main to held, other to 0L), phone.balances())
             assertEquals(emptyList(), phone.store.mints(other).first(), "no mint was added")
+        }
+
+    @Test
+    fun `a mint whose answer is lost leaves its notes open, the other mint's notes move, and a refresh finds them moved`() =
+        runBlocking<Unit> {
+            val connection = Connection()
+            val phone = Regtest.phone(client = Regtest.client(connection))
+            val (main, other) = twoMints(phone)
+            val second = phone.notes(HOST2).sumOf { it.amountMsat }
+
+            connection.lose = HOST2
+            assertEquals(
+                MoveResult.Moved(1_999_000, pending = listOf(MovePending(HOST2, second))),
+                phone.wallet.moveFunds(other, null),
+            )
+            assertEquals(mapOf(main to 0L, other to 1_999_000L), phone.balances(), "what is open is in neither balance")
+            assertEquals(1, phone.wallet.unresolvedOperations())
+
+            connection.down = null
+            phone.wallet.refresh()
+            assertEquals(0, phone.wallet.unresolvedOperations())
+            assertEquals(0L, phone.balances().getValue(main))
+            assertTrue(phone.balances().getValue(other) > 1_999_000L, "the second mint's notes arrived")
+            assertNotNull(phone.store.mint(other, HOST2), "the other wallet has the mint its note is at")
         }
 }

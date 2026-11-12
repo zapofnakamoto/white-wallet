@@ -16,6 +16,7 @@ import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.wallet.MoveCheck
 import whitewallet.core.wallet.MoveFailure
+import whitewallet.core.wallet.MovePending
 import whitewallet.core.wallet.MoveResult
 import whitewallet.core.wallet.MoveStayed
 import whitewallet.core.wallet.StayReason
@@ -218,5 +219,37 @@ class MoveFundsScreenTest {
         // The button says how much moves.
         compose.onNode(hasText("3", substring = true) and hasClickAction()).performClick()
         assertEquals(1 to 1, confirmed to cancelled)
+    }
+
+    @Test
+    fun whatWasSentWithoutAnAnswerIsSaidApartFromWhatMovedAndWhatStayed() {
+        val result =
+            MoveResult.Moved(
+                3_000,
+                stayed = listOf(stayed(StayReason.Unreachable, "mint-c.example")),
+                pending = listOf(MovePending("mint-b.example", 5_000)),
+            )
+        show(twoWallets.copy(result = result))
+        compose.onNode(hasText("mint-b.example", substring = true) and hasText("5", substring = true)).assertExists()
+        compose.onNodeWithText(text(R.string.move_stayed_unreachable, "mint-c.example")).assertExists()
+        // Trying again is for the mint that didn't answer before anything was sent.
+        compose.onNodeWithText(text(R.string.move_retry)).assertExists()
+    }
+
+    @Test
+    fun aMoveOfWhichNothingIsKnownYetOffersNothingButToWait() {
+        show(twoWallets.copy(result = MoveResult.Pending(listOf(MovePending("mint-b.example", 9_000)))))
+        compose.onNode(hasText("mint-b.example", substring = true) and hasText("9", substring = true)).assertExists()
+        compose.onNodeWithText(text(R.string.move_retry)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.move_none)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.move_done)).assertExists()
+    }
+
+    @Test
+    fun whereMintsArentNamedWhatIsWaitingIsOneAmount() {
+        val pending = listOf(MovePending("mint-b.example", 5_000), MovePending("mint-c.example", 4_000))
+        show(twoWallets.copy(result = MoveResult.Pending(pending), showMints = false))
+        compose.onNode(hasText("9", substring = true)).assertExists()
+        compose.onNodeWithText("mint-b.example", substring = true).assertDoesNotExist()
     }
 }
