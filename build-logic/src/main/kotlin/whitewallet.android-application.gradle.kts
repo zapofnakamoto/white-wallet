@@ -198,7 +198,7 @@ android {
             // plain http.
             buildConfigField("String", "LOCAL_DEV_MINTS", "\"localhost:8111,localhost:8112,localhost:8113\"")
             // dev/regtest's faucet, which pays the app's own address or invoice from Receive in developer mode.
-            buildConfigField("String", "LOCAL_DEV_FAUCET", "\"localhost:8114\"")
+            buildConfigField("String", "LOCAL_DEV_FAUCET", "\"localhost:8110\"")
             buildConfigField("String", "BUILD_LABEL", "\"$buildLabel\"")
         }
         getByName("release") {

@@ -8,13 +8,12 @@ A local Bitcoin regtest network with a real LNURLcash mint, for developing the w
 | `mint-lnd` | LND, the mint's funding source |
 | `user-lnd` | LND, "you": pays invoices and Lightning addresses |
 | `mint` | The reference mint [`lnurlcash/lnurl-mint`](https://github.com/lnurlcash/lnurl-mint), at `http://localhost:8111`: `0.12.2` on the legacy stack, `0.13.1` on the current one (see below) |
-| `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between mints |
+| `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between mints. It charges 21 sats for an address (`ADDRESS_FEE_MSAT`), so holding a name, paying for it and going on without one can be tried. On the legacy stack its addresses are free: `0.12.2` has no address fee |
 | `mint3` | A third mint (1 sat base fee) at `http://localhost:8113` whose signing key can change: it runs on `mint-lnd` or `user-lnd`, and signs with that node's identity key. `rotate-mint3` switches the node, keeping its notes |
-| `mint4` | A fourth mint (1 sat base fee) at `http://localhost:8115` that starts on the legacy protocol (LUD-25/26 draft `2f17578`, lnurl-mint `0.12.2`). `upgrade-mint4` moves it in place to `0.13.1` (LUD-25/26 at `92e430f`), keeping its database, as a production mint upgrades; `reset-mint4` puts it back. The version it runs is kept in `.mint4-version-<stack>` |
-| `mint5` | A fifth mint at `http://localhost:8116` that charges 21 sats for an address (`ADDRESS_FEE_MSAT`), so holding a name, paying for it and going on without one can be tried. On the legacy stack it is a plain mint: `0.12.2` has no address fee |
-| `faucet` | [`faucet.py`](faucet.py) at `http://localhost:8114`: when the app asks, pays an address or invoice from `user-lnd` (or `mint-lnd` for `mint2`'s), like `pay`, or makes an invoice for the app to pay, like `invoice`, on the node that doesn't fund the app's mint |
+| `mint4` | A fourth mint (1 sat base fee) at `http://localhost:8114` that starts on the legacy protocol (LUD-25/26 draft `2f17578`, lnurl-mint `0.12.2`). `upgrade-mint4` moves it in place to `0.13.1` (LUD-25/26 at `92e430f`), keeping its database, as a production mint upgrades; `reset-mint4` puts it back. The version it runs is kept in `.mint4-version-<stack>` |
+| `faucet` | [`faucet.py`](faucet.py) at `http://localhost:8110`: when the app asks, pays an address or invoice from `user-lnd` (or `mint-lnd` for `mint2`'s), like `pay`, or makes an invoice for the app to pay, like `invoice`, on the node that doesn't fund the app's mint |
 
-`up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints and the faucet are exposed, on `127.0.0.1:8111` to `127.0.0.1:8115`; `connect` reverses all five ports.
+`up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints and the faucet are exposed, on `127.0.0.1:8110` to `127.0.0.1:8114` (mint N on port 811N, the faucet on 8110); `connect` reverses all five ports.
 
 ### Two stacks: legacy and current
 
@@ -54,13 +53,13 @@ And notes: on **Receive → Claim a note**, a debug build in developer mode show
 |---|---|
 | `up` | Start and bootstrap: wallet, 101 blocks, fund `user-lnd`, open the channel, wait for the mint, `adb reverse` |
 | `pay <target> [sats]` | Pay from `user-lnd`: a BOLT-11 invoice (`lnbcrt…`), a Lightning address (`alice@localhost:8111`, or `@localhost:8112` on mint2) or an LNURL-pay (bech32 or URL). Default 1000 sats. Invoices of `user-lnd` itself (mint2's) are paid from `mint-lnd`, because LND can't pay its own invoices |
-| `note [sats] [--mint2\|--mint3\|--mint4\|--mint5] [--bech32] [--type\|--open]` | Mint a bearer note on the local mint, or with `--mint2` to `--mint5` on one of the others (default 1000 sats; the mint's fee comes off) and print its link, `lnurlw://localhost:8111/w?k1=<secret>&amount=<msat>`, or with `--bech32` the same URL as an uppercase bech32 LNURL (`LNURL1…`, LUD-01), the form that makes the smallest QR codes. Claim it in the app under **Receive → Claim a note**: paste it, or open that screen, tap the input field and run with `--type` to type it in over adb. Or run with `--open` to open it on the device like a tapped link: the app shows the note, ready to claim. On a mint the wallet hasn't added (say `note 1000 --mint3 --open`) that is a note from an unknown mint. The secret is the money: anyone holding the link can claim it |
+| `note [sats] [--mint2\|--mint3\|--mint4] [--bech32] [--type\|--open]` | Mint a bearer note on the local mint, or with `--mint2` to `--mint4` on one of the others (default 1000 sats; the mint's fee comes off) and print its link, `lnurlw://localhost:8111/w?k1=<secret>&amount=<msat>`, or with `--bech32` the same URL as an uppercase bech32 LNURL (`LNURL1…`, LUD-01), the form that makes the smallest QR codes. Claim it in the app under **Receive → Claim a note**: paste it, or open that screen, tap the input field and run with `--type` to type it in over adb. Or run with `--open` to open it on the device like a tapped link: the app shows the note, ready to claim. On a mint the wallet hasn't added (say `note 1000 --mint3 --open`) that is a note from an unknown mint. The secret is the money: anyone holding the link can claim it |
 | `invoice <sats> [memo]` | Create an invoice on `user-lnd` (to test paying out from the wallet) |
 | `mine [n]` | Mine blocks |
 | `rotate-mint3` | Give the third mint a new signing key: restart it on the other LND node, with the same notes. Prints the new key |
 | `upgrade-mint4` | Upgrade the fourth mint in place from lnurl-mint `0.12.2` to `0.13.1`, keeping its notes and addresses |
 | `reset-mint4` | Put the fourth mint back on `0.12.2` with an empty database |
-| `connect` | `adb reverse` for ports 8111 to 8116 again |
+| `connect` | `adb reverse` for ports 8110 to 8114 again |
 | `status` | Containers, block height, balances, mint reachability |
 | `logs [service]` | Follow logs |
 | `lncli-user …`, `lncli-mint …` | Run `lncli` on a node |

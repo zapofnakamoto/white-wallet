@@ -146,7 +146,7 @@ class RegtestMintTest {
             // Phone 1 has an address on the second mint, paid there, and moved a note over.
             val phone1 = Regtest.phone()
             val name = Regtest.name()
-            assertIs<OnboardResult.Ready>(phone1.wallet.addAddress(name, limit = 2, host = HOST2))
+            Regtest.registered(phone1.wallet, phone1.wallet.addAddress(name, limit = 2, host = HOST2))
             Regtest.untilRegistered(name, HOST2)
             Regtest.pay("$name@$HOST2", 3000)
             phone1.fund(4000)

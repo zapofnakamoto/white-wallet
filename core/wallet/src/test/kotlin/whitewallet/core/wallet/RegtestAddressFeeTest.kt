@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.KeyCounter
-import whitewallet.core.wallet.Regtest.HOST5
+import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.spendDomain
@@ -40,26 +40,26 @@ class RegtestAddressFeeTest {
         runBlocking<Unit> {
             val store = InMemoryWalletStore()
             val wallet = wallet(store)
-            assertEquals(fee, wallet.addressFeeMsat(HOST5))
+            assertEquals(fee, wallet.addressFeeMsat(HOST2))
             val name = Regtest.name()
-            val held = assertIs<OnboardResult.AwaitingFee>(wallet.onboard(name, HOST5))
+            val held = assertIs<OnboardResult.AwaitingFee>(wallet.onboard(name, HOST2))
             assertEquals(fee, held.amountMsat)
             assertNull(wallet.primaryAddress.first(), "no address until the fee is paid")
             wallet.refresh()
             assertNotNull(store.addresses(wallet.activeId()).first().single().feeInvoice, "still held")
 
             // Asked again before it is paid: the same hold, not a second one.
-            assertEquals(held.address, assertIs<OnboardResult.AwaitingFee>(wallet.onboard(name, HOST5)).address)
+            assertEquals(held.address, assertIs<OnboardResult.AwaitingFee>(wallet.onboard(name, HOST2)).address)
 
             Regtest.pay(held.address.feeInvoice!!, 0)
-            Regtest.untilRegistered(name, HOST5)
+            Regtest.untilRegistered(name, HOST2)
             wallet.refresh()
-            assertEquals("$name@$HOST5", wallet.primaryAddress.first()?.address)
+            assertEquals("$name@$HOST2", wallet.primaryAddress.first()?.address)
             assertNull(store.addresses(wallet.activeId()).first().single().feeInvoice)
-            assertEquals(AddressStatus.Ours, wallet.checkAddress(name, HOST5))
+            assertEquals(AddressStatus.Ours, wallet.checkAddress(name, HOST2))
 
-            Regtest.pay("$name@$HOST5", 1000)
-            assertEquals(999_000, wallet.refresh().receivedMsat)
+            Regtest.pay("$name@$HOST2", 1000)
+            assertEquals(998_000, wallet.refresh().receivedMsat, "1000 sats minus mint2's 2 sat fee")
         }
 
     @Test
@@ -67,7 +67,7 @@ class RegtestAddressFeeTest {
         runBlocking<Unit> {
             val store = InMemoryWalletStore()
             val wallet = wallet(store)
-            assertIs<CreateAccountResult.Created>(wallet.createAccount(HOST5, "Main"))
+            assertIs<CreateAccountResult.Created>(wallet.createAccount(HOST2, "Main"))
             val invoice = assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(2_000_000))
             Regtest.pay(invoice.invoice, 0)
             assertIs<InvoiceStatus.Paid>(wallet.invoiceStatus(invoice.id))
@@ -76,7 +76,7 @@ class RegtestAddressFeeTest {
             val name = Regtest.name()
             val held = assertIs<OnboardResult.AwaitingFee>(wallet.addAddress(name, limit = 1))
             assertIs<PayResult.Paid>(assertNotNull(wallet.payAddressFee(held.address)))
-            assertEquals("$name@$HOST5", wallet.primaryAddress.first()?.address)
+            assertEquals("$name@$HOST2", wallet.primaryAddress.first()?.address)
             assertNull(store.addresses(wallet.activeId()).first().single().feeInvoice)
             assertTrue(wallet.balanceMsat.first() <= before - fee, "the fee came out of the balance")
         }
@@ -86,7 +86,7 @@ class RegtestAddressFeeTest {
         runBlocking<Unit> {
             val store = InMemoryWalletStore()
             val wallet = wallet(store, maxFee = 20_000)
-            assertEquals(OnboardResult.FeeRefused(fee, 20_000), wallet.onboard(Regtest.name(), HOST5))
+            assertEquals(OnboardResult.FeeRefused(fee, 20_000), wallet.onboard(Regtest.name(), HOST2))
             assertEquals(emptyList(), store.accounts.first())
         }
 
@@ -96,7 +96,7 @@ class RegtestAddressFeeTest {
             var clock = System.currentTimeMillis()
             val store = InMemoryWalletStore()
             val wallet = wallet(store, now = { clock })
-            val held = assertIs<OnboardResult.AwaitingFee>(wallet.onboard(Regtest.name(), HOST5))
+            val held = assertIs<OnboardResult.AwaitingFee>(wallet.onboard(Regtest.name(), HOST2))
             clock += 2 * 60 * 60_000L
             wallet.refresh()
             assertEquals(emptyList(), store.addresses(wallet.activeId()).first(), "${held.address.username} is gone")
@@ -107,17 +107,17 @@ class RegtestAddressFeeTest {
         runBlocking<Unit> {
             // Held for its fee, the name isn't published: the check before the claim finds it free, and the mint refuses the registration.
             val name = Regtest.name()
-            assertIs<OnboardResult.AwaitingFee>(wallet().onboard(name, HOST5))
+            assertIs<OnboardResult.AwaitingFee>(wallet().onboard(name, HOST2))
 
             val store = InMemoryWalletStore()
             val wallet = wallet(store)
             assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
-            val refused = wallet.claimAddress(name, HOST5)
+            val refused = wallet.claimAddress(name, HOST2)
             assertTrue(refused is OnboardResult.UsernameTaken || refused is OnboardResult.RegistrationFailed, "$refused")
-            assertEquals(0L, store.keyIndexOrNull(wallet.activeId(), spendDomain(HOST5), KeyCounter.Shares), "share 0 given back")
+            assertEquals(0L, store.keyIndexOrNull(wallet.activeId(), spendDomain(HOST2), KeyCounter.Shares), "share 0 given back")
 
             // The mint kept nothing of share 0: the next name gets it.
-            val held = assertIs<OnboardResult.AwaitingFee>(wallet.claimAddress(Regtest.name(), HOST5))
+            val held = assertIs<OnboardResult.AwaitingFee>(wallet.claimAddress(Regtest.name(), HOST2))
             assertEquals(0L, held.address.share)
         }
 }

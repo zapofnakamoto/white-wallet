@@ -19,6 +19,7 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.legacy.LegacyAddress
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurlcash.Cp1
@@ -32,17 +33,14 @@ import whitewallet.lnurlcash.client.MintDialect
 internal object Regtest {
     const val HOST = "localhost:8111"
 
-    /** The second mint (2 sat base fee), funded by user-lnd. */
+    /** The second mint (2 sat base fee), funded by user-lnd. It charges an address fee of 21 sats (on the current stack): [registered]. */
     const val HOST2 = "localhost:8112"
 
     /** The third mint (1 sat base fee), whose signing key [rotateMint3] changes. */
     const val HOST3 = "localhost:8113"
 
     /** Starts on lnurl-mint 0.12.2 and is upgraded in place ([upgradeMint4]). */
-    const val HOST4 = "localhost:8115"
-
-    /** Charges an address fee of 21 sats (on the current stack). */
-    const val HOST5 = "localhost:8116"
+    const val HOST4 = "localhost:8114"
 
     private val script = File("../../dev/regtest/regtest.sh").canonicalFile
     private val random = SecureRandom()
@@ -196,6 +194,18 @@ internal object Regtest {
         error("$name was not registered on $host")
     }
 
+    /**
+     * The address of [result], registered: one the mint holds for its fee (the second mint, on the current stack) is paid for from outside
+     * first, and [wallet] refreshed to finish the registration.
+     */
+    suspend fun registered(wallet: Wallet, result: OnboardResult): RegisteredAddress {
+        if (result !is OnboardResult.AwaitingFee) return assertIs<OnboardResult.Ready>(result).address
+        pay(checkNotNull(result.address.feeInvoice), 0)
+        untilRegistered(result.address.username, result.address.host)
+        wallet.refresh()
+        return result.address.copy(feeInvoice = null)
+    }
+
     /** A wallet with its own store, onboarded with a fresh address on [host]. */
     suspend fun phone(
         strategy: String = ManualStrategy.ID,
@@ -221,7 +231,7 @@ internal object Regtest {
                 settings = settings,
             )
         val name = name()
-        assertIs<OnboardResult.Ready>(wallet.onboard(name, host))
+        registered(wallet, wallet.onboard(name, host))
         return Phone(store, wallet, "$name@$host")
     }
 

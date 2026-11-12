@@ -194,7 +194,7 @@ regtest-fund-test-wallet notes="3" account="0":
     else echo "No regtest stack is up: start one with 'just regtest up'." >&2; exit 1; fi
     REGTEST_PROTOCOL=$protocol ./gradlew -q :core:wallet:fundTestWallet --args="{{ notes }} {{ account }}"
 
-# Mint a note on the local mint (--mint2 to --mint5 for another) and type it into the focused field on the device, or with --open open it in the app
+# Mint a note on the local mint (--mint2 to --mint4 for another) and type it into the focused field on the device, or with --open open it in the app
 [group('regtest')]
 note sats="1000" *flags:
     dev/regtest/regtest.sh note {{ sats }} --type {{ flags }}

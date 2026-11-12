@@ -17,7 +17,7 @@ import whitewallet.core.wallet.Regtest.HOST2
 class RegtestFaucetTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 
-    private val faucet = RegtestFaucet("localhost:8114")
+    private val faucet = RegtestFaucet("localhost:8110")
 
     @Test
     fun `the faucet pays an address on either mint`() =
@@ -60,8 +60,8 @@ class RegtestFaucetTest {
     fun `the faucet offers notes in developer mode, whichever mint the account is on`() =
         runBlocking<Unit> {
             val mints = listOf(HOST, HOST2)
-            assertEquals(mints, RegtestFaucet("localhost:8114", flowOf(true), flowOf(null), mints).noteMints.first())
-            assertEquals(emptyList(), RegtestFaucet("localhost:8114", flowOf(false), flowOf(HOST), mints).noteMints.first())
+            assertEquals(mints, RegtestFaucet("localhost:8110", flowOf(true), flowOf(null), mints).noteMints.first())
+            assertEquals(emptyList(), RegtestFaucet("localhost:8110", flowOf(false), flowOf(HOST), mints).noteMints.first())
             assertEquals(emptyList(), RegtestFaucet(null, flowOf(true), flowOf(HOST), mints).noteMints.first())
         }
 

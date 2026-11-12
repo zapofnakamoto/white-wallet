@@ -21,10 +21,9 @@ MINT2_URL="http://localhost:8112"
 MINT2_PORT=8112
 MINT3_URL="http://localhost:8113"
 MINT3_PORT=8113
-FAUCET_PORT=8114
-MINT4_URL="http://localhost:8115"
-MINT4_PORT=8115
-MINT5_PORT=8116
+MINT4_URL="http://localhost:8114"
+MINT4_PORT=8114
+FAUCET_PORT=8110
 # mint4 starts on the legacy protocol and `upgrade-mint4` moves it to this image, keeping its database.
 MINT4_LEGACY=0.12.2
 MINT4_UPGRADE=0.13.1
@@ -85,7 +84,6 @@ adb_reverse() {
         "$ADB" reverse "tcp:$MINT2_PORT" "tcp:$MINT2_PORT" >/dev/null && log "adb reverse tcp:$MINT2_PORT (second mint) -> this machine"
         "$ADB" reverse "tcp:$MINT3_PORT" "tcp:$MINT3_PORT" >/dev/null && log "adb reverse tcp:$MINT3_PORT (third mint) -> this machine"
         "$ADB" reverse "tcp:$MINT4_PORT" "tcp:$MINT4_PORT" >/dev/null && log "adb reverse tcp:$MINT4_PORT (fourth mint) -> this machine"
-        "$ADB" reverse "tcp:$MINT5_PORT" "tcp:$MINT5_PORT" >/dev/null && log "adb reverse tcp:$MINT5_PORT (fifth mint) -> this machine"
         "$ADB" reverse "tcp:$FAUCET_PORT" "tcp:$FAUCET_PORT" >/dev/null && log "adb reverse tcp:$FAUCET_PORT (faucet) -> this machine"
     else
         log "no Android device or emulator connected; run '$0 connect' once one is"
@@ -277,8 +275,7 @@ await_credited() {
         http://localhost:8111/*) service=mint db=mint ;;
         http://localhost:8112/*) service=mint2 db=mint2 ;;
         http://localhost:8113/*) service=mint3 db=mint3 ;;
-        http://localhost:8115/*) service=mint4 db=mint4 ;;
-        http://localhost:8116/*) service=mint5 db=mint5 ;;
+        http://localhost:8114/*) service=mint4 db=mint4 ;;
         *) return 0 ;;
     esac
     hash="$(lncli_user decodepayreq "$invoice" | jq -r '.payment_hash')"
@@ -325,8 +322,7 @@ cmd_note() {
             --mint2) mint_url="$MINT2_URL" ;;
             --mint3) mint_url="$MINT3_URL" ;;
             --mint4) mint_url="$MINT4_URL" ;;
-            --mint5) mint_url="$MINT5_URL" ;;
-            ''|*[!0-9]*) die "usage: $0 note [sats] [--mint2|--mint3|--mint4|--mint5] [--bech32] [--type|--open]" ;;
+            ''|*[!0-9]*) die "usage: $0 note [sats] [--mint2|--mint3|--mint4] [--bech32] [--type|--open]" ;;
             *) sats="$arg" ;;
         esac
     done
@@ -446,16 +442,16 @@ usage: [REGTEST_PROTOCOL=current|legacy] $0 <command>
   pay <target> [sats]      pay an invoice (lnbcrt...), a Lightning address (alice@localhost:8111, or :8112 on mint2)
                            or an LNURL-pay
   invoice <sats> [memo]    create an invoice on the user node
-  note [sats] [--mint2|--mint3|--mint4|--mint5] [--bech32] [--type|--open]
+  note [sats] [--mint2|--mint3|--mint4] [--bech32] [--type|--open]
                            mint a bearer note (default 1000 sats) and print its link, to claim in the app;
                            --mint2 mints it on the second mint (localhost:8112), --mint3 on the third (localhost:8113),
-                           --mint4 and --mint5 on the fourth and fifth (localhost:8115, localhost:8116);
+                           --mint4 on the fourth (localhost:8114);
                            --open opens it on the device like a tapped link: the app shows the note, ready to claim
                            (from a mint the wallet hasn't added: a note from an unknown mint);
                            --bech32 prints it as an uppercase LNURL1... instead of lnurlw://;
                            --type also types it into the focused field on the device
   rotate-mint3             give the third mint (localhost:8113) a new signing key: move it to the other LND node
-  upgrade-mint4            upgrade the fourth mint (localhost:8115) in place from lnurl-mint $MINT4_LEGACY to $MINT4_UPGRADE
+  upgrade-mint4            upgrade the fourth mint (localhost:8114) in place from lnurl-mint $MINT4_LEGACY to $MINT4_UPGRADE
   reset-mint4              put the fourth mint back on $MINT4_LEGACY with an empty database
   mine [n]                 mine n blocks (default 1)
   connect                  adb reverse the mint and faucet ports again (after replugging a device)

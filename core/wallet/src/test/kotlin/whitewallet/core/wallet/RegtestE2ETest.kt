@@ -217,7 +217,8 @@ class RegtestE2ETest {
             val phone1 = Regtest.phone(strategy = ManualStrategy.ID)
             val store = phone1.store
             val bob = Regtest.name("e2e")
-            assertTrue(assertIs<OnboardResult.Ready>(phone1.wallet.addAddress(bob, limit = 1, host = HOST2)).confirmed)
+            Regtest.registered(phone1.wallet, phone1.wallet.addAddress(bob, limit = 1, host = HOST2))
+            assertEquals(AddressStatus.Ours, phone1.wallet.checkAddress(bob, HOST2))
             assertEquals(phone1.address, phone1.wallet.primaryAddress.first()?.address, "the primary address stays on the home mint")
 
             // A payment to the second mint's address: found by refresh, as a note on that mint.

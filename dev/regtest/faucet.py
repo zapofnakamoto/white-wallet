@@ -2,7 +2,7 @@
 the wallet to pay, on request over HTTP.
 
 It is `regtest.sh pay`, `regtest.sh invoice` and `regtest.sh note` for the app: a debug build in developer mode asks it (through
-`adb reverse tcp:8114`), so receiving and sending can be tried without a terminal. Regtest only, no real funds; it
+`adb reverse tcp:8110`), so receiving and sending can be tried without a terminal. Regtest only, no real funds; it
 listens on 127.0.0.1 of the computer, like the mints.
 
     POST /pay?target=<name@localhost:8111 | lnbcrt…>&sats=<amount>
@@ -26,7 +26,7 @@ import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-PORT = 8114
+PORT = 8110
 # How the app names the mints (BASE_URL, over adb reverse) and where they are inside the stack.
 MINTS = {"localhost:8111": "http://mint:8111", "localhost:8112": "http://mint2:8112", "localhost:8113": "http://mint3:8113"}
 MAX_SATS = 1_000_000

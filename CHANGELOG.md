@@ -5,6 +5,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Changed
+
+- The regtest stack has four mints on `localhost:8111` to `8114`, mint N on port 811N, and the faucet on `8110`
+  (it was on `8114`, the fourth mint on `8115`). The second mint charges the 21 sat address fee; the fifth mint,
+  which did, is gone, and with it `regtest.sh note --mint5`. Run `regtest.sh reset` on both stacks: accounts on
+  the old `localhost:8115` and `8116` stop working.
+
 ## [0.8.1]
 
 ### Fixed

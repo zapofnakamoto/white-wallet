@@ -40,13 +40,13 @@ import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.NetworkConditions
 
 /**
- * A wallet's setup on a mint that charges for an address (dev/regtest's fifth mint, 21 sats), as the screens run it: the add-mint and the
+ * A wallet's setup on a mint that charges for an address (dev/regtest's second mint, 21 sats), as the screens run it: the add-mint and the
  * address view models over a real [Wallet]. The wallet's own part is in core/wallet's RegtestAddressFeeTest; the screens' looks in
  * [AddressFeeScreenTest].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RegtestAddressFeeFlowTest {
-    private val host = "localhost:8116"
+    private val host = "localhost:8112"
     private val fee = 21_000L
 
     @BeforeTest
