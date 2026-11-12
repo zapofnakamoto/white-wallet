@@ -211,6 +211,7 @@
     <string name="home_add_mint_title">Anbieter hinzufügen</string>
     <string name="home_add_mint_body">Diese Wallet hat noch keinen Anbieter, deshalb kann nichts empfangen werden. Fügst du den Anbieter hinzu, den du benutzt, wird das Geld gefunden, das deine Wiederherstellungsphrase dort hat.</string>
     <string name="home_add_mint_action">Anbieter hinzufügen</string>
+    <string name="home_mint_is_home">Anbieter</string>
     <string name="address_fee_body">Dieser Anbieter verlangt einmalig %1$s für eine Adresse. Du kannst den Namen jetzt reservieren und bezahlen, wann du möchtest.</string>
     <string name="address_held_body">Bezahle %1$s, um abzuschließen. Der Anbieter hält den Namen nur begrenzte Zeit; läuft die Rechnung ab, kannst du es erneut versuchen.</string>
     <string name="onboarding_error_fee">Dieser Anbieter verlangt %1$s für eine Adresse, mehr als die %2$s, die diese App akzeptiert.</string>

@@ -81,7 +81,16 @@ data class HomeState(
     val received: List<ReceivedNote> = emptyList(),
     /** What the notes handed out as links and not claimed yet are worth: out of [balanceMsat], and still the user's to take back. */
     val sharedMsat: Long = 0,
+    /** The active account's mints that hold money of its balance: the home mint first, then the others by name. */
+    val mints: List<AccountMint> = emptyList(),
 ) {
+    /**
+     * The balance per mint, shown under it once it is on more than one: a payment is made from one mint's money, so the total alone
+     * promises more than can be sent at once. Not where the brand hides mints, nor while the balance is hidden.
+     */
+    val balanceByMint: List<AccountMint>
+        get() = mints.takeIf { mintsVisible && !balanceHidden && it.size > 1 }.orEmpty()
+
     val activeAccount: AccountSummary?
         get() = accounts.firstOrNull { it.account.id == activeAccountId }
 
@@ -204,7 +213,14 @@ class HomeViewModel(
         refresh()
         viewModelScope.launch { collectNotices() }
         viewModelScope.launch {
-            wallet.accountMints.collect { mints -> status.update { it.copy(unknownNotes = mints.filter { m -> m.unknownCount > 0 }) } }
+            wallet.accountMints.collect { mints ->
+                status.update {
+                    it.copy(
+                        unknownNotes = mints.filter { m -> m.unknownCount > 0 },
+                        mints = mints.filter { m -> m.balanceMsat > 0 }.sortedWith(compareBy({ m -> !m.isHome }, { m -> m.host })),
+                    )
+                }
+            }
         }
         viewModelScope.launch {
             wallet.notes.collect { notes ->

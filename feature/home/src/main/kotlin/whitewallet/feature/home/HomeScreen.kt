@@ -566,6 +566,7 @@ private fun WalletTab(
                     modifier = onOpenIncoming?.let { Modifier.clickable(onClick = it) } ?: Modifier,
                 )
             }
+            if (state.balanceByMint.isNotEmpty()) BalanceByMint(state.balanceByMint, onOpenMint)
             // Handed out as links and not claimed yet: out of the balance, and the user's until someone claims them.
             if (state.sharedMsat > 0) {
                 Text(
@@ -861,6 +862,21 @@ private fun UnknownNotesCard(mint: AccountMint, mintsVisible: Boolean, balanceHi
                 style = MaterialTheme.typography.bodyMedium,
             )
             WalletButton(onClick = onRecheck, enabled = !checking) { Text(stringResource(R.string.home_unknown_action)) }
+        }
+    }
+}
+
+/** What of the balance is on which mint, a row each, leading to the mint's page. */
+@Composable
+private fun BalanceByMint(mints: List<AccountMint>, onOpenMint: (String) -> Unit) {
+    WalletCard(modifier = Modifier.fillMaxWidth()) {
+        mints.forEach { mint ->
+            WalletListItem(
+                headlineContent = { Text(mint.host) },
+                supportingContent = if (mint.isHome) ({ Text(stringResource(R.string.home_mint_is_home)) }) else null,
+                trailingContent = { Text(formatAmount(mint.balanceMsat), style = MaterialTheme.typography.titleMedium) },
+                modifier = Modifier.clickable { onOpenMint(mint.host) },
+            )
         }
     }
 }

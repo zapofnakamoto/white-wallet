@@ -140,6 +140,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `home_add_mint_title` | Add a mint |
 | `home_add_mint_body` | This wallet has no mint yet, so nothing can be received. Adding the mint you use finds the money your recovery phrase holds there. |
 | `home_add_mint_action` | Add mint |
+| `home_mint_is_home` | Home mint |
 | `receive_no_mint` | This wallet has no mint yet. Add one to receive. |
 | `receive_no_mint_action` | Add mint |
 | `receive_no_home` | This account has no home mint. Choose one of your mints to receive there. |

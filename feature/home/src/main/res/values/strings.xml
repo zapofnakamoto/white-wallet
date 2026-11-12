@@ -9,6 +9,7 @@
     <string name="home_add_mint_title">Add a mint</string>
     <string name="home_add_mint_body">This wallet has no mint yet, so nothing can be received. Adding the mint you use finds the money your recovery phrase holds there.</string>
     <string name="home_add_mint_action">Add mint</string>
+    <string name="home_mint_is_home">Home mint</string>
     <string name="activity_moved_mint_other">Moved to another mint</string>
     <string name="home_tab_notes">Notes</string>
     <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a note.</string>

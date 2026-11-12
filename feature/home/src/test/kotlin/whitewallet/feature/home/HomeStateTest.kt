@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import whitewallet.brand.WalletStatus
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.wallet.AccountMint
 
 /** What Home makes of received notes: shown apart from the balance, counted as incoming while they may still arrive. */
 class HomeStateTest {
@@ -54,6 +55,17 @@ class HomeStateTest {
     @Test
     fun `a wallet whose money is all in notes handed out isn't empty`() {
         assertEquals(WalletStatus.Idle, HomeState(activeAccountId = "a", sharedMsat = 1_000).status)
+    }
+
+    private fun mint(host: String, msat: Long, home: Boolean = false) = AccountMint(host, home, msat, 1, 0, trusted = true)
+
+    @Test
+    fun `the balance is told per mint only once it is on several, and where mints and the balance show`() {
+        val two = listOf(mint("a.example", 6_000, home = true), mint("b.example", 2_000))
+        assertEquals(two, HomeState(mints = two).balanceByMint)
+        assertEquals(emptyList(), HomeState(mints = two.take(1)).balanceByMint)
+        assertEquals(emptyList(), HomeState(mints = two, mintsVisible = false).balanceByMint)
+        assertEquals(emptyList(), HomeState(mints = two, balanceHidden = true).balanceByMint)
     }
 
     @Test

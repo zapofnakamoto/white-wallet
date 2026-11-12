@@ -40,6 +40,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.wallet.MaintenanceNotice
 
@@ -747,6 +748,26 @@ class HomeScreenTest {
         compose.onNodeWithText(text(R.string.home_shared_total, "₿3,000")).performClick()
         compose.onNodeWithText(text(R.string.home_shared_total, "₿3,000")).assertDoesNotExist()
         compose.onAllNodesWithText(text(R.string.home_tab_history)).assertCountEquals(2)
+    }
+
+    @Test
+    fun aBalanceOnSeveralMintsIsShownPerMintAndEachLeadsToItsPage() {
+        var opened: String? = null
+        val mints = listOf(AccountMint("a.example", true, 6_000_000, 1, 0, true), AccountMint("b.example", false, 2_000_000, 2, 0, true))
+        show(HomeState(activeAccountId = "a", balanceMsat = 8_000_000, mints = mints), onOpenMint = { opened = it })
+        compose.onNodeWithText("₿8,000").assertExists()
+        compose.onNodeWithText("₿6,000").assertExists()
+        compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
+        compose.onNodeWithText("b.example").performClick()
+        assertEquals("b.example", opened)
+    }
+
+    @Test
+    fun aBalanceOnOneMintIsTheTotalAlone() {
+        show(
+            HomeState(activeAccountId = "a", balanceMsat = 6_000_000, mints = listOf(AccountMint("a.example", true, 6_000_000, 1, 0, true)))
+        )
+        compose.onNodeWithText("a.example").assertDoesNotExist()
     }
 
     @Test
