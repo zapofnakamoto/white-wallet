@@ -5,6 +5,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Added
+
+- The launcher icon is in the APK as PNGs too, drawn by the build from the brand's adaptive icon. Android shows the
+  adaptive icon as before; the PNGs are for app stores that read the APK and can't draw it. Zapstore doesn't draw a
+  vector with a clip path, and showed another image from the APK instead. A brand has nothing to do; one with its
+  own `res/mipmap-*dpi/ic_launcher.png` keeps those (see §2 of `docs/WHITE_LABEL.md`).
+
 ### Changed
 
 - The regtest stack has four mints on `localhost:8111` to `8114`, mint N on port 811N, and the faucet on `8110`

@@ -215,6 +215,16 @@ android {
     sourceSets.getByName("main").res.directories.add(brandDir.resolve("res").path)
 }
 
+// The launcher icon as PNGs too, drawn from the brand's adaptive icon: what an app store shows when it reads the APK and
+// can't draw the adaptive icon. A brand with a mipmap-*/ic_launcher.png of its own keeps that.
+androidComponents.onVariants { variant ->
+    val launcherIcon =
+        tasks.register<GenerateLauncherIconTask>("generate${variant.name.replaceFirstChar(Char::uppercase)}LauncherIcon") {
+            brandRes.set(brandDir.resolve("res"))
+        }
+    variant.sources.res?.addGeneratedSourceDirectory(launcherIcon, GenerateLauncherIconTask::outputDir)
+}
+
 // Installs the debug build and opens it, like `just run`: what the shared Android Studio run configurations in .run/
 // call, since Studio's own app configuration can't pass -PbrandDir.
 tasks.register<Exec>("openDebug") {
