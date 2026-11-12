@@ -175,6 +175,28 @@
     <string name="move_insufficient">Not enough funds for this amount, including fees.</string>
     <string name="move_split_mints">Your funds are held in different places. Move a smaller amount, or everything.</string>
     <string name="move_failed">Refused: %1$s</string>
+    <!-- After a move that left money behind. %1$s: the amount that stayed, %2$s: the account it is still in. -->
+    <string name="move_stayed">Still in %2$s: %1$s</string>
+    <string name="move_none">Nothing was moved.</string>
+    <!-- Why money stayed, said after a move and before one that can't be whole. %1$s: the mint's host. -->
+    <string name="move_stayed_unreachable">No answer from %1$s. Try again later.</string>
+    <string name="move_stayed_key">The signing key of %1$s isn\'t the one expected. Look at its details before you try again.</string>
+    <!-- The wallet the money was to go to knows the mint by another key. %1$s: the mint's host, %2$s: that wallet's name. -->
+    <string name="move_stayed_other_key">%2$s knows %1$s by another signing key. Look at it in that wallet before you try again.</string>
+    <string name="move_stayed_refused">%1$s doesn\'t accept the move.</string>
+    <!-- The same where mints aren't named (brand mints.visible=false). -->
+    <string name="move_stayed_unreachable_unnamed">It can\'t be moved right now. Try again later.</string>
+    <string name="move_stayed_blocked_unnamed">It can\'t be moved.</string>
+    <string name="move_retry">Try again</string>
+    <!-- Opens the page of the mint whose signing key isn't the one expected. %1$s: the mint's host. -->
+    <string name="move_mint_details">Details of %1$s</string>
+    <!-- Asked before a move of which only a part can be made. -->
+    <string name="move_partial_title">Not everything can move right now</string>
+    <!-- %1$s: the amount that would stay, %2$s: the account it would stay in. -->
+    <string name="move_partial_body">Would stay in %2$s: %1$s</string>
+    <!-- The button that moves what can move. %1$s: that amount. -->
+    <string name="move_partial_confirm">Move %1$s</string>
+    <string name="move_partial_cancel">Cancel</string>
     <string name="home_key_changed_title">%1$s changed its signing key</string>
     <string name="home_key_changed_action">Details</string>
     <!-- After a notice_* message: what it did to the balance, as a sentence of its own. -->

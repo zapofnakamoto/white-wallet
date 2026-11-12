@@ -71,8 +71,8 @@ internal class Restore(private val wallet: Wallet) {
             if (failure.refused) RestoreResult.MintInvalid(failure.reason) else RestoreResult.NetworkError(failure.reason)
         }
         when (val connected = h?.let { onboarding.connectMint(accountId, it) }) {
-            null,
-            is ConnectResult.Connected -> Unit
+            null -> Unit
+            is ConnectResult.Connected -> onboarding.homeIfNone(accountId, connected.mint.host)
             is ConnectResult.Failed -> {
                 undo()
                 return when (val r = connected.result) {

@@ -9,6 +9,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -80,6 +81,20 @@ class MintTrustTest {
         wallet.setMintTrusted(other.host, true)
         assertTrue(wallet.info(other.host).trusted)
         assertTrue(assertIs<ClaimPreview.Ready>(wallet.previewClaim(link)).trusted)
+    }
+
+    @Test
+    fun `a mint met by claiming a note doesn't become the home of an account that has none`() = withMints { wallet, store, _, other ->
+        store.saveAccount(checkNotNull(store.account("a")).copy(homeHost = null))
+        val bearer = Spend.Bearer(ByteVector32(Hex.decode("77".repeat(32))))
+        other.credit(bearer.h.toHex(), 5_000)
+        assertIs<ClaimResult.Claimed>(
+            wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim("lnurlw://${other.host}/w?k1=${bearer.k1}")))
+        )
+        assertNotNull(store.mint("a", other.host), "the wallet has the mint its note is at")
+        assertEquals(null, store.account("a")?.homeHost)
+        assertEquals(null, wallet.info(other.host).trustedByDefault)
+        assertFalse(wallet.info(other.host).trusted)
     }
 
     @Test

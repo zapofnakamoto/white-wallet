@@ -9,6 +9,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import whitewallet.core.model.Account
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
@@ -26,6 +27,9 @@ import whitewallet.testkit.MockMint
 class AccountsTest {
     private val wordsA = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
     private val wordsB = "legal winner thank year wave sausage worth useful legal winner thank yellow".split(" ")
+
+    /** A signing key no mint here has. */
+    private val otherKey = "02" + "11".repeat(32)
 
     @Test
     fun `switching accounts changes profile, notes and backup state`() =
@@ -71,13 +75,25 @@ class AccountsTest {
             }
         }
 
-    /** Credits a purpose-0 note of account "a" at the mock mint and records it, as a claim would have. */
-    private suspend fun Fixture.give(msat: Long) {
-        val index = store.reserveKeyIndex("a", spendDomain(mint.host), KeyCounter.Wallet)
-        val q = keysA.pubkey(KeySet.Wallet, index)
-        mint.credit(Cp1.encode(q), msat)
-        store.upsertNotes(listOf(note(q.toHex(), "a", msat, mint.host, 0, index)))
+    /** As [withMint], with a second mint the wallet of account "a" is connected to as well. */
+    private fun withTwoMints(test: suspend Fixture.(other: MockMint) -> Unit) = withMint {
+        MockMint.start().use { other ->
+            assertIs<ConnectResult.Connected>(wallet.connectMint(other.host))
+            test(other)
+        }
     }
+
+    /** Credits a purpose-0 note of account "a" at the mock mint [at] and records it, as a claim would have. */
+    private suspend fun Fixture.give(msat: Long, at: MockMint = mint) {
+        val index = store.reserveKeyIndex("a", spendDomain(at.host), KeyCounter.Wallet)
+        val q = (if (at === mint) keysA else testKeys(wordsA, at.host)).pubkey(KeySet.Wallet, index)
+        at.credit(Cp1.encode(q), msat)
+        store.upsertNotes(listOf(note(q.toHex(), "a", msat, at.host, 0, index)))
+    }
+
+    /** The wallet of account "b" has [host] in its list already, pinned to [key]. */
+    private suspend fun Fixture.pinForB(host: String, key: String?) =
+        store.saveMint(assertNotNull(store.mint("a", host)).copy(walletId = "b", mintPubkey = key))
 
     private suspend fun Fixture.balance(account: String) = store.accounts.first().first { it.account.id == account }.balanceMsat
 
@@ -143,12 +159,164 @@ class AccountsTest {
     @Test
     fun `a move to a wallet that pinned another key for the mint is refused without touching anything`() = withMint {
         give(21_000)
-        store.saveMint(assertNotNull(store.mint("a", mint.host)).copy(walletId = "b", mintPubkey = "02" + "11".repeat(32)))
+        pinForB(mint.host, otherKey)
         val result = assertIs<MoveResult.Failed>(wallet.moveFunds("b", null))
         assertEquals(MoveFailure.Refused, result.reason)
         assertEquals(21_000, balance("a"))
         assertEquals(0, balance("b"))
         assertTrue(store.journal.isEmpty())
+    }
+
+    @Test
+    fun `a partial move to a wallet that pinned another key for the mint is refused without touching anything`() = withMint {
+        give(21_000)
+        pinForB(mint.host, otherKey)
+        val result = assertIs<MoveResult.Failed>(wallet.moveFunds("b", 5_000))
+        assertEquals(MoveFailure.Refused, result.reason)
+        assertEquals(MINT_KEY_CHANGED, result.detail)
+        assertEquals(listOf(MoveStayed(mint.host, 5_000, StayReason.OtherWalletKey)), result.stayed)
+        assertEquals(21_000, balance("a"))
+        assertTrue(store.journal.isEmpty())
+    }
+
+    @Test
+    fun `a move to a wallet that has the mint without a key goes on`() = withMint {
+        give(21_000)
+        pinForB(mint.host, null)
+        assertEquals(emptyList<String>(), wallet.moveAddsMints("b", null))
+        assertEquals(MoveResult.Moved(21_000), wallet.moveFunds("b", null))
+        assertEquals(21_000, balance("b"))
+    }
+
+    @Test
+    fun `a mint that doesn't answer isn't added, and nothing moves`() = withMint {
+        give(21_000)
+        mint.close()
+        val result = assertIs<MoveResult.Failed>(wallet.moveFunds("b", null))
+        assertEquals(MoveFailure.Refused, result.reason)
+        assertEquals(listOf(MoveStayed(mint.host, 21_000, StayReason.Unreachable)), result.stayed)
+        assertEquals(null, store.mint("b", mint.host))
+        assertEquals(21_000, balance("a"))
+        assertTrue(store.journal.isEmpty())
+    }
+
+    @Test
+    fun `a mint that now shows another key than the sending wallet pinned isn't added, and nothing moves`() = withMint {
+        give(21_000)
+        store.saveMint(assertNotNull(store.mint("a", mint.host)).copy(mintPubkey = otherKey))
+        val result = assertIs<MoveResult.Failed>(wallet.moveFunds("b", 5_000))
+        assertEquals(MoveFailure.Refused, result.reason)
+        assertEquals(MINT_KEY_CHANGED, result.detail)
+        assertEquals(listOf(MoveStayed(mint.host, 5_000, StayReason.KeyChanged)), result.stayed)
+        assertEquals(null, store.mint("b", mint.host))
+        assertEquals(21_000, balance("a"))
+        assertTrue(store.journal.isEmpty())
+    }
+
+    @Test
+    fun `moving everything from several mints moves what can move, and says which mint's notes stayed and why`() = withTwoMints { other ->
+        give(3_000)
+        give(9_000, other)
+        other.close()
+        assertEquals(
+            MoveResult.Moved(3_000, listOf(MoveStayed(other.host, 9_000, StayReason.Unreachable))),
+            wallet.moveFunds("b", null),
+        )
+        assertNotNull(store.mint("b", mint.host))
+        assertEquals(null, store.mint("b", other.host))
+        assertEquals(9_000, balance("a"))
+        assertEquals(3_000, balance("b"))
+        assertEquals(
+            listOf(other.host),
+            store.allNotes().filter { it.state == NoteState.Outstanding && it.accountId == "a" }.map { it.host },
+        )
+    }
+
+    @Test
+    fun `a mint that refuses the move itself keeps its notes, and the other mints' notes still move`() = withTwoMints { other ->
+        // A note the wallet has at the other mint, which that mint doesn't know: the move of it is refused there.
+        val index = store.reserveKeyIndex("a", spendDomain(other.host), KeyCounter.Wallet)
+        val q = testKeys(wordsA, other.host).pubkey(KeySet.Wallet, index)
+        store.upsertNotes(listOf(note(q.toHex(), "a", 9_000, other.host, 0, index)))
+        give(3_000)
+        val moved = assertIs<MoveResult.Moved>(wallet.moveFunds("b", null))
+        assertEquals(3_000, moved.amountMsat)
+        assertEquals(listOf(MoveStayed(other.host, 9_000, StayReason.Refused)), moved.stayed)
+        assertEquals(3_000, balance("b"))
+    }
+
+    @Test
+    fun `what a move would do is asked of the mints first, and changes nothing`() = withTwoMints { other ->
+        give(3_000)
+        give(9_000, other)
+        assertEquals(MoveCheck(12_000, emptyList()), wallet.checkMoveFunds("b", null))
+        assertEquals(MoveCheck(5_000, emptyList()), wallet.checkMoveFunds("b", 5_000))
+        assertEquals(MoveCheck(0, emptyList()), wallet.checkMoveFunds("b", 10_000), "no single mint holds that much")
+
+        // The other wallet knows the first mint by another key; the second one stops answering.
+        pinForB(mint.host, otherKey)
+        assertEquals(MoveCheck(9_000, listOf(MoveStayed(mint.host, 3_000, StayReason.OtherWalletKey))), wallet.checkMoveFunds("b", null))
+        other.close()
+        assertEquals(
+            setOf(MoveStayed(mint.host, 3_000, StayReason.OtherWalletKey), MoveStayed(other.host, 9_000, StayReason.Unreachable)),
+            wallet.checkMoveFunds("b", null).also { assertEquals(0, it.movableMsat) }.stayed.toSet(),
+        )
+        assertEquals(MoveCheck(0, listOf(MoveStayed(other.host, 5_000, StayReason.Unreachable))), wallet.checkMoveFunds("b", 5_000))
+
+        assertEquals(null, store.mint("b", other.host), "asking adds no mint")
+        assertEquals(12_000, balance("a"))
+        assertTrue(store.journal.isEmpty())
+    }
+
+    @Test
+    fun `a mint that shows another key than the one pinned can't take part, as the check says before the move`() = withMint {
+        give(21_000)
+        store.saveMint(assertNotNull(store.mint("a", mint.host)).copy(mintPubkey = otherKey))
+        assertEquals(MoveCheck(0, listOf(MoveStayed(mint.host, 21_000, StayReason.KeyChanged))), wallet.checkMoveFunds("b", null))
+        // To an account of the same wallet too: the wallet stopped working with that mint.
+        store.saveAccount(Account("a2", "Spending", 2, walletId = "a", index = 1, homeHost = mint.host))
+        assertEquals(MoveCheck(0, listOf(MoveStayed(mint.host, 21_000, StayReason.KeyChanged))), wallet.checkMoveFunds("a2", null))
+        val result = assertIs<MoveResult.Failed>(wallet.moveFunds("a2", null))
+        assertEquals(listOf(MoveStayed(mint.host, 21_000, StayReason.KeyChanged)), result.stayed)
+        assertEquals(21_000, balance("a"))
+    }
+
+    @Test
+    fun `a move of an amount adds only the mint the amount is taken from`() = withTwoMints { other ->
+        give(3_000)
+        give(9_000, other)
+        assertEquals(setOf(mint.host, other.host), wallet.moveAddsMints("b", null).toSet())
+        assertEquals(listOf(other.host), wallet.moveAddsMints("b", 5_000))
+        assertEquals(emptyList<String>(), wallet.moveAddsMints("b", 10_000), "no single mint holds that much: nothing would move")
+
+        assertEquals(MoveResult.Moved(5_000), wallet.moveFunds("b", 5_000))
+        assertNotNull(store.mint("b", other.host))
+        assertEquals(null, store.mint("b", mint.host))
+        assertEquals(listOf(mint.host), wallet.moveAddsMints("b", null))
+    }
+
+    @Test
+    fun `a move to another account of the same wallet adds no mint`() = withMint {
+        store.saveAccount(Account("a2", "Spending", 2, walletId = "a", index = 1, homeHost = mint.host))
+        give(21_000)
+        assertEquals(emptyList<String>(), wallet.moveAddsMints("a2", null))
+        assertEquals(MoveResult.Moved(21_000), wallet.moveFunds("a2", null))
+        assertEquals(21_000, balance("a2"))
+        assertEquals(listOf("a"), store.wallets.first().map { it.id }.filter { store.mint(it, mint.host) != null })
+    }
+
+    @Test
+    fun `a mint added by a move doesn't become the home mint of a wallet that has none`() = withMint {
+        assertIs<CreateAccountResult.Created>(wallet.createWallet("Other"))
+        wallet.setSetupStep(null)
+        val other = assertNotNull(store.currentAccountId())
+        wallet.switchAccount("a")
+        give(21_000)
+        assertEquals(null, store.account(other)?.homeHost)
+        assertEquals(MoveResult.Moved(21_000), wallet.moveFunds(other, null))
+        assertNotNull(store.mint(wallet.walletOf(other), mint.host))
+        // A home mint is trusted by default: one the wallet only met because a note was moved to it isn't.
+        assertEquals(null, store.account(other)?.homeHost)
     }
 
     @Test

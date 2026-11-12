@@ -7,10 +7,13 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import okhttp3.Interceptor
+import okhttp3.Response
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.MintScan
 import whitewallet.core.wallet.Regtest.HOST
+import whitewallet.core.wallet.Regtest.HOST2
 
 /** Moving money between two accounts, of one wallet or of two, on the real mint. */
 class RegtestAccountsTest {
@@ -85,6 +88,7 @@ class RegtestAccountsTest {
 
             assertEquals(MoveResult.Moved(1_999_000), phone.wallet.moveFunds(other, null))
             assertEquals(MintScan.Never, phone.store.mint(other, HOST)?.scan)
+            assertEquals(null, phone.store.account(other)?.homeHost, "a mint met by a moved note is nobody's home")
             assertEquals(phone.store.mint(main, HOST)?.mintPubkey, phone.store.mint(other, HOST)?.mintPubkey)
             assertEquals(mapOf(main to 0L, other to 1_999_000L), phone.balances())
 
@@ -94,5 +98,80 @@ class RegtestAccountsTest {
             assertEquals(MintScan.Finished, phone.store.mint(other, HOST)?.scan)
             assertEquals(mapOf(main to 0L, other to 1_999_000L), phone.balances())
             assertEquals(1, phone.store.notes(other).first().size)
+        }
+
+    /** A connection that drops every request to the mint at [down], which never sees them; while [changed], mints present another key. */
+    private class Connection : Interceptor {
+        var down: String? = null
+        var changed = false
+
+        override fun intercept(chain: Interceptor.Chain): Response {
+            val url = chain.request().url
+            if ("${url.host}:${url.port}" == down) Regtest.dropped()
+            val response = chain.proceed(chain.request())
+            return if (changed) Regtest.presentingOtherKey(response) else response
+        }
+    }
+
+    /** A phone with money at both mints in its first account, and a second wallet without any mint: the two account ids. */
+    private suspend fun twoMints(phone: Regtest.Phone): Pair<String, String> {
+        val main = assertNotNull(phone.store.currentAccountId())
+        phone.fund(2000)
+        val note = assertIs<ClaimPreview.Ready>(phone.wallet.previewClaim(Regtest.note(3000, second = true)))
+        assertIs<ClaimResult.Claimed>(phone.wallet.claim(note))
+        assertIs<CreateAccountResult.Created>(phone.wallet.createWallet("Other"))
+        phone.wallet.setSetupStep(null)
+        val other = assertNotNull(phone.store.currentAccountId())
+        phone.wallet.switchAccount(main)
+        return main to other
+    }
+
+    @Test
+    fun `a move of everything with one mint out of reach is known before it is made, moves the rest, and the rest of it later`() =
+        runBlocking<Unit> {
+            val connection = Connection()
+            val phone = Regtest.phone(client = Regtest.client(connection))
+            val (main, other) = twoMints(phone)
+            val second = phone.notes(HOST2).sumOf { it.amountMsat }
+            val stayed = listOf(MoveStayed(HOST2, second, StayReason.Unreachable))
+
+            connection.down = HOST2
+            assertEquals(MoveCheck(1_999_000, stayed), phone.wallet.checkMoveFunds(other, null))
+            assertEquals(null, phone.store.mint(other, HOST), "asking adds no mint")
+            assertEquals(mapOf(main to 1_999_000 + second, other to 0L), phone.balances())
+
+            assertEquals(MoveResult.Moved(1_999_000, stayed), phone.wallet.moveFunds(other, null))
+            assertEquals(mapOf(main to second, other to 1_999_000L), phone.balances())
+            assertEquals(null, phone.store.mint(other, HOST2), "a mint that didn't answer isn't added")
+
+            // The mint answers again: the same move takes what stayed.
+            connection.down = null
+            assertEquals(MoveCheck(second, emptyList()), phone.wallet.checkMoveFunds(other, null))
+            val rest = assertIs<MoveResult.Moved>(phone.wallet.moveFunds(other, null))
+            assertEquals(emptyList(), rest.stayed)
+            assertEquals(0L, phone.balances().getValue(main))
+            assertEquals(1_999_000 + rest.amountMsat, phone.balances().getValue(other))
+            assertEquals(null, phone.store.account(other)?.homeHost)
+        }
+
+    @Test
+    fun `a mint that shows another signing key keeps its notes, as the check says, and the other mint's notes move`() =
+        runBlocking<Unit> {
+            val connection = Connection()
+            val phone = Regtest.phone(client = Regtest.client(connection))
+            val (main, other) = twoMints(phone)
+            val held = 1_999_000 + phone.notes(HOST2).sumOf { it.amountMsat }
+
+            connection.changed = true
+            val check = phone.wallet.checkMoveFunds(other, null)
+            assertEquals(0, check.movableMsat)
+            assertEquals(
+                setOf(HOST to StayReason.KeyChanged, HOST2 to StayReason.KeyChanged),
+                check.stayed.map { it.host to it.reason }.toSet(),
+            )
+            val failed = assertIs<MoveResult.Failed>(phone.wallet.moveFunds(other, null))
+            assertEquals(check.stayed.toSet(), failed.stayed.toSet())
+            assertEquals(mapOf(main to held, other to 0L), phone.balances())
+            assertEquals(emptyList(), phone.store.mints(other).first(), "no mint was added")
         }
 }

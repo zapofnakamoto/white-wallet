@@ -447,7 +447,9 @@ class Wallet(
     /** Validates and stores a mint (and pins its key) without registering a username. */
     suspend fun connectMint(host: String): ConnectResult = lock.withLock {
         val id = store.currentAccountId() ?: return@withLock ConnectResult.Failed(OnboardResult.MintInvalid("no account"))
-        onboarding.connectMint(walletOf(id), host)
+        onboarding.connectMint(walletOf(id), host).also {
+            if (it is ConnectResult.Connected) onboarding.homeIfNone(walletOf(id), it.mint.host)
+        }
     }
 
     /**
@@ -514,6 +516,7 @@ class Wallet(
         val result = onboarding.connectMint(walletId, host)
         if (result !is ConnectResult.Connected) return@withLock HomeChanged(result)
         accountOf(id)?.let { store.saveAccount(it.copy(homeHost = result.mint.host)) }
+        onboarding.homeIfNone(walletId, result.mint.host)
         keepTrusted?.let { trust.setTrusted(walletId, it, true) }
         HomeChanged(result, moneyMove.move(id, result.mint.host, lines))
     }
@@ -824,6 +827,7 @@ class Wallet(
                 val connected = onboarding.connectMint(walletId, host, expectedKey)
                 if (connected !is ConnectResult.Connected) return@withLock connected
                 val h = connected.mint.host
+                onboarding.homeIfNone(walletId, h)
                 val created = store.wallet(walletId)?.setupStep != null && !seeds.backupVerified(walletId).first()
                 if (created) {
                     restorer.markScanned(walletId, h)
@@ -1142,13 +1146,21 @@ class Wallet(
 
     /**
      * Moves [amountMsat] (or everything, if null) from the active account to [toAccountId]. To an account of another wallet, the mints the
-     * money is at are added to that wallet's list ([moveAddsMints]); a mint that can't be added keeps its notes here.
+     * money is at are added to that wallet's list ([moveAddsMints]). A mint that can't take part keeps its notes here: the result says
+     * which.
      */
     suspend fun moveFunds(toAccountId: String, amountMsat: Long?): MoveResult = lock.withLock {
         val id = activeId()
         // The other account's policies run once it is active: note policies move only the active account's money.
         mover.move(id, toAccountId, amountMsat).also { applyPolicies(id) }
     }
+
+    /**
+     * What [moveFunds] would do, asked of the mints the money is at without changing anything: what would move, and what would stay with
+     * the active account because its mint doesn't answer or its signing key isn't the one known. For the user to decide on a move that
+     * can't be whole before any of it is made.
+     */
+    suspend fun checkMoveFunds(toAccountId: String, amountMsat: Long?): MoveCheck = mover.check(activeId(), toAccountId, amountMsat)
 
     /**
      * The mints [moveFunds] would add to the list of [toAccountId]'s wallet: those the money is at that the wallet doesn't have yet. None

@@ -418,7 +418,7 @@ private fun WalletApp(
             )
         }
         composable(Routes.MOVE_FUNDS) {
-            MoveFundsRoute(onBack = { nav.popBackStack() })
+            MoveFundsRoute(onBack = { nav.popBackStack() }, onMint = { host -> nav.navigate(Routes.mint(host)) })
         }
         composable(
             Routes.SEND_WITH,

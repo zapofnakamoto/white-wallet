@@ -45,8 +45,11 @@ internal sealed interface MutationResult {
      */
     data class Refused(val kind: RejectionKind, val reason: String?, val setAside: List<String> = emptyList()) : MutationResult
 
-    /** The mint could not be asked (unknown mint or no answer before anything was sent). Nothing changed. */
-    data class Unreachable(val reason: String?) : MutationResult
+    /**
+     * The mint could not be asked (unknown mint or no answer before anything was sent), or wasn't because it shows another signing key than
+     * the pinned one ([keyChanged]). Nothing changed.
+     */
+    data class Unreachable(val reason: String?, val keyChanged: Boolean = false) : MutationResult
 
     /** Sent, outcome unknown; the journal entry [journalId] is settled by reconciliation on a later refresh. */
     data class Pending(val journalId: String) : MutationResult
@@ -102,7 +105,7 @@ internal class NoteMutator(private val wallet: Wallet) {
         try {
             Pinning.check(wallet, mint, info.mintPubkey)
         } catch (e: MintKeyChangedException) {
-            return MutationResult.Unreachable(e.message)
+            return MutationResult.Unreachable(e.message, keyChanged = true)
         }
         val result =
             run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputMsat = inputs.sumOf { it.amountMsat }, type, outputs, splitMsat)

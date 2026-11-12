@@ -263,7 +263,7 @@ internal class Onboarding(private val wallet: Wallet) {
     private suspend fun claim(name: String, h: String, accountId: String, primary: Boolean): OnboardResult {
         when (val connected = connectMint(wallet.walletOf(accountId), h)) {
             is ConnectResult.Failed -> return connected.result
-            is ConnectResult.Connected -> Unit
+            is ConnectResult.Connected -> homeIfNone(wallet.walletOf(accountId), connected.mint.host)
         }
         val ready = suspend { confirmed: Boolean, share: Long? ->
             ready(accountId, name, host = h, confirmed, share, primary)
@@ -407,7 +407,7 @@ internal class Onboarding(private val wallet: Wallet) {
 
     /**
      * Connects the wallet [walletId] to the mint at [host]: fetches what it is and pins its key for that wallet on first contact (only
-     * [expectedKey], if given). The wallet's first mint becomes its home mint.
+     * [expectedKey], if given). Nobody's home mint by that alone: where the user chose the mint for the wallet, [homeIfNone] follows.
      */
     suspend fun connectMint(walletId: String, host: String, expectedKey: String? = null): ConnectResult {
         val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid("not a valid host"))
@@ -437,20 +437,27 @@ internal class Onboarding(private val wallet: Wallet) {
                     scanFinishedAtMillis = existing?.scanFinishedAtMillis,
                 )
             wallet.store.saveMint(mint)
-            // An account of the wallet without a home takes this one.
-            wallet.store.accounts
-                .first()
-                .map { it.account }
-                .filter { it.walletId == walletId && it.homeHost == null }
-                .forEach {
-                    wallet.store.saveAccount(it.copy(homeHost = h))
-                }
             ConnectResult.Connected(mint)
         } catch (e: ProtocolViolation) {
             ConnectResult.Failed(OnboardResult.MintInvalid(e.message ?: "not an LNURLcash server"))
         } catch (e: IOException) {
             ConnectResult.Failed(OnboardResult.NetworkError(e.message ?: "network error"))
         }
+    }
+
+    /**
+     * The mint at [host], which the user chose for the wallet [walletId] (in its setup, a restore, by adding it), becomes the home mint of
+     * each of its accounts that has none: the wallet's first mint is its home. Never for a mint the wallet only met because a note is there
+     * (a note claimed from it or moved to it): a home mint is trusted by default.
+     */
+    suspend fun homeIfNone(walletId: String, host: String) {
+        wallet.store.accounts
+            .first()
+            .map { it.account }
+            .filter { it.walletId == walletId && it.homeHost == null }
+            .forEach {
+                wallet.store.saveAccount(it.copy(homeHost = host))
+            }
     }
 
     /** Saves [name]@[host] as a registered address of the account: its primary one with [primary], or if it has none. */

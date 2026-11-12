@@ -441,6 +441,23 @@ class RegtestReceivedNotesTest {
             assertEquals(ReceivedState.Refused, bob.wallet.receivedNotes.first().single().state, "given up after the brand's two hours")
         }
 
+    @Test
+    fun `a note claimed by a wallet without a mint adds the mint to its list, not as its home`() =
+        runBlocking<Unit> {
+            val link = aNote()
+            val phone = Regtest.phone()
+            assertIs<CreateAccountResult.Created>(phone.wallet.createWallet("Other"))
+            phone.wallet.setSetupStep(null)
+            val other = assertNotNull(phone.store.currentAccountId())
+            assertNull(phone.store.mint(other, HOST), "the wallet has no mint yet")
+
+            assertIs<ClaimResult.Claimed>(phone.wallet.claim(assertIs<ClaimPreview.Ready>(phone.wallet.previewClaim(link))))
+            assertEquals(MintScan.Never, phone.store.mint(other, HOST)?.scan)
+            assertNull(phone.wallet.homeHost.first(), "a mint met by a claimed note is nobody's home")
+            assertEquals(false, phone.wallet.mints.first().single { it.host == HOST }.trusted)
+            assertTrue(phone.balance() > 0)
+        }
+
     private companion object {
         const val HOUR = 60 * 60 * 1000L
         const val DAY = 24 * HOUR
