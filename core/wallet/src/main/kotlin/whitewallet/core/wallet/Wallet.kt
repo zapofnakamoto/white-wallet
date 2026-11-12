@@ -1140,12 +1140,21 @@ class Wallet(
 
     internal fun syncWhenOnline() = onWaitingForNetwork()
 
-    /** Moves [amountMsat] (or everything, if null) from the active account to [toAccountId]. */
+    /**
+     * Moves [amountMsat] (or everything, if null) from the active account to [toAccountId]. To an account of another wallet, the mints the
+     * money is at are added to that wallet's list ([moveAddsMints]); a mint that can't be added keeps its notes here.
+     */
     suspend fun moveFunds(toAccountId: String, amountMsat: Long?): MoveResult = lock.withLock {
         val id = activeId()
         // The other account's policies run once it is active: note policies move only the active account's money.
         mover.move(id, toAccountId, amountMsat).also { applyPolicies(id) }
     }
+
+    /**
+     * The mints [moveFunds] would add to the list of [toAccountId]'s wallet: those the money is at that the wallet doesn't have yet. None
+     * for an account of the active wallet.
+     */
+    suspend fun moveAddsMints(toAccountId: String, amountMsat: Long?): List<String> = mover.mintsToAdd(activeId(), toAccountId, amountMsat)
 
     /**
      * Deletes the active wallet from this device: its recovery phrase and every account of it, with their notes, journals and settings.

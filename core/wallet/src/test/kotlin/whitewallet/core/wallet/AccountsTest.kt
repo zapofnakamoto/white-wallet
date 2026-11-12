@@ -13,6 +13,7 @@ import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.KeyScheme
+import whitewallet.core.model.MintScan
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -125,6 +126,29 @@ class AccountsTest {
         val moved = store.allNotes().single { it.accountId == "b" }
         assertNotNull(moved.certificate, "the mint certified the moved note")
         assertEquals(NoteState.Spent, store.allNotes().single { it.accountId == "a" }.state)
+    }
+
+    @Test
+    fun `a move to another wallet adds the mint to that wallet, with the key the sending wallet pinned`() = withMint {
+        give(21_000)
+        assertEquals(null, store.mint("b", mint.host))
+        assertEquals(listOf(mint.host), wallet.moveAddsMints("b", null))
+        assertEquals(MoveResult.Moved(21_000), wallet.moveFunds("b", null))
+        val added = assertNotNull(store.mint("b", mint.host), "the receiving wallet knows the mint its note is at")
+        assertEquals(assertNotNull(store.mint("a", mint.host)?.mintPubkey), added.mintPubkey)
+        assertEquals(MintScan.Never, added.scan)
+        assertEquals(emptyList<String>(), wallet.moveAddsMints("b", null))
+    }
+
+    @Test
+    fun `a move to a wallet that pinned another key for the mint is refused without touching anything`() = withMint {
+        give(21_000)
+        store.saveMint(assertNotNull(store.mint("a", mint.host)).copy(walletId = "b", mintPubkey = "02" + "11".repeat(32)))
+        val result = assertIs<MoveResult.Failed>(wallet.moveFunds("b", null))
+        assertEquals(MoveFailure.Refused, result.reason)
+        assertEquals(21_000, balance("a"))
+        assertEquals(0, balance("b"))
+        assertTrue(store.journal.isEmpty())
     }
 
     @Test

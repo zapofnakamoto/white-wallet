@@ -9,9 +9,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.MintScan
 import whitewallet.core.wallet.Regtest.HOST
 
-/** Moving money between two accounts of one wallet, on the real mint. */
+/** Moving money between two accounts, of one wallet or of two, on the real mint. */
 class RegtestAccountsTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 
@@ -67,5 +68,31 @@ class RegtestAccountsTest {
             assertEquals(MoveFailure.InsufficientFunds, assertIs<MoveResult.Failed>(phone.wallet.moveFunds(savings, 5_000_000)).reason)
             assertEquals(before, phone.notes().map { it.id })
             assertEquals(mapOf(main to 1_999_000L, savings to 0L), phone.balances())
+        }
+
+    @Test
+    fun `moving to an account of another wallet adds the mint to that wallet, whose scan comes to the same note`() =
+        runBlocking<Unit> {
+            val phone = Regtest.phone()
+            val main = assertNotNull(phone.store.currentAccountId())
+            assertIs<CreateAccountResult.Created>(phone.wallet.createWallet("Other"))
+            phone.wallet.setSetupStep(null)
+            val other = assertNotNull(phone.store.currentAccountId())
+            phone.wallet.switchAccount(main)
+            phone.fund(2000)
+            assertEquals(null, phone.store.mint(other, HOST), "the other wallet has no mint yet")
+            assertEquals(listOf(HOST), phone.wallet.moveAddsMints(other, null))
+
+            assertEquals(MoveResult.Moved(1_999_000), phone.wallet.moveFunds(other, null))
+            assertEquals(MintScan.Never, phone.store.mint(other, HOST)?.scan)
+            assertEquals(phone.store.mint(main, HOST)?.mintPubkey, phone.store.mint(other, HOST)?.mintPubkey)
+            assertEquals(mapOf(main to 0L, other to 1_999_000L), phone.balances())
+
+            // The other wallet, once in use, looks through its keys at the mint as a restore does: the note is where it looks.
+            phone.wallet.switchAccount(other)
+            phone.wallet.scan()
+            assertEquals(MintScan.Finished, phone.store.mint(other, HOST)?.scan)
+            assertEquals(mapOf(main to 0L, other to 1_999_000L), phone.balances())
+            assertEquals(1, phone.store.notes(other).first().size)
         }
 }

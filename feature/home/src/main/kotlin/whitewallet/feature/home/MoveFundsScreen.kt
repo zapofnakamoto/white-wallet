@@ -1,5 +1,6 @@
 package whitewallet.feature.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,13 +11,19 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
@@ -25,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletListItem
@@ -72,20 +80,45 @@ fun MoveFundsScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 WalletAccountMark(from.account.name, state.places[from.account.id] ?: 0, size = 24.dp)
-                Text(stringResource(R.string.move_from, from.account.name, formatAmount(from.balanceMsat)), modifier = Modifier.weight(1f))
+                val name =
+                    if (state.showWallets)
+                        stringResource(R.string.home_account_in_wallet, walletLabel(state, from.account.walletId), from.account.name)
+                    else from.account.name
+                Text(stringResource(R.string.move_from, name, formatAmount(from.balanceMsat)), modifier = Modifier.weight(1f))
             }
             Text(stringResource(R.string.move_to), style = MaterialTheme.typography.titleSmall, modifier = Modifier.fillMaxWidth())
             // Where the money goes stays an explicit radio choice; the mark only says which account it is.
+            var showOthers by rememberSaveable { mutableStateOf(false) }
+            val folded = state.foldOthers && !showOthers
             Column(Modifier.selectableGroup()) {
-                state.targets.forEach { target ->
-                    val selected = target.account.id == state.targetId
-                    WalletListItem(
-                        leadingContent = { WalletAccountMark(target.account.name, state.places[target.account.id] ?: 0) },
-                        headlineContent = { Text(target.account.name) },
-                        trailingContent = { WalletRadioButton(selected = selected, onClick = null) },
-                        modifier = Modifier.selectable(selected = selected, role = Role.RadioButton) { onTarget(target.account.id) },
-                    )
+                state.targetsByWallet.forEach { (walletId, targets) ->
+                    if (folded && walletId != from.account.walletId) return@forEach
+                    if (state.showWallets) {
+                        Text(
+                            walletLabel(state, walletId),
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                        )
+                    }
+                    targets.forEach { target ->
+                        val selected = target.account.id == state.targetId
+                        WalletListItem(
+                            leadingContent = { WalletAccountMark(target.account.name, state.places[target.account.id] ?: 0) },
+                            headlineContent = { Text(target.account.name) },
+                            trailingContent = { WalletRadioButton(selected = selected, onClick = null) },
+                            modifier = Modifier.selectable(selected = selected, role = Role.RadioButton) { onTarget(target.account.id) },
+                        )
+                    }
                 }
+            }
+            // The other wallets stay folded away until asked for, as in the account switcher.
+            if (folded) {
+                val others = state.targetsByWallet.size - 1
+                WalletListItem(
+                    headlineContent = { Text(pluralStringResource(R.plurals.accounts_other_wallets, others, others)) },
+                    trailingContent = { Icon(painterResource(DesignR.drawable.ic_arrow_drop_down), contentDescription = null) },
+                    modifier = Modifier.clickable(role = Role.Button) { showOthers = true },
+                )
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.move_everything), modifier = Modifier.weight(1f))
@@ -102,11 +135,29 @@ fun MoveFundsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+            // A wallet that takes a note at a mint it doesn't have gets that mint in its list: said before the money goes there.
+            state.targets
+                .firstOrNull { it.account.id == state.targetId }
+                ?.let { target ->
+                    val wallet = walletLabel(state, target.account.walletId)
+                    state.addsMints.forEach { host ->
+                        Text(
+                            stringResource(R.string.move_adds_mint, host, wallet),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
             Text(stringResource(R.string.move_hint), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             PrimaryButton(stringResource(R.string.move_action), onMove, enabled = state.canMove, busy = state.busy)
         }
     }
 }
+
+/** A wallet by the name the user gave it, else its number. */
+@Composable
+private fun walletLabel(state: MoveFundsState, walletId: String): String =
+    state.walletNames[walletId] ?: stringResource(R.string.accounts_wallet, state.walletNumbers[walletId] ?: 1)
 
 @Composable
 private fun ResultText(result: MoveResult) {

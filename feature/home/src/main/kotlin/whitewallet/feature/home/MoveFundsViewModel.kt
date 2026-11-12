@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -29,7 +30,30 @@ data class MoveFundsState(
     val everything: Boolean = true,
     val busy: Boolean = false,
     val result: MoveResult? = null,
+    /** Each wallet's number among the phone's wallets, oldest first, from 1, by wallet id. */
+    val walletNumbers: Map<String, Int> = emptyMap(),
+    /** The names the user gave wallets, by wallet id; a wallet without one shows its number. */
+    val walletNames: Map<String, String> = emptyMap(),
+    /** The mints this move would add to the list of the target's wallet: another wallet that doesn't have them yet. */
+    val addsMints: List<String> = emptyList(),
 ) {
+    /** With several wallets, an account's name alone doesn't say whose money this is: each is shown under its wallet. */
+    val showWallets: Boolean
+        get() = walletNumbers.size > 1
+
+    /** The accounts of other wallets are folded away until asked for, unless the wallet the money leaves has no other account. */
+    val foldOthers: Boolean
+        get() =
+            targets.any { it.account.walletId == from?.account?.walletId } && targets.any { it.account.walletId != from?.account?.walletId }
+
+    /** The targets by wallet id, the wallet the money leaves first, then oldest first. */
+    val targetsByWallet: List<Pair<String, List<AccountSummary>>>
+        get() =
+            targets
+                .groupBy { it.account.walletId }
+                .toList()
+                .sortedBy { (walletId, _) -> if (walletId == from?.account?.walletId) 0 else walletNumbers[walletId] ?: Int.MAX_VALUE }
+
     val amountMsat: Long?
         get() = if (everything) null else amountSats.toLongOrNull()?.times(1000)
 
@@ -51,7 +75,7 @@ class MoveFundsViewModel @Inject constructor(private val wallet: Wallet) : ViewM
     private val input = MutableStateFlow(Input())
 
     val state: StateFlow<MoveFundsState> =
-        combine(wallet.accounts, wallet.activeAccount, input) { accounts, active, i ->
+        combine(wallet.accounts, wallet.activeAccount, wallet.walletGroups, input) { accounts, active, groups, i ->
                 val targets = accounts.filter { it.account.id != active?.account?.id }
                 val places = accounts.withIndex().associate { (place, it) -> it.account.id to place }
                 MoveFundsState(
@@ -63,8 +87,11 @@ class MoveFundsViewModel @Inject constructor(private val wallet: Wallet) : ViewM
                     i.everything,
                     i.busy,
                     i.result,
+                    groups.associate { it.wallet.id to it.number },
+                    groups.mapNotNull { g -> g.wallet.name?.let { g.wallet.id to it } }.toMap(),
                 )
             }
+            .mapLatest { s -> s.copy(addsMints = s.targetId?.let { wallet.moveAddsMints(it, s.amountMsat) }.orEmpty()) }
             // no-flash: without the account it moves from (null here), the screen draws nothing.
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MoveFundsState())
 

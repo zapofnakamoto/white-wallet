@@ -30,6 +30,8 @@
     <string name="activity_split">Split a note in two</string>
     <string name="activity_sent_note">Sent a note</string>
     <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a note may cost a split fee.</string>
+    <!-- Before a move to an account of another wallet. %1$s: the mint's host, %2$s: that wallet's name. -->
+    <string name="move_adds_mint">%1$s will be added to the mints of %2$s.</string>
     <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it.</string>
     <!-- What the wallet did to the notes by itself, in a short message on the home screen. -->
     <plurals name="notice_combined_into_one">

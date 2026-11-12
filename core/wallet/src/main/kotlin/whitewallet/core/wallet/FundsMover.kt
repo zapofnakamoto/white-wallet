@@ -30,11 +30,13 @@ enum class MoveFailure {
 
 /**
  * Moves notes from one account to another. Notes never leave their mint: the source spends them into keys derived from the target account's
- * own recovery phrase (a rotate, merge or split), so the mint sees an ordinary mutation and only split fees apply.
+ * own recovery phrase (a rotate, merge or split), so the mint sees an ordinary mutation and only split fees apply. A wallet that takes a
+ * note at a mint it doesn't have yet gets that mint in its list first, so the note is where it looks.
  */
 internal class FundsMover(private val wallet: Wallet) {
     private val mutator = NoteMutator(wallet)
     private val log = ActivityLog(wallet)
+    private val onboarding = Onboarding(wallet)
 
     suspend fun move(fromId: String, toId: String, amountMsat: Long?): MoveResult {
         if (fromId == toId) return MoveResult.Failed(MoveFailure.SameAccount)
@@ -44,13 +46,19 @@ internal class FundsMover(private val wallet: Wallet) {
 
         if (amountMsat == null) {
             var moved = 0L
+            var notAdded: MoveResult.Failed? = null
             for ((host, notes) in byHost) {
+                // A mint the other wallet can't take keeps its notes here; the other mints' notes still move.
+                addMint(fromId, toId, host)?.let {
+                    notAdded = notAdded ?: it
+                    continue
+                }
                 when (val r = moveAll(fromId, toId, host, notes)) {
                     is MoveResult.Moved -> moved += r.amountMsat
                     else -> return if (moved > 0 && r is MoveResult.Failed) MoveResult.Moved(moved) else r
                 }
             }
-            return MoveResult.Moved(moved)
+            return notAdded?.takeIf { moved == 0L } ?: MoveResult.Moved(moved)
         }
 
         require(amountMsat > 0) { "amount must be positive" }
@@ -59,7 +67,52 @@ internal class FundsMover(private val wallet: Wallet) {
         val (host, notes) =
             byHost.entries.firstOrNull { (_, n) -> n.sumOf { it.amountMsat } >= amountMsat }?.toPair()
                 ?: return MoveResult.Failed(MoveFailure.SplitAcrossMints)
+        addMint(fromId, toId, host)?.let {
+            return it
+        }
         return movePart(fromId, toId, host, notes, amountMsat)
+    }
+
+    /**
+     * The mints a move of [amountMsat] (or everything, if null) would add to the list of [toId]'s wallet: those the money is at that the
+     * wallet doesn't have. None for an account of the same wallet.
+     */
+    suspend fun mintsToAdd(fromId: String, toId: String, amountMsat: Long?): List<String> {
+        val toWallet = wallet.walletOf(toId)
+        if (toWallet == wallet.walletOf(fromId)) return emptyList()
+        val byHost = outstanding(fromId).groupBy { it.host }
+        val hosts =
+            if (amountMsat == null) byHost.keys
+            else listOfNotNull(byHost.entries.firstOrNull { (_, n) -> n.sumOf { it.amountMsat } >= amountMsat }?.key)
+        return hosts.filter { wallet.store.mint(toWallet, it) == null }
+    }
+
+    /**
+     * Before a note at [host] goes to an account of another wallet: adds the mint to that wallet's list if it isn't there, pinned to the
+     * key the sending wallet pinned, neither trusted nor scanned (as a mint met by claiming a note). Returns why the move can't go on: the
+     * mint didn't answer, or the two wallets pinned different keys for it.
+     */
+    private suspend fun addMint(fromId: String, toId: String, host: String): MoveResult.Failed? {
+        val toWallet = wallet.walletOf(toId)
+        if (toWallet == wallet.walletOf(fromId)) return null
+        val pinned = wallet.mintOf(fromId, host)?.mintPubkey
+        val known = wallet.store.mint(toWallet, host)
+        if (known != null) {
+            val differs = pinned != null && known.mintPubkey != null && known.mintPubkey != pinned
+            return if (differs) MoveResult.Failed(MoveFailure.Refused, MINT_KEY_CHANGED) else null
+        }
+        return when (val connected = onboarding.connectMint(toWallet, host, expectedKey = pinned)) {
+            is ConnectResult.Connected -> null
+            is ConnectResult.Failed ->
+                MoveResult.Failed(
+                    MoveFailure.Refused,
+                    when (val r = connected.result) {
+                        is OnboardResult.MintInvalid -> r.reason
+                        is OnboardResult.NetworkError -> r.reason
+                        else -> null
+                    },
+                )
+        }
     }
 
     private suspend fun moveAll(fromId: String, toId: String, host: String, notes: List<Note>): MoveResult {

@@ -199,6 +199,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `activity_split` | Split a note in two |
 | `activity_sent_note` | Sent a note |
 | `move_hint` | Funds stay where they are held and move into the other account's keys. Moving part of a note may cost a split fee. |
+| `move_adds_mint` | %1$s will be added to the mints of %2$s. |
 | `notice_combined_into_one` | Combined %1$d note into one of %2$s / Combined %1$d notes into one of %2$s (plural) |
 | `notice_combined` | Combined %1$d note into %2$d / Combined %1$d notes into %2$d (plural) |
 | `notice_split` | Split %1$d note into %2$d / Split %1$d notes into %2$d (plural) |

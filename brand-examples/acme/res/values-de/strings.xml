@@ -56,6 +56,7 @@
     <string name="activity_split">Einen Geldschein in zwei geteilt</string>
     <string name="activity_sent_note">Geldschein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Geldscheins zu verschieben kann eine Teilungsgebühr kosten.</string>
+    <string name="move_adds_mint">%1$s wird zu den Anbietern von %2$s hinzugefügt.</string>
     <string name="home_key_changed_body">Deine Wallet arbeitet nicht mehr damit, es wird also nichts dorthin gesendet. Deine Geldscheine dort sind unverändert. Öffne die Details, um den neuen Schlüssel zu sehen und zu entscheiden, ob du ihn verwendest.</string>
     <string name="notes_title">Geldscheine</string>
     <string name="notes_settings">Geldschein-Einstellungen</string>
