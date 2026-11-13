@@ -125,7 +125,7 @@ fun ClaimScreen(
                             is ClaimResult.Kept -> WalletStatus.None
                         }
                     WalletStatusScope(status) { BrandDecoration(Anchor.ClaimResult) }
-                    ResultMessage(result, overLightning, state.canAllowWithoutSigningKey)
+                    ResultMessage(result, overLightning)
                     if (result is ClaimResult.Kept)
                         Text(
                             stringResource(R.string.claim_kept_hint),
@@ -304,7 +304,7 @@ private fun MeltSection(preview: ClaimPreview.Melt, state: ClaimState, actions: 
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (preview.problem == null) preview.expectedMsat?.let { Text(formatAmount(it), style = MaterialTheme.typography.titleLarge) }
-            Text(meltReason(preview.reason, host, state.canAllowWithoutSigningKey), style = MaterialTheme.typography.bodyMedium)
+            Text(meltReason(preview.reason, host), style = MaterialTheme.typography.bodyMedium)
             val target = preview.target
             val amount = preview.amountMsat
             when {
@@ -356,17 +356,13 @@ private fun MeltSection(preview: ClaimPreview.Melt, state: ClaimState, actions: 
 
 /** Why a link from [host] is received over Lightning rather than kept at its own mint ([reason] null: there is no note in it). */
 @Composable
-private fun meltReason(reason: UnclaimedReason?, host: String, canAllowWithoutSigningKey: Boolean): String =
+private fun meltReason(reason: UnclaimedReason?, host: String): String =
     when (reason) {
         null -> stringResource(R.string.claim_melt_plain, host)
-        UnclaimedReason.NoSigningKey ->
-            stringResource(
-                if (canAllowWithoutSigningKey) R.string.claim_melt_no_signing_key_allow else R.string.claim_melt_no_signing_key,
-                host,
-            )
-        UnclaimedReason.Refused -> stringResource(R.string.claim_melt_refused, host)
+        UnclaimedReason.NoSigningKey -> stringResource(R.string.claim_melt_no_signing_key, host)
         // Only those above make a note Lightning only.
         UnclaimedReason.NotANote,
+        UnclaimedReason.Refused,
         UnclaimedReason.Unreachable,
         UnclaimedReason.ByUser -> stringResource(R.string.claim_melt_not_a_note, host)
     }
@@ -465,7 +461,7 @@ private fun TakeBackMessage(result: ReclaimResult) {
 }
 
 @Composable
-private fun ResultMessage(result: ClaimResult, overLightning: Boolean, canAllowWithoutSigningKey: Boolean) {
+private fun ResultMessage(result: ClaimResult, overLightning: Boolean) {
     val (text, isError) =
         when (result) {
             is ClaimResult.Claimed ->
@@ -482,8 +478,8 @@ private fun ResultMessage(result: ClaimResult, overLightning: Boolean, canAllowW
                     note.state == ReceivedState.KeyChanged -> stringResource(R.string.claim_kept_key_changed)
                     // Kept from a melt the account had no mint for: received over Lightning once it has one.
                     note.state == ReceivedState.LightningOnly && overLightning -> stringResource(R.string.claim_kept_for_lightning)
-                    // A claim its mint turned down: why, and that Lightning can still bring it in.
-                    note.state == ReceivedState.LightningOnly -> meltReason(note.unclaimedReason, note.host, canAllowWithoutSigningKey)
+                    // Its mint can't keep it: why, and that Lightning can still bring it in.
+                    note.state == ReceivedState.LightningOnly -> meltReason(note.unclaimedReason, note.host)
                     else -> stringResource(R.string.claim_kept)
                 } to false
             }

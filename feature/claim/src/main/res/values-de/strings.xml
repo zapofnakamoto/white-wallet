@@ -22,7 +22,6 @@
     <string name="claim_melt_no_mint">Füge zuerst eine Mint hinzu und öffne diesen Link dann noch einmal.</string>
     <string name="claim_kept_for_lightning">Behalten. Empfange es über Lightning, sobald du eine Mint hinzugefügt hast.</string>
     <string name="claim_melt_no_signing_key">%1$s veröffentlicht keinen Signaturschlüssel, deshalb bewahrt deine Wallet dort kein Geld auf. Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
-    <string name="claim_melt_no_signing_key_allow">%1$s veröffentlicht keinen Signaturschlüssel, deshalb bewahrt deine Wallet dort kein Geld auf (außer du erlaubst solche Mints in den Sicherheitseinstellungen). Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
 
     <string name="claim_paste">Einfügen</string>
     <string name="claim_scan">QR-Code scannen</string>
@@ -66,7 +65,6 @@
     <string name="claim_opening">Link wird geöffnet…</string>
     <string name="claim_offline_link">Du bist offline. Öffne diesen Link noch einmal, wenn du verbunden bist.</string>
     <string name="claim_melt_plain">Ein Auszahlungslink von %1$s: Er zahlt über Lightning aus.</string>
-    <string name="claim_melt_refused">%1$s bewahrt es nicht für deine Wallet auf. Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="claim_melt_pays">%1$s zahlt %2$s; nach der Gebühr kommen etwa %3$s an.</string>
     <string name="claim_melt_into">Auf %1$s</string>
     <string name="claim_melt_ask_hint">Um zu erfahren, was er auszahlt, muss deine Wallet den Link selbst %1$s zeigen. Frag nur, wenn der Link von %1$s stammt.</string>

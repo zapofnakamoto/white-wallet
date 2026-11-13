@@ -2,7 +2,6 @@ package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.PublicKey
 import java.io.IOException
-import whitewallet.core.model.Mint
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
@@ -159,35 +158,17 @@ internal class NoteClaimer(private val wallet: Wallet) {
         val mint = wallet.mintOf(accountId, link.host)
         if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey?.toHex())
             return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
-        lightningOnly(link, mint, info, wallet.store.receivedNote(spend.q.toHex()), accountId)?.let {
-            return withdrawer.forNote(link, it, found, accountId)
-        }
+        // The wallet keeps no notes at a mint without a signing key: only Lightning brings one in.
+        val key = info.mintPubkey ?: return withdrawer.forNote(link, UnclaimedReason.NoSigningKey, found, accountId)
         return ClaimPreview.Ready(
             link,
             info,
             info.maxWithdrawableMsat,
             certified(link, info),
             isOwnMint = link.host == own,
-            trusted = info.mintPubkey?.let { wallet.isTrusted(wallet.walletOf(accountId), MintKey(link.host, it.toHex())) } == true,
+            trusted = wallet.isTrusted(wallet.walletOf(accountId), MintKey(link.host, key.toHex())),
             hasOtherPaths = script?.hasOtherPaths == true,
         )
-    }
-
-    /**
-     * Why a note its mint answered for can't be kept there, if it can't: a mint without a signing key the wallet doesn't hold already, and
-     * doesn't allow ([Wallet.mayUseMint]); or such a mint refused to keep it before. A note kept because its host didn't answer as for a
-     * note, which now does, is claimed at its mint.
-     */
-    private suspend fun lightningOnly(
-        link: NoteLink,
-        mint: Mint?,
-        info: NoteInfo,
-        kept: ReceivedNote?,
-        accountId: String,
-    ): UnclaimedReason? {
-        if (!wallet.mayUseMint(wallet.walletOf(accountId), mint, info.mintPubkey)) return UnclaimedReason.NoSigningKey
-        val refusedBefore = kept?.state == ReceivedState.LightningOnly && kept.unclaimedReason == UnclaimedReason.Refused
-        return UnclaimedReason.Refused.takeIf { refusedBefore && link.host == kept?.host }
     }
 
     /** Receives [preview] over Lightning (see [LinkWithdrawer]). */

@@ -341,16 +341,9 @@ class ClaimScreenTest {
     }
 
     @Test
-    fun aNoteAtAMintWithoutASigningKeySaysWhyAndMentionsTheSettingOnlyWhereTheBrandOffersIt() {
-        showMelt(melt(UnclaimedReason.NoSigningKey), state = ClaimState(canAllowWithoutSigningKey = false))
+    fun aNoteAtAMintWithoutASigningKeySaysWhyItIsReceivedOverLightning() {
+        showMelt(melt(UnclaimedReason.NoSigningKey))
         compose.onNodeWithText(text(R.string.claim_melt_no_signing_key, "lnbits.example")).assertExists()
-        compose.onNodeWithText(text(R.string.claim_melt_no_signing_key_allow, "lnbits.example")).assertDoesNotExist()
-    }
-
-    @Test
-    fun aNoteWithoutASigningKeyNamesTheSettingWhereTheBrandOffersIt() {
-        showMelt(melt(UnclaimedReason.NoSigningKey), state = ClaimState(canAllowWithoutSigningKey = true))
-        compose.onNodeWithText(text(R.string.claim_melt_no_signing_key_allow, "lnbits.example")).assertExists()
     }
 
     @Test
@@ -415,9 +408,9 @@ class ClaimScreenTest {
         var checked = 0
         val note =
             ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.LightningOnly, null, 1, 1)
-                .copy(unclaimedReason = UnclaimedReason.Refused)
+                .copy(unclaimedReason = UnclaimedReason.NoSigningKey)
         show(ClaimState(result = ClaimResult.Kept(note)), onCheck = { checked++ })
-        compose.onNodeWithText(text(R.string.claim_melt_refused, "mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.claim_melt_no_signing_key, "mint.example")).assertExists()
         compose.onNodeWithText(text(R.string.claim_melt_receive)).performScrollTo().performClick()
         assertEquals(1, checked)
     }
@@ -440,10 +433,10 @@ class ClaimScreenTest {
                 onClaim = {},
             )
         }
-        for (each in listOf(UnclaimedReason.NoSigningKey, UnclaimedReason.NotANote, UnclaimedReason.Refused)) {
+        for (each in listOf(UnclaimedReason.NoSigningKey, UnclaimedReason.NotANote)) {
             reason = each
             compose.onNodeWithText(text(R.string.claim_kept_for_lightning)).assertExists()
-            compose.onNodeWithText(text(R.string.claim_melt_refused, "mint.example")).assertDoesNotExist()
+            compose.onNodeWithText(text(R.string.claim_melt_no_signing_key, "mint.example")).assertDoesNotExist()
             // The title says it too; only the button is gone.
             compose.onNode(hasText(text(R.string.claim_melt_receive)) and hasClickAction()).assertDoesNotExist()
         }

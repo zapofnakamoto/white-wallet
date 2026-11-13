@@ -99,8 +99,6 @@ class Wallet(
     internal val receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
     /** How the wallet behaves: wallet.properties, not the brand. */
     internal val settings: WalletSettings = WalletSettings(),
-    /** What the brand allows for mints that publish no signing key. */
-    internal val withoutSigningKey: MintsWithoutSigningKey = MintsWithoutSigningKey(),
 ) {
     private val lock = Mutex()
 
@@ -523,9 +521,6 @@ class Wallet(
         val walletId = walletOf(id)
         val result = onboarding.connectMint(walletId, host)
         if (result !is ConnectResult.Connected) return@withLock HomeChanged(result)
-        if (result.mint.mintPubkey == null && !withoutSigningKey.home) {
-            return@withLock HomeChanged(ConnectResult.Failed(OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY_HOME)))
-        }
         accountOf(id)?.let { store.saveAccount(it.copy(homeHost = result.mint.host)) }
         onboarding.homeIfNone(walletId, result.mint.host)
         keepTrusted?.let { trust.setTrusted(walletId, it, true) }
@@ -768,31 +763,6 @@ class Wallet(
 
     private fun trustedHosts(): Flow<Set<String>> =
         mints.map { list -> list.filter { it.trusted }.map { it.host }.toSet() }.distinctUntilChanged()
-
-    /**
-     * Whether the active wallet may use mints that publish no signing key: the brand offers the setting and the user turned it on. Without,
-     * such a mint is never added, and a note from one is received into a mint of the account over Lightning.
-     */
-    val allowsMintsWithoutSigningKey: Flow<Boolean> =
-        if (!withoutSigningKey.setting) flowOf(false)
-        else ofActiveWallet(false) { id -> trust.allowsMintsWithoutSigningKey(id) }.distinctUntilChanged()
-
-    /** Whether the brand offers the choice at all (`mints.withoutSigningKey.setting`); without, such mints are never allowed. */
-    val offersMintsWithoutSigningKey: Boolean
-        get() = withoutSigningKey.setting
-
-    /** Allows or forbids mints without a signing key in the active wallet; those already in it keep working either way. */
-    suspend fun setAllowsMintsWithoutSigningKey(allowed: Boolean) {
-        if (withoutSigningKey.setting) trust.setAllowsMintsWithoutSigningKey(walletOf(activeId()), allowed)
-    }
-
-    /**
-     * Whether the wallet [walletId] may keep notes at a mint presenting [presentedKey]: one it holds already ([known]) keeps working, one
-     * with a signing key is always fine, and one without only where the wallet allows such mints ([allowsMintsWithoutSigningKey]). A mint
-     * the wallet holds without a pinned key is one that publishes none (see [Onboarding.connectMint]).
-     */
-    internal suspend fun mayUseMint(walletId: String, known: Mint?, presentedKey: PublicKey?): Boolean =
-        known != null || presentedKey != null || withoutSigningKey.setting && trust.allowsMintsWithoutSigningKey(walletId).first()
 
     /** Trusts or untrusts [host] in the active wallet, with the key it pinned for it. A mint without a pinned key can't be trusted. */
     suspend fun setMintTrusted(host: String, trusted: Boolean) {

@@ -252,11 +252,5 @@
     <string name="claim_melt_no_mint">Add a provider first, then open this link again.</string>
     <string name="claim_kept_for_lightning">Kept. Receive it over Lightning once you\'ve added a provider.</string>
     <string name="claim_melt_no_signing_key">%1$s publishes no signing key, so your wallet doesn\'t keep money there. It can be received over Lightning instead, for a fee.</string>
-    <string name="claim_melt_no_signing_key_allow">%1$s publishes no signing key, so your wallet doesn\'t keep money there (unless you allow such providers in Security settings). It can be received over Lightning instead, for a fee.</string>
-    <string name="security_mints_without_key">Allow providers without a signing key</string>
-    <string name="security_mints_without_key_hint">Some providers publish no signing key. Your wallet then can\'t check that their banknotes are real, nor notice if such a provider is swapped. Off: a banknote from one is received with your provider over Lightning, after you agree to its fee. On: such providers can be added and hold your money. For this wallet only.</string>
-    <string name="money_error_home_without_key">That provider publishes no signing key, so it can\'t be your provider.</string>
-    <string name="mint_signing_key_none_hint">Without one, your wallet can\'t check this provider\'s banknotes are real, nor notice if it is swapped, and it can\'t be trusted.</string>
     <string name="onboarding_error_mint_without_key">This provider publishes no signing key, so your wallet can\'t check that its banknotes are real or notice if it is swapped. Choose another provider.</string>
-    <string name="onboarding_error_mint_without_key_allow">This provider publishes no signing key, so your wallet can\'t check that its banknotes are real or notice if it is swapped. Choose another provider, or allow such providers in Security settings.</string>
 </resources>

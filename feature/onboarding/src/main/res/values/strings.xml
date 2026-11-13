@@ -12,7 +12,6 @@
     <string name="onboarding_error_fee">This mint asks %1$s for an address, more than the %2$s this app accepts.</string>
     <string name="onboarding_error_mint_too_old">This mint can only give an address to the first account of a wallet. Choose another mint, or continue without an address.</string>
     <string name="onboarding_error_mint_without_key">This mint publishes no signing key, so your wallet can\'t check that its notes are real or notice if it is swapped. Choose another mint.</string>
-    <string name="onboarding_error_mint_without_key_allow">This mint publishes no signing key, so your wallet can\'t check that its notes are real or notice if it is swapped. Choose another mint, or allow such mints in Security settings.</string>
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Mint address</string>
     <string name="onboarding_mint_custody">Your funds are held by the mint you choose. Keep amounts small.</string>

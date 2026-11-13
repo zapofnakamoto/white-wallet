@@ -273,7 +273,7 @@ class RegtestWithdrawLinksTest {
         }
 
     @Test
-    fun `a note on a mint without a signing key is received into the home mint over Lightning while such mints aren't allowed`() =
+    fun `a note on a mint without a signing key is received into the home mint over Lightning`() =
         runBlocking<Unit> {
             val link = Regtest.note(3000, second = true)
             val bob = Regtest.phone(client = Regtest.client(Keyless()))
@@ -322,24 +322,52 @@ class RegtestWithdrawLinksTest {
         }
 
     @Test
-    fun `with such mints allowed, the note is kept at its mint unpinned, and the brand decides whether it can be home`() =
+    fun `a melt of such a note that fails keeps it, and it can be received another time`() =
+        runBlocking<Unit> {
+            val link = Regtest.note(3000, second = true)
+            var refuse = true
+            val connection = Interceptor { chain ->
+                val url = chain.request().url
+                if (refuse && "${url.host}:${url.port}" == HOST2 && url.queryParameter("pr") != null) {
+                    Regtest.answer(chain, """{"status":"ERROR","reason":"no route"}""")
+                } else Keyless().intercept(chain)
+            }
+            val bob = Regtest.phone(client = Regtest.client(connection))
+            val before = bob.balance()
+
+            assertIs<ClaimResult.Failed>(bob.wallet.melt(assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(link))))
+            val kept = received(bob).single()
+            assertEquals(ReceivedState.LightningOnly, kept.state)
+            assertEquals(UnclaimedReason.NoSigningKey, kept.unclaimedReason)
+            assertNotNull(kept.k1, "the link is kept")
+            assertEquals(before, bob.balance())
+            // A refresh doesn't try it by itself.
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.LightningOnly, received(bob).single().state)
+
+            refuse = false
+            val again = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(assertNotNull(bob.wallet.receivedNoteLink(kept.id))))
+            assertEquals(UnclaimedReason.NoSigningKey, again.reason)
+            val result = assertIs<ClaimResult.Claimed>(bob.wallet.melt(again))
+            assertEquals(before + result.amountMsat, bob.balance())
+            assertEquals(ReceivedState.Claimed, received(bob).single().state)
+            assertNull(bob.wallet.mintDetails(HOST2).mint)
+        }
+
+    @Test
+    fun `a mint without a signing key is never added, nor made home`() =
         runBlocking<Unit> {
             val bob = Regtest.phone(client = Regtest.client(Keyless()))
-            bob.wallet.setAllowsMintsWithoutSigningKey(true)
-            val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(Regtest.note(3000, second = true)))
-            assertTrue(!preview.certified && !preview.trusted)
-            assertIs<ClaimResult.Claimed>(bob.wallet.claim(preview))
-            val mint = assertNotNull(bob.wallet.mintDetails(HOST2).mint)
-            assertNull(mint.mintPubkey, "nothing to pin")
-            assertTrue(bob.notes(HOST2).isNotEmpty())
-            assertIs<ConnectResult.Connected>(bob.wallet.setHomeMint(HOST2).result)
-
-            val carol = Regtest.phone(client = Regtest.client(Keyless()), withoutSigningKey = MintsWithoutSigningKey(home = false))
-            carol.wallet.setAllowsMintsWithoutSigningKey(true)
-            assertIs<ClaimResult.Claimed>(carol.wallet.claim(assertIs(carol.wallet.previewClaim(Regtest.note(3000, second = true)))))
-            val refused = assertIs<ConnectResult.Failed>(carol.wallet.setHomeMint(HOST2).result)
-            assertEquals(OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY_HOME), refused.result)
-            assertEquals(HOST, carol.wallet.homeHost.first())
+            assertEquals(
+                OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY),
+                assertIs<ConnectResult.Failed>(bob.wallet.addMint(HOST2)).result,
+            )
+            assertEquals(
+                OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY),
+                assertIs<ConnectResult.Failed>(bob.wallet.setHomeMint(HOST2).result).result,
+            )
+            assertNull(bob.wallet.mintDetails(HOST2).mint)
+            assertEquals(HOST, bob.wallet.homeHost.first())
         }
 
     @Test
@@ -365,18 +393,10 @@ class RegtestWithdrawLinksTest {
                 OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY),
                 assertIs<ConnectResult.Failed>(bob.wallet.addMint(HOST2)).result,
             )
-
-            // Where such mints are allowed but can't be home, one that can't be asked isn't refused as without a key: it is unreachable.
-            askable = false
-            val carol = Regtest.phone(client = Regtest.client(connection), withoutSigningKey = MintsWithoutSigningKey(home = false))
-            carol.wallet.setAllowsMintsWithoutSigningKey(true)
-            assertIs<OnboardResult.NetworkError>(assertIs<ConnectResult.Failed>(carol.wallet.setHomeMint(HOST2).result).result)
-            assertNull(carol.wallet.mintDetails(HOST2).mint)
-            assertEquals(HOST, carol.wallet.homeHost.first())
         }
 
     @Test
-    fun `a note kept offline at a mint without a signing key waits for the user, and is claimed at its mint once such mints are allowed`() =
+    fun `a note kept offline at a mint without a signing key waits for the user, who receives it over Lightning`() =
         runBlocking<Unit> {
             val link = Regtest.note(3000, second = true)
             var offline = true
@@ -393,10 +413,12 @@ class RegtestWithdrawLinksTest {
             val waiting = received(bob).single()
             assertEquals(ReceivedState.LightningOnly, waiting.state, "asked of the user, not melted by itself")
             assertEquals(UnclaimedReason.NoSigningKey, waiting.unclaimedReason)
-
-            bob.wallet.setAllowsMintsWithoutSigningKey(true)
             bob.wallet.refresh()
+            assertEquals(ReceivedState.LightningOnly, received(bob).single().state, "nor claimed at its mint")
+
+            val melt = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(assertNotNull(bob.wallet.receivedNoteLink(waiting.id))))
+            assertIs<ClaimResult.Claimed>(bob.wallet.melt(melt))
             assertEquals(ReceivedState.Claimed, received(bob).single().state)
-            assertTrue(bob.notes(HOST2).isNotEmpty())
+            assertNull(bob.wallet.mintDetails(HOST2).mint)
         }
 }

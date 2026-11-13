@@ -252,11 +252,5 @@
     <string name="claim_melt_no_mint">Füge zuerst einen Anbieter hinzu und öffne diesen Link dann noch einmal.</string>
     <string name="claim_kept_for_lightning">Behalten. Empfange es über Lightning, sobald du einen Anbieter hinzugefügt hast.</string>
     <string name="claim_melt_no_signing_key">%1$s veröffentlicht keinen Signaturschlüssel, deshalb bewahrt deine Wallet dort kein Geld auf. Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
-    <string name="claim_melt_no_signing_key_allow">%1$s veröffentlicht keinen Signaturschlüssel, deshalb bewahrt deine Wallet dort kein Geld auf (außer du erlaubst solche Anbieter in den Sicherheitseinstellungen). Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
-    <string name="security_mints_without_key">Anbieter ohne Signaturschlüssel erlauben</string>
-    <string name="security_mints_without_key_hint">Manche Anbieter veröffentlichen keinen Signaturschlüssel. Deine Wallet kann dann nicht prüfen, ob ihre Geldscheine echt sind, und nicht bemerken, wenn ein solcher Anbieter ausgetauscht wird. Aus: Ein Geldschein von einem solchen Anbieter wird über Lightning bei deinem Anbieter empfangen, nachdem du seiner Gebühr zugestimmt hast. Ein: Solche Anbieter können hinzugefügt werden und dein Geld halten. Nur für dieses Wallet.</string>
-    <string name="money_error_home_without_key">Dieser Anbieter veröffentlicht keinen Signaturschlüssel, daher kann er nicht dein Anbieter sein.</string>
-    <string name="mint_signing_key_none_hint">Ohne ihn kann deine Wallet weder prüfen, ob die Geldscheine dieses Anbieters echt sind, noch bemerken, wenn er ausgetauscht wird; ihm kann nicht vertraut werden.</string>
     <string name="onboarding_error_mint_without_key">Dieser Anbieter veröffentlicht keinen Signaturschlüssel, daher kann deine Wallet nicht prüfen, ob seine Geldscheine echt sind, oder bemerken, wenn er ausgetauscht wird. Wähle einen anderen Anbieter.</string>
-    <string name="onboarding_error_mint_without_key_allow">Dieser Anbieter veröffentlicht keinen Signaturschlüssel, daher kann deine Wallet nicht prüfen, ob seine Geldscheine echt sind, oder bemerken, wenn er ausgetauscht wird. Wähle einen anderen Anbieter oder erlaube solche Anbieter in den Sicherheitseinstellungen.</string>
 </resources>

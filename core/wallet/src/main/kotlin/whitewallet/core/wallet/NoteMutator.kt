@@ -16,6 +16,7 @@ import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLookupError
+import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
@@ -106,6 +107,8 @@ internal class NoteMutator(private val wallet: Wallet) {
             Pinning.check(wallet, mint, info.mintPubkey)
         } catch (e: MintKeyChangedException) {
             return MutationResult.Unreachable(e.message, keyChanged = true)
+        } catch (e: ProtocolViolation) {
+            return MutationResult.Unreachable(e.message)
         }
         val result =
             run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputMsat = inputs.sumOf { it.amountMsat }, type, outputs, splitMsat)

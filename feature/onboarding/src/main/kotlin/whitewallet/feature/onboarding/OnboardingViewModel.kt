@@ -166,8 +166,8 @@ sealed interface OnboardingError {
 
     data class Mint(override val detail: String) : OnboardingError
 
-    /** The mint publishes no signing key, and the wallet doesn't allow such mints ([canAllow]: the brand lets the user allow them). */
-    data class MintWithoutSigningKey(val canAllow: Boolean, override val detail: String = "") : OnboardingError
+    /** The mint publishes no signing key: the wallet uses no such mint. */
+    data class MintWithoutSigningKey(override val detail: String = "") : OnboardingError
 
     data class Network(override val detail: String) : OnboardingError
 
@@ -448,8 +448,7 @@ constructor(
             is OnboardResult.RegistrationFailed -> fail(OnboardingError.Registration(result.reason ?: ""))
             is OnboardResult.MintInvalid ->
                 fail(
-                    if (result.reason == MINT_WITHOUT_SIGNING_KEY)
-                        OnboardingError.MintWithoutSigningKey(wallet.offersMintsWithoutSigningKey)
+                    if (result.reason == MINT_WITHOUT_SIGNING_KEY) OnboardingError.MintWithoutSigningKey()
                     else OnboardingError.Mint(result.reason)
                 )
             is OnboardResult.NetworkError -> fail(OnboardingError.Network(result.reason))

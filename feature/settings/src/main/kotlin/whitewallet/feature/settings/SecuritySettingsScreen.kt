@@ -36,12 +36,9 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppLockPolicy
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.Timings
-import whitewallet.core.wallet.Wallet
 
 @HiltViewModel
-class SecuritySettingsViewModel
-@Inject
-constructor(private val preferences: AppPreferences, private val wallet: Wallet, defaults: AppDefaults) : ViewModel() {
+class SecuritySettingsViewModel @Inject constructor(private val preferences: AppPreferences, defaults: AppDefaults) : ViewModel() {
     /** Null until the setting is read. */
     val appLock: StateFlow<Boolean?> =
         preferences.appLock.map<Boolean, Boolean?> { it }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -53,39 +50,17 @@ constructor(private val preferences: AppPreferences, private val wallet: Wallet,
     fun setAppLock(enabled: Boolean) {
         viewModelScope.launch { preferences.setAppLock(enabled) }
     }
-
-    /** Whether the brand offers "Allow mints without a signing key" (`mints.withoutSigningKey.setting`). */
-    val withoutSigningKeyOffered = wallet.offersMintsWithoutSigningKey
-
-    /** The active wallet's choice; null until read. */
-    val withoutSigningKey: StateFlow<Boolean?> =
-        wallet.allowsMintsWithoutSigningKey
-            .map<Boolean, Boolean?> { it }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-
-    fun setWithoutSigningKey(allowed: Boolean) {
-        viewModelScope.launch { wallet.setAllowsMintsWithoutSigningKey(allowed) }
-    }
 }
 
 @Composable
 fun SecuritySettingsRoute(onBack: () -> Unit, viewModel: SecuritySettingsViewModel = hiltViewModel()) {
     val appLock by viewModel.appLock.collectAsStateWithLifecycle()
-    val withoutKey by viewModel.withoutSigningKey.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = LocalActivity.current as? FragmentActivity
     val available = DeviceAuth.isAvailable(context)
     val title = stringResource(R.string.security_app_lock)
     val subtitle = stringResource(R.string.security_confirm)
-    SecuritySettingsScreen(
-        appLock,
-        available,
-        onBack,
-        viewModel.always,
-        viewModel.relockAfterMillis,
-        withoutSigningKey =
-            if (viewModel.withoutSigningKeyOffered) MintsWithoutKeyChoice(withoutKey, viewModel::setWithoutSigningKey) else null,
-    ) { enabled ->
+    SecuritySettingsScreen(appLock, available, onBack, viewModel.always, viewModel.relockAfterMillis) { enabled ->
         // Both ways ask for the phone's lock: whoever holds the unlocked phone can't quietly switch it off.
         DeviceAuth.authenticate(
             activity ?: return@SecuritySettingsScreen,
@@ -97,13 +72,7 @@ fun SecuritySettingsRoute(onBack: () -> Unit, viewModel: SecuritySettingsViewMod
     }
 }
 
-/** The active wallet's "Allow mints without a signing key": [allowed] is null until read. */
-class MintsWithoutKeyChoice(val allowed: Boolean?, val onChange: (Boolean) -> Unit)
-
-/**
- * App lock: opening the app (and returning to it after a while) asks for the phone's own lock. And, where the brand offers it, whether the
- * wallet may use mints without a signing key ([withoutSigningKey]).
- */
+/** App lock: opening the app (and returning to it after a while) asks for the phone's own lock. */
 @Composable
 fun SecuritySettingsScreen(
     appLock: Boolean?,
@@ -111,13 +80,11 @@ fun SecuritySettingsScreen(
     onBack: () -> Unit,
     always: Boolean = false,
     relockAfterMillis: Long = Timings().relockAfterMillis,
-    withoutSigningKey: MintsWithoutKeyChoice? = null,
     onAppLock: (Boolean) -> Unit,
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.security_title), onBack) }) { padding ->
         // Not read yet (a moment): nothing, rather than a switch that is off first.
-        val loaded = appLock != null && (withoutSigningKey == null || withoutSigningKey.allowed != null)
-        if (!pageLoaded(loaded, Modifier.padding(padding))) return@Scaffold
+        if (!pageLoaded(appLock != null, Modifier.padding(padding))) return@Scaffold
         appLock ?: return@Scaffold
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             WalletListItem(
@@ -134,13 +101,6 @@ fun SecuritySettingsScreen(
                         { WalletSwitch(checked = appLock, onCheckedChange = onAppLock, enabled = available || appLock) }
                     },
             )
-            withoutSigningKey?.allowed?.let { allowed ->
-                WalletListItem(
-                    headlineContent = { Text(stringResource(R.string.security_mints_without_key)) },
-                    supportingContent = { Text(stringResource(R.string.security_mints_without_key_hint)) },
-                    trailingContent = { WalletSwitch(checked = allowed, onCheckedChange = withoutSigningKey.onChange) },
-                )
-            }
             Text(
                 stringResource(R.string.security_encrypted),
                 style = MaterialTheme.typography.bodySmall,

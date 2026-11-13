@@ -112,17 +112,6 @@ android {
         buildConfigField("String", "COLLECT_AT_HOME_MINT", "\"${brand.getProperty("notes.collect.atHomeMint", "off").trim()}\"")
         buildConfigField("int", "COLLECT_FEE_CAP", brand.getProperty("notes.collect.feeCap", "2").trim())
         buildConfigField("String", "TRUSTED_MINTS", "\"" + brand.getProperty("mints.trusted", "").trim() + "\"")
-        // Mints that publish no signing key (LUD-25 only says SHOULD): whether users may allow them, and make one their home.
-        buildConfigField(
-            "boolean",
-            "MINTS_WITHOUT_SIGNING_KEY_SETTING",
-            brand.getProperty("mints.withoutSigningKey.setting", "true").trim().toBooleanStrict().toString(),
-        )
-        buildConfigField(
-            "boolean",
-            "MINTS_WITHOUT_SIGNING_KEY_HOME",
-            brand.getProperty("mints.withoutSigningKey.home", "true").trim().toBooleanStrict().toString(),
-        )
         buildConfigField("String", "NOTES_VIEW", "\"${brand.getProperty("notes.view", "tab").trim()}\"")
         buildConfigField("String", "MAINTENANCE_NOTICES", "\"${brand.getProperty("notes.maintenance.notices", "on").trim()}\"")
         buildConfigField(

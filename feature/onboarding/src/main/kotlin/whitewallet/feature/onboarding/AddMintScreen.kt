@@ -207,11 +207,7 @@ private fun ResultContent(state: AddMintState, actions: AddMintActions) {
             Text(
                 when {
                     state.keyChanged -> stringResource(R.string.add_mint_failed_key)
-                    state.withoutSigningKey ->
-                        stringResource(
-                            if (state.canAllowWithoutSigningKey) R.string.onboarding_error_mint_without_key_allow
-                            else R.string.onboarding_error_mint_without_key
-                        )
+                    state.withoutSigningKey -> stringResource(R.string.onboarding_error_mint_without_key)
                     else -> stringResource(R.string.add_mint_failed_body, failed)
                 },
                 textAlign = TextAlign.Center,

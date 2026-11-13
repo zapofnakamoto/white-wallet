@@ -88,13 +88,12 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         val pinned = known?.mintPubkey
         if (pinned != null && pinned != answer.mintPubkey?.toHex())
             return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, failingSinceMillis = null)))
-        val keyless = pinned == null && answer.mintPubkey == null
-        if (!wallet.mayUseMint(wallet.walletOf(note.accountId), known, answer.mintPubkey))
-            return lightningOnly(note, UnclaimedReason.NoSigningKey)
+        // As Claim offers: the wallet keeps no notes at a mint without a signing key.
+        val key = answer.mintPubkey ?: return lightningOnly(note, UnclaimedReason.NoSigningKey)
         // A mint met here for the first time is connected before the claim, with the key it just presented: the claim's new key is then
         // found past the keys the phrase already used there (see [IndexGuard]). If it can't be connected, the claim starts at the first key
         // and the mint is connected after it.
-        if (known == null) onboarding.connectMint(wallet.walletOf(note.accountId), note.host, expectedKey = answer.mintPubkey?.toHex())
+        if (known == null) onboarding.connectMint(wallet.walletOf(note.accountId), note.host, expectedKey = key.toHex())
         val result =
             mutator.rotateIn(note.accountId, note.host, note.withdrawUrl, info = answer, spend, amountMsat = answer.maxWithdrawableMsat)
         return when (result) {
@@ -144,11 +143,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 )
                 ClaimResult.Pending
             }
-            is MutationResult.Refused ->
-                // Nothing vouches for a mint without a signing key: one that won't keep it here only gets to pay it out, if the user
-                // agrees.
-                if (keyless && result.kind !in UnknownNotes.GONE && spend !is Spend.Script) lightningOnly(note, UnclaimedReason.Refused)
-                else refused(note, spend, result.kind, result.reason)
+            is MutationResult.Refused -> refused(note, spend, result.kind, result.reason)
             is MutationResult.Unreachable -> waiting(note)
         }
     }
@@ -201,22 +196,13 @@ internal class ReceivedNotes(private val wallet: Wallet) {
             if (note.state == ReceivedState.Locked && (note.lockedUntilMillis ?: 0) > wallet.now()) continue
             claim(note)
         }
+        // Its host didn't answer as for a note (or not yet: a passing trouble looks the same): asked again by key, and claimed at its mint
+        // once it does. Any other waits for the user to receive it over Lightning.
         for (note in wallet.store.receivedNotes(setOf(ReceivedState.LightningOnly)).filter { it.accountId in accountIds }) {
-            when (note.unclaimedReason) {
-                // Kept only because mints without a signing key weren't allowed: claimed at its mint once they are, or once the wallet
-                // holds it.
-                UnclaimedReason.NoSigningKey ->
-                    if (wallet.mayUseMint(wallet.walletOf(note.accountId), wallet.mintOf(note.accountId, note.host), presentedKey = null))
-                        claim(note)
-                // Its host didn't answer as for a note (or not yet: a passing trouble looks the same): asked again by key, and claimed at
-                // its mint once it does. Left as it is otherwise.
-                UnclaimedReason.NotANote -> {
-                    @OptIn(RevealsNoteSecret::class) val spend = note.k1?.let(Spend::parse) ?: continue
-                    val found = KeyLookup.of(wallet, note.withdrawUrl, spend.q)
-                    if (found is KeyLookup.Note) claim(note, found.info)
-                }
-                else -> Unit
-            }
+            if (note.unclaimedReason != UnclaimedReason.NotANote) continue
+            @OptIn(RevealsNoteSecret::class) val spend = note.k1?.let(Spend::parse) ?: continue
+            val found = KeyLookup.of(wallet, note.withdrawUrl, spend.q)
+            if (found is KeyLookup.Note) claim(note, found.info)
         }
     }
 

@@ -50,7 +50,6 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ConnectResult
-import whitewallet.core.wallet.MINT_WITHOUT_SIGNING_KEY_HOME
 import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.MintMoveResult
 import whitewallet.core.wallet.MoneyMoved
@@ -73,9 +72,6 @@ sealed interface MoneyMoveError {
     data class Mint(val detail: String) : MoneyMoveError
 
     data class Network(val detail: String) : MoneyMoveError
-
-    /** The mint publishes no signing key, and such a mint can't be a home mint (brand `mints.withoutSigningKey.home`). */
-    data object HomeWithoutSigningKey : MoneyMoveError
 }
 
 /** After the change or move: whether the home mint changed, and per mint what happened. */
@@ -212,11 +208,8 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
                 return fail(
-                    when (val o = r.result) {
-                        is OnboardResult.NetworkError -> MoneyMoveError.Network(o.reason)
-                        is OnboardResult.MintInvalid if o.reason == MINT_WITHOUT_SIGNING_KEY_HOME -> MoneyMoveError.HomeWithoutSigningKey
-                        else -> MoneyMoveError.Mint(o.toString())
-                    }
+                    (r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network(it.reason) }
+                        ?: MoneyMoveError.Mint(r.result.toString())
                 )
         }
         _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, changed.moved)) }
@@ -354,7 +347,6 @@ private fun ErrorText(error: MoneyMoveError) {
         when (error) {
             is MoneyMoveError.Mint -> stringResource(R.string.money_error_mint, error.detail)
             is MoneyMoveError.Network -> stringResource(R.string.money_error_network, error.detail)
-            MoneyMoveError.HomeWithoutSigningKey -> stringResource(R.string.money_error_home_without_key)
         }
     Text(text, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
 }

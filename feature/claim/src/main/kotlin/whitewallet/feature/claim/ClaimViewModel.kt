@@ -46,8 +46,6 @@ data class ClaimState(
     val opening: Boolean = false,
     /** The account's home mint, to say so where a link is received into it. */
     val home: String? = null,
-    /** The brand lets the user allow mints without a signing key (Security settings). */
-    val canAllowWithoutSigningKey: Boolean = false,
 )
 
 /** What the regtest faucet's note is made for; the mint's fee comes off. */
@@ -58,10 +56,7 @@ class ClaimViewModel
 @Inject
 constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, savedState: SavedStateHandle, defaults: AppDefaults) :
     ViewModel() {
-    private val _state =
-        MutableStateFlow(
-            ClaimState(showMints = defaults.showMints, loaded = false, canAllowWithoutSigningKey = wallet.offersMintsWithoutSigningKey)
-        )
+    private val _state = MutableStateFlow(ClaimState(showMints = defaults.showMints, loaded = false))
     val state: StateFlow<ClaimState> = _state
 
     init {
@@ -88,7 +83,6 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
             faucetMints = from.faucetMints,
             loaded = from.loaded,
             home = from.home,
-            canAllowWithoutSigningKey = from.canAllowWithoutSigningKey,
         )
 
     /** Developer: has the regtest faucet make a note on the local mint [mint], and checks it as if it was pasted. */

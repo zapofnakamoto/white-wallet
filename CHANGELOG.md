@@ -27,19 +27,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   before the link is shown to it. Kept, such a link waits under received notes with "Receive"; each refresh asks
   its key again, and it is claimed at its mint once that answers for it as a note, so a passing trouble with the mint
   doesn't send a note over Lightning. A link the service refuses waits there too, with "Receive" to try again. The screen is titled "Receive over Lightning", and History names the link's service ("Received from …").
-- Mints without a signing key (LUD-25 only says a mint SHOULD publish one). Their notes can't be certified, and a
-  swapped mint can't be noticed, so by default such a mint is never added, and a note from one is received into the
-  home mint over Lightning once the user agrees to the fee (a note kept while offline waits for that under received
-  notes). Settings → Security → "Allow mints without a signing key", per wallet and off by default, keeps such notes
-  at their mint instead: the mint is added unpinned, marked on its page, and can't be trusted. Mints already added
-  keep working when it is off. A new mint that can't be asked for its signing key isn't added (it is unreachable for
-  now), so it can't hold money before the wallet knows whether it has one. Brand keys
-  `mints.withoutSigningKey.setting` (show the setting, default `true`) and `mints.withoutSigningKey.home` (may such a
-  mint be a home mint, default `true`). New brand terms
-  `claim_melt_not_a_note`, `claim_melt_into_home`, `claim_melt_pick`, `claim_melt_no_mint`,
-  `claim_kept_for_lightning`, `claim_melt_no_signing_key`, `claim_melt_no_signing_key_allow`,
-  `onboarding_error_mint_without_key`, `onboarding_error_mint_without_key_allow`, `security_mints_without_key`,
-  `security_mints_without_key_hint`, `money_error_home_without_key` and `mint_signing_key_none_hint`; also
+- Notes from mints without a signing key (LUD-25 only says a mint SHOULD publish one). Their notes can't be certified,
+  and a swapped mint can't be noticed, so the wallet never adds such a mint nor keeps money there: a note from one is
+  received into the home mint over Lightning once the user agrees to the fee. If that payment fails (or the note was
+  kept while offline), it waits under received notes with "Receive" to try again. A new mint that can't be asked for
+  its signing key isn't added (it is unreachable for now), so it can't hold money before the wallet knows it has one.
+  New brand terms `claim_melt_not_a_note`, `claim_melt_into_home`, `claim_melt_pick`, `claim_melt_no_mint`,
+  `claim_kept_for_lightning`, `claim_melt_no_signing_key` and `onboarding_error_mint_without_key`; also
   `received_lightning_not_a_note` names the note.
 - A link from another app that the wallet can't use says so on Home (before, nothing happened).
 - Links in capitals (`LIGHTNING:`, `LNURLW:`, `LNURLP:`), as QR codes write them, open the wallet too.

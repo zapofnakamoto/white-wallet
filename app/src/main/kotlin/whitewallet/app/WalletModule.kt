@@ -23,7 +23,6 @@ import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.wallet.MaintenanceNoticeDefaults
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.MintTrustStore
-import whitewallet.core.wallet.MintsWithoutSigningKey
 import whitewallet.core.wallet.NoteAction
 import whitewallet.core.wallet.NotePolicies
 import whitewallet.core.wallet.NoteStrategies
@@ -98,8 +97,6 @@ object WalletModule {
             onWaitingForNetwork = { SyncWorker.scheduleOnce(context) },
             payWaitMillis = BuildConfig.SYNC_PAYMENT_WAIT_MILLIS,
             receivedGiveUpMillis = BuildConfig.RECEIVED_GIVE_UP_MILLIS,
-            withoutSigningKey =
-                MintsWithoutSigningKey(BuildConfig.MINTS_WITHOUT_SIGNING_KEY_SETTING, BuildConfig.MINTS_WITHOUT_SIGNING_KEY_HOME),
         )
 
     /** dev/regtest's faucet in debug builds; without a host (release) it pays nothing. */

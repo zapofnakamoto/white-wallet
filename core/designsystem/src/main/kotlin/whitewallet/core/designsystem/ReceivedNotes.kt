@@ -28,7 +28,6 @@ fun receivedNoteStatus(note: ReceivedNote): String =
             stringResource(
                 when (note.unclaimedReason) {
                     UnclaimedReason.NoSigningKey -> R.string.received_lightning_no_key
-                    UnclaimedReason.Refused -> R.string.received_lightning_refused
                     else -> R.string.received_lightning_not_a_note
                 }
             )

@@ -154,9 +154,9 @@ enum class ReceivedState {
     KeyChanged,
 
     /**
-     * Its mint can't keep it for this wallet ([ReceivedNote.unclaimedReason] says why: no signing key, not a note it answers for, or it
-     * refused): it can only be received over Lightning into a mint of the account, which costs a fee, so it waits for the user to agree.
-     * Not tried by itself.
+     * Its mint can't keep it for this wallet ([ReceivedNote.unclaimedReason] says why: no signing key, or not a note it answers for): it
+     * can only be received over Lightning into a mint of the account, which costs a fee, so it waits for the user to agree. Not tried by
+     * itself.
      */
     LightningOnly,
 
@@ -188,14 +188,11 @@ enum class ReceivedState {
 }
 
 /**
- * Why a received note isn't claimed at its mint. [ReceivedState.LightningOnly] and [ReceivedState.Melting]: [NoSigningKey], [NotANote] or
- * [Refused]. [ReceivedState.Archived]: [Refused] or [Unreachable] for a week, or [ByUser].
+ * Why a received note isn't claimed at its mint. [ReceivedState.LightningOnly] and [ReceivedState.Melting]: [NoSigningKey] or [NotANote].
+ * [ReceivedState.Archived]: [Refused] or [Unreachable] for a week, or [ByUser].
  */
 enum class UnclaimedReason {
-    /**
-     * Its mint refused it for another reason than spent, unknown or locked: archived after a week of that, or at once Lightning only from a
-     * mint without a signing key.
-     */
+    /** Its mint refused it for another reason than spent, unknown or locked: archived after a week of that. */
     Refused,
 
     /** Its mint couldn't be reached. */
@@ -207,7 +204,7 @@ enum class UnclaimedReason {
      */
     NotANote,
 
-    /** Its mint publishes no signing key, and the wallet doesn't allow such mints. */
+    /** Its mint publishes no signing key: the wallet keeps no notes at such a mint, so it is received over Lightning. */
     NoSigningKey,
 
     /** The user put it aside. */

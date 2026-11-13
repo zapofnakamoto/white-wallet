@@ -77,10 +77,8 @@ data class AddMintState(
     /** The mint was added all the same and only its scan stopped: it can be scanned again right here, or later. */
     val kept: Boolean = false,
     val keyChanged: Boolean = false,
-    /** It publishes no signing key, and the wallet doesn't allow such mints. */
+    /** It publishes no signing key: the wallet uses no such mint. */
     val withoutSigningKey: Boolean = false,
-    /** The brand lets the user allow such mints (Security settings). */
-    val canAllowWithoutSigningKey: Boolean = false,
     /** Asking whether to give the setup up (back on the first step). */
     val confirmAbandon: Boolean = false,
     val finish: AddMintFinish? = null,
@@ -178,7 +176,6 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
                             kept = kept,
                             keyChanged = keyChanged,
                             withoutSigningKey = reason == MINT_WITHOUT_SIGNING_KEY,
-                            canAllowWithoutSigningKey = wallet.offersMintsWithoutSigningKey,
                         )
                 }
             }

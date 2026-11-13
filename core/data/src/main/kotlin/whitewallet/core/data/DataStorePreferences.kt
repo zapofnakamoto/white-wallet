@@ -94,15 +94,7 @@ internal class DataStorePreferences(
         prefs.edit {
             it.remove(trustedKey(walletId))
             it.remove(untrustedKey(walletId))
-            it.remove(withoutSigningKeyKey(walletId))
         }
-    }
-
-    override fun allowsMintsWithoutSigningKey(walletId: String): Flow<Boolean> =
-        prefs.data.map { it[withoutSigningKeyKey(walletId)] ?: false }
-
-    override suspend fun setAllowsMintsWithoutSigningKey(walletId: String, allowed: Boolean) {
-        prefs.edit { it[withoutSigningKeyKey(walletId)] = allowed }
     }
 
     /** Stored as "host pubkey" (a host never contains a space). */
@@ -199,8 +191,6 @@ internal class DataStorePreferences(
         internal fun trustedKey(walletId: String) = stringSetPreferencesKey("trusted_mints_$walletId")
 
         internal fun untrustedKey(walletId: String) = stringSetPreferencesKey("untrusted_mints_$walletId")
-
-        private fun withoutSigningKeyKey(walletId: String) = booleanPreferencesKey("mints_without_signing_key_$walletId")
 
         /**
          * Keys changed since v0.3.0: an installed app keeps the value under the new name. Trust choices were the device's until each wallet

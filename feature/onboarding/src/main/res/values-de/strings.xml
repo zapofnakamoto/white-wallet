@@ -7,7 +7,6 @@
     <string name="onboarding_error_fee">Diese Mint verlangt %1$s für eine Adresse, mehr als die %2$s, die diese App akzeptiert.</string>
     <string name="onboarding_error_mint_too_old">Diese Mint kann nur dem ersten Konto eines Wallets eine Adresse geben. Wähle eine andere Mint oder mach ohne Adresse weiter.</string>
     <string name="onboarding_error_mint_without_key">Diese Mint veröffentlicht keinen Signaturschlüssel, daher kann deine Wallet nicht prüfen, ob ihre Scheine echt sind, oder bemerken, wenn sie ausgetauscht wird. Wähle eine andere Mint.</string>
-    <string name="onboarding_error_mint_without_key_allow">Diese Mint veröffentlicht keinen Signaturschlüssel, daher kann deine Wallet nicht prüfen, ob ihre Scheine echt sind, oder bemerken, wenn sie ausgetauscht wird. Wähle eine andere Mint oder erlaube solche Mints in den Sicherheitseinstellungen.</string>
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Adresse der Mint</string>
     <string name="onboarding_mint_custody">Dein Guthaben verwahrt die Mint, die du wählst. Halte die Beträge klein.</string>
