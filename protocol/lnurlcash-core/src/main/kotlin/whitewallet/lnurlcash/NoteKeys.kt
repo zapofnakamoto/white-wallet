@@ -16,7 +16,7 @@ import javax.crypto.spec.SecretKeySpec
  * `m/139'/0`, as LUD-05 hashes a domain. A domain hosts one mint, so mints on one hostname (ports apart) share a root and its counters.
  * Accounts ([account]) are independent sets of funds below it.
  */
-public class ServiceRoot internal constructor(internal val node: ExtendedPrivateKey) {
+public class ServiceRoot private constructor(private val node: ExtendedPrivateKey) {
     public fun account(a: Long): NoteAccount {
         require(a in 0 until HARDENED) { "account must be below 2^31" }
         return NoteAccount(a, node.derivePrivateKey(DeterministicWallet.hardened(a)))
@@ -38,11 +38,8 @@ public class ServiceRoot internal constructor(internal val node: ExtendedPrivate
         }
 
         /** The root for the mint at [host]: its [spendDomain] is hashed, so the port never matters. */
-        public fun fromSeed(seed: ByteArray, host: String): ServiceRoot = ServiceRoot(node(seed, spendDomain(host)))
-
-        /** The node `m/139'/d1/d2/d3/d4` for [hashed] taken as is. */
-        internal fun node(seed: ByteArray, hashed: String): ExtendedPrivateKey =
-            DeterministicWallet.generate(seed).derivePrivateKey(listOf(PURPOSE) + domainIndices(seed, hashed))
+        public fun fromSeed(seed: ByteArray, host: String): ServiceRoot =
+            ServiceRoot(DeterministicWallet.generate(seed).derivePrivateKey(listOf(PURPOSE) + domainIndices(seed, spendDomain(host))))
     }
 }
 

@@ -21,8 +21,9 @@ sealed interface PayDestination {
     data class Invoice(val invoice: Bolt11Invoice) : PayDestination
 
     /**
-     * A LUD-06 pay link (a Lightning address, `lnurlp://` or bech32 LNURL). [transfer] is set when the payee is on a mint this account
-     * holds notes on: then the notes are handed over directly (LUD-26 internal transfer), without Lightning.
+     * A LUD-06 pay link (a Lightning address, `lnurlp://` or bech32 LNURL). [internalTransfer] when the payee is on a mint this account
+     * holds notes on: then a whole note goes to the payee's pay callback (LUD-26 internal transfer), without Lightning, and the mint picks
+     * the payee's key.
      */
     data class PayLink(
         val url: String,
@@ -31,14 +32,8 @@ sealed interface PayDestination {
         val minMsat: Long,
         val maxMsat: Long,
         val commentAllowed: Int,
-        val transfer: InternalTransfer?,
+        val internalTransfer: Boolean,
     ) : PayDestination
-}
-
-/** How a note reaches a payee on its own mint. */
-sealed interface InternalTransfer {
-    /** At the payee's pay callback, as a whole note; the mint picks the payee's key. */
-    data object ToCallback : InternalTransfer
 }
 
 /** Why a payment can't be made (or wasn't). Every case maps to a full string in the app. */
@@ -109,7 +104,7 @@ sealed interface PayPreview {
         val availableMsat: Long,
     ) : PayPreview {
         val internal: Boolean
-            get() = (destination as? PayDestination.PayLink)?.transfer != null
+            get() = (destination as? PayDestination.PayLink)?.internalTransfer == true
     }
 
     data class Invalid(val problem: PayProblem) : PayPreview
@@ -178,7 +173,7 @@ internal class Payer(private val wallet: Wallet) {
         val accountId = wallet.activeId()
         val payeeHost = Lnurl.host(url)?.lowercase()
         val holdsNotes = payeeHost != null && outstanding(accountId).any { it.host == payeeHost }
-        val transfer = InternalTransfer.ToCallback.takeIf { holdsNotes && sharesMint(accountId, pay, payeeHost!!) }
+        val transfer = holdsNotes && sharesMint(accountId, pay, payeeHost!!)
         // One of the account's own addresses.
         if (wallet.store.addresses(accountId).first().any { Lnurl.lightningAddressUrl(it.address) == url }) {
             return PayPreview.Invalid(PayProblem.OwnAddress)
@@ -186,14 +181,14 @@ internal class Payer(private val wallet: Wallet) {
         val destination =
             PayDestination.PayLink(url, pay.callback, pay.metadata, pay.minSendable, pay.maxSendable, pay.commentAllowed ?: 0, transfer)
         val identifier = pay.metadataEntries.firstOrNull { it.first == "text/identifier" || it.first == "text/email" }?.second
-        val available = available(accountId, payeeHost.takeIf { transfer != null })
+        val available = available(accountId, payeeHost.takeIf { transfer })
         if (available == 0L) return PayPreview.Invalid(PayProblem.NoFunds)
         return PayPreview.Ready(
             destination,
             fixedAmountMsat = pay.minSendable.takeIf { it == pay.maxSendable },
             minMsat = pay.minSendable,
             maxMsat = pay.maxSendable,
-            commentMaxLength = if (transfer != null) 0 else pay.commentAllowed ?: 0,
+            commentMaxLength = if (transfer) 0 else pay.commentAllowed ?: 0,
             payee = lightningAddress(text) ?: identifier ?: payeeHost,
             description = pay.metadataEntries.firstOrNull { it.first == "text/plain" }?.second,
             availableMsat = available,
@@ -247,7 +242,7 @@ internal class Payer(private val wallet: Wallet) {
         val counterparty = preview.payee
 
         // Melt: get the invoice first, so nothing is split for a payee that refuses. A transfer needs none.
-        val transferTo = (destination as? PayDestination.PayLink)?.takeIf { it.transfer == InternalTransfer.ToCallback }?.callback
+        val transferTo = (destination as? PayDestination.PayLink)?.takeIf { it.internalTransfer }?.callback
         val invoice =
             when (destination) {
                 is PayDestination.Invoice -> destination.invoice
@@ -260,7 +255,7 @@ internal class Payer(private val wallet: Wallet) {
             }
         if (invoice?.isExpired(wallet.now()) == true) return PayResult.Failed(PayProblem.Expired)
         val note =
-            when (val made = exact(accountId, host, plan, amountMsat, target = OutputSpec(accountId, KeySet.Wallet))) {
+            when (val made = exact(accountId, host, plan, amountMsat)) {
                 is MutationResult.Done -> made.outputs.first()
                 // Nothing is paid; the merge or split itself is settled by reconciliation on a later refresh.
                 is MutationResult.Pending -> return PayResult.Failed(PayProblem.Unreachable)
@@ -313,17 +308,15 @@ internal class Payer(private val wallet: Wallet) {
     }
 
     /**
-     * Turns [plan]'s inputs into one note of exactly [amountMsat] at [target]: used as is, merged, split, or merged then split. Returns the
-     * last mutation (whose first output is that note), or the input itself when no mutation is needed.
+     * Turns [plan]'s inputs into one note of exactly [amountMsat] on the account's wallet chain: used as is, merged, split, or merged then
+     * split. Returns the last mutation (whose first output is that note), or the input itself when no mutation is needed.
      */
-    internal suspend fun exact(accountId: String, host: String, plan: PayPlan, amountMsat: Long, target: OutputSpec): MutationResult {
+    internal suspend fun exact(accountId: String, host: String, plan: PayPlan, amountMsat: Long): MutationResult {
         var inputs = plan.inputs
-        if (!plan.merge && !plan.split) {
-            return MutationResult.Done(inputs, journalId = "")
-        }
+        val target = OutputSpec(accountId, KeySet.Wallet)
+        if (!plan.merge && !plan.split) return MutationResult.Done(inputs, journalId = "")
         if (plan.merge) {
-            val mergeTarget = if (plan.split) OutputSpec(accountId, KeySet.Wallet) else target
-            val merged = mutator.merge(accountId, host, inputs, mergeTarget)
+            val merged = mutator.merge(accountId, host, inputs, target)
             if (!plan.split || merged !is MutationResult.Done) return merged
             inputs = merged.outputs
         }
@@ -377,7 +370,7 @@ internal class Payer(private val wallet: Wallet) {
 
     private suspend fun candidates(accountId: String, preview: PayPreview.Ready): List<Pair<String, List<Note>>> {
         val transferHost =
-            (preview.destination as? PayDestination.PayLink)?.takeIf { it.transfer != null }?.url?.let(Lnurl::host)?.lowercase()
+            (preview.destination as? PayDestination.PayLink)?.takeIf { it.internalTransfer }?.url?.let(Lnurl::host)?.lowercase()
         val order = wallet.payOrder(accountId)
         return outstanding(accountId)
             .groupBy { it.host }

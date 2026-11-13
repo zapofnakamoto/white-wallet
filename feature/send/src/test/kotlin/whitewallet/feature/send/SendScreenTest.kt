@@ -76,7 +76,7 @@ class SendScreenTest {
 
     private val payLink =
         PayPreview.Ready(
-            PayDestination.PayLink("https://mint.example/p", "https://mint.example/cb", "[]", 1_000, 1_000_000, 0, null),
+            PayDestination.PayLink("https://mint.example/p", "https://mint.example/cb", "[]", 1_000, 1_000_000, 0, false),
             fixedAmountMsat = null,
             minMsat = 1_000,
             maxMsat = 1_000_000,

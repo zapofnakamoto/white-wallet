@@ -100,6 +100,7 @@ class Wallet(
 
     /** See the constructor; tests shorten it. */
     internal var payWaitMillis = payWaitMillis
+    /** Each account's keys by (account id, mint domain): mints on one hostname share them. */
     private val keySets = ConcurrentHashMap<Pair<String, String>, AccountKeys>()
     /** The last check of each address, by (account id, address). In memory; see [refresh] and [checkAddresses]. */
     private val addressStatuses = MutableStateFlow<Map<Pair<String, String>, AddressStatus>>(emptyMap())
@@ -1384,19 +1385,19 @@ class Wallet(
     internal suspend fun activeId(): String = checkNotNull(store.currentAccountId()) { "no active account" }
 
     /**
-     * The account's keys on [host] ([AccountKeys]), kept for the life of the process. The seed they come from is not: it can derive the
-     * keys of every mint, so it is made again for each new mint and zeroed straight after. An account not saved yet is its own wallet's
-     * first.
+     * The account's keys on [host]'s domain ([AccountKeys]), kept for the life of the process. The seed they come from is not: it can
+     * derive the keys of every mint, so it is made again for each new domain and zeroed straight after. An account not saved yet is its own
+     * wallet's first.
      */
     internal suspend fun keys(accountId: String, host: String): AccountKeys {
-        keySets[accountId to host]?.let {
+        keySets[accountId to spendDomain(host)]?.let {
             return it
         }
         val account = accountOf(accountId)
         val words = checkNotNull(seeds.load(account?.walletId ?: accountId)) { "account has no seed" }
         val seed = RecoveryPhrase.seed(words)
         return try {
-            keySets.getOrPut(accountId to host) {
+            keySets.getOrPut(accountId to spendDomain(host)) {
                 AccountKeys(ServiceRoot.fromSeed(seed, host).account(account?.index ?: 0))
             }
         } finally {
@@ -1407,7 +1408,7 @@ class Wallet(
     /** The keys, or null if the account has no seed (so nothing can be ours). */
     internal suspend fun keysIfSeeded(accountId: String?, host: String): AccountKeys? {
         if (accountId == null) return null
-        if (keySets[accountId to host] == null && seeds.load(walletOf(accountId)) == null) return null
+        if (keySets[accountId to spendDomain(host)] == null && seeds.load(walletOf(accountId)) == null) return null
         return keys(accountId, host)
     }
 

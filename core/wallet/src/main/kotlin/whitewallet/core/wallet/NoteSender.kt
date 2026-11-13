@@ -137,7 +137,7 @@ internal class NoteSender(private val wallet: Wallet) {
                 PayPlanner.plan(notes, amountMsat, baseFee(accountId, host))?.let { host to it }
             } ?: return CreateNoteResult.Failed(PayProblem.TooMuch)
         val note =
-            when (val made = payer.exact(accountId, host, plan, amountMsat, OutputSpec(accountId, KeySet.Wallet))) {
+            when (val made = payer.exact(accountId, host, plan, amountMsat)) {
                 is MutationResult.Done -> made.outputs.first()
                 is MutationResult.Pending -> return CreateNoteResult.Pending
                 is MutationResult.Refused -> return CreateNoteResult.Failed(PayProblem.Refused)
