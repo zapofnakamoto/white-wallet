@@ -16,12 +16,16 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
+import whitewallet.core.model.Note
+import whitewallet.core.model.NoteKind
+import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 import whitewallet.testkit.MockMint
@@ -148,6 +152,52 @@ class WalletMockMintTest {
                 wallet.refresh()
                 assertEquals(JournalStatus.Rejected, store.journal.getValue("crashed").status)
                 assertEquals(0L, wallet.balanceMsat.first())
+            }
+        }
+
+    @Test
+    fun `an open operation with no output to look up landed if its inputs are gone, and not if they are all there`() =
+        runBlocking<Unit> {
+            MockMint.start().use { mint ->
+                val store = InMemoryWalletStore()
+                val wallet = wallet(mint, store)
+                val known = assertNotNull(store.mint(mint.host))
+                val spent = Spend.Bearer(ByteVector32(Hex.decode("44".repeat(32))))
+                val live = Spend.Bearer(ByteVector32(Hex.decode("55".repeat(32))))
+                for (note in listOf(spent, live)) {
+                    mint.credit(note.h.toHex(), 3_000)
+                    // Waiting for an answer, as a note an operation went out with stays until it is settled.
+                    store.upsertNotes(
+                        listOf(Note(note.q.toHex(), ACCOUNT, mint.host, NoteKind.Bearer, null, null, 3_000, null, NoteState.Ambiguous, 0))
+                    )
+                }
+                // Its outputs were on keys the wallet no longer derives (the older ones, version 9 of the database dropped them).
+                val elsewhere = testKeys(words, mint.host).pubkey(KeySet.Wallet, 9)
+                LnurlcashClient().mutate(MutationType.Rotate, Requests.rotate("${mint.url}/w/cb", spent.k1, elsewhere))
+                for ((id, note) in listOf("landed" to spent, "never" to live)) {
+                    store.putJournal(
+                        JournalEntry(
+                            id,
+                            ACCOUNT,
+                            OperationType.Rotate,
+                            mint.host,
+                            known.withdrawUrl,
+                            listOf(note.q.toHex()),
+                            listOf(note.k1),
+                            emptyList(),
+                            Requests.rotate("${mint.url}/w/cb", note.k1, elsewhere),
+                            JournalStatus.Unknown,
+                            null,
+                            0,
+                            0,
+                        )
+                    )
+                }
+                wallet.refresh()
+                assertEquals(JournalStatus.Confirmed, store.journal.getValue("landed").status)
+                assertEquals(NoteState.Spent, store.note(spent.q.toHex())?.state)
+                assertEquals(JournalStatus.Rejected, store.journal.getValue("never").status)
+                assertEquals(NoteState.Outstanding, store.note(live.q.toHex())?.state)
             }
         }
 }

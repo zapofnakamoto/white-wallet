@@ -15,10 +15,9 @@ import whitewallet.lnurlcash.protocol.RejectionKind
 
 /**
  * Settles mutations whose outcome is unknown by looking up their outputs and inputs by `p`, which never discloses a spend. An output of
- * ours that exists means the mutation landed; inputs that are all still outstanding mean it did not. Someone else's output (an internal
- * transfer) proves nothing: another payer's note may sit at that key. Only this wallet can spend its own inputs, so for such a mutation
- * inputs that are all gone mean it landed. A received note's input can be spent by whoever made its link: gone, with our output missing, it
- * never landed.
+ * ours that exists means the mutation landed; inputs that are all still outstanding mean it did not. A mutation with no output left to look
+ * up (they were on the older keys, which version 9 of the database dropped): only this wallet can spend its own inputs, so inputs that are
+ * all gone mean it landed. A received note's input can be spent by whoever made its link: gone, with our output missing, it never landed.
  */
 internal class Reconciler(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
@@ -83,6 +82,7 @@ internal class Reconciler(private val wallet: Wallet) {
                 // output missing means someone else claimed it first. It never landed.
                 if (live.none { it } && entry.inputIds.any { wallet.store.receivedNote(it) != null })
                     return finish(entry, JournalStatus.Rejected)
+                landed = live.none { it } && entry.outputs.isEmpty()
             }
             if (landed) {
                 for (id in entry.inputIds) wallet.store.note(id)?.let {

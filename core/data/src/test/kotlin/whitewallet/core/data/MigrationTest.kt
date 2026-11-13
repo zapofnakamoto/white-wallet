@@ -204,11 +204,15 @@ class MigrationTest {
                 )
                 assertEquals(0L to 0L, store.mint("acc", "mint.example")?.let { it.scanStartedAtMillis to it.scanFinishedAtMillis })
 
-                // Everything on the older keys went with their support (version 9): the note, its check, the address and the operation.
+                // Everything on the older keys went with their support (version 9): the note, its check, the address and the operation's
+                // output. The operation stays, so its inputs still settle.
                 assertNull(store.note("n1"))
                 assertEquals(emptyMap(), store.keyChecks("acc").first())
                 assertEquals(emptyList(), store.addresses("acc").first())
-                assertEquals(emptyList(), store.journal(JournalStatus.entries.toSet()))
+                assertEquals(
+                    listOf("j1" to emptyList<OutputRef>()),
+                    store.journal(JournalStatus.entries.toSet()).map { it.id to it.outputs },
+                )
 
                 // The new counters start empty, per mint domain.
                 assertNull(store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
@@ -243,7 +247,7 @@ class MigrationTest {
                         7,
                     )
                 )
-                assertEquals(outputs, store.journal(setOf(JournalStatus.Prepared)).single().outputs)
+                assertEquals(outputs, store.journal(setOf(JournalStatus.Prepared)).single { it.id == "j2" }.outputs)
 
                 // A second account in the first wallet; the wallet goes with its last account.
                 store.saveAccount(Account("acc3", "Second", 4, walletId = "acc", index = 1))
@@ -457,9 +461,14 @@ class MigrationTest {
                 assertEquals(listOf("bob", "held"), store.addresses("a0").first().map { it.username }.sorted())
                 // The primary address went: the oldest one left that isn't held for its fee is primary now.
                 assertEquals(RegisteredAddress("bob", "one.example", 3, share = 0), store.currentPrimaryAddress("a0"))
+                // Every operation stays, without its outputs on the older keys: one still open settles its inputs (see Reconciler).
                 assertEquals(
-                    listOf("own" to listOf(OutputRef("a0", 0, 5, q('e')), OutputRef("a0", 2, 6, q('f'), share = 0))),
-                    store.journal(JournalStatus.entries.toSet()).map { it.id to it.outputs },
+                    listOf(
+                        "old" to emptyList(),
+                        "older" to emptyList(),
+                        "own" to listOf(OutputRef("a0", 0, 5, q('e')), OutputRef("a0", 2, 6, q('f'), share = 0)),
+                    ),
+                    store.journal(JournalStatus.entries.toSet()).map { it.id to it.outputs }.sortedBy { it.first },
                 )
                 val sql = db.openHelper.readableDatabase
                 for (table in listOf("counters", "address_scan")) {
