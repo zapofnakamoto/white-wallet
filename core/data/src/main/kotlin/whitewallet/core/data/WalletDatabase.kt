@@ -582,7 +582,8 @@ internal object Migration7To8 : Migration(7, 8) {
  * The older derivation (LUD-26 draft 2f17578) is no longer supported: what is still on its keys goes. Notes, key checks and journal outputs
  * on them, addresses still on its branch (no share), its counters and address scans. Nothing at the mint changes: version 0.9.0 with the
  * same recovery phrase still reaches them. The columns that told the two apart go too, and journal outputs lose their scheme field. Every
- * journal entry stays, so an open one still settles its inputs (see Reconciler).
+ * journal entry stays, so an open one still settles its inputs (see Reconciler); an open receive has none, only the note it waits for, so
+ * one left without it is settled as failed.
  */
 internal object Migration8To9 : Migration(8, 9) {
     /** A key-path note or check of the older derivation; a note of any other kind was never derived. */
@@ -639,6 +640,13 @@ internal object Migration8To9 : Migration(8, 9) {
             }
         }
         for ((id, rewritten) in outputs) db.execSQL("UPDATE journal SET outputs = ? WHERE id = ?", arrayOf(rewritten, id))
+
+        // A receive (a mint) has no inputs, and one output, the note it waits for: without it, nothing of it reaches this wallet.
+        val noteGone = "type = 'Mint' AND outputs = '' AND status IN ('Prepared', 'Unknown')"
+        db.execSQL(
+            "UPDATE activity SET status = 'Failed' WHERE status = 'Pending' AND journalId IN (SELECT id FROM journal WHERE $noteGone)"
+        )
+        db.execSQL("UPDATE journal SET status = 'Rejected' WHERE $noteGone")
     }
 
     /** Recreates [table] from [createSql] (of `<table>_new`), keeping [columns] of each row. */

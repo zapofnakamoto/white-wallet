@@ -29,7 +29,6 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - For developers, with one draft left: `KeySet` is `KeySet.Wallet`, `KeySet.Change` or `KeySet.Share(n)`
   (`KeySet.share(n)` and `KeySet.isAddress` are gone), and `KeyId` holds its `KeySet` in place of `purpose` and
   `share`. `PayDestination.PayLink.transfer` (`InternalTransfer?`) is `internalTransfer`, a `Boolean`.
-
 - For developers, in `wallet.properties`: how long the wallet asks a mint often about a note it didn't know is a
   setting, `unknown.note.grace.period.millis` (by default a day, as before). The two intervals are renamed after it:
   `unknown.note.check.interval.first.day.millis` is `unknown.note.check.interval.in.grace.period.millis`, and

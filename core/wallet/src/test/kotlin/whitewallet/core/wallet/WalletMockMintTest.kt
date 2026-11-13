@@ -171,8 +171,9 @@ class WalletMockMintTest {
                         listOf(Note(note.q.toHex(), ACCOUNT, mint.host, NoteKind.Bearer, null, null, 3_000, null, NoteState.Ambiguous, 0))
                     )
                 }
-                // Its outputs were on keys the wallet no longer derives (the older ones, version 9 of the database dropped them).
-                val elsewhere = testKeys(words, mint.host).pubkey(KeySet.Wallet, 9)
+                // Its output was on a key the wallet doesn't derive (an older one, which version 9 of the database dropped): a stand-in.
+                val other = "legal winner thank year wave sausage worth useful legal winner thank yellow".split(" ")
+                val elsewhere = testKeys(other, mint.host).pubkey(KeySet.Wallet, 0)
                 LnurlcashClient().mutate(MutationType.Rotate, Requests.rotate("${mint.url}/w/cb", spent.k1, elsewhere))
                 for ((id, note) in listOf("landed" to spent, "never" to live)) {
                     store.putJournal(

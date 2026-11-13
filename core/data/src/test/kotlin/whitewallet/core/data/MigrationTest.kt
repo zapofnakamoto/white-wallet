@@ -27,6 +27,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import whitewallet.core.model.Account
 import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
@@ -111,10 +112,14 @@ class MigrationTest {
                 // Its notes were on the older keys, no longer supported (version 9): version 0.9.0 still reaches them.
                 assertEquals(emptyList(), store.notes("acc").first())
                 assertEquals("pk", store.mint("acc", "mint.example")?.mintPubkey)
-                assertEquals(listOf("m1"), store.journal(setOf(JournalStatus.Prepared)).map { it.id })
+                // A receive with no output has no note to wait for (version 9): it is settled as failed, with its row.
+                assertEquals(listOf("m1"), store.journal(setOf(JournalStatus.Rejected)).map { it.id })
                 assertEquals(
-                    listOf("claim:c1" to ActivityKind.Claimed, "mint:m1" to ActivityKind.MovedMint),
-                    store.activities("acc").first().map { it.id to it.kind }.sortedBy { it.first },
+                    listOf(
+                        Triple("claim:c1", ActivityKind.Claimed, ActivityStatus.Done),
+                        Triple("mint:m1", ActivityKind.MovedMint, ActivityStatus.Failed),
+                    ),
+                    store.activities("acc").first().map { Triple(it.id, it.kind, it.status) }.sortedBy { it.first },
                 )
             } finally {
                 db.close()
@@ -442,6 +447,15 @@ class MigrationTest {
                     "INSERT INTO journal VALUES ('own', 'a0', 'Split', 'one.example', 'https://one.example/w', '${q('n')}', 'k', " +
                         "'a0:1:0::5:${q('e')},a0:1:2:0:6:${q('f')}', 'https://one.example/w?k1=k', 'Unknown', NULL, 1, 1)"
                 )
+                // An invoice still waiting, whose note would be on the older keys, and its row in the history.
+                execSQL(
+                    "INSERT INTO journal VALUES ('receive', 'a0', 'Mint', 'one.example', 'https://one.example/w', '', '', " +
+                        "'a0:0:0::3:${q('r')}', 'lnbc1', 'Unknown', NULL, 1, 1)"
+                )
+                execSQL(
+                    "INSERT INTO activity VALUES ('invoice:receive', 'a0', 'Received', 4000, NULL, 'one.example', NULL, NULL, NULL, 0, " +
+                        "'Pending', 'receive', 1)"
+                )
             }
             val db =
                 Room.databaseBuilder(context, WalletDatabase::class.java, "v8.db")
@@ -462,15 +476,22 @@ class MigrationTest {
                 assertEquals(listOf("bob", "held"), store.addresses("a0").first().map { it.username }.sorted())
                 // The primary address went: the oldest one left that isn't held for its fee is primary now.
                 assertEquals(RegisteredAddress("bob", "one.example", 3, share = 0), store.currentPrimaryAddress("a0"))
-                // Every operation stays, without its outputs on the older keys: one still open settles its inputs (see Reconciler).
+                // Every operation stays, without its outputs on the older keys: one still open settles its inputs (see Reconciler). A
+                // receive has none: with its note gone, it is settled as failed, and so is its row in the history.
                 assertEquals(
                     listOf(
-                        "old" to emptyList(),
-                        "older" to emptyList(),
-                        "own" to listOf(OutputRef("a0", 0, 5, q('e')), OutputRef("a0", 2, 6, q('f'), share = 0)),
+                        Triple("old", JournalStatus.Unknown, emptyList()),
+                        Triple("older", JournalStatus.Confirmed, emptyList()),
+                        Triple(
+                            "own",
+                            JournalStatus.Unknown,
+                            listOf(OutputRef("a0", 0, 5, q('e')), OutputRef("a0", 2, 6, q('f'), share = 0)),
+                        ),
+                        Triple("receive", JournalStatus.Rejected, emptyList()),
                     ),
-                    store.journal(JournalStatus.entries.toSet()).map { it.id to it.outputs }.sortedBy { it.first },
+                    store.journal(JournalStatus.entries.toSet()).map { Triple(it.id, it.status, it.outputs) }.sortedBy { it.first },
                 )
+                assertEquals(ActivityStatus.Failed, store.activity("invoice:receive")?.status)
                 val sql = db.openHelper.readableDatabase
                 for (table in listOf("counters", "address_scan")) {
                     sql.query("SELECT name FROM sqlite_master WHERE name = '$table'").use { assertEquals(false, it.moveToFirst(), table) }
