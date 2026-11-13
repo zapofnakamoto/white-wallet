@@ -98,8 +98,13 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
         return withTarget(withdraw, reason, accountId, null)
     }
 
-    /** The user agreed to show the link to its own service: asks it what the link pays, and where to send it. */
+    /**
+     * The user agreed to show the link to its own service: asks it what the link pays, and where to send it. Never a mint whose key the
+     * wallet pinned, as [SecretGate.releaseLink] never pays one out (see [KeyLookup.Unreachable]).
+     */
     suspend fun ask(preview: ClaimPreview.Melt, accountId: String): ClaimPreview {
+        val host = preview.link.host
+        if (wallet.mintOf(accountId, host)?.mintPubkey != null) return ClaimPreview.Invalid("$host has a pinned signing key")
         @OptIn(RevealsNoteSecret::class)
         val asked =
             askService(preview.link.url, payLink = null) { response ->

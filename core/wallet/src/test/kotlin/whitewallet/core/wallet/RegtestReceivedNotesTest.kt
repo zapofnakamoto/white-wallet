@@ -453,7 +453,8 @@ class RegtestReceivedNotesTest {
     @Test
     fun `a kept note whose mint doesn't answer as for a note waits for the user as in Claim, and is claimed at its mint once it does`() =
         runBlocking<Unit> {
-            val link = aNote()
+            // At a mint the wallet doesn't hold: one it pinned never gets the link (RegtestWithdrawLinksTest).
+            val link = Regtest.note(3000, second = true)
             var now = System.currentTimeMillis()
             var offline = false
             var broken = false
@@ -495,12 +496,12 @@ class RegtestReceivedNotesTest {
 
             // A passing trouble: once its mint answers for it again, Claim offers it at its mint, and a refresh claims it there.
             broken = false
-            assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+            val ready = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
             bob.wallet.refresh()
             val claimed = bob.wallet.receivedNotes.first().single()
             assertEquals(ReceivedState.Claimed, claimed.state)
             assertNull(claimed.unclaimedReason)
-            assertEquals(1_000_000, bob.wallet.balanceMsat.first())
+            assertEquals(ready.amountMsat, bob.wallet.balanceMsat.first())
         }
 
     @Test

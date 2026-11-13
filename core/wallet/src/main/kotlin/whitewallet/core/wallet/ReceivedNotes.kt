@@ -75,7 +75,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         @OptIn(RevealsNoteSecret::class) val spend = note.k1?.let(Spend::parse) ?: return ClaimResult.Failed(RejectionKind.Other, null)
         val answer =
             info
-                ?: when (val found = KeyLookup.of(wallet, note.withdrawUrl, spend.q)) {
+                ?: when (val found = KeyLookup.of(wallet, note.accountId, note.host, note.withdrawUrl, spend.q)) {
                     is KeyLookup.Note -> found.info
                     // As Claim offers: only Lightning brings it in, once the user agrees (asked by key again on each refresh meanwhile).
                     is KeyLookup.OtherService,
@@ -201,7 +201,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         for (note in wallet.store.receivedNotes(setOf(ReceivedState.LightningOnly)).filter { it.accountId in accountIds }) {
             if (note.unclaimedReason != UnclaimedReason.NotANote) continue
             @OptIn(RevealsNoteSecret::class) val spend = note.k1?.let(Spend::parse) ?: continue
-            val found = KeyLookup.of(wallet, note.withdrawUrl, spend.q)
+            val found = KeyLookup.of(wallet, note.accountId, note.host, note.withdrawUrl, spend.q)
             if (found is KeyLookup.Note) claim(note, found.info)
         }
     }
@@ -346,10 +346,22 @@ internal sealed interface KeyLookup {
     /** The mint's error for the note: spent, unknown, or refused. */
     data class Refused(val kind: RejectionKind, val reason: String?) : KeyLookup
 
+    /**
+     * No answer at all; or, from a mint whose key the account's wallet pinned, none as for a note. Such a mint is never shown the link nor
+     * paid out over Lightning ([SecretGate.releaseLink]): its notes wait for it to answer again (a deploy's error page, a challenge page),
+     * and whoever answers in its place never gets the spend.
+     */
     data object Unreachable : KeyLookup
 
     companion object {
-        suspend fun of(wallet: Wallet, withdrawUrl: String, q: ByteVector32): KeyLookup {
+        /** Asks [withdrawUrl], the link's host [host], about the note [q] for [accountId]. */
+        suspend fun of(wallet: Wallet, accountId: String, host: String, withdrawUrl: String, q: ByteVector32): KeyLookup {
+            val found = ask(wallet, withdrawUrl, q)
+            val pinned = wallet.mintOf(accountId, host)?.mintPubkey != null
+            return if (pinned && (found is OtherService || found == NotANote)) Unreachable else found
+        }
+
+        private suspend fun ask(wallet: Wallet, withdrawUrl: String, q: ByteVector32): KeyLookup {
             val answer =
                 try {
                     wallet.client.get(Requests.lookup(withdrawUrl, q))

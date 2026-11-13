@@ -134,7 +134,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
         if (script?.lockedUntilSeconds?.let { it * 1000 > wallet.now() } == true) return locked(link, script)
         // Asked by the note's key alone: the spend goes out only with the claim, to a mint with the pinned key. A wait
         // after crediting is the mint's to judge then; its refusal keeps the note as locked.
-        val found = KeyLookup.of(wallet, link.withdrawUrl, spend.q)
+        val found = KeyLookup.of(wallet, accountId, link.host, link.withdrawUrl, spend.q)
         val info =
             when (found) {
                 is KeyLookup.Note -> found.info

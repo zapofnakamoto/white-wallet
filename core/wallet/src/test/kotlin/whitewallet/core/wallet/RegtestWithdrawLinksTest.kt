@@ -421,4 +421,38 @@ class RegtestWithdrawLinksTest {
             assertEquals(ReceivedState.Claimed, received(bob).single().state)
             assertNull(bob.wallet.mintDetails(HOST2).mint)
         }
+
+    @Test
+    fun `a note at a pinned mint that doesn't answer as for a note is kept for its mint, and its spend never shown to that host`() =
+        runBlocking<Unit> {
+            val link = Regtest.note(3000, second = true)
+            var garbled = true
+            val shown = mutableListOf<HttpUrl>()
+            val connection = Interceptor { chain ->
+                val url = chain.request().url
+                val atMint = "${url.host}:${url.port}" == HOST2
+                if (atMint && url.queryParameter("k1") != null) shown += url
+                // A proxy's page in place of the mint's answer for a note.
+                if (garbled && atMint && url.queryParameter("p") != null) Regtest.answer(chain, """{"hello":"proxy"}""")
+                else chain.proceed(chain.request())
+            }
+            val bob = Regtest.phone(client = Regtest.client(connection))
+            // Before the wallet holds the mint, its link is offered over Lightning (another kind of service, as far as it can tell).
+            val unpinned = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(link))
+            garbled = false
+            assertIs<ConnectResult.Connected>(bob.wallet.addMint(HOST2))
+            garbled = true
+
+            assertIs<ClaimPreview.Invalid>(bob.wallet.askLink(unpinned), "not asked once the wallet holds that mint")
+            val kept = assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link), "kept like a note whose mint can't be reached")
+            assertIs<ClaimResult.Kept>(bob.wallet.keepClaim(kept))
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.Waiting, received(bob).single().state)
+            assertEquals(emptyList(), shown, "the spend never went to the host")
+
+            garbled = false
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.Claimed, received(bob).single().state)
+            assertTrue(bob.notes(HOST2).isNotEmpty(), "claimed at its mint")
+        }
 }
