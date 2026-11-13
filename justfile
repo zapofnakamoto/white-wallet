@@ -91,30 +91,11 @@ test *gradle_args:
     dev/conformance.sh
     ./gradlew test {{ gradle_args }}
 
-# The tests on both regtest stacks, legacy then current (each started if it isn't running; stop them with `just regtest-down`)
+# The tests with the regtest ones, on the local regtest stack (started if it isn't running; stop it with `just regtest-down`)
 [group('checks')]
 test-regtest *gradle_args:
-    #!/usr/bin/env bash
-    # Every regtest test runs on both stacks: the legacy mints (lnurl-mint 0.12.2) and the current ones (0.13.1).
-    set -uo pipefail
-    failed=()
-    for protocol in legacy current; do
-        echo "==> regtest tests on the $protocol stack"
-        just test-regtest-$protocol {{ gradle_args }} || failed+=("$protocol")
-    done
-    (( ${#failed[@]} == 0 )) || { echo "regtest tests failed on: ${failed[*]}" >&2; exit 1; }
-
-# The tests on the current regtest stack (lnurl-mint 0.13.1)
-[group('checks')]
-test-regtest-current *gradle_args:
-    REGTEST_PROTOCOL=current dev/regtest/regtest.sh up >/dev/null
-    REGTEST_PROTOCOL=current LNURLCASH_REGTEST=1 just test {{ gradle_args }}
-
-# The tests on the legacy regtest stack (lnurl-mint 0.12.2). Temporary: goes with legacy 2f17578, see protocol/SPEC.md
-[group('checks')]
-test-regtest-legacy *gradle_args:
-    REGTEST_PROTOCOL=legacy dev/regtest/regtest.sh up >/dev/null
-    REGTEST_PROTOCOL=legacy LNURLCASH_REGTEST=1 just test {{ gradle_args }}
+    dev/regtest/regtest.sh up >/dev/null
+    LNURLCASH_REGTEST=1 just test {{ gradle_args }}
 
 # Line and branch coverage of the protocol and wallet modules, regtest tests included (<module>/build/reports/jacoco/test/html)
 [group('checks')]
@@ -162,7 +143,6 @@ check: test
     dev/check-design.sh
     dev/check-flash.sh
     dev/check-resources.sh
-    dev/check-legacy.sh
     python3 -m unittest discover -s dev -p 'test_*.py'
     ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme
 
@@ -176,25 +156,23 @@ new-brand *args:
 regtest *args:
     dev/regtest/regtest.sh {{ args }}
 
-# Stop both regtest stacks (`just regtest down` stops only the current one)
+# Stop the regtest stack, keeping its state
 [group('regtest')]
 regtest-down:
-    REGTEST_PROTOCOL=current dev/regtest/regtest.sh down
-    REGTEST_PROTOCOL=legacy dev/regtest/regtest.sh down
+    dev/regtest/regtest.sh down
 
 # Pay notes (1,000 sats each) into account `account` of the test phrase that developer mode offers at restore, on the
-# first mint of the regtest stack that is up; restore it in the app to see them found. Running it again adds more.
+# first mint of the regtest stack; restore it in the app to see them found. Running it again adds more.
 [group('regtest')]
 regtest-fund-test-wallet notes="3" account="0":
     #!/usr/bin/env bash
     set -euo pipefail
-    # Both stacks use the same ports: whichever is up gets the notes.
-    if [[ -n "$(docker compose -p whitewallet-regtest-current ps -q user-lnd 2>/dev/null)" ]]; then protocol=current
-    elif [[ -n "$(docker compose -p whitewallet-regtest ps -q user-lnd 2>/dev/null)" ]]; then protocol=legacy
-    else echo "No regtest stack is up: start one with 'just regtest up'." >&2; exit 1; fi
-    REGTEST_PROTOCOL=$protocol ./gradlew -q :core:wallet:fundTestWallet --args="{{ notes }} {{ account }}"
+    if [[ -z "$(docker compose -p whitewallet-regtest ps -q user-lnd 2>/dev/null)" ]]; then
+        echo "The regtest stack is not up: start it with 'just regtest up'." >&2; exit 1
+    fi
+    ./gradlew -q :core:wallet:fundTestWallet --args="{{ notes }} {{ account }}"
 
-# Mint a note on the local mint (--mint2 to --mint4 for another) and type it into the focused field on the device, or with --open open it in the app
+# Mint a note on the local mint (--mint2 or --mint3 for another) and type it into the focused field on the device, or with --open open it in the app
 [group('regtest')]
 note sats="1000" *flags:
     dev/regtest/regtest.sh note {{ sats }} --type {{ flags }}

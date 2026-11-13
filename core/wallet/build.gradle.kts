@@ -14,10 +14,8 @@ val walletSettings =
 
 kotlin.sourceSets.named("main") { kotlin.srcDir(walletSettings.map { it.outputDir }) }
 
-// Test classes run side by side; the tests that share the third mint hold ThirdMintLock. The legacy mints can't keep up: one at a time.
-val legacyStack = providers.environmentVariable("REGTEST_PROTOCOL").orNull == "legacy"
-
-tasks.named<Test>("test") { maxParallelForks = if (legacyStack) 1 else (Runtime.getRuntime().availableProcessors() / 2).coerceIn(1, 4) }
+// Test classes run side by side; the tests that share the third mint hold ThirdMintLock.
+tasks.named<Test>("test") { maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(1, 4) }
 
 dependencies {
     api(project(":core:model"))

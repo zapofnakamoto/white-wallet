@@ -1,19 +1,12 @@
 #!/usr/bin/env bash
-# Local regtest environment for White Wallet: bitcoind, two LND nodes and four reference LNURLcash mints.
+# Local regtest environment for White Wallet: bitcoind, two LND nodes and three reference LNURLcash mints.
 # Everything is regtest: no real funds. See README.md.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Which stack: legacy runs every mint on lnurl-mint 0.12.2 (LUD-25/26 draft 2f17578), current on 0.13.1 (luds 92e430f).
-# Each is its own compose project with its own volumes (the legacy one keeps the stack's original name and state), on the
-# same ports, so `up` stops the other one first.
-PROTOCOL="${REGTEST_PROTOCOL:-current}"
-case "$PROTOCOL" in
-    legacy) PROJECT=whitewallet-regtest; OTHER_PROJECT=whitewallet-regtest-current; MINT_VERSION=0.12.2 ;;
-    current) PROJECT=whitewallet-regtest-current; OTHER_PROJECT=whitewallet-regtest; MINT_VERSION=0.13.1 ;;
-    *) echo "REGTEST_PROTOCOL must be legacy or current, not $PROTOCOL" >&2; exit 1 ;;
-esac
-export MINT_VERSION
+PROJECT=whitewallet-regtest
+# The reference mint the stack runs (LUD-25/26, luds 92e430f).
+export MINT_VERSION=0.13.1
 COMPOSE=(docker compose -p "$PROJECT" -f "$DIR/docker-compose.yml")
 MINT_URL="http://localhost:8111"
 MINT_PORT=8111
@@ -21,15 +14,7 @@ MINT2_URL="http://localhost:8112"
 MINT2_PORT=8112
 MINT3_URL="http://localhost:8113"
 MINT3_PORT=8113
-MINT4_URL="http://localhost:8114"
-MINT4_PORT=8114
 FAUCET_PORT=8110
-# mint4 starts on the legacy protocol and `upgrade-mint4` moves it to this image, keeping its database.
-MINT4_LEGACY=0.12.2
-MINT4_UPGRADE=0.13.1
-MINT4_VERSION_FILE="$DIR/.mint4-version-$PROTOCOL"
-MINT4_VERSION="$(cat "$MINT4_VERSION_FILE" 2>/dev/null || echo "$MINT4_LEGACY")"
-export MINT4_VERSION
 ADB="${ADB:-$(command -v adb || echo "$HOME/Android/Sdk/platform-tools/adb")}"
 
 log() { printf '\033[1m==>\033[0m %s\n' "$*" >&2; }
@@ -83,7 +68,6 @@ adb_reverse() {
         "$ADB" reverse "tcp:$MINT_PORT" "tcp:$MINT_PORT" >/dev/null && log "adb reverse tcp:$MINT_PORT -> this machine (device: $("$ADB" get-serialno))"
         "$ADB" reverse "tcp:$MINT2_PORT" "tcp:$MINT2_PORT" >/dev/null && log "adb reverse tcp:$MINT2_PORT (second mint) -> this machine"
         "$ADB" reverse "tcp:$MINT3_PORT" "tcp:$MINT3_PORT" >/dev/null && log "adb reverse tcp:$MINT3_PORT (third mint) -> this machine"
-        "$ADB" reverse "tcp:$MINT4_PORT" "tcp:$MINT4_PORT" >/dev/null && log "adb reverse tcp:$MINT4_PORT (fourth mint) -> this machine"
         "$ADB" reverse "tcp:$FAUCET_PORT" "tcp:$FAUCET_PORT" >/dev/null && log "adb reverse tcp:$FAUCET_PORT (faucet) -> this machine"
     else
         log "no Android device or emulator connected; run '$0 connect' once one is"
@@ -91,11 +75,7 @@ adb_reverse() {
 }
 
 cmd_up() {
-    if [[ -n "$(docker compose -p "$OTHER_PROJECT" -f "$DIR/docker-compose.yml" ps -q 2>/dev/null)" ]]; then
-        log "stopping the other stack ($OTHER_PROJECT), which uses the same ports"
-        docker compose -p "$OTHER_PROJECT" -f "$DIR/docker-compose.yml" stop >/dev/null
-    fi
-    log "starting the $PROTOCOL stack ($PROJECT, lnurl-mint $MINT_VERSION)"
+    log "starting the stack (lnurl-mint $MINT_VERSION)"
     "${COMPOSE[@]}" up -d
     wait_for "bitcoind" 60 btc getblockchaininfo
 
@@ -159,7 +139,6 @@ cmd_up() {
     log "waiting for the mint"
     wait_for "the mint at $MINT_URL" 120 mint_reachable
     wait_for "the third mint at $MINT3_URL" 120 mint_key "$MINT3_URL"
-    wait_for "the fourth mint at $MINT4_URL" 120 mint_reachable "$MINT4_URL"
     adb_reverse
     cmd_summary
 }
@@ -265,9 +244,8 @@ cmd_pay() {
     return 0
 }
 
-# A mint on lnurl-mint 0.13 credits an address payment only when its settlement poll sees it (LUD-26 Crediting: no lookup
-# names the note before). Waits until the mint behind [url] has minted [invoice], so a refresh right after finds it. Only
-# 0.13 records an invoice's username: a 0.12 mint settles on lookup, keeps minted = 0 until then, and is not waited for.
+# The mint credits an address payment only when its settlement poll sees it (LUD-26 Crediting: no lookup names the note
+# before). Waits until the mint behind [url] has minted [invoice], so a refresh right after finds it.
 await_credited() {
     local url="$1" invoice="$2" service hash
     local db
@@ -275,7 +253,6 @@ await_credited() {
         http://localhost:8111/*) service=mint db=mint ;;
         http://localhost:8112/*) service=mint2 db=mint2 ;;
         http://localhost:8113/*) service=mint3 db=mint3 ;;
-        http://localhost:8114/*) service=mint4 db=mint4 ;;
         *) return 0 ;;
     esac
     hash="$(lncli_user decodepayreq "$invoice" | jq -r '.payment_hash')"
@@ -321,8 +298,7 @@ cmd_note() {
             --bech32) bech32=true ;;
             --mint2) mint_url="$MINT2_URL" ;;
             --mint3) mint_url="$MINT3_URL" ;;
-            --mint4) mint_url="$MINT4_URL" ;;
-            ''|*[!0-9]*) die "usage: $0 note [sats] [--mint2|--mint3|--mint4] [--bech32] [--type|--open]" ;;
+            ''|*[!0-9]*) die "usage: $0 note [sats] [--mint2|--mint3] [--bech32] [--type|--open]" ;;
             *) sats="$arg" ;;
         esac
     done
@@ -395,33 +371,13 @@ cmd_rotate_mint3() {
     echo "$key"
 }
 
-# Upgrades mint4 in place to MINT4_UPGRADE, as a production mint upgrades: same database, notes and addresses.
-cmd_upgrade_mint4() {
-    [[ "$MINT4_VERSION" == "$MINT4_UPGRADE" ]] && { log "mint4 already runs $MINT4_UPGRADE"; return; }
-    log "upgrading mint4 from $MINT4_VERSION to $MINT4_UPGRADE, keeping its database"
-    echo "$MINT4_UPGRADE" >"$MINT4_VERSION_FILE"
-    MINT4_VERSION="$MINT4_UPGRADE" "${COMPOSE[@]}" up -d mint4
-    wait_for "the fourth mint at $MINT4_URL" 120 mint_reachable "$MINT4_URL"
-    log "mint4 runs $MINT4_UPGRADE"
-}
-
-# Puts mint4 back on the legacy protocol with an empty database.
-cmd_reset_mint4() {
-    log "resetting mint4 to $MINT4_LEGACY with an empty database"
-    rm -f "$MINT4_VERSION_FILE"
-    "${COMPOSE[@]}" rm -sf mint4 >/dev/null
-    docker volume rm -f "${PROJECT}_mint4" >/dev/null
-    MINT4_VERSION="$MINT4_LEGACY" "${COMPOSE[@]}" up -d mint4
-    wait_for "the fourth mint at $MINT4_URL" 120 mint_reachable "$MINT4_URL"
-}
-
 cmd_invoice() {
     local sats="${1:?usage: $0 invoice <sats> [memo]}" memo="${2:-regtest}"
     lncli_user addinvoice --amt "$sats" --memo "$memo" | jq -r '.payment_request'
 }
 
 cmd_status() {
-    echo "stack:         $PROTOCOL ($PROJECT, lnurl-mint $MINT_VERSION)"
+    echo "stack:         $PROJECT (lnurl-mint $MINT_VERSION)"
     "${COMPOSE[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.Status}}'
     echo
     echo "block height:  $(btc getblockcount 2>/dev/null || echo '?')"
@@ -429,30 +385,24 @@ cmd_status() {
     if mint_reachable; then echo "mint:          reachable at $MINT_URL"; else echo "mint:          NOT reachable at $MINT_URL"; fi
     if curl -sf "$MINT2_URL/.well-known/lnurlp/_" | jq -e '.withdrawLink' >/dev/null; then echo "mint2:         reachable at $MINT2_URL (on user-lnd)"; else echo "mint2:         NOT reachable at $MINT2_URL"; fi
     if mint_reachable "$MINT3_URL"; then echo "mint3:         reachable at $MINT3_URL (key $(mint_key "$MINT3_URL" || echo '?'))"; else echo "mint3:         NOT reachable at $MINT3_URL"; fi
-    if mint_reachable "$MINT4_URL"; then echo "mint4:         reachable at $MINT4_URL (lnurl-mint $MINT4_VERSION)"; else echo "mint4:         NOT reachable at $MINT4_URL"; fi
 }
 
 usage() {
     cat <<USAGE
-usage: [REGTEST_PROTOCOL=current|legacy] $0 <command>
-
-  REGTEST_PROTOCOL picks the stack: current (default) runs the mints on lnurl-mint 0.13.1, legacy on 0.12.2.
+usage: $0 <command>
 
   up                       start and bootstrap the stack (idempotent), then adb reverse
   pay <target> [sats]      pay an invoice (lnbcrt...), a Lightning address (alice@localhost:8111, or :8112 on mint2)
                            or an LNURL-pay
   invoice <sats> [memo]    create an invoice on the user node
-  note [sats] [--mint2|--mint3|--mint4] [--bech32] [--type|--open]
+  note [sats] [--mint2|--mint3] [--bech32] [--type|--open]
                            mint a bearer note (default 1000 sats) and print its link, to claim in the app;
-                           --mint2 mints it on the second mint (localhost:8112), --mint3 on the third (localhost:8113),
-                           --mint4 on the fourth (localhost:8114);
+                           --mint2 mints it on the second mint (localhost:8112), --mint3 on the third (localhost:8113);
                            --open opens it on the device like a tapped link: the app shows the note, ready to claim
                            (from a mint the wallet hasn't added: a note from an unknown mint);
                            --bech32 prints it as an uppercase LNURL1... instead of lnurlw://;
                            --type also types it into the focused field on the device
   rotate-mint3             give the third mint (localhost:8113) a new signing key: move it to the other LND node
-  upgrade-mint4            upgrade the fourth mint (localhost:8114) in place from lnurl-mint $MINT4_LEGACY to $MINT4_UPGRADE
-  reset-mint4              put the fourth mint back on $MINT4_LEGACY with an empty database
   mine [n]                 mine n blocks (default 1)
   connect                  adb reverse the mint and faucet ports again (after replugging a device)
   status                   containers, height, balances, mint reachability
@@ -468,8 +418,6 @@ case "${1:-}" in
     pay) shift; cmd_pay "$@" ;;
     invoice) shift; cmd_invoice "$@" ;;
     rotate-mint3) cmd_rotate_mint3 ;;
-    upgrade-mint4) cmd_upgrade_mint4 ;;
-    reset-mint4) cmd_reset_mint4 ;;
     note) shift; cmd_note "$@" ;;
     mine) mine "${2:-1}"; log "mined ${2:-1} block(s); height $(btc getblockcount)" ;;
     connect) adb_reverse ;;
@@ -478,6 +426,6 @@ case "${1:-}" in
     lncli-user) shift; lncli_user "$@" ;;
     lncli-mint) shift; lncli_mint "$@" ;;
     down) "${COMPOSE[@]}" stop ;;
-    reset) "${COMPOSE[@]}" down -v; rm -f "$MINT4_VERSION_FILE" ;;
+    reset) "${COMPOSE[@]}" down -v ;;
     *) usage; [[ -z "${1:-}" ]] || exit 1 ;;
 esac

@@ -15,7 +15,7 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     // LNURLCASH_REGTEST=1: the regtest stack from dev/regtest is up. A result is about the running stack, which Gradle
-    // can't see: never reuse one. REGTEST_PROTOCOL says which stack (see whitewallet.jvm-library).
+    // can't see: never reuse one.
     val regtest = providers.environmentVariable("LNURLCASH_REGTEST")
     inputs.property("LNURLCASH_REGTEST", regtest.orElse(""))
     regtest.orNull?.let { environment("LNURLCASH_REGTEST", it) }
@@ -23,7 +23,4 @@ tasks.withType<Test>().configureEach {
         outputs.upToDateWhen { false }
         outputs.doNotCacheIf("regtest tests depend on the running stack") { true }
     }
-    val protocol = providers.environmentVariable("REGTEST_PROTOCOL")
-    inputs.property("REGTEST_PROTOCOL", protocol.orElse(""))
-    protocol.orNull?.let { environment("REGTEST_PROTOCOL", it) }
 }

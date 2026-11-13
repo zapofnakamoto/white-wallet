@@ -56,10 +56,6 @@ tasks.withType<Test>().configureEach {
         outputs.upToDateWhen { false }
         outputs.doNotCacheIf("regtest tests depend on the running stack") { true }
     }
-    // REGTEST_PROTOCOL=current|legacy: which mint stack is up (dev/regtest/regtest.sh), so protocol-bound tests know.
-    val protocol = providers.environmentVariable("REGTEST_PROTOCOL")
-    inputs.property("REGTEST_PROTOCOL", protocol.orElse(""))
-    protocol.orNull?.let { environment("REGTEST_PROTOCOL", it) }
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {

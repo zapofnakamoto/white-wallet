@@ -7,23 +7,12 @@ A local Bitcoin regtest network with a real LNURLcash mint, for developing the w
 | `bitcoind` | Bitcoin Core in regtest mode |
 | `mint-lnd` | LND, the mint's funding source |
 | `user-lnd` | LND, "you": pays invoices and Lightning addresses |
-| `mint` | The reference mint [`lnurlcash/lnurl-mint`](https://github.com/lnurlcash/lnurl-mint), at `http://localhost:8111`: `0.12.2` on the legacy stack, `0.13.1` on the current one (see below) |
-| `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between mints. It charges 21 sats for an address (`ADDRESS_FEE_MSAT`), so holding a name, paying for it and going on without one can be tried. On the legacy stack its addresses are free: `0.12.2` has no address fee |
+| `mint` | The reference mint [`lnurlcash/lnurl-mint`](https://github.com/lnurlcash/lnurl-mint), at `http://localhost:8111`, on `0.13.1` (LUD-25/26 at luds `92e430f`), as are the other mints |
+| `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between mints. It charges 21 sats for an address (`ADDRESS_FEE_MSAT`), so holding a name, paying for it and going on without one can be tried. |
 | `mint3` | A third mint (1 sat base fee) at `http://localhost:8113` whose signing key can change: it runs on `mint-lnd` or `user-lnd`, and signs with that node's identity key. `rotate-mint3` switches the node, keeping its notes |
-| `mint4` | A fourth mint (1 sat base fee) at `http://localhost:8114` that starts on the legacy protocol (LUD-25/26 draft `2f17578`, lnurl-mint `0.12.2`). `upgrade-mint4` moves it in place to `0.13.1` (LUD-25/26 at `92e430f`), keeping its database, as a production mint upgrades; `reset-mint4` puts it back. The version it runs is kept in `.mint4-version-<stack>` |
 | `faucet` | [`faucet.py`](faucet.py) at `http://localhost:8110`: when the app asks, pays an address or invoice from `user-lnd` (or `mint-lnd` for `mint2`'s), like `pay`, or makes an invoice for the app to pay, like `invoice`, on the node that doesn't fund the app's mint |
 
-`up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints and the faucet are exposed, on `127.0.0.1:8110` to `127.0.0.1:8114` (mint N on port 811N, the faucet on 8110); `connect` reverses all five ports.
-
-### Two stacks: legacy and current
-
-While mints run two versions of LNURLcash, there are two stacks. `REGTEST_PROTOCOL=current` (the default) runs `mint`, `mint2` and `mint3` on lnurl-mint `0.13.1` (luds `92e430f`); `REGTEST_PROTOCOL=legacy` runs them on `0.12.2` (LUD-25/26 draft `2f17578`). Each is its own compose project (`whitewallet-regtest` and `whitewallet-regtest-current`) with its own chain, nodes and mint databases, on the same ports; `up` stops the other one first, so only one runs at a time. A mint's database is never downgraded. `just test-regtest` runs the regtest tests on both, one after the other.
-
-```sh
-REGTEST_PROTOCOL=legacy ./dev/regtest/regtest.sh up
-```
-
-The tests run on one stack with `just test-regtest-current` or `just test-regtest-legacy`, on both with `just test-regtest`, and `just regtest-down` stops both. The legacy stack is temporary: it goes with legacy 2f17578 (`protocol/SPEC.md`, "Removing legacy 2f17578").
+`up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints and the faucet are exposed, on `127.0.0.1:8110` to `127.0.0.1:8113` (mint N on port 811N, the faucet on 8110); `connect` reverses all four ports.
 
 Requirements: Docker with Compose, `curl`, `jq`, `python3`. For a device: `adb` (Android SDK platform-tools).
 
@@ -53,18 +42,16 @@ And notes: on **Receive → Claim a note**, a debug build in developer mode show
 |---|---|
 | `up` | Start and bootstrap: wallet, 101 blocks, fund `user-lnd`, open the channel, wait for the mint, `adb reverse` |
 | `pay <target> [sats]` | Pay from `user-lnd`: a BOLT-11 invoice (`lnbcrt…`), a Lightning address (`alice@localhost:8111`, or `@localhost:8112` on mint2) or an LNURL-pay (bech32 or URL). Default 1000 sats. Invoices of `user-lnd` itself (mint2's) are paid from `mint-lnd`, because LND can't pay its own invoices |
-| `note [sats] [--mint2\|--mint3\|--mint4] [--bech32] [--type\|--open]` | Mint a bearer note on the local mint, or with `--mint2` to `--mint4` on one of the others (default 1000 sats; the mint's fee comes off) and print its link, `lnurlw://localhost:8111/w?k1=<secret>&amount=<msat>`, or with `--bech32` the same URL as an uppercase bech32 LNURL (`LNURL1…`, LUD-01), the form that makes the smallest QR codes. Claim it in the app under **Receive → Claim a note**: paste it, or open that screen, tap the input field and run with `--type` to type it in over adb. Or run with `--open` to open it on the device like a tapped link: the app shows the note, ready to claim. On a mint the wallet hasn't added (say `note 1000 --mint3 --open`) that is a note from an unknown mint. The secret is the money: anyone holding the link can claim it |
+| `note [sats] [--mint2\|--mint3] [--bech32] [--type\|--open]` | Mint a bearer note on the local mint, or with `--mint2` or `--mint3` on one of the others (default 1000 sats; the mint's fee comes off) and print its link, `lnurlw://localhost:8111/w?k1=<secret>&amount=<msat>`, or with `--bech32` the same URL as an uppercase bech32 LNURL (`LNURL1…`, LUD-01), the form that makes the smallest QR codes. Claim it in the app under **Receive → Claim a note**: paste it, or open that screen, tap the input field and run with `--type` to type it in over adb. Or run with `--open` to open it on the device like a tapped link: the app shows the note, ready to claim. On a mint the wallet hasn't added (say `note 1000 --mint3 --open`) that is a note from an unknown mint. The secret is the money: anyone holding the link can claim it |
 | `invoice <sats> [memo]` | Create an invoice on `user-lnd` (to test paying out from the wallet) |
 | `mine [n]` | Mine blocks |
 | `rotate-mint3` | Give the third mint a new signing key: restart it on the other LND node, with the same notes. Prints the new key |
-| `upgrade-mint4` | Upgrade the fourth mint in place from lnurl-mint `0.12.2` to `0.13.1`, keeping its notes and addresses |
-| `reset-mint4` | Put the fourth mint back on `0.12.2` with an empty database |
-| `connect` | `adb reverse` for ports 8110 to 8114 again |
+| `connect` | `adb reverse` for ports 8110 to 8113 again |
 | `status` | Containers, block height, balances, mint reachability |
 | `logs [service]` | Follow logs |
 | `lncli-user …`, `lncli-mint …` | Run `lncli` on a node |
 | `down` | Stop, keeping state |
-| `reset` | Stop and delete everything (fresh chain, fresh mints, mint4 back on `0.12.2`) |
+| `reset` | Stop and delete everything (fresh chain, fresh mints) |
 
 ### Money for the test phrase
 
@@ -75,7 +62,7 @@ just regtest-fund-test-wallet            # 3 notes of 1000 sats into account 0
 just regtest-fund-test-wallet 5 1        # 5 notes into account 1
 ```
 
-It pays the notes on the first mint (`localhost:8111`) of whichever stack is up, by restoring the phrase in a wallet of its own and paying invoices it asks for, so the keys are right on either protocol and running it again adds notes. A restore stops at the first account that holds nothing: fund the accounts before the one you want found. The phrase is public, so every device that restores it shares these notes; `reset` empties it.
+It pays the notes on the first mint (`localhost:8111`), by restoring the phrase in a wallet of its own and paying invoices it asks for, so the keys are the wallet's own and running it again adds notes. A restore stops at the first account that holds nothing: fund the accounts before the one you want found. The phrase is public, so every device that restores it shares these notes; `reset` empties it.
 
 The mint's own address `mint@localhost:8111` only accepts payments that name a note (a `cp1` comment), as LUD-25 requires; `pay` shows the mint's refusal for it. Pay a registered username instead, or an invoice the mint issued for a note:
 
