@@ -228,5 +228,4 @@
         <item quantity="one">%1$d more alert</item>
         <item quantity="other">%1$d more alerts</item>
     </plurals>
-    <string name="home_alerts_fewer">Show fewer</string>
 </resources>

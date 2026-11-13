@@ -192,5 +192,4 @@
         <item quantity="one">%1$d weiterer Hinweis</item>
         <item quantity="other">%1$d weitere Hinweise</item>
     </plurals>
-    <string name="home_alerts_fewer">Weniger zeigen</string>
 </resources>

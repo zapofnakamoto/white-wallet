@@ -95,6 +95,7 @@ import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletNavigationBar
+import whitewallet.core.designsystem.WalletSheet
 import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTopBar
@@ -560,40 +561,51 @@ private fun WalletTab(
             // Alerts are pinned to the top, one at a time, the most important; the others are counted, never hidden without a word.
             // The balance stays in the middle of the screen below them: as much room under it as the alerts take above, while it fits.
             val alerts = state.alerts
-            var allAlerts by rememberSaveable { mutableStateOf(false) }
+            var otherAlerts by rememberSaveable { mutableStateOf(false) }
             var alertsHeight by remember { mutableStateOf(0.dp) }
             val density = LocalDensity.current
+            @Composable
+            fun Alert(alert: HomeAlert) =
+                when (alert) {
+                    is HomeAlert.KeyChanged -> KeyChanged(alert.host) { onOpenMint(alert.host) }
+                    is HomeAlert.UnknownNotes ->
+                        UnknownNotesCard(
+                            mint = alert.mint,
+                            state.mintsVisible,
+                            state.balanceHidden,
+                            checking = state.checkingUnknown,
+                            onRecheck = onRecheckUnknown,
+                            onShowNotes = onOpenIncoming,
+                        )
+                    is HomeAlert.AddressInactive -> AddressInactive(alert.address, onOpenAddresses)
+                    HomeAlert.AddMint -> AddMintPrompt(onAddMint)
+                    HomeAlert.Backup -> BackupPrompt(onBackup, onDismissBackup)
+                    HomeAlert.Scan -> ScanPrompt(onScanMints)
+                }
             Column(
                 Modifier.fillMaxWidth().onSizeChanged { alertsHeight = with(density) { it.height.toDp() } },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                alerts.take(if (allAlerts) alerts.size else 1).forEach { alert ->
-                    when (alert) {
-                        is HomeAlert.KeyChanged -> KeyChanged(alert.host) { onOpenMint(alert.host) }
-                        is HomeAlert.UnknownNotes ->
-                            UnknownNotesCard(
-                                mint = alert.mint,
-                                state.mintsVisible,
-                                state.balanceHidden,
-                                checking = state.checkingUnknown,
-                                onRecheck = onRecheckUnknown,
-                                onShowNotes = onOpenIncoming,
-                            )
-                        is HomeAlert.AddressInactive -> AddressInactive(alert.address, onOpenAddresses)
-                        HomeAlert.AddMint -> AddMintPrompt(onAddMint)
-                        HomeAlert.Backup -> BackupPrompt(onBackup, onDismissBackup)
-                        HomeAlert.Scan -> ScanPrompt(onScanMints)
-                    }
-                }
+                alerts.firstOrNull()?.let { Alert(it) }
                 if (alerts.size > 1) {
                     Text(
-                        if (allAlerts) stringResource(R.string.home_alerts_fewer)
-                        else pluralStringResource(R.plurals.home_alerts_more, alerts.size - 1, alerts.size - 1),
+                        pluralStringResource(R.plurals.home_alerts_more, alerts.size - 1, alerts.size - 1),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable { allAlerts = !allAlerts }.padding(8.dp),
+                        modifier = Modifier.clickable { otherAlerts = true }.padding(8.dp),
                     )
+                }
+            }
+            // The others open in a sheet over Home: the balance stays where it is. It closes by itself once they're dealt with.
+            if (otherAlerts && alerts.size > 1) {
+                WalletSheet(onDismissRequest = { otherAlerts = false }) {
+                    Column(
+                        Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        alerts.drop(1).forEach { Alert(it) }
+                    }
                 }
             }
             Spacer(Modifier.weight(1f))
