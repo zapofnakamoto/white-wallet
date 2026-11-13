@@ -41,6 +41,7 @@
     <string name="received_locked">Locked for now. Tried again on every refresh.</string>
     <string name="received_key_changed">Its mint changed its signing key. Claimed once you accept the new key in the mint\'s details.</string>
     <string name="received_claiming">Being claimed. Checked again on the next refresh.</string>
+    <string name="received_melting">Being received over Lightning. Checked again on the next refresh.</string>
     <string name="received_claimed">Claimed</string>
     <string name="received_gone">Someone else spent it before you claimed it.</string>
     <string name="received_refused">Its mint kept refusing it, so your wallet stopped trying.</string>
@@ -63,17 +64,7 @@
         <item quantity="one">Its mint couldn\'t be reached for %d day, so your wallet stopped trying.</item>
         <item quantity="other">Its mint couldn\'t be reached for %d days, so your wallet stopped trying.</item>
     </plurals>
-    <plurals name="received_not_a_note_hours">
-        <item quantity="one">For %d hour its mint didn\'t answer as it does for a note, so your wallet stopped trying.</item>
-        <item quantity="other">For %d hours its mint didn\'t answer as it does for a note, so your wallet stopped trying.</item>
-    </plurals>
-    <plurals name="received_not_a_note_days">
-        <item quantity="one">For %d day its mint didn\'t answer as it does for a note, so your wallet stopped trying.</item>
-        <item quantity="other">For %d days its mint didn\'t answer as it does for a note, so your wallet stopped trying.</item>
-    </plurals>
     <string name="received_unreachable">Its mint couldn\'t be reached, so your wallet stopped trying.</string>
-    <string name="received_not_a_note">Its mint didn\'t answer as it does for a note, so your wallet stopped trying.</string>
-    <string name="received_no_signing_key">Its mint publishes no signing key.</string>
     <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_refused">Its mint won\'t keep it for your wallet, so it can only be received over Lightning, for a fee.</string>

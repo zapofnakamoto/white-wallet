@@ -209,6 +209,14 @@ class WalletsScreenTest {
     }
 
     @Test
+    fun anAccountWithArchivedNotesCantBeRemoved() {
+        val removal = AccountRemoval(RemoveAccountResult.InUse(AccountUse.ArchivedNotes), 0, emptyList())
+        compose.setContent { AccountRemovalDialog("Savings", removal, {}, {}) }
+        compose.onNodeWithText(text(R.string.account_remove_blocked_archived)).assertExists()
+        compose.onNodeWithText(text(R.string.account_remove_confirm)).assertDoesNotExist()
+    }
+
+    @Test
     fun anAccountWithSomethingUnfinishedCantBeRemoved() {
         val removal = AccountRemoval(RemoveAccountResult.InUse(AccountUse.OpenOperation), 0, emptyList())
         compose.setContent { AccountRemovalDialog("Savings", removal, {}, {}) }

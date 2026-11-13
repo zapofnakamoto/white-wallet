@@ -591,7 +591,7 @@ internal object Migration6To7 : Migration(6, 7) {
  */
 internal object Migration7To8 : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE received_notes ADD COLUMN `archivedReason` TEXT")
-        db.execSQL("UPDATE received_notes SET state = 'Archived', archivedReason = 'Refused' WHERE state = 'Refused'")
+        db.execSQL("ALTER TABLE received_notes ADD COLUMN `unclaimedReason` TEXT")
+        db.execSQL("UPDATE received_notes SET state = 'Archived', unclaimedReason = 'Refused' WHERE state = 'Refused'")
     }
 }

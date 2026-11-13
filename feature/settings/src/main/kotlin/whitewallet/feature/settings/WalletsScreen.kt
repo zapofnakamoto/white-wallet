@@ -484,6 +484,8 @@ internal fun AccountRemovalDialog(name: String, removal: AccountRemoval, onDismi
                     when {
                         blocked is RemoveAccountResult.LastAccount -> stringResource(R.string.account_remove_blocked_last)
                         holdsMoney -> stringResource(R.string.account_remove_blocked_money, formatAmount(removal.heldMsat))
+                        (blocked as? RemoveAccountResult.InUse)?.use == AccountUse.ArchivedNotes ->
+                            stringResource(R.string.account_remove_blocked_archived)
                         else -> stringResource(R.string.account_remove_blocked_open)
                     }
                 )

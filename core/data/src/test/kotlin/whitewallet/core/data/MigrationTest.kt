@@ -27,7 +27,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import whitewallet.core.model.Account
 import whitewallet.core.model.ActivityKind
-import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.KeyScheme
@@ -37,6 +36,7 @@ import whitewallet.core.model.OutputRef
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
 import whitewallet.core.wallet.MintKey
@@ -385,13 +385,13 @@ class MigrationTest {
                 val store = RoomWalletStore(db)
                 val refused = assertNotNull(store.receivedNote(q('r')))
                 assertEquals(ReceivedState.Archived, refused.state)
-                assertEquals(ArchiveReason.Refused, refused.archivedReason)
+                assertEquals(UnclaimedReason.Refused, refused.unclaimedReason)
                 assertEquals(1, refused.failingSinceMillis)
                 @OptIn(RevealsNoteSecret::class) val k1 = refused.k1
                 assertEquals("k1", k1, "its spend is kept")
                 val waiting = assertNotNull(store.receivedNote(q('w')))
                 assertEquals(ReceivedState.Waiting, waiting.state)
-                assertNull(waiting.archivedReason)
+                assertNull(waiting.unclaimedReason)
             } finally {
                 db.close()
             }

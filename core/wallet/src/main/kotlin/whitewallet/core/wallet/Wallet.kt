@@ -380,12 +380,15 @@ class Wallet(
 
     private suspend fun removal(id: String): AccountRemoval {
         val notes = store.notes(id).first()
-        val incoming = store.receivedNotes(id).first().filter { it.isPending }
+        val received = store.receivedNotes(id).first()
+        val incoming = received.filter { it.isPending }
         val blocked =
             when {
                 siblings(id).size <= 1 -> RemoveAccountResult.LastAccount
                 notes.any { it.state != NoteState.Spent } || incoming.isNotEmpty() -> RemoveAccountResult.InUse(AccountUse.Money)
                 store.journal(UNSETTLED).any { it.accountId == id } -> RemoveAccountResult.InUse(AccountUse.OpenOperation)
+                // Not money the wallet counts, but its spend is the only copy: the user tries it again or removes it first.
+                received.any { it.state == ReceivedState.Archived } -> RemoveAccountResult.InUse(AccountUse.ArchivedNotes)
                 else -> null
             }
         val held =
@@ -1177,7 +1180,7 @@ class Wallet(
         claimer.melt(preview, id).also { applyPolicies(id) }
     }
 
-    /** Asks a link's service, with the link itself, what it pays: the user agreed to show it the link ([MeltReason.NotANote]). */
+    /** Asks a link's service, with the link itself, what it pays: the user agreed to show it the link ([UnclaimedReason.NotANote]). */
     suspend fun askLink(preview: ClaimPreview.Melt): ClaimPreview = claimer.ask(preview, activeId())
 
     /** [preview], received into [host], one of the account's mints, instead (for an account without a home mint). */

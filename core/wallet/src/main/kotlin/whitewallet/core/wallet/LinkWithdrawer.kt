@@ -1,16 +1,11 @@
 package whitewallet.core.wallet
 
 import java.io.IOException
-import java.util.UUID
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
-import whitewallet.core.model.ArchiveReason
-import whitewallet.core.model.JournalEntry
-import whitewallet.core.model.JournalStatus
-import whitewallet.core.model.OperationType
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.UnclaimedReason
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.RevealsNoteSecret
@@ -27,16 +22,14 @@ import whitewallet.lnurlcash.protocol.Requests
  * link of another kind of service (LNbits, an ATM), or a note at a mint that can't keep it here.
  */
 data class WithdrawLink(
-    /** The link as given (to open it again). */
-    val text: String,
     /** The service's host, as in the link. */
     val host: String,
-    /** The link's URL, `k1` included if it has one. */
+    /** The link's URL as it is requested (`https://`, resolved from `lnurlw://` or bech32), `k1` included if it has one. */
     val url: String,
     /** Where the withdraw is sent, on the service's own origin; null until the service was asked. */
     val callback: String?,
-    /** What the withdraw carries: the service's own token, or a note's spend. Null until known. */
-    @property:RevealsNoteSecret val k1: String?,
+    /** What the withdraw carries: the service's own token, or else a note's spend. */
+    @property:RevealsNoteSecret val k1: String,
     val minMsat: Long,
     val maxMsat: Long,
     /** The link is a note link ([NoteLink.parse]): it is kept as a received note while it is received this way. */
@@ -45,39 +38,6 @@ data class WithdrawLink(
     /** Debug text without the `k1`. */
     override fun toString(): String =
         "WithdrawLink(host=$host, callback=$callback, minMsat=$minMsat, maxMsat=$maxMsat, note=${note != null})"
-}
-
-/** Why a link is received over Lightning rather than kept at its own mint. */
-enum class MeltReason {
-    /** No note at all: a withdraw link of another kind of service. One confirm. */
-    Plain,
-
-    /** A note at a mint that publishes no signing key, which the wallet doesn't allow. */
-    NoSigningKey,
-
-    /** Looks like a note, but its service doesn't answer for it as one. */
-    NotANote,
-
-    /** Its mint publishes no signing key and refused to keep it for this wallet. */
-    Refused;
-
-    internal val archiveReason: ArchiveReason?
-        get() =
-            when (this) {
-                Plain -> null
-                NoSigningKey -> ArchiveReason.NoSigningKey
-                NotANote -> ArchiveReason.NotANote
-                Refused -> ArchiveReason.Refused
-            }
-
-    internal companion object {
-        fun of(reason: ArchiveReason?): MeltReason =
-            when (reason) {
-                ArchiveReason.NoSigningKey -> NoSigningKey
-                ArchiveReason.Refused -> Refused
-                else -> NotANote
-            }
-    }
 }
 
 /** Why a link can't be received over Lightning as it stands. */
@@ -94,8 +54,6 @@ enum class MeltProblem {
 
 /** Receives withdraw links over Lightning into a mint of the account; see [WithdrawLink]. */
 internal class LinkWithdrawer(private val wallet: Wallet) {
-    private val guard = IndexGuard(wallet)
-
     /**
      * What [text] is, when it isn't a note link: a withdraw link to receive over Lightning, something to pay, or neither. Its service is
      * asked with the link as given, unless its `k1` is shaped like a note's spend ([NoteLink.parse] didn't take it: a broken one).
@@ -119,8 +77,8 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
             is LnurlResponse.WithdrawRequest -> {
                 val k1 = response.k1 ?: return ClaimPreview.Invalid("the link has no k1")
                 withTarget(
-                    WithdrawLink(text, host, url, response.callback, k1, response.minWithdrawable, response.maxWithdrawable, null),
-                    MeltReason.Plain,
+                    WithdrawLink(host, url, response.callback, k1, response.minWithdrawable, response.maxWithdrawable, null),
+                    null,
                     accountId,
                     null,
                 )
@@ -132,26 +90,25 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
     }
 
     /**
-     * A note link that can't be kept at its mint, for [reason]. [answer], the mint's answer for it (by its key), says where to send it and
-     * what it is worth: all of it, unless the answer carries the service's own `k1` (no mint's answer for a note does). Without one
-     * ([MeltReason.NotANote] from an answer that isn't a withdraw at all), what it pays stays unknown until the user agrees to show the
-     * link to its service ([ask]).
+     * A note link that can't be kept at its mint, for [reason]. What its host answered by the note's key ([found]) says where to send it
+     * and what it pays: its mint's answer, the note's whole value for its spend; another service's, what that service pays for its own
+     * `k1`. Without either ([KeyLookup.NotANote]), what it pays stays unknown until the user agrees to show the link to its service
+     * ([ask]).
      */
-    suspend fun forNote(link: NoteLink, reason: MeltReason, answer: LnurlResponse.WithdrawRequest?, accountId: String): ClaimPreview {
-        @OptIn(RevealsNoteSecret::class) val url = link.encode()
-        val own = answer?.k1
+    suspend fun forNote(link: NoteLink, reason: UnclaimedReason, found: KeyLookup, accountId: String): ClaimPreview {
+        @OptIn(RevealsNoteSecret::class) val url = checkNotNull(Lnurl.resolve(link.encode())) { "a note link always resolves" }
+        @OptIn(RevealsNoteSecret::class) val unasked = WithdrawLink(link.host, url, callback = null, link.spend.k1, 0, 0, note = link)
         val withdraw =
-            WithdrawLink(
-                text = url,
-                host = link.host,
-                url = url,
-                callback = answer?.callback,
-                k1 = own ?: @OptIn(RevealsNoteSecret::class) link.spend.k1,
-                minMsat = (if (own != null) answer.minWithdrawable else answer?.maxWithdrawable) ?: 0,
-                maxMsat = answer?.maxWithdrawable ?: 0,
-                note = link,
-            )
-        if (answer == null) return melt(withdraw, reason, accountId, target = wallet.homeOf(accountId), amountMsat = null)
+            when (found) {
+                is KeyLookup.Note -> {
+                    val value = found.info.maxWithdrawableMsat
+                    unasked.copy(callback = found.info.callback, minMsat = value, maxMsat = value)
+                }
+                is KeyLookup.OtherService ->
+                    @OptIn(RevealsNoteSecret::class)
+                    unasked.copy(callback = found.callback, k1 = found.k1, minMsat = found.minMsat, maxMsat = found.maxMsat)
+                else -> return melt(unasked, reason, accountId, target = wallet.homeOf(accountId), amountMsat = null)
+            }
         return withTarget(withdraw, reason, accountId, null)
     }
 
@@ -159,7 +116,7 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
     suspend fun ask(preview: ClaimPreview.Melt, accountId: String): ClaimPreview {
         val response =
             try {
-                @OptIn(RevealsNoteSecret::class) wallet.client.withdrawLink(Lnurl.resolve(preview.link.url) ?: preview.link.url)
+                @OptIn(RevealsNoteSecret::class) wallet.client.withdrawLink(preview.link.url)
             } catch (e: IOException) {
                 return ClaimPreview.OfflineLink
             } catch (e: ProtocolViolation) {
@@ -181,19 +138,23 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
         }
     }
 
-    /** [preview] again, received into [host] (one of the account's mints) instead. */
+    /**
+     * [preview] again, received into [host] (one of the account's mints) instead. A link whose service wasn't asked yet ([ask]) stays so:
+     * what it pays is only known then. Any other is checked against [host] now.
+     */
     suspend fun into(preview: ClaimPreview.Melt, host: String, accountId: String): ClaimPreview =
-        if (preview.amountMsat == null) preview.copy(target = host) else withTarget(preview.link, preview.reason, accountId, host)
+        if (preview.link.callback == null) preview.copy(target = host, problem = null)
+        else withTarget(preview.link, preview.reason, accountId, host)
 
     /** Into [chosen], the account's home mint, or a mint the user picks; the amount the target takes within what the link pays. */
-    private suspend fun withTarget(link: WithdrawLink, reason: MeltReason, accountId: String, chosen: String?): ClaimPreview {
+    private suspend fun withTarget(link: WithdrawLink, reason: UnclaimedReason?, accountId: String, chosen: String?): ClaimPreview {
         val target = chosen ?: wallet.homeOf(accountId)
         return melt(link, reason, accountId, target, amountMsat = link.maxMsat)
     }
 
     private suspend fun melt(
         link: WithdrawLink,
-        reason: MeltReason,
+        reason: UnclaimedReason?,
         accountId: String,
         target: String?,
         amountMsat: Long?,
@@ -230,8 +191,6 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
         val link = preview.link
         val target = preview.target ?: return ClaimResult.Failed(RejectionKind.Other, "no mint to receive into")
         val callback = link.callback ?: return ClaimResult.Failed(RejectionKind.Other, "not asked yet")
-        @OptIn(RevealsNoteSecret::class) val k1 = link.k1 ?: return ClaimResult.Failed(RejectionKind.Other, "not asked yet")
-        val mint = wallet.mintOf(accountId, target) ?: return ClaimResult.Failed(RejectionKind.Other, "unknown mint")
         val pay =
             try {
                 wallet.client.servicePayRequest(target)
@@ -241,47 +200,19 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
                 return ClaimResult.Failed(RejectionKind.Other, e.message)
             }
         val amount = amountOf(link, pay) ?: return ClaimResult.Failed(RejectionKind.Other, "out of range")
-        val expected = pay.fee?.noteValue(amount) ?: amount
-        var reserved: ReservedOutput? = null
-        var invoice: String? = null
-        for (attempt in 0 until wallet.settings.newNoteMaxKeysTriedWhileInUse) {
-            val key = guard.reserve(accountId, target, KeySet.Wallet)
-            when (val fetched = MintInvoice.fetch(wallet, pay, amount, key.key)) {
-                is MintInvoice.Ok -> {
-                    reserved = key
-                    invoice = fetched.invoice
-                    break
-                }
-                MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, target, KeySet.Wallet)
-                MintInvoice.Unreachable -> return ClaimResult.Failed(RejectionKind.Other, "unreachable")
-                MintInvoice.Refused,
-                MintInvoice.Mismatch -> return ClaimResult.Failed(RejectionKind.Other, "refused")
-            }
-        }
-        if (reserved == null || invoice == null) return ClaimResult.Failed(RejectionKind.Other, "refused")
-        val id = UUID.randomUUID().toString()
-        val now = wallet.now()
         // An invoice of the wallet like any other: paid, its note is picked up and recorded in History; expired, it is dropped.
-        wallet.store.putJournal(
-            JournalEntry(
-                id,
-                accountId,
-                type = OperationType.Mint,
-                target,
-                mint.withdrawUrl,
-                inputIds = emptyList(),
-                inputK1s = emptyList(),
-                outputs = listOf(reserved.ref),
-                requestUrl = invoice,
-                status = JournalStatus.Prepared,
-                detail = null,
-                createdAtMillis = now,
-                updatedAtMillis = now,
-            )
-        )
+        val invoices = InvoiceReceiver(wallet)
+        val invoice =
+            when (val requested = invoices.request(accountId, target, pay, amount)) {
+                is InvoiceRequest.Ready -> requested
+                is InvoiceRequest.OutOfRange -> return ClaimResult.Failed(RejectionKind.Other, "out of range")
+                InvoiceRequest.Unreachable -> return ClaimResult.Failed(RejectionKind.Other, "unreachable")
+                InvoiceRequest.Refused -> return ClaimResult.Failed(RejectionKind.Other, "refused")
+            }
         val received = ReceivedNotes(wallet)
-        val kept = link.note?.let { received.melting(it, accountId, amount, preview.reason, id) }
-        @OptIn(RevealsNoteSecret::class) val request = Requests.melt(callback, k1, invoice)
+        // A note link's preview always says why it is melted.
+        val kept = link.note?.let { received.melting(it, accountId, amount, preview.reason ?: UnclaimedReason.NotANote, invoice.id) }
+        @OptIn(RevealsNoteSecret::class) val request = Requests.melt(callback, link.k1, invoice.invoice)
         val outcome =
             when (val released = SecretGate(wallet).releaseLink(accountId, link, callback, request)) {
                 is SecretGate.Released.Sent -> released.outcome
@@ -297,34 +228,28 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
         // Sent: the service pays in the background. The invoice says when it did; until then History names the service.
         ActivityLog(wallet)
             .record(
-                MintReconciler.activityId(id),
+                MintReconciler.activityId(invoice.id),
                 accountId,
                 ActivityKind.Received,
-                expected,
+                invoice.expectedMsat,
                 target,
                 ActivityStatus.Pending,
                 counterparty = link.host,
-                journalId = id,
+                journalId = invoice.id,
             )
-        val mints = MintReconciler(wallet)
-        var wait = wallet.settings.paymentStatusFirstWaitMillis
-        val deadline = wallet.now() + wallet.payWaitMillis
-        while (true) {
-            val entry = mints.entry(id) ?: return ClaimResult.Pending
-            when (mints.reconcile(entry)) {
-                JournalStatus.Confirmed -> {
-                    val arrived = wallet.store.note(reserved.ref.q)?.amountMsat ?: expected
-                    kept?.let { received.melted(it, arrived) }
-                    return ClaimResult.Claimed(arrived, certified = false)
-                }
-                JournalStatus.Rejected -> {
-                    kept?.let { received.meltFailed(it) }
-                    return ClaimResult.Failed(RejectionKind.Other, null)
-                }
-                else -> if (wallet.now() >= deadline) return ClaimResult.Pending
+        val status = waitForPayment(wallet) { invoices.status(invoice.id).takeIf { it != InvoiceStatus.Waiting } }
+        return when (status) {
+            is InvoiceStatus.Paid -> {
+                val arrived = status.receivedMsat.takeIf { it > 0 } ?: invoice.expectedMsat
+                kept?.let { received.melted(it, arrived) }
+                ClaimResult.Claimed(arrived, certified = false)
             }
-            delay(wait)
-            wait = (wait * 2).coerceAtMost(wallet.settings.paymentStatusLongestWaitMillis)
+            InvoiceStatus.Expired -> {
+                kept?.let { received.meltFailed(it) }
+                ClaimResult.Failed(RejectionKind.Other, null)
+            }
+            InvoiceStatus.Waiting,
+            null -> ClaimResult.Pending
         }
     }
 

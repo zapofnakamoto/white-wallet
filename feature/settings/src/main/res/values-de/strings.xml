@@ -450,5 +450,6 @@
     <string name="account_remove_blocked_title">Dieses Konto kann noch nicht entfernt werden</string>
     <string name="account_remove_blocked_money">Es hält noch %1$s. Sende oder verschiebe dieses Geld zuerst; danach kann das Konto entfernt werden.</string>
     <string name="account_remove_blocked_open">Bei diesem Konto ist noch etwas nicht abgeschlossen: eine laufende Zahlung oder Geld, das noch ankommt. Versuche es erneut, sobald das erledigt ist.</string>
+    <string name="account_remove_blocked_archived">Sein Archiv enthält noch erhaltene Links, und nur dieses Telefon hat sie. Versuche sie dort erneut oder entferne sie zuerst; danach kann das Konto entfernt werden.</string>
     <string name="account_remove_blocked_last">Es ist das einzige Konto seiner Wallet. Um es zu entfernen, lösche die Wallet.</string>
 </resources>

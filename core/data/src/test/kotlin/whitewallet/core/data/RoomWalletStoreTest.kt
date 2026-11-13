@@ -19,7 +19,6 @@ import whitewallet.core.model.Account
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
-import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
@@ -32,6 +31,7 @@ import whitewallet.core.model.OutputRef
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.model.WalletRecord
 import whitewallet.core.wallet.CreateAccountResult
 import whitewallet.core.wallet.KeyId
@@ -269,7 +269,7 @@ class RoomWalletStoreTest {
             store.putReceivedNote(claimed)
             assertEquals(claimed, store.receivedNote(q2))
             assertEquals(listOf(locked), store.receivedNotes(setOf(ReceivedState.Waiting, ReceivedState.Locked)))
-            val archived = locked.copy(state = ReceivedState.Archived, archivedReason = ArchiveReason.ByUser)
+            val archived = locked.copy(state = ReceivedState.Archived, unclaimedReason = UnclaimedReason.ByUser)
             store.putReceivedNote(archived)
             assertEquals(archived, store.receivedNote(q1), "archived with why")
             store.deleteReceivedNote(q1)

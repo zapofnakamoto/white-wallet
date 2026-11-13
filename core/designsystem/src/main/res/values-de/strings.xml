@@ -38,6 +38,7 @@
     <string name="received_locked">Vorerst gesperrt. Wird bei jedem Aktualisieren erneut versucht.</string>
     <string name="received_key_changed">Seine Mint hat ihren Signaturschlüssel geändert. Wird eingelöst, sobald du den neuen Schlüssel in den Details der Mint annimmst.</string>
     <string name="received_claiming">Wird eingelöst. Beim nächsten Aktualisieren wird erneut geprüft.</string>
+    <string name="received_melting">Wird über Lightning empfangen. Beim nächsten Aktualisieren wird erneut geprüft.</string>
     <string name="received_claimed">Eingelöst</string>
     <string name="received_gone">Jemand anderes hat ihn ausgegeben, bevor du ihn eingelöst hast.</string>
     <string name="received_refused">Seine Mint hat ihn immer wieder abgelehnt, deshalb versucht deine Wallet es nicht mehr.</string>
@@ -60,17 +61,7 @@
         <item quantity="one">Seine Mint war %d Tag lang nicht erreichbar, deshalb versucht deine Wallet es nicht mehr.</item>
         <item quantity="other">Seine Mint war %d Tage lang nicht erreichbar, deshalb versucht deine Wallet es nicht mehr.</item>
     </plurals>
-    <plurals name="received_not_a_note_hours">
-        <item quantity="one">Seine Mint hat %d Stunde lang nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
-        <item quantity="other">Seine Mint hat %d Stunden lang nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
-    </plurals>
-    <plurals name="received_not_a_note_days">
-        <item quantity="one">Seine Mint hat %d Tag lang nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
-        <item quantity="other">Seine Mint hat %d Tage lang nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
-    </plurals>
     <string name="received_unreachable">Seine Mint war nicht erreichbar, deshalb versucht deine Wallet es nicht mehr.</string>
-    <string name="received_not_a_note">Seine Mint hat nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</string>
-    <string name="received_no_signing_key">Seine Mint veröffentlicht keinen Signaturschlüssel.</string>
     <string name="received_lightning_no_key">Seine Mint veröffentlicht keinen Signaturschlüssel, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_lightning_not_a_note">Seine Mint antwortet darauf nicht wie auf einen Schein, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_lightning_refused">Seine Mint bewahrt ihn nicht für deine Wallet auf, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>

@@ -20,14 +20,16 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
-import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
+import whitewallet.lnurl.Bolt11
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.NoteLink
+import whitewallet.lnurlcash.protocol.Requests
 
 /**
  * Withdraw links received over Lightning (LUD-03; LUD-25's melt) into a mint of the account: links of another kind of service (answered on
@@ -39,8 +41,8 @@ class RegtestWithdrawLinksTest {
 
     /**
      * A withdraw link of another kind of service, at `lnbits.example`: it hands out [ownK1] and pays any invoice sent with it from user-lnd
-     * (or refuses, with [refuse]). With [k1InLink] its link carries that k1 too, and with [needsK1] it answers nothing useful without it.
-     * Every request it sees is in [requests].
+     * (or refuses, with [refuse]; or only takes it, with [payLater]: the test pays [paid] then, or never). With [k1InLink] its link carries
+     * that k1 too, and with [needsK1] it answers nothing useful without it. Every request it sees is in [requests].
      */
     private class WithdrawService(
         val ownK1: String = "x7Yh2LnBitsToken",
@@ -50,6 +52,7 @@ class RegtestWithdrawLinksTest {
         val needsK1: Boolean = false,
     ) : Interceptor {
         var refuse = false
+        var payLater = false
         val requests = mutableListOf<HttpUrl>()
         var paid: String? = null
 
@@ -76,7 +79,7 @@ class RegtestWithdrawLinksTest {
                     else {
                         paid = pr
                         // LUD-03: answer at once, pay in the background.
-                        thread { Regtest.pay(pr, 0) }
+                        if (!payLater) thread { Regtest.pay(pr, 0) }
                         respond(chain, """{"status":"OK"}""")
                     }
                 }
@@ -121,7 +124,7 @@ class RegtestWithdrawLinksTest {
             val before = bob.balance()
 
             val preview = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(service.link))
-            assertEquals(MeltReason.Plain, preview.reason)
+            assertNull(preview.reason, "no note in it")
             assertEquals(HOST, preview.target)
             assertNull(preview.problem)
             assertEquals(5_000_000, preview.amountMsat, "as much as the link pays and the mint takes")
@@ -150,7 +153,7 @@ class RegtestWithdrawLinksTest {
             val withdraw = Lnurl.encodeBech32("https://lnbits.example/withdraw/abc")
             assertIs<IncomingLink.Claim>(IncomingLink.classify("LIGHTNING:$withdraw"))
             val preview = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(withdraw))
-            assertEquals(MeltReason.Plain, preview.reason)
+            assertNull(preview.reason, "no note in it")
             assertIs<ClaimResult.Claimed>(bob.wallet.melt(preview))
 
             val pay = Lnurl.encodeBech32("https://payee.example/.well-known/lnurlp/carol")
@@ -173,7 +176,7 @@ class RegtestWithdrawLinksTest {
 
             // Read as a bearer note: looked up by its key, which the service ignores, answering with its own k1.
             val preview = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(service.link))
-            assertEquals(MeltReason.NotANote, preview.reason)
+            assertEquals(UnclaimedReason.NotANote, preview.reason)
             assertNotNull(preview.link.note)
             assertEquals(5_000_000, preview.amountMsat)
             assertEquals(emptyList(), service.withK1, "the k1 stays here until the user agrees")
@@ -195,7 +198,7 @@ class RegtestWithdrawLinksTest {
             val bob = Regtest.phone(client = Regtest.client(service))
 
             val unknown = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(service.link))
-            assertEquals(MeltReason.NotANote, unknown.reason)
+            assertEquals(UnclaimedReason.NotANote, unknown.reason)
             assertNull(unknown.amountMsat, "what it pays is only known by asking with the link")
             assertEquals(HOST, unknown.target)
             assertEquals(emptyList(), service.withK1)
@@ -216,7 +219,7 @@ class RegtestWithdrawLinksTest {
             assertIs<ClaimResult.Failed>(bob.wallet.melt(preview))
             val kept = received(bob).single()
             assertEquals(ReceivedState.LightningOnly, kept.state)
-            assertEquals(ArchiveReason.NotANote, kept.archivedReason)
+            assertEquals(UnclaimedReason.NotANote, kept.unclaimedReason)
             assertNotNull(kept.k1, "the link is kept")
             // A refresh doesn't try it by itself; opening it again offers the melt again.
             bob.wallet.refresh()
@@ -231,6 +234,45 @@ class RegtestWithdrawLinksTest {
         }
 
     @Test
+    fun `a note link the service pays only later is melting until a refresh finds its invoice paid, and waits for the user again if it expires`() =
+        runBlocking<Unit> {
+            val later = WithdrawService(ownK1 = "12".repeat(32), k1InLink = true).apply { payLater = true }
+            val bob = Regtest.phone(client = Regtest.client(later))
+            bob.wallet.payWaitMillis = 0
+            val before = bob.balance()
+            val preview = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(later.link))
+            assertEquals(ClaimResult.Pending, bob.wallet.melt(preview))
+            val melting = received(bob).single()
+            assertEquals(ReceivedState.Melting, melting.state)
+            assertEquals(UnclaimedReason.NotANote, melting.unclaimedReason)
+            assertNotNull(melting.journalId)
+
+            Regtest.pay(assertNotNull(later.paid), 0)
+            bob.wallet.refresh()
+            val claimed = received(bob).single()
+            assertEquals(ReceivedState.Claimed, claimed.state)
+            assertNull(claimed.unclaimedReason)
+            assertNull(claimed.k1)
+            assertEquals(before + 4_999_000, bob.balance(), "the home mint's base fee comes off")
+
+            var clock = System.currentTimeMillis()
+            val never = WithdrawService(ownK1 = "34".repeat(32), k1InLink = true).apply { payLater = true }
+            val carol = Regtest.phone(client = Regtest.client(never), now = { clock })
+            carol.wallet.payWaitMillis = 0
+            assertEquals(ClaimResult.Pending, carol.wallet.melt(assertIs(carol.wallet.previewClaim(never.link))))
+            assertEquals(ReceivedState.Melting, received(carol).single().state)
+            // Its invoice expires unpaid (past its expiry, and the margin for a payment still on its way): back to waiting for the user,
+            // with why, and its link kept.
+            clock = assertNotNull(Bolt11.decode(assertNotNull(never.paid))).expiresAtSeconds * 1000 + 11 * 60_000
+            carol.wallet.refresh()
+            val back = received(carol).single()
+            assertEquals(ReceivedState.LightningOnly, back.state)
+            assertEquals(UnclaimedReason.NotANote, back.unclaimedReason)
+            assertNull(back.journalId)
+            assertNotNull(back.k1)
+        }
+
+    @Test
     fun `a note on a mint without a signing key is received into the home mint over Lightning while such mints aren't allowed`() =
         runBlocking<Unit> {
             val link = Regtest.note(3000, second = true)
@@ -238,7 +280,7 @@ class RegtestWithdrawLinksTest {
             val before = bob.balance()
 
             val preview = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(link))
-            assertEquals(MeltReason.NoSigningKey, preview.reason)
+            assertEquals(UnclaimedReason.NoSigningKey, preview.reason)
             assertEquals(HOST, preview.target)
             val value = assertNotNull(preview.amountMsat)
             assertEquals(value, preview.link.minMsat, "a note is melted whole")
@@ -251,6 +293,32 @@ class RegtestWithdrawLinksTest {
             // Spent at its mint.
             val q = assertNotNull(NoteLink.parse(link)).spend.q
             assertTrue(runCatching { LnurlcashClient().lookup("http://$HOST2/w", q) }.isFailure)
+        }
+
+    @Test
+    fun `an account without a home mint picks the mint to receive into, and a note's value is checked there, its spend not shown first`() =
+        runBlocking<Unit> {
+            val link = Regtest.note(3000, second = true)
+            val shown = mutableListOf<HttpUrl>()
+            val watched = Interceptor { chain ->
+                val url = chain.request().url
+                if ("${url.host}:${url.port}" == HOST2 && url.queryParameter("k1") != null) shown += url
+                Keyless().intercept(chain)
+            }
+            val bob = Regtest.phone(client = Regtest.client(watched))
+            bob.store.saveAccount(assertNotNull(bob.store.account(bob.store.currentAccountId()!!)).copy(homeHost = null))
+
+            val preview = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(link))
+            assertNull(preview.target)
+            assertEquals(listOf(HOST), preview.mints)
+            val into = assertIs<ClaimPreview.Melt>(bob.wallet.meltInto(preview, HOST))
+            assertEquals(HOST, into.target)
+            assertNull(into.problem)
+            val value = assertNotNull(into.amountMsat, "its mint's answer said what it is worth: nothing to ask")
+            assertEquals(value - 1_000, into.expectedMsat, "the picked mint's base fee comes off")
+            assertEquals(emptyList(), shown, "the note's spend goes to its mint only with the melt")
+
+            assertEquals(value - 1_000, assertIs<ClaimResult.Claimed>(bob.wallet.melt(into)).amountMsat)
         }
 
     @Test
@@ -275,6 +343,39 @@ class RegtestWithdrawLinksTest {
         }
 
     @Test
+    fun `a new mint that can't be asked for its signing key isn't added, so it never holds money unchecked`() =
+        runBlocking<Unit> {
+            var askable = false
+            val discovery = Requests.serviceWithdrawDiscoveryUrl(HOST2)
+            val connection = Interceptor { chain ->
+                if (!askable && chain.request().url.toString() == discovery) Regtest.dropped()
+                Keyless().intercept(chain)
+            }
+            val bob = Regtest.phone(client = Regtest.client(connection))
+            assertIs<OnboardResult.NetworkError>(assertIs<ConnectResult.Failed>(bob.wallet.addMint(HOST2)).result)
+            assertNull(bob.wallet.mintDetails(HOST2).mint, "not added unpinned")
+
+            // So a note there is still received over Lightning, and asked again, the mint is refused for what it is.
+            assertEquals(
+                UnclaimedReason.NoSigningKey,
+                assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(Regtest.note(3000, second = true))).reason,
+            )
+            askable = true
+            assertEquals(
+                OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY),
+                assertIs<ConnectResult.Failed>(bob.wallet.addMint(HOST2)).result,
+            )
+
+            // Where such mints are allowed but can't be home, one that can't be asked isn't refused as without a key: it is unreachable.
+            askable = false
+            val carol = Regtest.phone(client = Regtest.client(connection), withoutSigningKey = MintsWithoutSigningKey(home = false))
+            carol.wallet.setAllowsMintsWithoutSigningKey(true)
+            assertIs<OnboardResult.NetworkError>(assertIs<ConnectResult.Failed>(carol.wallet.setHomeMint(HOST2).result).result)
+            assertNull(carol.wallet.mintDetails(HOST2).mint)
+            assertEquals(HOST, carol.wallet.homeHost.first())
+        }
+
+    @Test
     fun `a note kept offline at a mint without a signing key waits for the user, and is claimed at its mint once such mints are allowed`() =
         runBlocking<Unit> {
             val link = Regtest.note(3000, second = true)
@@ -291,7 +392,7 @@ class RegtestWithdrawLinksTest {
             bob.wallet.refresh()
             val waiting = received(bob).single()
             assertEquals(ReceivedState.LightningOnly, waiting.state, "asked of the user, not melted by itself")
-            assertEquals(ArchiveReason.NoSigningKey, waiting.archivedReason)
+            assertEquals(UnclaimedReason.NoSigningKey, waiting.unclaimedReason)
 
             bob.wallet.setAllowsMintsWithoutSigningKey(true)
             bob.wallet.refresh()

@@ -2,13 +2,12 @@ package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.PublicKey
 import java.io.IOException
-import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.Mint
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.model.isShared
-import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
@@ -16,7 +15,6 @@ import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
-import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 
 sealed interface ClaimPreview {
@@ -73,7 +71,8 @@ sealed interface ClaimPreview {
      */
     data class Melt(
         val link: WithdrawLink,
-        val reason: MeltReason,
+        /** Null for a link with no note in it: a withdraw link of another kind of service. */
+        val reason: UnclaimedReason?,
         val target: String?,
         val mints: List<String>,
         val amountMsat: Long?,
@@ -136,28 +135,24 @@ internal class NoteClaimer(private val wallet: Wallet) {
         if (script?.lockedUntilSeconds?.let { it * 1000 > wallet.now() } == true) return locked(link, script)
         // Asked by the note's key alone: the spend goes out only with the claim, to a mint with the pinned key. A wait
         // after crediting is the mint's to judge then; its refusal keeps the note as locked.
-        val answer: LnurlResponse
+        val found = KeyLookup.of(wallet, link.withdrawUrl, spend.q)
         val info =
-            try {
-                answer = wallet.client.get(Requests.lookup(link.withdrawUrl, spend.q))
-                NoteInfo.from(answer, null)
-            } catch (e: NoteLookupError) {
-                return when (e.kind) {
-                    RejectionKind.Spent,
-                    RejectionKind.NoteUnknown -> ClaimPreview.AlreadySpent
-                    else -> ClaimPreview.Invalid(e.reason ?: "refused")
+            when (found) {
+                is KeyLookup.Note -> found.info
+                // Another kind of service, or maybe one that shows what it pays only when asked with the link itself.
+                is KeyLookup.OtherService,
+                KeyLookup.NotANote -> return withdrawer.forNote(link, UnclaimedReason.NotANote, found, accountId)
+                is KeyLookup.Refused ->
+                    return when (found.kind) {
+                        RejectionKind.Spent,
+                        RejectionKind.NoteUnknown -> ClaimPreview.AlreadySpent
+                        else -> ClaimPreview.Invalid(found.reason ?: "refused")
+                    }
+                KeyLookup.Unreachable -> {
+                    if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = false)
+                    return ClaimPreview.Offline(link, link.declaredAmountMsat, certifiedOffline(link, accountId))
                 }
-            } catch (e: ProtocolViolation) {
-                // Not a mint's answer for a note: maybe a withdraw link of another kind of service, which shows what it pays only
-                // when asked with the link itself.
-                return withdrawer.forNote(link, MeltReason.NotANote, null, accountId)
-            } catch (e: IOException) {
-                if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = false)
-                return ClaimPreview.Offline(link, link.declaredAmountMsat, certifiedOffline(link, accountId))
             }
-        val request = answer as LnurlResponse.WithdrawRequest
-        // A mint's answer by a note's key never carries a k1 (LUD-25): this is the service's own, for a withdraw link of another kind.
-        if (request.k1 != null) return withdrawer.forNote(link, MeltReason.NotANote, request, accountId)
         if (info.maxWithdrawableMsat <= 0) return ClaimPreview.AlreadySpent
         if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
         val own = wallet.homeOf(accountId)
@@ -165,7 +160,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
         if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey?.toHex())
             return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
         lightningOnly(link, mint, info, wallet.store.receivedNote(spend.q.toHex()), accountId)?.let {
-            return withdrawer.forNote(link, it, request, accountId)
+            return withdrawer.forNote(link, it, found, accountId)
         }
         return ClaimPreview.Ready(
             link,
@@ -180,14 +175,20 @@ internal class NoteClaimer(private val wallet: Wallet) {
 
     /**
      * Why a note its mint answered for can't be kept there, if it can't: a mint without a signing key the wallet doesn't hold already, and
-     * doesn't allow ([Wallet.allowsMintsWithoutSigningKey]); or one kept to be received over Lightning, unless only the setting stood in
-     * the way and allows it now.
+     * doesn't allow ([Wallet.allowsMintsWithoutSigningKey]); or such a mint refused to keep it before. A note kept because its host didn't
+     * answer as for a note, which now does, is claimed at its mint.
      */
-    private suspend fun lightningOnly(link: NoteLink, mint: Mint?, info: NoteInfo, kept: ReceivedNote?, accountId: String): MeltReason? {
+    private suspend fun lightningOnly(
+        link: NoteLink,
+        mint: Mint?,
+        info: NoteInfo,
+        kept: ReceivedNote?,
+        accountId: String,
+    ): UnclaimedReason? {
         val allowed = mint != null || info.mintPubkey != null || wallet.allowsMintsWithoutSigningKey(wallet.walletOf(accountId))
-        if (!allowed) return MeltReason.NoSigningKey
-        if (kept?.state != ReceivedState.LightningOnly || kept.archivedReason == ArchiveReason.NoSigningKey) return null
-        return MeltReason.of(kept.archivedReason).takeIf { link.host == kept.host }
+        if (!allowed) return UnclaimedReason.NoSigningKey
+        val refusedBefore = kept?.state == ReceivedState.LightningOnly && kept.unclaimedReason == UnclaimedReason.Refused
+        return UnclaimedReason.Refused.takeIf { refusedBefore && link.host == kept?.host }
     }
 
     /** Receives [preview] over Lightning (see [LinkWithdrawer]). */
@@ -203,7 +204,12 @@ internal class NoteClaimer(private val wallet: Wallet) {
     suspend fun keepForLightning(preview: ClaimPreview.Melt, accountId: String): ClaimResult {
         val link = preview.link.note ?: return ClaimResult.Failed(RejectionKind.Other, null)
         return ClaimResult.Kept(
-            received.keepForLightning(link, accountId, preview.amountMsat ?: preview.link.maxMsat.takeIf { it > 0 }, preview.reason)
+            received.keepForLightning(
+                link,
+                accountId,
+                preview.amountMsat ?: preview.link.maxMsat.takeIf { it > 0 },
+                preview.reason ?: UnclaimedReason.NotANote,
+            )
         )
     }
 

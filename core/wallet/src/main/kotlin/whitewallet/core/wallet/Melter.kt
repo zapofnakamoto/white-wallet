@@ -149,18 +149,32 @@ internal class Melter(private val wallet: Wallet) {
 
         // The mint pays in the background; the note is burned once the payment settles, or restored if it fails.
         val melts = MeltReconciler(wallet)
-        var wait = wallet.settings.paymentStatusFirstWaitMillis
-        val deadline = wallet.now() + wallet.payWaitMillis
-        while (true) {
+        return waitForPayment(wallet) { final ->
             // Unknown leaves the entry as stored, so inFlight stays current until it is settled.
-            when (melts.reconcile(inFlight, final = wallet.now() >= deadline)) {
-                JournalStatus.Confirmed -> return MeltOutcome.Paid(entry.id)
-                JournalStatus.Rejected -> return MeltOutcome.PaymentFailed(entry.id)
-                else -> if (wallet.now() >= deadline) return MeltOutcome.Pending(entry.id)
+            when (melts.reconcile(inFlight, final)) {
+                JournalStatus.Confirmed -> MeltOutcome.Paid(entry.id)
+                JournalStatus.Rejected -> MeltOutcome.PaymentFailed(entry.id)
+                else -> null
             }
-            delay(wait)
-            wait = (wait * 2).coerceAtMost(wallet.settings.paymentStatusLongestWaitMillis)
+        } ?: MeltOutcome.Pending(entry.id)
+    }
+}
+
+/**
+ * Asks [check] how a payment stands until it says ([check] answers null while it can't), waiting twice as long each time from
+ * [WalletSettings.paymentStatusFirstWaitMillis] up to [WalletSettings.paymentStatusLongestWaitMillis], for at most [Wallet.payWaitMillis].
+ * [check] is told once the time is up ([final]). Null if it never said.
+ */
+internal suspend fun <T : Any> waitForPayment(wallet: Wallet, check: suspend (final: Boolean) -> T?): T? {
+    var wait = wallet.settings.paymentStatusFirstWaitMillis
+    val deadline = wallet.now() + wallet.payWaitMillis
+    while (true) {
+        check(wallet.now() >= deadline)?.let {
+            return it
         }
+        if (wallet.now() >= deadline) return null
+        delay(wait)
+        wait = (wait * 2).coerceAtMost(wallet.settings.paymentStatusLongestWaitMillis)
     }
 }
 

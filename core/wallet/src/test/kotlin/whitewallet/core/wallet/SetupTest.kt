@@ -12,8 +12,11 @@ import kotlinx.coroutines.runBlocking
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.SetupStep
+import whitewallet.core.model.UnclaimedReason
 import whitewallet.lnurlcash.client.LnurlcashClient
 
 /**
@@ -76,6 +79,46 @@ class SetupTest {
 
             val again = assertIs<CreateAccountResult.Created>(wallet.createAccount("Again")).accountId
             assertEquals(1L, store.account(again)?.index, "the lowest free index")
+        }
+
+    @Test
+    fun `an account with received notes in its archive isn't removed, as their spends are only on this phone`() =
+        runBlocking<Unit> {
+            val wallet = Wallet(store, seeds, LnurlcashClient(), maxAccounts = 2)
+            assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
+            wallet.setSetupStep(null)
+            val second = assertIs<CreateAccountResult.Created>(wallet.createAccount("Savings")).accountId
+            val archived =
+                ReceivedNote(
+                    id = "a".repeat(64),
+                    accountId = second,
+                    host = "mint.example",
+                    withdrawUrl = "https://mint.example/withdraw",
+                    k1 = "b".repeat(64),
+                    certificate = null,
+                    declaredMsat = 1_000,
+                    amountMsat = null,
+                    lockedUntilMillis = null,
+                    lockedForSeconds = null,
+                    state = ReceivedState.Archived,
+                    journalId = null,
+                    receivedAtMillis = 0,
+                    updatedAtMillis = 0,
+                    unclaimedReason = UnclaimedReason.ByUser,
+                )
+            store.putReceivedNote(archived)
+
+            val blocked = RemoveAccountResult.InUse(AccountUse.ArchivedNotes)
+            assertEquals(AccountRemoval(blocked, 0, emptyList()), wallet.accountRemoval(), "not counted as money held")
+            assertEquals(blocked, wallet.removeAccount())
+            assertEquals(archived, store.receivedNote(archived.id), "the spend is kept")
+
+            // Removed from the archive for good: nothing stands against it any more.
+            wallet.removeReceivedNote(archived.id)
+            assertEquals(
+                RemoveAccountResult.Removed(store.accounts.first().first { it.account.id != second }.account.id),
+                wallet.removeAccount(),
+            )
         }
 
     @Test

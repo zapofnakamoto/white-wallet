@@ -244,47 +244,23 @@ internal class NoteManager(private val wallet: Wallet) {
         val amount = note.amountMsat.takeIf { it > 0 } ?: quote.amountMsat
 
         // The target mints to a fresh key of ours: reserve it (persist before disclose), then ask for its invoice.
-        var output: ReservedOutput? = null
-        var invoice: String? = null
-        for (attempt in 0 until wallet.settings.newNoteMaxKeysTriedWhileInUse) {
-            val reserved = guard.reserve(accountId, quote.toHost, KeySet.Wallet)
-            when (val fetched = MintInvoice.fetch(wallet, prepared.pay, amount, reserved.key)) {
-                is MintInvoice.Ok -> {
-                    output = reserved
-                    invoice = fetched.invoice
-                    break
-                }
-                is MintInvoice.InUse -> if (attempt == 0) guard.recover(accountId, quote.toHost, KeySet.Wallet)
-                is MintInvoice.Unreachable -> return MintMoveResult.Failed(NoteProblem.Unreachable)
-                is MintInvoice.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)
-                is MintInvoice.Mismatch -> return MintMoveResult.Failed(NoteProblem.InvoiceMismatch)
+        val fetched = MintInvoice.forFreshKey(wallet, guard, accountId, quote.toHost, prepared.pay, amount)
+        val output = fetched.output
+        val invoice =
+            when (val answer = fetched.answer) {
+                is MintInvoice.Ok -> answer.invoice
+                MintInvoice.Unreachable -> return MintMoveResult.Failed(NoteProblem.Unreachable)
+                MintInvoice.InUse,
+                MintInvoice.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)
+                MintInvoice.Mismatch -> return MintMoveResult.Failed(NoteProblem.InvoiceMismatch)
             }
-        }
-        if (output == null || invoice == null) return MintMoveResult.Failed(NoteProblem.Refused)
 
         val target = wallet.mintOf(accountId, quote.toHost) ?: return MintMoveResult.Failed(NoteProblem.MintInvalid)
         val mintId = UUID.randomUUID().toString()
         val expected = quote.expectedMsat
         val melted =
             melter.melt(accountId, quote.fromHost, note, invoice) { meltId ->
-                val now = wallet.now()
-                wallet.store.putJournal(
-                    JournalEntry(
-                        id = mintId,
-                        accountId,
-                        type = OperationType.Mint,
-                        host = quote.toHost,
-                        target.withdrawUrl,
-                        inputIds = emptyList(),
-                        inputK1s = emptyList(),
-                        outputs = listOf(output.ref),
-                        requestUrl = invoice,
-                        status = JournalStatus.Prepared,
-                        detail = meltId,
-                        createdAtMillis = now,
-                        updatedAtMillis = now,
-                    )
-                )
+                MintInvoice.journal(wallet, mintId, accountId, target, output, invoice, detail = meltId)
                 log.record(
                     id = "mint:$mintId",
                     accountId,

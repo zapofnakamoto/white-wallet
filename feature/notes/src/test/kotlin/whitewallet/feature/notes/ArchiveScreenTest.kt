@@ -12,15 +12,15 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.UnclaimedReason
 
 @RunWith(RobolectricTestRunner::class)
 class ArchiveScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    private fun archived(id: Char, reason: ArchiveReason, failingFor: Long? = 7 * DAY + 15 * 60_000L) =
+    private fun archived(id: Char, reason: UnclaimedReason, failingFor: Long? = 7 * DAY + 15 * 60_000L) =
         ReceivedNote(
             id.toString().repeat(64),
             "a",
@@ -37,23 +37,23 @@ class ArchiveScreenTest {
             receivedAtMillis = 1,
             updatedAtMillis = 10 * DAY,
             failingSinceMillis = failingFor?.let { 10 * DAY - it },
-            archivedReason = reason,
+            unclaimedReason = reason,
         )
 
     @Test
     fun eachArchivedLinkSaysWhyTheWalletStoppedTrying() {
         val notes =
             listOf(
-                archived('a', ArchiveReason.Refused),
-                archived('b', ArchiveReason.Unreachable),
-                archived('c', ArchiveReason.NotANote, failingFor = 2 * 60 * 60_000L),
-                archived('d', ArchiveReason.ByUser, failingFor = null),
+                archived('a', UnclaimedReason.Refused),
+                archived('b', UnclaimedReason.Unreachable),
+                archived('c', UnclaimedReason.Refused, failingFor = 2 * 60 * 60_000L),
+                archived('d', UnclaimedReason.ByUser, failingFor = null),
             )
         compose.setContent { ArchiveScreen(ArchiveState(notes = notes), ArchiveActions(), onBack = {}) }
         compose.onNodeWithText(text(R.string.archive_hint)).assertExists()
         compose.onNodeWithText("Its mint kept refusing it for 7 days, so your wallet stopped trying.").assertExists()
         compose.onNodeWithText("Its mint couldn't be reached for 7 days, so your wallet stopped trying.").assertExists()
-        compose.onNodeWithText("For 2 hours its mint didn't answer as it does for a note, so your wallet stopped trying.").assertExists()
+        compose.onNodeWithText("Its mint kept refusing it for 2 hours, so your wallet stopped trying.").assertExists()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("You archived it."))
         compose.onNodeWithText("You archived it.").assertExists()
     }
@@ -61,7 +61,7 @@ class ArchiveScreenTest {
     @Test
     fun anArchivedLinkCanBeTriedAgain() {
         var retried: String? = null
-        val note = archived('a', ArchiveReason.Unreachable)
+        val note = archived('a', UnclaimedReason.Unreachable)
         compose.setContent { ArchiveScreen(ArchiveState(notes = listOf(note)), ArchiveActions(retry = { retried = it }), onBack = {}) }
         compose.onNodeWithText(text(R.string.archive_retry)).performClick()
         assertEquals(note.id, retried)
@@ -71,7 +71,7 @@ class ArchiveScreenTest {
     fun removingForGoodIsAskedFirstAndSaysTheRecoveryPhraseCantBringItBack() {
         var asked: String? = null
         var removed = false
-        val note = archived('a', ArchiveReason.Refused)
+        val note = archived('a', UnclaimedReason.Refused)
         compose.setContent {
             ArchiveScreen(
                 ArchiveState(notes = listOf(note), removing = note.id),

@@ -154,7 +154,7 @@ enum class ReceivedState {
     KeyChanged,
 
     /**
-     * Its mint can't keep it for this wallet ([ReceivedNote.archivedReason] says why: no signing key, not a note it answers for, or it
+     * Its mint can't keep it for this wallet ([ReceivedNote.unclaimedReason] says why: no signing key, not a note it answers for, or it
      * refused): it can only be received over Lightning into a mint of the account, which costs a fee, so it waits for the user to agree.
      * Not tried by itself.
      */
@@ -163,6 +163,12 @@ enum class ReceivedState {
     /** A claim was sent and its outcome is unknown; settled with its journal entry. */
     Claiming,
 
+    /**
+     * Being received over Lightning (after [LightningOnly]): its spend went to its service with an invoice of the wallet
+     * ([ReceivedNote.journalId]). Settled with that invoice: claimed once it is paid, back to [LightningOnly] if it expires unpaid.
+     */
+    Melting,
+
     /** Renewed to one of the wallet's own keys. */
     Claimed,
 
@@ -170,26 +176,35 @@ enum class ReceivedState {
     Gone,
 
     /**
-     * No longer tried ([ReceivedNote.archivedReason] says why): its claim kept failing for a week, or the user put it aside. Its spend is
+     * No longer tried ([ReceivedNote.unclaimedReason] says why): its claim kept failing for a week, or the user put it aside. Its spend is
      * kept until the user removes it for good; the user can also try it again.
      */
     Archived;
 
     companion object {
         /** Not the wallet's yet, and may still become it. */
-        val PENDING: Set<ReceivedState> = setOf(Waiting, Locked, KeyChanged, LightningOnly, Claiming)
+        val PENDING: Set<ReceivedState> = setOf(Waiting, Locked, KeyChanged, LightningOnly, Claiming, Melting)
     }
 }
 
-/** Why a received note is [ReceivedState.Archived], or [ReceivedState.LightningOnly]. */
-enum class ArchiveReason {
-    /** Its mint kept refusing it for another reason than spent, unknown or locked. */
+/**
+ * Why a received note isn't claimed at its mint. [ReceivedState.LightningOnly] and [ReceivedState.Melting]: [NoSigningKey], [NotANote] or
+ * [Refused]. [ReceivedState.Archived]: [Refused] or [Unreachable] for a week, or [ByUser].
+ */
+enum class UnclaimedReason {
+    /**
+     * Its mint refused it for another reason than spent, unknown or locked: archived after a week of that, or at once Lightning only from a
+     * mint without a signing key.
+     */
     Refused,
 
     /** Its mint couldn't be reached. */
     Unreachable,
 
-    /** Its mint's answer isn't one for a note (e.g. a withdraw link of another kind of service). */
+    /**
+     * Its mint's answer isn't one for a note (e.g. a withdraw link of another kind of service): Lightning only, asked by key again on each
+     * refresh, and claimed at its mint once it answers as for a note.
+     */
     NotANote,
 
     /** Its mint publishes no signing key, and the wallet doesn't allow such mints. */
@@ -223,7 +238,7 @@ data class ReceivedNote(
     /** The wait its spend claims after its mint last credited it. */
     val lockedForSeconds: Long?,
     val state: ReceivedState,
-    /** The claim in flight ([ReceivedState.Claiming]), or the one that landed. */
+    /** The claim in flight ([ReceivedState.Claiming]; the invoice for [ReceivedState.Melting]), or the one that landed. */
     val journalId: String?,
     val receivedAtMillis: Long,
     val updatedAtMillis: Long,
@@ -233,10 +248,10 @@ data class ReceivedNote(
      */
     val failingSinceMillis: Long? = null,
     /**
-     * Why it is [ReceivedState.Archived], or [ReceivedState.LightningOnly]; also while it is received over Lightning
-     * ([ReceivedState.Claiming] after LightningOnly), so it goes back there if that doesn't land. Null otherwise.
+     * Why it isn't claimed at its mint, while it is [ReceivedState.LightningOnly], [ReceivedState.Melting] (to go back with it) or
+     * [ReceivedState.Archived]. Null otherwise.
      */
-    val archivedReason: ArchiveReason? = null,
+    val unclaimedReason: UnclaimedReason? = null,
 ) {
     /** Not the wallet's yet, and may still become it. */
     val isPending: Boolean
@@ -248,7 +263,7 @@ data class ReceivedNote(
         "ReceivedNote(id=$id, accountId=$accountId, host=$host, withdrawUrl=$withdrawUrl, k1=${k1?.let(Redaction::mask)}, " +
             "certificate=$certificate, declaredMsat=$declaredMsat, amountMsat=$amountMsat, lockedUntilMillis=$lockedUntilMillis, " +
             "lockedForSeconds=$lockedForSeconds, state=$state, journalId=$journalId, receivedAtMillis=$receivedAtMillis, " +
-            "updatedAtMillis=$updatedAtMillis, failingSinceMillis=$failingSinceMillis, archivedReason=$archivedReason)"
+            "updatedAtMillis=$updatedAtMillis, failingSinceMillis=$failingSinceMillis, unclaimedReason=$unclaimedReason)"
 
     companion object {
         /** The received notes a list shows: not those already claimed, which are the wallet's own notes now, nor archived ones. */

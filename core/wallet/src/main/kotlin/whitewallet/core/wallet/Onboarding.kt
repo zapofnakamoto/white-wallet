@@ -122,6 +122,9 @@ enum class AccountUse {
 
     /** An operation not settled yet. */
     OpenOperation,
+
+    /** A received note in the archive: its spend is only on this phone, and would go with the account. */
+    ArchivedNotes,
 }
 
 /**
@@ -414,19 +417,21 @@ internal class Onboarding(private val wallet: Wallet) {
     /**
      * Connects the wallet [walletId] to the mint at [host]: fetches what it is and pins its key for that wallet on first contact (only
      * [expectedKey], if given). Nobody's home mint by that alone: where the user chose the mint for the wallet, [homeIfNone] follows. A
-     * mint that answers without a signing key is only connected where the wallet allows such mints; one that can't be asked for its key now
-     * is connected unpinned, and pinned on its first answer.
+     * mint that answers without a signing key is only connected where the wallet allows such mints. A new mint that can't be asked for its
+     * key now isn't connected: so a mint without a pinned key is always one that publishes none.
      */
     suspend fun connectMint(walletId: String, host: String, expectedKey: String? = null): ConnectResult {
         val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid("not a valid host"))
         return try {
             val pay = wallet.client.servicePayRequest(h)
-            val discovery = runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
-            val discovered = discovery?.mintPubkey
             val existing = wallet.store.mint(walletId, h)
             val pinned = existing?.mintPubkey
-            // A mint the wallet has already keeps working; a new one without a key only where the wallet allows such mints.
-            if (discovery != null && discovered == null && existing == null && !wallet.allowsMintsWithoutSigningKey(walletId)) {
+            // A mint the wallet has already keeps working without it. A new one is added only once it said whether it has a key (its
+            // failure ends here), and one without only where the wallet allows such mints.
+            val discovery =
+                if (existing == null) wallet.client.withdrawDiscovery(h) else runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
+            val discovered = discovery?.mintPubkey
+            if (existing == null && discovered == null && !wallet.allowsMintsWithoutSigningKey(walletId)) {
                 return ConnectResult.Failed(OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY))
             }
             if (

@@ -1,9 +1,14 @@
 package whitewallet.feature.claim
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -20,14 +25,13 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import whitewallet.core.designsystem.formatAmount
-import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.MeltProblem
-import whitewallet.core.wallet.MeltReason
 import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.WithdrawLink
 import whitewallet.lnurlcash.Spend
@@ -271,7 +275,7 @@ class ClaimScreenTest {
     }
 
     private fun melt(
-        reason: MeltReason = MeltReason.Plain,
+        reason: UnclaimedReason? = null,
         target: String? = "home.example",
         amountMsat: Long? = 5_000_000,
         expectedMsat: Long? = 4_999_000,
@@ -280,7 +284,6 @@ class ClaimScreenTest {
     ) =
         ClaimPreview.Melt(
             WithdrawLink(
-                "lnurlw://lnbits.example/w",
                 "lnbits.example",
                 "https://lnbits.example/w",
                 "https://lnbits.example/cb",
@@ -339,21 +342,21 @@ class ClaimScreenTest {
 
     @Test
     fun aNoteAtAMintWithoutASigningKeySaysWhyAndMentionsTheSettingOnlyWhereTheBrandOffersIt() {
-        showMelt(melt(MeltReason.NoSigningKey), state = ClaimState(canAllowWithoutSigningKey = false))
+        showMelt(melt(UnclaimedReason.NoSigningKey), state = ClaimState(canAllowWithoutSigningKey = false))
         compose.onNodeWithText(text(R.string.claim_melt_no_signing_key, "lnbits.example")).assertExists()
         compose.onNodeWithText(text(R.string.claim_melt_no_signing_key_allow, "lnbits.example")).assertDoesNotExist()
     }
 
     @Test
     fun aNoteWithoutASigningKeyNamesTheSettingWhereTheBrandOffersIt() {
-        showMelt(melt(MeltReason.NoSigningKey), state = ClaimState(canAllowWithoutSigningKey = true))
+        showMelt(melt(UnclaimedReason.NoSigningKey), state = ClaimState(canAllowWithoutSigningKey = true))
         compose.onNodeWithText(text(R.string.claim_melt_no_signing_key_allow, "lnbits.example")).assertExists()
     }
 
     @Test
     fun aLinkNotAskedYetIsOnlyShownToItsServiceWhenTheUserAsks() {
         var asked = 0
-        showMelt(melt(MeltReason.NotANote, amountMsat = null, expectedMsat = null), MeltActions(ask = { asked++ }))
+        showMelt(melt(UnclaimedReason.NotANote, amountMsat = null, expectedMsat = null), MeltActions(ask = { asked++ }))
         compose.onNodeWithText(text(R.string.claim_melt_ask_hint, "lnbits.example")).assertExists()
         compose.onNodeWithText(text(R.string.claim_melt_action, "").trim(), substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.claim_melt_ask, "lnbits.example")).performScrollTo().performClick()
@@ -412,11 +415,48 @@ class ClaimScreenTest {
         var checked = 0
         val note =
             ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.LightningOnly, null, 1, 1)
-                .copy(archivedReason = ArchiveReason.Refused)
+                .copy(unclaimedReason = UnclaimedReason.Refused)
         show(ClaimState(result = ClaimResult.Kept(note)), onCheck = { checked++ })
         compose.onNodeWithText(text(R.string.claim_melt_refused, "mint.example")).assertExists()
         compose.onNodeWithText(text(R.string.claim_melt_receive)).performScrollTo().performClick()
         assertEquals(1, checked)
+    }
+
+    @Test
+    fun aMeltKeptForLaterSaysSoWhateverWhyItIsReceivedOverLightning() {
+        val kept =
+            ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.LightningOnly, null, 1, 1)
+        var reason by mutableStateOf(UnclaimedReason.NoSigningKey)
+        compose.setContent {
+            ClaimScreen(
+                ClaimState(
+                    input = "x",
+                    preview = melt(problem = MeltProblem.NoMint, target = null, mints = emptyList()),
+                    result = ClaimResult.Kept(kept.copy(unclaimedReason = reason)),
+                ),
+                onBack = {},
+                onInputChange = {},
+                onCheck = {},
+                onClaim = {},
+            )
+        }
+        for (each in listOf(UnclaimedReason.NoSigningKey, UnclaimedReason.NotANote, UnclaimedReason.Refused)) {
+            reason = each
+            compose.onNodeWithText(text(R.string.claim_kept_for_lightning)).assertExists()
+            compose.onNodeWithText(text(R.string.claim_melt_refused, "mint.example")).assertDoesNotExist()
+            // The title says it too; only the button is gone.
+            compose.onNode(hasText(text(R.string.claim_melt_receive)) and hasClickAction()).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun aClaimTurnedDownSaysWhyItCanOnlyBeReceivedOverLightning() {
+        val note =
+            ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.LightningOnly, null, 1, 1)
+                .copy(unclaimedReason = UnclaimedReason.NotANote)
+        show(ClaimState(result = ClaimResult.Kept(note)))
+        compose.onNodeWithText(text(R.string.claim_melt_not_a_note, "mint.example")).assertExists()
+        compose.onNode(hasText(text(R.string.claim_melt_receive)) and hasClickAction()).assertExists()
     }
 
     @Test

@@ -11,9 +11,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import whitewallet.brand.ui.ButtonKind
-import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.UnclaimedReason
 
 /** Where a received note stands, in the user's language: why it isn't claimed yet, or why it can't be. */
 @Composable
@@ -26,13 +26,14 @@ fun receivedNoteStatus(note: ReceivedNote): String =
         ReceivedState.KeyChanged -> stringResource(R.string.received_key_changed)
         ReceivedState.LightningOnly ->
             stringResource(
-                when (note.archivedReason) {
-                    ArchiveReason.NoSigningKey -> R.string.received_lightning_no_key
-                    ArchiveReason.Refused -> R.string.received_lightning_refused
+                when (note.unclaimedReason) {
+                    UnclaimedReason.NoSigningKey -> R.string.received_lightning_no_key
+                    UnclaimedReason.Refused -> R.string.received_lightning_refused
                     else -> R.string.received_lightning_not_a_note
                 }
             )
         ReceivedState.Claiming -> stringResource(R.string.received_claiming)
+        ReceivedState.Melting -> stringResource(R.string.received_melting)
         ReceivedState.Claimed -> stringResource(R.string.received_claimed)
         ReceivedState.Gone -> stringResource(R.string.received_gone)
         ReceivedState.Archived -> archived(note)
@@ -42,14 +43,14 @@ fun receivedNoteStatus(note: ReceivedNote): String =
 @Composable
 private fun archived(note: ReceivedNote): String {
     val (plain, hours, days) =
-        when (note.archivedReason) {
-            ArchiveReason.ByUser -> return stringResource(R.string.received_archived_by_you)
-            ArchiveReason.NoSigningKey -> return stringResource(R.string.received_no_signing_key)
-            ArchiveReason.Unreachable ->
+        when (note.unclaimedReason) {
+            UnclaimedReason.ByUser -> return stringResource(R.string.received_archived_by_you)
+            UnclaimedReason.Unreachable ->
                 Triple(R.string.received_unreachable, R.plurals.received_unreachable_hours, R.plurals.received_unreachable_days)
-            ArchiveReason.NotANote ->
-                Triple(R.string.received_not_a_note, R.plurals.received_not_a_note_hours, R.plurals.received_not_a_note_days)
-            ArchiveReason.Refused,
+            // Never archived for a missing signing key or an answer not for a note: such a note is only received over Lightning.
+            UnclaimedReason.NoSigningKey,
+            UnclaimedReason.NotANote,
+            UnclaimedReason.Refused,
             null -> Triple(R.string.received_refused, R.plurals.received_refused_hours, R.plurals.received_refused_days)
         }
     val since = note.failingSinceMillis ?: return stringResource(plain)

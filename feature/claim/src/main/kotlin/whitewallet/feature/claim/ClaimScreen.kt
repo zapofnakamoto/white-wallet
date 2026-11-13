@@ -47,13 +47,12 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.recentTime
-import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.scanner.QrScanner
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.MeltProblem
-import whitewallet.core.wallet.MeltReason
 import whitewallet.core.wallet.ReclaimResult
 
 @Composable
@@ -126,7 +125,7 @@ fun ClaimScreen(
                             is ClaimResult.Kept -> WalletStatus.None
                         }
                     WalletStatusScope(status) { BrandDecoration(Anchor.ClaimResult) }
-                    ResultMessage(result, overLightning)
+                    ResultMessage(result, overLightning, state.canAllowWithoutSigningKey)
                     if (result is ClaimResult.Kept)
                         Text(
                             stringResource(R.string.claim_kept_hint),
@@ -305,20 +304,7 @@ private fun MeltSection(preview: ClaimPreview.Melt, state: ClaimState, actions: 
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (preview.problem == null) preview.expectedMsat?.let { Text(formatAmount(it), style = MaterialTheme.typography.titleLarge) }
-            Text(
-                when (preview.reason) {
-                    MeltReason.Plain -> stringResource(R.string.claim_melt_plain, host)
-                    MeltReason.NoSigningKey ->
-                        stringResource(
-                            if (state.canAllowWithoutSigningKey) R.string.claim_melt_no_signing_key_allow
-                            else R.string.claim_melt_no_signing_key,
-                            host,
-                        )
-                    MeltReason.NotANote -> stringResource(R.string.claim_melt_not_a_note, host)
-                    MeltReason.Refused -> stringResource(R.string.claim_melt_refused, host)
-                },
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Text(meltReason(preview.reason, host, state.canAllowWithoutSigningKey), style = MaterialTheme.typography.bodyMedium)
             val target = preview.target
             val amount = preview.amountMsat
             when {
@@ -367,6 +353,23 @@ private fun MeltSection(preview: ClaimPreview.Melt, state: ClaimState, actions: 
             )
     }
 }
+
+/** Why a link from [host] is received over Lightning rather than kept at its own mint ([reason] null: there is no note in it). */
+@Composable
+private fun meltReason(reason: UnclaimedReason?, host: String, canAllowWithoutSigningKey: Boolean): String =
+    when (reason) {
+        null -> stringResource(R.string.claim_melt_plain, host)
+        UnclaimedReason.NoSigningKey ->
+            stringResource(
+                if (canAllowWithoutSigningKey) R.string.claim_melt_no_signing_key_allow else R.string.claim_melt_no_signing_key,
+                host,
+            )
+        UnclaimedReason.Refused -> stringResource(R.string.claim_melt_refused, host)
+        // Only those above make a note Lightning only.
+        UnclaimedReason.NotANote,
+        UnclaimedReason.Unreachable,
+        UnclaimedReason.ByUser -> stringResource(R.string.claim_melt_not_a_note, host)
+    }
 
 /** The user's own note, handed out and not claimed yet. */
 @Composable
@@ -462,7 +465,7 @@ private fun TakeBackMessage(result: ReclaimResult) {
 }
 
 @Composable
-private fun ResultMessage(result: ClaimResult, overLightning: Boolean) {
+private fun ResultMessage(result: ClaimResult, overLightning: Boolean, canAllowWithoutSigningKey: Boolean) {
     val (text, isError) =
         when (result) {
             is ClaimResult.Claimed ->
@@ -477,9 +480,10 @@ private fun ResultMessage(result: ClaimResult, overLightning: Boolean) {
                         stringResource(R.string.claim_kept_until, recentTime(note.lockedUntilMillis!!))
                     note.state == ReceivedState.Locked -> stringResource(R.string.claim_kept_locked)
                     note.state == ReceivedState.KeyChanged -> stringResource(R.string.claim_kept_key_changed)
-                    note.state == ReceivedState.LightningOnly && note.archivedReason == ArchiveReason.NoSigningKey ->
-                        stringResource(R.string.claim_kept_for_lightning)
-                    note.state == ReceivedState.LightningOnly -> stringResource(R.string.claim_melt_refused, note.host)
+                    // Kept from a melt the account had no mint for: received over Lightning once it has one.
+                    note.state == ReceivedState.LightningOnly && overLightning -> stringResource(R.string.claim_kept_for_lightning)
+                    // A claim its mint turned down: why, and that Lightning can still bring it in.
+                    note.state == ReceivedState.LightningOnly -> meltReason(note.unclaimedReason, note.host, canAllowWithoutSigningKey)
                     else -> stringResource(R.string.claim_kept)
                 } to false
             }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 8,
-    "identityHash": "306f7d86f72b723496e2eeaa8541f305",
+    "identityHash": "d6b902085372e00ebfa03ca9cc2df33a",
     "entities": [
       {
         "tableName": "accounts",
@@ -836,7 +836,7 @@
       },
       {
         "tableName": "received_notes",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, `k1` TEXT, `certificate` TEXT, `declaredMsat` INTEGER, `amountMsat` INTEGER, `lockedUntilMillis` INTEGER, `lockedForSeconds` INTEGER, `state` TEXT NOT NULL, `journalId` TEXT, `receivedAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `refusedSinceMillis` INTEGER, `archivedReason` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `withdrawUrl` TEXT NOT NULL, `k1` TEXT, `certificate` TEXT, `declaredMsat` INTEGER, `amountMsat` INTEGER, `lockedUntilMillis` INTEGER, `lockedForSeconds` INTEGER, `state` TEXT NOT NULL, `journalId` TEXT, `receivedAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `refusedSinceMillis` INTEGER, `unclaimedReason` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
         "fields": [
           {
             "fieldPath": "id",
@@ -921,8 +921,8 @@
             "affinity": "INTEGER"
           },
           {
-            "fieldPath": "archivedReason",
-            "columnName": "archivedReason",
+            "fieldPath": "unclaimedReason",
+            "columnName": "unclaimedReason",
             "affinity": "TEXT"
           }
         ],
@@ -1062,7 +1062,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '306f7d86f72b723496e2eeaa8541f305')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd6b902085372e00ebfa03ca9cc2df33a')"
     ]
   }
 }

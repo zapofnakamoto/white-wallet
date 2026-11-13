@@ -12,26 +12,30 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   vector with a clip path, and showed another image from the APK instead. A brand has nothing to do; one with its
   own `res/mipmap-*dpi/ic_launcher.png` keeps those (see §2 of `docs/WHITE_LABEL.md`).
 - An archive for received links the wallet no longer tries (Notes → "Archived"). A link goes there a week after its
-  claim first failed, whatever the reason: its mint refused it, couldn't be reached, or didn't answer as for a note
-  (before, only refusals counted, and the others were tried forever and couldn't be removed). The user can archive a
+  claim first failed, whether its mint refused it or couldn't be reached (before, only refusals counted, and the others
+  were tried forever and couldn't be removed). The user can archive a
   kept link at any time too. From the archive a link can be tried again or removed for good, after a warning that the
   recovery phrase can't bring it back. Each says why it is there. Links refused for a week under an earlier version
-  are in the archive after the update.
+  are in the archive after the update. An account with links in its archive can't be removed until they are tried
+  again or removed there: they are only on this phone.
 - Withdraw links of other services (LNbits vouchers, ATMs, faucets: `lnurlw://`, or an `LNURL1…` that is one) open in
   Claim, also from other apps, and are received over Lightning into the home mint: one confirm, which says what the
   link pays and about what arrives after the mint's fee. The most both the link and the mint allow is taken; a link
   outside what the mint takes is refused with the range it takes. An account without a home mint picks one of its
   mints for that link. Offline, such a link isn't kept: open it again when connected. A link whose `k1` looks like a
   note's spend is first asked by its key only; if its service doesn't answer for it as a note, the user is asked
-  before the link is shown to it. A link the service refuses waits under received notes, with "Receive" to try
-  again. The screen is titled "Receive over Lightning", and History names the link's service ("Received from …").
+  before the link is shown to it. Kept, such a link waits under received notes with "Receive"; each refresh asks
+  its key again, and it is claimed at its mint once that answers for it as a note, so a passing trouble with the mint
+  doesn't send a note over Lightning. A link the service refuses waits there too, with "Receive" to try again. The screen is titled "Receive over Lightning", and History names the link's service ("Received from …").
 - Mints without a signing key (LUD-25 only says a mint SHOULD publish one). Their notes can't be certified, and a
   swapped mint can't be noticed, so by default such a mint is never added, and a note from one is received into the
   home mint over Lightning once the user agrees to the fee (a note kept while offline waits for that under received
   notes). Settings → Security → "Allow mints without a signing key", per wallet and off by default, keeps such notes
   at their mint instead: the mint is added unpinned, marked on its page, and can't be trusted. Mints already added
-  keep working when it is off. Brand keys `mints.withoutSigningKey.setting` (show the setting, default `true`) and
-  `mints.withoutSigningKey.home` (may such a mint be a home mint, default `true`). New brand terms
+  keep working when it is off. A new mint that can't be asked for its signing key isn't added (it is unreachable for
+  now), so it can't hold money before the wallet knows whether it has one. Brand keys
+  `mints.withoutSigningKey.setting` (show the setting, default `true`) and `mints.withoutSigningKey.home` (may such a
+  mint be a home mint, default `true`). New brand terms
   `claim_melt_not_a_note`, `claim_melt_into_home`, `claim_melt_pick`, `claim_melt_no_mint`,
   `claim_kept_for_lightning`, `claim_melt_no_signing_key`, `claim_melt_no_signing_key_allow`,
   `onboarding_error_mint_without_key`, `onboarding_error_mint_without_key_allow`, `security_mints_without_key`,
