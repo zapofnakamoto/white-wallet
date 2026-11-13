@@ -144,6 +144,9 @@ interface WalletStore {
     /** The account's history, newest first. */
     fun activities(accountId: String): Flow<List<Activity>>
 
+    /** The history row [id], if there is one. */
+    suspend fun activity(id: String): Activity?
+
     /** Adds [activity], or replaces the row with the same id. */
     suspend fun putActivity(activity: Activity)
 

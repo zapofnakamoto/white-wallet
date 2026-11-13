@@ -431,7 +431,7 @@ internal class Onboarding(private val wallet: Wallet) {
             val discovery =
                 if (existing == null) wallet.client.withdrawDiscovery(h) else runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
             val discovered = discovery?.mintPubkey
-            if (existing == null && discovered == null && !wallet.allowsMintsWithoutSigningKey(walletId)) {
+            if (!wallet.mayUseMint(walletId, existing, discovered)) {
                 return ConnectResult.Failed(OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY))
             }
             if (

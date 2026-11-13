@@ -786,9 +786,13 @@ class Wallet(
         if (withoutSigningKey.setting) trust.setAllowsMintsWithoutSigningKey(walletOf(activeId()), allowed)
     }
 
-    /** Whether the wallet [walletId] may add a mint that publishes no signing key. */
-    internal suspend fun allowsMintsWithoutSigningKey(walletId: String): Boolean =
-        withoutSigningKey.setting && trust.allowsMintsWithoutSigningKey(walletId).first()
+    /**
+     * Whether the wallet [walletId] may keep notes at a mint presenting [presentedKey]: one it holds already ([known]) keeps working, one
+     * with a signing key is always fine, and one without only where the wallet allows such mints ([allowsMintsWithoutSigningKey]). A mint
+     * the wallet holds without a pinned key is one that publishes none (see [Onboarding.connectMint]).
+     */
+    internal suspend fun mayUseMint(walletId: String, known: Mint?, presentedKey: PublicKey?): Boolean =
+        known != null || presentedKey != null || withoutSigningKey.setting && trust.allowsMintsWithoutSigningKey(walletId).first()
 
     /** Trusts or untrusts [host] in the active wallet, with the key it pinned for it. A mint without a pinned key can't be trusted. */
     suspend fun setMintTrusted(host: String, trusted: Boolean) {

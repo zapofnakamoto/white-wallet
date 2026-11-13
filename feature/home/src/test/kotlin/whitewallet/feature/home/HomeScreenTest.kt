@@ -34,6 +34,7 @@ import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
@@ -997,7 +998,7 @@ class HomeScreenTest {
                 onDismissBackup = {},
                 onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
-                onRemoveReceived = { dismissed = it },
+                received = ReceivedNoteActions(remove = { dismissed = it }),
             )
         }
         compose.onNodeWithText(text(DesignR.string.received_gone)).assertExists()
@@ -1036,8 +1037,7 @@ class HomeScreenTest {
                 onDismissBackup = {},
                 onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
-                onRemoveReceived = { removed = it },
-                onArchiveReceived = { archived = it },
+                received = ReceivedNoteActions(remove = { removed = it }, archive = { archived = it }),
             )
         }
         // One the wallet still tries is never removed straight away: it goes to the archive first.

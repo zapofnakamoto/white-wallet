@@ -57,6 +57,7 @@ import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletLinearProgress
@@ -98,9 +99,7 @@ class NotesActions(
     val dismissDialog: () -> Unit = {},
     val openShared: (String) -> Unit = {},
     val simulateFailure: (SimulatedFailure.Kind?) -> Unit = {},
-    val removeReceived: (String) -> Unit = {},
-    val archiveReceived: (String) -> Unit = {},
-    val receiveReceived: (String) -> Unit = {},
+    val received: ReceivedNoteActions = ReceivedNoteActions(),
     val openArchive: () -> Unit = {},
 )
 
@@ -139,9 +138,12 @@ fun rememberNotesActions(
             move = viewModel::move,
             dismissDialog = viewModel::dismissDialog,
             openShared = onOpenShared,
-            removeReceived = viewModel::removeReceived,
-            archiveReceived = viewModel::archiveReceived,
-            receiveReceived = { id -> viewModel.receiveReceived(id, onClaim) },
+            received =
+                ReceivedNoteActions(
+                    remove = viewModel::removeReceived,
+                    archive = viewModel::archiveReceived,
+                    receive = { id -> viewModel.receiveReceived(id, onClaim) },
+                ),
             openArchive = onOpenArchive,
         )
     }
@@ -235,9 +237,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
                         note,
                         state.showMints,
                         amountHidden = false,
-                        onRemove = actions.removeReceived,
-                        onArchive = actions.archiveReceived,
-                        onReceive = actions.receiveReceived,
+                        actions.received,
                     )
                 }
             }

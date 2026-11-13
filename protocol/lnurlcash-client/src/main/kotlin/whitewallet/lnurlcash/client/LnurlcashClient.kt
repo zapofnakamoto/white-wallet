@@ -61,15 +61,7 @@ public class LnurlcashClient(
      * GETs [url] and parses the LNURL response. Only for read-only requests: retried once on a connection failure. Throws [IOException] if
      * both attempts fail.
      */
-    public suspend fun get(url: String): LnurlResponse {
-        val request = Request.Builder().url(url).get().build()
-        val result = readOnce(request)
-        return when (result) {
-            is HttpResult.TransportFailure -> throw IOException(result.message)
-            is HttpResult.Response ->
-                LnurlResponse.parse(result.body) ?: throw ProtocolViolation("not an LNURL response (HTTP ${result.status})")
-        }
-    }
+    public suspend fun get(url: String): LnurlResponse = read(Request.Builder().url(url).get().build())
 
     /**
      * GETs a withdraw link as it was given, `k1` included (LUD-03's first request), and parses the answer like [get]. Only for a link whose
@@ -77,14 +69,16 @@ public class LnurlcashClient(
      * [mutate]. Read-only, so retried once like [get].
      */
     @RevealsNoteSecret
-    public suspend fun withdrawLink(url: String): LnurlResponse {
-        val request = Request.Builder().url(url).get().tag(SpendGuard.Mutation::class.java, SpendGuard.Mutation).build()
-        return when (val result = readOnce(request)) {
+    public suspend fun withdrawLink(url: String): LnurlResponse =
+        read(Request.Builder().url(url).get().tag(SpendGuard.Mutation::class.java, SpendGuard.Mutation).build())
+
+    /** A read-only [request] (see [readOnce]), its answer parsed as an LNURL response. */
+    private suspend fun read(request: Request): LnurlResponse =
+        when (val result = readOnce(request)) {
             is HttpResult.TransportFailure -> throw IOException(result.message)
             is HttpResult.Response ->
                 LnurlResponse.parse(result.body) ?: throw ProtocolViolation("not an LNURL response (HTTP ${result.status})")
         }
-    }
 
     /** The service's minting payRequest for its own identity (`_@host`). */
     public suspend fun servicePayRequest(host: String): MintingPayRequest = MintingPayRequest.from(get(Requests.servicePayUrl(host)))

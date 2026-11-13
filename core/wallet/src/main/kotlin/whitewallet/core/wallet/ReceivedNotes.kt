@@ -89,8 +89,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         if (pinned != null && pinned != answer.mintPubkey?.toHex())
             return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, failingSinceMillis = null)))
         val keyless = pinned == null && answer.mintPubkey == null
-        // A mint without a signing key is only added if the wallet allows such mints; one it holds already keeps working.
-        if (known == null && keyless && !wallet.allowsMintsWithoutSigningKey(wallet.walletOf(note.accountId)))
+        if (!wallet.mayUseMint(wallet.walletOf(note.accountId), known, answer.mintPubkey))
             return lightningOnly(note, UnclaimedReason.NoSigningKey)
         // A mint met here for the first time is connected before the claim, with the key it just presented: the claim's new key is then
         // found past the keys the phrase already used there (see [IndexGuard]). If it can't be connected, the claim starts at the first key
@@ -204,8 +203,11 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         }
         for (note in wallet.store.receivedNotes(setOf(ReceivedState.LightningOnly)).filter { it.accountId in accountIds }) {
             when (note.unclaimedReason) {
-                // Kept only because mints without a signing key weren't allowed: claimed at its mint once they are.
-                UnclaimedReason.NoSigningKey -> if (wallet.allowsMintsWithoutSigningKey(wallet.walletOf(note.accountId))) claim(note)
+                // Kept only because mints without a signing key weren't allowed: claimed at its mint once they are, or once the wallet
+                // holds it.
+                UnclaimedReason.NoSigningKey ->
+                    if (wallet.mayUseMint(wallet.walletOf(note.accountId), wallet.mintOf(note.accountId, note.host), presentedKey = null))
+                        claim(note)
                 // Its host didn't answer as for a note (or not yet: a passing trouble looks the same): asked again by key, and claimed at
                 // its mint once it does. Left as it is otherwise.
                 UnclaimedReason.NotANote -> {

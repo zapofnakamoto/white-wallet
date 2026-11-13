@@ -425,7 +425,7 @@ internal class MintReconciler(private val wallet: Wallet) {
                     // A mint's request is the invoice it paid: no spend in it.
                     @OptIn(RevealsNoteSecret::class) val paid = Bolt11.decode(entry.requestUrl)?.amountMsat
                     // A withdraw link's service that paid it, as the waiting row named it.
-                    val from = wallet.store.activities(output.accountId).first().firstOrNull { it.id == activityId(entry.id) }?.counterparty
+                    val from = wallet.store.activity(activityId(entry.id))?.counterparty
                     log.record(
                         activityId(entry.id),
                         output.accountId,

@@ -139,6 +139,8 @@ internal interface WalletDao {
     @Query("SELECT * FROM activity WHERE accountId = :accountId ORDER BY createdAtMillis DESC, rowid DESC")
     fun activities(accountId: String): Flow<List<ActivityEntity>>
 
+    @Query("SELECT * FROM activity WHERE id = :id") suspend fun activity(id: String): ActivityEntity?
+
     @Upsert suspend fun putActivity(activity: ActivityEntity)
 
     @Query("UPDATE activity SET status = :status WHERE journalId = :journalId AND status = 'Pending'")

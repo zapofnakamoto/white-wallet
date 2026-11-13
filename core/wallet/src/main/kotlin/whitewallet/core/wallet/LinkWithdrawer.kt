@@ -65,28 +65,14 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
         // Shaped like a note's spend, but none this wallet can read: never sent anywhere.
         if (Lnurl.queryParams(url).any { it.first.equals("k1", ignoreCase = true) && looksLikeSpend(it.second) })
             return ClaimPreview.Invalid("not a note")
-        val response =
-            try {
-                @OptIn(RevealsNoteSecret::class) wallet.client.withdrawLink(url)
-            } catch (e: IOException) {
-                return ClaimPreview.OfflineLink
-            } catch (e: ProtocolViolation) {
-                return ClaimPreview.Invalid(e.message ?: "invalid response")
+        @OptIn(RevealsNoteSecret::class)
+        val asked =
+            askService(url, payLink = bare) { response ->
+                val k1 = response.k1 ?: return@askService ClaimPreview.Invalid("the link has no k1")
+                val link = WithdrawLink(host, url, response.callback, k1, response.minWithdrawable, response.maxWithdrawable, null)
+                withTarget(link, null, accountId, null)
             }
-        return when (response) {
-            is LnurlResponse.WithdrawRequest -> {
-                val k1 = response.k1 ?: return ClaimPreview.Invalid("the link has no k1")
-                withTarget(
-                    WithdrawLink(host, url, response.callback, k1, response.minWithdrawable, response.maxWithdrawable, null),
-                    null,
-                    accountId,
-                    null,
-                )
-            }
-            is LnurlResponse.PayRequest -> ClaimPreview.PayLink(bare)
-            is LnurlResponse.Error -> ClaimPreview.Invalid(response.reason ?: "refused")
-            else -> ClaimPreview.Invalid("not a withdraw link")
-        }
+        return asked
     }
 
     /**
@@ -114,25 +100,42 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
 
     /** The user agreed to show the link to its own service: asks it what the link pays, and where to send it. */
     suspend fun ask(preview: ClaimPreview.Melt, accountId: String): ClaimPreview {
+        @OptIn(RevealsNoteSecret::class)
+        val asked =
+            askService(preview.link.url, payLink = null) { response ->
+                val link =
+                    preview.link.copy(
+                        callback = response.callback,
+                        k1 = response.k1 ?: preview.link.k1,
+                        minMsat = response.minWithdrawable,
+                        maxMsat = response.maxWithdrawable,
+                    )
+                withTarget(link, preview.reason, accountId, preview.target)
+            }
+        return asked
+    }
+
+    /**
+     * Asks a link's own service with the link itself ([LnurlcashClient.withdrawLink]); its withdraw answer goes to [withdraw]. A pay link's
+     * answer is [payLink] to pay, where the caller takes one; anything else says what went wrong.
+     */
+    @RevealsNoteSecret
+    private suspend fun askService(
+        url: String,
+        payLink: String?,
+        withdraw: suspend (LnurlResponse.WithdrawRequest) -> ClaimPreview,
+    ): ClaimPreview {
         val response =
             try {
-                @OptIn(RevealsNoteSecret::class) wallet.client.withdrawLink(preview.link.url)
+                wallet.client.withdrawLink(url)
             } catch (e: IOException) {
                 return ClaimPreview.OfflineLink
             } catch (e: ProtocolViolation) {
                 return ClaimPreview.Invalid(e.message ?: "invalid response")
             }
         return when (response) {
-            is LnurlResponse.WithdrawRequest -> {
-                val link =
-                    preview.link.copy(
-                        callback = response.callback,
-                        k1 = @OptIn(RevealsNoteSecret::class) (response.k1 ?: preview.link.k1),
-                        minMsat = response.minWithdrawable,
-                        maxMsat = response.maxWithdrawable,
-                    )
-                withTarget(link, preview.reason, accountId, preview.target)
-            }
+            is LnurlResponse.WithdrawRequest -> withdraw(response)
+            is LnurlResponse.PayRequest -> payLink?.let(ClaimPreview::PayLink) ?: ClaimPreview.Invalid("not a withdraw link")
             is LnurlResponse.Error -> ClaimPreview.Invalid(response.reason ?: "refused")
             else -> ClaimPreview.Invalid("not a withdraw link")
         }
@@ -163,14 +166,7 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
         val base = ClaimPreview.Melt(link, reason, target, mints, amountMsat = null, expectedMsat = null)
         if (target == null) return if (mints.isEmpty()) base.copy(problem = MeltProblem.NoMint) else base
         if (amountMsat == null) return base
-        val pay =
-            try {
-                wallet.client.servicePayRequest(target)
-            } catch (e: IOException) {
-                return base.copy(problem = MeltProblem.MintUnreachable)
-            } catch (e: ProtocolViolation) {
-                return base.copy(problem = MeltProblem.MintUnreachable)
-            }
+        val pay = payRequestOf(target) ?: return base.copy(problem = MeltProblem.MintUnreachable)
         val amount =
             amountOf(link, pay)
                 ?: return base.copy(
@@ -191,14 +187,7 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
         val link = preview.link
         val target = preview.target ?: return ClaimResult.Failed(RejectionKind.Other, "no mint to receive into")
         val callback = link.callback ?: return ClaimResult.Failed(RejectionKind.Other, "not asked yet")
-        val pay =
-            try {
-                wallet.client.servicePayRequest(target)
-            } catch (e: IOException) {
-                return ClaimResult.Failed(RejectionKind.Other, e.message)
-            } catch (e: ProtocolViolation) {
-                return ClaimResult.Failed(RejectionKind.Other, e.message)
-            }
+        val pay = payRequestOf(target) ?: return ClaimResult.Failed(RejectionKind.Other, "unreachable")
         val amount = amountOf(link, pay) ?: return ClaimResult.Failed(RejectionKind.Other, "out of range")
         // An invoice of the wallet like any other: paid, its note is picked up and recorded in History; expired, it is dropped.
         val invoices = InvoiceReceiver(wallet)
@@ -252,6 +241,16 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
             null -> ClaimResult.Pending
         }
     }
+
+    /** The minting payRequest of the mint at [host], or null when it can't be had now. */
+    private suspend fun payRequestOf(host: String): MintingPayRequest? =
+        try {
+            wallet.client.servicePayRequest(host)
+        } catch (e: IOException) {
+            null
+        } catch (e: ProtocolViolation) {
+            null
+        }
 
     private companion object {
         /** A note's spend has one of these forms (LUD-25): hex of a bearer note's preimage, a `ck1` or a `cw1`. */

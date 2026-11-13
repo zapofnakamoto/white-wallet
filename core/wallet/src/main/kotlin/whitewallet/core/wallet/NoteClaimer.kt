@@ -175,8 +175,8 @@ internal class NoteClaimer(private val wallet: Wallet) {
 
     /**
      * Why a note its mint answered for can't be kept there, if it can't: a mint without a signing key the wallet doesn't hold already, and
-     * doesn't allow ([Wallet.allowsMintsWithoutSigningKey]); or such a mint refused to keep it before. A note kept because its host didn't
-     * answer as for a note, which now does, is claimed at its mint.
+     * doesn't allow ([Wallet.mayUseMint]); or such a mint refused to keep it before. A note kept because its host didn't answer as for a
+     * note, which now does, is claimed at its mint.
      */
     private suspend fun lightningOnly(
         link: NoteLink,
@@ -185,8 +185,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
         kept: ReceivedNote?,
         accountId: String,
     ): UnclaimedReason? {
-        val allowed = mint != null || info.mintPubkey != null || wallet.allowsMintsWithoutSigningKey(wallet.walletOf(accountId))
-        if (!allowed) return UnclaimedReason.NoSigningKey
+        if (!wallet.mayUseMint(wallet.walletOf(accountId), mint, info.mintPubkey)) return UnclaimedReason.NoSigningKey
         val refusedBefore = kept?.state == ReceivedState.LightningOnly && kept.unclaimedReason == UnclaimedReason.Refused
         return UnclaimedReason.Refused.takeIf { refusedBefore && link.host == kept?.host }
     }

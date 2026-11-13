@@ -171,6 +171,8 @@ class RoomWalletStoreTest {
             store.putActivity(row)
             store.settleActivities("j1", ActivityStatus.Done)
             assertEquals(listOf(row.copy(status = ActivityStatus.Done)), store.activities("acc").first())
+            assertEquals(row.copy(status = ActivityStatus.Done), store.activity("pay:j1"), "found by its id")
+            assertNull(store.activity("pay:j2"))
         }
 
     @Test

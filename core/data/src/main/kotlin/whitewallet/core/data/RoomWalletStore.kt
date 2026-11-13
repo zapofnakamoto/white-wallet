@@ -167,6 +167,8 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
 
     override fun activities(accountId: String): Flow<List<Activity>> = dao.activities(accountId).map { rows -> rows.map { it.toModel() } }
 
+    override suspend fun activity(id: String): Activity? = dao.activity(id)?.toModel()
+
     override suspend fun putActivity(activity: Activity) = dao.putActivity(ActivityEntity.from(activity))
 
     override suspend fun settleActivities(journalId: String, status: ActivityStatus) = dao.settleActivities(journalId, status.name)

@@ -160,8 +160,6 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
                     note,
                     state.showMints,
                     amountHidden = false,
-                    onRemove = {},
-                    onArchive = {},
                     trailing = {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             WalletButton(

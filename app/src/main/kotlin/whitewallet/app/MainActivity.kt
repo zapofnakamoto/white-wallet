@@ -312,6 +312,14 @@ private fun WalletApp(
         replaceAll(if (backupAtSetup && !backedUp) Routes.backupAtSetup(next) else next)
     }
     val leftSetup = { remains: Boolean -> replaceAll(if (remains) Routes.HOME else Routes.WELCOME) }
+    // Claim and Send open over Home, whatever led there.
+    val openClaim = { link: String -> nav.navigate(Routes.claim(link)) { popUpTo(Routes.HOME) } }
+    val openLink = { link: IncomingLink ->
+        when (link) {
+            is IncomingLink.Claim -> openClaim(link.text)
+            is IncomingLink.Pay -> nav.navigate(Routes.send(link.text)) { popUpTo(Routes.HOME) }
+        }
+    }
     // Links from outside open once the wallet is set up (Home is on the back stack): a note in Claim, anything else
     // in Send. Nothing is claimed or paid until the user confirms there.
     val pending by incoming.collectAsStateWithLifecycle()
@@ -321,13 +329,11 @@ private fun WalletApp(
     LaunchedEffect(pending, current) {
         val text = pending ?: return@LaunchedEffect
         if (current == null || runCatching { nav.getBackStackEntry(Routes.HOME) }.isFailure) return@LaunchedEffect
-        when (val link = IncomingLink.classify(text)) {
-            is IncomingLink.Claim -> nav.navigate(Routes.claim(link.text)) { popUpTo(Routes.HOME) }
-            is IncomingLink.Pay -> nav.navigate(Routes.send(link.text)) { popUpTo(Routes.HOME) }
-            null -> {
-                unreadableLink = true
-                nav.popBackStack(Routes.HOME, inclusive = false)
-            }
+        val link = IncomingLink.classify(text)
+        if (link != null) openLink(link)
+        else {
+            unreadableLink = true
+            nav.popBackStack(Routes.HOME, inclusive = false)
         }
         onIncomingHandled()
     }
@@ -391,7 +397,7 @@ private fun WalletApp(
                 onScan = { nav.navigate(Routes.SCAN) },
                 onOpenNote = { id -> nav.navigate(Routes.note(id)) },
                 onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
-                onClaim = { link -> nav.navigate(Routes.claim(link)) { popUpTo(Routes.HOME) } },
+                onClaim = openClaim,
                 unreadableLink = unreadableLink,
                 onUnreadableLinkShown = { unreadableLink = false },
                 onReceive = { nav.navigate(Routes.RECEIVE) },
@@ -413,7 +419,7 @@ private fun WalletApp(
                             onSettings = { nav.navigate(Routes.NOTES) },
                             onOpenShared = { id -> nav.navigate(Routes.note(id)) },
                             onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
-                            onClaim = { link -> nav.navigate(Routes.claim(link)) { popUpTo(Routes.HOME) } },
+                            onClaim = openClaim,
                         )
                     else null,
             )
@@ -424,7 +430,7 @@ private fun WalletApp(
                 onSettings = { nav.navigate(Routes.NOTES) },
                 onOpenShared = { id -> nav.navigate(Routes.note(id)) },
                 onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
-                onClaim = { link -> nav.navigate(Routes.claim(link)) { popUpTo(Routes.HOME) } },
+                onClaim = openClaim,
             )
         }
         composable(Routes.ARCHIVE) { ArchiveRoute(onBack = { nav.popBackStack() }) }
@@ -455,13 +461,11 @@ private fun WalletApp(
             SendRoute(
                 onDone = { nav.popBackStack() },
                 onCreateNote = { nav.navigate(Routes.CREATE_NOTE) },
-                onClaim = { nav.navigate(Routes.claim(it)) { popUpTo(Routes.HOME) } },
+                onClaim = openClaim,
             )
         }
         composable(Routes.SCAN) {
-            ScanRoute(onBack = { nav.popBackStack() }) { link ->
-                nav.navigate(if (link is IncomingLink.Claim) Routes.claim(link.text) else Routes.send(link.text)) { popUpTo(Routes.HOME) }
-            }
+            ScanRoute(onBack = { nav.popBackStack() }, onScanned = openLink)
         }
         composable(Routes.CREATE_NOTE) {
             CreateNoteRoute(onBack = { nav.popBackStack() }, onCreated = { id -> nav.navigate(Routes.note(id)) { popUpTo(Routes.HOME) } })

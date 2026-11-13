@@ -62,20 +62,36 @@ private fun archived(note: ReceivedNote): String {
 }
 
 /**
- * A received note in a list: what it is worth as far as known (not with [amountHidden]), on which mint ([showMint]), and where it stands.
- * One the wallet still tries can be archived ([onArchive]); one spent by someone else can be removed ([onRemove]); one that can only be
- * received over Lightning opens in Claim ([onReceive]). An archived one is only in the archive, which offers more (see its screen).
+ * What a received note in a list can ask for, by its id: removing one spent by someone else, archiving one the wallet still tries, or
+ * receiving one only Lightning can bring in (in Claim).
+ */
+class ReceivedNoteActions(
+    val remove: (String) -> Unit = {},
+    val archive: (String) -> Unit = {},
+    val receive: (String) -> Unit = {},
+)
+
+/** A received note in a list, with the action its state offers (see [ReceivedNoteActions]). */
+@Composable
+fun ReceivedNoteRow(
+    note: ReceivedNote,
+    showMint: Boolean,
+    amountHidden: Boolean,
+    actions: ReceivedNoteActions,
+    modifier: Modifier = Modifier,
+) = ReceivedNoteRow(note, showMint, amountHidden, modifier, trailing = receivedNoteAction(note, actions))
+
+/**
+ * A received note in a list: what it is worth as far as known (not with [amountHidden]), on which mint ([showMint]), and where it stands,
+ * with [trailing] actions of the caller's own (the archive's).
  */
 @Composable
 fun ReceivedNoteRow(
     note: ReceivedNote,
     showMint: Boolean,
     amountHidden: Boolean,
-    onRemove: (String) -> Unit,
-    onArchive: (String) -> Unit,
     modifier: Modifier = Modifier,
-    onReceive: (String) -> Unit = {},
-    trailing: (@Composable () -> Unit)? = receivedNoteAction(note, onRemove, onArchive, onReceive),
+    trailing: (@Composable () -> Unit)?,
 ) {
     val status = receivedNoteStatus(note)
     val amount =
@@ -102,32 +118,35 @@ fun ReceivedNoteRow(
  * Remove for one spent by someone else, Archive for one the wallet still tries, Receive (and Archive) for one only Lightning can bring in;
  * nothing while it is being claimed.
  */
-private fun receivedNoteAction(
-    note: ReceivedNote,
-    onRemove: (String) -> Unit,
-    onArchive: (String) -> Unit,
-    onReceive: (String) -> Unit,
-): (@Composable () -> Unit)? =
+private fun receivedNoteAction(note: ReceivedNote, actions: ReceivedNoteActions): (@Composable () -> Unit)? =
     when (note.state) {
         ReceivedState.LightningOnly -> {
             {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    WalletButton(kind = ButtonKind.Text, onClick = { onReceive(note.id) }) {
+                    WalletButton(kind = ButtonKind.Text, onClick = { actions.receive(note.id) }) {
                         Text(stringResource(R.string.received_receive))
                     }
-                    WalletButton(kind = ButtonKind.Text, onClick = { onArchive(note.id) }) {
+                    WalletButton(kind = ButtonKind.Text, onClick = { actions.archive(note.id) }) {
                         Text(stringResource(R.string.received_archive))
                     }
                 }
             }
         }
         ReceivedState.Gone -> {
-            { WalletButton(kind = ButtonKind.Text, onClick = { onRemove(note.id) }) { Text(stringResource(R.string.received_dismiss)) } }
+            {
+                WalletButton(kind = ButtonKind.Text, onClick = { actions.remove(note.id) }) {
+                    Text(stringResource(R.string.received_dismiss))
+                }
+            }
         }
         ReceivedState.Waiting,
         ReceivedState.Locked,
         ReceivedState.KeyChanged -> {
-            { WalletButton(kind = ButtonKind.Text, onClick = { onArchive(note.id) }) { Text(stringResource(R.string.received_archive)) } }
+            {
+                WalletButton(kind = ButtonKind.Text, onClick = { actions.archive(note.id) }) {
+                    Text(stringResource(R.string.received_archive))
+                }
+            }
         }
         else -> null
     }

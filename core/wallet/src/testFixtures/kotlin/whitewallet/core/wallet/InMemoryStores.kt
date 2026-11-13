@@ -272,6 +272,8 @@ class InMemoryWalletStore : WalletStore {
             .map { it.second }
     }
 
+    override suspend fun activity(id: String): Activity? = activityMap.value[id]?.second
+
     override suspend fun putActivity(activity: Activity) {
         activityMap.value = activityMap.value + (activity.id to ((activityMap.value[activity.id]?.first ?: activitySeq++) to activity))
     }
