@@ -157,7 +157,8 @@ says where each is enforced.
    `Unknown note.` about a note the wallet holds. When a mint refuses to spend notes as unknown or spent (a merge with
    an unknown input is refused as spent), each input is looked up by `p` (`UnknownNotes`): an unknown one becomes
    `Unknown` (out of the balance, never spent, kept with its certificate), a burned one `Spent`, and the rest are spent
-   without them. Refreshes ask again (at most every 5 minutes for a day, then daily); a note the mint knows again is
+   without them. Refreshes ask again, at most once per interval: a short one for the first day, a longer one after that
+   (`unknown.note.check.interval.*` in `wallet.properties`, by default 5 minutes and a day); a note the mint knows again is
    `Outstanding` again.
 
 ### Note states
@@ -181,7 +182,7 @@ A note someone hands over (`ReceivedState`). It is kept with its spend and isn't
 
 | State | Meaning | Leaves it when |
 |---|---|---|
-| `Waiting` | Its mint couldn't be reached. | Tried again on every refresh; `Archived` after a week without success. |
+| `Waiting` | Its mint couldn't be reached. | Tried again on every refresh; `Archived` once the give-up time (brand `notes.received.giveUpAfter`, by default 7 days) has passed without success. |
 | `Locked` | Its spend claims a time its mint hasn't reached yet. | Tried again once the lock may have passed. |
 | `KeyChanged` | Its mint's signing key doesn't match the pinned one; the spend isn't sent. | The user accepts the new key; until then it is looked up by its key alone on every refresh. |
 | `LightningOnly` | Its mint has no signing key, or the link isn't a note its host answers for: it can only come in over Lightning into a mint of the account, for a fee. | The user agrees to the fee (`Melting`). Not tried by itself. |
@@ -189,13 +190,14 @@ A note someone hands over (`ReceivedState`). It is kept with its spend and isn't
 | `Melting` | Coming in over Lightning: its spend went to its service with an invoice of the wallet. | The wallet's invoice is paid (`Claimed`) or expires unpaid (back to `LightningOnly`). |
 | `Claimed` | Renewed to one of the wallet's own keys, now an `Outstanding` note. | Never: final. |
 | `Gone` | Spent by someone else first, or unknown to its mint. | Never; the user can remove it. |
-| `Archived` | No longer tried: refused or unreachable for a week, or put aside by the user. Its spend is kept. | The user tries it again, or removes it for good. |
+| `Archived` | No longer tried: refused or unreachable for the give-up time, or put aside by the user. Its spend is kept. | The user tries it again, or removes it for good. |
 
 ### Sync
 
-On start, on pull-to-refresh and every 15 minutes in the background (WorkManager), the wallet reconciles the
-journal, scans the address keys (purpose 2, gap limit 20), settles shared notes and payments, and applies the note
-policies. A restore is the LUD-26 recovery scan over all three purposes.
+On start, on pull-to-refresh and periodically in the background (WorkManager; brand `sync.background`, by default
+and at least every 15 minutes), the wallet reconciles the journal, scans the address keys (purpose 2, up to a gap
+limit: `scan.stop.after.unused.*` in `wallet.properties`, by default 20), settles shared notes and payments, and
+applies the note policies. A restore is the LUD-26 recovery scan over all three purposes.
 
 ## Security and privacy
 
@@ -207,9 +209,11 @@ policies. A restore is the LUD-26 recovery scan over all three purposes.
 - A mint's signing key is pinned on first contact; if it changes, every operation with that mint stops until the user,
   shown both keys and warned, accepts the new one on the mint's details page (a trusted mint stays trusted).
 - Screens with the recovery phrase or a note link block screenshots (`FLAG_SECURE`). Copied secrets are marked
-  sensitive and cleared from the clipboard after 60 seconds.
+  sensitive and cleared from the clipboard after a while (brand `security.clipboard.clearAfter`, by default 60
+  seconds).
 - `allowBackup="false"`: the recovery phrase is the backup.
-- Optional app lock with the phone's screen lock, on start and after 30 seconds in the background.
+- Optional app lock with the phone's screen lock, on start and after a while in the background (brand
+  `security.appLock.relockAfter`, by default 30 seconds).
 
 ## Build and distribution
 
