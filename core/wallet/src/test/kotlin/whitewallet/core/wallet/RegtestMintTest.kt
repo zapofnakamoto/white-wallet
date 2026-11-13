@@ -4,9 +4,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import okhttp3.Response
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
@@ -93,6 +95,60 @@ class RegtestMintTest {
             assertIs<RotateResult.Rotated>(alice.wallet.rotateNote(note.id))
             assertEquals(4_999_000, alice.balance())
         }
+
+    @Test
+    fun `a pinned mint that stops showing its signing key gets nothing sent, and has no key to accept`() =
+        runBlocking<Unit> { withoutItsKey(Regtest::withoutSigningKey) }
+
+    @Test
+    fun `a pinned mint that shows a broken signing key is treated as one showing none`() =
+        runBlocking<Unit> { withoutItsKey(Regtest::presentingBrokenKey) }
+
+    /** The checks of a mint that presents another key, while its answers go through [strip], which takes the key away. */
+    private suspend fun withoutItsKey(strip: (Response) -> Response) {
+        var stripped = false
+        var sent = 0
+        var spends = 0
+        val alice =
+            Regtest.phone(
+                client =
+                    Regtest.client { chain ->
+                        if (chain.request().url.isMutation) sent++
+                        if (chain.request().url.queryParameter("k1") != null) spends++
+                        val response = chain.proceed(chain.request())
+                        if (stripped) strip(response) else response
+                    }
+            )
+        alice.fund(5000)
+        val note = alice.notes().single()
+        val pinned = assertNotNull(alice.wallet.mintDetails(HOST).mint?.mintPubkey)
+        stripped = true
+        sent = 0
+        spends = 0
+
+        val details = alice.wallet.mintDetails(HOST)
+        assertEquals(MintDetails.Reachability.KeyChanged, details.reachability)
+        assertNull(details.presentedKey, "nothing to accept")
+        assertEquals(false, alice.wallet.acceptMintKey(HOST, OTHER_KEY))
+        assertEquals(OnboardResult.MintInvalid(MINT_KEY_CHANGED), assertIs<ConnectResult.Failed>(alice.wallet.addMint(HOST)).result)
+        // Kept, never offered over Lightning: claimed at the mint once it shows its key again.
+        val claim = alice.wallet.previewClaim(Regtest.note(1000))
+        assertTrue(claim is ClaimPreview.KeyChanged || claim is ClaimPreview.Offline, "kept for its mint, not received another way: $claim")
+        assertTrue(alice.wallet.rotateNote(note.id) !is RotateResult.Rotated)
+        assertTrue(alice.wallet.splitNote(note.id, 1_000_000) !is NoteActionResult.Done)
+        val preview = alice.wallet.previewPayment(Regtest.invoice(4999))
+        if (preview is PayPreview.Ready) assertTrue(alice.wallet.pay(preview, 4_999_000) !is PayResult.Paid)
+        alice.wallet.refresh()
+        assertEquals(0, sent, "no rotate, split or melt went out to a mint without its key")
+        assertEquals(0, spends, "no spend went out at all")
+        assertEquals(listOf(note.id), alice.notes().map { it.id }, "the note is untouched")
+        assertEquals(pinned, alice.wallet.mintDetails(HOST).mint?.mintPubkey, "the pinned key stays")
+
+        // Its key again: everything works as before.
+        stripped = false
+        assertEquals(MintDetails.Reachability.Reachable, alice.wallet.mintDetails(HOST).reachability)
+        assertIs<RotateResult.Rotated>(alice.wallet.rotateNote(note.id))
+    }
 
     @Test
     fun `the user can accept a changed signing key, and the mint is used again for sending and receiving`() =

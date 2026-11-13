@@ -15,6 +15,7 @@
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einer Mint deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
     <string name="mints_intro">Vertraue einer Mint anhand ihres Signaturschlüssels: Scheine von vertrauten Mints sind mit einem Haken markiert. Signiert eine Mint einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut.</string>
     <string name="mint_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Scheine dort sind unverändert.</string>
+    <string name="mint_key_missing">%1$s zeigt keinen Signaturschlüssel mehr, daher kann deine Wallet nicht erkennen, ob es dieselbe Mint ist. Bis sie wieder den bekannten Schlüssel zeigt, sendet und empfängt deine Wallet dort nichts. Deine Scheine dort sind unverändert.</string>
     <string name="settings_notes">Schein-Einstellungen</string>
     <string name="settings_note_list">Scheine</string>
     <string name="settings_note_list_hint">Deine Scheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>

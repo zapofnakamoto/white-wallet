@@ -380,7 +380,10 @@ private fun RemoveSection(mint: MintInfo, refused: MintUse?, onRemove: () -> Uni
     }
 }
 
-/** The warning for a changed signing key: both keys, and (with [onAccept]) using the new one after a confirmation. */
+/**
+ * The warning for a changed signing key: both keys, and (with [onAccept]) using the new one after a confirmation. A mint that shows none
+ * ([presented] null) has nothing to accept: it is only used again once it shows the remembered key.
+ */
 @Composable
 private fun KeyChangedCard(host: String, remembered: String?, presented: String?, onAccept: ((String) -> Unit)?) {
     var confirming by remember { mutableStateOf(false) }
@@ -390,7 +393,7 @@ private fun KeyChangedCard(host: String, remembered: String?, presented: String?
     ) {
         Column(Modifier.padding(16.dp)) {
             val color = MaterialTheme.colorScheme.onErrorContainer
-            Text(stringResource(R.string.mint_key_changed, host), color = color)
+            Text(stringResource(if (presented != null) R.string.mint_key_changed else R.string.mint_key_missing, host), color = color)
             for ((label, key) in listOf(R.string.mint_key_remembered to remembered, R.string.mint_key_new to presented)) {
                 if (key == null) continue
                 Text(

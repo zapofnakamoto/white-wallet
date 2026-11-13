@@ -305,6 +305,13 @@ internal object Regtest {
         return response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
     }
 
+    /** [response] as if its mint presented a signing key that isn't a key (hex it can't be). */
+    fun presentingBrokenKey(response: Response): Response {
+        val body =
+            response.body.string().replace(Regex("\"mintPubkey\":\\s*\"[0-9a-fA-F]{66}\""), "\"mintPubkey\":\"02${"zz".repeat(32)}\"")
+        return response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
+    }
+
     /** [response] as if its mint presented [OTHER_KEY] as its signing key. */
     fun presentingOtherKey(response: Response): Response {
         val body = response.body.string().replace(Regex("\"mintPubkey\":\\s*\"[0-9a-fA-F]{66}\""), "\"mintPubkey\":\"$OTHER_KEY\"")

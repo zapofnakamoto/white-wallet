@@ -19,7 +19,7 @@ data class MintDetails(
     val balanceMsat: Long,
     val noteCount: Int,
     val isHome: Boolean,
-    /** The signing key the mint presents now, when it is not the pinned one ([Reachability.KeyChanged]). */
+    /** The signing key the mint presents now, when it is not the pinned one ([Reachability.KeyChanged]); null if it presents none. */
     val presentedKey: String? = null,
 ) {
     enum class Reachability {
@@ -116,8 +116,10 @@ internal class MintInspector(private val wallet: Wallet) {
                 description =
                     pay.pay.metadataEntries.firstOrNull { it.first == "text/plain" && !it.second.startsWith("Mint fees:") }?.second
                 val pinned = wallet.mintOf(accountId, h)?.mintPubkey
-                presented = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey?.toHex() }.getOrNull()
-                if (pinned != null && presented != null && pinned != presented) {
+                // Null if it can't be asked now; an answer without a valid key, from a pinned mint, is a changed key.
+                val discovery = runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
+                presented = discovery?.mintPubkey?.toHex()
+                if (pinned != null && discovery != null && pinned != presented) {
                     MintDetails.Reachability.KeyChanged
                 } else {
                     // Stores fresh fees and limits (and pins the key if it wasn't yet).

@@ -75,10 +75,26 @@ class SettingsScreensTest {
     @Test
     fun aChangedSigningKeyIsAWarning() {
         compose.setContent {
-            MintDetailsScreen(MintDetailsState(details(MintDetails.Reachability.KeyChanged), loading = false), {}, {})
+            MintDetailsScreen(
+                MintDetailsState(details(MintDetails.Reachability.KeyChanged).copy(presentedKey = "03" + "cd".repeat(32)), loading = false),
+                {},
+                {},
+            )
         }
         compose.onNodeWithText(text(R.string.mint_key_changed_short)).assertExists()
         compose.onNodeWithText("now signs with a different key", substring = true).assertExists()
+    }
+
+    @Test
+    fun aMintThatNoLongerShowsItsKeySaysSoAndHasNothingToAccept() {
+        compose.setContent {
+            MintDetailsScreen(MintDetailsState(details(MintDetails.Reachability.KeyChanged), loading = false), {}, {})
+        }
+        compose.onNodeWithText(text(R.string.mint_key_missing, "mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.mint_key_changed, "mint.example")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_key_remembered)).assertExists()
+        compose.onNodeWithText(text(R.string.mint_key_new)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_key_accept)).assertDoesNotExist()
     }
 
     @Test

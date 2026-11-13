@@ -258,6 +258,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `note_already_spent` | Too late: this note has already been spent. |
 | `note_not_found` | This note isn't in this account. |
 | `mint_key_changed` | %1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn't send or receive there. Your notes there are unchanged. |
+| `mint_key_missing` | %1$s no longer shows its signing key, so your wallet can't tell it is the same mint. Until it shows the key you know again, your wallet doesn't send or receive there. Your notes there are unchanged. |
 | `settings_notes` | Note settings |
 | `settings_note_list` | Notes |
 | `settings_note_list_hint` | See your notes one by one, share, split or combine them |
