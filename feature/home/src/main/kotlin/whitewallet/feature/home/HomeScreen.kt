@@ -598,7 +598,9 @@ private fun WalletTab(
                 }
             }
             // The others open in a sheet over Home: the balance stays where it is. It closes by itself once they're dealt with.
-            if (otherAlerts && alerts.size > 1) {
+            val hasOthers = alerts.size > 1
+            LaunchedEffect(hasOthers) { if (!hasOthers) otherAlerts = false }
+            if (otherAlerts && hasOthers) {
                 WalletSheet(onDismissRequest = { otherAlerts = false }) {
                     Column(
                         Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 8.dp),

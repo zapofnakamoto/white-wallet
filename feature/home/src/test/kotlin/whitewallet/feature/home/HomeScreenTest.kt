@@ -129,6 +129,35 @@ class HomeScreenTest {
     }
 
     @Test
+    fun theSheetOfOtherAlertsClosesOnceOnlyOneIsLeft() {
+        var state by mutableStateOf(HomeState(activeAccountId = "a", inactiveAddress = "me@mint.example", showBackupPrompt = true))
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                state,
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onOpenAddresses = {},
+                accountActions = AccountActions({}, {}, {}),
+            )
+        }
+        compose.onNodeWithText(plural(R.plurals.home_alerts_more, 1, 1)).performClick()
+        compose.onNodeWithText(text(R.string.home_backup_title)).assertExists()
+        // Put off: the address is the only alert left, on Home, and the sheet is gone.
+        state = state.copy(showBackupPrompt = false)
+        compose.onNodeWithText(text(R.string.home_backup_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_address_inactive_title)).assertExists()
+        // Another alert later is counted again, not opened by itself.
+        state = state.copy(showScanPrompt = true)
+        compose.onNodeWithText(plural(R.plurals.home_alerts_more, 1, 1)).assertExists()
+        compose.onNodeWithText(text(R.string.home_scan_title)).assertDoesNotExist()
+    }
+
+    @Test
     fun oneAlertIsNotCounted() {
         show(HomeState(activeAccountId = "a", showBackupPrompt = true))
         compose.onNodeWithText(text(R.string.home_backup_title)).assertExists()
