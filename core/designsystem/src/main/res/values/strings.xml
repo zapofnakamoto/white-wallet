@@ -53,4 +53,24 @@
         <item quantity="other">Its mint kept refusing it for %d days, so your wallet stopped trying.</item>
     </plurals>
     <string name="received_dismiss">Remove</string>
+    <string name="received_archive">Archive</string>
+    <string name="received_archived_by_you">You archived it.</string>
+    <plurals name="received_unreachable_hours">
+        <item quantity="one">Its mint couldn\'t be reached for %d hour, so your wallet stopped trying.</item>
+        <item quantity="other">Its mint couldn\'t be reached for %d hours, so your wallet stopped trying.</item>
+    </plurals>
+    <plurals name="received_unreachable_days">
+        <item quantity="one">Its mint couldn\'t be reached for %d day, so your wallet stopped trying.</item>
+        <item quantity="other">Its mint couldn\'t be reached for %d days, so your wallet stopped trying.</item>
+    </plurals>
+    <plurals name="received_not_a_note_hours">
+        <item quantity="one">For %d hour its mint didn\'t answer as it does for a note, so your wallet stopped trying.</item>
+        <item quantity="other">For %d hours its mint didn\'t answer as it does for a note, so your wallet stopped trying.</item>
+    </plurals>
+    <plurals name="received_not_a_note_days">
+        <item quantity="one">For %d day its mint didn\'t answer as it does for a note, so your wallet stopped trying.</item>
+        <item quantity="other">For %d days its mint didn\'t answer as it does for a note, so your wallet stopped trying.</item>
+    </plurals>
+    <string name="received_unreachable">Its mint couldn\'t be reached, so your wallet stopped trying.</string>
+    <string name="received_not_a_note">Its mint didn\'t answer as it does for a note, so your wallet stopped trying.</string>
 </resources>

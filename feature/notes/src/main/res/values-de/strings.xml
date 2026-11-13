@@ -61,6 +61,23 @@
     <string name="notes_move_anyway">Trotzdem verschieben</string>
     <string name="notes_shared_title">Verschickt, noch nicht eingelöst</string>
     <string name="notes_shared_hint">Tippe auf einen, um seinen QR-Code erneut zu zeigen oder ihn zurückzuholen.</string>
+    <plurals name="notes_archived">
+        <item quantity="one">%d archivierter Link</item>
+        <item quantity="other">%d archivierte Links</item>
+    </plurals>
+    <string name="notes_archived_hint">Erhalten, aber deine Wallet versucht nicht mehr, sie einzulösen.</string>
+    <string name="notes_archived_open">Archiv öffnen</string>
+    <string name="archive_title">Archiv</string>
+    <string name="archive_hint">Deine Wallet versucht diese Links nicht mehr. Versuche einen erneut oder entferne ihn endgültig. Bis er eingelöst ist, deckt ihn deine Wiederherstellungsphrase nicht ab.</string>
+    <string name="archive_empty">Nichts archiviert.</string>
+    <string name="archive_retry">Erneut versuchen</string>
+    <string name="archive_remove">Entfernen</string>
+    <string name="archive_remove_title">Diesen Link endgültig entfernen?</string>
+    <string name="archive_remove_body">Der Link ist nur auf diesem Telefon. Deine Wiederherstellungsphrase kann ihn nicht zurückholen, was er noch enthält, wäre für dich verloren.</string>
+    <string name="archive_remove_confirm">Endgültig entfernen</string>
+    <string name="archive_remove_keep">Behalten</string>
+    <string name="archive_retry_claimed">%1$s eingelöst.</string>
+    <string name="archive_retry_kept">Erneut versucht. Er ist wieder bei den erhaltenen Links, dort siehst du, wie es um ihn steht.</string>
     <string name="notes_sheet_where">Bei %1$s · %2$s</string>
     <string name="notes_share">Als QR teilen</string>
     <string name="notes_recheck">Prüfen</string>

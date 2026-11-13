@@ -70,6 +70,8 @@ data class NotesState(
     val shared: List<Note> = emptyList(),
     /** Notes received as links, not claimed yet or no longer claimable: not in the balance. */
     val received: List<ReceivedNote> = emptyList(),
+    /** How many received notes are archived: no longer tried, only listed in the archive. */
+    val archivedCount: Int = 0,
     val sort: NoteSort = NoteSort.Largest,
     /** Selection mode: tapping a note selects it instead of opening it. */
     val selecting: Boolean = false,
@@ -264,6 +266,7 @@ constructor(
                     mints = mints,
                     shared = sharedNotes(notes, c.sort),
                     received = ReceivedNote.shown(received),
+                    archivedCount = ReceivedNote.archived(received).size,
                     sort = c.sort,
                     selected = u.selected intersect selectable,
                     open = u.open?.takeIf { id -> live.any { it.id == id } },
@@ -277,9 +280,14 @@ constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesState(loaded = false))
 
-    /** Forgets a received note that can no longer be claimed. */
-    fun dismissReceived(id: String) {
-        viewModelScope.launch { wallet.dismissReceivedNote(id) }
+    /** Forgets a received note someone else spent. */
+    fun removeReceived(id: String) {
+        viewModelScope.launch { wallet.removeReceivedNote(id) }
+    }
+
+    /** Puts a kept received note aside, into the archive. */
+    fun archiveReceived(id: String) {
+        viewModelScope.launch { wallet.archiveReceivedNote(id) }
     }
 
     fun setSort(sort: NoteSort) {

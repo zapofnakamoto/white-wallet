@@ -163,15 +163,30 @@ enum class ReceivedState {
     Gone,
 
     /**
-     * Its mint kept refusing it for another reason than spent, unknown or locked, for a week since the first refusal: no longer tried. Its
-     * spend is kept until the user removes it.
+     * No longer tried ([ReceivedNote.archivedReason] says why): its claim kept failing for a week, or the user put it aside. Its spend is
+     * kept until the user removes it for good; the user can also try it again.
      */
-    Refused;
+    Archived;
 
     companion object {
         /** Not the wallet's yet, and may still become it. */
         val PENDING: Set<ReceivedState> = setOf(Waiting, Locked, KeyChanged, Claiming)
     }
+}
+
+/** Why a received note is [ReceivedState.Archived]. */
+enum class ArchiveReason {
+    /** Its mint kept refusing it for another reason than spent, unknown or locked. */
+    Refused,
+
+    /** Its mint couldn't be reached. */
+    Unreachable,
+
+    /** Its mint's answer isn't one for a note (e.g. a withdraw link of another kind of service). */
+    NotANote,
+
+    /** The user put it aside. */
+    ByUser,
 }
 
 /**
@@ -202,8 +217,13 @@ data class ReceivedNote(
     val journalId: String?,
     val receivedAtMillis: Long,
     val updatedAtMillis: Long,
-    /** When its mint first refused it for another reason than spent, unknown or locked: it gives up a week later. */
-    val refusedSinceMillis: Long? = null,
+    /**
+     * When its claim first failed (refused for another reason than spent, unknown or locked; its mint unreachable; or an answer that isn't
+     * one for a note): it is archived a week later. Cleared when its mint answers otherwise.
+     */
+    val failingSinceMillis: Long? = null,
+    /** Why it is [ReceivedState.Archived]; null otherwise. */
+    val archivedReason: ArchiveReason? = null,
 ) {
     /** Not the wallet's yet, and may still become it. */
     val isPending: Boolean
@@ -215,11 +235,16 @@ data class ReceivedNote(
         "ReceivedNote(id=$id, accountId=$accountId, host=$host, withdrawUrl=$withdrawUrl, k1=${k1?.let(Redaction::mask)}, " +
             "certificate=$certificate, declaredMsat=$declaredMsat, amountMsat=$amountMsat, lockedUntilMillis=$lockedUntilMillis, " +
             "lockedForSeconds=$lockedForSeconds, state=$state, journalId=$journalId, receivedAtMillis=$receivedAtMillis, " +
-            "updatedAtMillis=$updatedAtMillis, refusedSinceMillis=$refusedSinceMillis)"
+            "updatedAtMillis=$updatedAtMillis, failingSinceMillis=$failingSinceMillis, archivedReason=$archivedReason)"
 
     companion object {
-        /** The received notes a list shows: not those already claimed, which are the wallet's own notes now. */
-        fun shown(notes: List<ReceivedNote>): List<ReceivedNote> = notes.filter { it.state != ReceivedState.Claimed }
+        /** The received notes a list shows: not those already claimed, which are the wallet's own notes now, nor archived ones. */
+        fun shown(notes: List<ReceivedNote>): List<ReceivedNote> = notes.filter {
+            it.state != ReceivedState.Claimed && it.state != ReceivedState.Archived
+        }
+
+        /** The archived ones, which only the archive shows. */
+        fun archived(notes: List<ReceivedNote>): List<ReceivedNote> = notes.filter { it.state == ReceivedState.Archived }
     }
 }
 

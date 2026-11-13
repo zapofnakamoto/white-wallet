@@ -177,7 +177,7 @@ internal interface WalletDao {
             KeyCounterEntity::class,
             ShareScanEntity::class,
         ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 internal abstract class WalletDatabase : RoomDatabase() {
@@ -185,7 +185,7 @@ internal abstract class WalletDatabase : RoomDatabase() {
 
     companion object {
         /** Every schema change from v0.3.0 (version 2) on; installed wallets keep their data. Schemas: core/data/schemas. */
-        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4, Migration4To5, Migration5To6, Migration6To7)
+        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4, Migration4To5, Migration5To6, Migration6To7, Migration7To8)
     }
 }
 
@@ -584,4 +584,14 @@ internal object Migration6To7 : Migration(6, 7) {
                 listOf(),
             ),
         )
+}
+
+/**
+ * Received notes no longer tried are archived, with why: those its mint kept refusing (state `Refused` before) become archived as refused.
+ */
+internal object Migration7To8 : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE received_notes ADD COLUMN `archivedReason` TEXT")
+        db.execSQL("UPDATE received_notes SET state = 'Archived', archivedReason = 'Refused' WHERE state = 'Refused'")
+    }
 }

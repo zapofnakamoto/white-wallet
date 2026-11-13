@@ -67,6 +67,23 @@
     <string name="notes_move_anyway">Move anyway</string>
     <string name="notes_shared_title">Shared, not claimed yet</string>
     <string name="notes_shared_hint">Tap one to show its QR code again or take it back.</string>
+    <plurals name="notes_archived">
+        <item quantity="one">%d archived link</item>
+        <item quantity="other">%d archived links</item>
+    </plurals>
+    <string name="notes_archived_hint">Received, but your wallet no longer tries to claim them.</string>
+    <string name="notes_archived_open">Open the archive</string>
+    <string name="archive_title">Archive</string>
+    <string name="archive_hint">Your wallet no longer tries these links. Try one again, or remove it for good. Until it is claimed, your recovery phrase doesn\'t cover it.</string>
+    <string name="archive_empty">Nothing archived.</string>
+    <string name="archive_retry">Try again</string>
+    <string name="archive_remove">Remove</string>
+    <string name="archive_remove_title">Remove this link for good?</string>
+    <string name="archive_remove_body">Its link is only on this phone. Your recovery phrase can\'t bring it back, so anything it still holds would be lost to you.</string>
+    <string name="archive_remove_confirm">Remove for good</string>
+    <string name="archive_remove_keep">Keep it</string>
+    <string name="archive_retry_claimed">Claimed %1$s.</string>
+    <string name="archive_retry_kept">Tried again. It\'s back among the received links, where you can see how it stands.</string>
     <string name="notes_sheet_where">On %1$s · %2$s</string>
     <string name="notes_share">Share as QR</string>
     <string name="notes_recheck">Recheck</string>

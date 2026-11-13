@@ -1139,8 +1139,20 @@ class Wallet(
     /** Keeps a note that can't be claimed now (offline, or locked); a refresh claims it once it can be. */
     suspend fun keepClaim(preview: ClaimPreview.Keepable): ClaimResult.Kept = lock.withLock { claimer.keep(preview, activeId()) }
 
-    /** Forgets a received note that can no longer be claimed (spent by someone else, or not spendable). */
-    suspend fun dismissReceivedNote(id: String) = lock.withLock { received.dismiss(id) }
+    /**
+     * Forgets a received note for good: one spent by someone else, or an archived one (its spend goes with it; the recovery phrase can't
+     * bring it back).
+     */
+    suspend fun removeReceivedNote(id: String) = lock.withLock { received.remove(id) }
+
+    /** Puts a kept received note aside: no longer tried until [retryReceivedNote]. */
+    suspend fun archiveReceivedNote(id: String) = lock.withLock { received.archive(id) }
+
+    /** Takes an archived received note out of the archive and claims it now (kept again if it can't be); null if it isn't archived. */
+    suspend fun retryReceivedNote(id: String): ClaimResult? = lock.withLock {
+        val account = activeId()
+        received.retry(id).also { if (it != null) applyPolicies(account) }
+    }
 
     internal fun syncWhenOnline() = onWaitingForNetwork()
 

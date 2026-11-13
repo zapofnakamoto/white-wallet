@@ -9,6 +9,7 @@ import whitewallet.core.model.Account
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
@@ -491,7 +492,9 @@ internal data class ReceivedNoteEntity(
     val journalId: String?,
     val receivedAtMillis: Long,
     val updatedAtMillis: Long,
-    val refusedSinceMillis: Long?,
+    // Named before it also counted other failures than refusals.
+    @ColumnInfo(name = "refusedSinceMillis") val failingSinceMillis: Long?,
+    val archivedReason: String?,
 ) {
     fun toModel() =
         ReceivedNote(
@@ -509,7 +512,8 @@ internal data class ReceivedNoteEntity(
             journalId,
             receivedAtMillis,
             updatedAtMillis,
-            refusedSinceMillis,
+            failingSinceMillis,
+            archivedReason?.let(ArchiveReason::valueOf),
         )
 
     companion object {
@@ -530,7 +534,8 @@ internal data class ReceivedNoteEntity(
                 n.journalId,
                 n.receivedAtMillis,
                 n.updatedAtMillis,
-                n.refusedSinceMillis,
+                n.failingSinceMillis,
+                n.archivedReason?.name,
             )
     }
 }

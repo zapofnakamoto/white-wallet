@@ -11,6 +11,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   adaptive icon as before; the PNGs are for app stores that read the APK and can't draw it. Zapstore doesn't draw a
   vector with a clip path, and showed another image from the APK instead. A brand has nothing to do; one with its
   own `res/mipmap-*dpi/ic_launcher.png` keeps those (see §2 of `docs/WHITE_LABEL.md`).
+- An archive for received links the wallet no longer tries (Notes → "Archived"). A link goes there a week after its
+  claim first failed, whatever the reason: its mint refused it, couldn't be reached, or didn't answer as for a note
+  (before, only refusals counted, and the others were tried forever and couldn't be removed). The user can archive a
+  kept link at any time too. From the archive a link can be tried again or removed for good, after a warning that the
+  recovery phrase can't bring it back. Each says why it is there. Links refused for a week under an earlier version
+  are in the archive after the update.
 
 ### Changed
 

@@ -467,6 +467,18 @@ class NotesScreenTest {
     }
 
     @Test
+    fun archivedLinksAreOneRowThatOpensTheArchiveAndOnlyWhenThereAreAny() {
+        var opened = false
+        var count by mutableStateOf(0)
+        compose.setContent { NotesContent(state({ it.copy(archivedCount = count) }), NotesActions(openArchive = { opened = true })) }
+        compose.onNodeWithText("archived link", substring = true).assertDoesNotExist()
+        count = 2
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("2 archived links"))
+        compose.onNodeWithText("2 archived links").performClick()
+        assertTrue(opened)
+    }
+
+    @Test
     fun untilTheNotesAreReadNothingIsDrawnNotATotalOfNothing() {
         compose.setContent { NotesContent(NotesState(loaded = false), NotesActions()) }
         compose.onNodeWithText(text(R.string.notes_empty)).assertDoesNotExist()

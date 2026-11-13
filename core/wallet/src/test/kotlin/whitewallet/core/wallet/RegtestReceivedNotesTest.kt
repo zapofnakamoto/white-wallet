@@ -16,6 +16,7 @@ import okhttp3.Response
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.MintScan
 import whitewallet.core.model.ReceivedState
@@ -178,7 +179,7 @@ class RegtestReceivedNotesTest {
             assertEquals(JournalStatus.Rejected, bob.store.journal(setOf(JournalStatus.Rejected)).single().status)
             assertEquals(ActivityStatus.Failed, bob.wallet.activity.first().single { it.kind == ActivityKind.Claimed }.status)
 
-            bob.wallet.dismissReceivedNote(gone.id)
+            bob.wallet.removeReceivedNote(gone.id)
             assertEquals(emptyList(), bob.wallet.receivedNotes.first())
         }
 
@@ -367,7 +368,7 @@ class RegtestReceivedNotesTest {
         }
 
     @Test
-    fun `a note its mint keeps refusing for another reason is tried for a week, then given up and can be removed`() =
+    fun `a note its mint keeps refusing for another reason is tried for a week, then archived and can be removed`() =
         runBlocking<Unit> {
             val link = aNote()
             var now = System.currentTimeMillis()
@@ -387,7 +388,7 @@ class RegtestReceivedNotesTest {
             assertEquals(RejectionKind.Other, assertIs<ClaimResult.Failed>(bob.wallet.claim(preview)).kind)
             val refused = bob.wallet.receivedNotes.first().single()
             assertEquals(ReceivedState.Waiting, refused.state, "tried again")
-            assertEquals(now, refused.refusedSinceMillis)
+            assertEquals(now, refused.failingSinceMillis)
 
             now += 6 * DAY
             bob.wallet.refresh()
@@ -397,13 +398,14 @@ class RegtestReceivedNotesTest {
             now += DAY
             bob.wallet.refresh()
             val given = bob.wallet.receivedNotes.first().single()
-            assertEquals(ReceivedState.Refused, given.state, "a week after the first refusal")
+            assertEquals(ReceivedState.Archived, given.state, "a week after the first refusal")
+            assertEquals(ArchiveReason.Refused, given.archivedReason)
             assertNotNull(given.k1, "kept until the user removes it")
             assertEquals(0, bob.wallet.incomingMsat.first())
             bob.wallet.refresh()
-            assertEquals(ReceivedState.Refused, bob.wallet.receivedNotes.first().single().state, "no longer tried")
+            assertEquals(ReceivedState.Archived, bob.wallet.receivedNotes.first().single().state, "no longer tried")
 
-            bob.wallet.dismissReceivedNote(given.id)
+            bob.wallet.removeReceivedNote(given.id)
             assertEquals(emptyList(), bob.wallet.receivedNotes.first())
             assertEquals(
                 1_000_000,
@@ -412,6 +414,130 @@ class RegtestReceivedNotesTest {
                     .maxWithdrawableMsat,
                 "never claimed: still at the mint",
             )
+        }
+
+    @Test
+    fun `a note whose mint can't be reached for a week is archived, and claimed when the user tries it again`() =
+        runBlocking<Unit> {
+            val link = aNote()
+            var now = System.currentTimeMillis()
+            val connection = Connection()
+            val bob = Regtest.phone(client = Regtest.client(connection), now = { now })
+            connection.offline = true
+            assertIs<ClaimResult.Kept>(bob.wallet.keepClaim(assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link))))
+
+            bob.wallet.refresh()
+            val first = bob.wallet.receivedNotes.first().single()
+            assertEquals(ReceivedState.Waiting, first.state)
+            assertEquals(now, first.failingSinceMillis, "the week starts with the first failed try")
+            now += 6 * DAY
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.Waiting, bob.wallet.receivedNotes.first().single().state, "six days on, still tried")
+            now += DAY
+            bob.wallet.refresh()
+            val archived = bob.wallet.receivedNotes.first().single()
+            assertEquals(ReceivedState.Archived, archived.state, "a week of not reaching its mint")
+            assertEquals(ArchiveReason.Unreachable, archived.archivedReason)
+            assertNotNull(archived.k1, "its spend is kept")
+            assertEquals(0, bob.wallet.incomingMsat.first(), "no longer counted as incoming")
+
+            // Back online, an archived note is left alone until the user asks.
+            connection.offline = false
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.Archived, bob.wallet.receivedNotes.first().single().state, "not tried by itself")
+            assertIs<ClaimResult.Claimed>(bob.wallet.retryReceivedNote(archived.id))
+            assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state)
+            assertEquals(1_000_000, bob.wallet.balanceMsat.first())
+        }
+
+    @Test
+    fun `a note whose mint doesn't answer as for a note is archived after a week as not a note`() =
+        runBlocking<Unit> {
+            val link = aNote()
+            var now = System.currentTimeMillis()
+            var offline = false
+            var broken = false
+            // While broken, the mint answers a note's lookup with something that isn't a withdraw response.
+            val bob =
+                Regtest.phone(
+                    client =
+                        Regtest.client { chain ->
+                            if (offline) Regtest.dropped()
+                            if (broken && chain.request().url.queryParameter("p") != null)
+                                Regtest.answer(
+                                    chain,
+                                    """{"tag":"payRequest","callback":"https://$HOST/p","minSendable":1,"maxSendable":2,"metadata":"[]"}""",
+                                )
+                            else chain.proceed(chain.request())
+                        },
+                    now = { now },
+                )
+            broken = true
+            assertIs<ClaimPreview.Invalid>(bob.wallet.previewClaim(link), "online, such an answer is never kept")
+            // Kept offline, then the mint answers that way on every refresh.
+            broken = false
+            offline = true
+            assertIs<ClaimResult.Kept>(bob.wallet.keepClaim(assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link))))
+            offline = false
+            broken = true
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.Waiting, bob.wallet.receivedNotes.first().single().state)
+            now += 7 * DAY
+            bob.wallet.refresh()
+            val archived = bob.wallet.receivedNotes.first().single()
+            assertEquals(ReceivedState.Archived, archived.state)
+            assertEquals(ArchiveReason.NotANote, archived.archivedReason)
+        }
+
+    @Test
+    fun `the user can archive a kept note at any time, try it again, or remove it for good`() =
+        runBlocking<Unit> {
+            val link = aNote()
+            val connection = Connection()
+            val bob = Regtest.phone(client = Regtest.client(connection))
+            connection.offline = true
+            assertIs<ClaimResult.Kept>(bob.wallet.keepClaim(assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link))))
+            val kept = bob.wallet.receivedNotes.first().single()
+
+            bob.wallet.archiveReceivedNote(kept.id)
+            val archived = bob.wallet.receivedNotes.first().single()
+            assertEquals(ReceivedState.Archived, archived.state)
+            assertEquals(ArchiveReason.ByUser, archived.archivedReason)
+            connection.offline = false
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.Archived, bob.wallet.receivedNotes.first().single().state, "not claimed by a refresh")
+
+            // Tried again while offline: back among the kept notes, with a new week.
+            connection.offline = true
+            assertIs<ClaimResult.Kept>(bob.wallet.retryReceivedNote(kept.id))
+            val again = bob.wallet.receivedNotes.first().single()
+            assertEquals(ReceivedState.Waiting, again.state)
+            assertNull(again.archivedReason)
+
+            bob.wallet.archiveReceivedNote(kept.id)
+            bob.wallet.removeReceivedNote(kept.id)
+            assertEquals(emptyList(), bob.wallet.receivedNotes.first(), "gone from the wallet for good")
+            connection.offline = false
+            assertEquals(
+                1_000_000,
+                bob.wallet.client
+                    .lookup(assertNotNull(bob.store.mint(HOST)).withdrawUrl, NoteLink.parse(link)!!.spend.q)
+                    .maxWithdrawableMsat,
+                "never claimed: still at the mint",
+            )
+        }
+
+    @Test
+    fun `a kept note that can still be claimed is never removed without being archived first`() =
+        runBlocking<Unit> {
+            val link = aNote()
+            val connection = Connection()
+            val bob = Regtest.phone(client = Regtest.client(connection))
+            connection.offline = true
+            assertIs<ClaimResult.Kept>(bob.wallet.keepClaim(assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link))))
+            val kept = bob.wallet.receivedNotes.first().single()
+            bob.wallet.removeReceivedNote(kept.id)
+            assertEquals(ReceivedState.Waiting, bob.wallet.receivedNotes.first().single().state)
         }
 
     @Test
@@ -438,7 +564,7 @@ class RegtestReceivedNotesTest {
             assertEquals(ReceivedState.Waiting, bob.wallet.receivedNotes.first().single().state, "an hour on, still tried")
             now += HOUR
             bob.wallet.refresh()
-            assertEquals(ReceivedState.Refused, bob.wallet.receivedNotes.first().single().state, "given up after the brand's two hours")
+            assertEquals(ReceivedState.Archived, bob.wallet.receivedNotes.first().single().state, "given up after the brand's two hours")
         }
 
     @Test

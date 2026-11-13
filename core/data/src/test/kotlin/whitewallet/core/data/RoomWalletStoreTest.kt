@@ -19,6 +19,7 @@ import whitewallet.core.model.Account
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
@@ -257,7 +258,7 @@ class RoomWalletStoreTest {
             val locked =
                 received(q1, "acc", ReceivedState.Locked)
                     .copy(lockedUntilMillis = 1_800_000_000_000, lockedForSeconds = 86_528, receivedAtMillis = 2)
-            val waiting = received(q2, "acc", ReceivedState.Waiting).copy(refusedSinceMillis = 1_700_000_000_000)
+            val waiting = received(q2, "acc", ReceivedState.Waiting).copy(failingSinceMillis = 1_700_000_000_000)
             store.putReceivedNote(locked)
             store.putReceivedNote(waiting)
             assertEquals(locked, store.receivedNote(q1))
@@ -268,6 +269,9 @@ class RoomWalletStoreTest {
             store.putReceivedNote(claimed)
             assertEquals(claimed, store.receivedNote(q2))
             assertEquals(listOf(locked), store.receivedNotes(setOf(ReceivedState.Waiting, ReceivedState.Locked)))
+            val archived = locked.copy(state = ReceivedState.Archived, archivedReason = ArchiveReason.ByUser)
+            store.putReceivedNote(archived)
+            assertEquals(archived, store.receivedNote(q1), "archived with why")
             store.deleteReceivedNote(q1)
             assertNull(store.receivedNote(q1))
         }

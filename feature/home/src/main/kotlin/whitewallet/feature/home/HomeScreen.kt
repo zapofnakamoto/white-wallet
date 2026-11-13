@@ -169,7 +169,8 @@ fun HomeRoute(
         onNoticeShown = viewModel::noticeShown,
         onRecheckUnknown = viewModel::recheckUnknown,
         onUnknownCheckShown = viewModel::unknownCheckShown,
-        onDismissReceived = viewModel::dismissReceived,
+        onRemoveReceived = viewModel::removeReceived,
+        onArchiveReceived = viewModel::archiveReceived,
         onScan,
         onAddMint,
         onScanMints,
@@ -219,7 +220,8 @@ fun HomeScreen(
     onNoticeShown: () -> Unit = {},
     onRecheckUnknown: () -> Unit = {},
     onUnknownCheckShown: () -> Unit = {},
-    onDismissReceived: (String) -> Unit = {},
+    onRemoveReceived: (String) -> Unit = {},
+    onArchiveReceived: (String) -> Unit = {},
     onScan: (() -> Unit)? = null,
     onAddMint: () -> Unit = {},
     onScanMints: () -> Unit = {},
@@ -342,7 +344,8 @@ fun HomeScreen(
                                 onToggleBalance,
                                 onOpenMint,
                                 onRecheckUnknown,
-                                onDismissReceived,
+                                onRemoveReceived,
+                                onArchiveReceived,
                                 onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
                                 onOpenShared = { saved = if (notesTab != null) HomeTab.Notes else HomeTab.History },
                                 onOpenMints,
@@ -542,7 +545,8 @@ private fun WalletTab(
     onToggleBalance: () -> Unit,
     onOpenMint: (String) -> Unit,
     onRecheckUnknown: () -> Unit,
-    onDismissReceived: (String) -> Unit,
+    onRemoveReceived: (String) -> Unit,
+    onArchiveReceived: (String) -> Unit,
     /** Opens the notes view, where received notes and those a mint doesn't know are listed too; null without one. */
     onOpenIncoming: (() -> Unit)?,
     /** Opens where the notes handed out are listed, each leading to its QR code and to taking it back. */
@@ -648,7 +652,7 @@ private fun WalletTab(
                     modifier = Modifier.clickable(onClick = onOpenShared),
                 )
             }
-            if (state.received.isNotEmpty()) ReceivedCard(state, onDismissReceived)
+            if (state.received.isNotEmpty()) ReceivedCard(state, onRemoveReceived, onArchiveReceived)
             // Nothing in the wallet yet: say how money gets in. Not while the balance is hidden, which would give it away.
             if (state.status == WalletStatus.Empty && !state.balanceHidden) {
                 Text(stringResource(R.string.home_wallet_empty), textAlign = TextAlign.Center)
@@ -1017,7 +1021,7 @@ private fun BalanceByMint(mints: List<AccountMint>, more: List<AccountMint>, onO
  * the balance.
  */
 @Composable
-private fun ReceivedCard(state: HomeState, onDismiss: (String) -> Unit) {
+private fun ReceivedCard(state: HomeState, onRemove: (String) -> Unit, onArchive: (String) -> Unit) {
     WalletCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 8.dp)) {
             Text(
@@ -1026,7 +1030,13 @@ private fun ReceivedCard(state: HomeState, onDismiss: (String) -> Unit) {
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             state.received.forEach {
-                ReceivedNoteRow(it, showMint = state.mintsVisible, amountHidden = state.balanceHidden, onDismiss = onDismiss)
+                ReceivedNoteRow(
+                    it,
+                    showMint = state.mintsVisible,
+                    amountHidden = state.balanceHidden,
+                    onRemove = onRemove,
+                    onArchive = onArchive,
+                )
             }
             if (state.received.any { it.isPending }) {
                 Text(

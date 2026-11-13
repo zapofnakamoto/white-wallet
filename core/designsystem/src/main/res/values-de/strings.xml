@@ -50,4 +50,24 @@
         <item quantity="other">Seine Mint hat ihn %d Tage lang abgelehnt, deshalb versucht deine Wallet es nicht mehr.</item>
     </plurals>
     <string name="received_dismiss">Entfernen</string>
+    <string name="received_archive">Archivieren</string>
+    <string name="received_archived_by_you">Du hast ihn archiviert.</string>
+    <plurals name="received_unreachable_hours">
+        <item quantity="one">Seine Mint war %d Stunde lang nicht erreichbar, deshalb versucht deine Wallet es nicht mehr.</item>
+        <item quantity="other">Seine Mint war %d Stunden lang nicht erreichbar, deshalb versucht deine Wallet es nicht mehr.</item>
+    </plurals>
+    <plurals name="received_unreachable_days">
+        <item quantity="one">Seine Mint war %d Tag lang nicht erreichbar, deshalb versucht deine Wallet es nicht mehr.</item>
+        <item quantity="other">Seine Mint war %d Tage lang nicht erreichbar, deshalb versucht deine Wallet es nicht mehr.</item>
+    </plurals>
+    <plurals name="received_not_a_note_hours">
+        <item quantity="one">Seine Mint hat %d Stunde lang nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
+        <item quantity="other">Seine Mint hat %d Stunden lang nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
+    </plurals>
+    <plurals name="received_not_a_note_days">
+        <item quantity="one">Seine Mint hat %d Tag lang nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
+        <item quantity="other">Seine Mint hat %d Tage lang nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
+    </plurals>
+    <string name="received_unreachable">Seine Mint war nicht erreichbar, deshalb versucht deine Wallet es nicht mehr.</string>
+    <string name="received_not_a_note">Seine Mint hat nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</string>
 </resources>

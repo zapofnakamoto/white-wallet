@@ -19,9 +19,13 @@ class HomeStateTest {
     ) = ReceivedNote(id, "a", host, "w", "k1", null, declaredMsat, amountMsat, null, null, state, null, 1, 1)
 
     @Test
-    fun `claimed notes aren't shown, the others are, in their order`() {
+    fun `claimed and archived notes aren't shown, the others are, in their order`() {
         val notes = ReceivedState.entries.map { received(it.name, it) }
-        assertEquals(ReceivedState.entries - ReceivedState.Claimed, ReceivedNote.shown(notes).map { it.state })
+        assertEquals(
+            ReceivedState.entries - ReceivedState.Claimed - ReceivedState.Archived,
+            ReceivedNote.shown(notes).map { it.state },
+        )
+        assertEquals(listOf(ReceivedState.Archived), ReceivedNote.archived(notes).map { it.state })
     }
 
     @Test
@@ -37,7 +41,7 @@ class HomeStateTest {
                         received("c", ReceivedState.Claiming, amountMsat = 8_000),
                         received("u", ReceivedState.Waiting),
                         received("g", ReceivedState.Gone, amountMsat = 100_000),
-                        received("r", ReceivedState.Refused, amountMsat = 100_000),
+                        received("r", ReceivedState.Archived, amountMsat = 100_000),
                     ),
             )
         assertEquals(15_000, state.incomingMsat)
@@ -48,7 +52,7 @@ class HomeStateTest {
         assertEquals(WalletStatus.Idle, HomeState(activeAccountId = "a", received = listOf(received("w", ReceivedState.Waiting))).status)
         assertEquals(
             WalletStatus.Empty,
-            HomeState(activeAccountId = "a", received = listOf(received("g", ReceivedState.Gone), received("r", ReceivedState.Refused)))
+            HomeState(activeAccountId = "a", received = listOf(received("g", ReceivedState.Gone), received("r", ReceivedState.Archived)))
                 .status,
         )
     }

@@ -4,6 +4,7 @@ import fr.acinq.bitcoin.ByteVector32
 import java.io.IOException
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
@@ -77,15 +78,15 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 } catch (e: NoteLookupError) {
                     return refused(note, spend, e.kind, e.reason)
                 } catch (e: ProtocolViolation) {
-                    return waiting(note)
+                    return waiting(note, ArchiveReason.NotANote)
                 } catch (e: IOException) {
-                    return waiting(note)
+                    return waiting(note, ArchiveReason.Unreachable)
                 }
         if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
         val known = wallet.mintOf(note.accountId, note.host)
         val pinned = known?.mintPubkey
         if (pinned != null && pinned != answer.mintPubkey.toHex())
-            return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, refusedSinceMillis = null)))
+            return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, failingSinceMillis = null)))
         // A mint met here for the first time is connected before the claim, with the key it just presented: the claim's new key is then
         // found past the keys the phrase already used there (see [IndexGuard]). If it can't be connected, the claim starts at the first key
         // and the mint is connected after it.
@@ -124,7 +125,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 ClaimResult.Pending
             }
             is MutationResult.Refused -> refused(note, spend, result.kind, result.reason)
-            is MutationResult.Unreachable -> waiting(note)
+            is MutationResult.Unreachable -> waiting(note, ArchiveReason.Unreachable)
         }
     }
 
@@ -141,10 +142,28 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         }
     }
 
-    /** Forgets a note that is no longer claimed: spent by someone else, or refused by its mint for too long. */
-    suspend fun dismiss(id: String) {
+    /**
+     * Puts a kept note aside ([ReceivedState.Archived], by the user): no longer tried until the user tries it again. Not one being claimed,
+     * whose outcome is settled first.
+     */
+    suspend fun archive(id: String) {
         val note = wallet.store.receivedNote(id) ?: return
-        if (note.state == ReceivedState.Gone || note.state == ReceivedState.Refused) wallet.store.deleteReceivedNote(id)
+        if (note.state in RETRIED) update(note.copy(state = ReceivedState.Archived, archivedReason = ArchiveReason.ByUser))
+    }
+
+    /** Takes an archived note out of the archive and claims it now; kept again, with a new week, if it can't be. Null if not archived. */
+    suspend fun retry(id: String): ClaimResult? {
+        val note = wallet.store.receivedNote(id)?.takeIf { it.state == ReceivedState.Archived } ?: return null
+        return claim(update(note.copy(state = ReceivedState.Waiting, failingSinceMillis = null, archivedReason = null)))
+    }
+
+    /**
+     * Forgets a note for good: one spent by someone else (nothing left to lose), or an archived one, whose spend is gone with it: the
+     * recovery phrase can't bring it back.
+     */
+    suspend fun remove(id: String) {
+        val note = wallet.store.receivedNote(id) ?: return
+        if (note.state == ReceivedState.Gone || note.state == ReceivedState.Archived) wallet.store.deleteReceivedNote(id)
     }
 
     /** A claim sent earlier: claimed if its journal entry landed; if it didn't, gone or waiting, by what the mint says. */
@@ -188,20 +207,34 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         }
         val script = spend as? Spend.Script
         if (script?.lockedUntilSeconds != null || script?.lockedForSeconds != null) {
-            return ClaimResult.Kept(update(note.copy(state = ReceivedState.Locked, refusedSinceMillis = null)))
+            return ClaimResult.Kept(update(note.copy(state = ReceivedState.Locked, failingSinceMillis = null)))
         }
-        // Another refusal (rate limited, a mint's own trouble): tried again on every refresh, for Wallet.receivedGiveUpMillis from the
-        // first refusal.
-        val since = note.refusedSinceMillis ?: wallet.now()
-        val state = if (wallet.now() - since >= wallet.receivedGiveUpMillis) ReceivedState.Refused else ReceivedState.Waiting
-        update(note.copy(state = state, refusedSinceMillis = since))
+        // Another refusal (rate limited, a mint's own trouble).
+        failing(note, ArchiveReason.Refused)
         return ClaimResult.Failed(kind, reason)
     }
 
-    private suspend fun waiting(note: ReceivedNote): ClaimResult {
-        val kept = update(note.copy(state = ReceivedState.Waiting))
-        wallet.syncWhenOnline()
+    /** Its mint couldn't be reached, or didn't answer as for a note: kept, and tried again once online. */
+    private suspend fun waiting(note: ReceivedNote, reason: ArchiveReason): ClaimResult {
+        val kept = failing(note, reason)
+        if (kept.state == ReceivedState.Waiting) wallet.syncWhenOnline()
         return ClaimResult.Kept(kept)
+    }
+
+    /**
+     * A claim that failed for [reason]: tried again on every refresh, for [Wallet.receivedGiveUpMillis] from the first failure (whatever
+     * its reason), then archived with the last one. Never deleted: its spend is the only copy.
+     */
+    private suspend fun failing(note: ReceivedNote, reason: ArchiveReason): ReceivedNote {
+        val since = note.failingSinceMillis ?: wallet.now()
+        val givenUp = wallet.now() - since >= wallet.receivedGiveUpMillis
+        return update(
+            note.copy(
+                state = if (givenUp) ReceivedState.Archived else ReceivedState.Waiting,
+                failingSinceMillis = since,
+                archivedReason = reason.takeIf { givenUp },
+            )
+        )
     }
 
     private suspend fun update(note: ReceivedNote): ReceivedNote =

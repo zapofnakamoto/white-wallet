@@ -987,7 +987,7 @@ class HomeScreenTest {
                 onDismissBackup = {},
                 onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
-                onDismissReceived = { dismissed = it },
+                onRemoveReceived = { dismissed = it },
             )
         }
         compose.onNodeWithText(text(DesignR.string.received_gone)).assertExists()
@@ -1010,15 +1010,14 @@ class HomeScreenTest {
     }
 
     @Test
-    fun aNoteItsMintKeptRefusingSaysSoAndCanBeRemoved() {
-        var dismissed: String? = null
-        val received = received("r1", ReceivedState.Refused)
-        // Given up at the first refresh after a week (the default notes.received.giveUpAfter).
-        val refused = received.copy(refusedSinceMillis = received.updatedAtMillis - 7 * 86_400_000L - 15 * 60_000L)
+    fun aKeptNoteCanBeArchived() {
+        var archived: String? = null
+        var removed: String? = null
+        val waiting = received("r1", ReceivedState.Waiting)
         compose.setContent {
             HomeScreen(
                 "Wallet",
-                HomeState(activeAccountId = "a", received = listOf(refused)),
+                HomeState(activeAccountId = "a", received = listOf(waiting)),
                 onSend = {},
                 onReceive = {},
                 onRefresh = {},
@@ -1027,13 +1026,15 @@ class HomeScreenTest {
                 onDismissBackup = {},
                 onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
-                onDismissReceived = { dismissed = it },
+                onRemoveReceived = { removed = it },
+                onArchiveReceived = { archived = it },
             )
         }
-        compose.onNodeWithText("Its mint kept refusing it for 7 days, so your wallet stopped trying.").assertExists()
-        compose.onNodeWithText("received, not claimed yet", substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(DesignR.string.received_dismiss)).performClick()
-        assertEquals(refused.id, dismissed)
+        // One the wallet still tries is never removed straight away: it goes to the archive first.
+        compose.onNodeWithText(text(DesignR.string.received_dismiss)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.received_archive)).performClick()
+        assertEquals(waiting.id, archived)
+        assertEquals(null, removed)
     }
 
     private companion object {

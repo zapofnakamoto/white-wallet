@@ -302,9 +302,14 @@ class HomeViewModel(
         }
     }
 
-    /** Forgets a received note that can no longer be claimed. */
-    fun dismissReceived(id: String) {
-        viewModelScope.launch { wallet.dismissReceivedNote(id) }
+    /** Forgets a received note someone else spent. */
+    fun removeReceived(id: String) {
+        viewModelScope.launch { wallet.removeReceivedNote(id) }
+    }
+
+    /** Puts a kept received note aside, into the archive (in the notes view). */
+    fun archiveReceived(id: String) {
+        viewModelScope.launch { wallet.archiveReceivedNote(id) }
     }
 
     /**

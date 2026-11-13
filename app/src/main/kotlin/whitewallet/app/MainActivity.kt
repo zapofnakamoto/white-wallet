@@ -63,6 +63,7 @@ import whitewallet.feature.home.HomeMenuItem
 import whitewallet.feature.home.HomeRoute
 import whitewallet.feature.home.MoveFundsRoute
 import whitewallet.feature.home.NotesTabSlot
+import whitewallet.feature.notes.ArchiveRoute
 import whitewallet.feature.notes.NoteSettingsButton
 import whitewallet.feature.notes.NotesRoute
 import whitewallet.feature.notes.NotesTab
@@ -252,6 +253,7 @@ internal object Routes {
     const val ADDRESSES = "addresses"
     /** Note settings (strategy, collecting, auto-rotate). */
     const val NOTES = "settings/notes"
+    const val ARCHIVE = "notes/archive"
 
     /** The notes view on its own page, for brands without a Notes tab. */
     const val NOTE_LIST = "notes"
@@ -396,7 +398,11 @@ private fun WalletApp(
                     },
                 notesTab =
                     if (showNotesTab)
-                        notesTab(onSettings = { nav.navigate(Routes.NOTES) }, onOpenShared = { id -> nav.navigate(Routes.note(id)) })
+                        notesTab(
+                            onSettings = { nav.navigate(Routes.NOTES) },
+                            onOpenShared = { id -> nav.navigate(Routes.note(id)) },
+                            onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
+                        )
                     else null,
             )
         }
@@ -405,8 +411,10 @@ private fun WalletApp(
                 onBack = { nav.popBackStack() },
                 onSettings = { nav.navigate(Routes.NOTES) },
                 onOpenShared = { id -> nav.navigate(Routes.note(id)) },
+                onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
             )
         }
+        composable(Routes.ARCHIVE) { ArchiveRoute(onBack = { nav.popBackStack() }) }
         // The new account is in use: its page opens over the wallet's.
         composable(Routes.NEW_ACCOUNT) {
             AccountNameRoute(
@@ -686,13 +694,18 @@ private class BrandScreens(screens: Set<BrandScreen>) {
 
 /** The Notes tab for Home: the notes view, its refresh (asking the mints about every note) and its settings button. */
 @Composable
-private fun notesTab(onSettings: () -> Unit, onOpenShared: (String) -> Unit, viewModel: NotesViewModel = hiltViewModel()): NotesTabSlot {
+private fun notesTab(
+    onSettings: () -> Unit,
+    onOpenShared: (String) -> Unit,
+    onOpenArchive: () -> Unit,
+    viewModel: NotesViewModel = hiltViewModel(),
+): NotesTabSlot {
     val state by viewModel.state.collectAsStateWithLifecycle()
     return NotesTabSlot(
         refreshing = state.refreshing,
         onRefresh = viewModel::refresh,
         actions = { NoteSettingsButton(onSettings) },
-        content = { NotesTab(viewModel, onOpenShared) },
+        content = { NotesTab(viewModel, onOpenShared, onOpenArchive) },
     )
 }
 

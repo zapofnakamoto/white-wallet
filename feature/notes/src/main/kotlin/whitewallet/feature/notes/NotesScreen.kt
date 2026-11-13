@@ -74,7 +74,7 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.NoteAction
 import whitewallet.core.wallet.SimulatedFailure
 
-/** Everything the notes view can ask for. Navigation ([openShared], [openSettings]) is the caller's. */
+/** Everything the notes view can ask for. Navigation ([openShared], [openArchive]) is the caller's. */
 class NotesActions(
     val tap: (Note) -> Unit = {},
     val longPress: (Note) -> Unit = {},
@@ -98,13 +98,18 @@ class NotesActions(
     val dismissDialog: () -> Unit = {},
     val openShared: (String) -> Unit = {},
     val simulateFailure: (SimulatedFailure.Kind?) -> Unit = {},
-    val dismissReceived: (String) -> Unit = {},
+    val removeReceived: (String) -> Unit = {},
+    val archiveReceived: (String) -> Unit = {},
+    val openArchive: () -> Unit = {},
 )
 
-/** Wires [NotesViewModel] to [NotesContent]; [onOpenShared] shows a shared note (its QR code, or taking it back). */
+/**
+ * Wires [NotesViewModel] to [NotesContent]; [onOpenShared] shows a shared note (its QR code, or taking it back), [onOpenArchive] the
+ * archived received notes.
+ */
 @Composable
-fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Unit): NotesActions =
-    remember(viewModel, onOpenShared) {
+fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Unit, onOpenArchive: () -> Unit): NotesActions =
+    remember(viewModel, onOpenShared, onOpenArchive) {
         NotesActions(
             tap = viewModel::tap,
             longPress = viewModel::select,
@@ -128,7 +133,9 @@ fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Un
             move = viewModel::move,
             dismissDialog = viewModel::dismissDialog,
             openShared = onOpenShared,
-            dismissReceived = viewModel::dismissReceived,
+            removeReceived = viewModel::removeReceived,
+            archiveReceived = viewModel::archiveReceived,
+            openArchive = onOpenArchive,
         )
     }
 
@@ -137,7 +144,7 @@ fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Un
  * opens through [onOpenShared].
  */
 @Composable
-fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit) {
+fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit, onOpenArchive: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.sharedId) {
         state.sharedId?.let {
@@ -145,13 +152,19 @@ fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit) {
             viewModel.sharedShown()
         }
     }
-    NotesContent(state, rememberNotesActions(viewModel, onOpenShared))
+    NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive))
 }
 
 /** The notes view on its own page, for brands with `notes.view=settings`; reached from account settings. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesRoute(onBack: () -> Unit, onSettings: () -> Unit, onOpenShared: (String) -> Unit, viewModel: NotesViewModel = hiltViewModel()) {
+fun NotesRoute(
+    onBack: () -> Unit,
+    onSettings: () -> Unit,
+    onOpenShared: (String) -> Unit,
+    onOpenArchive: () -> Unit,
+    viewModel: NotesViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.sharedId) {
         state.sharedId?.let {
@@ -166,7 +179,7 @@ fun NotesRoute(onBack: () -> Unit, onSettings: () -> Unit, onOpenShared: (String
             onRefresh = viewModel::refresh,
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {
-            NotesContent(state, rememberNotesActions(viewModel, onOpenShared))
+            NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive))
         }
     }
 }
@@ -194,7 +207,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
             state.outcome
                 ?.takeIf { state.open == null }
                 ?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
-            if (state.mints.isEmpty() && state.shared.isEmpty() && state.received.isEmpty()) {
+            if (state.mints.isEmpty() && state.shared.isEmpty() && state.received.isEmpty() && state.archivedCount == 0) {
                 item {
                     Column(Modifier.padding(16.dp)) {
                         WalletStatusScope(WalletStatus.Empty) { BrandDecoration(Anchor.NotesEmpty) }
@@ -210,9 +223,16 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
             if (state.received.isNotEmpty()) {
                 item { ReceivedHeader() }
                 items(state.received, key = { "received:${it.id}" }) { note ->
-                    ReceivedNoteRow(note, state.showMints, amountHidden = false, onDismiss = actions.dismissReceived)
+                    ReceivedNoteRow(
+                        note,
+                        state.showMints,
+                        amountHidden = false,
+                        onRemove = actions.removeReceived,
+                        onArchive = actions.archiveReceived,
+                    )
                 }
             }
+            if (state.archivedCount > 0) item(key = "archived") { ArchivedRow(state.archivedCount, actions.openArchive) }
             if (state.shared.isNotEmpty()) {
                 item { SharedHeader() }
                 items(state.shared, key = { "shared:${it.id}" }) { note -> SharedRow(note, state.showMints, actions.openShared) }
@@ -428,6 +448,17 @@ private fun ReceivedHeader() {
             )
         },
         supportingContent = { Text(stringResource(DesignR.string.received_hint)) },
+    )
+}
+
+/** Opens the archive: received notes the wallet no longer tries. Only there when it holds any. */
+@Composable
+private fun ArchivedRow(count: Int, onOpen: () -> Unit) {
+    HorizontalDivider()
+    WalletListItem(
+        headlineContent = { Text(pluralStringResource(R.plurals.notes_archived, count, count)) },
+        supportingContent = { Text(stringResource(R.string.notes_archived_hint)) },
+        modifier = Modifier.clickable(onClickLabel = stringResource(R.string.notes_archived_open), onClick = onOpen),
     )
 }
 

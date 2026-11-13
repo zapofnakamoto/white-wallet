@@ -12,6 +12,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import whitewallet.core.model.Account
 import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.KeyScheme
@@ -38,6 +40,7 @@ import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
 import whitewallet.core.wallet.MintKey
+import whitewallet.lnurlcash.RevealsNoteSecret
 
 /**
  * An update keeps what a released app stored: a database of an older version, built from its exported schema (core/data/schemas), opens
@@ -352,6 +355,43 @@ class MigrationTest {
 
                 // From now on the database keeps it that way: no row of an account that doesn't exist.
                 assertFailsWith<SQLiteConstraintException> { store.setKeyIndex("gone", "one.example", KeyCounter.Wallet, 1) }
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `a wallet of version 7 keeps its received notes, and those its mint kept refusing are archived as refused`() =
+        runBlocking<Unit> {
+            val q = { c: Char -> c.toString().repeat(64) }
+            oldDatabase("v7.db", 7) {
+                execSQL("INSERT INTO wallets VALUES ('w1', NULL, 1, NULL, NULL)")
+                execSQL("INSERT INTO accounts VALUES ('a0', 'Main', 1, 'w1', 0, 'one.example')")
+                execSQL(
+                    "INSERT INTO received_notes VALUES ('${q('r')}', 'a0', 'one.example', 'https://one.example/w', 'k1', NULL, 500, NULL, " +
+                        "NULL, NULL, 'Refused', NULL, 1, 2, 1)"
+                )
+                execSQL(
+                    "INSERT INTO received_notes VALUES ('${q('w')}', 'a0', 'one.example', 'https://one.example/w', 'k2', NULL, 700, NULL, " +
+                        "NULL, NULL, 'Waiting', NULL, 1, 2, 1)"
+                )
+            }
+            val db =
+                Room.databaseBuilder(context, WalletDatabase::class.java, "v7.db")
+                    .addMigrations(*WalletDatabase.MIGRATIONS)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val store = RoomWalletStore(db)
+                val refused = assertNotNull(store.receivedNote(q('r')))
+                assertEquals(ReceivedState.Archived, refused.state)
+                assertEquals(ArchiveReason.Refused, refused.archivedReason)
+                assertEquals(1, refused.failingSinceMillis)
+                @OptIn(RevealsNoteSecret::class) val k1 = refused.k1
+                assertEquals("k1", k1, "its spend is kept")
+                val waiting = assertNotNull(store.receivedNote(q('w')))
+                assertEquals(ReceivedState.Waiting, waiting.state)
+                assertNull(waiting.archivedReason)
             } finally {
                 db.close()
             }
