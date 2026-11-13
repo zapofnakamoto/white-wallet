@@ -1247,7 +1247,7 @@ class Wallet(
      */
     suspend fun addressShares(host: String): List<AddressShare> {
         val id = activeId()
-        val addresses = store.addresses(id).first().filter { it.host == host && it.share != null }.associateBy { it.share!! }
+        val addresses = store.addresses(id).first().filter { it.host == host }.associateBy { it.share }
         val handedOut = store.keyIndexOrNull(id, spendDomain(host), KeyCounter.Shares) ?: 0
         return ((0 until handedOut) + addresses.keys).distinct().sorted().map { AddressShare(it, addresses[it]?.address) }
     }
