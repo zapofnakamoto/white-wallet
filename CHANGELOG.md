@@ -5,6 +5,15 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Changed
+
+- For developers, in `wallet.properties`: how long the wallet asks a mint often about a note it didn't know is a
+  setting, `unknown.note.grace.period.millis` (by default a day, as before). The two intervals are renamed after it:
+  `unknown.note.check.interval.first.day.millis` is `unknown.note.check.interval.in.grace.period.millis`, and
+  `unknown.note.check.interval.after.first.day.millis` is `unknown.note.check.interval.after.grace.period.millis`. The old
+  keys are no longer read. The comment of each time setting says its default and bounds as durations (`5m`, `1d`),
+  checked by the build.
+
 ## [0.9.0]
 
 ### Added

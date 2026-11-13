@@ -21,9 +21,21 @@ internal data class WalletSetting(val key: String, val value: String, val doc: S
     val isMillis = key.endsWith(".millis")
 }
 
-private val ALLOWED = Regex("""\s*Allowed: (\d+) to (\d+)\.""")
+private val ALLOWED = Regex("""\s*Allowed: (\d+) to (\d+)(?: \(([^)]*)\))?\.""")
+private val DEFAULT = Regex("""Default: (\S+)\.""")
 
-/** The keys of wallet.properties: a key's documentation is the comment right above it, which ends with what it allows. */
+/** 300000 is `5m`: the largest of d, h, m and s it is a whole number of, else ms. */
+internal fun millisAsDuration(millis: Long): String =
+    if (millis == 0L) "0"
+    else
+        listOf("d" to 86_400_000L, "h" to 3_600_000L, "m" to 60_000L, "s" to 1000L)
+            .firstOrNull { (_, unit) -> millis % unit == 0L }
+            ?.let { (name, unit) -> "${millis / unit}$name" } ?: "${millis}ms"
+
+/**
+ * The keys of wallet.properties: a key's documentation is the comment right above it, which ends with what it allows. A `.millis` key's
+ * comment also says its default and bounds as durations (`Default: 5m. Allowed: 1000 to 86400000 (1s to 1d).`), which must match.
+ */
 internal fun parseWalletSettings(text: String): List<WalletSetting> {
     val settings = mutableListOf<WalletSetting>()
     var comment = mutableListOf<String>()
@@ -35,8 +47,20 @@ internal fun parseWalletSettings(text: String): List<WalletSetting> {
                 val (key, value) = line.split('=', limit = 2)
                 val doc = comment.joinToString(" ")
                 val allowed = checkNotNull(ALLOWED.find(doc)) { "wallet.properties: $key needs a comment ending in 'Allowed: 1 to 10.'" }
-                val (min, max) = allowed.destructured
-                settings += WalletSetting(key, value, doc.replace(ALLOWED, ""), min.toLong()..max.toLong())
+                val (min, max, durations) = allowed.destructured
+                val setting = WalletSetting(key, value, doc.replace(ALLOWED, ""), min.toLong()..max.toLong())
+                if (setting.isMillis) {
+                    val bounds = "${millisAsDuration(min.toLong())} to ${millisAsDuration(max.toLong())}"
+                    check(durations == bounds) {
+                        "wallet.properties: $key needs its bounds as durations, 'Allowed: $min to $max ($bounds).'"
+                    }
+                    value.trim().toLongOrNull()?.let(::millisAsDuration)?.let { default ->
+                        check(DEFAULT.find(doc)?.groupValues?.get(1) == default) {
+                            "wallet.properties: $key needs 'Default: $default.' in its comment"
+                        }
+                    }
+                }
+                settings += setting
                 comment = mutableListOf()
             }
         }

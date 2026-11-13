@@ -37,9 +37,10 @@ internal class UnknownNotes(private val wallet: Wallet) {
     }
 
     /**
-     * Asks again about [accountId]'s unknown notes that are due: each refresh for a day after it was set aside, at most every
-     * [WalletSettings.unknownNoteCheckIntervalFirstDayMillis], then once every
-     * [WalletSettings.unknownNoteCheckIntervalAfterFirstDayMillis]. A mint that doesn't answer is left for the next time.
+     * Asks again about [accountId]'s unknown notes that are due: during a note's grace period
+     * ([WalletSettings.unknownNoteGracePeriodMillis] from when it was set aside) at most every
+     * [WalletSettings.unknownNoteCheckIntervalInGracePeriodMillis], after it once every
+     * [WalletSettings.unknownNoteCheckIntervalAfterGracePeriodMillis]. A mint that doesn't answer is left for the next time.
      */
     suspend fun recheckDue(accountId: String) {
         val now = wallet.now()
@@ -63,13 +64,11 @@ internal class UnknownNotes(private val wallet: Wallet) {
     }
 
     private fun interval(unknownForMillis: Long) =
-        if (unknownForMillis < DAY_MILLIS) wallet.settings.unknownNoteCheckIntervalFirstDayMillis
-        else wallet.settings.unknownNoteCheckIntervalAfterFirstDayMillis
+        if (unknownForMillis < wallet.settings.unknownNoteGracePeriodMillis) wallet.settings.unknownNoteCheckIntervalInGracePeriodMillis
+        else wallet.settings.unknownNoteCheckIntervalAfterGracePeriodMillis
 
     companion object {
         /** The refusals that may mean the mint doesn't know a note (a merge with an unknown input is refused as spent). */
         val GONE = setOf(RejectionKind.NoteUnknown, RejectionKind.Spent)
-
-        private const val DAY_MILLIS = 24 * 60 * 60_000L
     }
 }

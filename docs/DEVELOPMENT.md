@@ -81,7 +81,7 @@ CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the
 
 ## Wallet settings
 
-`wallet.properties` at the root holds the numbers that decide how the wallet behaves. Brands don't set them; what a brand decides is in `brand.properties`. The build turns the file into the data class `WalletSettings`: each key becomes a field (`scan.stop.after.unused.keys` is `scanStopAfterUnusedKeys`), and the comment above it becomes the field's documentation. That comment must end with what the key allows, such as `Allowed: 1 to 1000.`, which the build and the class both check. A key ending in `.millis` is a time in milliseconds.
+`wallet.properties` at the root holds the numbers that decide how the wallet behaves. Brands don't set them; what a brand decides is in `brand.properties`. The build turns the file into the data class `WalletSettings`: each key becomes a field (`scan.stop.after.unused.keys` is `scanStopAfterUnusedKeys`), and the comment above it becomes the field's documentation. That comment must end with what the key allows, such as `Allowed: 1 to 1000.`, which the build and the class both check. A key ending in `.millis` is a time in milliseconds, and its comment also says its default and bounds as durations (`Default: 5m. Allowed: 1000 to 86400000 (1s to 1d).`), which the build checks against the numbers.
 
 To try a value in one build, without editing the file, use `-Pscan.stop.after.unused.keys=30` or `WW_SCAN_STOP_AFTER_UNUSED_KEYS=30`; `-P` wins. They are read when the app is built, since a phone has no environment. `assembleRelease` and `bundleRelease` fail if one is set, so a commit can only build one release. Tests pass their own `WalletSettings` to `Wallet`.
 
