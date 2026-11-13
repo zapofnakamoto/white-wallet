@@ -216,6 +216,7 @@ internal object Regtest {
         now: () -> Long = System::currentTimeMillis,
         receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
         settings: WalletSettings = WalletSettings(),
+        withoutSigningKey: MintsWithoutSigningKey = MintsWithoutSigningKey(),
     ): Phone {
         val store = InMemoryWalletStore()
         val wallet =
@@ -229,6 +230,7 @@ internal object Regtest {
                 now = now,
                 receivedGiveUpMillis = receivedGiveUpMillis,
                 settings = settings,
+                withoutSigningKey = withoutSigningKey,
             )
         val name = name()
         registered(wallet, wallet.onboard(name, host))
@@ -294,6 +296,16 @@ internal object Regtest {
 
     /** A valid key no mint signs with (the generator point): what a mint whose key changed presents here. */
     const val OTHER_KEY = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+
+    /** [response] as if its mint published no signing key (LUD-25 only says SHOULD). */
+    fun withoutSigningKey(response: Response): Response {
+        val body =
+            response.body
+                .string()
+                .replace(Regex(""",\s*"mintPubkey":\s*"[0-9a-fA-F]{66}""""), "")
+                .replace(Regex(""""mintPubkey":\s*"[0-9a-fA-F]{66}",?"""), "")
+        return response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
+    }
 
     /** [response] as if its mint presented [OTHER_KEY] as its signing key. */
     fun presentingOtherKey(response: Response): Response {

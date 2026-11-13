@@ -205,8 +205,15 @@ private fun ResultContent(state: AddMintState, actions: AddMintActions) {
     when {
         failed != null -> {
             Text(
-                if (state.keyChanged) stringResource(R.string.add_mint_failed_key)
-                else stringResource(R.string.add_mint_failed_body, failed),
+                when {
+                    state.keyChanged -> stringResource(R.string.add_mint_failed_key)
+                    state.withoutSigningKey ->
+                        stringResource(
+                            if (state.canAllowWithoutSigningKey) R.string.onboarding_error_mint_without_key_allow
+                            else R.string.onboarding_error_mint_without_key
+                        )
+                    else -> stringResource(R.string.add_mint_failed_body, failed)
+                },
                 textAlign = TextAlign.Center,
             )
             if (state.found.isNotEmpty()) Hint(stringResource(R.string.add_mint_failed_kept, formatAmount(state.foundMsat)))

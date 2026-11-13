@@ -16,6 +16,7 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.ConnectResult
 import whitewallet.core.wallet.MINT_KEY_CHANGED
+import whitewallet.core.wallet.MINT_WITHOUT_SIGNING_KEY
 import whitewallet.core.wallet.MintPreview
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.ScanProgress
@@ -76,6 +77,10 @@ data class AddMintState(
     /** The mint was added all the same and only its scan stopped: it can be scanned again right here, or later. */
     val kept: Boolean = false,
     val keyChanged: Boolean = false,
+    /** It publishes no signing key, and the wallet doesn't allow such mints. */
+    val withoutSigningKey: Boolean = false,
+    /** The brand lets the user allow such mints (Security settings). */
+    val canAllowWithoutSigningKey: Boolean = false,
     /** Asking whether to give the setup up (back on the first step). */
     val confirmAbandon: Boolean = false,
     val finish: AddMintFinish? = null,
@@ -153,11 +158,14 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
     /** Adds the mint shown, with the key it showed, and finds what the wallet holds there. */
     fun add() {
         val preview = _state.value.preview ?: return
-        _state.update { it.copy(step = AddMintStep.Adding, progress = null, failed = null, kept = false, keyChanged = false) }
+        _state.update {
+            it.copy(step = AddMintStep.Adding, progress = null, failed = null, kept = false, keyChanged = false, withoutSigningKey = false)
+        }
         viewModelScope.launch {
             val result = wallet.addMint(preview.host, preview.signingKey) { progress -> _state.update { it.copy(progress = progress) } }
             val found = wallet.heldAt(preview.host).map { (account, msat) -> FoundAccount(account.name, msat) }
-            val keyChanged = ((result as? ConnectResult.Failed)?.result as? OnboardResult.MintInvalid)?.reason == MINT_KEY_CHANGED
+            val reason = ((result as? ConnectResult.Failed)?.result as? OnboardResult.MintInvalid)?.reason
+            val keyChanged = reason == MINT_KEY_CHANGED
             val kept = !keyChanged && wallet.unscannedMints.first().any { it.host == preview.host }
             _state.update {
                 when (result) {
@@ -169,6 +177,8 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
                             failed = failure(result.result),
                             kept = kept,
                             keyChanged = keyChanged,
+                            withoutSigningKey = reason == MINT_WITHOUT_SIGNING_KEY,
+                            canAllowWithoutSigningKey = wallet.offersMintsWithoutSigningKey,
                         )
                 }
             }

@@ -17,9 +17,33 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   kept link at any time too. From the archive a link can be tried again or removed for good, after a warning that the
   recovery phrase can't bring it back. Each says why it is there. Links refused for a week under an earlier version
   are in the archive after the update.
+- Withdraw links of other services (LNbits vouchers, ATMs, faucets: `lnurlw://`, or an `LNURL1…` that is one) open in
+  Claim, also from other apps, and are received over Lightning into the home mint: one confirm, which says what the
+  link pays and about what arrives after the mint's fee. The most both the link and the mint allow is taken; a link
+  outside what the mint takes is refused with the range it takes. An account without a home mint picks one of its
+  mints for that link. Offline, such a link isn't kept: open it again when connected. A link whose `k1` looks like a
+  note's spend is first asked by its key only; if its service doesn't answer for it as a note, the user is asked
+  before the link is shown to it. A link the service refuses waits under received notes, with "Receive" to try
+  again.
+- Mints without a signing key (LUD-25 only says a mint SHOULD publish one). Their notes can't be certified, and a
+  swapped mint can't be noticed, so by default such a mint is never added, and a note from one is received into the
+  home mint over Lightning once the user agrees to the fee (a note kept while offline waits for that under received
+  notes). Settings → Security → "Allow mints without a signing key", per wallet and off by default, keeps such notes
+  at their mint instead: the mint is added unpinned, marked on its page, and can't be trusted. Mints already added
+  keep working when it is off. Brand keys `mints.withoutSigningKey.setting` (show the setting, default `true`) and
+  `mints.withoutSigningKey.home` (may such a mint be a home mint, default `true`). New brand terms
+  `claim_melt_not_a_note`, `claim_melt_into_home`, `claim_melt_pick`, `claim_melt_no_mint`,
+  `claim_kept_for_lightning`, `claim_melt_no_signing_key`, `claim_melt_no_signing_key_allow`,
+  `onboarding_error_mint_without_key`, `onboarding_error_mint_without_key_allow`, `security_mints_without_key`,
+  `security_mints_without_key_hint`, `money_error_home_without_key` and `mint_signing_key_none_hint`; also
+  `received_lightning_not_a_note` names the note.
+- A link from another app that the wallet can't use says so on Home (before, nothing happened).
+- Links in capitals (`LIGHTNING:`, `LNURLW:`, `LNURLP:`), as QR codes write them, open the wallet too.
 
 ### Changed
 
+- An `LNURL1…` link from another app or the scanner first shows "Opening link" while its service says what it is,
+  then opens in Claim (a withdraw link) or Send (a pay link). Send hands a withdraw link pasted there to Claim.
 - Home's card about notes a mint doesn't know answers a tap on "Check again": a short message says the notes are
   back, that the mint still doesn't know them, or that it couldn't be reached (before, nothing showed unless the
   notes came back). The card says when the mint was last asked and that there is nothing to do but wait or ask the

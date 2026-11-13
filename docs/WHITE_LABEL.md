@@ -36,6 +36,8 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 | `mints.custom` | `true` (default): users may also use mints you don't suggest: type one at setup ("Custom…"), add one under Settings → Mints, make it their home. `false`: only the suggested mints can be a home, hold an address or receive moved money; users add a missing one from your list under Settings → Mints. Notes from any mint can still be claimed. `false` with no suggestions fails the build |
 | `mints.changeable` | After setup: `true` lets users add a Lightning address on another mint (same recovery phrase), change their home mint from the mint pages and move money between the mints they know, which needs `mints.visible=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose). `false`: each account stays on the mint it was set up with. With `true` (and `mints.visible=true`, and `addresses.lightning` not `required`), setup and restore also offer to go on without a mint: Home then asks for one until it is added |
 | `mints.visible` | `false` hides everything about mints from users: Settings → Mints (the device's mints), Account → Your mints (the account's, with its actions) and the mint pages, on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged), and in the notes view the mints' names, labels and totals: one mint's notes are a plain list, several mints' are only separated by a line. Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`), `notes.collect.atHomeMint` `hidden` or `always`, and `notes.maintenance.notices` `hidden` or `always` |
+| `mints.withoutSigningKey.setting` | `true` (default): Settings → Security offers "Allow mints without a signing key", per wallet, off by default. Such a mint publishes no `mintPubkey` (LUD-25 only says it SHOULD): its notes can't be certified, and a swapped mint can't be noticed. With the setting off, a note from one is received into the user's home mint over Lightning (a fee applies, the user agrees first), and such a mint is never added. `false`: the setting is hidden and always off |
+| `mints.withoutSigningKey.home` | `true` (default): with that setting on, a mint without a signing key may be a home mint. `false`: never |
 | `mints.trusted` | Mints shown as trusted from the start (Settings → Mints; a check mark on their notes, a hint when claiming), comma-separated `host:pubkey` with the mint's signing key (66 hex characters). Trust names the key: a mint presenting another key isn't trusted. Users can untrust them. Each account's home mint is trusted by default anyway. Default empty |
 | `accounts.max` | How many accounts one recovery phrase may hold. `0` = no limit. With `wallets.max=1`, `1` hides the account switcher on Home, and Settings → Wallets (the same pages in every app: the wallets, a wallet's page, an account's page) offers no "Add wallet" or "Add account". Set both for an app of one account: `wallets.max` has no limit by default |
 | `wallets.max` | How many recovery phrases the app holds, each backed up and deleted as one. `0` = no limit |
@@ -169,6 +171,18 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `add_mint_failed_key` | This mint now shows another signing key than a moment ago, so it wasn't added. Check that it is the mint you meant. |
 | `add_mint_added_body` | The mint is added. Your new wallet uses it from now on. |
 | `add_mint_found_none` | The mint is added. Nothing of your recovery phrase was found on it. |
+| `claim_melt_into_home` | Into %1$s, your home mint |
+| `claim_melt_pick` | Your account has no home mint. Which mint should receive it? |
+| `claim_melt_no_mint` | Add a mint first, then open this link again. |
+| `claim_kept_for_lightning` | Kept. Receive it over Lightning once you've added a mint. |
+| `claim_melt_no_signing_key` | %1$s publishes no signing key, so your wallet doesn't keep money there. It can be received over Lightning instead, for a fee. |
+| `claim_melt_no_signing_key_allow` | %1$s publishes no signing key, so your wallet doesn't keep money there (unless you allow such mints in Security settings). It can be received over Lightning instead, for a fee. |
+| `security_mints_without_key` | Allow mints without a signing key |
+| `security_mints_without_key_hint` | Some mints publish no signing key. Your wallet then can't check that their notes are real, nor notice if such a mint is swapped. Off: a note from one is received into your home mint over Lightning, after you agree to its fee. On: such mints can be added and hold your money. For this wallet only. |
+| `money_error_home_without_key` | That mint publishes no signing key, so it can't be your home mint. |
+| `mint_signing_key_none_hint` | Without one, your wallet can't check this mint's notes are real, nor notice if it is swapped, and it can't be trusted. |
+| `onboarding_error_mint_without_key` | This mint publishes no signing key, so your wallet can't check that its notes are real or notice if it is swapped. Choose another mint. |
+| `onboarding_error_mint_without_key_allow` | This mint publishes no signing key, so your wallet can't check that its notes are real or notice if it is swapped. Choose another mint, or allow such mints in Security settings. |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 
@@ -282,6 +296,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `note_unconfirmed` | Its mint hasn't been asked about this note yet. Your wallet asks once it's online. |
 | `note_unknown_to_mint` | Its mint doesn't know this note, so the link may not work. |
 | `scan_unknown` | This QR code isn't a payment or a note. |
+| `claim_melt_not_a_note` | %1$s doesn't answer for this as a note: it may be a withdraw link of another kind. It can be received over Lightning instead, for a fee. |
 
 #### Using your own words
 

@@ -297,6 +297,10 @@ private fun ErrorText(state: OnboardingState) {
                 is OnboardingError.Username -> stringResource(R.string.onboarding_error_username, error.detail)
                 is OnboardingError.Registration -> stringResource(R.string.onboarding_error_registration, error.detail)
                 is OnboardingError.Mint -> stringResource(R.string.onboarding_error_mint, error.detail)
+                is OnboardingError.MintWithoutSigningKey ->
+                    stringResource(
+                        if (error.canAllow) R.string.onboarding_error_mint_without_key_allow else R.string.onboarding_error_mint_without_key
+                    )
                 is OnboardingError.Network -> stringResource(R.string.onboarding_error_network, error.detail)
                 is OnboardingError.Limit -> pluralStringResource(R.plurals.onboarding_error_limit, error.limit, error.limit)
             }

@@ -73,4 +73,9 @@
     </plurals>
     <string name="received_unreachable">Its mint couldn\'t be reached, so your wallet stopped trying.</string>
     <string name="received_not_a_note">Its mint didn\'t answer as it does for a note, so your wallet stopped trying.</string>
+    <string name="received_no_signing_key">Its mint publishes no signing key.</string>
+    <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
+    <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
+    <string name="received_lightning_refused">Its mint won\'t keep it for your wallet, so it can only be received over Lightning, for a fee.</string>
+    <string name="received_receive">Receive</string>
 </resources>

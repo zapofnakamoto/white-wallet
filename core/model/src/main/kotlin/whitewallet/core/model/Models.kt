@@ -153,6 +153,13 @@ enum class ReceivedState {
      */
     KeyChanged,
 
+    /**
+     * Its mint can't keep it for this wallet ([ReceivedNote.archivedReason] says why: no signing key, not a note it answers for, or it
+     * refused): it can only be received over Lightning into a mint of the account, which costs a fee, so it waits for the user to agree.
+     * Not tried by itself.
+     */
+    LightningOnly,
+
     /** A claim was sent and its outcome is unknown; settled with its journal entry. */
     Claiming,
 
@@ -170,11 +177,11 @@ enum class ReceivedState {
 
     companion object {
         /** Not the wallet's yet, and may still become it. */
-        val PENDING: Set<ReceivedState> = setOf(Waiting, Locked, KeyChanged, Claiming)
+        val PENDING: Set<ReceivedState> = setOf(Waiting, Locked, KeyChanged, LightningOnly, Claiming)
     }
 }
 
-/** Why a received note is [ReceivedState.Archived]. */
+/** Why a received note is [ReceivedState.Archived], or [ReceivedState.LightningOnly]. */
 enum class ArchiveReason {
     /** Its mint kept refusing it for another reason than spent, unknown or locked. */
     Refused,
@@ -184,6 +191,9 @@ enum class ArchiveReason {
 
     /** Its mint's answer isn't one for a note (e.g. a withdraw link of another kind of service). */
     NotANote,
+
+    /** Its mint publishes no signing key, and the wallet doesn't allow such mints. */
+    NoSigningKey,
 
     /** The user put it aside. */
     ByUser,
@@ -222,7 +232,10 @@ data class ReceivedNote(
      * one for a note): it is archived a week later. Cleared when its mint answers otherwise.
      */
     val failingSinceMillis: Long? = null,
-    /** Why it is [ReceivedState.Archived]; null otherwise. */
+    /**
+     * Why it is [ReceivedState.Archived], or [ReceivedState.LightningOnly]; also while it is received over Lightning
+     * ([ReceivedState.Claiming] after LightningOnly), so it goes back there if that doesn't land. Null otherwise.
+     */
     val archivedReason: ArchiveReason? = null,
 ) {
     /** Not the wallet's yet, and may still become it. */

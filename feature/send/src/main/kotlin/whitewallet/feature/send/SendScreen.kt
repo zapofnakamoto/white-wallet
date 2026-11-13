@@ -413,6 +413,7 @@ internal fun problemText(problem: PayProblem): String =
     stringResource(
         when (problem) {
             PayProblem.NotRecognized -> R.string.send_problem_not_recognized
+            PayProblem.WithdrawLink -> R.string.send_problem_withdraw_link
             PayProblem.NoAmount -> R.string.send_problem_no_amount
             PayProblem.Expired -> R.string.send_problem_expired
             PayProblem.Unreachable -> R.string.send_problem_unreachable

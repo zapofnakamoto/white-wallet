@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -130,6 +131,44 @@ class SettingsScreensTest {
         compose.onNodeWithText(text(R.string.security_app_lock_hint_always)).assertExists()
         compose.onNodeWithText(text(R.string.security_app_lock_on_always)).assertExists()
         compose.onNode(isToggleable()).assertDoesNotExist()
+    }
+
+    @Test
+    fun mintsWithoutASigningKeyAreAllowedHereWhereTheBrandOffersIt() {
+        val changed = mutableListOf<Boolean>()
+        compose.setContent {
+            SecuritySettingsScreen(
+                appLock = false,
+                available = true,
+                onBack = {},
+                withoutSigningKey = MintsWithoutKeyChoice(false) { changed += it },
+                onAppLock = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.security_mints_without_key)).assertExists()
+        compose.onNodeWithText(text(R.string.security_mints_without_key_hint)).assertExists()
+        compose.onAllNodes(isToggleable())[1].assertIsOff().performClick()
+        assertEquals(listOf(true), changed)
+    }
+
+    @Test
+    fun withoutTheBrandOfferingItThereIsNoSuchSwitch() {
+        compose.setContent { SecuritySettingsScreen(appLock = false, available = true, onBack = {}, onAppLock = {}) }
+        compose.onNodeWithText(text(R.string.security_mints_without_key)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theSecurityPageDrawsNothingUntilTheWalletsChoiceIsRead() {
+        compose.setContent {
+            SecuritySettingsScreen(
+                appLock = false,
+                available = true,
+                onBack = {},
+                withoutSigningKey = MintsWithoutKeyChoice(null) {},
+                onAppLock = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.security_app_lock)).assertDoesNotExist()
     }
 
     @Test

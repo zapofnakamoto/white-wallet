@@ -16,6 +16,13 @@
     <string name="claim_other_paths">Dieser Schein lässt sich auch auf anderem Weg ausgeben; jemand anderes kann ihn also nehmen, bevor du ihn einlöst.</string>
     <string name="claim_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als dem, den deine Wallet kennt, deshalb wird noch nichts dorthin gesendet. Behalte ihn, und deine Wallet löst ihn ein, sobald du den neuen Schlüssel in den Details der Mint annimmst.</string>
     <string name="claim_kept_key_changed">Behalten. Deine Wallet löst ihn ein, sobald du den neuen Signaturschlüssel der Mint in ihren Details annimmst.</string>
+    <string name="claim_melt_not_a_note">%1$s antwortet darauf nicht wie auf einen Schein; vielleicht ist es ein Auszahlungslink anderer Art. Er lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
+    <string name="claim_melt_into_home">Auf %1$s, deine Haupt-Mint</string>
+    <string name="claim_melt_pick">Dein Konto hat keine Haupt-Mint. Welche Mint soll es empfangen?</string>
+    <string name="claim_melt_no_mint">Füge zuerst eine Mint hinzu und öffne diesen Link dann noch einmal.</string>
+    <string name="claim_kept_for_lightning">Behalten. Empfange es über Lightning, sobald du eine Mint hinzugefügt hast.</string>
+    <string name="claim_melt_no_signing_key">%1$s veröffentlicht keinen Signaturschlüssel, deshalb bewahrt deine Wallet dort kein Geld auf. Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
+    <string name="claim_melt_no_signing_key_allow">%1$s veröffentlicht keinen Signaturschlüssel, deshalb bewahrt deine Wallet dort kein Geld auf (außer du erlaubst solche Mints in den Sicherheitseinstellungen). Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
 
     <string name="claim_paste">Einfügen</string>
     <string name="claim_scan">QR-Code scannen</string>
@@ -54,6 +61,19 @@
     <string name="claim_take_back_failed">Zurückholen hat nicht geklappt. Versuch es später noch einmal.</string>
     <string name="claim_trusted">✓ Vertraut</string>
     <string name="claim_not_trusted">Nicht vertraut (siehe Einstellungen).</string>
+    <string name="claim_opening">Link wird geöffnet…</string>
+    <string name="claim_offline_link">Du bist offline. Öffne diesen Link noch einmal, wenn du verbunden bist.</string>
+    <string name="claim_melt_plain">Ein Auszahlungslink von %1$s: Er zahlt über Lightning aus.</string>
+    <string name="claim_melt_refused">%1$s bewahrt es nicht für deine Wallet auf. Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
+    <string name="claim_melt_pays">%1$s zahlt %2$s; nach der Gebühr kommen etwa %3$s an.</string>
+    <string name="claim_melt_into">Auf %1$s</string>
+    <string name="claim_melt_ask_hint">Um zu erfahren, was er auszahlt, muss deine Wallet den Link selbst %1$s zeigen. Frag nur, wenn der Link von %1$s stammt.</string>
+    <string name="claim_melt_ask">%1$s fragen</string>
+    <string name="claim_melt_out_of_range">Dieser Link zahlt %1$s, aber %2$s nimmt %3$s bis %4$s an.</string>
+    <string name="claim_melt_unreachable">%1$s ist gerade nicht erreichbar. Versuch es wieder, sobald sie zurück ist.</string>
+    <string name="claim_melt_action">Etwa %1$s empfangen</string>
+    <string name="claim_melt_receive">Über Lightning empfangen</string>
+    <string name="claim_keep_for_later">Für später behalten</string>
     <!-- Entwicklermodus in einem Debug-Build: der Faucet von dev/regtest erzeugt einen Schein zum Einlösen. %1$s: ein Betrag, %2$s: der Host einer lokalen Mint -->
     <string name="regtest_note">Entwickler: Schein über %1$s von %2$s</string>
     <!-- %1$s: der Fehler des Faucets oder der Verbindung, wie er kam -->

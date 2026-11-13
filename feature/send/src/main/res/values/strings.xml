@@ -67,6 +67,7 @@
     <string name="send_done">Done</string>
 
     <string name="send_problem_not_recognized">This isn\'t an invoice, Lightning address or payment link.</string>
+    <string name="send_problem_withdraw_link">This link pays money out to you. Open it under Receive.</string>
     <string name="send_problem_no_amount">This invoice has no amount. Ask the recipient for one with an amount, or for their Lightning address.</string>
     <string name="send_problem_expired">This invoice has expired. Ask the recipient for a new one.</string>
     <string name="send_problem_unreachable">Couldn\'t connect. Check your connection and try again. Nothing was paid.</string>

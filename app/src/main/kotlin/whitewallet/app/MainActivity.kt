@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -313,13 +316,18 @@ private fun WalletApp(
     // in Send. Nothing is claimed or paid until the user confirms there.
     val pending by incoming.collectAsStateWithLifecycle()
     val current by nav.currentBackStackEntryAsState()
+    // A link the app can't use: said on Home.
+    var unreadableLink by remember { mutableStateOf(false) }
     LaunchedEffect(pending, current) {
         val text = pending ?: return@LaunchedEffect
         if (current == null || runCatching { nav.getBackStackEntry(Routes.HOME) }.isFailure) return@LaunchedEffect
         when (val link = IncomingLink.classify(text)) {
             is IncomingLink.Claim -> nav.navigate(Routes.claim(link.text)) { popUpTo(Routes.HOME) }
             is IncomingLink.Pay -> nav.navigate(Routes.send(link.text)) { popUpTo(Routes.HOME) }
-            null -> Unit
+            null -> {
+                unreadableLink = true
+                nav.popBackStack(Routes.HOME, inclusive = false)
+            }
         }
         onIncomingHandled()
     }
@@ -383,6 +391,9 @@ private fun WalletApp(
                 onScan = { nav.navigate(Routes.SCAN) },
                 onOpenNote = { id -> nav.navigate(Routes.note(id)) },
                 onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
+                onClaim = { link -> nav.navigate(Routes.claim(link)) { popUpTo(Routes.HOME) } },
+                unreadableLink = unreadableLink,
+                onUnreadableLinkShown = { unreadableLink = false },
                 onReceive = { nav.navigate(Routes.RECEIVE) },
                 onSettings = { nav.navigate(Routes.SETTINGS) },
                 onBackup = { nav.navigate(Routes.BACKUP) },
@@ -402,6 +413,7 @@ private fun WalletApp(
                             onSettings = { nav.navigate(Routes.NOTES) },
                             onOpenShared = { id -> nav.navigate(Routes.note(id)) },
                             onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
+                            onClaim = { link -> nav.navigate(Routes.claim(link)) { popUpTo(Routes.HOME) } },
                         )
                     else null,
             )
@@ -412,6 +424,7 @@ private fun WalletApp(
                 onSettings = { nav.navigate(Routes.NOTES) },
                 onOpenShared = { id -> nav.navigate(Routes.note(id)) },
                 onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
+                onClaim = { link -> nav.navigate(Routes.claim(link)) { popUpTo(Routes.HOME) } },
             )
         }
         composable(Routes.ARCHIVE) { ArchiveRoute(onBack = { nav.popBackStack() }) }
@@ -698,6 +711,7 @@ private fun notesTab(
     onSettings: () -> Unit,
     onOpenShared: (String) -> Unit,
     onOpenArchive: () -> Unit,
+    onClaim: (String) -> Unit,
     viewModel: NotesViewModel = hiltViewModel(),
 ): NotesTabSlot {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -705,7 +719,7 @@ private fun notesTab(
         refreshing = state.refreshing,
         onRefresh = viewModel::refresh,
         actions = { NoteSettingsButton(onSettings) },
-        content = { NotesTab(viewModel, onOpenShared, onOpenArchive) },
+        content = { NotesTab(viewModel, onOpenShared, onOpenArchive, onClaim) },
     )
 }
 

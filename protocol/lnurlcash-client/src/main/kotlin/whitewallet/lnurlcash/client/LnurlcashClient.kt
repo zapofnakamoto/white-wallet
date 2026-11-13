@@ -38,8 +38,9 @@ import whitewallet.lnurlcash.protocol.WithdrawDiscovery
  * ones, which idled as long (a scan leaves several); mutations and registrations always go out on a fresh connection, never an idle pooled
  * one.
  *
- * A note's spend (`k1`) leaves only with [mutate]: whoever gets it can claim the note, so a note is checked by its key ([lookup]).
- * [SpendGuard], the last step before the wire, refuses any other request carrying a spend, also one an interceptor of [http] rewrote.
+ * A note's spend (`k1`) leaves only with [mutate] (and [withdrawLink], for a link the user agreed to show its own service): whoever gets it
+ * can claim the note, so a note is checked by its key ([lookup]). [SpendGuard], the last step before the wire, refuses any other request
+ * carrying a spend, also one an interceptor of [http] rewrote.
  */
 public class LnurlcashClient(
     http: OkHttpClient = defaultHttpClient(),
@@ -64,6 +65,21 @@ public class LnurlcashClient(
         val request = Request.Builder().url(url).get().build()
         val result = readOnce(request)
         return when (result) {
+            is HttpResult.TransportFailure -> throw IOException(result.message)
+            is HttpResult.Response ->
+                LnurlResponse.parse(result.body) ?: throw ProtocolViolation("not an LNURL response (HTTP ${result.status})")
+        }
+    }
+
+    /**
+     * GETs a withdraw link as it was given, `k1` included (LUD-03's first request), and parses the answer like [get]. Only for a link whose
+     * `k1` is no note's spend, or one the user agreed to show to the link's own service: a note's spend otherwise only goes out with
+     * [mutate]. Read-only, so retried once like [get].
+     */
+    @RevealsNoteSecret
+    public suspend fun withdrawLink(url: String): LnurlResponse {
+        val request = Request.Builder().url(url).get().tag(SpendGuard.Mutation::class.java, SpendGuard.Mutation).build()
+        return when (val result = readOnce(request)) {
             is HttpResult.TransportFailure -> throw IOException(result.message)
             is HttpResult.Response ->
                 LnurlResponse.parse(result.body) ?: throw ProtocolViolation("not an LNURL response (HTTP ${result.status})")

@@ -104,6 +104,7 @@
     <!-- It got no answer, where mints aren't named (brand mints.visible=false) or it isn't known which; else notice_unknown_unreachable. -->
     <string name="notice_unknown_unreachable_unnamed">Couldn\'t reach the mint. Your wallet asks again later.</string>
 
+    <string name="home_link_unreadable">This link can\'t be used here.</string>
     <string name="home_receive">Receive</string>
     <string name="home_send">Send</string>
     <string name="home_send_soon">Sending is coming soon</string>

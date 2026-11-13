@@ -37,6 +37,7 @@ import whitewallet.core.wallet.ShareNoteResult
 import whitewallet.core.wallet.SimulatedFailure
 import whitewallet.core.wallet.SplitLimits
 import whitewallet.core.wallet.Wallet
+import whitewallet.lnurlcash.RevealsNoteSecret
 
 /** How notes are ordered within a mint. The grouping by mint always stays: combining and moving work per mint. */
 enum class NoteSort(internal val order: Comparator<Note>) {
@@ -288,6 +289,11 @@ constructor(
     /** Puts a kept received note aside, into the archive. */
     fun archiveReceived(id: String) {
         viewModelScope.launch { wallet.archiveReceivedNote(id) }
+    }
+
+    /** Opens a received note that only Lightning can bring in, in Claim ([open] gets its link). */
+    fun receiveReceived(id: String, open: (String) -> Unit) {
+        viewModelScope.launch { @OptIn(RevealsNoteSecret::class) wallet.receivedNoteLink(id)?.let(open) }
     }
 
     fun setSort(sort: NoteSort) {

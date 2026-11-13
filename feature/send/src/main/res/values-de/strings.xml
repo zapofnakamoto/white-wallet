@@ -61,6 +61,7 @@
     <string name="send_done">Fertig</string>
 
     <string name="send_problem_not_recognized">Das ist keine Rechnung, Lightning-Adresse oder Zahlungslink.</string>
+    <string name="send_problem_withdraw_link">Dieser Link zahlt dir Geld aus. Öffne ihn unter Empfangen.</string>
     <string name="send_problem_no_amount">Diese Rechnung hat keinen Betrag. Bitte den Empfänger um eine mit Betrag oder um seine Lightning-Adresse.</string>
     <string name="send_problem_expired">Diese Rechnung ist abgelaufen. Bitte den Empfänger um eine neue.</string>
     <string name="send_problem_unreachable">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts bezahlt.</string>

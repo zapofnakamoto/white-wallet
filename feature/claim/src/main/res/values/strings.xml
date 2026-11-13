@@ -21,6 +21,13 @@
     <string name="claim_other_paths">This note can also be spent another way, so someone else may take it before you claim it.</string>
     <string name="claim_key_changed">%1$s now signs with another key than the one your wallet knows, so nothing is sent there yet. Keep it, and your wallet claims it once you accept the new key in the mint\'s details.</string>
     <string name="claim_kept_key_changed">Kept. Your wallet claims it once you accept the mint\'s new signing key in its details.</string>
+    <string name="claim_melt_not_a_note">%1$s doesn\'t answer for this as a note: it may be a withdraw link of another kind. It can be received over Lightning instead, for a fee.</string>
+    <string name="claim_melt_into_home">Into %1$s, your home mint</string>
+    <string name="claim_melt_pick">Your account has no home mint. Which mint should receive it?</string>
+    <string name="claim_melt_no_mint">Add a mint first, then open this link again.</string>
+    <string name="claim_kept_for_lightning">Kept. Receive it over Lightning once you\'ve added a mint.</string>
+    <string name="claim_melt_no_signing_key">%1$s publishes no signing key, so your wallet doesn\'t keep money there. It can be received over Lightning instead, for a fee.</string>
+    <string name="claim_melt_no_signing_key_allow">%1$s publishes no signing key, so your wallet doesn\'t keep money there (unless you allow such mints in Security settings). It can be received over Lightning instead, for a fee.</string>
 
     <string name="claim_paste">Paste</string>
     <string name="claim_scan">Scan QR code</string>
@@ -59,6 +66,21 @@
     <string name="claim_take_back_failed">It couldn\'t be taken back. Try again later.</string>
     <string name="claim_trusted">✓ Trusted</string>
     <string name="claim_not_trusted">Not trusted (see Settings).</string>
+    <string name="claim_opening">Opening link…</string>
+    <string name="claim_offline_link">You\'re offline. Open this link again when you\'re connected.</string>
+    <string name="claim_melt_plain">A withdraw link from %1$s: it pays out over Lightning.</string>
+    <string name="claim_melt_refused">%1$s won\'t keep it for your wallet. It can be received over Lightning instead, for a fee.</string>
+    <!-- %1$s: the link's service, %2$s: what it pays, %3$s: about what arrives after the receiving side's fee -->
+    <string name="claim_melt_pays">%1$s pays %2$s; about %3$s arrive after the fee.</string>
+    <string name="claim_melt_into">Into %1$s</string>
+    <string name="claim_melt_ask_hint">To learn what it pays, your wallet has to show the link itself to %1$s. Only ask if the link came from %1$s.</string>
+    <string name="claim_melt_ask">Ask %1$s</string>
+    <!-- %1$s: what the link pays, %2$s: the receiving host, %3$s and %4$s: the least and most it takes -->
+    <string name="claim_melt_out_of_range">This link pays %1$s, but %2$s takes %3$s to %4$s.</string>
+    <string name="claim_melt_unreachable">%1$s can\'t be reached right now. Try again once it\'s back.</string>
+    <string name="claim_melt_action">Receive about %1$s</string>
+    <string name="claim_melt_receive">Receive over Lightning</string>
+    <string name="claim_keep_for_later">Keep it for later</string>
     <!-- Developer mode in a debug build: dev/regtest's faucet makes a note to claim. %1$s: an amount, %2$s: a local mint's host -->
     <string name="regtest_note">Developer: %1$s note from %2$s</string>
     <!-- %1$s: the faucet's or the connection's error, as it came -->

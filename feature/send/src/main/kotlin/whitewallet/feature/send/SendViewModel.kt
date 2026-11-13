@@ -114,10 +114,13 @@ constructor(
     fun check() {
         val input = _state.value.input
         if (input.isBlank() || _state.value.checking) return
-        (IncomingLink.classify(input) as? IncomingLink.Claim)?.let { link ->
-            _state.update { it.copy(input = "", claim = link.text) }
-            return
-        }
+        // A bech32 link that may be either is asked here first: a withdraw link answers so, and goes to Claim then.
+        (IncomingLink.classify(input) as? IncomingLink.Claim)
+            ?.takeIf { !it.mayBePay }
+            ?.let { link ->
+                _state.update { it.copy(input = "", claim = link.text) }
+                return
+            }
         _state.update { it.copy(checking = true, problem = null) }
         viewModelScope.launch {
             when (val preview = wallet.previewPayment(input)) {
@@ -127,7 +130,10 @@ constructor(
                     }
                     if (preview.fixedAmountMsat != null) requote(immediately = true)
                 }
-                is PayPreview.Invalid -> _state.update { it.copy(checking = false, problem = preview.problem) }
+                is PayPreview.Invalid ->
+                    if (preview.problem == PayProblem.WithdrawLink)
+                        _state.update { it.copy(checking = false, input = "", claim = input.trim()) }
+                    else _state.update { it.copy(checking = false, problem = preview.problem) }
             }
         }
     }

@@ -27,6 +27,11 @@ interface MintTrustStore {
     /** Drops every choice of the wallet: its recovery phrase is gone from the phone. */
     suspend fun forgetWallet(walletId: String)
 
+    /** Whether the wallet may use mints that publish no signing key (see [MintsWithoutSigningKey]); off unless the user allowed it. */
+    fun allowsMintsWithoutSigningKey(walletId: String): Flow<Boolean>
+
+    suspend fun setAllowsMintsWithoutSigningKey(walletId: String, allowed: Boolean)
+
     class InMemory : MintTrustStore {
         /** Each wallet's trusted and untrusted mints. */
         private val choices = MutableStateFlow(emptyMap<String, Pair<Set<MintKey>, Set<MintKey>>>())
@@ -42,13 +47,31 @@ interface MintTrustStore {
 
         override suspend fun forget(walletId: String, mint: MintKey) = change(walletId) { (yes, no) -> (yes - mint) to (no - mint) }
 
-        override suspend fun forgetWallet(walletId: String) = choices.update { it - walletId }
+        override suspend fun forgetWallet(walletId: String) {
+            choices.update { it - walletId }
+            withoutKey.update { it - walletId }
+        }
+
+        private val withoutKey = MutableStateFlow(emptySet<String>())
+
+        override fun allowsMintsWithoutSigningKey(walletId: String): Flow<Boolean> = withoutKey.map { walletId in it }
+
+        override suspend fun setAllowsMintsWithoutSigningKey(walletId: String, allowed: Boolean) = withoutKey.update {
+            if (allowed) it + walletId else it - walletId
+        }
 
         private fun change(walletId: String, how: (Pair<Set<MintKey>, Set<MintKey>>) -> Pair<Set<MintKey>, Set<MintKey>>) = choices.update {
             it + (walletId to how(it[walletId] ?: (emptySet<MintKey>() to emptySet())))
         }
     }
 }
+
+/**
+ * What the brand allows for mints that publish no signing key (LUD-25 only says a mint SHOULD): their notes can't be certified, and a
+ * swapped mint can't be noticed. [setting]: users may allow them, per wallet (brand `mints.withoutSigningKey.setting`); otherwise never.
+ * [home]: with that allowed, one may be a home mint (brand `mints.withoutSigningKey.home`).
+ */
+data class MintsWithoutSigningKey(val setting: Boolean = true, val home: Boolean = true)
 
 /** Why a mint is trusted without the user saying so. */
 enum class TrustDefault {

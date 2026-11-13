@@ -1,12 +1,15 @@
 package whitewallet.core.designsystem
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.ReceivedNote
@@ -21,6 +24,14 @@ fun receivedNoteStatus(note: ReceivedNote): String =
             note.lockedUntilMillis?.let { stringResource(R.string.received_locked_until, recentTime(it)) }
                 ?: stringResource(R.string.received_locked)
         ReceivedState.KeyChanged -> stringResource(R.string.received_key_changed)
+        ReceivedState.LightningOnly ->
+            stringResource(
+                when (note.archivedReason) {
+                    ArchiveReason.NoSigningKey -> R.string.received_lightning_no_key
+                    ArchiveReason.Refused -> R.string.received_lightning_refused
+                    else -> R.string.received_lightning_not_a_note
+                }
+            )
         ReceivedState.Claiming -> stringResource(R.string.received_claiming)
         ReceivedState.Claimed -> stringResource(R.string.received_claimed)
         ReceivedState.Gone -> stringResource(R.string.received_gone)
@@ -33,6 +44,7 @@ private fun archived(note: ReceivedNote): String {
     val (plain, hours, days) =
         when (note.archivedReason) {
             ArchiveReason.ByUser -> return stringResource(R.string.received_archived_by_you)
+            ArchiveReason.NoSigningKey -> return stringResource(R.string.received_no_signing_key)
             ArchiveReason.Unreachable ->
                 Triple(R.string.received_unreachable, R.plurals.received_unreachable_hours, R.plurals.received_unreachable_days)
             ArchiveReason.NotANote ->
@@ -50,8 +62,8 @@ private fun archived(note: ReceivedNote): String {
 
 /**
  * A received note in a list: what it is worth as far as known (not with [amountHidden]), on which mint ([showMint]), and where it stands.
- * One the wallet still tries can be archived ([onArchive]); one spent by someone else can be removed ([onRemove]). An archived one is only
- * in the archive, which offers more (see its screen).
+ * One the wallet still tries can be archived ([onArchive]); one spent by someone else can be removed ([onRemove]); one that can only be
+ * received over Lightning opens in Claim ([onReceive]). An archived one is only in the archive, which offers more (see its screen).
  */
 @Composable
 fun ReceivedNoteRow(
@@ -61,7 +73,8 @@ fun ReceivedNoteRow(
     onRemove: (String) -> Unit,
     onArchive: (String) -> Unit,
     modifier: Modifier = Modifier,
-    trailing: (@Composable () -> Unit)? = receivedNoteAction(note, onRemove, onArchive),
+    onReceive: (String) -> Unit = {},
+    trailing: (@Composable () -> Unit)? = receivedNoteAction(note, onRemove, onArchive, onReceive),
 ) {
     val status = receivedNoteStatus(note)
     val amount =
@@ -84,9 +97,29 @@ fun ReceivedNoteRow(
     )
 }
 
-/** Remove for one spent by someone else, Archive for one the wallet still tries; nothing while it is being claimed. */
-private fun receivedNoteAction(note: ReceivedNote, onRemove: (String) -> Unit, onArchive: (String) -> Unit): (@Composable () -> Unit)? =
+/**
+ * Remove for one spent by someone else, Archive for one the wallet still tries, Receive (and Archive) for one only Lightning can bring in;
+ * nothing while it is being claimed.
+ */
+private fun receivedNoteAction(
+    note: ReceivedNote,
+    onRemove: (String) -> Unit,
+    onArchive: (String) -> Unit,
+    onReceive: (String) -> Unit,
+): (@Composable () -> Unit)? =
     when (note.state) {
+        ReceivedState.LightningOnly -> {
+            {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    WalletButton(kind = ButtonKind.Text, onClick = { onReceive(note.id) }) {
+                        Text(stringResource(R.string.received_receive))
+                    }
+                    WalletButton(kind = ButtonKind.Text, onClick = { onArchive(note.id) }) {
+                        Text(stringResource(R.string.received_archive))
+                    }
+                }
+            }
+        }
         ReceivedState.Gone -> {
             { WalletButton(kind = ButtonKind.Text, onClick = { onRemove(note.id) }) { Text(stringResource(R.string.received_dismiss)) } }
         }

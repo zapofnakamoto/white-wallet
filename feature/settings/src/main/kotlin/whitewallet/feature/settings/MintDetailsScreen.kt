@@ -250,7 +250,12 @@ fun MintDetailsScreen(
                                 mint.mintPubkey?.chunked(4)?.joinToString(" ") ?: stringResource(R.string.mint_signing_key_unknown),
                                 fontFamily = FontFamily.Monospace,
                             )
-                            Text(stringResource(R.string.mint_signing_key_hint), style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                stringResource(
+                                    if (mint.mintPubkey != null) R.string.mint_signing_key_hint else R.string.mint_signing_key_none_hint
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         }
                     },
                 )

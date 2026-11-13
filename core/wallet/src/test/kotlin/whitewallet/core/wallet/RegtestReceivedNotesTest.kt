@@ -473,7 +473,10 @@ class RegtestReceivedNotesTest {
                     now = { now },
                 )
             broken = true
-            assertIs<ClaimPreview.Invalid>(bob.wallet.previewClaim(link), "online, such an answer is never kept")
+            // Online, such an answer is never kept: it can only be received over Lightning, and the wallet asks first.
+            val melt = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(link))
+            assertEquals(MeltReason.NotANote, melt.reason)
+            assertNull(melt.amountMsat, "nothing is known before the user lets the wallet ask")
             // Kept offline, then the mint answers that way on every refresh.
             broken = false
             offline = true

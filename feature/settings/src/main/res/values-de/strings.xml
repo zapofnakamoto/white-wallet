@@ -40,6 +40,10 @@
     <string name="notes_collect_confirm_body">Wenn du das einschaltest, werden deine Scheine anderer Mints jetzt dorthin verschoben:</string>
     <string name="money_change_body">Wähle die neue Haupt-Mint. Rechnungen werden dort erstellt, und „Alles verschieben“ sammelt deine Scheine dort. Deine Adressen bleiben, wo sie sind.</string>
     <string name="mints_add">Mint hinzufügen</string>
+    <string name="security_mints_without_key">Mints ohne Signaturschlüssel erlauben</string>
+    <string name="security_mints_without_key_hint">Manche Mints veröffentlichen keinen Signaturschlüssel. Deine Wallet kann dann nicht prüfen, ob ihre Scheine echt sind, und nicht bemerken, wenn eine solche Mint ausgetauscht wird. Aus: Ein Schein von einer solchen Mint wird über Lightning in deine Haupt-Mint eingelöst, nachdem du seiner Gebühr zugestimmt hast. Ein: Solche Mints können hinzugefügt werden und dein Geld halten. Nur für dieses Wallet.</string>
+    <string name="money_error_home_without_key">Diese Mint veröffentlicht keinen Signaturschlüssel, daher kann sie nicht deine Haupt-Mint sein.</string>
+    <string name="mint_signing_key_none_hint">Ohne ihn kann deine Wallet weder prüfen, ob die Scheine dieser Mint echt sind, noch bemerken, wenn sie ausgetauscht wird; ihr kann nicht vertraut werden.</string>
 
     <string name="settings_title">Einstellungen</string>
     <string name="settings_recovery_phrase">Wiederherstellungsphrase</string>
@@ -335,7 +339,7 @@
     <string name="notes_collect_failed">Nicht verschoben: %1$s bei %2$s. Wird später erneut versucht.</string>
     <string name="settings_notes_with_collect">%1$s · verschiebt alles zu %2$s</string>
     <string name="mints_key">Schlüssel %1$s</string>
-    <string name="mints_no_key">Noch kein Signaturschlüssel bekannt</string>
+    <string name="mints_no_key">Kein Signaturschlüssel, daher kann ihr nicht vertraut werden</string>
     <string name="mints_default_home">Standardmäßig vertraut: das Zuhause deines Kontos</string>
     <string name="mints_default_brand">Standardmäßig vertraut in dieser App</string>
     <string name="mints_untrusted_default">Standardmäßig vertraut, aber von dir ausgeschaltet</string>

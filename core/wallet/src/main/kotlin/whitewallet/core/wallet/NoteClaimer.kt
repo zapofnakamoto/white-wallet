@@ -2,10 +2,13 @@ package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.PublicKey
 import java.io.IOException
+import whitewallet.core.model.ArchiveReason
+import whitewallet.core.model.Mint
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.isShared
+import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
@@ -13,6 +16,7 @@ import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
+import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 
 sealed interface ClaimPreview {
@@ -61,6 +65,31 @@ sealed interface ClaimPreview {
      */
     data class OwnShared(val id: String, val amountMsat: Long, val reachable: Boolean) : ClaimPreview
 
+    /**
+     * Can't be kept at its own mint ([reason]), but can be received over Lightning into [target], a mint of the account: its home mint, or
+     * one the user picks from [mints] when it has none. [amountMsat] is what the link pays, [expectedMsat] about what the target credits
+     * after its fee; both null until known (a link not asked yet: [Wallet.askLink]; no target yet). [problem] says why it can't be received
+     * as it stands.
+     */
+    data class Melt(
+        val link: WithdrawLink,
+        val reason: MeltReason,
+        val target: String?,
+        val mints: List<String>,
+        val amountMsat: Long?,
+        val expectedMsat: Long?,
+        val problem: MeltProblem? = null,
+        /** What [target] takes ([MeltProblem.OutOfRange]). */
+        val acceptMinMsat: Long = 0,
+        val acceptMaxMsat: Long = 0,
+    ) : ClaimPreview
+
+    /** A link without a note in it, and its service can't be reached: nothing is kept, the link is opened again once online. */
+    data object OfflineLink : ClaimPreview
+
+    /** Something to pay ([text], a pay link): Send takes it. */
+    data class PayLink(val text: String) : ClaimPreview
+
     data class Invalid(val reason: String) : ClaimPreview
 
     data object AlreadySpent : ClaimPreview
@@ -87,9 +116,11 @@ sealed interface ClaimResult {
  */
 internal class NoteClaimer(private val wallet: Wallet) {
     private val received = ReceivedNotes(wallet)
+    private val withdrawer = LinkWithdrawer(wallet)
 
     suspend fun preview(input: String, accountId: String): ClaimPreview {
-        val link = NoteLink.parse(input) ?: return ClaimPreview.Invalid("not a note")
+        // A link with no note in it: a withdraw link of another kind of service (received over Lightning), or a pay link.
+        val link = NoteLink.parse(input) ?: return withdrawer.open(input, accountId)
         val spend = link.spend
         val domain = spendDomain(link.host)
         if (spend is Spend.KeyPath && !spend.verify(domain)) return ClaimPreview.Invalid("this note is not valid for ${link.host}")
@@ -105,9 +136,11 @@ internal class NoteClaimer(private val wallet: Wallet) {
         if (script?.lockedUntilSeconds?.let { it * 1000 > wallet.now() } == true) return locked(link, script)
         // Asked by the note's key alone: the spend goes out only with the claim, to a mint with the pinned key. A wait
         // after crediting is the mint's to judge then; its refusal keeps the note as locked.
+        val answer: LnurlResponse
         val info =
             try {
-                wallet.client.lookup(link.withdrawUrl, spend.q)
+                answer = wallet.client.get(Requests.lookup(link.withdrawUrl, spend.q))
+                NoteInfo.from(answer, null)
             } catch (e: NoteLookupError) {
                 return when (e.kind) {
                     RejectionKind.Spent,
@@ -115,25 +148,62 @@ internal class NoteClaimer(private val wallet: Wallet) {
                     else -> ClaimPreview.Invalid(e.reason ?: "refused")
                 }
             } catch (e: ProtocolViolation) {
-                return ClaimPreview.Invalid(e.message ?: "invalid response")
+                // Not a mint's answer for a note: maybe a withdraw link of another kind of service, which shows what it pays only
+                // when asked with the link itself.
+                return withdrawer.forNote(link, MeltReason.NotANote, null, accountId)
             } catch (e: IOException) {
                 if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = false)
                 return ClaimPreview.Offline(link, link.declaredAmountMsat, certifiedOffline(link, accountId))
             }
+        val request = answer as LnurlResponse.WithdrawRequest
+        // A mint's answer by a note's key never carries a k1 (LUD-25): this is the service's own, for a withdraw link of another kind.
+        if (request.k1 != null) return withdrawer.forNote(link, MeltReason.NotANote, request, accountId)
         if (info.maxWithdrawableMsat <= 0) return ClaimPreview.AlreadySpent
         if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
         val own = wallet.homeOf(accountId)
         val mint = wallet.mintOf(accountId, link.host)
-        if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey.toHex())
+        if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey?.toHex())
             return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
+        lightningOnly(link, mint, info, wallet.store.receivedNote(spend.q.toHex()), accountId)?.let {
+            return withdrawer.forNote(link, it, request, accountId)
+        }
         return ClaimPreview.Ready(
             link,
             info,
             info.maxWithdrawableMsat,
             certified(link, info),
             isOwnMint = link.host == own,
-            trusted = wallet.isTrusted(wallet.walletOf(accountId), MintKey(link.host, info.mintPubkey.toHex())),
+            trusted = info.mintPubkey?.let { wallet.isTrusted(wallet.walletOf(accountId), MintKey(link.host, it.toHex())) } == true,
             hasOtherPaths = script?.hasOtherPaths == true,
+        )
+    }
+
+    /**
+     * Why a note its mint answered for can't be kept there, if it can't: a mint without a signing key the wallet doesn't hold already, and
+     * doesn't allow ([Wallet.allowsMintsWithoutSigningKey]); or one kept to be received over Lightning, unless only the setting stood in
+     * the way and allows it now.
+     */
+    private suspend fun lightningOnly(link: NoteLink, mint: Mint?, info: NoteInfo, kept: ReceivedNote?, accountId: String): MeltReason? {
+        val allowed = mint != null || info.mintPubkey != null || wallet.allowsMintsWithoutSigningKey(wallet.walletOf(accountId))
+        if (!allowed) return MeltReason.NoSigningKey
+        if (kept?.state != ReceivedState.LightningOnly || kept.archivedReason == ArchiveReason.NoSigningKey) return null
+        return MeltReason.of(kept.archivedReason).takeIf { link.host == kept.host }
+    }
+
+    /** Receives [preview] over Lightning (see [LinkWithdrawer]). */
+    suspend fun melt(preview: ClaimPreview.Melt, accountId: String): ClaimResult = withdrawer.withdraw(preview, accountId)
+
+    /** Asks the link's service, with the link, what it pays (the user agreed). */
+    suspend fun ask(preview: ClaimPreview.Melt, accountId: String): ClaimPreview = withdrawer.ask(preview, accountId)
+
+    /** [preview], received into [host] instead. */
+    suspend fun into(preview: ClaimPreview.Melt, host: String, accountId: String): ClaimPreview = withdrawer.into(preview, host, accountId)
+
+    /** Keeps a note link to be received over Lightning later, once the account has a mint to receive it into. */
+    suspend fun keepForLightning(preview: ClaimPreview.Melt, accountId: String): ClaimResult {
+        val link = preview.link.note ?: return ClaimResult.Failed(RejectionKind.Other, null)
+        return ClaimResult.Kept(
+            received.keepForLightning(link, accountId, preview.amountMsat ?: preview.link.maxMsat.takeIf { it > 0 }, preview.reason)
         )
     }
 

@@ -18,6 +18,7 @@ import whitewallet.core.wallet.AddressFeeChoice
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.wallet.MINT_WITHOUT_SIGNING_KEY
 import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.PayPreview
@@ -164,6 +165,9 @@ sealed interface OnboardingError {
     data class Registration(override val detail: String) : OnboardingError
 
     data class Mint(override val detail: String) : OnboardingError
+
+    /** The mint publishes no signing key, and the wallet doesn't allow such mints ([canAllow]: the brand lets the user allow them). */
+    data class MintWithoutSigningKey(val canAllow: Boolean, override val detail: String = "") : OnboardingError
 
     data class Network(override val detail: String) : OnboardingError
 
@@ -442,7 +446,12 @@ constructor(
                 }
             is OnboardResult.UsernameInvalid -> fail(OnboardingError.Username(result.reason))
             is OnboardResult.RegistrationFailed -> fail(OnboardingError.Registration(result.reason ?: ""))
-            is OnboardResult.MintInvalid -> fail(OnboardingError.Mint(result.reason))
+            is OnboardResult.MintInvalid ->
+                fail(
+                    if (result.reason == MINT_WITHOUT_SIGNING_KEY)
+                        OnboardingError.MintWithoutSigningKey(wallet.offersMintsWithoutSigningKey)
+                    else OnboardingError.Mint(result.reason)
+                )
             is OnboardResult.NetworkError -> fail(OnboardingError.Network(result.reason))
             is OnboardResult.LimitReached -> fail(OnboardingError.Limit(result.limit))
             OnboardResult.MintTooOld -> fail(OnboardingError.MintTooOld())

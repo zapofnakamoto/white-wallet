@@ -49,6 +49,9 @@ enum class PayProblem {
     /** Not an invoice, Lightning address or pay link. */
     NotRecognized,
 
+    /** A withdraw link: something to receive, which Claim takes. */
+    WithdrawLink,
+
     /** An invoice that leaves the amount open (a note pays an exact amount). */
     NoAmount,
     Expired,
@@ -155,6 +158,8 @@ internal class Payer(private val wallet: Wallet) {
             return previewInvoice(it)
         }
         val url = Lnurl.resolve(text) ?: return PayPreview.Invalid(PayProblem.NotRecognized)
+        // A k1 is a withdraw link's (maybe a note's spend): never sent from here.
+        if (Lnurl.queryParams(url).any { it.first.equals("k1", ignoreCase = true) }) return PayPreview.Invalid(PayProblem.WithdrawLink)
         val response =
             try {
                 wallet.client.get(url)
@@ -167,6 +172,7 @@ internal class Payer(private val wallet: Wallet) {
             when (response) {
                 is LnurlResponse.PayRequest -> response
                 is LnurlResponse.Error -> return PayPreview.Invalid(PayProblem.PayeeRefused)
+                is LnurlResponse.WithdrawRequest -> return PayPreview.Invalid(PayProblem.WithdrawLink)
                 else -> return PayPreview.Invalid(PayProblem.NotRecognized)
             }
         val accountId = wallet.activeId()

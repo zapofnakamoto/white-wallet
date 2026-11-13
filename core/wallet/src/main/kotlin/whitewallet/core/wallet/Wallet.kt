@@ -47,9 +47,12 @@ import whitewallet.core.model.WalletRecord
 import whitewallet.core.model.isShared
 import whitewallet.core.wallet.legacy.Legacy
 import whitewallet.core.wallet.legacy.LegacyKeys
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.ServiceRoot
+import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
+import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.spendDomain
 
@@ -96,6 +99,8 @@ class Wallet(
     internal val receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
     /** How the wallet behaves: wallet.properties, not the brand. */
     internal val settings: WalletSettings = WalletSettings(),
+    /** What the brand allows for mints that publish no signing key. */
+    internal val withoutSigningKey: MintsWithoutSigningKey = MintsWithoutSigningKey(),
 ) {
     private val lock = Mutex()
 
@@ -515,6 +520,9 @@ class Wallet(
         val walletId = walletOf(id)
         val result = onboarding.connectMint(walletId, host)
         if (result !is ConnectResult.Connected) return@withLock HomeChanged(result)
+        if (result.mint.mintPubkey == null && !withoutSigningKey.home) {
+            return@withLock HomeChanged(ConnectResult.Failed(OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY_HOME)))
+        }
         accountOf(id)?.let { store.saveAccount(it.copy(homeHost = result.mint.host)) }
         onboarding.homeIfNone(walletId, result.mint.host)
         keepTrusted?.let { trust.setTrusted(walletId, it, true) }
@@ -757,6 +765,27 @@ class Wallet(
 
     private fun trustedHosts(): Flow<Set<String>> =
         mints.map { list -> list.filter { it.trusted }.map { it.host }.toSet() }.distinctUntilChanged()
+
+    /**
+     * Whether the active wallet may use mints that publish no signing key: the brand offers the setting and the user turned it on. Without,
+     * such a mint is never added, and a note from one is received into a mint of the account over Lightning.
+     */
+    val allowsMintsWithoutSigningKey: Flow<Boolean> =
+        if (!withoutSigningKey.setting) flowOf(false)
+        else ofActiveWallet(false) { id -> trust.allowsMintsWithoutSigningKey(id) }.distinctUntilChanged()
+
+    /** Whether the brand offers the choice at all (`mints.withoutSigningKey.setting`); without, such mints are never allowed. */
+    val offersMintsWithoutSigningKey: Boolean
+        get() = withoutSigningKey.setting
+
+    /** Allows or forbids mints without a signing key in the active wallet; those already in it keep working either way. */
+    suspend fun setAllowsMintsWithoutSigningKey(allowed: Boolean) {
+        if (withoutSigningKey.setting) trust.setAllowsMintsWithoutSigningKey(walletOf(activeId()), allowed)
+    }
+
+    /** Whether the wallet [walletId] may add a mint that publishes no signing key. */
+    internal suspend fun allowsMintsWithoutSigningKey(walletId: String): Boolean =
+        withoutSigningKey.setting && trust.allowsMintsWithoutSigningKey(walletId).first()
 
     /** Trusts or untrusts [host] in the active wallet, with the key it pinned for it. A mint without a pinned key can't be trusted. */
     suspend fun setMintTrusted(host: String, trusted: Boolean) {
@@ -1138,6 +1167,32 @@ class Wallet(
 
     /** Keeps a note that can't be claimed now (offline, or locked); a refresh claims it once it can be. */
     suspend fun keepClaim(preview: ClaimPreview.Keepable): ClaimResult.Kept = lock.withLock { claimer.keep(preview, activeId()) }
+
+    /**
+     * Receives a link over Lightning into the preview's target mint (see [ClaimPreview.Melt]): the link's service pays an invoice of that
+     * mint. A note link is kept meanwhile, and settled with the invoice if it isn't paid at once ([ClaimResult.Pending]).
+     */
+    suspend fun melt(preview: ClaimPreview.Melt): ClaimResult = lock.withLock {
+        val id = activeId()
+        claimer.melt(preview, id).also { applyPolicies(id) }
+    }
+
+    /** Asks a link's service, with the link itself, what it pays: the user agreed to show it the link ([MeltReason.NotANote]). */
+    suspend fun askLink(preview: ClaimPreview.Melt): ClaimPreview = claimer.ask(preview, activeId())
+
+    /** [preview], received into [host], one of the account's mints, instead (for an account without a home mint). */
+    suspend fun meltInto(preview: ClaimPreview.Melt, host: String): ClaimPreview = claimer.into(preview, host, activeId())
+
+    /** Keeps a note link to be received over Lightning later: the account has no mint to receive it into yet. */
+    suspend fun keepForLightning(preview: ClaimPreview.Melt): ClaimResult = lock.withLock { claimer.keepForLightning(preview, activeId()) }
+
+    /** The link of a received note not claimed yet, to open it in Claim again (one that can only be received over Lightning). */
+    @RevealsNoteSecret
+    suspend fun receivedNoteLink(id: String): String? {
+        val note = store.receivedNote(id)?.takeIf { it.accountId == activeId() } ?: return null
+        val spend = note.k1?.let(Spend::parse) ?: return null
+        return NoteLink(note.withdrawUrl, spend, note.declaredMsat, note.certificate).encode()
+    }
 
     /**
      * Forgets a received note for good: one spent by someone else, or an archived one (its spend goes with it; the recovery phrase can't

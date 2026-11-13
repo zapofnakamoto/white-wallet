@@ -45,7 +45,9 @@ class MockMintIntegrationTest {
 
                 val looked = client.lookup(pay.withdrawUrl, q0)
                 assertEquals(21_000, looked.maxWithdrawableMsat)
-                assertTrue(Certificates.verify(assertNotNull(looked.certificate), spendDomain(mint.host), q0, looked.mintPubkey))
+                assertTrue(
+                    Certificates.verify(assertNotNull(looked.certificate), spendDomain(mint.host), q0, assertNotNull(looked.mintPubkey))
+                )
 
                 val spend = Spend.keyPath(account.walletKey(0), spendDomain(mint.host))
                 val info = looked
@@ -55,7 +57,7 @@ class MockMintIntegrationTest {
                 val confirmed = assertIs<MutationOutcome.Confirmed>(outcome)
                 val cert = assertNotNull(Cs1.decode(assertNotNull(confirmed.certificate)))
                 assertEquals(21_000, cert.amountMsat)
-                assertTrue(Certificates.verify(cert, spendDomain(mint.host), q1, info.mintPubkey))
+                assertTrue(Certificates.verify(cert, spendDomain(mint.host), q1, assertNotNull(info.mintPubkey)))
 
                 val spent = assertFailsWith<NoteLookupError> { client.lookup(pay.withdrawUrl, q0) }
                 assertEquals(RejectionKind.Spent, spent.kind, spent.reason)

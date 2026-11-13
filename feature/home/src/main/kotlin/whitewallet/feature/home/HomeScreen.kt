@@ -140,6 +140,11 @@ fun HomeRoute(
     onScanMints: () -> Unit = {},
     /** Opens the account's mints (Account → Your mints). */
     onOpenMints: () -> Unit = {},
+    /** Opens a link in Claim (a received note only Lightning can bring in). */
+    onClaim: (String) -> Unit = {},
+    /** A link from outside (a deep link, shared text, an NFC tag) that the app can't use: said once, then [onUnreadableLinkShown]. */
+    unreadableLink: Boolean = false,
+    onUnreadableLinkShown: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     releaseNotes: ReleaseNotesViewModel = hiltViewModel(),
 ) {
@@ -175,8 +180,14 @@ fun HomeRoute(
         onAddMint,
         onScanMints,
         onOpenMints,
+        onReceiveReceived = { id -> viewModel.receiveReceived(id, onClaim) },
+        unreadableLink = unreadableLink,
+        onUnreadableLinkShown = onUnreadableLinkShown,
     )
 }
+
+/** What a received note on Home can ask for besides removing it: archiving it, or receiving it over Lightning (in Claim). */
+class ReceivedActions(val archive: (String) -> Unit, val receive: (String) -> Unit)
 
 /** An entry of the top bar's menu: a page of the brand's own. */
 class HomeMenuItem(@StringRes val title: Int, val onClick: () -> Unit)
@@ -226,6 +237,10 @@ fun HomeScreen(
     onAddMint: () -> Unit = {},
     onScanMints: () -> Unit = {},
     onOpenMints: () -> Unit = {},
+    /** Opens a received note that only Lightning can bring in, in Claim. */
+    onReceiveReceived: (String) -> Unit = {},
+    unreadableLink: Boolean = false,
+    onUnreadableLinkShown: () -> Unit = {},
 ) {
     var saved by rememberSaveable { mutableStateOf(HomeTab.Wallet) }
     val tab = saved.takeIf { it != HomeTab.Notes || notesTab != null } ?: HomeTab.Wallet
@@ -250,6 +265,13 @@ fun HomeScreen(
         LaunchedEffect(check) {
             snackbars.showSnackbar(message, duration = SnackbarDuration.Long)
             onUnknownCheckShown()
+        }
+    }
+    if (unreadableLink) {
+        val message = stringResource(R.string.home_link_unreadable)
+        LaunchedEffect(Unit) {
+            snackbars.showSnackbar(message, duration = SnackbarDuration.Long)
+            onUnreadableLinkShown()
         }
     }
     // Back from History returns to the wallet before leaving the app.
@@ -345,7 +367,7 @@ fun HomeScreen(
                                 onOpenMint,
                                 onRecheckUnknown,
                                 onRemoveReceived,
-                                onArchiveReceived,
+                                ReceivedActions(onArchiveReceived, onReceiveReceived),
                                 onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
                                 onOpenShared = { saved = if (notesTab != null) HomeTab.Notes else HomeTab.History },
                                 onOpenMints,
@@ -546,7 +568,7 @@ private fun WalletTab(
     onOpenMint: (String) -> Unit,
     onRecheckUnknown: () -> Unit,
     onRemoveReceived: (String) -> Unit,
-    onArchiveReceived: (String) -> Unit,
+    received: ReceivedActions,
     /** Opens the notes view, where received notes and those a mint doesn't know are listed too; null without one. */
     onOpenIncoming: (() -> Unit)?,
     /** Opens where the notes handed out are listed, each leading to its QR code and to taking it back. */
@@ -652,7 +674,7 @@ private fun WalletTab(
                     modifier = Modifier.clickable(onClick = onOpenShared),
                 )
             }
-            if (state.received.isNotEmpty()) ReceivedCard(state, onRemoveReceived, onArchiveReceived)
+            if (state.received.isNotEmpty()) ReceivedCard(state, onRemoveReceived, received)
             // Nothing in the wallet yet: say how money gets in. Not while the balance is hidden, which would give it away.
             if (state.status == WalletStatus.Empty && !state.balanceHidden) {
                 Text(stringResource(R.string.home_wallet_empty), textAlign = TextAlign.Center)
@@ -1021,7 +1043,7 @@ private fun BalanceByMint(mints: List<AccountMint>, more: List<AccountMint>, onO
  * the balance.
  */
 @Composable
-private fun ReceivedCard(state: HomeState, onRemove: (String) -> Unit, onArchive: (String) -> Unit) {
+private fun ReceivedCard(state: HomeState, onRemove: (String) -> Unit, actions: ReceivedActions) {
     WalletCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 8.dp)) {
             Text(
@@ -1035,7 +1057,8 @@ private fun ReceivedCard(state: HomeState, onRemove: (String) -> Unit, onArchive
                     showMint = state.mintsVisible,
                     amountHidden = state.balanceHidden,
                     onRemove = onRemove,
-                    onArchive = onArchive,
+                    onArchive = actions.archive,
+                    onReceive = actions.receive,
                 )
             }
             if (state.received.any { it.isPending }) {

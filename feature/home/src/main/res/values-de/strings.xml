@@ -88,6 +88,7 @@
     </plurals>
     <string name="notice_unknown_unreachable_unnamed">Die Mint war nicht erreichbar. Deine Wallet fragt später wieder.</string>
 
+    <string name="home_link_unreadable">Dieser Link lässt sich hier nicht verwenden.</string>
     <string name="home_receive">Empfangen</string>
     <string name="home_send">Senden</string>
     <string name="home_send_soon">Senden kommt bald</string>

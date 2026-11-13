@@ -20,12 +20,16 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.FaucetState
+import whitewallet.core.wallet.MeltProblem
+import whitewallet.core.wallet.MeltReason
 import whitewallet.core.wallet.ReclaimResult
+import whitewallet.core.wallet.WithdrawLink
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLink
@@ -264,5 +268,152 @@ class ClaimScreenTest {
     fun untilTheFaucetsMintsAreKnownNothingIsDrawn() {
         show(ClaimState(loaded = false))
         compose.onNodeWithText(text(R.string.claim_check)).assertDoesNotExist()
+    }
+
+    private fun melt(
+        reason: MeltReason = MeltReason.Plain,
+        target: String? = "home.example",
+        amountMsat: Long? = 5_000_000,
+        expectedMsat: Long? = 4_999_000,
+        problem: MeltProblem? = null,
+        mints: List<String> = listOf("home.example"),
+    ) =
+        ClaimPreview.Melt(
+            WithdrawLink(
+                "lnurlw://lnbits.example/w",
+                "lnbits.example",
+                "https://lnbits.example/w",
+                "https://lnbits.example/cb",
+                "tok",
+                1_000,
+                5_000_000,
+                null,
+            ),
+            reason,
+            target,
+            mints,
+            amountMsat,
+            expectedMsat,
+            problem,
+            acceptMinMsat = 2_000,
+            acceptMaxMsat = 1_000_000,
+        )
+
+    /** The amounts these tests name, as the screen writes them. */
+    private val amounts = mutableMapOf<Long, String>()
+
+    private fun amount(msat: Long) = amounts.getValue(msat)
+
+    private fun showMelt(preview: ClaimPreview.Melt, actions: MeltActions = MeltActions(), state: ClaimState = ClaimState()) =
+        compose.setContent {
+            for (msat in listOf(2_000L, 1_000_000L, 4_999_000L, 5_000_000L)) amounts[msat] = formatAmount(msat)
+            ClaimScreen(
+                state.copy(input = "x", preview = preview),
+                onBack = {},
+                onInputChange = {},
+                onCheck = {},
+                onClaim = {},
+                melt = actions,
+            )
+        }
+
+    @Test
+    fun aWithdrawLinkSaysWhatArrivesAndWhereAfterOneConfirm() {
+        var melted = 0
+        showMelt(melt(), MeltActions(melt = { melted++ }), ClaimState(home = "home.example"))
+        compose.onNodeWithText(text(R.string.claim_melt_plain, "lnbits.example")).assertExists()
+        compose.onNodeWithText(text(R.string.claim_melt_pays, "lnbits.example", amount(5_000_000), amount(4_999_000))).assertExists()
+        compose.onNodeWithText(text(R.string.claim_melt_into_home, "home.example")).assertExists()
+        compose.onNodeWithText(text(R.string.claim_melt_action, amount(4_999_000))).performScrollTo().performClick()
+        assertEquals(1, melted)
+    }
+
+    @Test
+    fun aNoteAtAMintWithoutASigningKeySaysWhyAndMentionsTheSettingOnlyWhereTheBrandOffersIt() {
+        showMelt(melt(MeltReason.NoSigningKey), state = ClaimState(canAllowWithoutSigningKey = false))
+        compose.onNodeWithText(text(R.string.claim_melt_no_signing_key, "lnbits.example")).assertExists()
+        compose.onNodeWithText(text(R.string.claim_melt_no_signing_key_allow, "lnbits.example")).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNoteWithoutASigningKeyNamesTheSettingWhereTheBrandOffersIt() {
+        showMelt(melt(MeltReason.NoSigningKey), state = ClaimState(canAllowWithoutSigningKey = true))
+        compose.onNodeWithText(text(R.string.claim_melt_no_signing_key_allow, "lnbits.example")).assertExists()
+    }
+
+    @Test
+    fun aLinkNotAskedYetIsOnlyShownToItsServiceWhenTheUserAsks() {
+        var asked = 0
+        showMelt(melt(MeltReason.NotANote, amountMsat = null, expectedMsat = null), MeltActions(ask = { asked++ }))
+        compose.onNodeWithText(text(R.string.claim_melt_ask_hint, "lnbits.example")).assertExists()
+        compose.onNodeWithText(text(R.string.claim_melt_action, "").trim(), substring = true).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.claim_melt_ask, "lnbits.example")).performScrollTo().performClick()
+        assertEquals(1, asked)
+    }
+
+    @Test
+    fun anAccountWithoutAHomeMintPicksOneForThisLink() {
+        val picked = mutableListOf<String>()
+        showMelt(melt(target = null, mints = listOf("a.example", "b.example")), MeltActions(into = { picked += it }))
+        compose.onNodeWithText(text(R.string.claim_melt_pick)).assertExists()
+        compose.onNodeWithText("b.example").performScrollTo().performClick()
+        assertEquals(listOf("b.example"), picked)
+    }
+
+    @Test
+    fun withoutAnyMintTheLinkCanOnlyBeKeptIfItIsANote() {
+        showMelt(melt(target = null, mints = emptyList(), problem = MeltProblem.NoMint))
+        compose.onNodeWithText(text(R.string.claim_melt_no_mint)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_keep_for_later)).assertDoesNotExist()
+    }
+
+    @Test
+    fun anAmountTheMintDoesntTakeIsRefusedWithWhatItTakes() {
+        showMelt(melt(problem = MeltProblem.OutOfRange, expectedMsat = null))
+        compose
+            .onNodeWithText(
+                text(
+                    R.string.claim_melt_out_of_range,
+                    amount(5_000_000),
+                    "home.example",
+                    amount(2_000),
+                    amount(1_000_000),
+                )
+            )
+            .assertExists()
+        compose.onNodeWithText(text(R.string.claim_melt_action, amount(5_000_000))).assertDoesNotExist()
+    }
+
+    @Test
+    fun aLinkFromOutsideBeingAskedWhatItIsShowsOnlyThat() {
+        show(ClaimState(input = "LNURL1", opening = true, busy = true))
+        compose.onNodeWithText(text(R.string.claim_opening)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_input)).assertDoesNotExist()
+    }
+
+    @Test
+    fun anOfflineLinkWithoutANoteIsNotKept() {
+        show(ClaimState(input = "x", preview = ClaimPreview.OfflineLink))
+        compose.onNodeWithText(text(R.string.claim_offline_link)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNoteItsMintWontKeepOffersTheLightningWay() {
+        var checked = 0
+        val note =
+            ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.LightningOnly, null, 1, 1)
+                .copy(archivedReason = ArchiveReason.Refused)
+        show(ClaimState(result = ClaimResult.Kept(note)), onCheck = { checked++ })
+        compose.onNodeWithText(text(R.string.claim_melt_refused, "mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.claim_melt_receive)).performScrollTo().performClick()
+        assertEquals(1, checked)
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun germanIsCompleteForLinksReceivedOverLightning() {
+        showMelt(melt())
+        compose.onNodeWithText("Ein Auszahlungslink von lnbits.example: Er zahlt über Lightning aus.").assertExists()
     }
 }

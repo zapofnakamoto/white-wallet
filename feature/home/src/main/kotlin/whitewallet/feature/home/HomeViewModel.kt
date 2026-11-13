@@ -34,6 +34,7 @@ import whitewallet.core.wallet.NotesCheck
 import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
+import whitewallet.lnurlcash.RevealsNoteSecret
 
 data class HomeState(
     /** The wallet's figures have been read; until then Home shows none (rather than a balance of nothing). */
@@ -310,6 +311,11 @@ class HomeViewModel(
     /** Puts a kept received note aside, into the archive (in the notes view). */
     fun archiveReceived(id: String) {
         viewModelScope.launch { wallet.archiveReceivedNote(id) }
+    }
+
+    /** Opens a received note that only Lightning can bring in, in Claim ([open] gets its link). */
+    fun receiveReceived(id: String, open: (String) -> Unit) {
+        viewModelScope.launch { @OptIn(RevealsNoteSecret::class) wallet.receivedNoteLink(id)?.let(open) }
     }
 
     /**

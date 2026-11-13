@@ -47,10 +47,13 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.recentTime
+import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.scanner.QrScanner
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
+import whitewallet.core.wallet.MeltProblem
+import whitewallet.core.wallet.MeltReason
 import whitewallet.core.wallet.ReclaimResult
 
 @Composable
@@ -78,6 +81,7 @@ fun ClaimRoute(onBack: () -> Unit, onPay: (String) -> Unit = {}, viewModel: Clai
             onKeep = viewModel::keep,
             onTakeBack = viewModel::takeBack,
             onFaucet = viewModel::noteFromFaucet,
+            melt = MeltActions(viewModel::melt, viewModel::askLink, viewModel::meltInto, viewModel::keepForLightning),
         )
     }
 }
@@ -96,11 +100,17 @@ fun ClaimScreen(
     onTakeBack: () -> Unit = {},
     /** Developer: have the regtest faucet make a note on this local mint. */
     onFaucet: (String) -> Unit = {},
+    melt: MeltActions = MeltActions(),
 ) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.claim_title), onBack) }) { padding ->
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
+        // A link from outside being asked what it is: nothing else until it is known, here or in Send.
+        if (state.opening) {
+            ScreenColumn(Modifier.padding(padding)) { Text(stringResource(R.string.claim_opening), textAlign = TextAlign.Center) }
+            return@Scaffold
+        }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             when (val result = state.result) {
                 null -> Unit
@@ -120,6 +130,13 @@ fun ClaimScreen(
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
                         )
+                    // Its mint won't keep it here: received over Lightning, if the user agrees to the fee.
+                    if (
+                        result is ClaimResult.Kept &&
+                            result.note.state == ReceivedState.LightningOnly &&
+                            state.preview !is ClaimPreview.Melt
+                    )
+                        WalletButton(kind = ButtonKind.Secondary, onClick = onCheck) { Text(stringResource(R.string.claim_melt_receive)) }
                     PrimaryButton(stringResource(R.string.claim_finish), onBack)
                     return@ScreenColumn
                 }
@@ -177,6 +194,7 @@ fun ClaimScreen(
                     KeepCard(preview)
                     PrimaryButton(stringResource(R.string.claim_keep), onKeep, busy = state.busy)
                 }
+                is ClaimPreview.Melt -> MeltSection(preview, state, melt, onCheck)
                 // The user's own note: taken back, as on its note screen, never claimed.
                 is ClaimPreview.OwnShared ->
                     if (preview.reachable) {
@@ -265,6 +283,88 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
     }
 }
 
+/** What a link received over Lightning can ask for (see [ClaimPreview.Melt]). */
+class MeltActions(
+    val melt: () -> Unit = {},
+    val ask: () -> Unit = {},
+    val into: (String) -> Unit = {},
+    val keep: () -> Unit = {},
+)
+
+/**
+ * A link received over Lightning: why it isn't kept at its own mint, what it pays and about what arrives, into which mint; or what's
+ * missing for that: a mint to receive into, what the link pays (asked of its service with the link, once the user agrees), or an amount the
+ * mint takes.
+ */
+@Composable
+private fun MeltSection(preview: ClaimPreview.Melt, state: ClaimState, actions: MeltActions, onCheck: () -> Unit) {
+    val host = preview.link.host
+    WalletCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (preview.problem == null) preview.expectedMsat?.let { Text(formatAmount(it), style = MaterialTheme.typography.titleLarge) }
+            Text(
+                when (preview.reason) {
+                    MeltReason.Plain -> stringResource(R.string.claim_melt_plain, host)
+                    MeltReason.NoSigningKey ->
+                        stringResource(
+                            if (state.canAllowWithoutSigningKey) R.string.claim_melt_no_signing_key_allow
+                            else R.string.claim_melt_no_signing_key,
+                            host,
+                        )
+                    MeltReason.NotANote -> stringResource(R.string.claim_melt_not_a_note, host)
+                    MeltReason.Refused -> stringResource(R.string.claim_melt_refused, host)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            val target = preview.target
+            val amount = preview.amountMsat
+            when {
+                preview.problem == MeltProblem.NoMint -> Text(stringResource(R.string.claim_melt_no_mint))
+                target == null -> Text(stringResource(R.string.claim_melt_pick))
+                amount == null -> Text(stringResource(R.string.claim_melt_ask_hint, host), style = MaterialTheme.typography.bodySmall)
+                preview.problem == MeltProblem.OutOfRange ->
+                    Text(
+                        stringResource(
+                            R.string.claim_melt_out_of_range,
+                            formatAmount(amount),
+                            target,
+                            formatAmount(preview.acceptMinMsat),
+                            formatAmount(preview.acceptMaxMsat),
+                        ),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                preview.problem == MeltProblem.MintUnreachable ->
+                    Text(stringResource(R.string.claim_melt_unreachable, target), color = MaterialTheme.colorScheme.error)
+                else -> {
+                    Text(stringResource(R.string.claim_melt_pays, host, formatAmount(amount), formatAmount(preview.expectedMsat ?: amount)))
+                    Text(
+                        stringResource(if (target == state.home) R.string.claim_melt_into_home else R.string.claim_melt_into, target),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
+    }
+    val target = preview.target
+    when {
+        preview.problem == MeltProblem.NoMint ->
+            if (preview.link.note != null) PrimaryButton(stringResource(R.string.claim_keep_for_later), actions.keep, busy = state.busy)
+        target == null ->
+            preview.mints.forEach { mint ->
+                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.into(mint) }, enabled = !state.busy) { Text(mint) }
+            }
+        preview.amountMsat == null ->
+            PrimaryButton(stringResource(R.string.claim_melt_ask, preview.link.host), actions.ask, busy = state.busy)
+        preview.problem != null -> PrimaryButton(stringResource(R.string.claim_check), onCheck, busy = state.busy)
+        else ->
+            PrimaryButton(
+                stringResource(R.string.claim_melt_action, formatAmount(preview.expectedMsat ?: preview.amountMsat ?: 0)),
+                actions.melt,
+                busy = state.busy,
+            )
+    }
+}
+
 /** The user's own note, handed out and not claimed yet. */
 @Composable
 private fun OwnCard(preview: ClaimPreview.OwnShared) {
@@ -330,11 +430,14 @@ private fun lockDuration(seconds: Long): String {
 private fun previewMessage(preview: ClaimPreview): String =
     when (preview) {
         is ClaimPreview.Invalid -> stringResource(R.string.claim_invalid, preview.reason)
+        ClaimPreview.OfflineLink -> stringResource(R.string.claim_offline_link)
         ClaimPreview.AlreadySpent -> stringResource(R.string.claim_spent)
         ClaimPreview.AlreadyInWallet -> stringResource(R.string.claim_in_wallet)
         ClaimPreview.NotSpendable -> stringResource(R.string.claim_not_spendable)
         is ClaimPreview.Ready,
         is ClaimPreview.Keepable,
+        is ClaimPreview.Melt,
+        is ClaimPreview.PayLink,
         is ClaimPreview.OwnShared -> ""
     }
 
@@ -369,6 +472,9 @@ private fun ResultMessage(result: ClaimResult) {
                         stringResource(R.string.claim_kept_until, recentTime(note.lockedUntilMillis!!))
                     note.state == ReceivedState.Locked -> stringResource(R.string.claim_kept_locked)
                     note.state == ReceivedState.KeyChanged -> stringResource(R.string.claim_kept_key_changed)
+                    note.state == ReceivedState.LightningOnly && note.archivedReason == ArchiveReason.NoSigningKey ->
+                        stringResource(R.string.claim_kept_for_lightning)
+                    note.state == ReceivedState.LightningOnly -> stringResource(R.string.claim_melt_refused, note.host)
                     else -> stringResource(R.string.claim_kept)
                 } to false
             }

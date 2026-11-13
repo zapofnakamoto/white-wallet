@@ -73,6 +73,12 @@ sealed interface UnregisterResult {
 /** Why [Wallet.addMint] refused a mint that presents another signing key than the one pinned, or than the one it showed. */
 const val MINT_KEY_CHANGED = "the signing key of this host changed"
 
+/** The mint publishes no signing key, and the wallet doesn't allow such mints (see [Wallet.allowsMintsWithoutSigningKey]). */
+const val MINT_WITHOUT_SIGNING_KEY = "this mint publishes no signing key"
+
+/** The mint publishes no signing key, and such a mint can't be a home mint (brand `mints.withoutSigningKey.home`). */
+const val MINT_WITHOUT_SIGNING_KEY_HOME = "a mint without a signing key can't be a home mint"
+
 sealed interface ConnectResult {
     data class Connected(val mint: Mint) : ConnectResult
 
@@ -407,15 +413,22 @@ internal class Onboarding(private val wallet: Wallet) {
 
     /**
      * Connects the wallet [walletId] to the mint at [host]: fetches what it is and pins its key for that wallet on first contact (only
-     * [expectedKey], if given). Nobody's home mint by that alone: where the user chose the mint for the wallet, [homeIfNone] follows.
+     * [expectedKey], if given). Nobody's home mint by that alone: where the user chose the mint for the wallet, [homeIfNone] follows. A
+     * mint that answers without a signing key is only connected where the wallet allows such mints; one that can't be asked for its key now
+     * is connected unpinned, and pinned on its first answer.
      */
     suspend fun connectMint(walletId: String, host: String, expectedKey: String? = null): ConnectResult {
         val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid("not a valid host"))
         return try {
             val pay = wallet.client.servicePayRequest(h)
-            val discovered = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey }.getOrNull()
+            val discovery = runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
+            val discovered = discovery?.mintPubkey
             val existing = wallet.store.mint(walletId, h)
             val pinned = existing?.mintPubkey
+            // A mint the wallet has already keeps working; a new one without a key only where the wallet allows such mints.
+            if (discovery != null && discovered == null && existing == null && !wallet.allowsMintsWithoutSigningKey(walletId)) {
+                return ConnectResult.Failed(OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY))
+            }
             if (
                 pinned != null && discovered != null && pinned != discovered.toHex() ||
                     expectedKey != null && expectedKey != discovered?.toHex()
@@ -451,6 +464,7 @@ internal class Onboarding(private val wallet: Wallet) {
      * (a note claimed from it or moved to it): a home mint is trusted by default.
      */
     suspend fun homeIfNone(walletId: String, host: String) {
+        if (!wallet.withoutSigningKey.home && wallet.store.mint(walletId, host)?.mintPubkey == null) return
         wallet.store.accounts
             .first()
             .map { it.account }

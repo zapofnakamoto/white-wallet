@@ -19,6 +19,7 @@ import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
+import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.RejectionKind
 
 data class ClaimState(
@@ -38,6 +39,15 @@ data class ClaimState(
     val faucet: FaucetState = FaucetState(),
     /** [faucetMints] are known: until then nothing is drawn, so their buttons don't come in late. */
     val loaded: Boolean = true,
+    /**
+     * A link from outside without a note in it is being asked what it is (a withdraw or a pay link): only "Opening link" is drawn, then
+     * this screen or Send.
+     */
+    val opening: Boolean = false,
+    /** The account's home mint, to say so where a link is received into it. */
+    val home: String? = null,
+    /** The brand lets the user allow mints without a signing key (Security settings). */
+    val canAllowWithoutSigningKey: Boolean = false,
 )
 
 /** What the regtest faucet's note is made for; the mint's fee comes off. */
@@ -48,20 +58,38 @@ class ClaimViewModel
 @Inject
 constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, savedState: SavedStateHandle, defaults: AppDefaults) :
     ViewModel() {
-    private val _state = MutableStateFlow(ClaimState(showMints = defaults.showMints, loaded = false))
+    private val _state =
+        MutableStateFlow(
+            ClaimState(showMints = defaults.showMints, loaded = false, canAllowWithoutSigningKey = wallet.offersMintsWithoutSigningKey)
+        )
     val state: StateFlow<ClaimState> = _state
 
     init {
         viewModelScope.launch { faucet.noteMints.collect { mints -> _state.update { it.copy(faucetMints = mints, loaded = true) } } }
+        viewModelScope.launch { wallet.homeHost.collect { home -> _state.update { it.copy(home = home) } } }
         // Opened from a link, shared text or NFC tag: check it right away.
-        savedState.get<String>("input")?.takeIf { it.isNotBlank() }?.let(::onScanned)
+        savedState
+            .get<String>("input")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { input ->
+                val link = IncomingLink.classify(input) as? IncomingLink.Claim
+                onScanned(input, opening = link != null && NoteLink.parse(link.text) == null)
+            }
     }
 
     fun onInputChange(value: String) = _state.update { fresh(it, input = value) }
 
     /** The screen as it starts, with [input] and what doesn't depend on the note. */
     private fun fresh(from: ClaimState, input: String = "", pay: String? = null) =
-        ClaimState(input = input, showMints = from.showMints, pay = pay, faucetMints = from.faucetMints, loaded = from.loaded)
+        ClaimState(
+            input = input,
+            showMints = from.showMints,
+            pay = pay,
+            faucetMints = from.faucetMints,
+            loaded = from.loaded,
+            home = from.home,
+            canAllowWithoutSigningKey = from.canAllowWithoutSigningKey,
+        )
 
     /** Developer: has the regtest faucet make a note on the local mint [mint], and checks it as if it was pasted. */
     fun noteFromFaucet(mint: String) {
@@ -80,8 +108,10 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
     fun stopScan() = _state.update { it.copy(scanning = false) }
 
     /** A scanned or pasted note is checked right away. */
-    fun onScanned(text: String) {
-        _state.update { fresh(it, input = text.trim()) }
+    fun onScanned(text: String) = onScanned(text, opening = false)
+
+    private fun onScanned(text: String, opening: Boolean) {
+        _state.update { fresh(it, input = text.trim()).copy(opening = opening) }
         check()
     }
 
@@ -92,10 +122,53 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
             _state.update { fresh(it, pay = link.text) }
             return
         }
-        _state.update { it.copy(busy = true, preview = null) }
+        _state.update { it.copy(busy = true, preview = null, result = null) }
+        viewModelScope.launch { show(wallet.previewClaim(input)) }
+    }
+
+    /** A pay link goes to Send; anything else is shown here. */
+    private fun show(preview: ClaimPreview) {
+        if (preview is ClaimPreview.PayLink) return _state.update { fresh(it, pay = preview.text) }
+        _state.update { it.copy(busy = false, preview = preview, opening = false) }
+    }
+
+    /** Receives the link over Lightning into the mint the preview names. */
+    fun melt() {
+        val preview = _state.value.preview as? ClaimPreview.Melt ?: return
+        if (_state.value.busy) return
+        _state.update { it.copy(busy = true) }
         viewModelScope.launch {
-            val preview = wallet.previewClaim(input)
-            _state.update { it.copy(busy = false, preview = preview) }
+            val result =
+                try {
+                    wallet.melt(preview)
+                } catch (e: IOException) {
+                    ClaimResult.Failed(RejectionKind.Other, e.message)
+                }
+            _state.update { it.copy(busy = false, result = result) }
+        }
+    }
+
+    /** The user agreed to show the link to its own service, to learn what it pays. */
+    fun askLink() = updatePreview { wallet.askLink(it) }
+
+    /** Receives into [host] instead (an account without a home mint). */
+    fun meltInto(host: String) = updatePreview { wallet.meltInto(it, host) }
+
+    private fun updatePreview(next: suspend (ClaimPreview.Melt) -> ClaimPreview) {
+        val preview = _state.value.preview as? ClaimPreview.Melt ?: return
+        if (_state.value.busy) return
+        _state.update { it.copy(busy = true) }
+        viewModelScope.launch { show(next(preview)) }
+    }
+
+    /** Keeps a note link to receive over Lightning once the account has a mint. */
+    fun keepForLightning() {
+        val preview = _state.value.preview as? ClaimPreview.Melt ?: return
+        if (_state.value.busy) return
+        _state.update { it.copy(busy = true) }
+        viewModelScope.launch {
+            val result = wallet.keepForLightning(preview)
+            _state.update { it.copy(busy = false, result = result) }
         }
     }
 

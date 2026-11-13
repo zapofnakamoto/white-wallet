@@ -45,6 +45,10 @@
     <string name="notes_collect_confirm_body">Turning this on moves your notes on other mints there now:</string>
     <string name="money_change_body">Pick the new home mint. Invoices are made there, and moving everything to it collects your notes there. Your addresses stay where they are.</string>
     <string name="mints_add">Add a mint</string>
+    <string name="security_mints_without_key">Allow mints without a signing key</string>
+    <string name="security_mints_without_key_hint">Some mints publish no signing key. Your wallet then can\'t check that their notes are real, nor notice if such a mint is swapped. Off: a note from one is received into your home mint over Lightning, after you agree to its fee. On: such mints can be added and hold your money. For this wallet only.</string>
+    <string name="money_error_home_without_key">That mint publishes no signing key, so it can\'t be your home mint.</string>
+    <string name="mint_signing_key_none_hint">Without one, your wallet can\'t check this mint\'s notes are real, nor notice if it is swapped, and it can\'t be trusted.</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_recovery_phrase">Recovery phrase</string>
@@ -343,7 +347,7 @@
     <string name="settings_notes_with_collect">%1$s · moves everything to %2$s</string>
     <!-- %1$s: the start and end of the mint's signing key. -->
     <string name="mints_key">Key %1$s</string>
-    <string name="mints_no_key">No signing key known yet</string>
+    <string name="mints_no_key">No signing key, so it can\'t be trusted</string>
     <string name="mints_default_home">Trusted by default: your account\'s home</string>
     <string name="mints_default_brand">Trusted by default in this app</string>
     <string name="mints_untrusted_default">Trusted by default, but you switched it off</string>

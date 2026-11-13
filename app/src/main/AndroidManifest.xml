@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Reading note links and invoices from NFC tags; phones without NFC can still install the app. -->
@@ -33,6 +34,11 @@
                 <data android:scheme="lightning" />
                 <data android:scheme="lnurlw" />
                 <data android:scheme="lnurlp" />
+                <!-- Schemes match case-sensitively, and QR codes write the whole text in capitals to stay small, so lint's
+                     "lower-case only" doesn't apply here. -->
+                <data android:scheme="LIGHTNING" tools:ignore="AppLinkUrlError" />
+                <data android:scheme="LNURLW" tools:ignore="AppLinkUrlError" />
+                <data android:scheme="LNURLP" tools:ignore="AppLinkUrlError" />
             </intent-filter>
             <!-- Text shared from another app. -->
             <intent-filter>
@@ -47,6 +53,11 @@
                 <data android:scheme="lightning" />
                 <data android:scheme="lnurlw" />
                 <data android:scheme="lnurlp" />
+                <!-- Schemes match case-sensitively, and QR codes write the whole text in capitals to stay small, so lint's
+                     "lower-case only" doesn't apply here. -->
+                <data android:scheme="LIGHTNING" tools:ignore="AppLinkUrlError" />
+                <data android:scheme="LNURLW" tools:ignore="AppLinkUrlError" />
+                <data android:scheme="LNURLP" tools:ignore="AppLinkUrlError" />
             </intent-filter>
         </activity>
     </application>

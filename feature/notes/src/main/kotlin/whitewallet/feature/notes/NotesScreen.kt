@@ -100,16 +100,22 @@ class NotesActions(
     val simulateFailure: (SimulatedFailure.Kind?) -> Unit = {},
     val removeReceived: (String) -> Unit = {},
     val archiveReceived: (String) -> Unit = {},
+    val receiveReceived: (String) -> Unit = {},
     val openArchive: () -> Unit = {},
 )
 
 /**
  * Wires [NotesViewModel] to [NotesContent]; [onOpenShared] shows a shared note (its QR code, or taking it back), [onOpenArchive] the
- * archived received notes.
+ * archived received notes, [onClaim] a link in Claim.
  */
 @Composable
-fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Unit, onOpenArchive: () -> Unit): NotesActions =
-    remember(viewModel, onOpenShared, onOpenArchive) {
+fun rememberNotesActions(
+    viewModel: NotesViewModel,
+    onOpenShared: (String) -> Unit,
+    onOpenArchive: () -> Unit,
+    onClaim: (String) -> Unit,
+): NotesActions =
+    remember(viewModel, onOpenShared, onOpenArchive, onClaim) {
         NotesActions(
             tap = viewModel::tap,
             longPress = viewModel::select,
@@ -135,6 +141,7 @@ fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Un
             openShared = onOpenShared,
             removeReceived = viewModel::removeReceived,
             archiveReceived = viewModel::archiveReceived,
+            receiveReceived = { id -> viewModel.receiveReceived(id, onClaim) },
             openArchive = onOpenArchive,
         )
     }
@@ -144,7 +151,7 @@ fun rememberNotesActions(viewModel: NotesViewModel, onOpenShared: (String) -> Un
  * opens through [onOpenShared].
  */
 @Composable
-fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit, onOpenArchive: () -> Unit) {
+fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit, onOpenArchive: () -> Unit, onClaim: (String) -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.sharedId) {
         state.sharedId?.let {
@@ -152,7 +159,7 @@ fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit, onOpenAr
             viewModel.sharedShown()
         }
     }
-    NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive))
+    NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive, onClaim))
 }
 
 /** The notes view on its own page, for brands with `notes.view=settings`; reached from account settings. */
@@ -163,6 +170,7 @@ fun NotesRoute(
     onSettings: () -> Unit,
     onOpenShared: (String) -> Unit,
     onOpenArchive: () -> Unit,
+    onClaim: (String) -> Unit = {},
     viewModel: NotesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -179,7 +187,7 @@ fun NotesRoute(
             onRefresh = viewModel::refresh,
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {
-            NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive))
+            NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive, onClaim))
         }
     }
 }
@@ -229,6 +237,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
                         amountHidden = false,
                         onRemove = actions.removeReceived,
                         onArchive = actions.archiveReceived,
+                        onReceive = actions.receiveReceived,
                     )
                 }
             }

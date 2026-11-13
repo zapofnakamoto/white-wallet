@@ -10,14 +10,19 @@ public data class NoteInfo(
     val callback: String,
     /** The only authoritative statement of what the note is worth. */
     val maxWithdrawableMsat: Long,
-    val mintPubkey: PublicKey,
+    /**
+     * The key the mint signs its certificates with. LUD-25 only says a mint SHOULD publish it: null for one that doesn't, whose notes can't
+     * be certified, nor its key pinned.
+     */
+    val mintPubkey: PublicKey?,
     /** Certificate for the queried note, if the service sent a well-formed one. */
     val certificate: Cs1?,
 ) {
     public companion object {
         /**
          * Validates an informational response. [queriedK1] is the spend sent as `k1`, or null for a lookup by `p`. Throws
-         * [ProtocolViolation] for anything a wallet must not trust; returns the service's error as [NoteLookupError].
+         * [ProtocolViolation] for anything a wallet must not trust (a `mintPubkey` that isn't a key, not a missing one); returns the
+         * service's error as [NoteLookupError].
          */
         public fun from(response: LnurlResponse, queriedK1: String?): NoteInfo {
             if (response is LnurlResponse.Error) throw NoteLookupError(response.reason)
@@ -26,7 +31,9 @@ public data class NoteInfo(
                 throw ProtocolViolation("the server echoed a different k1 than the one queried")
             }
             val mintPubkey =
-                w.raw.string("mintPubkey")?.let(::parseMintPubkey) ?: throw ProtocolViolation("withdrawRequest has no valid mintPubkey")
+                w.raw.string("mintPubkey")?.let {
+                    parseMintPubkey(it) ?: throw ProtocolViolation("withdrawRequest has no valid mintPubkey")
+                }
             val certificate = (w.raw.string("c") ?: w.raw.string("sig"))?.let(Cs1::decode)
             return NoteInfo(w.callback, w.maxWithdrawable, mintPubkey, certificate)
         }

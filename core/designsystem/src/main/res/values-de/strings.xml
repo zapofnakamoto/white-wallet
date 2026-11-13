@@ -70,4 +70,9 @@
     </plurals>
     <string name="received_unreachable">Seine Mint war nicht erreichbar, deshalb versucht deine Wallet es nicht mehr.</string>
     <string name="received_not_a_note">Seine Mint hat nicht wie für einen Schein geantwortet, deshalb versucht deine Wallet es nicht mehr.</string>
+    <string name="received_no_signing_key">Seine Mint veröffentlicht keinen Signaturschlüssel.</string>
+    <string name="received_lightning_no_key">Seine Mint veröffentlicht keinen Signaturschlüssel, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
+    <string name="received_lightning_not_a_note">Seine Mint antwortet darauf nicht wie auf einen Schein, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
+    <string name="received_lightning_refused">Seine Mint bewahrt ihn nicht für deine Wallet auf, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
+    <string name="received_receive">Empfangen</string>
 </resources>

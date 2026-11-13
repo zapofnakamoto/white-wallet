@@ -8,6 +8,7 @@ import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
@@ -15,6 +16,7 @@ import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
+import whitewallet.lnurlcash.protocol.Requests
 
 /**
  * Notes received as links (see [ReceivedNote]): kept with their spend from the moment the user keeps or claims one, claimed as soon as
@@ -74,7 +76,10 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         val answer =
             info
                 ?: try {
-                    wallet.client.lookup(note.withdrawUrl, spend.q)
+                    val raw = wallet.client.get(Requests.lookup(note.withdrawUrl, spend.q))
+                    // A mint's answer by a note's key never carries a k1 (LUD-25): the service's own, for a withdraw link of another kind.
+                    if ((raw as? LnurlResponse.WithdrawRequest)?.k1 != null) return lightningOnly(note, ArchiveReason.NotANote)
+                    NoteInfo.from(raw, null)
                 } catch (e: NoteLookupError) {
                     return refused(note, spend, e.kind, e.reason)
                 } catch (e: ProtocolViolation) {
@@ -85,12 +90,16 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
         val known = wallet.mintOf(note.accountId, note.host)
         val pinned = known?.mintPubkey
-        if (pinned != null && pinned != answer.mintPubkey.toHex())
+        if (pinned != null && pinned != answer.mintPubkey?.toHex())
             return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, failingSinceMillis = null)))
+        val keyless = pinned == null && answer.mintPubkey == null
+        // A mint without a signing key is only added if the wallet allows such mints; one it holds already keeps working.
+        if (known == null && keyless && !wallet.allowsMintsWithoutSigningKey(wallet.walletOf(note.accountId)))
+            return lightningOnly(note, ArchiveReason.NoSigningKey)
         // A mint met here for the first time is connected before the claim, with the key it just presented: the claim's new key is then
         // found past the keys the phrase already used there (see [IndexGuard]). If it can't be connected, the claim starts at the first key
         // and the mint is connected after it.
-        if (known == null) onboarding.connectMint(wallet.walletOf(note.accountId), note.host, expectedKey = answer.mintPubkey.toHex())
+        if (known == null) onboarding.connectMint(wallet.walletOf(note.accountId), note.host, expectedKey = answer.mintPubkey?.toHex())
         val result =
             mutator.rotateIn(note.accountId, note.host, note.withdrawUrl, info = answer, spend, amountMsat = answer.maxWithdrawableMsat)
         return when (result) {
@@ -121,12 +130,61 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     certified = certified,
                     journalId = result.journalId,
                 )
-                update(note.copy(state = ReceivedState.Claiming, amountMsat = answer.maxWithdrawableMsat, journalId = result.journalId))
+                // A claim at its mint, not one over Lightning: settled by its rotate (see [settle]).
+                update(
+                    note.copy(
+                        state = ReceivedState.Claiming,
+                        amountMsat = answer.maxWithdrawableMsat,
+                        journalId = result.journalId,
+                        archivedReason = null,
+                    )
+                )
                 ClaimResult.Pending
             }
-            is MutationResult.Refused -> refused(note, spend, result.kind, result.reason)
+            is MutationResult.Refused ->
+                // Nothing vouches for a mint without a signing key: one that won't keep it here only gets to pay it out, if the user
+                // agrees.
+                if (keyless && result.kind !in UnknownNotes.GONE && spend !is Spend.Script) lightningOnly(note, ArchiveReason.Refused)
+                else refused(note, spend, result.kind, result.reason)
             is MutationResult.Unreachable -> waiting(note, ArchiveReason.Unreachable)
         }
+    }
+
+    /** Can't be kept at its mint, for [reason]: waits for the user to receive it over Lightning ([LinkWithdrawer]). */
+    private suspend fun lightningOnly(note: ReceivedNote, reason: ArchiveReason): ClaimResult.Kept =
+        ClaimResult.Kept(
+            update(note.copy(state = ReceivedState.LightningOnly, archivedReason = reason, failingSinceMillis = null, journalId = null))
+        )
+
+    /** Keeps [link] to be received over Lightning later (see [ReceivedState.LightningOnly]). */
+    suspend fun keepForLightning(link: NoteLink, accountId: String, amountMsat: Long?, reason: MeltReason): ReceivedNote {
+        val note = keep(link, accountId, amountMsat, ReceivedState.LightningOnly)
+        if (note.state != ReceivedState.LightningOnly) return note
+        return update(note.copy(archivedReason = reason.archiveReason ?: ArchiveReason.NotANote))
+    }
+
+    /** [link] is being received over Lightning by invoice [journalId] (see [LinkWithdrawer]): claiming, settled with the invoice. */
+    suspend fun melting(link: NoteLink, accountId: String, amountMsat: Long, reason: MeltReason, journalId: String): ReceivedNote {
+        val note = keep(link, accountId, amountMsat, ReceivedState.LightningOnly)
+        return update(
+            note.copy(
+                state = ReceivedState.Claiming,
+                amountMsat = amountMsat,
+                journalId = journalId,
+                archivedReason = reason.archiveReason ?: ArchiveReason.NotANote,
+                failingSinceMillis = null,
+            )
+        )
+    }
+
+    /** Receiving it over Lightning was refused, or its invoice expired unpaid: it waits for the user again. */
+    suspend fun meltFailed(note: ReceivedNote) {
+        update(note.copy(state = ReceivedState.LightningOnly, journalId = null))
+    }
+
+    /** Received over Lightning: [amountMsat] arrived as one of the wallet's own notes. */
+    suspend fun melted(note: ReceivedNote, amountMsat: Long) {
+        update(note.copy(state = ReceivedState.Claimed, k1 = null, amountMsat = amountMsat))
     }
 
     /**
@@ -140,6 +198,11 @@ internal class ReceivedNotes(private val wallet: Wallet) {
             if (note.state == ReceivedState.Locked && (note.lockedUntilMillis ?: 0) > wallet.now()) continue
             claim(note)
         }
+        // Kept only because mints without a signing key weren't allowed: claimed at its mint once they are.
+        for (note in wallet.store.receivedNotes(setOf(ReceivedState.LightningOnly)).filter { it.accountId in accountIds }) {
+            if (note.archivedReason == ArchiveReason.NoSigningKey && wallet.allowsMintsWithoutSigningKey(wallet.walletOf(note.accountId)))
+                claim(note)
+        }
     }
 
     /**
@@ -148,7 +211,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
      */
     suspend fun archive(id: String) {
         val note = wallet.store.receivedNote(id) ?: return
-        if (note.state in RETRIED) update(note.copy(state = ReceivedState.Archived, archivedReason = ArchiveReason.ByUser))
+        if (note.state in RETRIED || note.state == ReceivedState.LightningOnly)
+            update(note.copy(state = ReceivedState.Archived, archivedReason = ArchiveReason.ByUser))
     }
 
     /** Takes an archived note out of the archive and claims it now; kept again, with a new week, if it can't be. Null if not archived. */
@@ -176,6 +240,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
             }
             JournalStatus.Rejected,
             null -> {
+                // Received over Lightning, and its invoice expired unpaid: it waits for the user again.
+                if (note.archivedReason != null) return meltFailed(note)
                 val live =
                     try {
                         isLive(note)

@@ -107,6 +107,11 @@ class ProtocolVectorsTest {
             assertEquals(c.obj("body").getValue("maxWithdrawable").jsonPrimitive.long, info.maxWithdrawableMsat)
         }
         for (c in v.objects("rejected")) {
+            // LUD-25 only says a mint SHOULD publish its key; the vectors reject a response without one (see protocol/SPEC.md).
+            if (c.str("name") == "no mintPubkey") {
+                assertNull(NoteInfo.from(LnurlResponse.parse(c.obj("body")), queried).mintPubkey)
+                continue
+            }
             assertFailsWith<ProtocolViolation>(c.str("name")) { NoteInfo.from(LnurlResponse.parse(c.obj("body")), queried) }
         }
         assertFailsWith<NoteLookupError> {
