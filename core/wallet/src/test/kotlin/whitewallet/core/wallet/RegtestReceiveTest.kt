@@ -135,6 +135,6 @@ class RegtestReceiveTest {
             repeat(25) { URI("$callback${if ('?' in callback) '&' else '?'}amount=1000000").toURL().readText() }
             Regtest.pay(alice.address, 1000)
             assertEquals(999_000, alice.wallet.refresh().receivedMsat)
-            assertEquals(1, alice.wallet.keyIndex(HOST, KeySet.share(0)))
+            assertEquals(1, alice.wallet.keyIndex(HOST, KeySet.Share(0)))
         }
 }

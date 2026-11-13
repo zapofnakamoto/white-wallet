@@ -30,7 +30,7 @@ class SameDomainKeysTest {
     fun `mints on one domain derive the same keys, whatever their ports, and another domain derives others`() {
         val a = testKeys(words, "mint.example:3338")
         val b = testKeys(words, "mint.example:4448")
-        for (set in listOf(KeySet.Wallet, KeySet.Change, KeySet.share(0))) {
+        for (set in listOf(KeySet.Wallet, KeySet.Change, KeySet.Share(0))) {
             assertEquals(a.pubkey(set, 0), b.pubkey(set, 0), "$set")
             assertNotEquals(a.pubkey(set, 0), testKeys(words, "other.example:3338").pubkey(set, 0), "$set")
         }

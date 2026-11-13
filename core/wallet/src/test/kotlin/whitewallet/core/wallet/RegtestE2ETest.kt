@@ -332,11 +332,11 @@ class RegtestE2ETest {
             // 5. The next payment to the address lands on the next index; refresh scans past the used one.
             Regtest.pay("$alice@$HOST", 1000)
             assertEquals(1, wallet.refresh().newNotes)
-            assertEquals(2, wallet.keyIndex(HOST, KeySet.share(0)), "two address notes: indexes 0 and 1")
+            assertEquals(2, wallet.keyIndex(HOST, KeySet.Share(0)), "two address notes: indexes 0 and 1")
 
             // 6. Rotating that address note onto a wallet key is free on the real mint too.
             val before = wallet.balanceMsat.first()
-            assertIs<RotateResult.Rotated>(wallet.rotateKey(HOST, KeySet.share(0), 1))
+            assertIs<RotateResult.Rotated>(wallet.rotateKey(HOST, KeySet.Share(0), 1))
             assertEquals(before, wallet.balanceMsat.first())
 
             // 7. Even with the wallet counter forced back to 0, rotate all works: used keys are skipped or rediscovered.

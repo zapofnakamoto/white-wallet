@@ -25,7 +25,7 @@ class RegtestIdleTest {
 
             delay(7_000) // longer than the server's keep-alive
 
-            val result = phone.wallet.rotateAllKeys(HOST, KeySet.share(0))
+            val result = phone.wallet.rotateAllKeys(HOST, KeySet.Share(0))
             assertEquals(RotateAllResult(rotated = 2, failed = 0, pending = 0, totalMsat = 2_998_000, stoppedEarly = null), result)
             assertEquals(2_998_000, phone.balance())
 

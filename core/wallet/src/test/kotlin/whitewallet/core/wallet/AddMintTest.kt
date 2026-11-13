@@ -50,8 +50,8 @@ abstract class AddMintTest {
             val msat =
                 credit(words, other, KeySet.Wallet, 1, SATS) +
                     credit(words, other, KeySet.Change, 0, SATS) +
-                    credit(words, other, KeySet.share(0), 0, SATS) +
-                    credit(words, other, KeySet.share(2), 1, SATS)
+                    credit(words, other, KeySet.Share(0), 0, SATS) +
+                    credit(words, other, KeySet.Share(2), 1, SATS)
             val phone = Fresh()
             val id = assertIs<RestoreResult.Restored>(phone.restore(words)).accountId
             assertEquals(onHome, phone.balance())
@@ -62,7 +62,7 @@ abstract class AddMintTest {
             assertEquals(4, phone.store.allNotes().count { it.host == other })
             assertEquals(2, phone.store.indexOf(id, other, KeySet.Wallet), "never hands out a used key")
             assertEquals(1, phone.store.indexOf(id, other, KeySet.Change))
-            assertEquals(2, phone.store.indexOf(id, other, KeySet.share(2)))
+            assertEquals(2, phone.store.indexOf(id, other, KeySet.Share(2)))
             assertEquals(3, phone.shares(id))
         }
 
@@ -166,12 +166,12 @@ abstract class AddMintTest {
     fun `new payments to an address found on the added mint arrive on a refresh`() =
         runBlocking<Unit> {
             val words = phrase()
-            val first = credit(words, other, KeySet.share(0), 0, SATS)
+            val first = credit(words, other, KeySet.Share(0), 0, SATS)
             val phone = Fresh()
             assertIs<RestoreResult.Restored>(phone.restore(words))
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
 
-            val next = credit(words, other, KeySet.share(0), 1, SATS)
+            val next = credit(words, other, KeySet.Share(0), 1, SATS)
             assertEquals(next, phone.wallet.refresh().receivedMsat)
             assertEquals(first + next, phone.balance())
         }
@@ -266,7 +266,7 @@ abstract class AddMintTest {
     fun `adding a mint never takes back shares handed out there`() =
         runBlocking<Unit> {
             val words = phrase()
-            credit(words, other, KeySet.share(0), 0, SATS)
+            credit(words, other, KeySet.Share(0), 0, SATS)
             val phone = Fresh()
             val id = assertIs<RestoreResult.Restored>(phone.restore(words)).accountId
             // Shares 1 and 2 went to addresses nobody paid: they look unused, and must not be given out again.

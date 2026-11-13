@@ -132,7 +132,7 @@ class AccountsTest {
         assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
         wallet.switchAccount("a")
         val keysB = testKeys(wordsB, mint.host)
-        mint.credit(Cp1.encode(keysB.pubkey(KeySet.share(0), 0)), 4_000)
+        mint.credit(Cp1.encode(keysB.pubkey(KeySet.Share(0), 0)), 4_000)
         val open =
             JournalEntry(
                 "j1",

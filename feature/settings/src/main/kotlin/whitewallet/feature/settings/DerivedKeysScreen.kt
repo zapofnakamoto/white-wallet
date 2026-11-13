@@ -75,7 +75,6 @@ import whitewallet.core.wallet.RotateAllResult
 import whitewallet.core.wallet.RotateResult
 import whitewallet.core.wallet.SetIndexResult
 import whitewallet.core.wallet.Wallet
-import whitewallet.core.wallet.set
 
 data class DerivedKeysState(
     val hosts: List<String> = emptyList(),
@@ -652,7 +651,7 @@ private fun statusHint(status: KeyStatus, set: KeySet): String =
             KeyStatus.Spent -> R.string.keys_hint_spent
             KeyStatus.Skipped -> R.string.keys_hint_skipped
             KeyStatus.HandedOut -> R.string.keys_hint_handed_out
-            KeyStatus.Next -> if (set.isAddress) R.string.keys_hint_next_address else R.string.keys_hint_next
+            KeyStatus.Next -> if (set is KeySet.Share) R.string.keys_hint_next_address else R.string.keys_hint_next
             KeyStatus.Free -> R.string.keys_hint_free
         }
     )
@@ -683,7 +682,10 @@ private fun checkedAt(millis: Long): String = recentTime(millis)
 
 @Composable
 private fun keySetLabel(set: KeySet): String =
-    set.share?.let { stringResource(R.string.keys_address_number, it + 1) }
-        ?: stringResource(if (set == KeySet.Wallet) R.string.keys_purpose_wallet else R.string.keys_purpose_change)
+    when (set) {
+        KeySet.Wallet -> stringResource(R.string.keys_purpose_wallet)
+        KeySet.Change -> stringResource(R.string.keys_purpose_change)
+        is KeySet.Share -> stringResource(R.string.keys_address_number, set.n + 1)
+    }
 
 private const val TIME_SKELETON = "jm"

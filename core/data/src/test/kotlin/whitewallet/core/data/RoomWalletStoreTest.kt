@@ -132,7 +132,7 @@ class RoomWalletStoreTest {
             assertNull(store.keyIndexOrNull("acc", "mint.example", KeyCounter.Change))
             val probes =
                 listOf(KeyProbe.Unused(1), KeyProbe.Outstanding(1_000, true, false, 2), KeyProbe.Spent(3), KeyProbe.Refused("pending", 4))
-            probes.forEachIndexed { i, p -> store.putKeyCheck(KeyId("acc", "mint.example", 2, i.toLong(), 0), p) }
+            probes.forEachIndexed { i, p -> store.putKeyCheck(KeyId("acc", "mint.example", KeySet.Share(0), i.toLong()), p) }
             assertEquals(probes, store.keyChecks("acc").first().toSortedMap(compareBy { it.index }).values.toList())
         }
 

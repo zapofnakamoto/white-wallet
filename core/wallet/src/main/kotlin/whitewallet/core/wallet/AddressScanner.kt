@@ -19,12 +19,12 @@ internal class AddressScanner(private val wallet: Wallet) {
         val addresses = wallet.store.addresses(accountId).first().filter { it.host == host }
         // Every share handed out, not only those of known addresses: a restored phone doesn't know its names, and they still get paid.
         val handedOut = wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0
-        val sets = (addresses.map { it.share } + (0 until handedOut)).distinct().map(KeySet::share)
+        val sets = (addresses.map { it.share } + (0 until handedOut)).distinct().map(KeySet::Share)
         return sets.fold(RefreshResult(0, 0)) { total, set -> total + scan(accountId, host, set) }
     }
 
     suspend fun scan(accountId: String, host: String, set: KeySet): RefreshResult {
-        require(set.isAddress)
+        require(set is KeySet.Share)
         val mint = wallet.mintOf(accountId, host) ?: return RefreshResult(0, 0)
         val start = wallet.store.indexOf(accountId, host, set)
         var index = start

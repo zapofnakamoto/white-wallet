@@ -16,10 +16,8 @@ import whitewallet.lnurlcash.protocol.RejectionKind
 data class KeyId(
     val accountId: String,
     val host: String,
-    val purpose: Int,
+    val set: KeySet,
     val index: Long,
-    /** The share of a chain-2 key. */
-    val share: Long?,
 )
 
 /** What the mint said about a derived key the last time it was looked up (by `p`, never by spend). */
@@ -98,14 +96,14 @@ internal class KeyProber(private val wallet: Wallet) {
                                 id.accountId,
                                 id.host,
                                 kind = NoteKind.KeyPath,
-                                id.purpose,
+                                id.set.purpose,
                                 id.index,
                                 amountMsat = info.maxWithdrawableMsat,
                                 certificate = certificate?.encode() ?: existing?.certificate,
                                 // A note handed out as a link stays out of the balance until it is spent or taken back.
                                 state = existing?.state?.takeIf { it.isShared } ?: NoteState.Outstanding,
                                 updatedAtMillis = now,
-                                share = id.share,
+                                share = id.set.share,
                             )
                         )
                     )
@@ -150,7 +148,7 @@ internal class KeyProber(private val wallet: Wallet) {
     /** A used key must never be handed out again: keep the wallet's own counters past it (shares and addresses have none). */
     private suspend fun ensureCounterPast(id: KeyId) {
         val set = id.set
-        if (set.isAddress) return
+        if (set is KeySet.Share) return
         if (wallet.store.indexOf(id.accountId, id.host, set) <= id.index) wallet.store.setIndexOf(id.accountId, id.host, set, id.index + 1)
     }
 }

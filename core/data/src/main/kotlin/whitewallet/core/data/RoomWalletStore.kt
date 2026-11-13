@@ -129,7 +129,7 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
                         KeyCounter.Change.name -> put(KeySet.Change, row.next)
                     }
                 }
-                shareScans.forEach { put(KeySet.share(it.share), it.next) }
+                shareScans.forEach { put(KeySet.Share(it.share), it.next) }
             }
         }
 

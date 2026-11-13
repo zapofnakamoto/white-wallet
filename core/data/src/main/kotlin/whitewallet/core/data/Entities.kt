@@ -26,6 +26,7 @@ import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.model.WalletRecord
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
+import whitewallet.core.wallet.KeySet
 import whitewallet.lnurlcash.RevealsNoteSecret
 
 /**
@@ -268,7 +269,7 @@ internal data class KeyCheckEntity(
     val reason: String?,
     val checkedAtMillis: Long,
 ) {
-    fun id() = KeyId(accountId, host, purpose, keyIndex, share.takeIf { it >= 0 })
+    fun id() = KeyId(accountId, host, KeySet.of(purpose, share.takeIf { it >= 0 }), keyIndex)
 
     fun toModel(): KeyProbe? =
         when (result) {
@@ -298,8 +299,8 @@ internal data class KeyCheckEntity(
             return KeyCheckEntity(
                 id.accountId,
                 id.host,
-                id.purpose,
-                id.share ?: -1,
+                id.set.purpose,
+                id.set.share ?: -1,
                 keyIndex = id.index,
                 result,
                 outstanding?.amountMsat,

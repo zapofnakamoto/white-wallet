@@ -28,7 +28,7 @@ class SendNoteTest {
         var next = 0L
 
         suspend fun fund(vararg sats: Long) {
-            sats.forEach { mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), next++)), it * 1000) }
+            sats.forEach { mint.credit(Cp1.encode(keys.pubkey(KeySet.Share(0), next++)), it * 1000) }
             wallet.refresh()
         }
 

@@ -70,7 +70,7 @@ class SettingsScreensTest {
         compose.onNodeWithText(text(R.string.keys_address_number, 1)).assertExists()
         compose.onNodeWithText("anna@mint.example").assertExists()
         compose.onNodeWithText(text(R.string.keys_address_number, 2)).performClick()
-        assertEquals(KeySet.share(1), chosen)
+        assertEquals(KeySet.Share(1), chosen)
     }
 
     @Test

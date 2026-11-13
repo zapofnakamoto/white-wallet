@@ -73,7 +73,7 @@ class RegtestSharesTest {
 
             // A restored phone has handed out the same shares, and knows no names.
             val gap = WalletSettings().scanStopAfterUnusedKeys.toLong()
-            val set = KeySet.share(1)
+            val set = KeySet.Share(1)
             val q = phone.wallet.keys(accountId, HOST).pubkey(set, gap + 5)
             Regtest.pay("$second@$HOST", 1000)
             phone.wallet.refresh()

@@ -12,51 +12,58 @@ import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.spendDomain
 
 /**
- * The keys one index counts: an account's LUD-26 wallet or change chain (`S/a'/0`, `S/a'/1`), or one of its shares (`S/a'/2/n'`). Purpose 0
- * is the wallet, 1 change and 2 Lightning addresses.
+ * The keys one index counts (LUD-26): the account's wallet chain `S/a'/0`, its change chain `S/a'/1`, or one of its shares `S/a'/2/n'`,
+ * whose notes are paid to a Lightning address.
  */
-data class KeySet(val purpose: Int, val share: Long? = null) {
-    init {
-        require(purpose in 0..2)
-        require((share != null) == (purpose == 2)) { "a share, and only a share, has a share index" }
+sealed interface KeySet {
+    /** The chain below the account, as notes, outputs and key checks store it: 0 wallet, 1 change, 2 shares. */
+    val purpose: Int
+
+    /** The share index of a [Share], else null: how notes, outputs and key checks store it. */
+    val share: Long?
+        get() = (this as? Share)?.n
+
+    fun key(accountId: String, host: String, index: Long) = KeyId(accountId, host, this, index)
+
+    data object Wallet : KeySet {
+        override val purpose = 0
     }
 
-    /** Notes paid to a Lightning address. */
-    val isAddress: Boolean
-        get() = purpose == ADDRESS
+    data object Change : KeySet {
+        override val purpose = 1
+    }
 
-    /** The account's own counter on the mint's domain, for the wallet and change chains; shares have none. */
-    internal val counter: KeyCounter?
-        get() =
-            when {
-                purpose == WALLET -> KeyCounter.Wallet
-                purpose == CHANGE -> KeyCounter.Change
-                else -> null
-            }
-
-    fun key(accountId: String, host: String, index: Long) = KeyId(accountId, host, purpose, index, share)
+    data class Share(val n: Long) : KeySet {
+        override val purpose = 2
+    }
 
     companion object {
-        private const val WALLET = 0
-        private const val CHANGE = 1
-        private const val ADDRESS = 2
-
-        val Wallet = KeySet(WALLET)
-        val Change = KeySet(CHANGE)
-
-        fun share(n: Long) = KeySet(ADDRESS, n)
+        /** The set stored as [purpose] and, for a share, [share]. */
+        fun of(purpose: Int, share: Long?): KeySet =
+            when (purpose) {
+                0 -> Wallet
+                1 -> Change
+                2 -> Share(checkNotNull(share) { "a share has a share index" })
+                else -> throw IllegalArgumentException("no key chain $purpose")
+            }
 
         /** Where a note's key is. */
-        fun of(note: Note): KeySet = KeySet(checkNotNull(note.purpose) { "not a key-path note" }, note.share)
+        fun of(note: Note): KeySet = of(checkNotNull(note.purpose) { "not a key-path note" }, note.share)
     }
 }
+
+/** The account's own counter on the mint's domain, for the wallet and change chains; shares have none. */
+internal val KeySet.counter: KeyCounter?
+    get() =
+        when (this) {
+            KeySet.Wallet -> KeyCounter.Wallet
+            KeySet.Change -> KeyCounter.Change
+            is KeySet.Share -> null
+        }
 
 /** A note paid to one of the account's Lightning addresses. */
 internal val Note.isAddressNote: Boolean
     get() = kind == NoteKind.KeyPath && purpose == 2
-
-val KeyId.set: KeySet
-    get() = KeySet(purpose, share)
 
 /**
  * One account's keys at one mint: account `a` of its wallet's LUD-26 root for the mint's domain. Holds secret keys: kept for the life of
@@ -68,7 +75,7 @@ internal class AccountKeys(private val account: NoteAccount) {
     fun share(n: Long): Share = shares.getOrPut(n) { account.share(n) }
 
     fun pubkey(set: KeySet, index: Long): ByteVector32 =
-        if (set.isAddress) share(checkNotNull(set.share)).notePubkey(index) else secretKey(set, index).xOnlyPublicKey().value
+        if (set is KeySet.Share) share(set.n).notePubkey(index) else secretKey(set, index).xOnlyPublicKey().value
 
     fun pubkey(id: KeyId): ByteVector32 = pubkey(id.set, id.index)
 
@@ -80,10 +87,10 @@ internal class AccountKeys(private val account: NoteAccount) {
     }
 
     private fun secretKey(set: KeySet, index: Long): PrivateKey =
-        when {
-            set.isAddress -> share(checkNotNull(set.share)).noteSecretKey(index)
-            set.purpose == 0 -> account.walletKey(index)
-            else -> account.changeKey(index)
+        when (set) {
+            KeySet.Wallet -> account.walletKey(index)
+            KeySet.Change -> account.changeKey(index)
+            is KeySet.Share -> share(set.n).noteSecretKey(index)
         }
 }
 

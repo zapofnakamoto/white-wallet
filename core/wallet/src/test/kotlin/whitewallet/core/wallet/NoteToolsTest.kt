@@ -38,7 +38,7 @@ class NoteToolsTest {
             assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
             MockMint.start().use { mint ->
                 val keys = testKeys(words, mint.host)
-                mint.credit(Cp1.encode(keys.pubkey(KeySet.share(0), 0)), 21_000)
+                mint.credit(Cp1.encode(keys.pubkey(KeySet.Share(0), 0)), 21_000)
                 test(mint)
             }
         }

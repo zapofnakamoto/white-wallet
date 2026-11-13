@@ -42,6 +42,7 @@ import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.wallet.KeyId
 import whitewallet.core.wallet.KeyProbe
+import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.MintKey
 import whitewallet.lnurlcash.RevealsNoteSecret
 
@@ -226,7 +227,7 @@ class MigrationTest {
                 val shared = Note("n2", "acc", "mint.example", NoteKind.KeyPath, 2, 0, 1000, null, NoteState.Outstanding, 6, share = 1)
                 store.upsertNotes(listOf(shared))
                 assertEquals(shared, store.note("n2"))
-                val check = KeyId("acc", "mint.example", 2, 0, 1)
+                val check = KeyId("acc", "mint.example", KeySet.Share(1), 0)
                 store.putKeyCheck(check, KeyProbe.Spent(10))
                 assertEquals(KeyProbe.Spent(10), store.keyChecks("acc").first()[check])
                 val outputs = listOf(OutputRef("acc", 2, 0, "b".repeat(64), 1), OutputRef("acc", 0, 4, "c".repeat(64)))
@@ -455,7 +456,7 @@ class MigrationTest {
                     store.note(q('n')),
                 )
                 assertEquals(
-                    mapOf(KeyId("a0", "one.example", 2, 1, 0) to KeyProbe.Outstanding(2000, true, false, 5)),
+                    mapOf(KeyId("a0", "one.example", KeySet.Share(0), 1) to KeyProbe.Outstanding(2000, true, false, 5)),
                     store.keyChecks("a0").first(),
                 )
                 assertEquals(listOf("bob", "held"), store.addresses("a0").first().map { it.username }.sorted())

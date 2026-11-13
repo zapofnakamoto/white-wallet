@@ -140,7 +140,7 @@ abstract class RestoreBoundaryTest {
     fun `each chain counts its own gap`() =
         runBlocking<Unit> {
             val words = phrase()
-            val msat = credit(words, KeySet.Change, gap - 1, SATS) + credit(words, KeySet.share(0), gap - 1, SATS)
+            val msat = credit(words, KeySet.Change, gap - 1, SATS) + credit(words, KeySet.Share(0), gap - 1, SATS)
             val phone = Fresh()
             val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(2, restored.notes)
@@ -174,14 +174,14 @@ abstract class RestoreBoundaryTest {
             val words = phrase()
             val first =
                 credit(words, KeySet.Wallet, gap - 1, SATS) +
-                    credit(words, KeySet.share(0), gap - 1, SATS) +
-                    credit(words, KeySet.share(1), 0, SATS)
+                    credit(words, KeySet.Share(0), gap - 1, SATS) +
+                    credit(words, KeySet.Share(1), 0, SATS)
             val second =
                 credit(words, KeySet.Change, 0, SATS, account = 1) +
-                    credit(words, KeySet.share(0), 3, SATS, account = 1) +
-                    credit(words, KeySet.share(2), gap - 1, SATS, account = 1)
+                    credit(words, KeySet.Share(0), 3, SATS, account = 1) +
+                    credit(words, KeySet.Share(2), gap - 1, SATS, account = 1)
             // Used through an address alone: still an account.
-            val third = credit(words, KeySet.share(1), gap - 1, SATS, account = 2)
+            val third = credit(words, KeySet.Share(1), gap - 1, SATS, account = 2)
 
             val phone = Fresh()
             assertIs<RestoreResult.Restored>(phone.restore(words))
@@ -190,13 +190,13 @@ abstract class RestoreBoundaryTest {
 
             val ids = phone.ids()
             assertEquals(gap, phone.index(ids.getValue(0), KeySet.Wallet))
-            assertEquals(gap, phone.index(ids.getValue(0), KeySet.share(0)))
-            assertEquals(1, phone.index(ids.getValue(0), KeySet.share(1)))
+            assertEquals(gap, phone.index(ids.getValue(0), KeySet.Share(0)))
+            assertEquals(1, phone.index(ids.getValue(0), KeySet.Share(1)))
             assertEquals(1, phone.index(ids.getValue(1), KeySet.Change))
-            assertEquals(4, phone.index(ids.getValue(1), KeySet.share(0)))
-            assertEquals(0, phone.index(ids.getValue(1), KeySet.share(1)))
-            assertEquals(gap, phone.index(ids.getValue(1), KeySet.share(2)))
-            assertEquals(gap, phone.index(ids.getValue(2), KeySet.share(1)))
+            assertEquals(4, phone.index(ids.getValue(1), KeySet.Share(0)))
+            assertEquals(0, phone.index(ids.getValue(1), KeySet.Share(1)))
+            assertEquals(gap, phone.index(ids.getValue(1), KeySet.Share(2)))
+            assertEquals(gap, phone.index(ids.getValue(2), KeySet.Share(1)))
             assertEquals(
                 mapOf(0L to 2L, 1L to 3L, 2L to 2L),
                 ids.mapValues { phone.sharesHandedOut(it.value) },
@@ -208,8 +208,8 @@ abstract class RestoreBoundaryTest {
     fun `each share of each account counts its own gap, so a note one key past it is missed there and nowhere else`() =
         runBlocking<Unit> {
             val words = phrase()
-            val found = credit(words, KeySet.share(1), gap - 1, SATS, account = 1)
-            credit(words, KeySet.share(0), gap, SATS, account = 1)
+            val found = credit(words, KeySet.Share(1), gap - 1, SATS, account = 1)
+            credit(words, KeySet.Share(0), gap, SATS, account = 1)
             val phone = Fresh()
             assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(mapOf(0L to 0L, 1L to found), phone.balances())
@@ -220,13 +220,13 @@ abstract class RestoreBoundaryTest {
         runBlocking<Unit> {
             val last = WalletSettings().scanStopAfterUnusedShares - 1L
             val words = phrase()
-            val msat = credit(words, KeySet.share(last), 0, SATS, account = 1)
+            val msat = credit(words, KeySet.Share(last), 0, SATS, account = 1)
             val phone = Fresh()
             assertIs<RestoreResult.Restored>(phone.restore(words))
             assertEquals(mapOf(0L to 0L, 1L to msat), phone.balances())
 
             val past = phrase()
-            credit(past, KeySet.share(last + 1), 0, SATS, account = 1)
+            credit(past, KeySet.Share(last + 1), 0, SATS, account = 1)
             val other = Fresh()
             assertIs<RestoreResult.Restored>(other.restore(past))
             assertEquals(mapOf(0L to 0L), other.balances(), "and with nothing else used, no second account either")
@@ -236,7 +236,7 @@ abstract class RestoreBoundaryTest {
     fun `the wallet settings are the ones a restore keeps to`() =
         runBlocking<Unit> {
             val words = phrase()
-            val past = credit(words, KeySet.share(2), 0, SATS)
+            val past = credit(words, KeySet.Share(2), 0, SATS)
             val account = credit(words, KeySet.Wallet, 2, SATS, account = 2)
 
             val narrow = Fresh(settings = WalletSettings(scanStopAfterUnusedKeys = 2, scanStopAfterUnusedShares = 2))
@@ -291,13 +291,13 @@ abstract class RestoreBoundaryTest {
     fun `an address paid after a restore is found on its share, in its own account, before the phone knows the name`() =
         runBlocking<Unit> {
             val words = phrase()
-            val first = credit(words, KeySet.share(1), 0, SATS)
-            val second = credit(words, KeySet.share(0), 0, SATS, account = 1)
+            val first = credit(words, KeySet.Share(1), 0, SATS)
+            val second = credit(words, KeySet.Share(0), 0, SATS, account = 1)
             val phone = Fresh()
             assertIs<RestoreResult.Restored>(phone.restore(words))
 
-            val again = credit(words, KeySet.share(1), 1, SATS)
-            val secondAgain = credit(words, KeySet.share(0), 1, SATS, account = 1)
+            val again = credit(words, KeySet.Share(1), 1, SATS)
+            val secondAgain = credit(words, KeySet.Share(0), 1, SATS, account = 1)
             phone.wallet.refresh()
             assertEquals(mapOf(0L to first + again, 1L to second + secondAgain), phone.balances())
         }
@@ -310,7 +310,7 @@ abstract class RestoreBoundaryTest {
             credit(words, KeySet.Wallet, 3, SATS)
             credit(words, KeySet.Wallet, 15, SATS)
             credit(words, KeySet.Change, 7, SATS)
-            credit(words, KeySet.share(1), 2, SATS)
+            credit(words, KeySet.Share(1), 2, SATS)
             credit(words, KeySet.Wallet, 4, SATS, account = 1)
 
             suspend fun restore(atOnce: Int): Triple<Map<Long, Long>, List<List<Long>>, Int> {
@@ -371,7 +371,7 @@ abstract class RestoreBoundaryTest {
         suspend fun sharesHandedOut(accountId: String): Long? = store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares)
 
         /** The wallet and change indexes, then the first share's. */
-        suspend fun indexes(accountId: String) = listOf(KeySet.Wallet, KeySet.Change, KeySet.share(0)).map { index(accountId, it) }
+        suspend fun indexes(accountId: String) = listOf(KeySet.Wallet, KeySet.Change, KeySet.Share(0)).map { index(accountId, it) }
     }
 
     /** Spends the note on that key at the mint, by rotating it to a key of another phrase. */

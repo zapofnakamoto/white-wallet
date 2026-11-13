@@ -214,7 +214,7 @@ class InMemoryWalletStore : WalletStore {
                     }
                 }
             }
-            shareScans.forEach { (k, next) -> if (k.first == accountId && k.second == host) put(KeySet.share(k.third), next) }
+            shareScans.forEach { (k, next) -> if (k.first == accountId && k.second == host) put(KeySet.Share(k.third), next) }
         }
     }
 

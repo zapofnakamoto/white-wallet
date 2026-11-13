@@ -337,7 +337,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         if (outstanding(accountId).none { it.host == host && it.isAddressNote }) return run
         val r =
             wallet.working(WalletTask.Maintaining(MaintenanceStep.Renewing)) {
-                rotator.rotateAll(accountId, host, KeySet::isAddress, automatic = true)
+                rotator.rotateAll(accountId, host, { it is KeySet.Share }, automatic = true)
             }
         return run.copy(rotated = run.rotated + r.rotated, failed = run.failed + r.failed, stoppedEarly = r.stoppedEarly)
     }

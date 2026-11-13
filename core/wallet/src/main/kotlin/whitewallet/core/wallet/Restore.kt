@@ -221,7 +221,7 @@ internal class Restore(private val wallet: Wallet) {
         var unused = 0
         var last = -1L
         while (unused < wallet.settings.scanStopAfterUnusedShares) {
-            val found = discovery.discover(accountId, h, KeySet.share(share), onProbe = report)
+            val found = discovery.discover(accountId, h, KeySet.Share(share), onProbe = report)
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))
             }
