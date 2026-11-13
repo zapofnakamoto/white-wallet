@@ -11,6 +11,7 @@ import whitewallet.core.model.UnclaimedReason
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
+import whitewallet.lnurlcash.protocol.InvalidMintPubkey
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.NoteLookupError
@@ -81,13 +82,13 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     is KeyLookup.OtherService,
                     KeyLookup.NotANote -> return lightningOnly(note, UnclaimedReason.NotANote)
                     is KeyLookup.Refused -> return refused(note, spend, found.kind, found.reason)
+                    is KeyLookup.KeyChanged -> return keyChanged(note)
                     KeyLookup.Unreachable -> return waiting(note)
                 }
         if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
         val known = wallet.mintOf(note.accountId, note.host)
         val pinned = known?.mintPubkey
-        if (pinned != null && pinned != answer.mintPubkey?.toHex())
-            return ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, failingSinceMillis = null)))
+        if (pinned != null && pinned != answer.mintPubkey?.toHex()) return keyChanged(note)
         // As Claim offers: the wallet keeps no notes at a mint without a signing key.
         val key = answer.mintPubkey ?: return lightningOnly(note, UnclaimedReason.NoSigningKey)
         // A mint met here for the first time is connected before the claim, with the key it just presented: the claim's new key is then
@@ -144,8 +145,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 ClaimResult.Pending
             }
             is MutationResult.Refused -> refused(note, spend, result.kind, result.reason)
-            is MutationResult.Unreachable if result.keyChanged ->
-                ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, failingSinceMillis = null)))
+            is MutationResult.Unreachable if result.keyChanged -> keyChanged(note)
             is MutationResult.Unreachable -> waiting(note)
         }
     }
@@ -292,6 +292,10 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         return ClaimResult.Failed(kind, reason)
     }
 
+    /** Its mint presents another signing key than the pinned one, or none: kept, and tried again on each refresh. */
+    private suspend fun keyChanged(note: ReceivedNote): ClaimResult =
+        ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, failingSinceMillis = null)))
+
     /** Its mint couldn't be reached: kept, and tried again once online. */
     private suspend fun waiting(note: ReceivedNote): ClaimResult {
         val kept = failing(note, UnclaimedReason.Unreachable)
@@ -349,6 +353,12 @@ internal sealed interface KeyLookup {
     data class Refused(val kind: RejectionKind, val reason: String?) : KeyLookup
 
     /**
+     * From a mint whose key the account's wallet pinned, an answer for the note worth [amountMsat] with a `mintPubkey` that isn't a key: no
+     * key, which doesn't match the pinned one (see [Pinning.invalidKey]). From any other host, that answer is [NotANote].
+     */
+    data class KeyChanged(val amountMsat: Long) : KeyLookup
+
+    /**
      * No answer at all; or, from a mint whose key the account's wallet pinned, none as for a note. Such a mint is never shown the link nor
      * paid out over Lightning ([SecretGate.releaseLink]): its notes wait for it to answer again (a deploy's error page, a challenge page),
      * and whoever answers in its place never gets the spend.
@@ -358,12 +368,12 @@ internal sealed interface KeyLookup {
     companion object {
         /** Asks [withdrawUrl], the link's host [host], about the note [q] for [accountId]. */
         suspend fun of(wallet: Wallet, accountId: String, host: String, withdrawUrl: String, q: ByteVector32): KeyLookup {
-            val found = ask(wallet, withdrawUrl, q)
             val pinned = wallet.mintOf(accountId, host)?.mintPubkey != null
+            val found = ask(wallet, withdrawUrl, q, pinned)
             return if (pinned && (found is OtherService || found == NotANote)) Unreachable else found
         }
 
-        private suspend fun ask(wallet: Wallet, withdrawUrl: String, q: ByteVector32): KeyLookup {
+        private suspend fun ask(wallet: Wallet, withdrawUrl: String, q: ByteVector32, pinned: Boolean): KeyLookup {
             val answer =
                 try {
                     wallet.client.get(Requests.lookup(withdrawUrl, q))
@@ -381,6 +391,8 @@ internal sealed interface KeyLookup {
                 Note(NoteInfo.from(answer, null))
             } catch (e: NoteLookupError) {
                 Refused(e.kind, e.reason)
+            } catch (e: InvalidMintPubkey) {
+                if (pinned) KeyChanged((answer as LnurlResponse.WithdrawRequest).maxWithdrawable) else NotANote
             } catch (e: ProtocolViolation) {
                 NotANote
             }

@@ -89,12 +89,12 @@ internal class Melter(private val wallet: Wallet) {
         val info =
             try {
                 // Asked by the note's key alone: the spend goes out only with the melt.
-                wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id)).also { Pinning.check(wallet, mint, it.mintPubkey) }
+                Pinning.lookup(wallet, mint, ByteVector32(note.id))
             } catch (e: NoteLookupError) {
                 if (e.kind in UnknownNotes.GONE && unknownNotes.sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
                 return MeltOutcome.Unreachable
             } catch (e: MintKeyChangedException) {
-                // Nothing is paid through a mint with another signing key than the pinned one, or none.
+                // Nothing is paid through a mint with another signing key than the pinned one, or none (or one that isn't a key).
                 return MeltOutcome.KeyChanged
             } catch (e: Exception) {
                 return MeltOutcome.Unreachable

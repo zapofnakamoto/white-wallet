@@ -21,8 +21,8 @@ public data class NoteInfo(
     public companion object {
         /**
          * Validates an informational response. [queriedK1] is the spend sent as `k1`, or null for a lookup by `p`. Throws
-         * [ProtocolViolation] for anything a wallet must not trust (a `mintPubkey` that isn't a key, not a missing one); returns the
-         * service's error as [NoteLookupError].
+         * [ProtocolViolation] for anything a wallet must not trust: [InvalidMintPubkey] for a `mintPubkey` that isn't a key (not a missing
+         * one). Returns the service's error as [NoteLookupError].
          */
         public fun from(response: LnurlResponse, queriedK1: String?): NoteInfo {
             if (response is LnurlResponse.Error) throw NoteLookupError(response.reason)
@@ -32,7 +32,7 @@ public data class NoteInfo(
             }
             val mintPubkey =
                 w.raw.string("mintPubkey")?.let {
-                    parseMintPubkey(it) ?: throw ProtocolViolation("withdrawRequest has no valid mintPubkey")
+                    parseMintPubkey(it) ?: throw InvalidMintPubkey()
                 }
             val certificate = (w.raw.string("c") ?: w.raw.string("sig"))?.let(Cs1::decode)
             return NoteInfo(w.callback, w.maxWithdrawable, mintPubkey, certificate)

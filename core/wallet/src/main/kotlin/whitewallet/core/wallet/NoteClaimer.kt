@@ -147,6 +147,11 @@ internal class NoteClaimer(private val wallet: Wallet) {
                         RejectionKind.NoteUnknown -> ClaimPreview.AlreadySpent
                         else -> ClaimPreview.Invalid(found.reason ?: "refused")
                     }
+                // As at a mint that shows no key: the account's own note is still taken back (and refused there), any other kept.
+                is KeyLookup.KeyChanged -> {
+                    if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
+                    return ClaimPreview.KeyChanged(link, link.host, found.amountMsat)
+                }
                 KeyLookup.Unreachable -> {
                     if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = false)
                     return ClaimPreview.Offline(link, link.declaredAmountMsat, certifiedOffline(link, accountId))

@@ -112,6 +112,11 @@ class ProtocolVectorsTest {
                 assertNull(NoteInfo.from(LnurlResponse.parse(c.obj("body")), queried).mintPubkey)
                 continue
             }
+            // A key that isn't one is its own violation, which a wallet with the mint's key pinned reads as a changed key.
+            if (c.str("name") == "mintPubkey that is not a compressed secp256k1 key") {
+                assertFailsWith<InvalidMintPubkey> { NoteInfo.from(LnurlResponse.parse(c.obj("body")), queried) }
+                continue
+            }
             assertFailsWith<ProtocolViolation>(c.str("name")) { NoteInfo.from(LnurlResponse.parse(c.obj("body")), queried) }
         }
         assertFailsWith<NoteLookupError> {

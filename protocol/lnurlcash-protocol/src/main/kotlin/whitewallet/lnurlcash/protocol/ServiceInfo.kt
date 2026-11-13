@@ -7,7 +7,13 @@ import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurl.string
 
 /** A service response that violates LUD-25 badly enough that the wallet must not act on it. */
-public class ProtocolViolation(message: String) : Exception(message)
+public open class ProtocolViolation(message: String) : Exception(message)
+
+/**
+ * A `mintPubkey` that is there but isn't a compressed secp256k1 key: never trusted as a key, nor taken for a mint that publishes none. Its
+ * own type, for a wallet that pinned the mint's key to tell it from the rest of an invalid answer.
+ */
+public class InvalidMintPubkey : ProtocolViolation("withdrawRequest has no valid mintPubkey")
 
 /**
  * The `Mint fees: <base_fee_msat>,<fee_ppm>[,<address_fee_msat>]` token of a payRequest's `text/plain` metadata (LUD-25), anywhere in the

@@ -7,6 +7,7 @@ import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.isShared
+import whitewallet.lnurlcash.protocol.InvalidMintPubkey
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
@@ -80,7 +81,8 @@ internal class KeyProber(private val wallet: Wallet) {
         val now = wallet.now()
         val result =
             try {
-                val info = answer.getOrThrow()
+                // A key that isn't one is none: a changed key at a pinned mint, which ends the scan like any other.
+                val info = answer.getOrElse { if (it is InvalidMintPubkey) Pinning.invalidKey(mint, it) else throw it }
                 val pinned = Pinning.check(wallet, mint, info.mintPubkey)
                 val certificate =
                     info.certificate?.takeIf { certifies(it, id.host, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }

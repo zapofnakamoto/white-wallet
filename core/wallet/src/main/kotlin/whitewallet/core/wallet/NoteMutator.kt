@@ -16,7 +16,6 @@ import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLookupError
-import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
@@ -93,23 +92,16 @@ internal class NoteMutator(private val wallet: Wallet) {
         val keys = wallet.keys(fromId, host)
         val spends = inputs.map { note -> keys.spend(note, domain) }
         if (SimulatedFailure.take(SimulatedFailure.Kind.Unreachable)) return MutationResult.Unreachable("simulated: no answer")
-        // Asked by the first note's key alone (LUD-25 "Checking a note without exposing it"): spends go out only with the mutation.
+        // Asked by the first note's key alone (LUD-25 "Checking a note without exposing it"): spends go out only with the mutation, and
+        // nothing goes out to a mint that signs with another key than the pinned one (see Pinning).
         val info = runCatching {
-            wallet.client.lookup(mint.withdrawUrl, ByteVector32(inputs.first().id))
+            Pinning.lookup(wallet, mint, ByteVector32(inputs.first().id))
         }
             .getOrElse {
                 // The mint won't say what the note is worth: it may not know it. That is about the notes, not the mint.
                 if (it is NoteLookupError && it.kind in UnknownNotes.GONE) return refused(inputs, it.kind, it.reason)
-                return MutationResult.Unreachable(it.message)
+                return MutationResult.Unreachable(it.message, keyChanged = it is MintKeyChangedException)
             }
-        // Nothing goes out to a mint that signs with another key than the pinned one (see Pinning).
-        try {
-            Pinning.check(wallet, mint, info.mintPubkey)
-        } catch (e: MintKeyChangedException) {
-            return MutationResult.Unreachable(e.message, keyChanged = true)
-        } catch (e: ProtocolViolation) {
-            return MutationResult.Unreachable(e.message)
-        }
         val result =
             run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputMsat = inputs.sumOf { it.amountMsat }, type, outputs, splitMsat)
         return if (result is MutationResult.Refused && result.kind in UnknownNotes.GONE) refused(inputs, result.kind, result.reason)
