@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.9.0]
+
 ### Added
 
 - The launcher icon is in the APK as PNGs too, drawn by the build from the brand's adaptive icon. Android shows the
