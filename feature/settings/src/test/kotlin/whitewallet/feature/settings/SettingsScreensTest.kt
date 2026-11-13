@@ -82,7 +82,7 @@ class SettingsScreensTest {
             )
         }
         compose.onNodeWithText(text(R.string.mint_key_changed_short)).assertExists()
-        compose.onNodeWithText("now signs with a different key", substring = true).assertExists()
+        compose.onNodeWithText("doesn't match the one your wallet knows", substring = true).assertExists()
     }
 
     @Test
@@ -90,8 +90,7 @@ class SettingsScreensTest {
         compose.setContent {
             MintDetailsScreen(MintDetailsState(details(MintDetails.Reachability.KeyChanged), loading = false), {}, {})
         }
-        compose.onNodeWithText(text(R.string.mint_key_missing, "mint.example")).assertExists()
-        compose.onNodeWithText(text(R.string.mint_key_changed, "mint.example")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_key_changed, "mint.example")).assertExists()
         compose.onNodeWithText(text(R.string.mint_key_remembered)).assertExists()
         compose.onNodeWithText(text(R.string.mint_key_new)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.mint_key_accept)).assertDoesNotExist()

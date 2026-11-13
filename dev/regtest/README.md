@@ -111,7 +111,7 @@ The third mint (`localhost:8113`) gets a new signing key with `regtest.sh rotate
    - Share a note: Send → Create a note, or Notes → a note → Share. Copy the link.
    - Run `just regtest rotate-mint3`.
    - In Acme, on an account at `localhost:8111`, go to Receive → Claim a note and paste the link. It must say **"Not certified: the amount can't be verified."** Claiming still works, and the claimed note shows as certified in Notes: it now sits at Acme's own key, signed with the new key.
-2. **Accepting the new key.** Back in White Wallet, refresh. Home shows "localhost:8113 changed its signing key". Open Details: it shows both keys. Choose "Use the new key" and confirm, and the mint works again. A note shared from then on is certified for its recipient.
+2. **Accepting the new key.** Back in White Wallet, refresh. Home shows "Signing key of localhost:8113 doesn't match". Open Details: it shows both keys. Choose "Use the new key" and confirm, and the mint works again. A note shared from then on is certified for its recipient.
 
 Each `rotate-mint3` switches the mint between the two nodes, so running it again changes the key back.
 

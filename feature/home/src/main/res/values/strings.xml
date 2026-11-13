@@ -32,7 +32,7 @@
     <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a note may cost a split fee.</string>
     <!-- Before a move to an account of another wallet. %1$s: the mint's host, %2$s: that wallet's name. -->
     <string name="move_adds_mint">%1$s will be added to the mints of %2$s.</string>
-    <string name="home_key_changed_body">Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it.</string>
+    <string name="home_key_changed_body">Nothing is sent there until it matches again, or you accept a new key in the mint\'s details. Your notes there are unchanged.</string>
     <!-- What the wallet did to the notes by itself, in a short message on the home screen. -->
     <plurals name="notice_combined_into_one">
         <item quantity="one">Combined %1$d note into one of %2$s</item>
@@ -186,7 +186,7 @@
     <string name="move_none">Nothing was moved.</string>
     <!-- Why money stayed, said after a move and before one that can't be whole. %1$s: the mint's host. -->
     <string name="move_stayed_unreachable">No answer from %1$s. Try again later.</string>
-    <string name="move_stayed_key">The signing key of %1$s isn\'t the one expected. Look at its details before you try again.</string>
+    <string name="move_stayed_key">The signing key of %1$s doesn\'t match the one your wallet knows. Look at its details before you try again.</string>
     <!-- The wallet the money was to go to knows the mint by another key. %1$s: the mint's host, %2$s: that wallet's name. -->
     <string name="move_stayed_other_key">%2$s knows %1$s by another signing key. Look at it in that wallet before you try again.</string>
     <string name="move_stayed_refused">%1$s doesn\'t accept the move.</string>
@@ -203,7 +203,7 @@
     <!-- The button that moves what can move. %1$s: that amount. -->
     <string name="move_partial_confirm">Move %1$s</string>
     <string name="move_partial_cancel">Cancel</string>
-    <string name="home_key_changed_title">%1$s changed its signing key</string>
+    <string name="home_key_changed_title">Signing key of %1$s doesn\'t match</string>
     <string name="home_key_changed_action">Details</string>
     <!-- After a notice_* message: what it did to the balance, as a sentence of its own. -->
     <string name="notice_with_balance">%1$s. %2$s</string>

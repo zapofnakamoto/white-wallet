@@ -19,8 +19,7 @@
     <string name="mint_title">Mint</string>
     <string name="about_body">A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device.</string>
     <string name="mints_intro">Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted.</string>
-    <string name="mint_key_changed">%1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn\'t send or receive there. Your notes there are unchanged.</string>
-    <string name="mint_key_missing">%1$s no longer shows its signing key, so your wallet can\'t tell it is the same mint. Until it shows the key you know again, your wallet doesn\'t send or receive there. Your notes there are unchanged.</string>
+    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent or received there until it matches again, or you accept a new key. Your notes there are unchanged.</string>
     <string name="settings_notes">Note settings</string>
     <string name="settings_note_list">Notes</string>
     <string name="settings_note_list_hint">See your notes one by one, share, split or combine them</string>
@@ -278,7 +277,7 @@
 
     <string name="mint_reachable">Reachable</string>
     <string name="mint_unreachable">Not reachable right now</string>
-    <string name="mint_key_changed_short">Signing key changed</string>
+    <string name="mint_key_changed_short">Signing key doesn\'t match</string>
     <string name="mint_check_again">Check again</string>
     <string name="mint_key_remembered">Remembered key</string>
     <string name="mint_key_new">New key</string>

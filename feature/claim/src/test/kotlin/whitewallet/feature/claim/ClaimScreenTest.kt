@@ -227,7 +227,7 @@ class ClaimScreenTest {
     fun aNoteOnAMintWhoseKeyChangedCanBeKeptUntilTheUserDecides() {
         var kept = false
         showKeep(ClaimPreview.KeyChanged(link, "other.example", 5_000_000), onKeep = { kept = true })
-        compose.onNodeWithText("other.example now signs with another key than the one your wallet knows", substring = true).assertExists()
+        compose.onNodeWithText("The signing key of other.example doesn't match the one your wallet knows", substring = true).assertExists()
         compose.onNodeWithText(text(R.string.claim_keep)).performScrollTo().performClick()
         assertTrue(kept)
     }

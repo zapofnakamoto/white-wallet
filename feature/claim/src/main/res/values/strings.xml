@@ -19,8 +19,8 @@
     <string name="claim_other_mint">This note is held by %1$s and stays there.</string>
     <string name="claim_not_spendable">This link doesn\'t unlock the note it names, so it can\'t be claimed.</string>
     <string name="claim_other_paths">This note can also be spent another way, so someone else may take it before you claim it.</string>
-    <string name="claim_key_changed">%1$s now signs with another key than the one your wallet knows, so nothing is sent there yet. Keep it, and your wallet claims it once you accept the new key in the mint\'s details.</string>
-    <string name="claim_kept_key_changed">Kept. Your wallet claims it once you accept the mint\'s new signing key in its details.</string>
+    <string name="claim_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the mint\'s details.</string>
+    <string name="claim_kept_key_changed">Kept. Your wallet claims it once the mint\'s signing key matches again, or you accept a new key in its details.</string>
     <string name="claim_melt_not_a_note">%1$s doesn\'t answer for this as a note: it may be a withdraw link of another kind. It can be received over Lightning instead, for a fee.</string>
     <string name="claim_melt_into_home">Into %1$s, your home mint</string>
     <string name="claim_melt_pick">Your account has no home mint. Which mint should receive it?</string>

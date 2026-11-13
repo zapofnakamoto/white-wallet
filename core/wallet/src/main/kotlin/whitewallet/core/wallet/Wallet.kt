@@ -1521,7 +1521,7 @@ sealed interface NoteCheck {
     /** The change a confirming note went into never landed: the note is spendable again. */
     data object NotLanded : NoteCheck
 
-    /** The mint signs with a different key than before; operations on it are stopped. */
+    /** The mint's signing key doesn't match the pinned one (another, or none); operations on it are stopped. */
     data class KeyChanged(val host: String) : NoteCheck
 
     /** Not an outstanding note of the active account with a derived key. */

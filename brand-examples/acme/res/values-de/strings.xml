@@ -39,8 +39,8 @@
     <string name="claim_in_wallet">Dieser Geldschein ist bereits in deiner Wallet.</string>
     <string name="claim_own_shared">Du hast diesen Geldschein geteilt, und niemand hat ihn bisher eingelöst.</string>
     <string name="claim_own_offline">Du hast diesen Geldschein geteilt. Dein Anbieter ist gerade nicht erreichbar, darum lässt er sich noch nicht zurückholen.</string>
-    <string name="claim_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als dem, den deine Wallet kennt, deshalb wird noch nichts dorthin gesendet. Behalte ihn, und deine Wallet löst ihn ein, sobald du den neuen Schlüssel in den Details des Anbieters annimmst.</string>
-    <string name="claim_kept_key_changed">Behalten. Deine Wallet löst ihn ein, sobald du den neuen Signaturschlüssel des Anbieters in seinen Details annimmst.</string>
+    <string name="claim_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt, deshalb wird nichts dorthin gesendet. Behalte ihn: Deine Wallet löst ihn ein, sobald der Schlüssel wieder passt oder du in den Details des Anbieters einen neuen annimmst.</string>
+    <string name="claim_kept_key_changed">Behalten. Deine Wallet löst ihn ein, sobald der Signaturschlüssel des Anbieters wieder passt oder du in seinen Details einen neuen annimmst.</string>
     <string name="claim_other_mint">Dieser Geldschein liegt bei %1$s und bleibt dort.</string>
     <string name="home_tab_notes">Geldscheine</string>
     <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Geldschein ein.</string>
@@ -57,7 +57,7 @@
     <string name="activity_sent_note">Geldschein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Geldscheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="move_adds_mint">%1$s wird zu den Anbietern von %2$s hinzugefügt.</string>
-    <string name="home_key_changed_body">Deine Wallet arbeitet nicht mehr damit, es wird also nichts dorthin gesendet. Deine Geldscheine dort sind unverändert. Öffne die Details, um den neuen Schlüssel zu sehen und zu entscheiden, ob du ihn verwendest.</string>
+    <string name="home_key_changed_body">Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details des Anbieters einen neuen Schlüssel annimmst. Deine Geldscheine dort sind unverändert.</string>
     <string name="notes_title">Geldscheine</string>
     <string name="notes_settings">Geldschein-Einstellungen</string>
     <plurals name="notes_count">
@@ -151,8 +151,7 @@
     <string name="note_unconfirmed">Der Anbieter wurde zu diesem Geldschein noch nicht gefragt. Deine Wallet fragt, sobald sie online ist.</string>
     <string name="note_unknown_to_mint">Der Anbieter kennt diesen Geldschein nicht, deshalb funktioniert der Link vielleicht nicht.</string>
     <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Geldschein.</string>
-    <string name="mint_key_changed">%1$s signiert jetzt mit einem anderen Schlüssel als bei deiner ersten Verbindung. Bis du den neuen Schlüssel annimmst, sendet und empfängt deine Wallet dort nichts. Deine Geldscheine dort sind unverändert.</string>
-    <string name="mint_key_missing">%1$s zeigt keinen Signaturschlüssel mehr, daher kann deine Wallet nicht erkennen, ob es derselbe Anbieter ist. Bis er wieder den bekannten Schlüssel zeigt, sendet und empfängt deine Wallet dort nichts. Deine Geldscheine dort sind unverändert.</string>
+    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet oder empfangen, bis er wieder passt oder du einen neuen Schlüssel annimmst. Deine Geldscheine dort sind unverändert.</string>
     <string name="settings_notes">Geldschein-Einstellungen</string>
     <string name="settings_note_list">Geldscheine</string>
     <string name="settings_note_list_hint">Deine Geldscheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>

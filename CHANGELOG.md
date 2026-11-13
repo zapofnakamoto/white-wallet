@@ -34,8 +34,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   kept while offline), it waits under received notes with "Receive" to try again. A new mint that can't be asked for
   its signing key isn't added (it is unreachable for now), so it can't hold money before the wallet knows it has one.
   A mint the wallet holds that stops showing its signing key, or shows a broken one, counts as a changed key: nothing
-  is sent there, it can't be made home, and its page says so (new brand term `mint_key_missing`), with no key to
-  accept until it shows the known one again.
+  is sent there, it can't be made home, and its page says so, with no key to accept until it matches again. The
+  texts about a changed key now say the signing key "doesn't match" the one the wallet knows, which fits both
+  (`mint_key_changed`, `mint_key_changed_short`, `home_key_changed_title`, `home_key_changed_body`,
+  `claim_key_changed`, `claim_kept_key_changed`, `received_key_changed`, `notes_key_changed`, `move_stayed_key`):
+  a brand with its own words for them rewrites them.
   New brand terms `claim_melt_not_a_note`, `claim_melt_into_home`, `claim_melt_pick`, `claim_melt_no_mint`,
   `claim_kept_for_lightning`, `claim_melt_no_signing_key` and `onboarding_error_mint_without_key`; also
   `received_lightning_not_a_note` names the note.

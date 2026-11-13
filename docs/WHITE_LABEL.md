@@ -136,8 +136,8 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notice_unknown_back` | A note is back in your balance: the mint knows it again. / %1$d notes are back in your balance: the mint knows them again. (plural) |
 | `notice_unknown_still` | Asked just now: the mint still doesn't know your note. / Asked just now: the mint still doesn't know your notes. (plural) |
 | `notice_unknown_unreachable_unnamed` | Couldn't reach the mint. Your wallet asks again later. |
-| `claim_key_changed` | %1$s now signs with another key than the one your wallet knows, so nothing is sent there yet. Keep it, and your wallet claims it once you accept the new key in the mint's details. |
-| `claim_kept_key_changed` | Kept. Your wallet claims it once you accept the mint's new signing key in its details. |
+| `claim_key_changed` | The signing key of %1$s doesn't match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the mint's details. |
+| `claim_kept_key_changed` | Kept. Your wallet claims it once the mint's signing key matches again, or you accept a new key in its details. |
 | `home_working_moving_home` | Moving your money to your home mint… |
 | `mints_add` | Add a mint |
 | `add_mint_setup_title` | Choose your mint |
@@ -211,7 +211,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notice_split` | Split %1$d note into %2$d / Split %1$d notes into %2$d (plural) |
 | `notice_rearranged` | Rearranged %1$d note into %2$d / Rearranged %1$d notes into %2$d (plural) |
 | `notice_renewed` | Renewed %1$d note / Renewed %1$d notes (plural) |
-| `home_key_changed_body` | Your wallet stopped working with it, so nothing is sent there. Your notes there are unchanged. Open the details to see the new key and decide whether to use it. |
+| `home_key_changed_body` | Nothing is sent there until it matches again, or you accept a new key in the mint's details. Your notes there are unchanged. |
 | `notes_title` | Notes |
 | `notes_settings` | Note settings |
 | `notes_count` | %1$d note / %1$d notes (plural) |
@@ -257,8 +257,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `note_reclaim_title` | Take this note back? |
 | `note_already_spent` | Too late: this note has already been spent. |
 | `note_not_found` | This note isn't in this account. |
-| `mint_key_changed` | %1$s now signs with a different key than when you first connected. Until you accept the new key, your wallet doesn't send or receive there. Your notes there are unchanged. |
-| `mint_key_missing` | %1$s no longer shows its signing key, so your wallet can't tell it is the same mint. Until it shows the key you know again, your wallet doesn't send or receive there. Your notes there are unchanged. |
+| `mint_key_changed` | The signing key of %1$s doesn't match the one your wallet knows. Nothing is sent or received there until it matches again, or you accept a new key. Your notes there are unchanged. |
 | `settings_notes` | Note settings |
 | `settings_note_list` | Notes |
 | `settings_note_list_hint` | See your notes one by one, share, split or combine them |

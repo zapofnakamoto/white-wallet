@@ -1012,9 +1012,7 @@ class HomeScreenTest {
         var opened: String? = null
         show(HomeState(activeAccountId = "a", received = listOf(received("r1", ReceivedState.KeyChanged))), onOpenMint = { opened = it })
         compose.onNodeWithText(text(R.string.home_key_changed_title, "mint.example")).assertExists()
-        compose
-            .onNodeWithText("Its mint changed its signing key. Claimed once you accept the new key in the mint's details.")
-            .assertExists()
+        compose.onNodeWithText("The signing key of its mint doesn't match the one your wallet knows", substring = true).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_total, "₿2,000")).assertExists()
         compose.onNodeWithText(text(R.string.home_key_changed_action)).performClick()
         assertEquals("mint.example", opened)
