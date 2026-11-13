@@ -18,28 +18,19 @@ import kotlin.test.assertTrue
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
-import whitewallet.lnurlcash.legacy.LegacyAddressProof
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyCertificates
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.Vectors
 import whitewallet.testkit.arr
-import whitewallet.testkit.int
 import whitewallet.testkit.long
 import whitewallet.testkit.obj
 import whitewallet.testkit.objects
 import whitewallet.testkit.str
 
-/** LUD-25/26 vectors published in the spec PR itself, and those of the legacy draft 2f17578. */
+/** LUD-25/26 vectors published in the spec PR itself. */
 class SpecVectorsTest {
     private val lud25 = Vectors.spec("25-vectors.json")
     private val lud26 = Vectors.spec("26-vectors.json")
-    private val legacy25 = Vectors.legacySpec("25-vectors.json")
-    private val legacy26 = Vectors.legacySpec("26-vectors.json")
 
     @Test fun `key path spend`() = keyPathSpend(lud25)
-
-    @Test fun `legacy 2f17578 - key path spend`() = keyPathSpend(legacy25)
 
     private fun keyPathSpend(vectors: JsonObject) {
         val v = vectors.obj("key_path_spend")
@@ -83,23 +74,6 @@ class SpecVectorsTest {
     }
 
     @Test
-    fun `legacy 2f17578 - certificates`() {
-        val v = legacy25.obj("certificates")
-        val mintKey = PrivateKey.fromHex(v.str("service_sk"))
-        val mintPubkey = PublicKey.fromHex(v.str("mintPubkey"))
-        val q = ByteVector32(v.str("Q"))
-        for (c in v.objects("cases")) {
-            val amount = c.long("amount_msat")
-            assertEquals(c.str("message"), LegacyCertificates.message(amount, q))
-            assertEquals(c.str("digest"), Hex.encode(Certificates.digest(c.str("message"))))
-            val cs1 = assertNotNull(Cs1.decode(c.str("cs1")))
-            assertTrue(LegacyCertificates.verify(cs1, q, mintPubkey))
-            assertFalse(LegacyCertificates.verify(cs1.copy(amountMsat = amount + 1), q, mintPubkey))
-            assertEquals(c.str("cs1"), LegacyCertificates.sign(amount, q, mintKey).encode())
-        }
-    }
-
-    @Test
     fun `bearer note`() {
         val v = lud25.obj("bearer_note")
         bearerNote(v)
@@ -110,18 +84,6 @@ class SpecVectorsTest {
         assertEquals(cert.str("message"), Certificates.message(domain, cs1.amountMsat, q))
         val mintPubkey = PublicKey.fromHex(lud25.obj("certificates").str("mintPubkey"))
         assertTrue(Certificates.verify(cs1, domain, q, mintPubkey))
-    }
-
-    @Test
-    fun `legacy 2f17578 - bearer note`() {
-        val v = legacy25.obj("bearer_note")
-        bearerNote(v)
-        val cert = v.obj("certificate")
-        val cs1 = assertNotNull(Cs1.decode(cert.str("cs1")))
-        val q = ByteVector32(v.str("Q"))
-        assertEquals(cert.str("message"), LegacyCertificates.message(cs1.amountMsat, q))
-        val mintPubkey = PublicKey.fromHex(legacy25.obj("certificates").str("mintPubkey"))
-        assertTrue(LegacyCertificates.verify(cs1, q, mintPubkey))
     }
 
     private fun bearerNote(v: JsonObject) {
@@ -229,40 +191,6 @@ class SpecVectorsTest {
         val unregister = r.obj("unregister")
         assertEquals(unregister.str("message"), AddressProof.unregisterMessage(domain, username))
         assertEquals(unregister.str("sig"), AddressProof.unregister(share1, domain, username))
-    }
-
-    @Test
-    fun `legacy 2f17578 - derivation`() {
-        for (d in legacy26.objects("derivation")) {
-            val branch = LegacyBranch.fromSeed(Hex.decode(d.str("seed")), d.str("domain"))
-            assertEquals(d.str("P").substring(2), branch.pubkey.toHex())
-            assertEquals(d.str("chaincode"), branch.chainCode.toHex())
-            assertEquals(d.str("cx1"), branch.cx1())
-            assertEquals(d.str("cx1"), NameSeed.of(Hex.decode(d.str("seed")), d.str("domain")), "the name seed is the legacy cx1")
-            val watchOnly = assertNotNull(LegacyBranch.fromCx1(d.str("cx1")))
-            for (n in d.objects("notes")) {
-                val purpose = LegacyPurpose.entries.first { it.value == n.int("purpose") }
-                val i = n.long("i")
-                assertEquals(n.str("t"), branch.tweak(purpose, i).value.toHex())
-                assertEquals(n.str("Q").substring(2), branch.notePubkey(purpose, i).toHex())
-                assertEquals(n.str("Q").substring(2), watchOnly.notePubkey(purpose, i).toHex())
-                assertEquals(n.str("sk"), branch.noteSecretKey(purpose, i).value.toHex())
-                assertEquals(n.str("cp1"), Cp1.encode(branch.notePubkey(purpose, i)))
-            }
-        }
-    }
-
-    @Test
-    fun `legacy 2f17578 - registration proofs`() {
-        val r = legacy26.obj("registration")
-        val d = legacy26.objects("derivation")[1]
-        val branch = LegacyBranch.fromSeed(Hex.decode(d.str("seed")), d.str("domain"))
-        for ((action, key) in
-            listOf(LegacyAddressProof.Action.Register to "register", LegacyAddressProof.Action.Unregister to "unregister")) {
-            val v = r.obj(key)
-            assertEquals(v.str("message"), LegacyAddressProof.message(action, r.str("domain"), r.str("username")))
-            assertEquals(v.str("sig"), LegacyAddressProof.sign(branch, action, r.str("domain"), r.str("username")))
-        }
     }
 
     @Test

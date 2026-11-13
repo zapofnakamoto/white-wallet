@@ -10,7 +10,6 @@
     <string name="address_fee_notice">This mint charges %1$s for an address, once.</string>
     <string name="address_held_body">Pay %1$s to finish. The mint holds the name for a limited time; if the invoice runs out, you can try again.</string>
     <string name="onboarding_error_fee">This mint asks %1$s for an address, more than the %2$s this app accepts.</string>
-    <string name="onboarding_error_mint_too_old">This mint can only give an address to the first account of a wallet. Choose another mint, or continue without an address.</string>
     <string name="onboarding_error_mint_without_key">This mint publishes no signing key, so your wallet can\'t check that its notes are real or notice if it is swapped. Choose another mint.</string>
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Mint address</string>
@@ -28,7 +27,6 @@
     <string name="add_mint_error_invalid">That isn\'t a mint this app can use: %1$s</string>
     <string name="add_mint_known">This wallet has this mint already. Adding it again looks for your money there again.</string>
     <string name="scan_notes_title">Scan for notes</string>
-    <string name="add_mint_legacy">This mint speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there.</string>
     <string name="add_mint_use">Use this mint</string>
     <string name="add_mint_add">Add this mint</string>
     <string name="add_mint_other">Pick another mint</string>

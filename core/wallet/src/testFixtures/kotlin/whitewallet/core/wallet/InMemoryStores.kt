@@ -12,7 +12,6 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
@@ -41,10 +40,8 @@ class InMemoryWalletStore : WalletStore {
     private val addressMap = MutableStateFlow<Map<String, List<RegisteredAddress>>>(emptyMap())
     private val active = MutableStateFlow<String?>(null)
     val mintMap = MutableStateFlow(emptyMap<Pair<String, String>, Mint>())
-    val counters = mutableMapOf<Triple<String, String, Int>, Long>()
     val keyCounters = mutableMapOf<Triple<String, String, KeyCounter>, Long>()
     val shareScans = mutableMapOf<Triple<String, String, Long>, Long>()
-    val scanFrom = mutableMapOf<Pair<String, String>, Long>()
     val journal = linkedMapOf<String, JournalEntry>()
     private val checks = MutableStateFlow<Map<KeyId, KeyProbe>>(emptyMap())
     /** Insertion order breaks ties between rows written in the same millisecond, like Room's rowid. */
@@ -98,10 +95,8 @@ class InMemoryWalletStore : WalletStore {
         primaries.value = primaries.value - id
         addressMap.value = addressMap.value - id
         noteMap.value = noteMap.value.filterValues { it.accountId != id }
-        counters.keys.removeAll { it.first == id }
         keyCounters.keys.removeAll { it.first == id }
         shareScans.keys.removeAll { it.first == id }
-        scanFrom.keys.removeAll { it.first == id }
         journal.values.removeAll { it.accountId == id }
         checks.value = checks.value.filterKeys { it.accountId != id }
         activityMap.value = activityMap.value.filterValues { it.second.accountId != id }
@@ -207,23 +202,6 @@ class InMemoryWalletStore : WalletStore {
         indexVersion.value++
     }
 
-    override suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long {
-        requireAccount(accountId)
-        val key = Triple(accountId, host, purpose)
-        val next = counters[key] ?: 0
-        counters[key] = next + 1
-        indexVersion.value++
-        return next
-    }
-
-    override suspend fun currentIndexOrNull(accountId: String, host: String, purpose: Int) = counters[Triple(accountId, host, purpose)]
-
-    override suspend fun setIndex(accountId: String, host: String, purpose: Int, next: Long) {
-        requireAccount(accountId)
-        counters[Triple(accountId, host, purpose)] = next
-        indexVersion.value++
-    }
-
     override fun indexesFlow(accountId: String, host: String): Flow<Map<KeySet, Long>> = indexVersion.map {
         buildMap {
             val domain = spendDomain(host)
@@ -237,18 +215,7 @@ class InMemoryWalletStore : WalletStore {
                 }
             }
             shareScans.forEach { (k, next) -> if (k.first == accountId && k.second == host) put(KeySet.share(k.third), next) }
-            counters.forEach { (k, next) ->
-                if (k.first == accountId && k.second == host && k.third != 2) put(KeySet(KeyScheme.Legacy, k.third), next)
-            }
-            scanFrom[accountId to host]?.let { put(KeySet(KeyScheme.Legacy, 2), it) }
         }
-    }
-
-    override suspend fun addressScanFrom(accountId: String, host: String) = scanFrom[accountId to host] ?: 0
-
-    override suspend fun setAddressScanFrom(accountId: String, host: String, index: Long) {
-        scanFrom[accountId to host] = index
-        indexVersion.value++
     }
 
     override fun keyChecks(accountId: String): Flow<Map<KeyId, KeyProbe>> = checks.map { it.filterKeys { id -> id.accountId == accountId } }
@@ -260,8 +227,6 @@ class InMemoryWalletStore : WalletStore {
     override suspend fun putJournal(entry: JournalEntry) {
         journal[entry.id] = entry
     }
-
-    override suspend fun counterHosts(accountId: String) = counters.keys.filter { it.first == accountId }.map { it.second }.distinct()
 
     override suspend fun journal(statuses: Set<JournalStatus>) = journal.values.filter { it.status in statuses }
 

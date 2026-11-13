@@ -27,11 +27,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import whitewallet.core.model.Account
 import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.MintScan
+import whitewallet.core.model.Note
+import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
@@ -77,7 +80,7 @@ class MigrationTest {
     }
 
     @Test
-    fun `a v0_3_0 wallet keeps its accounts, notes, mints, journal and history`() =
+    fun `a v0_3_0 wallet keeps its accounts, mints, journal and history, and its notes on the older keys go`() =
         runBlocking<Unit> {
             oldDatabase("v2.db", 2) {
                 execSQL("INSERT INTO accounts VALUES ('acc', 'Main', 1, 'mint.example')")
@@ -104,7 +107,8 @@ class MigrationTest {
                 // Each account of then is a wallet of its own, its home the account's.
                 assertEquals("mint.example", store.account("acc")?.homeHost)
                 assertEquals("other.example", store.account("acc2")?.homeHost)
-                assertEquals(listOf(21000L to NoteState.Outstanding), store.notes("acc").first().map { it.amountMsat to it.state })
+                // Its notes were on the older keys, no longer supported (version 9): version 0.9.0 still reaches them.
+                assertEquals(emptyList(), store.notes("acc").first())
                 assertEquals("pk", store.mint("acc", "mint.example")?.mintPubkey)
                 assertEquals(listOf("m1"), store.journal(setOf(JournalStatus.Prepared)).map { it.id })
                 assertEquals(
@@ -117,7 +121,7 @@ class MigrationTest {
         }
 
     @Test
-    fun `a wallet of version 3 keeps its notes and history, and can keep received notes`() =
+    fun `a wallet of version 3 keeps its history, and can keep received notes`() =
         runBlocking<Unit> {
             oldDatabase("v3.db", 3) {
                 execSQL("INSERT INTO accounts VALUES ('acc', 'Main', 1, 'mint.example')")
@@ -133,14 +137,10 @@ class MigrationTest {
                     .build()
             try {
                 val store = RoomWalletStore(db)
-                assertEquals(listOf(21000L), store.notes("acc").first().map { it.amountMsat })
+                // Its note was on the older keys (version 9).
+                assertEquals(emptyList(), store.notes("acc").first())
                 assertEquals(listOf("claim:c1"), store.activities("acc").first().map { it.id })
                 assertEquals(emptyList(), store.receivedNotes("acc").first())
-                // Never checked yet; a check is remembered from now on.
-                val n1 = store.notes("acc").first().single()
-                assertEquals(null, n1.checkedAtMillis)
-                store.upsertNotes(listOf(n1.copy(checkedAtMillis = 7)))
-                assertEquals(7L, store.note("n1")?.checkedAtMillis)
                 val note =
                     ReceivedNote(
                         "q".repeat(64),
@@ -166,9 +166,8 @@ class MigrationTest {
         }
 
     @Test
-    fun `a wallet of version 4 becomes one wallet per account, with its keys, checks and outputs as legacy 2f17578`() =
+    fun `a wallet of version 4 becomes one wallet per account, and what it had on the older keys is gone`() =
         runBlocking<Unit> {
-            val legacyOutput = "acc:0:3:${"a".repeat(64)}"
             oldDatabase("v4.db", 4) {
                 execSQL("INSERT INTO accounts VALUES ('acc', 'Main', 1, 'mint.example')")
                 execSQL("INSERT INTO accounts VALUES ('acc2', 'Savings', 2, 'mint.example')")
@@ -181,7 +180,7 @@ class MigrationTest {
                 execSQL("INSERT INTO addresses VALUES ('acc', 'mint.example', 'alice', 3)")
                 execSQL(
                     "INSERT INTO journal VALUES ('j1', 'acc', 'Rotate', 'mint.example', 'https://mint.example/w', 'n0', 'k', " +
-                        "'$legacyOutput', 'https://mint.example/w?k1=k', 'Prepared', NULL, 3, 3)"
+                        "'acc:0:3:${"a".repeat(64)}', 'https://mint.example/w?k1=k', 'Prepared', NULL, 3, 3)"
                 )
             }
             val db =
@@ -205,21 +204,11 @@ class MigrationTest {
                 )
                 assertEquals(0L to 0L, store.mint("acc", "mint.example")?.let { it.scanStartedAtMillis to it.scanFinishedAtMillis })
 
-                val n1 = store.note("n1")!!
-                assertEquals(KeyScheme.Legacy, n1.scheme)
-                assertEquals(0 to 2L, n1.purpose to n1.index)
-                assertNull(n1.share)
-                assertEquals(3, store.currentIndex("acc", "mint.example", 0))
-                assertEquals(4, store.addressScanFrom("acc", "mint.example"))
-                assertEquals(
-                    mapOf(KeyId("acc", "mint.example", 2, 7, KeyScheme.Legacy, null) to KeyProbe.Outstanding(1000, true, false, 9)),
-                    store.keyChecks("acc").first(),
-                )
-                assertEquals(listOf(RegisteredAddress("alice", "mint.example", 3, share = null)), store.addresses("acc").first())
-                assertEquals(
-                    listOf(OutputRef("acc", 0, 3, "a".repeat(64), KeyScheme.Legacy, null)),
-                    store.journal(setOf(JournalStatus.Prepared)).single().outputs,
-                )
+                // Everything on the older keys went with their support (version 9): the note, its check, the address and the operation.
+                assertNull(store.note("n1"))
+                assertEquals(emptyMap(), store.keyChecks("acc").first())
+                assertEquals(emptyList(), store.addresses("acc").first())
+                assertEquals(emptyList(), store.journal(JournalStatus.entries.toSet()))
 
                 // The new counters start empty, per mint domain.
                 assertNull(store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
@@ -229,20 +218,32 @@ class MigrationTest {
                 assertEquals(5, store.shareScanFrom("acc", "mint.example", 1))
                 assertEquals(0, store.shareScanFrom("acc", "mint.example", 0))
 
-                // New rows keep their scheme and share.
-                val shared = n1.copy(id = "n2", scheme = KeyScheme.Bip32, purpose = 2, index = 0, share = 1)
+                // New rows keep their share.
+                val shared = Note("n2", "acc", "mint.example", NoteKind.KeyPath, 2, 0, 1000, null, NoteState.Outstanding, 6, share = 1)
                 store.upsertNotes(listOf(shared))
                 assertEquals(shared, store.note("n2"))
-                val check = KeyId("acc", "mint.example", 2, 0, KeyScheme.Bip32, 1)
+                val check = KeyId("acc", "mint.example", 2, 0, 1)
                 store.putKeyCheck(check, KeyProbe.Spent(10))
                 assertEquals(KeyProbe.Spent(10), store.keyChecks("acc").first()[check])
-                val entry = store.journal(setOf(JournalStatus.Prepared)).single()
-                val output = OutputRef("acc", 2, 0, "b".repeat(64), KeyScheme.Bip32, 1)
-                store.putJournal(entry.copy(id = "j2", outputs = listOf(output, OutputRef("acc", 0, 4, "c".repeat(64), KeyScheme.Bip32))))
-                assertEquals(
-                    listOf(output, OutputRef("acc", 0, 4, "c".repeat(64), KeyScheme.Bip32)),
-                    store.journal(setOf(JournalStatus.Prepared)).single { it.id == "j2" }.outputs,
+                val outputs = listOf(OutputRef("acc", 2, 0, "b".repeat(64), 1), OutputRef("acc", 0, 4, "c".repeat(64)))
+                store.putJournal(
+                    JournalEntry(
+                        "j2",
+                        "acc",
+                        OperationType.Rotate,
+                        "mint.example",
+                        "https://mint.example/w",
+                        listOf("n2"),
+                        listOf("k"),
+                        outputs,
+                        "https://mint.example/w?k1=k",
+                        JournalStatus.Prepared,
+                        null,
+                        7,
+                        7,
+                    )
                 )
+                assertEquals(outputs, store.journal(setOf(JournalStatus.Prepared)).single().outputs)
 
                 // A second account in the first wallet; the wallet goes with its last account.
                 store.saveAccount(Account("acc3", "Second", 4, walletId = "acc", index = 1))
@@ -301,7 +302,7 @@ class MigrationTest {
                 execSQL("INSERT INTO share_scan VALUES ('a1', 'one.example', 0, 8)")
                 execSQL("INSERT INTO share_scan VALUES ('dup', 'one.example', 0, 3)")
                 execSQL("INSERT INTO key_counters VALUES ('gone', 'one.example', 'Wallet', 1)")
-                // Legacy addresses (no share) and the primary one as its own row; the old wallet's isn't among its addresses.
+                // Addresses on the older keys (no share) and the primary one as its own row; the old wallet's isn't among its addresses.
                 execSQL("INSERT INTO addresses VALUES ('a0', 'one.example', 'alice', 5, NULL, NULL)")
                 execSQL("INSERT INTO addresses VALUES ('a0', 'two.example', 'alice', 6, 0, NULL)")
                 execSQL("INSERT INTO addresses VALUES ('dup', 'one.example', 'sam', 7, 1, NULL)")
@@ -335,10 +336,11 @@ class MigrationTest {
                 // The operation in flight now names account 1 for both outputs, and settles there.
                 assertEquals(listOf("a1", "a1"), store.journal(setOf(JournalStatus.Unknown)).single().outputs.map { it.accountId })
 
-                // The primary address is a flag; one that wasn't among the addresses is added.
-                assertEquals(RegisteredAddress("alice", "one.example", 5, share = null), store.currentPrimaryAddress("a0"))
-                assertEquals(listOf("alice@one.example", "alice@two.example"), store.addresses("a0").first().map { it.address })
-                assertEquals("bob@one.example", store.currentPrimaryAddress("old")?.address)
+                // The primary address is a flag (version 7). Addresses on no share were on the older keys and went with them (version 9):
+                // the account's oldest one left is its primary one.
+                assertEquals(RegisteredAddress("alice", "two.example", 6, share = 0), store.currentPrimaryAddress("a0"))
+                assertEquals(listOf("alice@two.example"), store.addresses("a0").first().map { it.address })
+                assertNull(store.currentPrimaryAddress("old"))
 
                 // What belonged to no account: money and operations kept aside, derived rows and a missing wallet's mints gone.
                 assertNull(store.note(q('d')))
@@ -392,6 +394,77 @@ class MigrationTest {
                 val waiting = assertNotNull(store.receivedNote(q('w')))
                 assertEquals(ReceivedState.Waiting, waiting.state)
                 assertNull(waiting.unclaimedReason)
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `a wallet of version 8 loses what is on the older keys, and keeps the rest`() =
+        runBlocking<Unit> {
+            val q = { c: Char -> c.toString().repeat(64) }
+            oldDatabase("v8.db", 8) {
+                execSQL("INSERT INTO wallets VALUES ('w1', NULL, 1, NULL, NULL)")
+                execSQL("INSERT INTO accounts VALUES ('a0', 'Main', 1, 'w1', 0, 'one.example')")
+                // Notes: one on the older keys (scheme 0), one on the account's keys (1), and a bearer note, which has no keys.
+                execSQL(
+                    "INSERT INTO notes VALUES ('${q('o')}', 'a0', 'one.example', 'KeyPath', 2, 4, 1000, NULL, 'Outstanding', 1, NULL, 0, NULL)"
+                )
+                execSQL(
+                    "INSERT INTO notes VALUES ('${q('n')}', 'a0', 'one.example', 'KeyPath', 2, 1, 2000, 'cs', 'Outstanding', 1, 3, 1, 0)"
+                )
+                execSQL(
+                    "INSERT INTO notes VALUES ('${q('b')}', 'a0', 'one.example', 'Bearer', NULL, NULL, 3000, NULL, 'Outstanding', 1, NULL, 0, NULL)"
+                )
+                execSQL("INSERT INTO key_checks VALUES ('a0', 'one.example', 0, 2, -1, 4, 'Outstanding', 1000, 0, 0, NULL, 5)")
+                execSQL("INSERT INTO key_checks VALUES ('a0', 'one.example', 1, 2, 0, 1, 'Outstanding', 2000, 1, 0, NULL, 5)")
+                // The primary address on the older keys, two on shares (one held for its fee).
+                execSQL("INSERT INTO addresses VALUES ('a0', 'one.example', 'alice', 1, NULL, NULL, 1)")
+                execSQL("INSERT INTO addresses VALUES ('a0', 'one.example', 'held', 2, 1, 'lnbc1', NULL)")
+                execSQL("INSERT INTO addresses VALUES ('a0', 'one.example', 'bob', 3, 0, NULL, NULL)")
+                execSQL("INSERT INTO counters VALUES ('a0', 'one.example', 0, 5)")
+                execSQL("INSERT INTO address_scan VALUES ('a0', 'one.example', 5)")
+                // Operations: one paying a key of someone else's older keys (scheme 0), one of four fields, and one of the account's own.
+                execSQL(
+                    "INSERT INTO journal VALUES ('old', 'a0', 'Rotate', 'one.example', 'https://one.example/w', '${q('n')}', 'k', " +
+                        "':0:2::7:${q('x')}', 'https://one.example/w?k1=k', 'Unknown', NULL, 1, 1)"
+                )
+                execSQL(
+                    "INSERT INTO journal VALUES ('older', 'a0', 'Rotate', 'one.example', 'https://one.example/w', '${q('o')}', 'k', " +
+                        "'a0:0:3:${q('y')}', 'https://one.example/w?k1=k', 'Confirmed', NULL, 1, 1)"
+                )
+                execSQL(
+                    "INSERT INTO journal VALUES ('own', 'a0', 'Split', 'one.example', 'https://one.example/w', '${q('n')}', 'k', " +
+                        "'a0:1:0::5:${q('e')},a0:1:2:0:6:${q('f')}', 'https://one.example/w?k1=k', 'Unknown', NULL, 1, 1)"
+                )
+            }
+            val db =
+                Room.databaseBuilder(context, WalletDatabase::class.java, "v8.db")
+                    .addMigrations(*WalletDatabase.MIGRATIONS)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val store = RoomWalletStore(db)
+                assertEquals(listOf(q('b'), q('n')), store.notes("a0").first().map { it.id }.sorted())
+                assertEquals(
+                    Note(q('n'), "a0", "one.example", NoteKind.KeyPath, 2, 1, 2000, "cs", NoteState.Outstanding, 1, 3, share = 0),
+                    store.note(q('n')),
+                )
+                assertEquals(
+                    mapOf(KeyId("a0", "one.example", 2, 1, 0) to KeyProbe.Outstanding(2000, true, false, 5)),
+                    store.keyChecks("a0").first(),
+                )
+                assertEquals(listOf("bob", "held"), store.addresses("a0").first().map { it.username }.sorted())
+                // The primary address went: the oldest one left that isn't held for its fee is primary now.
+                assertEquals(RegisteredAddress("bob", "one.example", 3, share = 0), store.currentPrimaryAddress("a0"))
+                assertEquals(
+                    listOf("own" to listOf(OutputRef("a0", 0, 5, q('e')), OutputRef("a0", 2, 6, q('f'), share = 0))),
+                    store.journal(JournalStatus.entries.toSet()).map { it.id to it.outputs },
+                )
+                val sql = db.openHelper.readableDatabase
+                for (table in listOf("counters", "address_scan")) {
+                    sql.query("SELECT name FROM sqlite_master WHERE name = '$table'").use { assertEquals(false, it.moveToFirst(), table) }
+                }
             } finally {
                 db.close()
             }

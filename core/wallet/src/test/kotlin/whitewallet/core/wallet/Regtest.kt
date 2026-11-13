@@ -21,12 +21,11 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.RegisteredAddress
-import whitewallet.core.wallet.legacy.LegacyAddress
 import whitewallet.lnurl.Lnurl
+import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.MintDialect
-import whitewallet.lnurlcash.legacy.LegacyCertificates
+import whitewallet.lnurlcash.spendDomain
 
 /**
  * The local regtest stack (dev/regtest): two real reference mints on regtest Lightning, and the user's LND node that pays and invoices from
@@ -41,27 +40,10 @@ internal object Regtest {
     /** The third mint (1 sat base fee), whose signing key [rotateMint3] changes. */
     const val HOST3 = "localhost:8113"
 
-    /** Starts on lnurl-mint 0.12.2 and is upgraded in place ([upgradeMint4]). */
-    const val HOST4 = "localhost:8114"
-
     private val script = File("../../dev/regtest/regtest.sh").canonicalFile
     private val random = SecureRandom()
 
     fun requireStack() = assumeTrue(System.getenv("LNURLCASH_REGTEST") == "1", "LNURLCASH_REGTEST not set")
-
-    /** Which stack is up (dev/regtest, REGTEST_PROTOCOL): its mints run the legacy draft 2f17578 or the current protocol. */
-    val protocol: MintDialect
-        get() = if (System.getenv("REGTEST_PROTOCOL") == "legacy") MintDialect.Legacy else MintDialect.Current
-
-    /** [requireStack], for a test that only means something against mints speaking [dialect]; skipped on the other stack. */
-    /** The keys a payment to a phone's first address lands on: its share 0 on a LUD-26 mint, the legacy purpose 2 on a 2f17578 one. */
-    val addressSet: KeySet
-        get() = if (protocol == MintDialect.Current) KeySet.share(0) else KeySet.LegacyAddress
-
-    fun requireStack(dialect: MintDialect) {
-        requireStack()
-        assumeTrue(protocol == dialect, "needs the ${dialect.name.lowercase()} regtest stack")
-    }
 
     /** Runs regtest.sh with [args]; its result is the last line of the output (log lines are merged in). */
     fun run(vararg args: String): String {
@@ -174,16 +156,6 @@ internal object Regtest {
         val output = process.inputStream.bufferedReader().readText()
         check(process.waitFor(120, TimeUnit.SECONDS) && process.exitValue() == 0) { "lncli ${args.joinToString(" ")} failed:\n$output" }
         return output
-    }
-
-    /** Puts the fourth mint back on the legacy protocol with an empty database. */
-    fun resetMint4() {
-        run("reset-mint4")
-    }
-
-    /** Upgrades the fourth mint in place, keeping its database, as a production mint upgrades. */
-    fun upgradeMint4() {
-        run("upgrade-mint4")
     }
 
     /** Waits for the settlement poll of [host] to register a held [name]. */
@@ -329,7 +301,8 @@ internal object Regtest {
         val body = response.peekBody(Long.MAX_VALUE).string()
         // An error (an unknown or spent note) has nothing to certify.
         val amount = Regex("\"maxWithdrawable\":\\s*(\\d+)").find(body)?.groupValues?.get(1)?.toLong() ?: return response
-        val certificate = LegacyCertificates.sign(amount, q, PrivateKey.fromHex("00".repeat(31) + "01")).encode()
+        val domain = spendDomain(response.request.url.host)
+        val certificate = Certificates.sign(domain, amount, q, PrivateKey.fromHex("00".repeat(31) + "01")).encode()
         val field = Regex("\"(c|sig)\":\\s*\"[^\"]*\"")
         val keyed = body.replace(Regex("\"mintPubkey\":\\s*\"[0-9a-fA-F]{66}\""), "\"mintPubkey\":\"$OTHER_KEY\"")
         val rewritten =

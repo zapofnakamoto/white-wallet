@@ -9,16 +9,8 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
-import whitewallet.core.wallet.legacy.LegacyAddress
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.MintDialect
-import whitewallet.lnurlcash.client.RegistrationOutcome
-import whitewallet.lnurlcash.client.legacy.legacyRegister
-import whitewallet.lnurlcash.legacy.LegacyAddressProof
-import whitewallet.lnurlcash.legacy.LegacyPurpose
-import whitewallet.lnurlcash.protocol.NoteLookupError
-import whitewallet.lnurlcash.spendDomain
 
 /**
  * Guards how the reference mint handles several Lightning addresses registered to the same `cx1`, and that the wallet finds every payment
@@ -62,80 +54,6 @@ class RegtestMultiAddressTest {
     }
 
     private fun pay(name: String, sats: Long) = Regtest.pay("$name@$host", sats)
-
-    @Test
-    fun `legacy 2f17578 - several addresses on one cx1 share one sequence of address keys, and the wallet finds every payment`() =
-        runBlocking<Unit> {
-            Regtest.requireStack(MintDialect.Legacy)
-            val store = InMemoryWalletStore()
-            val wallet = Wallet(store, InMemorySeedStore(), client, policies = NotePolicies.InMemory(ManualStrategy.ID))
-
-            val alice = name()
-            assertIs<OnboardResult.Ready>(wallet.onboard(alice, host))
-            val account = assertNotNull(store.currentAccountId())
-            val branch = wallet.keys(account, host).legacy.branch
-            val withdrawUrl = assertNotNull(store.mint(host)).withdrawUrl
-            suspend fun register(name: String) {
-                val sig = LegacyAddressProof.sign(branch, LegacyAddressProof.Action.Register, spendDomain(host), name)
-                assertEquals(RegistrationOutcome.Registered, client.legacyRegister(host, name, branch.cx1(), sig), "registering $name")
-                assertEquals(AddressStatus.Ours, wallet.checkAddress(name, host), "$name publishes this wallet's cx1")
-            }
-
-            /** What the mint holds on purpose-2 key [index]: the note's value, or null if it holds no note there. */
-            suspend fun noteAt(index: Long): Long? =
-                try {
-                    client.lookup(withdrawUrl, branch.notePubkey(LegacyPurpose.LightningAddress, index)).maxWithdrawableMsat
-                } catch (_: NoteLookupError) {
-                    null
-                }
-
-            // Two payments to the first name: keys #0 and #1.
-            pay(alice, 1_000)
-            pay(alice, 2_000)
-            assertEquals(2, hint(alice))
-
-            // A second name on the same cx1 starts its own counter at 0...
-            val bob = name()
-            register(bob)
-            assertEquals(0, hint(bob), "a new name's counter starts at 0")
-            // ...but its first payment skips the keys already used on the branch.
-            pay(bob, 3_000)
-            assertEquals(3, hint(bob))
-
-            // An unpaid invoice reserves a key (#3) that never gets a note.
-            invoice(alice, 7_000)
-            assertEquals(4, hint(alice))
-            pay(alice, 4_000) // #4
-            pay(bob, 5_000) // bob's counter (3) skips the reserved #3 and alice's #4: #5
-            assertEquals(5, hint(alice))
-            assertEquals(6, hint(bob))
-
-            // Each payment landed on the key the strategy predicts (amounts are net of the mint's 1 sat base fee).
-            assertEquals(listOf(999_000L, 1_999_000L, 2_999_000L, null, 3_999_000L, 4_999_000L), (0L..5L).map { noteAt(it) })
-
-            // The wallet finds all of them in one refresh: the reserved gap is far below the gap limit.
-            val first = wallet.refresh()
-            assertEquals(5, first.newNotes)
-            assertEquals(14_995_000, wallet.balanceMsat.first())
-            assertEquals(6, store.addressScanFrom(account, host))
-            assertTrue(
-                wallet.recheckKey(host, KeySet.LegacyAddress, 3).let {
-                    it !is KeyProbe.Outstanding && it !is KeyProbe.Spent
-                },
-                "the reserved key is not a note and does not count as used",
-            )
-
-            // A spent key is never reused either: spend #0, then a third name (counter 0) must land past everything.
-            assertIs<RotateResult.Rotated>(wallet.rotateKey(host, KeySet.LegacyAddress, 0))
-            val carol = name()
-            register(carol)
-            pay(carol, 1_000)
-            assertEquals(7, hint(carol))
-            assertEquals(999_000L, noteAt(6))
-            assertEquals(1, wallet.refresh().newNotes)
-            assertEquals(7, store.addressScanFrom(account, host))
-            assertEquals(14_995_000 + 999_000, wallet.balanceMsat.first())
-        }
 
     @Test
     fun `the wallet adds, uses and unregisters extra addresses on the real mint`() =

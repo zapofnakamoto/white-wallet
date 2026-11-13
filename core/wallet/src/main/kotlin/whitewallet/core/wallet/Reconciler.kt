@@ -41,7 +41,6 @@ internal class Reconciler(private val wallet: Wallet) {
         try {
             var landed = false
             for (output in entry.outputs) {
-                if (output.isExternal) continue
                 val q = ByteVector32(output.q)
                 val info = lookup(entry.withdrawUrl, q) ?: continue
                 landed = true
@@ -60,7 +59,6 @@ internal class Reconciler(private val wallet: Wallet) {
                                 certificate = cert?.encode(),
                                 state = NoteState.Outstanding,
                                 updatedAtMillis = wallet.now(),
-                                scheme = output.scheme,
                                 share = output.share,
                             )
                         )
@@ -85,8 +83,6 @@ internal class Reconciler(private val wallet: Wallet) {
                 // output missing means someone else claimed it first. It never landed.
                 if (live.none { it } && entry.inputIds.any { wallet.store.receivedNote(it) != null })
                     return finish(entry, JournalStatus.Rejected)
-                // The payee may have moved the note on already, so its key can't tell; the burned inputs can.
-                landed = live.none { it } && entry.outputs.any { it.isExternal }
             }
             if (landed) {
                 for (id in entry.inputIds) wallet.store.note(id)?.let {

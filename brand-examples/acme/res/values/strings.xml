@@ -215,7 +215,6 @@
     <string name="add_mint_error_invalid">That isn\'t a provider this app can use: %1$s</string>
     <string name="add_mint_known">This wallet has this provider already. Adding it again looks for your money there again.</string>
     <string name="scan_notes_title">Scan for banknotes</string>
-    <string name="add_mint_legacy">This provider speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there.</string>
     <string name="add_mint_use">Use this provider</string>
     <string name="add_mint_add">Add this provider</string>
     <string name="add_mint_other">Pick another provider</string>
@@ -236,7 +235,6 @@
     <string name="address_fee_body">This provider charges %1$s to register an address, once. You can reserve the name now and pay when you like.</string>
     <string name="address_held_body">Pay %1$s to finish. The provider holds the name for a limited time; if the invoice runs out, you can try again.</string>
     <string name="onboarding_error_fee">This provider asks %1$s for an address, more than the %2$s this app accepts.</string>
-    <string name="onboarding_error_mint_too_old">This provider can only give an address to the first account of a wallet. Choose another provider, or continue without an address.</string>
     <string name="onboarding_skip_mint">Continue without a provider</string>
     <string name="onboarding_skip_mint_hint">You can add a provider later. Until then, nothing can be received.</string>
     <string name="receive_no_mint">This wallet has no provider yet. Add one to receive.</string>

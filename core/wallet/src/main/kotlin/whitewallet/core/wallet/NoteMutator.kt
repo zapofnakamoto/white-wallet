@@ -23,17 +23,8 @@ import whitewallet.lnurlcash.spendDomain
 /** An output key reserved for a mutation, with its journal reference. */
 internal class ReservedOutput(val key: ByteVector32, val ref: OutputRef)
 
-/** Where an output goes. */
-internal sealed interface OutputSpec {
-    /** A key of one of this wallet's accounts, on its wallet or change chain; the key itself is reserved when the request is built. */
-    data class Own(val accountId: String, val set: KeySet) : OutputSpec
-
-    /**
-     * Someone else's key (an internal transfer, LUD-26): [keyAt] gives the key for each attempt, since on `already in use` the next index
-     * of the payee's branch is tried.
-     */
-    class External(val keyAt: (attempt: Int) -> ByteVector32) : OutputSpec
-}
+/** Where an output goes: a key of one of this wallet's accounts, on its wallet or change chain; reserved when the request is built. */
+internal data class OutputSpec(val accountId: String, val set: KeySet)
 
 internal sealed interface MutationResult {
     /** Landed; [outputs] are the recorded output notes, in request order. */
@@ -116,7 +107,7 @@ internal class NoteMutator(private val wallet: Wallet) {
         val max = wallet.settings.noteMergeMaxNotesPerRequest
         var notes = inputs
         while (notes.size > max) {
-            val own = listOf(OutputSpec.Own(fromId, KeySet.Wallet))
+            val own = listOf(OutputSpec(fromId, KeySet.Wallet))
             val merged = mutate(fromId, host, notes.take(max), OperationType.Merge, own)
             if (merged !is MutationResult.Done) return merged
             notes = merged.outputs + notes.drop(max)
@@ -149,7 +140,7 @@ internal class NoteMutator(private val wallet: Wallet) {
             inputs = emptyList(),
             inputMsat = amountMsat,
             type = OperationType.Rotate,
-            outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
+            outputs = listOf(OutputSpec(accountId, KeySet.Wallet)),
             splitMsat = null,
         )
 
@@ -168,12 +159,7 @@ internal class NoteMutator(private val wallet: Wallet) {
     ): MutationResult {
         var attempt = 0
         while (true) {
-            val reserved = outputs.map { spec ->
-                when (spec) {
-                    is OutputSpec.Own -> guard.reserve(spec.accountId, host, spec.set)
-                    is OutputSpec.External -> spec.keyAt(attempt).let { ReservedOutput(it, OutputRef.external(it.toHex())) }
-                }
-            }
+            val reserved = outputs.map { spec -> guard.reserve(spec.accountId, host, spec.set) }
             val result =
                 send(
                     fromId,
@@ -192,8 +178,7 @@ internal class NoteMutator(private val wallet: Wallet) {
                     result.kind == RejectionKind.AlreadyInUse &&
                     attempt + 1 < wallet.settings.newNoteMaxKeysTriedWhileInUse
             ) {
-                if (attempt == 0)
-                    outputs.filterIsInstance<OutputSpec.Own>().distinct().forEach { guard.recover(it.accountId, host, it.set) }
+                if (attempt == 0) outputs.distinct().forEach { guard.recover(it.accountId, host, it.set) }
                 attempt++
                 continue
             }
@@ -305,13 +290,10 @@ internal class NoteMutator(private val wallet: Wallet) {
                         certificate = cert?.encode(),
                         state = NoteState.Outstanding,
                         updatedAtMillis = wallet.now(),
-                        scheme = out.ref.scheme,
                         share = out.ref.share,
                     )
                 }
-                // Someone else's outputs are reported to the caller but never stored as this wallet's notes.
-                val ours = notes.filterIndexed { i, _ -> !outputs[i].ref.isExternal }
-                wallet.store.upsertNotes(ours + inputs.map { it.copy(state = NoteState.Spent, updatedAtMillis = wallet.now()) })
+                wallet.store.upsertNotes(notes + inputs.map { it.copy(state = NoteState.Spent, updatedAtMillis = wallet.now()) })
                 wallet.store.putJournal(entry.copy(status = JournalStatus.Confirmed, updatedAtMillis = wallet.now()))
                 MutationResult.Done(notes, entry.id)
             }
@@ -341,7 +323,6 @@ internal class NoteMutator(private val wallet: Wallet) {
                                         certificate = null,
                                         state = NoteState.Outstanding,
                                         updatedAtMillis = wallet.now(),
-                                        scheme = out.ref.scheme,
                                         share = out.ref.share,
                                     )
                             },

@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.MintScan
-import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.spendDomain
@@ -52,8 +51,7 @@ abstract class AddMintTest {
                 credit(words, other, KeySet.Wallet, 1, SATS) +
                     credit(words, other, KeySet.Change, 0, SATS) +
                     credit(words, other, KeySet.share(0), 0, SATS) +
-                    credit(words, other, KeySet.share(2), 1, SATS) +
-                    credit(words, other, KeySet.LegacyWallet, 0, SATS)
+                    credit(words, other, KeySet.share(2), 1, SATS)
             val phone = Fresh()
             val id = assertIs<RestoreResult.Restored>(phone.restore(words)).accountId
             assertEquals(onHome, phone.balance())
@@ -61,7 +59,7 @@ abstract class AddMintTest {
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other))
 
             assertEquals(onHome + msat, phone.balance())
-            assertEquals(5, phone.store.allNotes().count { it.host == other })
+            assertEquals(4, phone.store.allNotes().count { it.host == other })
             assertEquals(2, phone.store.indexOf(id, other, KeySet.Wallet), "never hands out a used key")
             assertEquals(1, phone.store.indexOf(id, other, KeySet.Change))
             assertEquals(2, phone.store.indexOf(id, other, KeySet.share(2)))
@@ -179,12 +177,12 @@ abstract class AddMintTest {
         }
 
     @Test
-    fun `every account of the wallet is looked up, and the legacy keys stay the first account's`() =
+    fun `every account of the wallet is looked up`() =
         runBlocking<Unit> {
             val words = phrase()
             // Another chain than on the other mint: both mints are on localhost, one domain, so their chains are the same keys.
             val onHome = credit(words, home, KeySet.Change, 0, SATS, account = 1)
-            val first = credit(words, other, KeySet.Wallet, 0, SATS) + credit(words, other, KeySet.LegacyWallet, 0, SATS)
+            val first = credit(words, other, KeySet.Wallet, 0, SATS)
             val found = credit(words, other, KeySet.Wallet, 0, SATS, account = 1)
             val phone = Fresh()
             assertIs<RestoreResult.Restored>(phone.restore(words))

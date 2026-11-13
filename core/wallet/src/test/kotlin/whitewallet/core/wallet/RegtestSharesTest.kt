@@ -9,19 +9,17 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.Share
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.MintDialect
 
 /**
  * Lightning addresses on a LUD-26 mint (luds 92e430f, lnurl-mint 0.13): each address is registered for its own share `S/a'/2/n'`, its
  * payments land on that share's notes, and whether a name is the account's is proven to the mint with the share's key.
  */
 class RegtestSharesTest {
-    @BeforeEach fun requireStack() = Regtest.requireStack(MintDialect.Current)
+    @BeforeEach fun requireStack() = Regtest.requireStack()
 
     @Test
     fun `each address gets its own share, and the payments to each are found on it`() =
@@ -41,7 +39,6 @@ class RegtestSharesTest {
             phone.wallet.refresh()
             val received = phone.store.notes(accountId).first().filter { it.purpose == 2 }
             assertEquals(mapOf(0L to 1, 1L to 2), received.groupingBy { it.share!! }.eachCount(), "$received")
-            assertTrue(received.all { it.scheme == KeyScheme.Bip32 })
             assertEquals(received.map { it.amountMsat }.sum(), phone.balance())
         }
 

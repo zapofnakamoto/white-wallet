@@ -47,7 +47,7 @@ class RegtestKeysTest {
             assertEquals(before, phone1.balance())
 
             // Rotating by hand from the key page shows as manual note maintenance.
-            assertIs<RotateResult.Rotated>(phone1.wallet.rotateKey(HOST, Regtest.addressSet, 0))
+            assertIs<RotateResult.Rotated>(phone1.wallet.rotateKey(HOST, KeySet.share(0), 0))
             val row = phone1.wallet.activity.first().single { it.kind == ActivityKind.Rotated }
             assertEquals(false, row.automatic)
             assertEquals(before, phone1.balance())

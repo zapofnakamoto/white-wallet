@@ -3,7 +3,6 @@ package whitewallet.core.wallet
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.runBlocking
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -43,7 +42,6 @@ class UnknownNotesTest {
                             null,
                             NoteState.Unknown,
                             setAsideAt,
-                            scheme = KeyScheme.Bip32,
                         )
                     store.upsertNotes(listOf(note))
                     val unknownNotes = UnknownNotes(wallet)

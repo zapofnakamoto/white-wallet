@@ -31,7 +31,6 @@ class AddMintScreenTest {
             addressFeeMsat = null,
             signingKey = "02aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
             knownKey = null,
-            legacy = false,
         )
 
     private fun show(state: AddMintState, actions: AddMintActions = AddMintActions()) = compose.setContent { AddMintScreen(state, actions) }
@@ -78,17 +77,15 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(R.string.add_mint_address_free)).assertExists()
         compose.onNodeWithText("02aabbcc…66778899").assertExists()
         compose.onNodeWithText(text(R.string.onboarding_mint_custody)).performScrollTo().assertExists()
-        compose.onNodeWithText(text(R.string.add_mint_legacy)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.add_mint_add)).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.add_mint_other)).performScrollTo().performClick()
         assertTrue(added && back)
     }
 
     @Test
-    fun aMintTheWalletHasSaysSoAndAnOldOneToo() {
-        show(pick.copy(step = AddMintStep.Info, preview = preview.copy(legacy = true), known = setOf("mint.example")))
+    fun aMintTheWalletHasSaysSo() {
+        show(pick.copy(step = AddMintStep.Info, preview = preview, known = setOf("mint.example")))
         compose.onNodeWithText(text(R.string.add_mint_known)).performScrollTo().assertExists()
-        compose.onNodeWithText(text(R.string.add_mint_legacy)).performScrollTo().assertExists()
     }
 
     @Test

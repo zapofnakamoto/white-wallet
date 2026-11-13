@@ -75,9 +75,6 @@ import whitewallet.core.wallet.RotateAllResult
 import whitewallet.core.wallet.RotateResult
 import whitewallet.core.wallet.SetIndexResult
 import whitewallet.core.wallet.Wallet
-import whitewallet.core.wallet.legacy.LEGACY
-import whitewallet.core.wallet.legacy.LegacyChange
-import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.core.wallet.set
 
 data class DerivedKeysState(
@@ -111,9 +108,9 @@ data class DerivedKeysState(
     /** The index and the keys are those of [host] and [set]: false while they are read; then neither is drawn. */
     val loaded: Boolean = true,
 ) {
-    /** The tabs: the account's LUD-26 chains and shares, then the legacy 2f17578 purposes its older notes are on. */
+    /** The tabs: the account's LUD-26 chains and shares. */
     val sets: List<KeySet>
-        get() = listOf(KeySet.Wallet, KeySet.Change) + shares.map { it.set } + KeySet.LEGACY
+        get() = listOf(KeySet.Wallet, KeySet.Change) + shares.map { it.set }
 
     /** Keys on this tab whose note is outstanding in the wallet. */
     val rotatable: List<DerivedKey>
@@ -687,14 +684,6 @@ private fun checkedAt(millis: Long): String = recentTime(millis)
 @Composable
 private fun keySetLabel(set: KeySet): String =
     set.share?.let { stringResource(R.string.keys_address_number, it + 1) }
-        ?: stringResource(
-            when (set) {
-                KeySet.Wallet -> R.string.keys_purpose_wallet
-                KeySet.Change -> R.string.keys_purpose_change
-                KeySet.LegacyWallet -> R.string.keys_legacy_wallet
-                KeySet.LegacyChange -> R.string.keys_legacy_change
-                else -> R.string.keys_legacy_address
-            }
-        )
+        ?: stringResource(if (set == KeySet.Wallet) R.string.keys_purpose_wallet else R.string.keys_purpose_change)
 
 private const val TIME_SKELETON = "jm"

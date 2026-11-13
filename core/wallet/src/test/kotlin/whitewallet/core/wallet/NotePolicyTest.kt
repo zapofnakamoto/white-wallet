@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.KeyCounter
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -125,7 +124,6 @@ class NotePolicyTest {
                     null,
                     NoteState.Outstanding,
                     0,
-                    scheme = KeyScheme.Bip32,
                 )
             )
         )

@@ -100,18 +100,6 @@ public class Share private constructor(private val xpub: ExtendedPublicKey, priv
 }
 
 /**
- * The string the seed-derived default address names are hashed from: what draft 2f17578 called the branch's `cx1`, bech32m of `x(P) ||
- * chaincode` of the node for the host as stored (port included). Not protocol: kept as is so a restore keeps finding the names wallets
- * already registered.
- */
-public object NameSeed {
-    public fun of(seed: ByteArray, host: String): String {
-        val node = ServiceRoot.node(seed, host)
-        return Bech32m.encode("cx", node.privateKey.xOnlyPublicKey().value.toByteArray() + node.chaincode.toByteArray())
-    }
-}
-
-/**
  * LUD-26 username registration proofs: BIP-340 signatures (all-zero `aux_rand`) by a share's own key, bound to the domain. The username is
  * case-insensitive and signed in lowercase, the `cx1` in its canonical lowercase spelling.
  */

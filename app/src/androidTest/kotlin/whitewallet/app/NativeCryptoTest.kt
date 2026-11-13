@@ -13,9 +13,6 @@ import whitewallet.lnurlcash.Cx1
 import whitewallet.lnurlcash.ServiceRoot
 import whitewallet.lnurlcash.Share
 import whitewallet.lnurlcash.Spend
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyCx1
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 /** The native secp256k1 the app ships (secp256k1-kmp-jni-android) signs and verifies like the JVM build in unit tests. */
 @RunWith(AndroidJUnit4::class)
@@ -49,22 +46,5 @@ class NativeCryptoTest {
         val spend = Spend.keyPath(ServiceRoot.fromSeed(seed, "mint.example").account(0).walletKey(0), "mint.example")
         assertTrue(spend.verify("mint.example"))
         assertFalse(spend.verify("other.example"))
-    }
-
-    @Test
-    fun legacy2f17578SpendsAreSignedAndVerifiedPerDomain() {
-        val branch = LegacyBranch.fromSeed(seed, "mint.example")
-        val spend = branch.spend(LegacyPurpose.Wallet, 0, "mint.example")
-        assertEquals(branch.notePubkey(LegacyPurpose.Wallet, 0), spend.q)
-        assertTrue(spend.verify("mint.example"))
-        assertFalse(spend.verify("other.example"))
-    }
-
-    @Test
-    fun legacy2f17578AWatchOnlyBranchFindsTheSameNotes() {
-        val branch = LegacyBranch.fromSeed(seed, "mint.example")
-        val watchOnly = LegacyBranch.fromCx1(branch.cx1())!!
-        assertEquals(branch.notePubkey(LegacyPurpose.LightningAddress, 7), watchOnly.notePubkey(LegacyPurpose.LightningAddress, 7))
-        assertTrue(LegacyCx1.decode(branch.cx1()) != null)
     }
 }

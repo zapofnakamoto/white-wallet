@@ -223,7 +223,7 @@ internal class FundsMover(private val wallet: Wallet) {
 
     private suspend fun moveAll(fromId: String, toId: String, host: String, notes: List<Note>): MoveResult {
         val inputs = notes.sumOf { it.amountMsat }
-        val target = OutputSpec.Own(toId, KeySet.Wallet)
+        val target = OutputSpec(toId, KeySet.Wallet)
         val result =
             if (notes.size == 1) mutator.rotate(fromId, host, inputs = notes, outputs = listOf(target))
             else mutator.merge(fromId, host, notes, target)
@@ -258,12 +258,12 @@ internal class FundsMover(private val wallet: Wallet) {
         var inputs = sorted.takeWhileCovering(amountMsat)
         if (inputs.size > 1) {
             // Merge into one of our own notes first, then split that.
-            val merged = mutator.merge(fromId, host, inputs, OutputSpec.Own(fromId, KeySet.Wallet))
+            val merged = mutator.merge(fromId, host, inputs, OutputSpec(fromId, KeySet.Wallet))
             // A merge that is open or refused is about all it took, not only the amount asked for.
             inputs = (merged as? MutationResult.Done)?.outputs ?: return merged.toMove(host, inputs.sumOf { it.amountMsat })
             if (inputs.single().amountMsat == amountMsat) return moveAll(fromId, toId, host, inputs)
         }
-        val outputs = listOf(OutputSpec.Own(toId, KeySet.Wallet), OutputSpec.Own(fromId, KeySet.Change))
+        val outputs = listOf(OutputSpec(toId, KeySet.Wallet), OutputSpec(fromId, KeySet.Change))
         val result = mutator.split(fromId, host, inputs, outputs, splitMsat = amountMsat)
         when (result) {
             is MutationResult.Done -> {

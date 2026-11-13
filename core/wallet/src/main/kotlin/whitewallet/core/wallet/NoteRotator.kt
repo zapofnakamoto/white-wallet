@@ -46,8 +46,6 @@ internal class NoteRotator(private val wallet: Wallet) {
         host: String,
         sets: (KeySet) -> Boolean,
         automatic: Boolean = false,
-        /** Leaves no entry in the history: the money stays where it was, and nobody asked for this. */
-        quiet: Boolean = false,
     ): RotateAllResult {
         val notes =
             wallet.store
@@ -60,7 +58,7 @@ internal class NoteRotator(private val wallet: Wallet) {
         var pending = 0
         var total = 0L
         for (note in notes) {
-            when (val r = rotate(accountId, note, automatic, quiet)) {
+            when (val r = rotate(accountId, note, automatic)) {
                 is RotateResult.Rotated -> {
                     rotated++
                     total += r.amountMsat
@@ -77,13 +75,13 @@ internal class NoteRotator(private val wallet: Wallet) {
         return RotateAllResult(rotated, failed, pending, totalMsat = total, stoppedEarly = null)
     }
 
-    private suspend fun rotate(accountId: String, note: Note, automatic: Boolean, quiet: Boolean = false): RotateResult {
+    private suspend fun rotate(accountId: String, note: Note, automatic: Boolean): RotateResult {
         val result =
             mutator.rotate(
                 fromId = accountId,
                 note.host,
                 inputs = listOf(note),
-                outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet)),
+                outputs = listOf(OutputSpec(accountId, KeySet.Wallet)),
             )
         return when (result) {
             is MutationResult.Done -> {
@@ -95,34 +93,30 @@ internal class NoteRotator(private val wallet: Wallet) {
                     KeySet.of(out).key(accountId, note.host, out.index!!),
                     KeyProbe.Outstanding(out.amountMsat, out.certificate != null, imported = false, now),
                 )
-                if (!quiet) {
-                    log.record(
-                        id = "op:${result.journalId}",
-                        accountId,
-                        kind = ActivityKind.Rotated,
-                        amountMsat = out.amountMsat.takeIf { it > 0 } ?: note.amountMsat,
-                        note.host,
-                        automatic = automatic,
-                        journalId = result.journalId,
-                    )
-                }
+                log.record(
+                    id = "op:${result.journalId}",
+                    accountId,
+                    kind = ActivityKind.Rotated,
+                    amountMsat = out.amountMsat.takeIf { it > 0 } ?: note.amountMsat,
+                    note.host,
+                    automatic = automatic,
+                    journalId = result.journalId,
+                )
                 RotateResult.Rotated(note.index!!, out.index!!, out.amountMsat, out.certificate != null)
             }
             is MutationResult.Refused -> RotateResult.Failed(result.reason ?: result.kind.name, noAnswer = false)
             is MutationResult.Unreachable -> RotateResult.Failed(result.reason, noAnswer = true, keyChanged = result.keyChanged)
             is MutationResult.Pending -> {
-                if (!quiet) {
-                    log.record(
-                        id = "op:${result.journalId}",
-                        accountId,
-                        kind = ActivityKind.Rotated,
-                        note.amountMsat,
-                        note.host,
-                        status = ActivityStatus.Pending,
-                        automatic = automatic,
-                        journalId = result.journalId,
-                    )
-                }
+                log.record(
+                    id = "op:${result.journalId}",
+                    accountId,
+                    kind = ActivityKind.Rotated,
+                    note.amountMsat,
+                    note.host,
+                    status = ActivityStatus.Pending,
+                    automatic = automatic,
+                    journalId = result.journalId,
+                )
                 RotateResult.Pending
             }
         }

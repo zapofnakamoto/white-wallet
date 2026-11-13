@@ -1,7 +1,6 @@
 package whitewallet.core.wallet
 
 import java.io.IOException
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -19,8 +18,7 @@ data class KeyId(
     val host: String,
     val purpose: Int,
     val index: Long,
-    val scheme: KeyScheme,
-    /** The share of a chain-2 key under [KeyScheme.Bip32]. */
+    /** The share of a chain-2 key. */
     val share: Long?,
 )
 
@@ -107,7 +105,6 @@ internal class KeyProber(private val wallet: Wallet) {
                                 // A note handed out as a link stays out of the balance until it is spent or taken back.
                                 state = existing?.state?.takeIf { it.isShared } ?: NoteState.Outstanding,
                                 updatedAtMillis = now,
-                                scheme = id.scheme,
                                 share = id.share,
                             )
                         )

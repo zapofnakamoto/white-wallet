@@ -6,24 +6,20 @@ import whitewallet.core.model.KeyCounter
 import whitewallet.lnurlcash.spendDomain
 
 /**
- * Finds notes the mint auto-minted for Lightning address payments (LUD-26: a share's notes; legacy 2f17578: purpose 2) by looking up each
- * derived key by `p`, stopping after [WalletSettings.scanStopAfterUnusedKeys] consecutive unused indices, or at a lookup the mint refuses
- * or doesn't answer, or that comes with a signing key other than the pinned one ([RefreshResult.keyChanged]).
+ * Finds notes the mint auto-minted for Lightning address payments (LUD-26: a share's notes) by looking up each derived key by `p`, stopping
+ * after [WalletSettings.scanStopAfterUnusedKeys] consecutive unused indices, or at a lookup the mint refuses or doesn't answer, or that
+ * comes with a signing key other than the pinned one ([RefreshResult.keyChanged]).
  */
 internal class AddressScanner(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
     private val log = ActivityLog(wallet)
 
-    /**
-     * Every address key set of the account on [host]: the share of each of its addresses there, and the legacy purpose 2 while any address
-     * is still on the legacy branch, or the account has none (tag: keys).
-     */
+    /** Every address key set of the account on [host]: the share of each of its addresses there, and every share it handed out. */
     suspend fun scanAll(accountId: String, host: String): RefreshResult {
         val addresses = wallet.store.addresses(accountId).first().filter { it.host == host }
         // Every share handed out, not only those of known addresses: a restored phone doesn't know its names, and they still get paid.
         val handedOut = wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0
-        val sets = (addresses.mapNotNull { it.share } + (0 until handedOut)).distinct().map(KeySet::share).toMutableList()
-        sets += wallet.legacy.addressSets(accountId, addresses)
+        val sets = (addresses.map { it.share } + (0 until handedOut)).distinct().map(KeySet::share)
         return sets.fold(RefreshResult(0, 0)) { total, set -> total + scan(accountId, host, set) }
     }
 

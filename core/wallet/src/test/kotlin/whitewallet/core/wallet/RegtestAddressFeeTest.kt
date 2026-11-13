@@ -12,14 +12,13 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.spendDomain
 
 /** An address on a mint that charges for one (LUD-26): held until the fee is paid, from outside or from the account's notes. */
 class RegtestAddressFeeTest {
     private val fee = 21_000L
 
-    @BeforeEach fun requireStack() = Regtest.requireStack(MintDialect.Current)
+    @BeforeEach fun requireStack() = Regtest.requireStack()
 
     private fun wallet(
         store: InMemoryWalletStore = InMemoryWalletStore(),

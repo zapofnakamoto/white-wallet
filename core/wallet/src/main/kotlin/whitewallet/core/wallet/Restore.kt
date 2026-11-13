@@ -205,14 +205,10 @@ internal class Restore(private val wallet: Wallet) {
         data class Failed(val failure: Failure) : Scan
     }
 
-    /**
-     * Finds what [accountId] holds on [h]. The legacy 2f17578 purposes (tag: keys) hold what the wallet's first account had before the
-     * upgrade.
-     */
+    /** Finds what [accountId] holds on [h]. */
     private suspend fun scan(accountId: String, h: String, report: (KeyProbe) -> Unit = {}): Scan {
-        val older = if (wallet.legacy.ownsKeys(accountId)) wallet.legacy.restoreSets else emptyList()
         var used = false
-        for (set in listOf(KeySet.Wallet, KeySet.Change) + older) {
+        for (set in listOf(KeySet.Wallet, KeySet.Change)) {
             val found = discovery.discover(accountId, h, set, onProbe = report)
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))

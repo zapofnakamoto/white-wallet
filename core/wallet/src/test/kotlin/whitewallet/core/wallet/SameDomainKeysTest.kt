@@ -13,7 +13,6 @@ import kotlinx.coroutines.runBlocking
 import whitewallet.core.model.Note
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
-import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.MutationOutcome
@@ -36,13 +35,6 @@ class SameDomainKeysTest {
             assertNotEquals(a.pubkey(set, 0), testKeys(words, "other.example:3338").pubkey(set, 0), "$set")
         }
         assertEquals(a.share(0).cx1(), b.share(0).cx1())
-    }
-
-    @Test
-    fun `legacy 2f17578 - the port was part of the keys`() {
-        val a = testKeys(words, "mint.example:3338")
-        val b = testKeys(words, "mint.example:4448")
-        assertNotEquals(a.pubkey(KeySet.LegacyWallet, 0), b.pubkey(KeySet.LegacyWallet, 0))
     }
 
     private fun phone(store: InMemoryWalletStore) =

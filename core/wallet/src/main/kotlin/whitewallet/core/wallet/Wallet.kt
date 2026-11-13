@@ -45,15 +45,11 @@ import whitewallet.core.model.SetupStep
 import whitewallet.core.model.WalletGroup
 import whitewallet.core.model.WalletRecord
 import whitewallet.core.model.isShared
-import whitewallet.core.wallet.legacy.Legacy
-import whitewallet.core.wallet.legacy.LegacyKeys
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.ServiceRoot
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.protocol.NoteLink
-import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.spendDomain
 
 /**
@@ -105,7 +101,6 @@ class Wallet(
     /** See the constructor; tests shorten it. */
     internal var payWaitMillis = payWaitMillis
     private val keySets = ConcurrentHashMap<Pair<String, String>, AccountKeys>()
-    private val dialects = ConcurrentHashMap<String, MintDialect>()
     /** The last check of each address, by (account id, address). In memory; see [refresh] and [checkAddresses]. */
     private val addressStatuses = MutableStateFlow<Map<Pair<String, String>, AddressStatus>>(emptyMap())
 
@@ -118,7 +113,6 @@ class Wallet(
     private val mover = FundsMover(this)
     private val inspector = KeyInspector(this)
     private val rotator = NoteRotator(this)
-    internal val legacy = Legacy(this, scanner, addressCheck, rotator)
     private val discovery = IndexDiscovery(this)
     private val indexVerifiedAt = MutableStateFlow<Map<Triple<String, String, KeySet>, Long>>(emptyMap())
     private val policyEngine = NotePolicyEngine(this)
@@ -599,7 +593,6 @@ class Wallet(
         val h = Onboarding.normalizeHost(host) ?: return null
         val keys = keysIfSeeded(accountId, h) ?: return null
         return DefaultAddress.names(keys).firstOrNull { addressCheck.check(it, h, accountId) == AddressStatus.Ours }
-            ?: legacy.recoverableUsername(accountId, h)
     }
 
     /** The active account's addresses a restore can't find by itself (not seed-derived): to be written down. */
@@ -610,7 +603,7 @@ class Wallet(
             .first()
             .filter { address ->
                 val keys = keysIfSeeded(accountId, address.host) ?: return@filter true
-                address.username !in DefaultAddress.names(keys) + legacy.names(accountId, address.host)
+                address.username !in DefaultAddress.names(keys)
             }
             .map { it.address }
     }
@@ -624,8 +617,7 @@ class Wallet(
      */
     suspend fun watchOnlyKey(address: RegisteredAddress): String? {
         val accountId = activeId()
-        return address.share?.let { keysIfSeeded(accountId, address.host)?.share(it)?.cx1() }
-            ?: legacy.watchOnlyKey(accountId, address.host)
+        return keysIfSeeded(accountId, address.host)?.share(address.share)?.cx1()
     }
 
     /** The most one note can be sent as, or one payment be, from the active account's notes: all it has on one mint. */
@@ -1092,8 +1084,6 @@ class Wallet(
             unknownNotes.recheckDue(id)
             // First: a held address that was paid may be the account's primary one now.
             store.addresses(id).first().filter { it.feeInvoice != null }.forEach { onboarding.settleHeld(id, it) }
-            val moved = legacy.migration.run(id)
-            result += if (id == active) moved else moved.keyChangedOnly()
             val addresses = store.addresses(id).first()
             for (address in addresses.filter { it.feeInvoice == null }) {
                 addressCheck.check(address.username, address.host, id).let { status ->
@@ -1407,7 +1397,7 @@ class Wallet(
         val seed = RecoveryPhrase.seed(words)
         return try {
             keySets.getOrPut(accountId to host) {
-                AccountKeys(ServiceRoot.fromSeed(seed, host).account(account?.index ?: 0), LegacyKeys.fromSeed(seed, host))
+                AccountKeys(ServiceRoot.fromSeed(seed, host).account(account?.index ?: 0))
             }
         } finally {
             seed.fill(0)
@@ -1452,21 +1442,6 @@ class Wallet(
         val walletId = walletOf(accountId)
         return store.accounts.first().map { it.account }.filter { it.walletId == walletId }
     }
-
-    /**
-     * Which protocol the mint at [host] speaks, from a request that changes nothing (see LnurlcashClient.dialect). A LUD-26 mint is asked
-     * once per process. A legacy one is asked every time: it may be upgraded at any moment, and a request of the old protocol sent after
-     * that fails (a payment to an address there, registering or freeing a name). A mint that answers neither way is taken for a legacy one:
-     * only a LUD-26 mint answers the probe in LNURL form. Throws IOException when the mint can't be reached.
-     */
-    internal suspend fun dialect(host: String): MintDialect =
-        dialects[host]
-            ?: (try {
-                    client.dialect(host)
-                } catch (_: ProtocolViolation) {
-                    MintDialect.Legacy
-                })
-                .also { if (it == MintDialect.Current) dialects[host] = it }
 
     internal fun setAddressStatus(accountId: String, address: String, status: AddressStatus?) = addressStatuses.update {
         if (status == null) it - (accountId to address) else it + ((accountId to address) to status)

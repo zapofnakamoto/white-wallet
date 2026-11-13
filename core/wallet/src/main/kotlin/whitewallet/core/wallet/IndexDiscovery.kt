@@ -117,7 +117,7 @@ internal class IndexGuard(private val wallet: Wallet) {
             val index = wallet.store.reserveKeyIndex(accountId, domain, counter)
             val key = keys.pubkey(set, index)
             if (wallet.store.note(key.toHex()) == null) {
-                return ReservedOutput(key, OutputRef(accountId, set.purpose, index, key.toHex(), set.scheme))
+                return ReservedOutput(key, OutputRef(accountId, set.purpose, index, key.toHex(), set.share))
             }
         }
         error("no free key found for $set")

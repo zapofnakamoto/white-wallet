@@ -375,7 +375,7 @@ class RegtestReceivedNotesTest {
             // Carol's phrase holds two notes on its wallet keys at the first mint.
             val carol = Regtest.phone()
             carol.fund(2000, 2000)
-            assertEquals(2, carol.wallet.rotateAllKeys(HOST, Regtest.addressSet).rotated)
+            assertEquals(2, carol.wallet.rotateAllKeys(HOST, KeySet.share(0)).rotated)
             val there = carol.notes(HOST)
             val link = aNote()
 

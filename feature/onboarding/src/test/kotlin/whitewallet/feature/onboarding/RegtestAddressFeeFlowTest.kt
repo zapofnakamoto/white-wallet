@@ -52,7 +52,6 @@ class RegtestAddressFeeFlowTest {
     @BeforeTest
     fun requireStack() {
         assumeTrue(System.getenv("LNURLCASH_REGTEST") == "1", "LNURLCASH_REGTEST not set")
-        assumeTrue(System.getenv("REGTEST_PROTOCOL") != "legacy", "lnurl-mint 0.12 has no address fee")
         Dispatchers.setMain(Dispatchers.Default)
     }
 

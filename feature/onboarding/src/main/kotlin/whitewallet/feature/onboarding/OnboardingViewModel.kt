@@ -154,9 +154,6 @@ sealed interface OnboardingError {
     /** Paying the fee from the balance failed; the address stays held. */
     data class FeeNotPaid(override val detail: String = "") : OnboardingError
 
-    /** A further account of a wallet can't get an address on a legacy mint. */
-    data class MintTooOld(override val detail: String = "") : OnboardingError
-
     /** The name's hold ran out unpaid. */
     data class HoldExpired(override val detail: String = "") : OnboardingError
 
@@ -453,7 +450,6 @@ constructor(
                 )
             is OnboardResult.NetworkError -> fail(OnboardingError.Network(result.reason))
             is OnboardResult.LimitReached -> fail(OnboardingError.Limit(result.limit))
-            OnboardResult.MintTooOld -> fail(OnboardingError.MintTooOld())
         }
     }
 

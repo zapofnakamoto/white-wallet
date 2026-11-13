@@ -53,7 +53,7 @@ class RegtestNotesTest {
             // Asked anyway, the mint refuses to count one note twice.
             val result =
                 NoteMutator(alice.wallet)
-                    .merge(alice.wallet.activeId(), HOST, listOf(note, note), OutputSpec.Own(alice.wallet.activeId(), KeySet.Wallet))
+                    .merge(alice.wallet.activeId(), HOST, listOf(note, note), OutputSpec(alice.wallet.activeId(), KeySet.Wallet))
             // It says the second k1 is spent; the note is not, so the wallet keeps it.
             val refused = assertIs<MutationResult.Refused>(result, "the same k1 twice in a merge")
             assertEquals(RejectionKind.Spent, refused.kind)

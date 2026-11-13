@@ -10,7 +10,7 @@ import kotlin.test.assertNull
 class NoteKeysTest {
     private val seed = ByteArray(32) { 7 }
 
-    /** The flip side of `legacy 2f17578 - a branch's cx1 derives its wallet and change keys`: a share's cx1 reaches its own notes only. */
+    /** A share's cx1 reaches its own notes only. */
     @Test
     fun `a share's cx1 derives its own notes and nothing else`() {
         val account = ServiceRoot.fromSeed(seed, "mint.example").account(0)
@@ -35,18 +35,17 @@ class NoteKeysTest {
 
     /** A domain hosts one mint: the root hashes the domain, never the port, so mints on one hostname share keys and counters. */
     @Test
-    fun `the root ignores the port, the name seed keeps it`() {
+    fun `the root ignores the port`() {
         val a = ServiceRoot.fromSeed(seed, "localhost:8111").account(0).walletKey(0)
         assertEquals(a, ServiceRoot.fromSeed(seed, "localhost:8112").account(0).walletKey(0))
         assertEquals(a, ServiceRoot.fromSeed(seed, "LOCALHOST").account(0).walletKey(0))
-        assertNotEquals(NameSeed.of(seed, "localhost:8111"), NameSeed.of(seed, "localhost:8112"))
     }
 
     @Test
-    fun `cx1 rejects the legacy 64-byte form and invalid keys`() {
-        val legacy = NameSeed.of(seed, "mint.example")
-        assertNull(Cx1.decode(legacy), "64 bytes is the legacy cx1")
-        assertNull(Share.fromCx1(legacy))
+    fun `cx1 rejects a 64-byte key and invalid keys`() {
+        val short = Bech32m.encode("cx", ByteArray(64) { 2 })
+        assertNull(Cx1.decode(short), "a share's cx1 is 65 bytes")
+        assertNull(Share.fromCx1(short))
         val cx1 = ServiceRoot.fromSeed(seed, "mint.example").account(0).share(0).cx1()
         assertEquals(113, cx1.length)
         val (chainCode, publicKey) = assertNotNull(Cx1.decode(cx1))

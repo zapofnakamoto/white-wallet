@@ -19,12 +19,16 @@ import java.security.SecureRandom
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import whitewallet.core.model.NoteState
 import whitewallet.lnurlcash.BearerNote
 import whitewallet.lnurlcash.CanonicalSpend
 import whitewallet.lnurlcash.Cw1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
+import whitewallet.lnurlcash.protocol.MutationOutcome
+import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteLink
+import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 
 /**
@@ -110,8 +114,12 @@ private constructor(private val leaf: ByteVector, private val lockTime: Long, pr
     }
 }
 
-/** Renews the phone's one note on [host] to [q], someone else's key: the money leaves the balance. */
+/** Renews the phone's one note on [host] to [q], someone else's key: the money leaves the balance. The wallet never does this itself. */
 internal suspend fun Regtest.Phone.lockTo(q: ByteVector32, host: String = Regtest.HOST) {
-    val result = NoteMutator(wallet).rotate(wallet.activeId(), host, listOf(notes(host).single()), listOf(OutputSpec.External { q }))
-    assertIs<MutationResult.Done>(result)
+    val note = notes(host).single()
+    val withdrawUrl = checkNotNull(wallet.mintOf(wallet.activeId(), host)).withdrawUrl
+    val callback = wallet.client.lookup(withdrawUrl, ByteVector32(note.id)).callback
+    val spend = wallet.keys(wallet.activeId(), host).spend(note, spendDomain(host))
+    assertIs<MutationOutcome.Confirmed>(wallet.client.mutate(MutationType.Rotate, Requests.rotate(callback, spend.k1, q)))
+    store.upsertNotes(listOf(note.copy(state = NoteState.Spent)))
 }

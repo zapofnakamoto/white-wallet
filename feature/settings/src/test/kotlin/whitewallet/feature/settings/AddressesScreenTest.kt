@@ -28,8 +28,9 @@ import whitewallet.core.wallet.AddressStatus
 class AddressesScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    private val home = AddressEntry(RegisteredAddress("alice", "home.example", 0), primary = true, status = AddressStatus.Ours)
-    private val other = AddressEntry(RegisteredAddress("alice", "other.example", 1), primary = false, status = AddressStatus.Ours)
+    private val home = AddressEntry(RegisteredAddress("alice", "home.example", 0, share = 0), primary = true, status = AddressStatus.Ours)
+    private val other =
+        AddressEntry(RegisteredAddress("alice", "other.example", 1, share = 0), primary = false, status = AddressStatus.Ours)
 
     private fun show(state: AddressesState, onAddElsewhere: () -> Unit = {}) = compose.setContent {
         AddressesScreen(state, {}, {}, {}, {}, AddressActions({}, {}, {}), {}, {}, onAddElsewhere)

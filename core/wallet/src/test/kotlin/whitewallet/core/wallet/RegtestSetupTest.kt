@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.SetupStep
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.MintDialect
 
 /** A wallet's setup the way the app goes through it, one step per screen, against real mints. */
 class RegtestSetupTest {
@@ -107,13 +106,12 @@ class RegtestSetupTest {
         }
 
     @Test
-    fun `what a mint shows about itself before it is added, on either protocol, saves nothing`() =
+    fun `what a mint shows about itself before it is added saves nothing`() =
         runBlocking<Unit> {
             val store = InMemoryWalletStore()
             val wallet = wallet(store)
             assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
             val preview = assertIs<MintPreview.Ready>(wallet.previewMint(HOST))
-            assertEquals(Regtest.protocol == MintDialect.Legacy, preview.legacy)
             assertEquals(Regtest.mintKey(HOST), preview.signingKey)
             assertTrue(preview.maxSendableMsat >= preview.minSendableMsat)
             assertTrue(store.mintMap.value.isEmpty())

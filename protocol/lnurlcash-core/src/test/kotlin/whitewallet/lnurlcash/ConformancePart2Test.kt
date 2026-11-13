@@ -16,23 +16,16 @@ import kotlin.test.assertTrue
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
-import whitewallet.lnurlcash.legacy.LegacyAddressProof
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyCertificates
-import whitewallet.lnurlcash.legacy.LegacyCx1
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.Vectors
 import whitewallet.testkit.arr
-import whitewallet.testkit.int
 import whitewallet.testkit.long
 import whitewallet.testkit.obj
 import whitewallet.testkit.objects
 import whitewallet.testkit.str
 
-/** lnurlcash-conformance `part2.json`: key-path notes, certificates, address proofs and encodings; and the legacy 2f17578 ones. */
+/** lnurlcash-conformance `part2.json`: key-path notes, certificates, address proofs and encodings. */
 class ConformancePart2Test {
     private val v = Vectors.conformance("part2")
-    private val legacy = Vectors.legacyConformance("part2")
 
     /** Every share in the file, by its `cx1`, as derived here. */
     private val shares: Map<String, Share> by lazy {
@@ -122,66 +115,6 @@ class ConformancePart2Test {
     @Test
     fun encodings() =
         encodings(v) { type, value -> if (type == "cx1") Cx1.decode(value)?.let { (c, p) -> c.toHex() + p.toHex() } else null }
-
-    @Test
-    fun `legacy 2f17578 - branches`() {
-        for (b in legacy.objects("branches")) {
-            val seed = MnemonicCode.toSeed(b.str("mnemonic"), "")
-            val branch = LegacyBranch.fromSeed(seed, b.str("host"))
-            assertEquals(b.str("branchPubkey"), branch.pubkey.toHex(), b.str("host"))
-            assertEquals(b.str("chainCode"), branch.chainCode.toHex())
-            assertEquals(b.str("cx1"), branch.cx1())
-            val domain = b.str("domain")
-            for (n in b.objects("notes")) {
-                val purpose = LegacyPurpose.entries.first { it.value == n.int("purpose") }
-                val i = n.long("index")
-                val q = branch.notePubkey(purpose, i)
-                assertEquals(n.str("notePubkey"), q.toHex())
-                assertEquals(n.str("noteSecretKey"), branch.noteSecretKey(purpose, i).value.toHex())
-                val spend = branch.spend(purpose, i, domain)
-                assertEquals(n.str("ck1"), spend.k1)
-            }
-        }
-    }
-
-    @Test
-    fun `legacy 2f17578 - a superseded certificate of the current vectors still verifies as legacy`() {
-        val mintPubkey = PublicKey.fromHex(v.obj("mint").str("mintPubkey"))
-        for (c in v.objects("legacyCertificates")) {
-            val q = ByteVector32(c.str("notePubkey"))
-            val cs1 = assertNotNull(Cs1.decode(c.str("cs1")))
-            assertTrue(LegacyCertificates.verify(cs1, q, mintPubkey))
-        }
-    }
-
-    @Test
-    fun `legacy 2f17578 - certificates`() {
-        val mintKey = PrivateKey.fromHex(legacy.obj("mint").str("privateKey"))
-        val mintPubkey = PublicKey.fromHex(legacy.obj("mint").str("mintPubkey"))
-        for (c in legacy.objects("certificates")) {
-            val q = ByteVector32(c.str("notePubkey"))
-            val cs1 = assertNotNull(Cs1.decode(c.str("cs1")))
-            assertTrue(LegacyCertificates.verify(cs1, q, mintPubkey))
-            assertEquals(c.str("cs1"), LegacyCertificates.sign(cs1.amountMsat, q, mintKey).encode())
-        }
-    }
-
-    @Test
-    fun `legacy 2f17578 - address proofs`() {
-        val seeds = legacy.objects("branches").associate { (it.str("host") to it.str("mnemonic")) to it }
-        for (p in legacy.objects("addressProofs")) {
-            val sk = PrivateKey.fromHex(p.str("indexZeroSecretKey"))
-            val entry = seeds.values.first { b -> b.objects("notes").any { it.str("noteSecretKey") == sk.value.toHex() } }
-            val branch = LegacyBranch.fromSeed(MnemonicCode.toSeed(entry.str("mnemonic"), ""), entry.str("host"))
-            val action = LegacyAddressProof.Action.entries.first { it.wire == p.str("action") }
-            assertEquals(p.str("message"), LegacyAddressProof.message(action, p.str("domain"), p.str("username")))
-            assertEquals(p.str("signature"), LegacyAddressProof.sign(branch, action, p.str("domain"), p.str("username")))
-        }
-    }
-
-    @Test
-    fun `legacy 2f17578 - encodings`() =
-        encodings(legacy) { type, value -> if (type == "cx1") LegacyCx1.decode(value)?.let { (p, c) -> p.toHex() + c.toHex() } else null }
 
     private fun encodings(vectors: JsonObject, cx1: (String, String) -> String?) {
         for (c in vectors.objects("valid")) {

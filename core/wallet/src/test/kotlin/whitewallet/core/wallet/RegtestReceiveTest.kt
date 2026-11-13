@@ -11,9 +11,7 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.wallet.Regtest.HOST
-import whitewallet.core.wallet.legacy.LegacyAddress
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.MintDialect
 
 /** Money coming in: by invoice, and at the address, on the real mint. */
 class RegtestReceiveTest {
@@ -127,7 +125,6 @@ class RegtestReceiveTest {
     @Test
     fun `unpaid invoices of an address take no keys, so the payment after them is found by a refresh`() =
         runBlocking<Unit> {
-            Regtest.requireStack(MintDialect.Current)
             val alice = Regtest.phone()
             // A LUD-26 mint picks an address payment's note when it settles: invoices nobody pays leave no gap.
             val name = alice.address.substringBefore('@')
@@ -138,30 +135,6 @@ class RegtestReceiveTest {
             repeat(25) { URI("$callback${if ('?' in callback) '&' else '?'}amount=1000000").toURL().readText() }
             Regtest.pay(alice.address, 1000)
             assertEquals(999_000, alice.wallet.refresh().receivedMsat)
-            assertEquals(1, alice.wallet.keyIndex(HOST, Regtest.addressSet))
-        }
-
-    @Test
-    fun `legacy 2f17578 - an address payment beyond the gap is found by scanning further, and receiving goes on after it`() =
-        runBlocking<Unit> {
-            Regtest.requireStack(MintDialect.Legacy)
-            val alice = Regtest.phone()
-            // Every invoice the address hands out takes the next address key, paid or not: 25 unpaid ones leave the next
-            // payment past the 20-key gap a refresh looks at.
-            val name = alice.address.substringBefore('@')
-            val callback =
-                Regex("\"callback\":\\s*\"([^\"]+)\"")
-                    .find(URI("http://$HOST/.well-known/lnurlp/$name").toURL().readText())!!
-                    .groupValues[1]
-            repeat(25) { URI("$callback${if ('?' in callback) '&' else '?'}amount=1000000").toURL().readText() }
-            Regtest.pay(alice.address, 1000)
-            assertEquals(0, alice.wallet.refresh().newNotes, "out of the refresh's reach")
-
-            val scan = alice.wallet.scanKeysAhead(HOST, KeySet.LegacyAddress, gap = 40)
-            assertEquals(1, scan.imported)
-            assertEquals(999_000, alice.balance())
-
-            Regtest.pay(alice.address, 2000)
-            assertEquals(1_999_000, alice.wallet.refresh().receivedMsat, "the next payment is in reach again")
+            assertEquals(1, alice.wallet.keyIndex(HOST, KeySet.share(0)))
         }
 }

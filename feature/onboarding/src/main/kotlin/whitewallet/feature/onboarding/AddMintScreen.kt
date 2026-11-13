@@ -143,7 +143,6 @@ private fun InfoContent(preview: MintPreview.Ready, state: AddMintState, actions
         InfoRow(stringResource(R.string.add_mint_key), preview.signingKey?.let(::shortKey) ?: stringResource(R.string.add_mint_key_none))
     }
     if (preview.knownKey != null || preview.host in state.known) Hint(stringResource(R.string.add_mint_known))
-    if (preview.legacy) Hint(stringResource(R.string.add_mint_legacy))
     Hint(stringResource(R.string.onboarding_mint_custody))
     PrimaryButton(stringResource(if (state.setup) R.string.add_mint_use else R.string.add_mint_add), actions.onAdd)
     WalletButton(kind = ButtonKind.Text, onClick = actions.onBack) { Text(stringResource(R.string.add_mint_other)) }

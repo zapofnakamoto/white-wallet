@@ -5,7 +5,6 @@
     <string name="address_fee_notice">Diese Mint verlangt einmalig %1$s für eine Adresse.</string>
     <string name="address_held_body">Bezahle %1$s, um abzuschließen. Die Mint hält den Namen nur begrenzte Zeit; läuft die Rechnung ab, kannst du es erneut versuchen.</string>
     <string name="onboarding_error_fee">Diese Mint verlangt %1$s für eine Adresse, mehr als die %2$s, die diese App akzeptiert.</string>
-    <string name="onboarding_error_mint_too_old">Diese Mint kann nur dem ersten Konto eines Wallets eine Adresse geben. Wähle eine andere Mint oder mach ohne Adresse weiter.</string>
     <string name="onboarding_error_mint_without_key">Diese Mint veröffentlicht keinen Signaturschlüssel, daher kann deine Wallet nicht prüfen, ob ihre Scheine echt sind, oder bemerken, wenn sie ausgetauscht wird. Wähle eine andere Mint.</string>
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Adresse der Mint</string>
@@ -23,7 +22,6 @@
     <string name="add_mint_error_invalid">Das ist keine Mint, die diese App nutzen kann: %1$s</string>
     <string name="add_mint_known">Diese Wallet hat diese Mint schon. Fügst du sie noch einmal hinzu, wird dort noch einmal nach deinem Geld gesucht.</string>
     <string name="scan_notes_title">Nach Scheinen suchen</string>
-    <string name="add_mint_legacy">Diese Mint spricht eine ältere Version des Protokolls. Sie funktioniert, aber nur das erste Konto einer Wallet kann dort eine Adresse haben.</string>
     <string name="add_mint_use">Diese Mint nutzen</string>
     <string name="add_mint_add">Diese Mint hinzufügen</string>
     <string name="add_mint_other">Andere Mint wählen</string>

@@ -84,19 +84,6 @@ data class Account(
     val homeHost: String? = null,
 )
 
-/** How a key-path note's key derives from the seed. */
-enum class KeyScheme(val value: Int) {
-    /** Legacy: LUD-26 draft 2f17578, a tweak per purpose (0 wallet, 1 change, 2 Lightning address) of one branch per host. */
-    Legacy(0),
-
-    /** LUD-26 at luds 92e430f: BIP-32 below the account, on the wallet or change chain or a share. */
-    Bip32(1);
-
-    companion object {
-        fun of(value: Int): KeyScheme = entries.first { it.value == value }
-    }
-}
-
 /** One of an account's LUD-26 counters on a mint domain: the next wallet or change key, and the next share to hand out. */
 enum class KeyCounter {
     Wallet,
@@ -123,8 +110,8 @@ data class Note(
     val host: String,
     val kind: NoteKind,
     /**
-     * LUD-26 derivation coordinates for key-path notes; the secret is re-derived from the seed when needed. Under [KeyScheme.Bip32],
-     * [purpose] is the chain (0 wallet, 1 change, 2 share [share]); under [KeyScheme.Legacy], the legacy purpose.
+     * LUD-26 derivation coordinates for key-path notes; the secret is re-derived from the seed when needed. [purpose] is the chain (0
+     * wallet, 1 change, 2 share [share]).
      */
     val purpose: Int?,
     val index: Long?,
@@ -134,7 +121,6 @@ data class Note(
     val updatedAtMillis: Long,
     /** When its mint last answered a lookup for it; kept for shared notes, so their screen can say how fresh it is. */
     val checkedAtMillis: Long? = null,
-    val scheme: KeyScheme = KeyScheme.Bip32,
     /** The share a chain-2 note is on (LUD-26 `S/a'/2/n'`). */
     val share: Long? = null,
 )
@@ -322,8 +308,8 @@ data class RegisteredAddress(
     val username: String,
     val host: String,
     val addedAtMillis: Long,
-    /** The share it is registered for (LUD-26 `S/a'/2/n'`), or null while it is still on the legacy 2f17578 branch `cx1`. */
-    val share: Long? = null,
+    /** The share it is registered for (LUD-26 `S/a'/2/n'`). */
+    val share: Long,
     /** The invoice of the address fee (LUD-26) the mint holds the name for; null once it is registered. */
     val feeInvoice: String? = null,
 ) {
@@ -357,17 +343,8 @@ data class OutputRef(
     val purpose: Int,
     val index: Long,
     val q: String,
-    val scheme: KeyScheme = KeyScheme.Bip32,
     val share: Long? = null,
-) {
-    /** Someone else's key (an internal transfer): never recorded as a note of this wallet. */
-    val isExternal: Boolean
-        get() = accountId.isEmpty()
-
-    companion object {
-        fun external(q: String) = OutputRef("", 2, -1, q, KeyScheme.Legacy)
-    }
-}
+)
 
 /** Write-ahead log entry for one mutation. */
 data class JournalEntry(

@@ -12,7 +12,6 @@ import whitewallet.core.model.SetupStep
 import whitewallet.core.model.WalletRecord
 import whitewallet.lnurl.Bolt11
 import whitewallet.lnurlcash.AddressProof
-import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.client.RegistrationOutcome
 import whitewallet.lnurlcash.client.RegistrationRejection
 import whitewallet.lnurlcash.protocol.ProtocolViolation
@@ -48,9 +47,6 @@ sealed interface OnboardResult {
 
     /** The account already holds [limit] addresses on this mint (see [Wallet.addAddress]). Nothing changed. */
     data class LimitReached(val limit: Int) : OnboardResult
-
-    /** A legacy 2f17578 mint knows one address key per recovery phrase, the first account's: another account can't get an address there. */
-    data object MintTooOld : OnboardResult
 }
 
 /** One of an account's Lightning addresses, whether it is the primary one, and its last check (null: not checked). */
@@ -252,20 +248,11 @@ internal class Onboarding(private val wallet: Wallet) {
         }
     }
 
-    /** Sends the unregistration [address]'s mint speaks; a lookup afterwards decides what happened. */
+    /** Asks [address]'s mint to free it; a lookup afterwards decides what happened. */
     private suspend fun unregisterAt(accountId: String, address: RegisteredAddress): RegistrationOutcome {
         val h = address.host
-        val domain = spendDomain(h)
-        val keys = wallet.keys(accountId, h)
-        return when (wallet.dialect(h)) {
-            MintDialect.Current -> {
-                val sig =
-                    address.share?.let { AddressProof.unregister(keys.share(it), domain, address.username) }
-                        ?: wallet.legacy.unregisterProof(keys, domain, address.username)
-                wallet.client.unregister(h, address.username, sig)
-            }
-            MintDialect.Legacy -> wallet.legacy.unregister(keys, address)
-        }
+        val sig = AddressProof.unregister(wallet.keys(accountId, h).share(address.share), spendDomain(h), address.username)
+        return wallet.client.unregister(h, address.username, sig)
     }
 
     /** Claims [name] on [h] for the account: as its primary address with [primary], else only if it has none. */
@@ -274,36 +261,24 @@ internal class Onboarding(private val wallet: Wallet) {
             is ConnectResult.Failed -> return connected.result
             is ConnectResult.Connected -> homeIfNone(wallet.walletOf(accountId), connected.mint.host)
         }
-        val ready = suspend { confirmed: Boolean, share: Long? ->
+        val ready = suspend { confirmed: Boolean, share: Long ->
             ready(accountId, name, host = h, confirmed, share, primary)
         }
 
         // Check first: the name may already be ours (an earlier attempt whose answer was lost) or someone else's.
         val before = addresses.ownership(name, h, accountId)
         when (before.status) {
-            AddressStatus.Ours -> return ready(true, before.share)
+            AddressStatus.Ours -> return ready(true, checkNotNull(before.share))
             AddressStatus.Taken,
-            AddressStatus.Unconfirmed ->
-                return wallet.legacy.takeBack(name, h, accountId)?.let { ready(true, it) } ?: taken(name, accountId, h)
+            AddressStatus.Unconfirmed -> return taken(name, accountId, h)
             is AddressStatus.Invalid -> return OnboardResult.UsernameInvalid(before.status.reason)
             is AddressStatus.CheckFailed -> return OnboardResult.NetworkError(before.status.reason)
             AddressStatus.Available -> Unit
         }
-        val dialect =
-            try {
-                wallet.dialect(h)
-            } catch (e: IOException) {
-                return OnboardResult.NetworkError(e.message ?: "network error")
-            }
-        return when (dialect) {
-            MintDialect.Current -> {
-                val held = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == h }
-                val invoice = held?.feeInvoice?.let(Bolt11::decode)?.takeUnless { it.isExpired(wallet.now()) }
-                if (held != null && invoice?.amountMsat != null) return OnboardResult.AwaitingFee(held, invoice.amountMsat!!)
-                claimShare(name, h, accountId, ready) { n, pr -> hold(pr, n, name, h, accountId) }
-            }
-            MintDialect.Legacy -> wallet.legacy.claim(this, name, h, accountId, ready)
-        }
+        val held = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == h }
+        val invoice = held?.feeInvoice?.let(Bolt11::decode)?.takeUnless { it.isExpired(wallet.now()) }
+        if (held != null && invoice?.amountMsat != null) return OnboardResult.AwaitingFee(held, invoice.amountMsat!!)
+        return claimShare(name, h, accountId, ready) { n, pr -> hold(pr, n, name, h, accountId) }
     }
 
     /**
@@ -314,7 +289,7 @@ internal class Onboarding(private val wallet: Wallet) {
         name: String,
         h: String,
         accountId: String,
-        ready: suspend (Boolean, Long?) -> OnboardResult,
+        ready: suspend (Boolean, Long) -> OnboardResult,
         hold: suspend (Long, String) -> OnboardResult,
     ): OnboardResult {
         val domain = spendDomain(h)
@@ -481,17 +456,17 @@ internal class Onboarding(private val wallet: Wallet) {
         name: String,
         host: String,
         confirmed: Boolean,
-        share: Long?,
+        share: Long,
         primary: Boolean,
         activate: Boolean = true,
     ): OnboardResult.Ready {
         val known = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == host }
-        val address = RegisteredAddress(name, host, known?.addedAtMillis ?: wallet.now(), share ?: known?.share)
-        if (known == null || known.feeInvoice != null || (share != null && known.share != share)) {
+        val address = RegisteredAddress(name, host, known?.addedAtMillis ?: wallet.now(), share)
+        if (known == null || known.feeInvoice != null || known.share != share) {
             wallet.store.saveAddress(accountId, address)
         }
         // A restored account learns how many shares it handed out from the ones it proves.
-        if (share != null && (wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0) <= share) {
+        if ((wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0) <= share) {
             wallet.store.setKeyIndex(accountId, spendDomain(host), KeyCounter.Shares, share + 1)
         }
         if (primary || wallet.store.currentPrimaryAddress(accountId) == null) wallet.store.setPrimaryAddress(accountId, name, host)
@@ -503,8 +478,7 @@ internal class Onboarding(private val wallet: Wallet) {
     /** A taken seed-derived name suggests the next derived ones first, so a restore can still find the address. */
     internal suspend fun taken(name: String, accountId: String, h: String): OnboardResult {
         val derived = wallet.keysIfSeeded(accountId, h)?.let(DefaultAddress::names).orEmpty()
-        val next =
-            listOf(derived, wallet.legacy.names(accountId, h)).firstOrNull { name in it }?.dropWhile { it != name }?.drop(1).orEmpty()
+        val next = if (name in derived) derived.dropWhile { it != name }.drop(1) else emptyList()
         return OnboardResult.UsernameTaken((next + suggestions(name, wallet.random)).distinct().take(3))
     }
 

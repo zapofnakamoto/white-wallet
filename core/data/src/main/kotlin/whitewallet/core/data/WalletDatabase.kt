@@ -96,24 +96,6 @@ internal interface WalletDao {
 
     @Query("DELETE FROM mints WHERE walletId = :walletId") suspend fun removeMints(walletId: String)
 
-    @Query("SELECT next FROM address_scan WHERE accountId = :accountId AND host = :host")
-    suspend fun addressScanFrom(accountId: String, host: String): Long?
-
-    @Upsert suspend fun saveAddressScan(scan: AddressScanEntity)
-
-    @Query("SELECT DISTINCT host FROM counters WHERE accountId = :accountId") suspend fun counterHosts(accountId: String): List<String>
-
-    @Query("SELECT * FROM counters WHERE accountId = :accountId AND host = :host")
-    fun countersFlow(accountId: String, host: String): Flow<List<CounterEntity>>
-
-    @Query("SELECT next FROM address_scan WHERE accountId = :accountId AND host = :host")
-    fun addressScanFlow(accountId: String, host: String): Flow<Long?>
-
-    @Query("SELECT next FROM counters WHERE accountId = :accountId AND host = :host AND purpose = :purpose")
-    suspend fun counter(accountId: String, host: String, purpose: Int): Long?
-
-    @Upsert suspend fun saveCounter(counter: CounterEntity)
-
     @Query("SELECT next FROM key_counters WHERE accountId = :accountId AND domain = :domain AND counter = :counter")
     suspend fun keyCounter(accountId: String, domain: String, counter: String): Long?
 
@@ -169,8 +151,6 @@ internal interface WalletDao {
             AppStateEntity::class,
             NoteEntity::class,
             MintEntity::class,
-            CounterEntity::class,
-            AddressScanEntity::class,
             JournalEntity::class,
             KeyCheckEntity::class,
             AddressEntity::class,
@@ -179,7 +159,7 @@ internal interface WalletDao {
             KeyCounterEntity::class,
             ShareScanEntity::class,
         ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 internal abstract class WalletDatabase : RoomDatabase() {
@@ -187,7 +167,7 @@ internal abstract class WalletDatabase : RoomDatabase() {
 
     companion object {
         /** Every schema change from v0.3.0 (version 2) on; installed wallets keep their data. Schemas: core/data/schemas. */
-        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4, Migration4To5, Migration5To6, Migration6To7, Migration7To8)
+        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4, Migration4To5, Migration5To6, Migration6To7, Migration7To8, Migration8To9)
     }
 }
 
@@ -595,5 +575,78 @@ internal object Migration7To8 : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE received_notes ADD COLUMN `unclaimedReason` TEXT")
         db.execSQL("UPDATE received_notes SET state = 'Archived', unclaimedReason = 'Refused' WHERE state = 'Refused'")
+    }
+}
+
+/**
+ * The older derivation (LUD-26 draft 2f17578) is no longer supported: what is still on its keys goes. Notes, key checks and journal entries
+ * on them, addresses still on its branch (no share), its counters and address scans. Nothing at the mint changes: version 0.9.0 with the
+ * same recovery phrase still reaches them. The columns that told the two apart go too, and journal outputs lose their scheme field.
+ */
+internal object Migration8To9 : Migration(8, 9) {
+    /** A key-path note or check of the older derivation; a note of any other kind was never derived. */
+    private const val OLD_SCHEME = 0
+
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DROP TABLE counters")
+        db.execSQL("DROP TABLE address_scan")
+
+        db.execSQL("DELETE FROM notes WHERE kind = 'KeyPath' AND scheme = $OLD_SCHEME")
+        rebuild(
+            db,
+            "notes",
+            "CREATE TABLE IF NOT EXISTS `notes_new` (`id` TEXT NOT NULL, `accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `kind` TEXT NOT NULL, `purpose` INTEGER, `noteIndex` INTEGER, `amountMsat` INTEGER NOT NULL, `certificate` TEXT, `state` TEXT NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `checkedAtMillis` INTEGER, `share` INTEGER, PRIMARY KEY(`id`), FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            "id, accountId, host, kind, purpose, noteIndex, amountMsat, certificate, state, updatedAtMillis, checkedAtMillis, share",
+            listOf("CREATE INDEX IF NOT EXISTS `index_notes_accountId` ON `notes` (`accountId`)"),
+        )
+
+        db.execSQL("DELETE FROM key_checks WHERE scheme = $OLD_SCHEME")
+        rebuild(
+            db,
+            "key_checks",
+            "CREATE TABLE IF NOT EXISTS `key_checks_new` (`accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `purpose` INTEGER NOT NULL, `share` INTEGER NOT NULL, `keyIndex` INTEGER NOT NULL, `result` TEXT NOT NULL, `amountMsat` INTEGER, `certified` INTEGER NOT NULL, `imported` INTEGER NOT NULL, `reason` TEXT, `checkedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `host`, `purpose`, `share`, `keyIndex`), FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "accountId, host, purpose, share, keyIndex, result, amountMsat, certified, imported, reason, checkedAtMillis",
+            listOf(),
+        )
+
+        db.execSQL("DELETE FROM addresses WHERE share IS NULL")
+        rebuild(
+            db,
+            "addresses",
+            "CREATE TABLE IF NOT EXISTS `addresses_new` (`accountId` TEXT NOT NULL, `host` TEXT NOT NULL, `username` TEXT NOT NULL, `addedAtMillis` INTEGER NOT NULL, `share` INTEGER NOT NULL, `feeInvoice` TEXT, `isPrimary` INTEGER, PRIMARY KEY(`accountId`, `host`, `username`), FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "accountId, host, username, addedAtMillis, share, feeInvoice, isPrimary",
+            listOf("CREATE UNIQUE INDEX IF NOT EXISTS `index_addresses_accountId_isPrimary` ON `addresses` (`accountId`, `isPrimary`)"),
+        )
+        // An account whose primary address went: its oldest registered one is primary now.
+        db.execSQL(
+            "UPDATE addresses SET isPrimary = 1 WHERE feeInvoice IS NULL " +
+                "AND accountId NOT IN (SELECT accountId FROM addresses WHERE isPrimary = 1) " +
+                "AND rowid = (SELECT o.rowid FROM addresses o WHERE o.accountId = addresses.accountId AND o.feeInvoice IS NULL " +
+                "ORDER BY o.addedAtMillis, o.host, o.username LIMIT 1)"
+        )
+
+        // Outputs were `accountId:scheme:purpose:share:index:q`, or `accountId:purpose:index:q` before LUD-26 at 92e430f (older keys).
+        val outputs = mutableMapOf<String, String?>()
+        db.query("SELECT id, outputs FROM journal").use { c ->
+            while (c.moveToNext()) {
+                val fields = c.getString(1).split(',').filter { it.isNotEmpty() }.map { it.split(':') }
+                outputs[c.getString(0)] =
+                    if (fields.any { it.size != 6 || it[1].toInt() == OLD_SCHEME }) null
+                    else fields.joinToString(",") { it.filterIndexed { field, _ -> field != 1 }.joinToString(":") }
+            }
+        }
+        for ((id, rewritten) in outputs) {
+            if (rewritten == null) db.execSQL("DELETE FROM journal WHERE id = ?", arrayOf(id))
+            else db.execSQL("UPDATE journal SET outputs = ? WHERE id = ?", arrayOf(rewritten, id))
+        }
+    }
+
+    /** Recreates [table] from [createSql] (of `<table>_new`), keeping [columns] of each row. */
+    private fun rebuild(db: SupportSQLiteDatabase, table: String, createSql: String, columns: String, indices: List<String>) {
+        db.execSQL(createSql)
+        db.execSQL("INSERT INTO ${table}_new ($columns) SELECT $columns FROM $table")
+        db.execSQL("DROP TABLE $table")
+        db.execSQL("ALTER TABLE ${table}_new RENAME TO $table")
+        indices.forEach(db::execSQL)
     }
 }

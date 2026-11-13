@@ -24,7 +24,6 @@ import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import whitewallet.core.model.Account
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -79,8 +78,7 @@ class MoveFundsViewModelTest {
             LnurlcashClient(http = LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor(mints).build()),
         )
 
-    private fun note(id: String, at: String, msat: Long) =
-        Note(id, "a", at, NoteKind.KeyPath, 0, 0, msat, null, NoteState.Outstanding, 0, scheme = KeyScheme.Bip32)
+    private fun note(id: String, at: String, msat: Long) = Note(id, "a", at, NoteKind.KeyPath, 0, 0, msat, null, NoteState.Outstanding, 0)
 
     @BeforeTest fun setMain() = Dispatchers.setMain(Dispatchers.Default)
 

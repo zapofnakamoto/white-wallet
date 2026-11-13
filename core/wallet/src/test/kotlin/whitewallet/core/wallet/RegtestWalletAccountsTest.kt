@@ -15,7 +15,6 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.spendDomain
 
 /** Several accounts `S/a'` under one recovery phrase: their own money and addresses, backed up, restored and deleted as one wallet. */
@@ -27,7 +26,7 @@ class RegtestWalletAccountsTest {
 
     private suspend fun Wallet.balances() = accounts.first().associate { it.account.index to it.balanceMsat }
 
-    /** A second account of [phone]'s wallet with [sats] on it, paid by invoice: on a legacy mint it can't have an address. */
+    /** A second account of [phone]'s wallet with [sats] on it, paid by invoice. */
     private suspend fun secondAccount(phone: Regtest.Phone, sats: Long) {
         assertIs<CreateAccountResult.Created>(phone.wallet.createAccount(HOST, "Savings", inActiveWallet = true))
         val invoice = assertIs<InvoiceRequest.Ready>(phone.wallet.requestInvoice(sats * 1000))
@@ -56,7 +55,7 @@ class RegtestWalletAccountsTest {
             assertEquals(1, phone.store.accounts.first().map { it.account.walletId }.distinct().size)
             assertEquals(mapOf(0L to 1_999_000L, 1L to 2_999_000L), phone.wallet.balances())
 
-            // Nothing of the first account's reaches the second, also not its legacy keys on a legacy mint.
+            // Nothing of the first account's reaches the second.
             phone.wallet.refresh()
             assertEquals(mapOf(0L to 1_999_000L, 1L to 2_999_000L), phone.wallet.balances())
 
@@ -103,7 +102,6 @@ class RegtestWalletAccountsTest {
     @Test
     fun `a wallet of three accounts with two addresses each comes back from its phrase, and each address goes on being paid to its account`() =
         runBlocking<Unit> {
-            Regtest.requireStack(MintDialect.Current)
             val phone = phone()
             val names = mutableListOf(phone.address.substringBefore('@'))
             suspend fun second() {
@@ -250,7 +248,6 @@ class RegtestWalletAccountsTest {
     @Test
     fun `an address of a further account is paid to that account alone`() =
         runBlocking<Unit> {
-            Regtest.requireStack(MintDialect.Current)
             val phone = phone()
             val name = Regtest.name()
             assertIs<OnboardResult.Ready>(phone.wallet.onboard(name, HOST, "Savings", inActiveWallet = true))
@@ -258,15 +255,5 @@ class RegtestWalletAccountsTest {
             Regtest.pay("$name@$HOST", 1000)
             phone.wallet.refresh()
             assertEquals(mapOf(0L to 0L, 1L to 999_000L), phone.wallet.balances())
-        }
-
-    @Test
-    fun `legacy 2f17578 - a further account can't get an address on a legacy mint, whose one key is the first account's`() =
-        runBlocking<Unit> {
-            Regtest.requireStack(MintDialect.Legacy)
-            val phone = phone()
-            assertEquals(OnboardResult.MintTooOld, phone.wallet.onboard(Regtest.name(), HOST, "Savings", inActiveWallet = true))
-            assertEquals(1, phone.store.accounts.first().size)
-            assertTrue(phone.store.currentAccountId() != null)
         }
 }

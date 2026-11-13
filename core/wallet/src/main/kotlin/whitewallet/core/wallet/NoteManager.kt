@@ -121,7 +121,7 @@ internal class NoteManager(private val wallet: Wallet) {
             }
         if (notes.size < 2) return NoteActionResult.Failed(NoteProblem.TooFewNotes)
         val host = notes.first().host
-        val result = mutator.merge(accountId, host, notes, OutputSpec.Own(accountId, KeySet.Wallet))
+        val result = mutator.merge(accountId, host, notes, OutputSpec(accountId, KeySet.Wallet))
         val inputs = notes.sumOf { it.amountMsat }
         when (result) {
             is MutationResult.Done ->
@@ -168,7 +168,7 @@ internal class NoteManager(private val wallet: Wallet) {
             }
         val limits = splitLimits(id) ?: return NoteActionResult.Failed(NoteProblem.InvalidAmount)
         if (amountMsat !in limits.minMsat..limits.maxMsat) return NoteActionResult.Failed(NoteProblem.InvalidAmount)
-        val outputs = listOf(OutputSpec.Own(accountId, KeySet.Wallet), OutputSpec.Own(accountId, KeySet.Change))
+        val outputs = listOf(OutputSpec(accountId, KeySet.Wallet), OutputSpec(accountId, KeySet.Change))
         val result =
             mutator.split(
                 fromId = accountId,
@@ -236,7 +236,7 @@ internal class NoteManager(private val wallet: Wallet) {
 
         // One note pays one invoice: merge first. If anything later fails, the notes are just combined.
         if (notes.size > 1) {
-            when (val merged = mutator.merge(accountId, quote.fromHost, notes, OutputSpec.Own(accountId, KeySet.Wallet))) {
+            when (val merged = mutator.merge(accountId, quote.fromHost, notes, OutputSpec(accountId, KeySet.Wallet))) {
                 is MutationResult.Done -> notes = merged.outputs
                 is MutationResult.Pending -> return MintMoveResult.Pending
                 is MutationResult.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)
@@ -424,7 +424,6 @@ internal class MintReconciler(private val wallet: Wallet) {
                             certificate = cert?.encode(),
                             state = NoteState.Outstanding,
                             updatedAtMillis = wallet.now(),
-                            scheme = output.scheme,
                             share = output.share,
                         )
                     )

@@ -6,7 +6,6 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -33,7 +32,6 @@ class RegtestUnknownNoteTest {
                 null,
                 NoteState.Outstanding,
                 updatedAtMillis,
-                scheme = KeyScheme.Bip32,
             )
             .also { store.upsertNotes(listOf(it)) }
     }

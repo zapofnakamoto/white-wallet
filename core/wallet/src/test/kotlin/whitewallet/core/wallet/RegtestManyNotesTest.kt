@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -61,7 +60,6 @@ class RegtestManyNotesTest {
                 null,
                 NoteState.Outstanding,
                 0,
-                scheme = KeyScheme.Bip32,
             )
             .also { store.upsertNotes(listOf(it)) }
     }

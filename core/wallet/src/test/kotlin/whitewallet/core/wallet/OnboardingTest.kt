@@ -1,10 +1,5 @@
 package whitewallet.core.wallet
 
-import fr.acinq.bitcoin.ByteVector64
-import fr.acinq.bitcoin.Crypto
-import fr.acinq.bitcoin.XonlyPublicKey
-import fr.acinq.bitcoin.byteVector32
-import fr.acinq.secp256k1.Hex
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,23 +23,12 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyAddressProof
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 
 class OnboardingTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
-    /**
-     * Behaves like lnurl-mint on LUD-26: a name is held by one share, whose holder alone is told `cx1 already used` for a PUT of it. With
-     * [legacy], like lnurl-mint 0.12: registration at `/p/`, verifying the proof and publishing text/cpub (tag: mint).
-     */
-    private class FakeMint(
-        private val server: MockWebServer,
-        private val publishCpub: Boolean = true,
-        private val registrationEnabled: Boolean = true,
-        private val legacy: Boolean = false,
-    ) : Dispatcher() {
+    /** Behaves like lnurl-mint on LUD-26: a name is held by one share, whose holder alone is told `cx1 already used` for a PUT of it. */
+    private class FakeMint(private val server: MockWebServer, private val registrationEnabled: Boolean = true) : Dispatcher() {
         val registered = ConcurrentHashMap<String, String>()
         var posts = 0
         var deletes = 0
@@ -67,14 +51,13 @@ class OnboardingTest {
                             """{"tag":"withdrawRequest","callback":"$base/w","minWithdrawable":0,"maxWithdrawable":1000,"mintPubkey":"034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"}"""
                     )
                 request.method == "PUT" && path.startsWith("/.well-known/lnurlp/") -> {
-                    if (legacy) return MockResponse(code = 405)
                     val held = registered[path.substringAfterLast('/')] ?: return error("Unknown user.")
                     error(if (field(request, "cx1") == held) "cx1 already used" else "Invalid ownership signature.")
                 }
                 path == "/.well-known/lnurlp/mint" -> pay("")
                 request.method == "GET" && path.startsWith("/.well-known/lnurlp/") -> {
-                    val cx1 = registered[path.substringAfterLast('/')] ?: return error("Unknown user.")
-                    pay(if (legacy && publishCpub) """,[\"text/cpub\",\"$cx1:0\"]""" else "")
+                    if (registered[path.substringAfterLast('/')] == null) return error("Unknown user.")
+                    pay("")
                 }
                 request.method == "POST" && path.startsWith("/.well-known/lnurlp/") -> {
                     posts++
@@ -93,26 +76,6 @@ class OnboardingTest {
                     registered.remove(name)
                     MockResponse(body = """{"status":"OK"}""")
                 }
-                request.method == "POST" && path.startsWith("/p/") -> {
-                    posts++
-                    if (!registrationEnabled) return error("Not found")
-                    val name = path.removePrefix("/p/")
-                    val cx1 = request.url.queryParameter("cx1")!!
-                    val proofBranch = registered[name] ?: cx1
-                    if (!validProof(proofBranch, name, request.url.queryParameter("sig")!!)) return error("Invalid ownership signature.")
-                    registered[name] = cx1
-                    MockResponse(body = """{"status":"OK"}""")
-                }
-                request.method == "DELETE" && path.startsWith("/p/") -> {
-                    deletes++
-                    val name = path.removePrefix("/p/")
-                    val cx1 = registered[name] ?: return MockResponse(code = 404, body = """{"status":"ERROR","reason":"Unknown user."}""")
-                    if (!unregisterEnabled) return error("Not found")
-                    if (!validProof(cx1, name, request.url.queryParameter("sig")!!, LegacyAddressProof.Action.Unregister))
-                        return error("Invalid ownership signature.")
-                    registered.remove(name)
-                    MockResponse(body = """{"status":"OK"}""")
-                }
                 path == "/w" -> error("Unknown note.")
                 else -> MockResponse(code = 404)
             }
@@ -121,29 +84,13 @@ class OnboardingTest {
         private fun field(request: RecordedRequest, name: String): String =
             checkNotNull(request.body?.utf8()).split('&').first { it.startsWith("$name=") }.substringAfter('=')
 
-        private fun validProof(
-            cx1: String,
-            name: String,
-            sig: String,
-            action: LegacyAddressProof.Action = LegacyAddressProof.Action.Register,
-        ): Boolean {
-            val pk0 = LegacyBranch.fromCx1(cx1)!!.notePubkey(LegacyPurpose.Wallet, 0)
-            val digest = Crypto.sha256(LegacyAddressProof.message(action, "localhost", name).encodeToByteArray()).byteVector32()
-            return Crypto.verifySignatureSchnorr(digest, ByteVector64(Hex.decode(sig)), XonlyPublicKey(pk0))
-        }
-
         private fun error(reason: String) = MockResponse(body = """{"status":"ERROR","reason":"$reason"}""")
     }
 
-    private fun withMint(
-        publishCpub: Boolean = true,
-        registrationEnabled: Boolean = true,
-        legacy: Boolean = false,
-        test: suspend (FakeMint, String) -> Unit,
-    ) =
+    private fun withMint(registrationEnabled: Boolean = true, test: suspend (FakeMint, String) -> Unit) =
         runBlocking<Unit> {
             MockWebServer().use { server ->
-                val mint = FakeMint(server, publishCpub, registrationEnabled, legacy)
+                val mint = FakeMint(server, registrationEnabled)
                 server.dispatcher = mint
                 server.start()
                 test(mint, "localhost:${server.port}")
@@ -194,28 +141,6 @@ class OnboardingTest {
         assertTrue(result.confirmed)
         assertEquals(0, mint.posts)
     }
-
-    @Test
-    fun `legacy 2f17578 - a free name is claimed and confirmed by its published cx1`() =
-        withMint(legacy = true) { mint, host ->
-            assertTrue(assertIs<OnboardResult.Ready>(wallet().onboard("alice", host)).confirmed)
-            assertEquals(1, mint.posts)
-        }
-
-    @Test
-    fun `legacy 2f17578 - a name someone else holds is taken by its published cx1`() =
-        withMint(legacy = true) { mint, host ->
-            mint.registered["alice"] = LegacyBranch.fromSeed(ByteArray(32) { 7 }, host).cx1()
-            assertIs<OnboardResult.UsernameTaken>(wallet().onboard("alice", host))
-            assertEquals(0, mint.posts)
-        }
-
-    @Test
-    fun `legacy 2f17578 - a mint that publishes no cx1 gives an unconfirmed address`() =
-        withMint(publishCpub = false, legacy = true) { _, host ->
-            val result = assertIs<OnboardResult.Ready>(wallet().onboard("alice", host))
-            assertFalse(result.confirmed)
-        }
 
     @Test
     fun `a mint that refuses registrations is reported, not retried under another name`() =
@@ -309,7 +234,7 @@ class OnboardingTest {
     fun `an address on another mint uses that mint's keys of the same phrase, and may be made the primary one`() =
         withMint { home, homeHost ->
             MockWebServer().use { server ->
-                val other = FakeMint(server, publishCpub = true, registrationEnabled = true)
+                val other = FakeMint(server)
                 server.dispatcher = other
                 server.start()
                 val otherHost = "localhost:${server.port}"
@@ -341,7 +266,7 @@ class OnboardingTest {
     private fun withTwoMints(test: suspend (home: FakeMint, homeHost: String, other: FakeMint, otherHost: String) -> Unit) =
         withMint { home, homeHost ->
             MockWebServer().use { server ->
-                val other = FakeMint(server, publishCpub = true, registrationEnabled = true)
+                val other = FakeMint(server)
                 server.dispatcher = other
                 server.start()
                 test(home, homeHost, other, "localhost:${server.port}")
@@ -540,7 +465,7 @@ class OnboardingTest {
     @Test
     fun `an account's first address is its primary one, on whichever mint, and the home stays`() = withMint { _, homeHost ->
         MockWebServer().use { server ->
-            server.dispatcher = FakeMint(server, publishCpub = true, registrationEnabled = true)
+            server.dispatcher = FakeMint(server)
             server.start()
             val otherHost = "localhost:${server.port}"
             val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient())

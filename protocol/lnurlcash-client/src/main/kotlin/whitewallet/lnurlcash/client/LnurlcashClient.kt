@@ -115,25 +115,6 @@ public class LnurlcashClient(
     public suspend fun unregister(host: String, username: String, sig: String): RegistrationOutcome =
         registration(Registration.unregister(host, username, sig))
 
-    /**
-     * Which protocol the mint at [host] speaks, from a request that changes nothing ([Registration.dialectProbe]). Throws [IOException]
-     * when the mint can't be reached, and [ProtocolViolation] when its answer fits neither.
-     */
-    public suspend fun dialect(host: String): MintDialect {
-        val probe = Registration.dialectProbe(host)
-        val request = Request.Builder().url(probe.url).method(probe.method, formBody(probe.fields)).build()
-        val result = readOnce(request)
-        return when (result) {
-            is HttpResult.TransportFailure -> throw IOException(result.message)
-            is HttpResult.Response ->
-                when {
-                    result.status == 405 -> MintDialect.Legacy
-                    LnurlResponse.parse(result.body) is LnurlResponse.Error -> MintDialect.Current
-                    else -> throw ProtocolViolation("the mint answered neither protocol (HTTP ${result.status})")
-                }
-        }
-    }
-
     /** A read-only [request], retried once after a connection failure (see the class). */
     private suspend fun readOnce(request: Request): HttpResult =
         execute(request).let {
@@ -227,13 +208,4 @@ public enum class RegistrationRejection {
             }
         }
     }
-}
-
-/** Which protocol a mint speaks. */
-public enum class MintDialect {
-    /** LUD-25/26 at luds 92e430f, pinned in protocol/SPEC.md. */
-    Current,
-
-    /** Legacy: LUD-25/26 draft 2f17578. */
-    Legacy,
 }

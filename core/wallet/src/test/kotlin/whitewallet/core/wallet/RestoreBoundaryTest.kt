@@ -17,9 +17,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.KeyCounter
-import whitewallet.core.wallet.legacy.LegacyAddress
-import whitewallet.core.wallet.legacy.LegacyChange
-import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -149,44 +146,6 @@ abstract class RestoreBoundaryTest {
             assertEquals(2, restored.notes)
             assertEquals(msat, restored.balanceMsat)
             assertEquals(listOf(0L, gap, gap), phone.indexes(restored.accountId))
-        }
-
-    @Test
-    fun `legacy 2f17578 - a note on the last key the gap limit reaches is found`() =
-        runBlocking<Unit> {
-            val words = phrase()
-            val msat = credit(words, KeySet.LegacyWallet, gap - 1, SATS)
-            val phone = Fresh()
-            val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
-            assertEquals(1, restored.notes)
-            assertEquals(msat, restored.balanceMsat)
-            assertEquals(gap, phone.index(restored.accountId, KeySet.LegacyWallet))
-            assertEquals(0, phone.index(restored.accountId, KeySet.Wallet), "new keys come from the new chain, from its start")
-        }
-
-    @Test
-    fun `legacy 2f17578 - each purpose counts its own gap`() =
-        runBlocking<Unit> {
-            val words = phrase()
-            val msat = credit(words, KeySet.LegacyChange, gap - 1, SATS) + credit(words, KeySet.LegacyAddress, gap - 1, SATS)
-            val phone = Fresh()
-            val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
-            assertEquals(2, restored.notes)
-            assertEquals(msat, restored.balanceMsat)
-            assertEquals(listOf(gap, gap), listOf(KeySet.LegacyChange, KeySet.LegacyAddress).map { phone.index(restored.accountId, it) })
-        }
-
-    @Test
-    fun `legacy 2f17578 - notes on both schemes are found together`() =
-        runBlocking<Unit> {
-            val words = phrase()
-            val msat = credit(words, KeySet.Wallet, 0, SATS) + credit(words, KeySet.LegacyWallet, 0, SATS)
-            val phone = Fresh()
-            val restored = assertIs<RestoreResult.Restored>(phone.restore(words))
-            assertEquals(2, restored.notes)
-            assertEquals(msat, restored.balanceMsat)
-            assertEquals(listOf(1L, 0L, 0L), phone.indexes(restored.accountId))
-            assertEquals(1L, phone.index(restored.accountId, KeySet.LegacyWallet))
         }
 
     @Test
@@ -411,7 +370,7 @@ abstract class RestoreBoundaryTest {
 
         suspend fun sharesHandedOut(accountId: String): Long? = store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares)
 
-        /** The wallet and change indexes, then the legacy wallet, change and address ones. */
+        /** The wallet and change indexes, then the first share's. */
         suspend fun indexes(accountId: String) = listOf(KeySet.Wallet, KeySet.Change, KeySet.share(0)).map { index(accountId, it) }
     }
 

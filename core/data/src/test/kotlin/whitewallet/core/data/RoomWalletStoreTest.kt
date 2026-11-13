@@ -22,7 +22,6 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -76,7 +75,7 @@ class RoomWalletStoreTest {
                     "https://mint.example/w",
                     listOf(q1, q2),
                     listOf("k1a", "k1b"),
-                    listOf(OutputRef("acc", 0, 7, q1), OutputRef.external(q2)),
+                    listOf(OutputRef("acc", 0, 7, q1), OutputRef("acc", 2, 3, q2, share = 1)),
                     "https://mint.example/w/cb?k1=x&p1=y",
                     JournalStatus.Unknown,
                     "connection dropped",
@@ -85,7 +84,6 @@ class RoomWalletStoreTest {
                 )
             store.putJournal(entry)
             assertEquals(listOf(entry), store.journal(setOf(JournalStatus.Unknown)))
-            assertEquals(true, store.journal(setOf(JournalStatus.Unknown)).single().outputs[1].isExternal)
 
             val mint =
                 JournalEntry(
@@ -129,12 +127,12 @@ class RoomWalletStoreTest {
     fun `key indexes are handed out once, and key checks of every kind come back`() =
         runBlocking<Unit> {
             account("acc")
-            assertEquals(listOf(0L, 1L, 2L), List(3) { store.reserveIndex("acc", "mint.example", 0) })
-            assertEquals(3, store.currentIndexOrNull("acc", "mint.example", 0))
-            assertNull(store.currentIndexOrNull("acc", "mint.example", 1))
+            assertEquals(listOf(0L, 1L, 2L), List(3) { store.reserveKeyIndex("acc", "mint.example", KeyCounter.Wallet) })
+            assertEquals(3, store.keyIndexOrNull("acc", "mint.example", KeyCounter.Wallet))
+            assertNull(store.keyIndexOrNull("acc", "mint.example", KeyCounter.Change))
             val probes =
                 listOf(KeyProbe.Unused(1), KeyProbe.Outstanding(1_000, true, false, 2), KeyProbe.Spent(3), KeyProbe.Refused("pending", 4))
-            probes.forEachIndexed { i, p -> store.putKeyCheck(KeyId("acc", "mint.example", 2, i.toLong(), KeyScheme.Bip32, 0), p) }
+            probes.forEachIndexed { i, p -> store.putKeyCheck(KeyId("acc", "mint.example", 2, i.toLong(), 0), p) }
             assertEquals(probes, store.keyChecks("acc").first().toSortedMap(compareBy { it.index }).values.toList())
         }
 
@@ -212,12 +210,12 @@ class RoomWalletStoreTest {
         runBlocking<Unit> {
             for (id in listOf("a", "b")) {
                 account(id)
-                store.saveAddress(id, RegisteredAddress("name-$id", "mint.example", 1))
+                store.saveAddress(id, RegisteredAddress("name-$id", "mint.example", 1, share = 0))
                 store.setPrimaryAddress(id, "name-$id", "mint.example")
                 store.upsertNotes(
                     listOf(Note(id.repeat(64), id, "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, NoteState.Outstanding, 1))
                 )
-                store.reserveIndex(id, "mint.example", 0)
+                store.reserveKeyIndex(id, "mint.example", KeyCounter.Wallet)
                 store.putJournal(
                     JournalEntry(
                         "j$id",
@@ -246,7 +244,7 @@ class RoomWalletStoreTest {
             assertEquals(emptyList(), store.addresses("a").first())
             assertEquals("name-b@mint.example", store.currentPrimaryAddress("b")?.address)
             assertNull(store.wallet("a"), "the wallet goes with its last account")
-            assertNull(store.currentIndexOrNull("a", "mint.example", 0))
+            assertNull(store.keyIndexOrNull("a", "mint.example", KeyCounter.Wallet))
             assertEquals(listOf("jb"), store.journal(setOf(JournalStatus.Unknown)).map { it.id })
             assertEquals(1, store.notes("b").first().size)
             assertEquals(emptyList(), store.receivedNotes("a").first())
@@ -308,8 +306,8 @@ class RoomWalletStoreTest {
             assertFailsWith<SQLiteConstraintException> { store.saveAccount(Account("b", "B", 2, "a", 0)) }
             assertFailsWith<SQLiteConstraintException>("no wallet") { store.saveAccount(Account("c", "C", 2, "nowhere", 0)) }
 
-            store.saveAddress("a", RegisteredAddress("alice", "mint.example", 1))
-            store.saveAddress("a", RegisteredAddress("bob", "other.example", 2))
+            store.saveAddress("a", RegisteredAddress("alice", "mint.example", 1, share = 0))
+            store.saveAddress("a", RegisteredAddress("bob", "other.example", 2, share = 0))
             store.setPrimaryAddress("a", "alice", "mint.example")
             store.setPrimaryAddress("a", "bob", "other.example")
             assertEquals("bob@other.example", store.currentPrimaryAddress("a")?.address)

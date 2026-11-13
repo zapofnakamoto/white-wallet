@@ -107,31 +107,11 @@ interface WalletStore {
 
     suspend fun setShareScanFrom(accountId: String, host: String, share: Long, index: Long)
 
-    /** Legacy 2f17578 (tag: keys): returns the next unused index for ([accountId], [host], [purpose]) and durably advances it. */
-    suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long
-
-    /** The next index [reserveIndex] would return, without reserving it. */
-    suspend fun currentIndex(accountId: String, host: String, purpose: Int): Long = currentIndexOrNull(accountId, host, purpose) ?: 0
-
-    /** Like [currentIndex], but null if the counter was never set (the account has not used this mint and purpose yet). */
-    suspend fun currentIndexOrNull(accountId: String, host: String, purpose: Int): Long?
-
-    /** Every host the account has a wallet or change counter on (set by its first use, or by a restore). */
-    suspend fun counterHosts(accountId: String): List<String>
-
-    /** Sets the counter directly (developer tools and recovery). */
-    suspend fun setIndex(accountId: String, host: String, purpose: Int, next: Long)
-
     /**
      * The account's indexes on [host], updated on every change: each one that is set (the wallet and change counters of [host]'s domain,
-     * share scan starts, and the legacy counters and address scan start), by the keys it counts.
+     * and share scan starts), by the keys it counts.
      */
     fun indexesFlow(accountId: String, host: String): Flow<Map<KeySet, Long>>
-
-    /** First purpose-2 index the next Lightning address scan starts from. */
-    suspend fun addressScanFrom(accountId: String, host: String): Long
-
-    suspend fun setAddressScanFrom(accountId: String, host: String, index: Long)
 
     /** The last answer the mint gave for each of the account's derived keys that was looked up, kept across restarts. */
     fun keyChecks(accountId: String): Flow<Map<KeyId, KeyProbe>>

@@ -71,10 +71,4 @@ public object Registration {
 
     public fun unregister(host: String, username: String, sig: String): FormRequest =
         FormRequest("DELETE", Requests.addressUrl(host, username.lowercase()), listOf("sig" to sig))
-
-    /**
-     * A request that changes nothing on any mint but tells the two protocols apart: a mint on LUD-26 answers a PUT on its own reserved name
-     * with an LNURL error, one on the legacy draft 2f17578 has no PUT there at all (HTTP 405).
-     */
-    public fun dialectProbe(host: String): FormRequest = FormRequest("PUT", Requests.addressUrl(host, Requests.MINT_USERNAME), emptyList())
 }

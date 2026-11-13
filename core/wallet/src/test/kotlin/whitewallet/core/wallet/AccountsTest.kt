@@ -16,7 +16,6 @@ import whitewallet.core.model.Account
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.MintScan
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -59,7 +58,7 @@ class AccountsTest {
         }
 
     private fun note(id: String, account: String, msat: Long, host: String = "mint.example", purpose: Int = 0, index: Long = 0) =
-        Note(id, account, host, NoteKind.KeyPath, purpose, index, msat, null, NoteState.Outstanding, 0, scheme = KeyScheme.Bip32)
+        Note(id, account, host, NoteKind.KeyPath, purpose, index, msat, null, NoteState.Outstanding, 0)
 
     // ---- Against the conformance mock mint
 

@@ -11,7 +11,6 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
-import whitewallet.core.model.KeyScheme
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.ReceivedNote
@@ -118,24 +117,11 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
     override suspend fun setShareScanFrom(accountId: String, host: String, share: Long, index: Long) =
         dao.saveShareScan(ShareScanEntity(accountId, host, share, index))
 
-    override suspend fun reserveIndex(accountId: String, host: String, purpose: Int): Long = db.withTransaction {
-        val next = dao.counter(accountId, host, purpose) ?: 0
-        dao.saveCounter(CounterEntity(accountId, host, purpose, next + 1))
-        next
-    }
-
-    override suspend fun currentIndexOrNull(accountId: String, host: String, purpose: Int) = dao.counter(accountId, host, purpose)
-
-    override suspend fun setIndex(accountId: String, host: String, purpose: Int, next: Long) =
-        dao.saveCounter(CounterEntity(accountId, host, purpose, next))
-
     override fun indexesFlow(accountId: String, host: String): Flow<Map<KeySet, Long>> =
         combine(
             dao.keyCountersFlow(accountId, spendDomain(host)),
             dao.shareScansFlow(accountId, host),
-            dao.countersFlow(accountId, host),
-            dao.addressScanFlow(accountId, host),
-        ) { keyCounters, shareScans, counters, scan ->
+        ) { keyCounters, shareScans ->
             buildMap {
                 keyCounters.forEach { row ->
                     when (row.counter) {
@@ -144,15 +130,8 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
                     }
                 }
                 shareScans.forEach { put(KeySet.share(it.share), it.next) }
-                counters.filter { it.purpose != 2 }.forEach { put(KeySet(KeyScheme.Legacy, it.purpose), it.next) }
-                scan?.let { put(KeySet(KeyScheme.Legacy, 2), it) }
             }
         }
-
-    override suspend fun addressScanFrom(accountId: String, host: String) = dao.addressScanFrom(accountId, host) ?: 0
-
-    override suspend fun setAddressScanFrom(accountId: String, host: String, index: Long) =
-        dao.saveAddressScan(AddressScanEntity(accountId, host, index))
 
     override fun keyChecks(accountId: String): Flow<Map<KeyId, KeyProbe>> =
         dao.keyChecks(accountId).map { rows -> rows.mapNotNull { row -> row.toModel()?.let { row.id() to it } }.toMap() }
@@ -172,8 +151,6 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
     override suspend fun putActivity(activity: Activity) = dao.putActivity(ActivityEntity.from(activity))
 
     override suspend fun settleActivities(journalId: String, status: ActivityStatus) = dao.settleActivities(journalId, status.name)
-
-    override suspend fun counterHosts(accountId: String) = dao.counterHosts(accountId)
 
     override fun receivedNotes(accountId: String): Flow<List<ReceivedNote>> =
         dao.receivedNotes(accountId).map { rows -> rows.map { it.toModel() } }

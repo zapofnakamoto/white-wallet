@@ -6,7 +6,6 @@ import whitewallet.core.model.KeyCounter
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.AddressProof
-import whitewallet.lnurlcash.client.MintDialect
 import whitewallet.lnurlcash.client.RegistrationOutcome
 import whitewallet.lnurlcash.client.RegistrationRejection
 import whitewallet.lnurlcash.protocol.ProtocolViolation
@@ -14,10 +13,10 @@ import whitewallet.lnurlcash.spendDomain
 
 /** Whether a Lightning address on a mint points at an account's keys. */
 sealed interface AddressStatus {
-    /** Registered to the account: the mint accepts the account's proof for it (or publishes its legacy `cx1`, LUD-26 `text/cpub`). */
+    /** Registered to the account: the mint accepts the account's proof for it. */
     data object Ours : AddressStatus
 
-    /** Registered, but ownership cannot be confirmed: the mint publishes no legacy `cx1`, or the address is still on the legacy branch. */
+    /** Registered, but ownership cannot be confirmed: the mint answers the proof neither way (one of its own names, a held one). */
     data object Unconfirmed : AddressStatus
 
     /** Nobody has this name on the mint. */
@@ -31,14 +30,13 @@ sealed interface AddressStatus {
     data class CheckFailed(val reason: String) : AddressStatus
 }
 
-/** [status], and for [AddressStatus.Ours] on a LUD-26 mint the share whose proof the mint accepted. */
+/** [status], and for [AddressStatus.Ours] the share whose proof the mint accepted. */
 internal data class Ownership(val status: AddressStatus, val share: Long? = null)
 
 /**
- * Looks a username up at the mint's LUD-16 endpoint. On a LUD-26 mint (luds 92e430f) a registered name is ours if the mint accepts the
- * account's proof for one of its shares: an update to the share it already holds, which the mint refuses with `cx1 already used` for the
- * holder and `Invalid ownership signature.` for anyone else, and never applies. On a legacy 2f17578 mint it compares the published
- * `text/cpub` with the account's branch (tag: mint).
+ * Looks a username up at the mint's LUD-16 endpoint. A registered name is ours if the mint accepts the account's proof for one of its
+ * shares (LUD-26): an update to the share it already holds, which the mint refuses with `cx1 already used` for the holder and `Invalid
+ * ownership signature.` for anyone else, and never applies.
  */
 internal class AddressCheck(private val wallet: Wallet) {
     /** [accountId] is the account whose keys count as "ours", or null for an account that does not exist yet. */
@@ -48,24 +46,21 @@ internal class AddressCheck(private val wallet: Wallet) {
         val name = Onboarding.normalizeUsername(username) ?: return Ownership(AddressStatus.Invalid(Onboarding.USERNAME_RULE))
         val h = Onboarding.normalizeHost(host) ?: return Ownership(AddressStatus.Invalid("not a valid host"))
         val url = Lnurl.lightningAddressUrl("$name@$h") ?: return Ownership(AddressStatus.Invalid(Onboarding.USERNAME_RULE))
-        val (response, dialect) =
+        val response =
             try {
-                wallet.client.get(url) to wallet.dialect(h)
+                wallet.client.get(url)
             } catch (e: IOException) {
                 return Ownership(AddressStatus.CheckFailed(e.message ?: "network error"))
             } catch (e: ProtocolViolation) {
                 return Ownership(AddressStatus.CheckFailed(e.message ?: "unexpected response"))
             }
-        val pay =
-            response as? LnurlResponse.PayRequest
-                ?: return Ownership(
-                    if (response is LnurlResponse.Error) AddressStatus.Available else AddressStatus.CheckFailed("unexpected response")
-                )
-        if (dialect == MintDialect.Legacy) return Ownership(wallet.legacy.status(pay, h, accountId))
+        if (response !is LnurlResponse.PayRequest) {
+            return Ownership(
+                if (response is LnurlResponse.Error) AddressStatus.Available else AddressStatus.CheckFailed("unexpected response")
+            )
+        }
         if (accountId == null || wallet.keysIfSeeded(accountId, h) == null) return Ownership(AddressStatus.Taken)
         val recorded = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == h }
-        // Moved to a share once this wallet migrates it (tag: keys); until then the mint can't be asked without moving it.
-        if (recorded != null && recorded.share == null) return Ownership(AddressStatus.Unconfirmed)
         return proveOwner(name, h, accountId, listOfNotNull(recorded?.share, also) + candidates(accountId, h))
     }
 

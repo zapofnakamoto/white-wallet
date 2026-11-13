@@ -17,10 +17,8 @@ import mockwebserver3.MockWebServer
 import mockwebserver3.SocketEffect
 import okhttp3.OkHttpClient
 import whitewallet.lnurlcash.RevealsNoteSecret
-import whitewallet.lnurlcash.client.legacy.legacyRegister
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
-import whitewallet.lnurlcash.protocol.ProtocolViolation
 
 class ClientTest {
     @Test
@@ -178,41 +176,6 @@ class ClientTest {
                 val delete = server.takeRequest()
                 assertEquals("DELETE", delete.method)
                 assertEquals("sig=03", delete.body?.utf8())
-            }
-        }
-
-    @Test
-    fun `legacy 2f17578 - the dialect probe tells the two protocols apart`() =
-        runBlocking<Unit> {
-            MockWebServer().use { server ->
-                server.enqueue(MockResponse(body = """{"status":"ERROR","reason":"Missing cx1."}"""))
-                server.enqueue(MockResponse(code = 405, body = """{"detail":"Method Not Allowed"}"""))
-                server.enqueue(MockResponse(code = 500, body = "oops"))
-                server.start()
-                val host = "${server.hostName}:${server.port}"
-                assertEquals(MintDialect.Current, LnurlcashClient().dialect(host))
-                val probe = server.takeRequest()
-                assertEquals("PUT", probe.method)
-                assertEquals("/.well-known/lnurlp/mint", probe.target)
-                assertEquals(MintDialect.Legacy, LnurlcashClient().dialect(host))
-                assertFailsWith<ProtocolViolation> { LnurlcashClient().dialect(host) }
-            }
-        }
-
-    @Test
-    fun `legacy 2f17578 - registration posts cx1 and signature`() =
-        runBlocking<Unit> {
-            MockWebServer().use { server ->
-                server.enqueue(MockResponse(body = """{"status":"OK"}"""))
-                server.enqueue(MockResponse(body = """{"status":"ERROR","reason":"username taken"}"""))
-                server.start()
-                val host = "${server.hostName}:${server.port}"
-                assertEquals(RegistrationOutcome.Registered, LnurlcashClient().legacyRegister(host, "alice", "cx1abc", "00"))
-                val request = server.takeRequest()
-                assertEquals("POST", request.method)
-                assertEquals("/p/alice?cx1=cx1abc&sig=00", request.target)
-                val taken = assertIs<RegistrationOutcome.Rejected>(LnurlcashClient().legacyRegister(host, "alice", "cx1abc", "00"))
-                assertEquals(RegistrationRejection.Other, taken.kind)
             }
         }
 }

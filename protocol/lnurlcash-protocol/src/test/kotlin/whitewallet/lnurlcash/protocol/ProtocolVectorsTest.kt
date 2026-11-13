@@ -19,8 +19,6 @@ import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.BearerNote
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
-import whitewallet.lnurlcash.protocol.legacy.LegacyCpub
-import whitewallet.lnurlcash.protocol.legacy.LegacyRequests
 import whitewallet.testkit.Vectors
 import whitewallet.testkit.int
 import whitewallet.testkit.long
@@ -152,29 +150,6 @@ class ProtocolVectorsTest {
             FormRequest("DELETE", "https://mint.example/.well-known/lnurlp/alice", listOf("sig" to "03")),
             Registration.unregister("mint.example", "alice", "03"),
         )
-        assertEquals(
-            FormRequest("PUT", "http://localhost:8111/.well-known/lnurlp/mint", emptyList()),
-            Registration.dialectProbe("localhost:8111"),
-        )
-    }
-
-    @Test
-    fun `legacy 2f17578 - registration requests`() {
-        assertEquals("https://mint.example/p/alice?cx1=cx1abc&sig=00", LegacyRequests.register("mint.example", "alice", "cx1abc", "00"))
-        assertEquals("https://mint.example/p/alice?sig=00", LegacyRequests.unregister("mint.example", "alice", "00"))
-    }
-
-    @Test
-    fun `legacy 2f17578 - text cpub`() {
-        val pay =
-            assertIs<LnurlResponse.PayRequest>(
-                LnurlResponse.parse(
-                    """{"tag":"payRequest","callback":"https://mint.example/p/alice","minSendable":1000,"maxSendable":2000,""" +
-                        """"metadata":"[[\"text/cpub\",\"cx1abc:7\"]]"}"""
-                )
-            )
-        assertEquals("cx1abc" to 7L, LegacyCpub.from(pay))
-        assertEquals("cx1abc", LegacyCpub.cx1(pay))
     }
 
     @Test

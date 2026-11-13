@@ -1,6 +1,5 @@
 package whitewallet.core.wallet
 
-import fr.acinq.bitcoin.MnemonicCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -14,12 +13,8 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.SetupStep
-import whitewallet.core.wallet.legacy.LegacyChange
-import whitewallet.core.wallet.legacy.LegacyWallet
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.legacy.LegacyBranch
-import whitewallet.lnurlcash.legacy.LegacyPurpose
 import whitewallet.testkit.MockMint
 
 class RestoreTest {
@@ -73,30 +68,6 @@ class RestoreTest {
         assertTrue(wallet.addresses.first().isEmpty(), "addresses can't be recovered from the seed")
         assertEquals(SetupStep.Address, wallet.setupStep.first(), "the address step is next")
         assertTrue(wallet.activity.first().isEmpty(), "no history is invented")
-    }
-
-    @Test
-    fun `legacy 2f17578 - restore finds the notes of every purpose and sets the indexes past them`() = withMint { mint, store, wallet ->
-        val branch = LegacyBranch.fromSeed(MnemonicCode.toSeed(words, ""), mint.host)
-        // Wallet keys 0 and 1, change key 0, and two address payments with a gap between them.
-        mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.Wallet, 0)), 1_000)
-        mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.Wallet, 1)), 2_000)
-        mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.Change, 0)), 3_000)
-        mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 0)), 4_000)
-        mint.credit(Cp1.encode(branch.notePubkey(LegacyPurpose.LightningAddress, 5)), 5_000)
-
-        val restored = assertIs<RestoreResult.Restored>(wallet.restore(words.joinToString(" "), mint.host, "Restored"))
-        assertEquals(5, restored.notes)
-        assertEquals(15_000, restored.balanceMsat)
-        assertEquals(15_000, wallet.balanceMsat.first())
-        assertEquals(restored.accountId, store.currentAccountId())
-        assertEquals(2, store.indexOf(restored.accountId, mint.host, KeySet.LegacyWallet), "never hands out a used key")
-        assertEquals(1, store.indexOf(restored.accountId, mint.host, KeySet.LegacyChange))
-        assertEquals(6, store.addressScanFrom(restored.accountId, mint.host))
-        assertTrue(wallet.backupVerified.first(), "the user already has the phrase written down")
-        assertTrue(wallet.addresses.first().isEmpty(), "addresses can't be recovered from the seed")
-        assertTrue(wallet.activity.first().isEmpty(), "no history is invented")
-        assertEquals(0, store.indexOf(restored.accountId, mint.host, KeySet.Wallet), "new keys start the new chain")
     }
 
     @Test
