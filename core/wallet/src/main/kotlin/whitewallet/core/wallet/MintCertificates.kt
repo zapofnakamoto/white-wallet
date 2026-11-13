@@ -14,3 +14,10 @@ import whitewallet.lnurlcash.spendDomain
 internal fun certifies(certificate: Cs1, host: String, q: ByteVector32, mintPubkey: PublicKey?): Boolean =
     mintPubkey != null &&
         (Certificates.verify(certificate, spendDomain(host), q, mintPubkey) || LegacyCertificates.verify(certificate, q, mintPubkey))
+
+/**
+ * The signing key [accountId]'s wallet pinned for [host]: what a mint's certificate is checked against, never the key an answer presents
+ * (which may be one the user never accepted). Null if none is pinned.
+ */
+internal suspend fun Wallet.pinnedKey(accountId: String, host: String): PublicKey? =
+    mintOf(accountId, host)?.mintPubkey?.let { runCatching { PublicKey.fromHex(it) }.getOrNull() }

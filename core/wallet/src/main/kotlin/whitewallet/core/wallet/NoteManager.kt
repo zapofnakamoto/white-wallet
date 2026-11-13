@@ -409,7 +409,7 @@ internal class MintReconciler(private val wallet: Wallet) {
         val q = ByteVector32(output.q)
         try {
             val info = wallet.client.lookup(entry.withdrawUrl, q)
-            val cert = info.certificate?.takeIf { certifies(it, entry.host, q, info.mintPubkey) }
+            val cert = info.certificate?.takeIf { certifies(it, entry.host, q, wallet.pinnedKey(output.accountId, entry.host)) }
             if (wallet.store.note(output.q) == null) {
                 wallet.store.upsertNotes(
                     listOf(

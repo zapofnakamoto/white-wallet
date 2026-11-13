@@ -18,6 +18,7 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.MintScan
+import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.wallet.Regtest.HOST
@@ -158,6 +159,43 @@ class RegtestReceivedNotesTest {
             bob.wallet.refresh()
             assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state)
             assertEquals(1_000_000, bob.balance())
+        }
+
+    @Test
+    fun `a claim settled while its mint presents another key keeps no certificate made with that key`() =
+        runBlocking<Unit> {
+            val link = aNote()
+            var loseNext = false
+            var otherKey = false
+            val connection =
+                object : Interceptor {
+                    var offline = false
+
+                    override fun intercept(chain: Interceptor.Chain): Response {
+                        if (offline) Regtest.dropped()
+                        val url = chain.request().url
+                        val response = chain.proceed(chain.request())
+                        if (loseNext && url.queryParameter("p1") != null) {
+                            response.close()
+                            offline = true
+                            Regtest.lost()
+                        }
+                        return if (otherKey) Regtest.certifiedByOtherKey(response) else response
+                    }
+                }
+            val bob = Regtest.phone(client = Regtest.client(connection))
+            val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+            loseNext = true
+            assertEquals(ClaimResult.Pending, bob.wallet.claim(preview))
+
+            loseNext = false
+            connection.offline = false
+            otherKey = true
+            runCatching { bob.wallet.refresh() }
+            assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state)
+            val note = bob.store.notes(bob.wallet.activeId()).first().single { it.state == NoteState.Outstanding }
+            assertEquals(1_000_000, note.amountMsat)
+            assertNull(note.certificate, "certified by a key this wallet never accepted for the mint")
         }
 
     @Test

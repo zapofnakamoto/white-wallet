@@ -1,6 +1,7 @@
 package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.bitcoin.PrivateKey
 import java.io.File
 import java.io.IOException
 import java.net.URI
@@ -25,6 +26,7 @@ import whitewallet.lnurl.Lnurl
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.client.MintDialect
+import whitewallet.lnurlcash.legacy.LegacyCertificates
 
 /**
  * The local regtest stack (dev/regtest): two real reference mints on regtest Lightning, and the user's LND node that pays and invoices from
@@ -316,6 +318,24 @@ internal object Regtest {
         val body =
             response.body.string().replace(Regex("\"mintPubkey\":\\s*\"[0-9a-fA-F]{66}\""), "\"mintPubkey\":\"02${"zz".repeat(32)}\"")
         return response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
+    }
+
+    /**
+     * [response] to a note lookup (`?p=`) as if its mint presented [OTHER_KEY] and certified the note with it: a certificate that verifies,
+     * by a key the wallet never accepted ([OTHER_KEY]'s private key is 1). Any other response, or an error, is left as it is.
+     */
+    fun certifiedByOtherKey(response: Response): Response {
+        val q = response.request.url.queryParameter("p")?.let(Cp1::decode) ?: return response
+        val body = response.peekBody(Long.MAX_VALUE).string()
+        // An error (an unknown or spent note) has nothing to certify.
+        val amount = Regex("\"maxWithdrawable\":\\s*(\\d+)").find(body)?.groupValues?.get(1)?.toLong() ?: return response
+        val certificate = LegacyCertificates.sign(amount, q, PrivateKey.fromHex("00".repeat(31) + "01")).encode()
+        val field = Regex("\"(c|sig)\":\\s*\"[^\"]*\"")
+        val keyed = body.replace(Regex("\"mintPubkey\":\\s*\"[0-9a-fA-F]{66}\""), "\"mintPubkey\":\"$OTHER_KEY\"")
+        val rewritten =
+            if (field.containsMatchIn(keyed)) keyed.replace(field, "\"$1\":\"$certificate\"")
+            else keyed.replaceFirst("{", "{\"c\":\"$certificate\",")
+        return response.newBuilder().body(rewritten.toResponseBody(response.body.contentType())).build()
     }
 
     /** [response] as if its mint presented [OTHER_KEY] as its signing key. */
