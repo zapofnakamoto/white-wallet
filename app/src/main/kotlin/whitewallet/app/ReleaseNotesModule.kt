@@ -16,7 +16,8 @@ import whitewallet.core.wallet.ReleaseNoteTracker
 
 /** The app's own release notes, newest first. A brand that binds [ReleaseNotes] shows its own instead. */
 object DefaultReleaseNotes : ReleaseNotes {
-    override fun notes(): List<ReleaseNote> = emptyList()
+    override fun notes(): List<ReleaseNote> =
+        listOf(ReleaseNote("old-keys-removed", R.string.release_note_old_keys_title, R.string.release_note_old_keys_body))
 }
 
 @Module

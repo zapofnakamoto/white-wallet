@@ -5,4 +5,7 @@
     <string name="lock_unlock">Entsperren</string>
     <!-- An account a scan found on a mint, by its number in the wallet; the user can rename it. -->
     <string name="scanned_account_name">Konto %1$d</string>
+    <!-- What's new in the release that dropped the older key derivation (LUD-26 draft 2f17578); shown once to users who updated. -->
+    <string name="release_note_old_keys_title">Scheine von vor Version 0.8</string>
+    <string name="release_note_old_keys_body">Diese Version findet keine Scheine und Lightning-Adressen mehr, die so angelegt wurden wie vor Version 0.8. Seitdem hat die App sie bei jedem Öffnen von selbst umgezogen. Fehlt Geld, öffne deine Wiederherstellungsphrase einmal in Version 0.9.0, die sie noch umzieht, und nutze dann hier „Nach Scheinen suchen“.</string>
 </resources>
