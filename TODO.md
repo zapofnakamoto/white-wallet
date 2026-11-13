@@ -192,10 +192,3 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     doesn't cover.
       - `accounts.max=1` brands: the user sees the master phrase, the single account is child 0. Check Zap's
     onboarding and backup first.
-27. **An address payment on a legacy key the wallet already passed.** A legacy mint (lnurl-mint 0.12) fixes the
-    note's key when an address invoice is fetched, not when it is paid, and the wallet only scans forward: an
-    invoice paid after a later one was received, or one fetched before the mint's upgrade and paid after the
-    address moved to a share, puts its note where neither a refresh nor "Scan for notes" looks; a restore on a
-    fresh install finds it. Reproduced on regtest on 2026-11-11 and left as it is by decision that day (the payer
-    has to hold the invoice across the payee's refresh). A fix would look again at keys that were unused when
-    passed, and keep scanning the old keys for a while after the move.

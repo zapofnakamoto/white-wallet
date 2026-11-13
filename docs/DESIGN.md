@@ -11,9 +11,8 @@ name for a Lightning address, and anyone can rebrand it by editing one directory
 > **Spec status:** LUD-25 and LUD-26 are drafts in an open pull request
 > ([lnurl/luds#301](https://github.com/lnurl/luds/pull/301)). The app implements the protocol itself, in pure Kotlin
 > (see [Protocol](#protocol)), against the spec text and vectors at a pinned commit and the
-> [conformance suite](https://github.com/lnurlcash/lnurlcash-conformance). It speaks two drafts at once: the pinned
-> one to mints that do, and the older `2f17578` to the rest. Both pins, and how the two dialects differ, are recorded
-> in [`protocol/SPEC.md`](../protocol/SPEC.md).
+> [conformance suite](https://github.com/lnurlcash/lnurlcash-conformance). The pins are recorded in
+> [`protocol/SPEC.md`](../protocol/SPEC.md).
 
 ## LNURLcash in short
 

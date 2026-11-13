@@ -107,7 +107,6 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `onboarding_skip_mint` | Continue without a mint |
 | `onboarding_skip_mint_hint` | You can add a mint later. Until then, nothing can be received. |
 | `onboarding_error_fee` | This mint asks %1$s for an address, more than the %2$s this app accepts. |
-| `onboarding_error_mint_too_old` | This mint can only give an address to the first account of a wallet. Choose another mint, or continue without an address. |
 | `onboarding_add_elsewhere_title` | Address on another mint |
 | `onboarding_add_elsewhere_body` | A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is. |
 | `settings_home_mint` | Home mint |
@@ -160,7 +159,6 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `address_fee_notice` | This mint charges %1$s for an address, once. |
 | `address_fee_body` | This mint charges %1$s to register an address, once. You can reserve the name now and pay when you like. |
 | `address_held_body` | Pay %1$s to finish. The mint holds the name for a limited time; if the invoice runs out, you can try again. |
-| `add_mint_legacy` | This mint speaks an older version of the protocol. It works, but only the first account of a wallet can have an address there. |
 | `add_mint_use` | Use this mint |
 | `add_mint_add` | Add this mint |
 | `add_mint_other` | Pick another mint |
@@ -471,7 +469,7 @@ Then offer it in `brand.properties`: `notes.strategies=combine-small,single,manu
 
 ### Release notes
 
-"What's new" (`whitewallet.brand.ReleaseNotes`) shows notes once, in a sheet on Home after the update that brings them, and lists them all under About → What's new. Each app has its own, since its releases and their numbers are its own: a brand that binds `ReleaseNotes` shows its list instead of White Wallet's, which it doesn't see. A `ReleaseNote` has an `id` (lowercase letters, digits, `-`; stored once seen, never reuse one), a `title` and `body` (string resources) and `important`. An important note is about what lies ahead, something to do or a coming change, so a fresh install shows it too, and it comes back at every start until the user taps "Got it"; an ordinary one only tells an updated user what changed, and swiping the sheet away is enough. The sheet and its cards are the brand's `Sheet` and `Card` (an important one with the `Warning` tone), so they take its design. Acme's example:
+"What's new" (`whitewallet.brand.ReleaseNotes`) shows notes once, in a sheet on Home after the update that brings them, and lists them all under About → What's new. Each app has its own, since its releases and their numbers are its own: a brand that binds `ReleaseNotes` shows its list instead of White Wallet's, which it doesn't see. A brand that doesn't shows White Wallet's, whose version numbers aren't the brand's: override their strings (`release_note_old_keys_title`, `release_note_old_keys_body`: notes from before 0.8, which only 0.9.0 still moves) in `brand/res` with its own, or bind its own list. A `ReleaseNote` has an `id` (lowercase letters, digits, `-`; stored once seen, never reuse one), a `title` and `body` (string resources) and `important`. An important note is about what lies ahead, something to do or a coming change, so a fresh install shows it too, and it comes back at every start until the user taps "Got it"; an ordinary one only tells an updated user what changed, and swiping the sheet away is enough. The sheet and its cards are the brand's `Sheet` and `Card` (an important one with the `Warning` tone), so they take its design. Acme's example:
 
 ```kotlin
 @Provides

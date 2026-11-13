@@ -5,6 +5,25 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Removed
+
+- The older draft of LUD-25/26, `2f17578` (lnurl-mint 0.12), and with it the key derivation of before 0.8.0. A mint
+  still on lnurl-mint 0.12 fails like any mint that refuses the wallet's requests. Since 0.8.0 the wallet moved notes
+  and addresses from the old keys to the new ones by itself; this version no longer finds or moves them. Anyone who
+  still holds some (a wallet not opened since before 0.8.0, a recovery phrase written down then) opens it once in
+  0.9.0, which still moves them, then uses "Scan for notes" here. The database update (version 9) removes what is left
+  on the old keys from the phone; the money stays at the mint. Updated users see this once under "What's new". Brands
+  that need the old draft stay on 0.9.0.
+- For developers and brands: the strings `add_mint_legacy`, `onboarding_error_mint_too_old` and `keys_legacy_address`,
+  `keys_legacy_wallet`, `keys_legacy_change`; `OnboardingError.MintTooOld`, `MintDialect` and
+  `LnurlcashClient.dialect`, `KeyScheme`, `MintPreview.Ready.legacy`. White Wallet's own release note takes two new
+  strings, `release_note_old_keys_title` and `release_note_old_keys_body`, which a brand without its own
+  `ReleaseNotes` shows too: override them with its own version numbers. The regtest stack is one stack again
+  (`whitewallet-regtest`, lnurl-mint 0.13.1, three mints): `REGTEST_PROTOCOL`, the fourth mint with `upgrade-mint4`
+  and `reset-mint4`, `just test-regtest-current` and `just test-regtest-legacy` and `dev/check-legacy.sh` are gone.
+  The name was the legacy stack's: empty both old stacks once, with `just regtest reset` and
+  `docker compose -p whitewallet-regtest-current -f dev/regtest/docker-compose.yml down -v`.
+
 ### Changed
 
 - For developers, in `wallet.properties`: how long the wallet asks a mint often about a note it didn't know is a
