@@ -466,6 +466,16 @@ class HomeScreenTest {
     }
 
     @Test
+    fun aPaymentFromAWithdrawLinkNamesItsService() {
+        show(
+            HomeState(activity = listOf(row("r", ActivityKind.Received), row("w", ActivityKind.Received, counterparty = "lnbits.example")))
+        )
+        compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
+        compose.onNodeWithText(text(R.string.activity_received_from, "lnbits.example")).assertExists()
+        compose.onNodeWithText(text(R.string.activity_received)).assertExists()
+    }
+
+    @Test
     fun theHistoryNarrowsToAKindOfEntry() {
         show(HomeState(activity = mixed))
         compose.onNodeWithText(text(R.string.home_tab_history)).performClick()

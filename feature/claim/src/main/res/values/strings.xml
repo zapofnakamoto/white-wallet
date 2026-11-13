@@ -66,6 +66,8 @@
     <string name="claim_take_back_failed">It couldn\'t be taken back. Try again later.</string>
     <string name="claim_trusted">✓ Trusted</string>
     <string name="claim_not_trusted">Not trusted (see Settings).</string>
+    <string name="claim_title_lightning">Receive over Lightning</string>
+    <string name="claim_received">Received %1$s</string>
     <string name="claim_opening">Opening link…</string>
     <string name="claim_offline_link">You\'re offline. Open this link again when you\'re connected.</string>
     <string name="claim_melt_plain">A withdraw link from %1$s: it pays out over Lightning.</string>

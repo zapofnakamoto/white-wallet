@@ -18,6 +18,8 @@ import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.BeforeEach
+import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.Regtest.HOST
@@ -132,6 +134,10 @@ class RegtestWithdrawLinksTest {
             assertEquals(before + 4_999_000, bob.balance())
             assertEquals(listOf(service.ownK1), service.withK1.map { it.queryParameter("k1") })
             assertEquals(emptyList(), received(bob), "no note link to keep")
+            val row = bob.store.activities(bob.store.currentAccountId()!!).first().single { it.kind == ActivityKind.Received }
+            assertEquals("lnbits.example", row.counterparty, "History names the link's service")
+            assertEquals(ActivityStatus.Done, row.status)
+            assertEquals(4_999_000, row.amountMsat)
         }
 
     @Test

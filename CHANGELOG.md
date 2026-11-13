@@ -24,7 +24,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   mints for that link. Offline, such a link isn't kept: open it again when connected. A link whose `k1` looks like a
   note's spend is first asked by its key only; if its service doesn't answer for it as a note, the user is asked
   before the link is shown to it. A link the service refuses waits under received notes, with "Receive" to try
-  again.
+  again. The screen is titled "Receive over Lightning", and History names the link's service ("Received from …").
 - Mints without a signing key (LUD-25 only says a mint SHOULD publish one). Their notes can't be certified, and a
   swapped mint can't be noticed, so by default such a mint is never added, and a note from one is received into the
   home mint over Lightning once the user agrees to the fee (a note kept while offline waits for that under received

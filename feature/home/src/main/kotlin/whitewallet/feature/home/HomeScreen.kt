@@ -854,7 +854,9 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
     val quiet = MaterialTheme.colorScheme.onSurfaceVariant
     val title =
         when (activity.kind) {
-            ActivityKind.Received -> stringResource(R.string.activity_received)
+            ActivityKind.Received ->
+                activity.counterparty?.let { stringResource(R.string.activity_received_from, it) }
+                    ?: stringResource(R.string.activity_received)
             ActivityKind.Claimed -> stringResource(R.string.activity_claimed)
             ActivityKind.MovedOut ->
                 activity.counterparty?.let { stringResource(R.string.activity_moved_out, it) }

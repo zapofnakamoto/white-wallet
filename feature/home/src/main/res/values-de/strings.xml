@@ -99,6 +99,7 @@
     <string name="history_filter_sent">Gesendet</string>
     <string name="history_filter_moved">Verschoben</string>
     <string name="activity_received">Empfangen</string>
+    <string name="activity_received_from">Von %1$s empfangen</string>
     <string name="activity_moved_out">Zu %1$s verschoben</string>
     <string name="activity_sent">Gesendet</string>
     <string name="activity_sent_to">An %1$s gesendet</string>

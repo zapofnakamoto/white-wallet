@@ -4,6 +4,8 @@ import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.ArchiveReason
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
@@ -292,7 +294,18 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
             kept?.let { received.meltFailed(it) }
             return ClaimResult.Failed(outcome.kind, outcome.reason)
         }
-        // Sent: the service pays in the background. The invoice says when it did.
+        // Sent: the service pays in the background. The invoice says when it did; until then History names the service.
+        ActivityLog(wallet)
+            .record(
+                MintReconciler.activityId(id),
+                accountId,
+                ActivityKind.Received,
+                expected,
+                target,
+                ActivityStatus.Pending,
+                counterparty = link.host,
+                journalId = id,
+            )
         val mints = MintReconciler(wallet)
         var wait = wallet.settings.paymentStatusFirstWaitMillis
         val deadline = wallet.now() + wallet.payWaitMillis

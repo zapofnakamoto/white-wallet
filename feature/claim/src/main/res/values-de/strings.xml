@@ -61,6 +61,8 @@
     <string name="claim_take_back_failed">Zurückholen hat nicht geklappt. Versuch es später noch einmal.</string>
     <string name="claim_trusted">✓ Vertraut</string>
     <string name="claim_not_trusted">Nicht vertraut (siehe Einstellungen).</string>
+    <string name="claim_title_lightning">Über Lightning empfangen</string>
+    <string name="claim_received">%1$s empfangen</string>
     <string name="claim_opening">Link wird geöffnet…</string>
     <string name="claim_offline_link">Du bist offline. Öffne diesen Link noch einmal, wenn du verbunden bist.</string>
     <string name="claim_melt_plain">Ein Auszahlungslink von %1$s: Er zahlt über Lightning aus.</string>

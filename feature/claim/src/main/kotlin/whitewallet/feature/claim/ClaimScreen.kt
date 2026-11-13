@@ -104,7 +104,10 @@ fun ClaimScreen(
 ) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
-    Scaffold(topBar = { WalletTopBar(stringResource(R.string.claim_title), onBack) }) { padding ->
+    // A link received over Lightning isn't claimed as a note: its own title, here and on its result.
+    val overLightning = state.preview is ClaimPreview.Melt
+    val title = if (overLightning) R.string.claim_title_lightning else R.string.claim_title
+    Scaffold(topBar = { WalletTopBar(stringResource(title), onBack) }) { padding ->
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         // A link from outside being asked what it is: nothing else until it is known, here or in Send.
         if (state.opening) {
@@ -123,7 +126,7 @@ fun ClaimScreen(
                             is ClaimResult.Kept -> WalletStatus.None
                         }
                     WalletStatusScope(status) { BrandDecoration(Anchor.ClaimResult) }
-                    ResultMessage(result)
+                    ResultMessage(result, overLightning)
                     if (result is ClaimResult.Kept)
                         Text(
                             stringResource(R.string.claim_kept_hint),
@@ -459,10 +462,12 @@ private fun TakeBackMessage(result: ReclaimResult) {
 }
 
 @Composable
-private fun ResultMessage(result: ClaimResult) {
+private fun ResultMessage(result: ClaimResult, overLightning: Boolean) {
     val (text, isError) =
         when (result) {
-            is ClaimResult.Claimed -> stringResource(R.string.claim_done, formatAmount(result.amountMsat)) to false
+            is ClaimResult.Claimed ->
+                stringResource(if (overLightning) R.string.claim_received else R.string.claim_done, formatAmount(result.amountMsat)) to
+                    false
             is ClaimResult.Failed -> stringResource(R.string.claim_failed, result.reason ?: result.kind.name) to true
             ClaimResult.Pending -> stringResource(R.string.claim_pending) to false
             is ClaimResult.Kept -> {

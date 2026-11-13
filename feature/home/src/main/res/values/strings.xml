@@ -115,6 +115,8 @@
     <string name="history_filter_sent">Sent</string>
     <string name="history_filter_moved">Moved</string>
     <string name="activity_received">Received</string>
+    <!-- Received over Lightning from a withdraw link; %1$s: the link's service -->
+    <string name="activity_received_from">Received from %1$s</string>
     <string name="activity_moved_out">Moved to %1$s</string>
     <string name="activity_sent">Sent</string>
     <string name="activity_sent_to">Sent to %1$s</string>

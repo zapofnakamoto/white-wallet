@@ -318,6 +318,15 @@ class ClaimScreenTest {
         }
 
     @Test
+    fun aLinkReceivedOverLightningHasItsOwnTitleAndSaysItWasReceived() {
+        showMelt(melt(), state = ClaimState(result = ClaimResult.Claimed(4_999_000, certified = false)))
+        compose.onNodeWithText(text(R.string.claim_title_lightning)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.claim_received, amount(4_999_000))).assertExists()
+        compose.onNodeWithText(text(R.string.claim_done, amount(4_999_000))).assertDoesNotExist()
+    }
+
+    @Test
     fun aWithdrawLinkSaysWhatArrivesAndWhereAfterOneConfirm() {
         var melted = 0
         showMelt(melt(), MeltActions(melt = { melted++ }), ClaimState(home = "home.example"))

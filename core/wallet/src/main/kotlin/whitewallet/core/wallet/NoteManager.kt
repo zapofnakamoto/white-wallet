@@ -448,13 +448,16 @@ internal class MintReconciler(private val wallet: Wallet) {
                 if (entry.detail == null) {
                     // A mint's request is the invoice it paid: no spend in it.
                     @OptIn(RevealsNoteSecret::class) val paid = Bolt11.decode(entry.requestUrl)?.amountMsat
+                    // A withdraw link's service that paid it, as the waiting row named it.
+                    val from = wallet.store.activities(output.accountId).first().firstOrNull { it.id == activityId(entry.id) }?.counterparty
                     log.record(
-                        "invoice:${entry.id}",
+                        activityId(entry.id),
                         output.accountId,
                         ActivityKind.Received,
                         info.maxWithdrawableMsat,
                         entry.host,
                         feeMsat = paid?.let { it - info.maxWithdrawableMsat }?.takeIf { it > 0 },
+                        counterparty = from,
                         certified = cert != null,
                         journalId = entry.id,
                     )
@@ -490,5 +493,10 @@ internal class MintReconciler(private val wallet: Wallet) {
         wallet.store.putJournal(entry.copy(status = status, updatedAtMillis = wallet.now()))
         log.settle(entry.id, status)
         return status
+    }
+
+    companion object {
+        /** History's row for the invoice of journal entry [journalId]. */
+        fun activityId(journalId: String) = "invoice:$journalId"
     }
 }
