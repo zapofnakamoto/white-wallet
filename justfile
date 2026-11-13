@@ -134,11 +134,13 @@ check-flash:
 check-resources:
     dev/check-resources.sh
 
+# Lint runs on its own: beside the release build, its Kotlin analysis of the app's tests sometimes crashes (a lint bug).
 # Everything CI checks: formatting, tests, both builds, lint, brand, design, flash and resource checks, scaffolder tests
 [group('checks')]
 check: test
     ./gradlew spotlessCheck
-    ./gradlew :app:assembleDebug :app:assembleRelease :app:lintDebug
+    ./gradlew :app:assembleDebug :app:assembleRelease
+    ./gradlew :app:lintDebug
     for b in brand brand-examples/*/; do dev/check-brand.sh "${b%/}"; done
     dev/check-design.sh
     dev/check-flash.sh
