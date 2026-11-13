@@ -417,6 +417,7 @@ internal fun problemText(problem: PayProblem): String =
             PayProblem.NoAmount -> R.string.send_problem_no_amount
             PayProblem.Expired -> R.string.send_problem_expired
             PayProblem.Unreachable -> R.string.send_problem_unreachable
+            PayProblem.KeyChanged -> R.string.send_problem_key_changed
             PayProblem.PayeeRefused -> R.string.send_problem_payee_refused
             PayProblem.InvoiceMismatch -> R.string.send_problem_mismatch
             PayProblem.OwnAddress -> R.string.send_problem_own_address

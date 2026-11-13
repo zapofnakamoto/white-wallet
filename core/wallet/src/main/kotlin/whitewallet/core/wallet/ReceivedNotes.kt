@@ -144,6 +144,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 ClaimResult.Pending
             }
             is MutationResult.Refused -> refused(note, spend, result.kind, result.reason)
+            is MutationResult.Unreachable if result.keyChanged ->
+                ClaimResult.Kept(update(note.copy(state = ReceivedState.KeyChanged, failingSinceMillis = null)))
             is MutationResult.Unreachable -> waiting(note)
         }
     }

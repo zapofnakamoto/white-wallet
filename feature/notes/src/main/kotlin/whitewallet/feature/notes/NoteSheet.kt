@@ -335,6 +335,7 @@ internal fun problemText(problem: NoteProblem): String =
             NoteProblem.SameMint -> R.string.notes_problem_same_mint
             NoteProblem.MintInvalid -> R.string.notes_problem_mint_invalid
             NoteProblem.Unreachable -> R.string.notes_problem_unreachable
+            NoteProblem.KeyChanged -> R.string.notes_problem_key_changed
             NoteProblem.BelowMinimum -> R.string.notes_problem_below_minimum
             NoteProblem.AboveMaximum -> R.string.notes_problem_above_maximum
             NoteProblem.InvoiceMismatch -> R.string.notes_problem_invoice_mismatch

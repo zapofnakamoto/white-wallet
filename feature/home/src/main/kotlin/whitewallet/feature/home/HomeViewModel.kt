@@ -379,7 +379,7 @@ class HomeViewModel(
             var keyChanged: String? = null
             val error =
                 try {
-                    wallet.refresh()
+                    keyChanged = wallet.refresh().keyChanged.firstOrNull()
                     null
                 } catch (e: IOException) {
                     e.message ?: "network error"

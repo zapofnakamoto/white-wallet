@@ -59,6 +59,9 @@ enum class PayProblem {
     /** The pay link or service couldn't be reached. */
     Unreachable,
 
+    /** The signing key of the mint the money is at doesn't match the pinned one: nothing was sent (see [Pinning]). */
+    KeyChanged,
+
     /** The payee's service refused (e.g. an unknown address). */
     PayeeRefused,
 
@@ -377,6 +380,7 @@ internal class Payer(private val wallet: Wallet) {
             is MeltOutcome.PaymentFailed -> PayResult.Failed(PayProblem.PaymentFailed)
             is MeltOutcome.Refused -> refused(outcome.reason)
             MeltOutcome.Unreachable -> PayResult.Failed(PayProblem.Unreachable)
+            MeltOutcome.KeyChanged -> PayResult.Failed(PayProblem.KeyChanged)
             MeltOutcome.NoteGone -> null
         }
     }
@@ -424,6 +428,7 @@ internal class Payer(private val wallet: Wallet) {
         when (this) {
             is MutationResult.Refused ->
                 if (kind == RejectionKind.InsufficientValue) PayResult.Failed(PayProblem.TooMuch) else refused(reason)
+            is MutationResult.Unreachable if keyChanged -> PayResult.Failed(PayProblem.KeyChanged)
             else -> PayResult.Failed(PayProblem.Unreachable)
         }
 

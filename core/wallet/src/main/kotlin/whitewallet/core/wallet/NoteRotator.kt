@@ -11,8 +11,11 @@ sealed interface RotateResult {
     /** The note now lives at wallet key (purpose 0) [toIndex]. */
     data class Rotated(val fromIndex: Long, val toIndex: Long, val amountMsat: Long, val certified: Boolean) : RotateResult
 
-    /** Nothing changed. [noAnswer] is true when the mint could not be reached at all. */
-    data class Failed(val reason: String?, val noAnswer: Boolean) : RotateResult
+    /**
+     * Nothing changed. [noAnswer] is true when the mint could not be reached at all, or its signing key doesn't match the pinned one
+     * ([keyChanged]).
+     */
+    data class Failed(val reason: String?, val noAnswer: Boolean, val keyChanged: Boolean = false) : RotateResult
 
     /** Sent, outcome unknown; reconciliation settles it on the next refresh. */
     data object Pending : RotateResult
@@ -106,7 +109,7 @@ internal class NoteRotator(private val wallet: Wallet) {
                 RotateResult.Rotated(note.index!!, out.index!!, out.amountMsat, out.certificate != null)
             }
             is MutationResult.Refused -> RotateResult.Failed(result.reason ?: result.kind.name, noAnswer = false)
-            is MutationResult.Unreachable -> RotateResult.Failed(result.reason, noAnswer = true)
+            is MutationResult.Unreachable -> RotateResult.Failed(result.reason, noAnswer = true, keyChanged = result.keyChanged)
             is MutationResult.Pending -> {
                 if (!quiet) {
                     log.record(

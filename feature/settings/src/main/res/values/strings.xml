@@ -387,6 +387,7 @@
     <string name="money_reason_payment">the payment failed</string>
     <string name="money_reason_price">the price went up</string>
     <string name="money_reason_offline">no answer</string>
+    <string name="money_reason_key_changed">the signing key doesn\'t match</string>
     <string name="money_reason_gone">already moved</string>
     <string name="money_reason_refused">refused</string>
     <string name="money_try_again">Try again</string>

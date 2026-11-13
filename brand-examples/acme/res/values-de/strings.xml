@@ -130,10 +130,12 @@
     <string name="notes_problem_invalid_amount">Dieser Geldschein ist zu klein zum Teilen, oder der Betrag passt nicht.</string>
     <string name="notes_problem_same_mint">Die Geldscheine sind schon dort.</string>
     <string name="notes_problem_mint_invalid">Diese Adresse kann keine Geldscheine verwahren.</string>
+    <string name="notes_problem_key_changed">Der Signaturschlüssel des Anbieters passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details des Anbieters einen neuen Schlüssel annimmst. Deine Geldscheine dort sind unverändert.</string>
     <string name="receive_hint">Jeder kann an diese Adresse aus jeder Lightning-Wallet zahlen. Zahlungen kommen als Geldscheine in dieser Wallet an.</string>
     <string name="receive_claim">Stattdessen einen Geldschein einlösen</string>
     <string name="send_create_note">Geldschein erstellen</string>
     <string name="send_problem_refused">Der Anbieter hat diese Zahlung abgelehnt.</string>
+    <string name="send_problem_key_changed">Der Signaturschlüssel des Anbieters passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details des Anbieters einen neuen Schlüssel annimmst. Deine Geldscheine dort sind unverändert.</string>
     <string name="send_problem_own_mint_invoice">Diese Rechnung stammt von deinem eigenen Anbieter, der sich nicht selbst über Lightning bezahlen kann. Frag stattdessen nach einer Lightning-Adresse.</string>
     <string name="send_problem_mint_message">Nachricht des Anbieters: „%1$s“</string>
     <string name="note_create_title">Als Geldschein senden</string>

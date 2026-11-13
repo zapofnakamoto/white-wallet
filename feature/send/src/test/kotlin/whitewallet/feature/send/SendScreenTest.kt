@@ -103,6 +103,14 @@ class SendScreenTest {
     }
 
     @Test
+    fun aMintWhoseSigningKeyDoesNotMatchIsSaidSoNotThatItCouldNotBeReached() {
+        val failed = PayResult.Failed(PayProblem.KeyChanged)
+        compose.setContent { SendScreen(SendState(preview = payLink, result = failed), onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_problem_key_changed)).assertExists()
+        compose.onNodeWithText(text(R.string.send_problem_unreachable)).assertDoesNotExist()
+    }
+
+    @Test
     fun onlyAPayLinkOffersToTryAgainAfterAFailedPayment() {
         val invoice = Bolt11Invoice("lnbc1…", "bc", 1_000_000, 0, "00", null, null, 3600, null)
         var preview by mutableStateOf(payLink)

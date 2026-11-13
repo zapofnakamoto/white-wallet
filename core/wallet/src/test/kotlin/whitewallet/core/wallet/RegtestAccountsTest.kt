@@ -14,14 +14,15 @@ import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.MintScan
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
+import whitewallet.lnurlcash.client.LnurlcashClient
 
 /** Moving money between two accounts, of one wallet or of two, on the real mint. */
 class RegtestAccountsTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 
     /** Main (active, funded with [sats]) and an empty Savings account, both with an address on the mint. */
-    private suspend fun accounts(vararg sats: Long): Triple<Regtest.Phone, String, String> {
-        val phone = Regtest.phone()
+    private suspend fun accounts(vararg sats: Long, client: LnurlcashClient = LnurlcashClient()): Triple<Regtest.Phone, String, String> {
+        val phone = Regtest.phone(client = client)
         val main = assertNotNull(phone.store.currentAccountId())
         assertIs<OnboardResult.Ready>(phone.wallet.onboard(Regtest.name(), HOST, newAccountName = "Savings"))
         val savings = assertNotNull(phone.store.currentAccountId())
@@ -101,12 +102,14 @@ class RegtestAccountsTest {
         }
 
     /**
-     * A connection that drops every request to the mint at [down], which never sees them; while [changed], mints present another key. The
-     * first note-changing request to the mint at [lose] reaches it, its answer is lost, and that mint is [down] from then on.
+     * A connection that drops every request to the mint at [down], which never sees them; while [changed], mints present another key, and
+     * while [keyless], none. The first note-changing request to the mint at [lose] reaches it, its answer is lost, and that mint is [down]
+     * from then on.
      */
     private class Connection : Interceptor {
         var down: String? = null
         var changed = false
+        var keyless = false
         var lose: String? = null
 
         override fun intercept(chain: Interceptor.Chain): Response {
@@ -120,7 +123,11 @@ class RegtestAccountsTest {
                 Regtest.lost()
             }
             val response = chain.proceed(chain.request())
-            return if (changed) Regtest.presentingOtherKey(response) else response
+            return when {
+                changed -> Regtest.presentingOtherKey(response)
+                keyless -> Regtest.withoutSigningKey(response)
+                else -> response
+            }
         }
     }
 
@@ -184,6 +191,20 @@ class RegtestAccountsTest {
             assertEquals(check.stayed.toSet(), failed.stayed.toSet())
             assertEquals(mapOf(main to held, other to 0L), phone.balances())
             assertEquals(emptyList(), phone.store.mints(other).first(), "no mint was added")
+        }
+
+    @Test
+    fun `a mint that shows no signing key keeps its notes from another account of the wallet, as the check says`() =
+        runBlocking<Unit> {
+            val connection = Connection()
+            val (phone, main, savings) = accounts(2000, client = Regtest.client(connection))
+
+            connection.keyless = true
+            val check = phone.wallet.checkMoveFunds(savings, null)
+            assertEquals(MoveCheck(0, listOf(MoveStayed(HOST, 1_999_000, StayReason.KeyChanged))), check)
+            val failed = assertIs<MoveResult.Failed>(phone.wallet.moveFunds(savings, null))
+            assertEquals(check.stayed, failed.stayed)
+            assertEquals(mapOf(main to 1_999_000L, savings to 0L), phone.balances())
         }
 
     @Test

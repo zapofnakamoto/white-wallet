@@ -50,7 +50,7 @@ internal class LegacyMigration(
             if (dialect == MintDialect.Current) {
                 for (address in here) {
                     val paid = moveAddress(accountId, address) ?: continue
-                    found = RefreshResult(found.newNotes + paid.newNotes, found.receivedMsat + paid.receivedMsat)
+                    found += paid
                 }
             }
             rotator.rotateAll(

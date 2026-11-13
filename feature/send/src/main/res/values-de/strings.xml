@@ -3,6 +3,7 @@
     <!-- Brand terms (see values/strings.xml). -->
     <string name="send_create_note">Schein erstellen</string>
     <string name="send_problem_refused">Die Mint hat diese Zahlung abgelehnt.</string>
+    <string name="send_problem_key_changed">Der Signaturschlüssel der Mint passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint einen neuen Schlüssel annimmst. Deine Scheine dort sind unverändert.</string>
     <string name="send_problem_own_mint_invoice">Diese Rechnung stammt von deiner eigenen Mint, die sich nicht selbst über Lightning bezahlen kann. Frag stattdessen nach einer Lightning-Adresse.</string>
     <string name="send_problem_invoice_used">Diese Rechnung wurde schon verwendet. Frag nach einer neuen.</string>
     <!-- %1$s: the mint's own words, in whatever language it writes. -->

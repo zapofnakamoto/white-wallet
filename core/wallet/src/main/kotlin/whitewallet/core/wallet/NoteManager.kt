@@ -41,6 +41,9 @@ enum class NoteProblem {
     MintInvalid,
     Unreachable,
 
+    /** A mint's signing key doesn't match the pinned one: nothing was sent there (see [Pinning]). */
+    KeyChanged,
+
     /** The target accepts less (or more) than the notes are worth. */
     BelowMinimum,
     AboveMaximum,
@@ -237,7 +240,7 @@ internal class NoteManager(private val wallet: Wallet) {
                 is MutationResult.Done -> notes = merged.outputs
                 is MutationResult.Pending -> return MintMoveResult.Pending
                 is MutationResult.Refused -> return MintMoveResult.Failed(NoteProblem.Refused)
-                is MutationResult.Unreachable -> return MintMoveResult.Failed(NoteProblem.Unreachable)
+                is MutationResult.Unreachable -> return MintMoveResult.Failed(merged.problem)
             }
         }
         val note = notes.single()
@@ -284,6 +287,7 @@ internal class NoteManager(private val wallet: Wallet) {
                 MintMoveResult.Failed(if (melted is MeltOutcome.Refused) NoteProblem.Refused else NoteProblem.PaymentFailed)
             }
             MeltOutcome.Unreachable -> MintMoveResult.Failed(NoteProblem.Unreachable)
+            MeltOutcome.KeyChanged -> MintMoveResult.Failed(NoteProblem.KeyChanged)
             MeltOutcome.NoteGone -> MintMoveResult.Failed(NoteProblem.Refused)
         }
     }
@@ -323,10 +327,7 @@ internal class NoteManager(private val wallet: Wallet) {
         if (wallet.mintOf(accountId, fromHost) == null) {
             when (val source = onboarding.connectMint(wallet.walletOf(accountId), fromHost)) {
                 is ConnectResult.Connected -> Unit
-                is ConnectResult.Failed ->
-                    return PreparedMove.Problem(
-                        if (source.result is OnboardResult.NetworkError) NoteProblem.Unreachable else NoteProblem.MintInvalid
-                    )
+                is ConnectResult.Failed -> return PreparedMove.Problem(source.problem)
             }
         }
         val pay =
@@ -340,10 +341,7 @@ internal class NoteManager(private val wallet: Wallet) {
         // Pins the target's signing key and stores it as one of the account's mints.
         when (val connected = onboarding.connectMint(wallet.walletOf(accountId), host)) {
             is ConnectResult.Connected -> Unit
-            is ConnectResult.Failed ->
-                return PreparedMove.Problem(
-                    if (connected.result is OnboardResult.NetworkError) NoteProblem.Unreachable else NoteProblem.MintInvalid
-                )
+            is ConnectResult.Failed -> return PreparedMove.Problem(connected.problem)
         }
         val amount = PayPlanner.max(notes, baseFee(accountId, fromHost))
         if (amount < pay.pay.minSendable) return PreparedMove.Problem(NoteProblem.BelowMinimum, pay.pay.minSendable)
@@ -381,8 +379,19 @@ internal class NoteManager(private val wallet: Wallet) {
             is MutationResult.Pending -> NoteActionResult.Pending
             is MutationResult.Refused ->
                 NoteActionResult.Failed(if (kind == RejectionKind.InsufficientValue) NoteProblem.InvalidAmount else NoteProblem.Refused)
-            is MutationResult.Unreachable -> NoteActionResult.Failed(NoteProblem.Unreachable)
+            is MutationResult.Unreachable -> NoteActionResult.Failed(problem)
         }
+
+    private val ConnectResult.Failed.problem
+        get() =
+            when (val r = result) {
+                is OnboardResult.NetworkError -> NoteProblem.Unreachable
+                is OnboardResult.MintInvalid if r.reason == MINT_KEY_CHANGED -> NoteProblem.KeyChanged
+                else -> NoteProblem.MintInvalid
+            }
+
+    private val MutationResult.Unreachable.problem
+        get() = if (keyChanged) NoteProblem.KeyChanged else NoteProblem.Unreachable
 }
 
 /**

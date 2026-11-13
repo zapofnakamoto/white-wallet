@@ -1093,7 +1093,7 @@ class Wallet(
             // First: a held address that was paid may be the account's primary one now.
             store.addresses(id).first().filter { it.feeInvoice != null }.forEach { onboarding.settleHeld(id, it) }
             val moved = legacy.migration.run(id)
-            if (id == active) result = RefreshResult(result.newNotes + moved.newNotes, result.receivedMsat + moved.receivedMsat)
+            result += if (id == active) moved else moved.keyChangedOnly()
             val addresses = store.addresses(id).first()
             for (address in addresses.filter { it.feeInvoice == null }) {
                 addressCheck.check(address.username, address.host, id).let { status ->
@@ -1105,7 +1105,7 @@ class Wallet(
             val hosts = addresses.map { it.host } + listOfNotNull(homeOf(id)) + hostsPaidAt(id)
             for (host in hosts.distinct()) {
                 val scanned = scanner.scanAll(id, host)
-                if (id == active) result = RefreshResult(result.newNotes + scanned.newNotes, result.receivedMsat + scanned.receivedMsat)
+                result += if (id == active) scanned else scanned.keyChangedOnly()
             }
             sender.reconcile(id)
             // Note policies move money: only ever the active account's.
@@ -1499,7 +1499,14 @@ class Wallet(
     }
 }
 
-data class RefreshResult(val newNotes: Int, val receivedMsat: Long)
+/** What a refresh brought in, and the mints it couldn't ask because their signing key doesn't match the pinned one ([keyChanged]). */
+data class RefreshResult(val newNotes: Int, val receivedMsat: Long, val keyChanged: Set<String> = emptySet()) {
+    operator fun plus(other: RefreshResult) =
+        RefreshResult(newNotes + other.newNotes, receivedMsat + other.receivedMsat, keyChanged + other.keyChanged)
+
+    /** Only which mints didn't match: the money another account brought in isn't the active one's. */
+    fun keyChangedOnly() = RefreshResult(0, 0, keyChanged)
+}
 
 /** What the mint said about one note when asked again ([Wallet.recheckNote]). */
 sealed interface NoteCheck {

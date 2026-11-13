@@ -141,7 +141,8 @@ internal class NoteSender(private val wallet: Wallet) {
                 is MutationResult.Done -> made.outputs.first()
                 is MutationResult.Pending -> return CreateNoteResult.Pending
                 is MutationResult.Refused -> return CreateNoteResult.Failed(PayProblem.Refused)
-                is MutationResult.Unreachable -> return CreateNoteResult.Failed(PayProblem.Unreachable)
+                is MutationResult.Unreachable ->
+                    return CreateNoteResult.Failed(if (made.keyChanged) PayProblem.KeyChanged else PayProblem.Unreachable)
             }
         val shared =
             note.copy(
@@ -261,7 +262,8 @@ internal class NoteSender(private val wallet: Wallet) {
             is MutationResult.Refused ->
                 if (check(note) == Check.Spent) ReclaimResult.AlreadySpent else ReclaimResult.Failed(PayProblem.Refused)
             is MutationResult.Unreachable ->
-                if (check(note) == Check.Spent) ReclaimResult.AlreadySpent else ReclaimResult.Failed(PayProblem.Unreachable)
+                if (check(note) == Check.Spent) ReclaimResult.AlreadySpent
+                else ReclaimResult.Failed(if (result.keyChanged) PayProblem.KeyChanged else PayProblem.Unreachable)
         }
     }
 

@@ -21,6 +21,7 @@ import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.model.Mint
 import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.AddressShare
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
@@ -208,6 +209,16 @@ class SettingsScreensTest {
         }
         compose.onNodeWithText(text(R.string.mint_make_home)).performScrollTo().performClick()
         assertEquals("mint.example", asked)
+    }
+
+    @Test
+    fun aMintWhoseSigningKeyDoesNotMatchIsNotOfferedAsHomeButCanBeLeft() {
+        val defaults = AppDefaults(mintSuggestions = emptyList(), allowMintChange = true)
+        val other = details(MintDetails.Reachability.KeyChanged).copy(isHome = false)
+        assertEquals(false, canChangeHome(defaults, other))
+        assertEquals(true, canChangeHome(defaults, other.copy(reachability = MintDetails.Reachability.Reachable)))
+        // The home can still be left.
+        assertEquals(true, canChangeHome(defaults, details(MintDetails.Reachability.KeyChanged)))
     }
 
     @Test

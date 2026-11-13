@@ -84,6 +84,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- A mint whose signing key doesn't match stopped the whole refresh as soon as a payment to one of its addresses came
+  in: the other mints' address payments, the shared notes and the note strategy, and every account after it, waited
+  until it matched again. Now only that mint is skipped, and Home names it as before.
+- Paying, handing out a note, taking one back, splitting, combining, renewing and moving to another mint said
+  "couldn't connect" at a mint whose signing key doesn't match; they now say the key doesn't match, as the other
+  screens do (new brand terms `send_problem_key_changed` and `notes_problem_key_changed`). Moving money to another
+  account counted a mint that shows no signing key as movable, and the move then kept the money there; the check now
+  says it stays. Its page no longer offers to make it home, which could only fail.
 - The QR scanner was titled "Scan for notes" in 0.8.0: the new page's title had the scanner's string name
   (`scan_title`), and the build kept only one of the two. The page's is now `scan_notes_title`; a brand that
   overrode `scan_title` for the page renames its override, and one that meant the scanner's has its text back.

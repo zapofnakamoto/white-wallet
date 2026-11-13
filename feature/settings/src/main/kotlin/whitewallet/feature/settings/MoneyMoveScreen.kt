@@ -481,6 +481,7 @@ private fun reason(problem: NoteProblem): String =
             NoteProblem.PaymentFailed -> R.string.money_reason_payment
             NoteProblem.Declined -> R.string.money_reason_price
             NoteProblem.Unreachable -> R.string.money_reason_offline
+            NoteProblem.KeyChanged -> R.string.money_reason_key_changed
             NoteProblem.NotFound -> R.string.money_reason_gone
             else -> R.string.money_reason_refused
         }

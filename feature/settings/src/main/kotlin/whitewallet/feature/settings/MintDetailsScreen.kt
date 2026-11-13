@@ -58,10 +58,7 @@ import whitewallet.core.wallet.Wallet
 data class MintDetailsState(
     val details: MintDetails? = null,
     val loading: Boolean = true,
-    /**
-     * This page offers changing the home mint (`mints.changeable`): on the home's, when there is another mint the brand allows
-     * (`mints.custom`); on another mint's, to it if the brand allows it.
-     */
+    /** This page offers changing the home mint ([canChangeHome]). */
     val canChangeHome: Boolean = false,
     /** The account collects at its home mint: money only moves home, so the home's page offers no move. */
     val collects: Boolean = false,
@@ -77,6 +74,16 @@ data class MintDetailsState(
     /** The mint the page is about, known before it is asked anything: the page's title from the start. */
     val host: String? = null,
 )
+
+/**
+ * Whether the page of [details] offers changing the home mint (`mints.changeable`): on the home's, when there is another mint the brand
+ * allows (`mints.custom`); on another mint's, to it if the brand allows it and its signing key matches (one that doesn't can't be
+ * connected, so it isn't offered until it matches again).
+ */
+internal fun canChangeHome(defaults: AppDefaults, details: MintDetails): Boolean =
+    defaults.allowMintChange &&
+        if (details.isHome) defaults.otherMintsAllowed(details.host)
+        else defaults.mintAllowed(details.host) && details.reachability != MintDetails.Reachability.KeyChanged
 
 @HiltViewModel
 class MintDetailsViewModel
@@ -114,9 +121,7 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
             // Read here too, so the page shows with them: the collectors above may not have had their first value yet.
             val collects = wallet.collectAtHome.first()
             val moneyElsewhere = wallet.accountMints.first().any { !it.isHome && it.balanceMsat > 0 }
-            val canChangeHome =
-                defaults.allowMintChange &&
-                    if (details.isHome) defaults.otherMintsAllowed(details.host) else defaults.mintAllowed(details.host)
+            val canChangeHome = canChangeHome(defaults, details)
             _state.update {
                 it.copy(
                     details = details,

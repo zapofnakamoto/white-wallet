@@ -394,6 +394,7 @@ constructor(
             when (val r = wallet.rotateNote(id)) {
                 is RotateResult.Rotated -> NotesOutcome.Renewed(r.amountMsat)
                 RotateResult.Pending -> NotesOutcome.Pending
+                is RotateResult.Failed if r.keyChanged -> keyChanged(setOf(id))
                 is RotateResult.Failed -> NotesOutcome.Failed(if (r.noAnswer) NoteProblem.Unreachable else NoteProblem.Refused)
                 is RotateResult.NotRotatable -> NotesOutcome.Failed(NoteProblem.NotFound)
             }
@@ -418,7 +419,7 @@ constructor(
         act(NoteAction.Combine) { ids ->
             when (val r = wallet.combineNotes(ids)) {
                 is NoteActionResult.Done -> NotesOutcome.Combined(r.notes.sumOf { it.amountMsat })
-                else -> r.toOutcome()
+                else -> r.toOutcome(ids)
             }
         }
 
@@ -447,7 +448,7 @@ constructor(
             if (switchToManual) wallet.setNoteStrategy(ManualStrategy.ID)
             when (val r = wallet.splitNote(ids.single(), amount)) {
                 is NoteActionResult.Done -> r.notes.map { it.amountMsat }.let { NotesOutcome.Split(it.first(), it.getOrElse(1) { 0 }) }
-                else -> r.toOutcome()
+                else -> r.toOutcome(ids)
             }
         }
     }
@@ -539,12 +540,18 @@ constructor(
         }
     }
 
-    private fun NoteActionResult.toOutcome(): NotesOutcome =
+    private fun NoteActionResult.toOutcome(ids: Set<String>): NotesOutcome =
         when (this) {
             is NoteActionResult.Done -> NotesOutcome.Pending
             NoteActionResult.Pending -> NotesOutcome.Pending
+            is NoteActionResult.Failed if problem == NoteProblem.KeyChanged -> keyChanged(ids)
             is NoteActionResult.Failed -> NotesOutcome.Failed(problem)
         }
+
+    /** The signing key of the mint [ids] are on doesn't match: said with its name, as a check that finds it does. */
+    private fun keyChanged(ids: Set<String>): NotesOutcome =
+        state.value.mints.firstOrNull { m -> m.notes.any { it.id in ids } }?.host?.let(NotesOutcome::KeyChanged)
+            ?: NotesOutcome.Failed(NoteProblem.KeyChanged)
 
     companion object {
         private const val QUOTE_DEBOUNCE_MILLIS = 400L

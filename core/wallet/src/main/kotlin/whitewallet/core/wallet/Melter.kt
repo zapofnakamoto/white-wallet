@@ -34,6 +34,9 @@ internal sealed interface MeltOutcome {
     /** Nothing was sent. */
     data object Unreachable : MeltOutcome
 
+    /** Nothing was sent: the mint's signing key doesn't match the pinned one (see [Pinning]). */
+    data object KeyChanged : MeltOutcome
+
     /** Nothing was sent: the mint doesn't know the note (or burned it), so it was set aside (see [UnknownNotes]). */
     data object NoteGone : MeltOutcome
 }
@@ -90,8 +93,10 @@ internal class Melter(private val wallet: Wallet) {
             } catch (e: NoteLookupError) {
                 if (e.kind in UnknownNotes.GONE && unknownNotes.sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
                 return MeltOutcome.Unreachable
+            } catch (e: MintKeyChangedException) {
+                // Nothing is paid through a mint with another signing key than the pinned one, or none.
+                return MeltOutcome.KeyChanged
             } catch (e: Exception) {
-                // Including a signing key other than the pinned one: nothing is paid through such a mint.
                 return MeltOutcome.Unreachable
             }
         val created = wallet.now()

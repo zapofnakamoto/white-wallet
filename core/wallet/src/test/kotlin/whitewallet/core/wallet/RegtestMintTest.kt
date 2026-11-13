@@ -151,6 +151,77 @@ class RegtestMintTest {
     }
 
     @Test
+    fun `every action at a mint that shows no signing key says the key doesn't match`() =
+        runBlocking<Unit> { saysKeyDoesNotMatch(Regtest::withoutSigningKey) }
+
+    @Test
+    fun `every action at a mint that shows another signing key says the key doesn't match`() =
+        runBlocking<Unit> { saysKeyDoesNotMatch(Regtest::presentingOtherKey) }
+
+    /** Paying, handing out, splitting, renewing and moving a note at the home mint, while its answers go through [strip]. */
+    private suspend fun saysKeyDoesNotMatch(strip: (Response) -> Response) {
+        var stripped = false
+        var sent = 0
+        val alice =
+            Regtest.phone(
+                client =
+                    Regtest.client { chain ->
+                        val url = chain.request().url
+                        val home = stripped && "${url.host}:${url.port}" == HOST
+                        if (home && url.isMutation) sent++
+                        val response = chain.proceed(chain.request())
+                        if (home) strip(response) else response
+                    }
+            )
+        alice.fund(5000)
+        val note = alice.notes().single()
+        stripped = true
+
+        val preview = assertIs<PayPreview.Ready>(alice.wallet.previewPayment(Regtest.invoice(1000)))
+        assertEquals(PayProblem.KeyChanged, assertIs<PayResult.Failed>(alice.wallet.pay(preview, 1_000_000)).problem)
+        assertEquals(CreateNoteResult.Failed(PayProblem.KeyChanged), alice.wallet.createNote(1_000_000))
+        assertEquals(NoteActionResult.Failed(NoteProblem.KeyChanged), alice.wallet.splitNote(note.id, 1_000_000))
+        assertTrue(assertIs<RotateResult.Failed>(alice.wallet.rotateNote(note.id)).keyChanged)
+        // One note to the other mint: no merge, so the melt is what stops.
+        assertEquals(MintMoveResult.Failed(NoteProblem.KeyChanged), alice.wallet.moveToMint(listOf(note.id), HOST2))
+        assertEquals(0, sent, "nothing went out to it")
+        assertEquals(listOf(note.id), alice.notes().map { it.id }, "the note is untouched")
+    }
+
+    @Test
+    fun `a refresh goes on past a mint that shows no signing key, and names it`() =
+        runBlocking<Unit> {
+            var stripped = false
+            val alice =
+                Regtest.phone(
+                    client =
+                        Regtest.client { chain ->
+                            val url = chain.request().url
+                            val response = chain.proceed(chain.request())
+                            if (stripped && "${url.host}:${url.port}" == HOST) Regtest.withoutSigningKey(response) else response
+                        }
+                )
+            val name = Regtest.name()
+            Regtest.registered(alice.wallet, alice.wallet.addAddress(name, limit = 2, host = HOST2))
+            Regtest.untilRegistered(name, HOST2)
+            stripped = true
+
+            // Paid at both mints: the home mint's address keys are asked first, and its answer without a key ends only its own scan.
+            Regtest.pay(alice.address, 2000)
+            Regtest.pay("$name@$HOST2", 3000)
+            alice.refreshUntil { alice.notes(HOST2).isNotEmpty() }
+            assertEquals(1, alice.notes(HOST2).size, "the other mint's payment came in")
+            assertEquals(setOf(HOST), alice.wallet.refresh().keyChanged)
+            assertEquals(emptyList(), alice.notes(HOST), "nothing is taken from a mint without its key")
+
+            // Its key again: its payment comes in too.
+            stripped = false
+            alice.refreshUntil { alice.notes(HOST).isNotEmpty() }
+            assertEquals(1, alice.notes(HOST).size)
+            assertEquals(emptySet(), alice.wallet.refresh().keyChanged)
+        }
+
+    @Test
     fun `the user can accept a changed signing key, and the mint is used again for sending and receiving`() =
         runBlocking<Unit> {
             var changed = false

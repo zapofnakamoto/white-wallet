@@ -160,15 +160,17 @@ internal class FundsMover(private val wallet: Wallet) {
         if (pinned != null && known?.mintPubkey != null && known.mintPubkey != pinned) return StayReason.OtherWalletKey
         return try {
             wallet.client.servicePayRequest(host)
-            val presented =
+            // Null if it can't be asked now; an answer without a valid key, from a pinned mint, is a changed key.
+            val discovery =
                 try {
-                    wallet.client.withdrawDiscovery(host).mintPubkey?.toHex()
+                    wallet.client.withdrawDiscovery(host)
                 } catch (e: ProtocolViolation) {
                     null
                 }
-            // A mint the other wallet is to add must show the key pinned here; one both have must not show another.
+            val presented = discovery?.mintPubkey?.toHex()
+            // A mint the other wallet is to add must show the key pinned here; one both have must not show another, nor none.
             val adds = toWallet != wallet.walletOf(fromId) && known == null
-            if (pinned != null && (presented ?: pinned.takeUnless { adds }) != pinned) StayReason.KeyChanged else null
+            if (pinned != null && (adds || discovery != null) && presented != pinned) StayReason.KeyChanged else null
         } catch (e: ProtocolViolation) {
             StayReason.Refused
         } catch (e: IOException) {

@@ -8,7 +8,7 @@ import whitewallet.lnurlcash.spendDomain
 /**
  * Finds notes the mint auto-minted for Lightning address payments (LUD-26: a share's notes; legacy 2f17578: purpose 2) by looking up each
  * derived key by `p`, stopping after [WalletSettings.scanStopAfterUnusedKeys] consecutive unused indices, or at a lookup the mint refuses
- * or doesn't answer.
+ * or doesn't answer, or that comes with a signing key other than the pinned one ([RefreshResult.keyChanged]).
  */
 internal class AddressScanner(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
@@ -24,10 +24,7 @@ internal class AddressScanner(private val wallet: Wallet) {
         val handedOut = wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0
         val sets = (addresses.mapNotNull { it.share } + (0 until handedOut)).distinct().map(KeySet::share).toMutableList()
         sets += wallet.legacy.addressSets(accountId, addresses)
-        return sets.fold(RefreshResult(0, 0)) { total, set ->
-            val r = scan(accountId, host, set)
-            RefreshResult(total.newNotes + r.newNotes, total.receivedMsat + r.receivedMsat)
-        }
+        return sets.fold(RefreshResult(0, 0)) { total, set -> total + scan(accountId, host, set) }
     }
 
     suspend fun scan(accountId: String, host: String, set: KeySet): RefreshResult {
@@ -39,8 +36,17 @@ internal class AddressScanner(private val wallet: Wallet) {
         var lastUsed = start - 1
         var found = 0
         var received = 0L
+        var keyChanged = false
         while (gap < wallet.settings.scanStopAfterUnusedKeys) {
-            when (val probe = prober.probe(set.key(accountId, host, index), mint)) {
+            val probe =
+                try {
+                    prober.probe(set.key(accountId, host, index), mint)
+                } catch (e: MintKeyChangedException) {
+                    // Nothing more is asked of this mint until its key matches; the rest of the refresh goes on.
+                    keyChanged = true
+                    break
+                }
+            when (probe) {
                 is KeyProbe.Outstanding -> {
                     if (probe.imported) {
                         found++
@@ -74,6 +80,6 @@ internal class AddressScanner(private val wallet: Wallet) {
             index++
         }
         if (lastUsed + 1 > start) wallet.store.setIndexOf(accountId, host, set, lastUsed + 1)
-        return RefreshResult(found, received)
+        return RefreshResult(found, received, if (keyChanged) setOf(host) else emptySet())
     }
 }

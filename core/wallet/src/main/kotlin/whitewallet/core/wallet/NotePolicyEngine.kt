@@ -380,9 +380,10 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
                                     else ->
                                         NotCollected.Reason.Failed(result.problem).also {
                                             // A payment attempt that failed (or a refusal) waits; an unreachable mint is just asked again,
-                                            // and so is one that refused a note it doesn't know (set aside now: the others can go).
+                                            // as is one whose key doesn't match (nothing is sent until it does), and one that refused a
+                                            // note it doesn't know (set aside now: the others can go).
                                             val setAside = notes.any { wallet.store.note(it.id)?.state == NoteState.Unknown }
-                                            if (result.problem != NoteProblem.Unreachable && !setAside)
+                                            if (result.problem !in ASKED_AGAIN && !setAside)
                                                 wallet.blockCollect(accountId, host, wallet.now() + wallet.collectDefaults.retryAfterMillis)
                                         }
                                 }
@@ -401,5 +402,8 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
 
     private fun Note.forStrategy() = StrategyNote(id, amountMsat, isAddressNote, updatedAtMillis)
 
-    private companion object {}
+    private companion object {
+        /** Failures a collect tries again on the next refresh, without waiting: they say nothing about the notes. */
+        val ASKED_AGAIN = setOf(NoteProblem.Unreachable, NoteProblem.KeyChanged)
+    }
 }

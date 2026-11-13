@@ -379,6 +379,7 @@
     <string name="money_reason_payment">die Zahlung ist fehlgeschlagen</string>
     <string name="money_reason_price">der Preis ist gestiegen</string>
     <string name="money_reason_offline">keine Antwort</string>
+    <string name="money_reason_key_changed">der Signaturschlüssel passt nicht</string>
     <string name="money_reason_gone">schon verschoben</string>
     <string name="money_reason_refused">abgelehnt</string>
     <string name="money_try_again">Nochmal versuchen</string>

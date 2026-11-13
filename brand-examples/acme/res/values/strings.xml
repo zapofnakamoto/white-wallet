@@ -131,10 +131,12 @@
     <string name="notes_problem_invalid_amount">This banknote is too small to split, or the amount doesn\'t fit.</string>
     <string name="notes_problem_same_mint">The banknotes are already there.</string>
     <string name="notes_problem_mint_invalid">That address can\'t hold banknotes.</string>
+    <string name="notes_problem_key_changed">The signing key of the provider doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the provider\'s details. Your banknotes there are unchanged.</string>
     <string name="receive_hint">Anyone can pay this address from any Lightning wallet. Payments arrive as banknotes in this wallet.</string>
     <string name="receive_claim">Claim a banknote instead</string>
     <string name="send_create_note">Create a banknote</string>
     <string name="send_problem_refused">The provider refused this payment.</string>
+    <string name="send_problem_key_changed">The signing key of the provider doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the provider\'s details. Your banknotes there are unchanged.</string>
     <string name="send_problem_own_mint_invoice">This invoice is from your own provider, which can\'t pay itself over Lightning. Ask for a Lightning address instead.</string>
     <string name="send_problem_mint_message">Message from the provider: “%1$s”</string>
     <string name="note_create_title">Send as a banknote</string>
