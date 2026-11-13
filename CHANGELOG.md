@@ -82,8 +82,6 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   which did, is gone, and with it `regtest.sh note --mint5`. Run `regtest.sh reset` on both stacks: accounts on
   the old `localhost:8115` and `8116` stop working.
 
-## [0.8.1]
-
 ### Fixed
 
 - A mint whose signing key doesn't match stopped the whole refresh as soon as a payment to one of its addresses came
@@ -94,6 +92,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   screens do (new brand terms `send_problem_key_changed` and `notes_problem_key_changed`). Moving money to another
   account counted a mint that shows no signing key as movable, and the move then kept the money there; the check now
   says it stays. Its page no longer offers to make it home, which could only fail.
+
+## [0.8.1]
+
+### Fixed
+
 - The QR scanner was titled "Scan for notes" in 0.8.0: the new page's title had the scanner's string name
   (`scan_title`), and the build kept only one of the two. The page's is now `scan_notes_title`; a brand that
   overrode `scan_title` for the page renames its override, and one that meant the scanner's has its text back.
