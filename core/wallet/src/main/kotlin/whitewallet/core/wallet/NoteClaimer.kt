@@ -157,12 +157,15 @@ internal class NoteClaimer(private val wallet: Wallet) {
                     return ClaimPreview.Offline(link, link.declaredAmountMsat, certifiedOffline(link, accountId))
                 }
             }
+        val mint = wallet.mintOf(accountId, link.host)
+        // A mint whose key doesn't match isn't believed either when it says the note is worth nothing.
+        if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey?.toHex()) {
+            if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
+            return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
+        }
         if (info.maxWithdrawableMsat <= 0) return ClaimPreview.AlreadySpent
         if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
         val own = wallet.homeOf(accountId)
-        val mint = wallet.mintOf(accountId, link.host)
-        if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey?.toHex())
-            return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
         // The wallet keeps no notes at a mint without a signing key: only Lightning brings one in.
         val key = info.mintPubkey ?: return withdrawer.forNote(link, UnclaimedReason.NoSigningKey, found, accountId)
         return ClaimPreview.Ready(

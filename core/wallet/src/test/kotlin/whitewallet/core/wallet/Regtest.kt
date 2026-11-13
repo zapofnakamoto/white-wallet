@@ -305,6 +305,12 @@ internal object Regtest {
         return response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
     }
 
+    /** [response] as if its mint said the note is worth nothing. */
+    fun worthNothing(response: Response): Response {
+        val body = response.body.string().replace(Regex("\"(min|max)Withdrawable\":\\s*\\d+"), "\"$1Withdrawable\":0")
+        return response.newBuilder().body(body.toResponseBody(response.body.contentType())).build()
+    }
+
     /** [response] as if its mint presented a signing key that isn't a key (hex it can't be). */
     fun presentingBrokenKey(response: Response): Response {
         val body =

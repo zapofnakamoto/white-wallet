@@ -85,10 +85,11 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     is KeyLookup.KeyChanged -> return keyChanged(note)
                     KeyLookup.Unreachable -> return waiting(note)
                 }
-        if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
         val known = wallet.mintOf(note.accountId, note.host)
         val pinned = known?.mintPubkey
+        // Before its worth: a mint whose key doesn't match never ends the note by saying it is worth nothing.
         if (pinned != null && pinned != answer.mintPubkey?.toHex()) return keyChanged(note)
+        if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
         // As Claim offers: the wallet keeps no notes at a mint without a signing key.
         val key = answer.mintPubkey ?: return lightningOnly(note, UnclaimedReason.NoSigningKey)
         // A mint met here for the first time is connected before the claim, with the key it just presented: the claim's new key is then
@@ -259,6 +260,9 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                         isLive(note)
                     } catch (e: IOException) {
                         return
+                    } catch (e: MintKeyChangedException) {
+                        keyChanged(note.copy(journalId = null))
+                        return
                     }
                 if (live) update(note.copy(state = ReceivedState.Waiting, journalId = null))
                 else update(note.copy(state = ReceivedState.Gone, k1 = null))
@@ -267,10 +271,16 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         }
     }
 
-    /** Whether its mint still holds [note], asked by its key alone. Throws [IOException] when it can't tell. */
+    /**
+     * Whether its mint still holds [note], asked by its key alone. Throws [IOException] when it can't tell, and [MintKeyChangedException]
+     * when a mint whose key the account pinned presents another or none: its answer can't end the note.
+     */
     private suspend fun isLive(note: ReceivedNote): Boolean =
         try {
-            wallet.client.lookup(note.withdrawUrl, ByteVector32(note.id)).maxWithdrawableMsat > 0
+            val q = ByteVector32(note.id)
+            val pinned = wallet.mintOf(note.accountId, note.host)?.takeIf { it.mintPubkey != null }
+            val info = if (pinned != null) Pinning.lookup(wallet, pinned, q) else wallet.client.lookup(note.withdrawUrl, q)
+            info.maxWithdrawableMsat > 0
         } catch (e: NoteLookupError) {
             if (e.kind in UnknownNotes.GONE) false else throw IOException(e.reason)
         } catch (e: ProtocolViolation) {

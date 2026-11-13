@@ -45,19 +45,24 @@ class RegtestReceivedNotesTest {
 
     /**
      * A connection that writes down every request carrying a spend (`k1`), and drops requests while [offline]. While [changed], every mint
-     * presents [Regtest.OTHER_KEY] as its signing key.
+     * presents [Regtest.OTHER_KEY] as its signing key; while [keyless], none. While [worthless], every note is answered as worth nothing.
      */
     private class Watched : Interceptor {
         var offline = false
         var changed = false
+        var keyless = false
+        var worthless = false
         val spends = mutableListOf<HttpUrl>()
 
         override fun intercept(chain: Interceptor.Chain): Response {
             if (offline) Regtest.dropped()
             val url = chain.request().url
             if (url.queryParameter("k1") != null) spends += url
-            val response = chain.proceed(chain.request())
-            return if (changed) Regtest.presentingOtherKey(response) else response
+            var response = chain.proceed(chain.request())
+            if (changed) response = Regtest.presentingOtherKey(response)
+            if (keyless) response = Regtest.withoutSigningKey(response)
+            if (worthless) response = Regtest.worthNothing(response)
+            return response
         }
     }
 
@@ -241,6 +246,63 @@ class RegtestReceivedNotesTest {
             assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state)
             assertEquals(1_000_000, bob.balance())
             assertTrue(connection.spends.single().isMutation)
+        }
+
+    @Test
+    fun `a mint whose key doesn't match, saying a note is worth nothing, never ends it`() =
+        runBlocking<Unit> {
+            for (keyless in listOf(false, true)) {
+                val link = aNote()
+                val connection = Watched()
+                val bob = Regtest.phone(client = Regtest.client(connection))
+                connection.changed = !keyless
+                connection.keyless = keyless
+                connection.worthless = true
+
+                val preview = assertIs<ClaimPreview.KeyChanged>(bob.wallet.previewClaim(link), "not already spent: keyless=$keyless")
+                assertEquals(ReceivedState.KeyChanged, bob.wallet.keepClaim(preview).note.state)
+                runCatching { bob.wallet.refresh() }
+                val kept = bob.wallet.receivedNotes.first().single()
+                assertEquals(ReceivedState.KeyChanged, kept.state, "keyless=$keyless")
+                assertNotNull(kept.k1, "its spend is kept: keyless=$keyless")
+                assertEquals(emptyList(), connection.spends)
+
+                connection.changed = false
+                connection.keyless = false
+                connection.worthless = false
+                bob.wallet.refresh()
+                assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state, "keyless=$keyless")
+                assertEquals(1_000_000, bob.balance())
+            }
+        }
+
+    @Test
+    fun `a claim that didn't land, at a mint whose key no longer matches and says the note is worth nothing, keeps the note`() =
+        runBlocking<Unit> {
+            for (keyless in listOf(false, true)) {
+                val link = aNote()
+                val connection = Watched()
+                val bob = Regtest.phone(client = Regtest.client(connection))
+                val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+                connection.offline = true
+                assertEquals(ClaimResult.Pending, bob.wallet.claim(preview))
+
+                connection.offline = false
+                connection.changed = !keyless
+                connection.keyless = keyless
+                connection.worthless = true
+                runCatching { bob.wallet.refresh() }
+                val kept = bob.wallet.receivedNotes.first().single()
+                assertEquals(ReceivedState.KeyChanged, kept.state, "keyless=$keyless")
+                assertNotNull(kept.k1, "its spend is kept: keyless=$keyless")
+
+                connection.changed = false
+                connection.keyless = false
+                connection.worthless = false
+                bob.wallet.refresh()
+                assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state, "keyless=$keyless")
+                assertEquals(1_000_000, bob.balance())
+            }
         }
 
     @Test
