@@ -546,6 +546,13 @@ internal fun mintOptions(defaults: AppDefaults, developerMode: Boolean, known: L
 /** Whether the dropdown is worth showing: more than one mint, or only "Custom" (users bring their own). */
 internal fun List<MintOption>.hasChoice(): Boolean = size > 1 || singleOrNull() == MintOption.Custom
 
+/** The first mint offered that the wallet doesn't have yet (adding a mint is for a new one); else "Custom", else the first one. */
+internal fun firstNewMint(options: List<MintOption>, known: Set<String>): MintOption =
+    options.firstOrNull { option -> option.host?.let { it !in known } == true }
+        ?: MintOption.Custom.takeIf { it in options }
+        ?: options.firstOrNull()
+        ?: MintOption.Custom
+
 /** Keeps the current choice if it is still offered; otherwise picks the option for [host], Custom, or the first one. */
 internal fun keepSelection(options: List<MintOption>, before: List<MintOption>, selected: MintOption, host: String): MintOption =
     selected.takeIf { it in options && (it != MintOption.Custom || before.isNotEmpty()) }

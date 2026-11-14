@@ -58,6 +58,38 @@ class MintOptionsTest {
     }
 
     @Test
+    fun `adding a mint starts on the default mint while the wallet doesn't have it`() {
+        val options = mintOptions(defaults, developerMode = false, known = listOf("learned.example"))
+        assertEquals(MintOption.Suggested("mint.example"), firstNewMint(options, setOf("learned.example")))
+    }
+
+    @Test
+    fun `adding a mint skips the mints the wallet has, to the next suggested one`() {
+        val more = defaults.copy(mintSuggestions = listOf("mint.example", "mint2.example"))
+        val options = mintOptions(more, developerMode = false, known = listOf("mint.example"))
+        assertEquals(MintOption.Suggested("mint2.example"), firstNewMint(options, setOf("mint.example")))
+    }
+
+    @Test
+    fun `in developer mode a local mint counts as new`() {
+        val options = mintOptions(defaults, developerMode = true, known = listOf("mint.example"))
+        assertEquals(MintOption.LocalDev("localhost:8111"), firstNewMint(options, setOf("mint.example")))
+    }
+
+    @Test
+    fun `with every offered mint in the wallet, adding a mint starts on the empty field`() {
+        val options = mintOptions(defaults, developerMode = false, known = listOf("mint.example"))
+        assertEquals(MintOption.Custom, firstNewMint(options, setOf("mint.example")))
+    }
+
+    @Test
+    fun `a new wallet starts on the default mint, or the field where users bring their own`() {
+        assertEquals(MintOption.Suggested("mint.example"), firstNewMint(mintOptions(defaults, developerMode = false), emptySet()))
+        val own = mintOptions(defaults.copy(mintSuggestions = emptyList()), developerMode = false)
+        assertEquals(MintOption.Custom, firstNewMint(own, emptySet()))
+    }
+
+    @Test
     fun `an address needs its mint`() {
         val state = OnboardingState(username = "alice", host = "", canChangeHost = true, availability = Availability.Unknown)
         assertFalse(state.canSubmit)

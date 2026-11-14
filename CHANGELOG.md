@@ -40,6 +40,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - The empty History says what shows up there ("No payments yet…") instead of repeating the wallet tab's hint, which
   without a mint suggested an address that doesn't exist yet; the wallet tab drops that hint while it asks for a
   mint. The empty Notes view says what a note is.
+- Adding a mint starts on one the wallet doesn't have yet: the default mint, else the next suggested one, else the
+  empty field to type one. It started on the default mint even when the wallet had it already.
 - For brands: `money_move_no_mints` names the mint now and is a brand term, with `money_move_no_mints_add`,
   `money_change_no_mints` and `money_change_no_mints_add` beside it; new brand terms `mints_empty`,
   `settings_no_home` and `settings_no_home_action`, and `notes_receive`. `home_empty` is no longer a brand term. For

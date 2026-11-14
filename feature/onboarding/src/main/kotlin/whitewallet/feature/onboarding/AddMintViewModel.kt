@@ -99,7 +99,7 @@ data class AddMintState(
 class AddMintViewModel
 @Inject
 constructor(private val wallet: Wallet, private val defaults: AppDefaults, private val preferences: AppPreferences) : ViewModel() {
-    private val _state = MutableStateFlow(AddMintState(host = defaults.defaultMintHost, loaded = false))
+    private val _state = MutableStateFlow(AddMintState(loaded = false))
     val state: StateFlow<AddMintState> = _state
     private var initialized = false
 
@@ -116,7 +116,8 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
             preferences.developerMode.collect { developerMode ->
                 _state.update { s ->
                     val options = mintOptions(defaults, developerMode, known.filter(defaults::mintAllowed))
-                    val selected = keepSelection(options, s.mintOptions, s.selectedMint, s.host)
+                    val selected =
+                        if (first) firstNewMint(options, known.toSet()) else keepSelection(options, s.mintOptions, s.selectedMint, s.host)
                     s.copy(
                         mintOptions = options,
                         selectedMint = selected,
