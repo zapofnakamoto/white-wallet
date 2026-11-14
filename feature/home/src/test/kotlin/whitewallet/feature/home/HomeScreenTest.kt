@@ -476,21 +476,28 @@ class HomeScreenTest {
     }
 
     @Test
-    fun offlineHomeSaysSoAndOffersToTryAgainInsteadOfBlamingAMint() {
-        var refreshed = 0
+    fun offlineHomeSaysSoWithNothingToTryInsteadOfBlamingAMint() {
         show(
             HomeState(
                 activeAccountId = "a",
                 offline = true,
                 mints =
                     listOf(mint("home.example", 5_000, home = true, answering = false), mint("other.example", 2_000, answering = false)),
-            ),
-            onRefresh = { refreshed++ },
+            )
         )
         compose.onNodeWithText(text(R.string.home_offline)).assertExists()
         compose.onAllNodesWithText(text(R.string.home_mint_silent_title_home, "home.example")).assertCountEquals(0)
         compose.onAllNodesWithText(text(R.string.home_mint_not_answering)).assertCountEquals(0)
         compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
+        // Home updates by itself once the phone is back: nothing to try now.
+        compose.onAllNodesWithText(text(R.string.home_try_again)).assertCountEquals(0)
+    }
+
+    @Test
+    fun aFailedUpdateOffersToTryAgain() {
+        var refreshed = 0
+        show(HomeState(activeAccountId = "a", refreshFailed = true), onRefresh = { refreshed++ })
+        compose.onNodeWithText(text(R.string.home_update_failed)).assertExists()
         compose.onNodeWithText(text(R.string.home_try_again)).performScrollTo().performClick()
         assertEquals(1, refreshed)
     }

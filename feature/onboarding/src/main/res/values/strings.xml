@@ -114,7 +114,8 @@
     <string name="onboarding_error_hold_expired">The reservation ran out before the fee was paid. You can try again.</string>
     <string name="add_mint_done_title">Done</string>
     <string name="add_mint_failed_title">Error while restoring</string>
-    <string name="add_mint_error_unreachable">Couldn\'t reach it: %1$s. Check the address and your connection.</string>
+    <string name="add_mint_error_unreachable">Couldn\'t reach it. Check the address and try again.</string>
+    <string name="add_mint_offline">You\'re offline. Connect to continue.</string>
     <string name="add_mint_next">Next</string>
     <string name="add_mint_fees">Fees per payment</string>
     <string name="add_mint_fees_value">%1$s + %2$s %%</string>

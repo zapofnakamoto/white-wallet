@@ -193,7 +193,7 @@ fun ClaimScreen(
                     PrimaryButton(stringResource(R.string.claim_action, formatAmount(preview.amountMsat)), onClaim, busy = state.busy)
                 }
                 is ClaimPreview.Keepable -> {
-                    KeepCard(preview)
+                    KeepCard(preview, state.offline)
                     PrimaryButton(stringResource(R.string.claim_keep), onKeep, busy = state.busy)
                 }
                 is ClaimPreview.Melt -> MeltSection(preview, state, melt, onCheck)
@@ -207,7 +207,10 @@ fun ClaimScreen(
                             busy = state.busy,
                         )
                     } else {
-                        Text(stringResource(R.string.claim_own_offline), textAlign = TextAlign.Center)
+                        Text(
+                            stringResource(if (state.offline) R.string.claim_own_phone_offline else R.string.claim_own_offline),
+                            textAlign = TextAlign.Center,
+                        )
                         PrimaryButton(stringResource(R.string.claim_check), onCheck, enabled = state.input.isNotBlank(), busy = state.busy)
                     }
                 else -> {
@@ -384,9 +387,12 @@ private fun OwnCard(preview: ClaimPreview.OwnShared) {
     }
 }
 
-/** A note that can't be claimed now: why, what it is worth as far as known, and what keeping it means. */
+/**
+ * A note that can't be claimed now: why, what it is worth as far as known, and what keeping it means. Its mint couldn't be reached: the
+ * phone is [offline], or there was no answer.
+ */
 @Composable
-private fun KeepCard(preview: ClaimPreview.Keepable) {
+private fun KeepCard(preview: ClaimPreview.Keepable, offline: Boolean) {
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val amount =
@@ -402,7 +408,7 @@ private fun KeepCard(preview: ClaimPreview.Keepable) {
             amount?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
             Text(
                 when (preview) {
-                    is ClaimPreview.Offline -> stringResource(R.string.claim_offline)
+                    is ClaimPreview.Offline -> stringResource(if (offline) R.string.claim_offline else R.string.claim_unreachable)
                     is ClaimPreview.Locked ->
                         preview.untilMillis?.let { stringResource(R.string.claim_locked_until, recentTime(it)) }
                             ?: stringResource(R.string.claim_locked_for, lockDuration(preview.forSeconds ?: 0))

@@ -276,6 +276,7 @@
 
     <string name="mint_reachable">Erreichbar</string>
     <string name="mint_unreachable">Antwortet gerade nicht</string>
+    <string name="mint_offline">Du bist offline</string>
     <string name="mint_key_changed_short">Signaturschlüssel passt nicht</string>
     <string name="mint_check_again">Erneut prüfen</string>
     <string name="mint_key_remembered">Gemerkter Schlüssel</string>
@@ -359,7 +360,8 @@
     <string name="money_move_from">Dein ganzes Geld auf %1$s geht dorthin, wo du auswählst, in einer Zahlung.</string>
     <string name="money_move_target">Nach</string>
     <string name="money_error_mint">Antwortet nicht wie erwartet: %1$s</string>
-    <string name="money_error_network">Keine Verbindung: %1$s</string>
+    <string name="money_error_network">Keine Verbindung. Versuche es später erneut.</string>
+    <string name="money_offline">Du bist offline. Verbinde dich, um fortzufahren.</string>
     <string name="money_continue">Weiter</string>
     <string name="money_back">Zurück</string>
     <string name="money_review_to">Nach %1$s</string>

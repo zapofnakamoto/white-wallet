@@ -11,6 +11,7 @@
     <string name="claim_in_wallet">Dieser Schein ist bereits in deiner Wallet.</string>
     <string name="claim_own_shared">Du hast diesen Schein geteilt, und niemand hat ihn bisher eingelöst.</string>
     <string name="claim_own_offline">Du hast diesen Schein geteilt. Die Mint antwortet gerade nicht, darum lässt er sich noch nicht zurückholen.</string>
+    <string name="claim_own_phone_offline">Du hast diesen Schein geteilt. Du bist offline, darum lässt er sich noch nicht zurückholen.</string>
     <string name="claim_other_mint">Dieser Schein liegt bei %1$s und bleibt dort.</string>
     <string name="claim_not_spendable">Dieser Link öffnet den Schein nicht, den er nennt; er lässt sich nicht einlösen.</string>
     <string name="claim_other_paths">Dieser Schein lässt sich auch auf anderem Weg ausgeben; jemand anderes kann ihn also nehmen, bevor du ihn einlöst.</string>
@@ -32,7 +33,8 @@
     <string name="claim_done">%1$s eingelöst</string>
     <string name="claim_finish">Fertig</string>
     <string name="claim_not_certified">Nicht zertifiziert: Der Betrag lässt sich nicht prüfen.</string>
-    <string name="claim_offline">Gerade keine Verbindung. Behalte ihn, und deine Wallet löst ihn ein, sobald sie wieder online ist.</string>
+    <string name="claim_offline">Du bist offline. Behalte ihn, und deine Wallet löst ihn ein, sobald du wieder online bist.</string>
+    <string name="claim_unreachable">Keine Verbindung. Behalte ihn, und deine Wallet löst ihn ein, sobald sie kann.</string>
     <string name="claim_amount_declared">%1$s laut Link, noch nicht geprüft</string>
     <string name="claim_locked_until">Gesperrt bis %1$s. Behalte ihn, und deine Wallet löst ihn dann ein.</string>
     <string name="claim_locked_for">Bis zu %1$s gesperrt. Behalte ihn, und deine Wallet löst ihn ein, sobald er frei ist.</string>

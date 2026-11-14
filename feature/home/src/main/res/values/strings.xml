@@ -156,7 +156,7 @@
     <!-- Joins the parts of a history row's detail line (time, status, fee). -->
     <string name="activity_detail_separator">" · "</string>
     <!-- Under Send and Receive, when the last update of the wallet didn't go through, with a button to try again. -->
-    <string name="home_offline">You\'re offline. What you see may be out of date.</string>
+    <string name="home_offline">You\'re offline. Your wallet updates when you\'re back online.</string>
     <string name="home_update_failed">Couldn\'t update. What you see may be out of date.</string>
     <string name="home_try_again">Try again</string>
     <string name="home_backup_title">Back up your wallet</string>

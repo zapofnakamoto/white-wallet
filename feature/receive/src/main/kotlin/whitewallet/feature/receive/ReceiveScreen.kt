@@ -153,7 +153,7 @@ private fun receiveStatus(state: ReceiveState): WalletStatus {
     val invoice = state.invoice?.status
     return when {
         invoice == InvoiceStatus.Expired -> WalletStatus.Problem(ProblemKind.Other)
-        state.problem == InvoiceProblem.Offline -> WalletStatus.Problem(ProblemKind.Offline)
+        state.problem == InvoiceProblem.Offline || (state.offline && state.showAmountForm) -> WalletStatus.Problem(ProblemKind.Offline)
         state.problem is InvoiceProblem.MintNotAnswering -> WalletStatus.Problem(ProblemKind.MintNotAnswering)
         state.problem != null -> WalletStatus.Problem(ProblemKind.Other)
         state.invoice == null && state.address != null && !state.showAmountForm && state.addressMintNotAnswering ->
@@ -216,23 +216,28 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions) {
         keyboardActions = KeyboardActions(onDone = { actions.onCreate() }),
         modifier = Modifier.fillMaxWidth(),
     )
-    state.problem?.let { problem ->
-        val message =
-            when (problem) {
-                is InvoiceProblem.OutOfRange ->
-                    stringResource(R.string.receive_invoice_range, formatAmount(problem.minMsat), formatAmount(problem.maxMsat))
-                InvoiceProblem.Offline -> stringResource(R.string.receive_invoice_offline)
-                is InvoiceProblem.MintNotAnswering ->
-                    if (state.mintsVisible) stringResource(R.string.receive_invoice_mint_silent, problem.host)
-                    else stringResource(R.string.receive_invoice_mint_silent_unnamed)
-                InvoiceProblem.Refused -> stringResource(R.string.receive_invoice_refused)
-            }
-        Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-    }
+    // Being offline is said as it is, before the user tries, and not as an error once the phone is back.
+    state.problem
+        ?.takeUnless { it == InvoiceProblem.Offline }
+        ?.let { problem ->
+            val message =
+                when (problem) {
+                    is InvoiceProblem.OutOfRange ->
+                        stringResource(R.string.receive_invoice_range, formatAmount(problem.minMsat), formatAmount(problem.maxMsat))
+                    is InvoiceProblem.MintNotAnswering ->
+                        if (state.mintsVisible) stringResource(R.string.receive_invoice_mint_silent, problem.host)
+                        else stringResource(R.string.receive_invoice_mint_silent_unnamed)
+                    InvoiceProblem.Offline,
+                    InvoiceProblem.NoAnswer,
+                    InvoiceProblem.Refused -> stringResource(R.string.receive_invoice_refused)
+                }
+            Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+        }
+    if (state.offline) Text(stringResource(R.string.receive_invoice_offline), textAlign = TextAlign.Center)
     PrimaryButton(
         stringResource(R.string.receive_invoice_create),
         actions.onCreate,
-        enabled = state.amountMsat != null,
+        enabled = state.amountMsat != null && !state.offline,
         busy = state.creating,
     )
     if (state.addressCount > 0) {

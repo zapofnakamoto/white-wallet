@@ -34,7 +34,8 @@ enum class AddMintStep {
 sealed interface AddMintError {
     data object NotAllowed : AddMintError
 
-    data class Unreachable(val detail: String) : AddMintError
+    /** No answer from it: the address may be wrong, or the mint down. (Offline, the screen says that instead.) */
+    data object Unreachable : AddMintError
 
     data class Invalid(val detail: String) : AddMintError
 }
@@ -84,12 +85,14 @@ data class AddMintState(
     val finish: AddMintFinish? = null,
     /** The mints to pick from are known: until then the screen draws nothing, not one mint first and a list of them after. */
     val loaded: Boolean = true,
+    /** The phone is offline: no mint can be asked what it is, and the screen says so before the user tries. */
+    val offline: Boolean = false,
 ) {
     val showMintPicker: Boolean
         get() = mintOptions.hasChoice()
 
     val canNext: Boolean
-        get() = !busy && host.isNotBlank()
+        get() = !offline && !busy && host.isNotBlank()
 
     val foundMsat: Long
         get() = found.sumOf { it.amountMsat }
@@ -108,6 +111,7 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
         if (initialized) return
         initialized = true
         _state.update { it.copy(setup = setup, canSkip = setup && defaults.mintOptional) }
+        viewModelScope.launch { followConnection() }
         viewModelScope.launch {
             val known = wallet.mints.first().map { it.host }
             _state.update { it.copy(known = known.toSet()) }
@@ -133,6 +137,20 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
         }
     }
 
+    /**
+     * Says at once when the phone goes offline. Back online, where there is nothing to pick (a brand with a single mint), the screen goes
+     * on to what it is, as it would have at the start.
+     */
+    private suspend fun followConnection() {
+        var wasOffline = !wallet.isOnline()
+        wallet.offline.collect { offline ->
+            _state.update { it.copy(offline = offline, error = it.error.takeUnless { offline && it == AddMintError.Unreachable }) }
+            val s = _state.value
+            if (wasOffline && !offline && s.loaded && s.step == AddMintStep.Pick && !s.showMintPicker && s.host.isNotBlank()) next()
+            wasOffline = offline
+        }
+    }
+
     fun onMintSelected(option: MintOption) = _state.update {
         it.copy(selectedMint = option, host = option.host ?: it.customHost, error = null)
     }
@@ -148,7 +166,7 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
         viewModelScope.launch {
             when (val preview = wallet.previewMint(s.host)) {
                 is MintPreview.Ready -> _state.update { it.copy(busy = false, step = AddMintStep.Info, preview = preview) }
-                is MintPreview.Unreachable -> _state.update { it.copy(busy = false, error = AddMintError.Unreachable(preview.reason)) }
+                is MintPreview.Unreachable -> _state.update { it.copy(busy = false, error = AddMintError.Unreachable) }
                 is MintPreview.Invalid -> _state.update { it.copy(busy = false, error = AddMintError.Invalid(preview.reason)) }
             }
         }

@@ -22,7 +22,7 @@
     <string name="receive_invoice_intro">Erstelle eine Lightning-Rechnung über den gewünschten Betrag. Sie kann aus jeder Lightning-Wallet bezahlt werden, einmal.</string>
     <string name="receive_invoice_create">Rechnung erstellen</string>
     <string name="receive_invoice_range">Wähle einen Betrag von %1$s bis %2$s.</string>
-    <string name="receive_invoice_offline">Du bist offline. Verbinde dich und versuche es erneut.</string>
+    <string name="receive_invoice_offline">Du bist offline. Verbinde dich, um eine Rechnung zu erstellen.</string>
     <string name="receive_invoice_refused">Es konnte keine Rechnung erstellt werden. Versuche es später erneut.</string>
     <string name="receive_invoice_qr">Lightning-Rechnung</string>
     <string name="receive_invoice_fee">Du erhältst %1$s nach einer Gebühr von %2$s.</string>

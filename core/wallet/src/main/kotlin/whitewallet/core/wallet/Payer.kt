@@ -298,9 +298,9 @@ internal class Payer(private val wallet: Wallet) {
         }
     }
 
-    /** [host] didn't answer before anything was sent; with the phone offline, that says nothing about the mint. */
+    /** [host] didn't answer before anything was sent; offline, or over an unverified network, that says nothing about the mint. */
     private fun notAnswering(host: String): PayResult.Failed =
-        if (wallet.isOnline()) {
+        if (wallet.silenceCounts()) {
             wallet.heardFrom(host, answered = false)
             PayResult.Failed(PayProblem.MintNotAnswering, host = host)
         } else PayResult.Failed(PayProblem.Unreachable)

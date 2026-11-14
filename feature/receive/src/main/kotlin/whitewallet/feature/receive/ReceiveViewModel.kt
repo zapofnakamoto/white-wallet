@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import whitewallet.core.wallet.AppDefaults
+import whitewallet.core.wallet.Connection
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceRequest
 import whitewallet.core.wallet.InvoiceStatus
@@ -33,6 +34,9 @@ sealed interface InvoiceProblem {
 
     /** The home mint, which makes the invoice, didn't answer. */
     data class MintNotAnswering(val host: String) : InvoiceProblem
+
+    /** No answer over a network not known to reach the internet: that says nothing about the mint. */
+    data object NoAnswer : InvoiceProblem
 
     data object Refused : InvoiceProblem
 }
@@ -65,6 +69,8 @@ data class ReceiveState(
     val addressMintNotAnswering: Boolean = false,
     /** The brand names mints (brand `mints.visible`). */
     val mintsVisible: Boolean = true,
+    /** The phone is offline: no invoice can be made, and the amount form says so before the user tries. */
+    val offline: Boolean = false,
 ) {
     /** The mint of the [address] shown. */
     val addressHost: String?
@@ -134,6 +140,7 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
                 )
             }
             .combine(wallet.mintsNotAnswering) { state, silent -> state.copy(addressMintNotAnswering = state.addressHost in silent) }
+            .combine(wallet.offline) { state, offline -> state.copy(offline = offline) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState(loaded = false))
 
     /** The primary address first, else one on the home mint; addresses still held for their fee aren't offered. */
@@ -148,6 +155,8 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
         viewModelScope.launch {
             while (isActive) {
                 delay(timings.receivePollMillis)
+                // Offline, there's nobody to ask: what arrived meanwhile is found once the phone is back.
+                if (!wallet.isOnline()) continue
                 val result = runCatching { wallet.refresh() }.getOrNull()
                 if (result != null && result.receivedMsat > 0) received.value += result.receivedMsat
             }
@@ -171,7 +180,7 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
 
     fun createInvoice() {
         val amount = state.value.amountMsat ?: return
-        if (ui.value.creating) return
+        if (ui.value.creating || state.value.offline) return
         ui.update { it.copy(creating = true, problem = null) }
         viewModelScope.launch {
             val problem =
@@ -183,8 +192,11 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
                     }
                     is InvoiceRequest.OutOfRange -> InvoiceProblem.OutOfRange(result.minMsat, result.maxMsat)
                     InvoiceRequest.Unreachable ->
-                        wallet.homeHost.first()?.takeIf { wallet.isOnline() }?.let(InvoiceProblem::MintNotAnswering)
-                            ?: InvoiceProblem.Offline
+                        when (wallet.connection.value) {
+                            Connection.Offline -> InvoiceProblem.Offline
+                            Connection.Unverified -> InvoiceProblem.NoAnswer
+                            Connection.Online -> wallet.homeHost.first()?.let(InvoiceProblem::MintNotAnswering) ?: InvoiceProblem.NoAnswer
+                        }
                     InvoiceRequest.Refused -> InvoiceProblem.Refused
                 }
             ui.update { it.copy(creating = false, problem = problem) }

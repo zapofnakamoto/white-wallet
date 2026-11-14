@@ -75,6 +75,8 @@ data class MintDetailsState(
     val moneyElsewhere: Boolean = false,
     /** The mint the page is about, known before it is asked anything: the page's title from the start. */
     val host: String? = null,
+    /** The phone is offline: a mint that couldn't be asked isn't said not to answer. */
+    val offline: Boolean = false,
 )
 
 /**
@@ -101,6 +103,16 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
         // After a change of the home mint (see onChangeHome), back here: this page may be the old or the new home.
         viewModelScope.launch { wallet.homeHost.drop(1).collect { refresh() } }
         viewModelScope.launch { wallet.collectAtHome.collect { c -> _state.update { it.copy(collects = c) } } }
+        viewModelScope.launch {
+            var wasOffline = !wallet.isOnline()
+            wallet.offline.collect { offline ->
+                _state.update { it.copy(offline = offline) }
+                // Back online: the mint that couldn't be asked is asked now.
+                val unasked = _state.value.details?.reachability == MintDetails.Reachability.Unreachable
+                if (wasOffline && !offline && unasked && !_state.value.loading) refresh()
+                wasOffline = offline
+            }
+        }
         viewModelScope.launch {
             wallet.accountMints.collect { mints ->
                 _state.update { it.copy(moneyElsewhere = mints.any { m -> !m.isHome && m.balanceMsat > 0 }) }
@@ -216,7 +228,7 @@ fun MintDetailsScreen(
                 KeyChangedCard(details.host, details.mint?.mintPubkey, details.presentedKey, onAcceptKey.takeUnless { state.loading })
             }
             WalletListItem(
-                headlineContent = { Text(stringResource(reachabilityText(details.reachability))) },
+                headlineContent = { Text(stringResource(reachabilityText(details.reachability, state.offline))) },
                 supportingContent = details.description?.let { { Text(it) } },
                 trailingContent = {
                     if (showsWorking(state.loading)) WalletCircularProgress()
@@ -453,10 +465,11 @@ private fun KeyChangedCard(host: String, remembered: String?, presented: String?
     }
 }
 
-private fun reachabilityText(reachability: MintDetails.Reachability): Int =
+/** What [reachability] says; no answer while the phone is [offline] says nothing about the mint. */
+private fun reachabilityText(reachability: MintDetails.Reachability, offline: Boolean): Int =
     when (reachability) {
         MintDetails.Reachability.Reachable -> R.string.mint_reachable
-        MintDetails.Reachability.Unreachable -> R.string.mint_unreachable
+        MintDetails.Reachability.Unreachable -> if (offline) R.string.mint_offline else R.string.mint_unreachable
         MintDetails.Reachability.Invalid -> R.string.mint_invalid
         MintDetails.Reachability.KeyChanged -> R.string.mint_key_changed_short
     }

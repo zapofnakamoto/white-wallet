@@ -74,7 +74,9 @@
     <string name="send_problem_withdraw_link">This link pays money out to you. Open it under Receive.</string>
     <string name="send_problem_no_amount">This invoice has no amount. Ask the recipient for one with an amount, or for their Lightning address.</string>
     <string name="send_problem_expired">This invoice has expired. Ask the recipient for a new one.</string>
-    <string name="send_problem_unreachable">Couldn\'t connect. Check your connection and try again. Nothing was paid.</string>
+    <string name="send_problem_unreachable">Couldn\'t connect. Nothing was paid. Try again later.</string>
+    <!-- Before the user tries, while the phone has no connection: on Send, and on sending as a link. -->
+    <string name="send_offline">You\'re offline. Connect to send.</string>
     <string name="send_problem_payee_refused">The recipient\'s wallet didn\'t accept this. Check the address.</string>
     <string name="send_problem_mismatch">The recipient\'s wallet sent an invoice that doesn\'t match. Nothing was paid.</string>
     <string name="send_problem_own_address">That\'s this account\'s own address.</string>
@@ -96,6 +98,7 @@
     <string name="note_print_warning">Whoever holds this paper can spend it. Keep it like cash.</string>
     <string name="note_copy">Copy</string>
     <string name="note_reclaim">Take back</string>
+    <string name="note_reclaim_offline">You\'re offline. You can take it back once you\'re connected.</string>
     <string name="note_cancel">Cancel</string>
     <string name="note_reclaim_body">The money returns to your balance and this code stops working. If it\'s already been spent, nothing changes.</string>
     <string name="note_spent">Spent, usually by the recipient. It could also have been another device with your recovery phrase.</string>

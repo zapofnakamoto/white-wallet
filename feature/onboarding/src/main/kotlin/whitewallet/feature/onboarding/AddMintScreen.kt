@@ -109,13 +109,14 @@ private fun PickContent(state: AddMintState, actions: AddMintActions) {
         Text(
             when (error) {
                 AddMintError.NotAllowed -> stringResource(R.string.add_mint_error_not_allowed)
-                is AddMintError.Unreachable -> stringResource(R.string.add_mint_error_unreachable, error.detail)
+                AddMintError.Unreachable -> stringResource(R.string.add_mint_error_unreachable)
                 is AddMintError.Invalid -> stringResource(R.string.add_mint_error_invalid, error.detail)
             },
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
         )
     }
+    if (state.offline) Text(stringResource(R.string.add_mint_offline), textAlign = TextAlign.Center)
     PrimaryButton(stringResource(R.string.add_mint_next), actions.onNext, enabled = state.canNext, busy = state.busy)
     if (state.canSkip) {
         WalletButton(kind = ButtonKind.Text, onClick = actions.onSkip, enabled = !state.busy) {

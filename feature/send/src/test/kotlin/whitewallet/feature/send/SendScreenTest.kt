@@ -3,6 +3,8 @@ package whitewallet.feature.send
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -15,6 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import whitewallet.core.wallet.PayDestination
 import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
+import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
 import whitewallet.lnurl.Bolt11Invoice
 
@@ -100,6 +103,27 @@ class SendScreenTest {
         compose.setContent { SendScreen(SendState(preview = payLink, result = failed), onBack = {}, onDone = {}, actions = actions()) }
         compose.onNodeWithText(text(R.string.send_problem_own_mint_invoice)).assertExists()
         compose.onNodeWithText(text(R.string.send_problem_mint_message, ""), substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun offlineSendSaysSoBeforeTheUserTriesAndKeepsContinueForNoteLinks() {
+        var state by mutableStateOf(SendState(input = "lnbc1…", offline = true, problem = PayProblem.Unreachable))
+        compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_offline)).assertExists()
+        compose.onNodeWithText(text(R.string.send_problem_unreachable)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.send_continue)).assertIsEnabled()
+        compose.onNodeWithText(text(R.string.send_create_note)).assertIsNotEnabled()
+        state = state.copy(offline = false)
+        compose.onNodeWithText(text(R.string.send_offline)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.send_create_note)).assertIsEnabled()
+    }
+
+    @Test
+    fun offlineNothingCanBePaid() {
+        val state = SendState(preview = payLink, amountText = "1", quote = PayQuote.Ok(1_000, 0), offline = true)
+        compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_offline)).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.send_pay_amount, "₿1")).performScrollTo().assertIsNotEnabled()
     }
 
     @Test

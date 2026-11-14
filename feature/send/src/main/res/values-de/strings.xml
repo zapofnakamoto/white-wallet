@@ -67,7 +67,8 @@
     <string name="send_problem_withdraw_link">Dieser Link zahlt dir Geld aus. Öffne ihn unter Empfangen.</string>
     <string name="send_problem_no_amount">Diese Rechnung hat keinen Betrag. Bitte den Empfänger um eine mit Betrag oder um seine Lightning-Adresse.</string>
     <string name="send_problem_expired">Diese Rechnung ist abgelaufen. Bitte den Empfänger um eine neue.</string>
-    <string name="send_problem_unreachable">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts bezahlt.</string>
+    <string name="send_problem_unreachable">Keine Verbindung. Es wurde nichts bezahlt. Versuche es später erneut.</string>
+    <string name="send_offline">Du bist offline. Verbinde dich, um zu senden.</string>
     <string name="send_problem_payee_refused">Die Wallet des Empfängers hat das nicht angenommen. Prüfe die Adresse.</string>
     <string name="send_problem_mismatch">Die Wallet des Empfängers hat eine Rechnung geschickt, die nicht passt. Es wurde nichts bezahlt.</string>
     <string name="send_problem_own_address">Das ist die eigene Adresse dieses Kontos.</string>
@@ -88,6 +89,7 @@
     <string name="note_print_warning">Wer dieses Papier hat, kann es ausgeben. Bewahre es auf wie Bargeld.</string>
     <string name="note_copy">Kopieren</string>
     <string name="note_reclaim">Zurückholen</string>
+    <string name="note_reclaim_offline">Du bist offline. Zurückholen geht wieder, sobald du verbunden bist.</string>
     <string name="note_cancel">Abbrechen</string>
     <string name="note_reclaim_body">Das Geld kommt zurück in dein Guthaben und dieser Code funktioniert nicht mehr. Wurde er schon ausgegeben, ändert sich nichts.</string>
     <string name="note_spent">Ausgegeben, meist vom Empfänger. Es kann auch ein anderes Gerät mit deiner Wiederherstellungsphrase gewesen sein.</string>

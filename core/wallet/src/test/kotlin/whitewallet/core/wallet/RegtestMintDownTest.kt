@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
@@ -19,7 +20,7 @@ class RegtestMintDownTest {
     private val down = mutableSetOf<String>()
     /** Every mint a request went to (or was meant to), in order. */
     private val asked = mutableListOf<String>()
-    private var online = true
+    private val connection = MutableStateFlow(Connection.Online)
     private val client = Regtest.client { chain ->
         val url = chain.request().url
         val host = "${url.host}:${url.port}"
@@ -28,7 +29,7 @@ class RegtestMintDownTest {
         chain.proceed(chain.request())
     }
 
-    private suspend fun phone() = Regtest.phone(client = client, online = { online })
+    private suspend fun phone() = Regtest.phone(client = client, connection = connection)
 
     /** [phone] with a 3000 sat note on the second mint, claimed there. */
     private suspend fun Regtest.Phone.withNoteOnSecondMint() {
@@ -78,11 +79,22 @@ class RegtestMintDownTest {
     fun `with the phone offline a mint's silence says nothing about the mint`() =
         runBlocking<Unit> {
             val alice = phone()
-            online = false
+            connection.value = Connection.Offline
             down += HOST
             alice.wallet.refresh()
             assertEquals(emptySet(), alice.silent())
             assertFalse(alice.wallet.isOnline())
+        }
+
+    @Test
+    fun `over a network not known to reach the internet a mint's silence says nothing either`() =
+        runBlocking<Unit> {
+            val alice = phone()
+            connection.value = Connection.Unverified
+            down += HOST
+            alice.wallet.refresh()
+            assertEquals(emptySet(), alice.silent())
+            assertTrue(alice.wallet.isOnline(), "requests are still tried")
         }
 
     @Test
@@ -128,7 +140,7 @@ class RegtestMintDownTest {
             assertEquals(PayResult.Failed(PayProblem.MintNotAnswering, host = HOST), alice.wallet.pay(preview, 1_000_000))
             assertEquals(1_999_000, alice.balance())
 
-            online = false
+            connection.value = Connection.Offline
             assertEquals(PayResult.Failed(PayProblem.Unreachable), alice.wallet.pay(preview, 1_000_000), "offline: the phone, not the mint")
         }
 

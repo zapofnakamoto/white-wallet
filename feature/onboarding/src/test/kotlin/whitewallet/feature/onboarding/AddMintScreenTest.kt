@@ -1,5 +1,6 @@
 package whitewallet.feature.onboarding
 
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -63,8 +64,15 @@ class AddMintScreenTest {
 
     @Test
     fun anUnreachableMintSaysWhy() {
-        show(pick.copy(error = AddMintError.Unreachable("timeout")))
-        compose.onNodeWithText(text(R.string.add_mint_error_unreachable, "timeout")).assertExists()
+        show(pick.copy(error = AddMintError.Unreachable))
+        compose.onNodeWithText(text(R.string.add_mint_error_unreachable)).assertExists()
+    }
+
+    @Test
+    fun offlineNoMintIsAskedAndTheScreenSaysSoBeforeTheUserTries() {
+        show(pick.copy(offline = true))
+        compose.onNodeWithText(text(R.string.add_mint_offline)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_next)).assertIsNotEnabled()
     }
 
     @Test

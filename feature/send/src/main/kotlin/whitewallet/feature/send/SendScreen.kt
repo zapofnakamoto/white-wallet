@@ -223,13 +223,15 @@ private fun InputContent(state: SendState, actions: SendActions) {
             Text(stringResource(R.string.send_paste))
         }
     }
-    state.problem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
+    state.shownProblem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
+    // Offline, said before the user tries. Continue stays: a note link entered here goes to Claim, which keeps it until the phone is back.
+    if (state.offline) Text(stringResource(R.string.send_offline), textAlign = TextAlign.Center)
     PrimaryButton(stringResource(R.string.send_continue), actions.onCheck, enabled = state.input.isNotBlank(), busy = state.checking)
     Text(stringResource(R.string.send_or), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     WalletButton(
         kind = ButtonKind.Secondary,
         onClick = actions.onCreateNote,
-        enabled = !state.checking,
+        enabled = !state.checking && !state.offline,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(stringResource(R.string.send_create_note))
@@ -331,6 +333,7 @@ private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: 
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     QuoteText(state.quote)
+    if (state.offline) Text(stringResource(R.string.send_offline), textAlign = TextAlign.Center)
     val amount = state.amountMsat
     PrimaryButton(
         if (amount != null) stringResource(R.string.send_pay_amount, formatAmount(amount)) else stringResource(R.string.send_pay),

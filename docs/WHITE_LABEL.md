@@ -206,6 +206,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `claim_in_wallet` | This note is already in your wallet. |
 | `claim_own_shared` | You shared this note, and nobody has claimed it yet. |
 | `claim_own_offline` | You shared this note. Its mint isn't answering right now, so it can't be taken back yet. |
+| `claim_own_phone_offline` | You shared this note. You're offline, so it can't be taken back yet. |
 | `claim_other_mint` | This note is held by %1$s and stays there. |
 | `home_tab_notes` | Notes |
 | `home_wallet_empty` | Nothing here yet. Share your address to get paid, or claim a note. |

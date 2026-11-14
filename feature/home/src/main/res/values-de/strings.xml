@@ -130,7 +130,7 @@
     <string name="activity_automatic">Automatisch</string>
     <string name="activity_manual">Von dir</string>
     <string name="activity_detail_separator">" · "</string>
-    <string name="home_offline">Du bist offline. Was du siehst, ist vielleicht nicht aktuell.</string>
+    <string name="home_offline">Du bist offline. Deine Wallet aktualisiert sich, sobald du wieder online bist.</string>
     <string name="home_update_failed">Aktualisieren fehlgeschlagen. Was du siehst, ist vielleicht nicht aktuell.</string>
     <string name="home_try_again">Erneut versuchen</string>
     <string name="home_backup_title">Sichere deine Wallet</string>

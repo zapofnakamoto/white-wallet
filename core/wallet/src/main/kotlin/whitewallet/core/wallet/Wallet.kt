@@ -91,8 +91,8 @@ class Wallet(
      * needs a network).
      */
     private val onWaitingForNetwork: () -> Unit = {},
-    /** Whether the phone has a network connection now: without one, a mint that doesn't answer says nothing about the mint. */
-    private val online: () -> Boolean = { true },
+    /** The phone's network connection, kept up to date: offline, a mint that doesn't answer says nothing about the mint. */
+    val connection: StateFlow<Connection> = MutableStateFlow(Connection.Online),
     /** How long [pay] waits for a melt's payment to settle before reporting it as pending (brand `sync.paymentWait`). */
     payWaitMillis: Long = 30_000L,
     /** How long a received note its mint refuses is tried again before it counts as refused (brand `notes.received.giveUpAfter`). */
@@ -155,15 +155,21 @@ class Wallet(
     val mintsNotAnswering: Flow<Set<String>> =
         mintAnswers.map { answers -> answers.filterValues { !it.answered }.keys }.distinctUntilChanged()
 
-    /** Whether the phone has a network connection now (see the constructor). */
-    fun isOnline(): Boolean = online()
+    /** Whether the phone is offline, as it changes: the screens say so before the user tries what needs a connection. */
+    val offline: Flow<Boolean> = connection.map { it == Connection.Offline }.distinctUntilChanged()
+
+    /** Whether the phone has a network connection now, one that may reach the internet (see [connection]). */
+    fun isOnline(): Boolean = connection.value != Connection.Offline
+
+    /** Whether a mint that doesn't answer now is told as such: only over a network known to reach the internet ([Connection.Online]). */
+    internal fun silenceCounts(): Boolean = connection.value == Connection.Online
 
     /**
-     * [host] answered, or ([answered] false) didn't: kept for [mintsNotAnswering]. No answer while the phone is offline isn't counted: it
-     * says nothing about the mint.
+     * [host] answered, or ([answered] false) didn't: kept for [mintsNotAnswering]. No answer is only counted over a network known to reach
+     * the internet: offline, or behind a hotel's login page, it says nothing about the mint.
      */
     internal fun heardFrom(host: String, answered: Boolean = true) {
-        if (!answered && !online()) return
+        if (!answered && !silenceCounts()) return
         mintAnswers.update { it + (host to MintAnswer(answered, now())) }
     }
 
@@ -1163,8 +1169,8 @@ class Wallet(
      * wallet knows of one that doesn't answer before the user finds out by paying ([mintsNotAnswering]).
      */
     private suspend fun askOthers(accountId: String, since: Long) {
-        // Offline, no answer would say anything: asking would only wait.
-        if (!online()) return
+        // Without a network known to reach the internet, no answer would say anything: asking would only wait.
+        if (!silenceCounts()) return
         val held = store.notes(accountId).first().filter { it.state == NoteState.Outstanding }.map { it.host }
         for (host in (listOfNotNull(homeOf(accountId)) + held).distinct()) {
             if ((mintAnswers.value[host]?.atMillis ?: -1) >= since) continue

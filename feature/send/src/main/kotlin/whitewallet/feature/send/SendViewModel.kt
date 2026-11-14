@@ -51,13 +51,19 @@ data class SendState(
     val limitMsat: Long? = null,
     /** The brand names mints (brand `mints.visible`). */
     val mintsVisible: Boolean = true,
+    /** The phone is offline: nothing can be paid, and the screen says so before the user tries. */
+    val offline: Boolean = false,
 ) {
     /** The amount to pay in msat, or null while none is entered. */
     val amountMsat: Long?
         get() = preview?.fixedAmountMsat ?: amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
 
     val canPay: Boolean
-        get() = !paying && !quoting && quote is PayQuote.Ok && quote.amountMsat == amountMsat
+        get() = !offline && !paying && !quoting && quote is PayQuote.Ok && quote.amountMsat == amountMsat
+
+    /** Why the input can't be paid, unless being offline says it already. */
+    val shownProblem: PayProblem?
+        get() = problem.takeUnless { offline && it == PayProblem.Unreachable }
 }
 
 @HiltViewModel
@@ -83,6 +89,7 @@ constructor(
                 _state.update { it.copy(faucet = if (available) it.faucet ?: FaucetState() else null, loaded = true) }
             }
         }
+        viewModelScope.launch { wallet.offline.collect { offline -> _state.update { it.copy(offline = offline) } } }
         // Opened from a link, shared text or NFC tag: check it right away.
         savedState.get<String>("input")?.takeIf { it.isNotBlank() }?.let(::onScanned)
     }

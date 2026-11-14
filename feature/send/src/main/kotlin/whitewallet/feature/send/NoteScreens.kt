@@ -90,12 +90,14 @@ data class CreateNoteState(
     val pending: Boolean = false,
     /** Set once the note exists: the screen moves on to it. */
     val createdId: String? = null,
+    /** The phone is offline: a note is made at its mint, so none can be now. */
+    val offline: Boolean = false,
 ) {
     val amountMsat: Long?
         get() = amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
 
     val canCreate: Boolean
-        get() = !creating && !quoting && (quote as? PayQuote.Ok)?.amountMsat == amountMsat
+        get() = !offline && !creating && !quoting && (quote as? PayQuote.Ok)?.amountMsat == amountMsat
 }
 
 @HiltViewModel
@@ -106,6 +108,7 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet) : View
 
     init {
         viewModelScope.launch { _state.update { it.copy(availableMsat = wallet.sendableNoteMsat()) } }
+        viewModelScope.launch { wallet.offline.collect { offline -> _state.update { it.copy(offline = offline) } } }
     }
 
     fun onAmountChange(value: String) {
@@ -189,9 +192,12 @@ fun CreateNoteScreen(state: CreateNoteState, onBack: () -> Unit, onAmountChange:
                     )
                 null -> Unit
             }
-            state.problem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
+            state.problem
+                ?.takeUnless { state.offline && it == PayProblem.Unreachable }
+                ?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
             if (state.pending)
                 Text(stringResource(R.string.note_create_pending), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+            if (state.offline) Text(stringResource(R.string.send_offline), textAlign = TextAlign.Center)
             Text(
                 stringResource(R.string.note_bearer_warning),
                 style = MaterialTheme.typography.bodySmall,
@@ -212,6 +218,8 @@ data class SharedNoteUiState(
     val problem: PayProblem? = null,
     /** Whether the brand lets users print it (`notes.actions`). */
     val canPrint: Boolean = false,
+    /** The phone is offline: the note can't be taken back now. */
+    val offline: Boolean = false,
 )
 
 @HiltViewModel
@@ -226,6 +234,7 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
     val state: StateFlow<SharedNoteUiState> = _state
 
     init {
+        viewModelScope.launch { wallet.offline.collect { offline -> _state.update { it.copy(offline = offline) } } }
         viewModelScope.launch {
             _state.update { it.copy(note = wallet.sharedNote(id), loading = false) }
             // While the screen is open, notice when the recipient claims it.
@@ -365,7 +374,8 @@ fun SharedNoteScreen(
                                 }
                             }
                         }
-                        WalletButton(kind = ButtonKind.Text, onClick = onAskReclaim, enabled = !state.reclaiming) {
+                        if (state.offline) Text(stringResource(R.string.note_reclaim_offline), textAlign = TextAlign.Center)
+                        WalletButton(kind = ButtonKind.Text, onClick = onAskReclaim, enabled = !state.reclaiming && !state.offline) {
                             Text(stringResource(R.string.note_reclaim))
                         }
                         if (showsWorking(state.reclaiming)) WalletCircularProgress()
@@ -381,7 +391,9 @@ fun SharedNoteScreen(
                         textAlign = TextAlign.Center,
                     )
             }
-            state.problem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
+            state.problem
+                ?.takeUnless { state.offline && it == PayProblem.Unreachable }
+                ?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
             if (note.state != SharedNoteState.Waiting) PrimaryButton(stringResource(R.string.send_done), onBack)
         }
     }

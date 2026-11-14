@@ -76,7 +76,8 @@ enum class MoneyMoveMode {
 sealed interface MoneyMoveError {
     data class Mint(val detail: String) : MoneyMoveError
 
-    data class Network(val detail: String) : MoneyMoveError
+    /** No answer: nothing about why is shown (it would be the system's words, in English). Offline, the page says that instead. */
+    data object Network : MoneyMoveError
 }
 
 /** After the change or move: whether the home mint changed, and per mint what happened. */
@@ -107,6 +108,8 @@ data class MoneyMoveState(
     val loaded: Boolean = true,
     /** Adding a mint would give one to pick: the brand lets users add one, and it could be a target (not while collecting at home). */
     val canAddMint: Boolean = false,
+    /** The phone is offline: nothing can be asked or moved, and the page says so before the user tries. */
+    val offline: Boolean = false,
 ) {
     /** Nothing to pick, and nothing picked yet: the page's empty state. */
     val nothingToPick: Boolean
@@ -137,7 +140,7 @@ data class MoneyMoveState(
         get() = (changingHome || mode == MoneyMoveMode.MoveHome) && !collects && movable.isNotEmpty()
 
     val canContinue: Boolean
-        get() = !busy && target != null
+        get() = !offline && !busy && target != null
 }
 
 @HiltViewModel
@@ -150,6 +153,11 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
     fun init(mode: MoneyMoveMode, host: String?) {
         if (initialized) return
         initialized = true
+        viewModelScope.launch {
+            wallet.offline.collect { offline ->
+                _state.update { it.copy(offline = offline, error = it.error.takeUnless { offline && it == MoneyMoveError.Network }) }
+            }
+        }
         viewModelScope.launch {
             val home = wallet.homeHost.first()
             val from = host.takeIf { mode == MoneyMoveMode.Move }
@@ -208,7 +216,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
     /** From the summary: change the home (if that's the job), then move what [move] says. */
     fun confirm(move: Boolean) {
         val s = _state.value
-        if (s.busy || s.preview == null) return
+        if (s.busy || s.offline || s.preview == null) return
         _state.update { it.copy(busy = true) }
         launchFailing(s.target ?: return) { run(s, move) }
     }
@@ -244,8 +252,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
                 return fail(
-                    (r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network(it.reason) }
-                        ?: MoneyMoveError.Mint(r.result.toString())
+                    (r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network } ?: MoneyMoveError.Mint(r.result.toString())
                 )
         }
         _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, changed.moved)) }
@@ -256,7 +263,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
         try {
             block()
         } catch (e: IOException) {
-            fail(MoneyMoveError.Network(e.message.orEmpty()))
+            fail(MoneyMoveError.Network)
         } catch (e: MintKeyChangedException) {
             fail(MoneyMoveError.Mint(host))
         }
@@ -361,6 +368,7 @@ private fun PickContent(state: MoneyMoveState, actions: MoneyMoveActions) {
     else Text(stringResource(R.string.money_change_body), textAlign = TextAlign.Center)
     MintPicker(state.targets, state.target, state.busy, actions.onTarget)
     state.error?.let { ErrorText(it) }
+    if (state.offline) Text(stringResource(R.string.money_offline), textAlign = TextAlign.Center)
     PrimaryButton(stringResource(R.string.money_continue), actions.onReview, enabled = state.canContinue, busy = state.busy)
 }
 
@@ -405,7 +413,7 @@ private fun ErrorText(error: MoneyMoveError) {
     val text =
         when (error) {
             is MoneyMoveError.Mint -> stringResource(R.string.money_error_mint, error.detail)
-            is MoneyMoveError.Network -> stringResource(R.string.money_error_network, error.detail)
+            MoneyMoveError.Network -> stringResource(R.string.money_error_network)
         }
     Text(text, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
 }
@@ -429,25 +437,27 @@ private fun ReviewContent(preview: MovePreview, state: MoneyMoveState, actions: 
             style = MaterialTheme.typography.titleSmall,
         )
     val moving = state.chosenMsat
+    if (state.offline) Text(stringResource(R.string.money_offline), textAlign = TextAlign.Center)
     when {
         !state.changingHome ->
             PrimaryButton(
                 stringResource(R.string.money_move_amount, formatAmount(moving)),
                 { actions.onConfirm(true) },
-                enabled = moving > 0,
+                enabled = moving > 0 && !state.offline,
                 busy = state.busy,
             )
         moving > 0 -> {
             PrimaryButton(
                 stringResource(R.string.money_change_and_move, formatAmount(moving)),
                 { actions.onConfirm(true) },
+                enabled = !state.offline,
                 busy = state.busy,
             )
             if (!state.collects) {
                 WalletButton(
                     kind = ButtonKind.Secondary,
                     onClick = { actions.onConfirm(false) },
-                    enabled = !state.busy,
+                    enabled = !state.busy && !state.offline,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(stringResource(R.string.mint_change_home))
@@ -460,7 +470,13 @@ private fun ReviewContent(preview: MovePreview, state: MoneyMoveState, actions: 
                 )
             }
         }
-        else -> PrimaryButton(stringResource(R.string.mint_change_home), { actions.onConfirm(false) }, busy = state.busy)
+        else ->
+            PrimaryButton(
+                stringResource(R.string.mint_change_home),
+                { actions.onConfirm(false) },
+                enabled = !state.offline,
+                busy = state.busy,
+            )
     }
     WalletButton(kind = ButtonKind.Text, onClick = actions.onBack, enabled = !state.busy) { Text(stringResource(R.string.money_back)) }
 }

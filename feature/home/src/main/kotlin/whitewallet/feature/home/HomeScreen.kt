@@ -696,15 +696,11 @@ private fun WalletTab(
                 )
                 PrimaryButton(stringResource(R.string.home_receive), onReceive, Modifier.weight(1f))
             }
-            // What Home shows may be out of date: say why, and offer to try again.
-            val refreshProblem =
-                when {
-                    state.offline -> R.string.home_offline
-                    state.refreshFailed -> R.string.home_update_failed
-                    else -> null
-                }
-            refreshProblem?.let {
-                Text(stringResource(it), textAlign = TextAlign.Center)
+            // What Home shows may be out of date: say why. Offline, Home updates by itself once the phone is back, so there's nothing to
+            // try; a refresh that failed otherwise can be tried again.
+            if (state.offline) Text(stringResource(R.string.home_offline), textAlign = TextAlign.Center)
+            else if (state.refreshFailed) {
+                Text(stringResource(R.string.home_update_failed), textAlign = TextAlign.Center)
                 WalletButton(kind = ButtonKind.Text, onClick = onRefresh, enabled = !state.refreshing) {
                     Text(stringResource(R.string.home_try_again))
                 }

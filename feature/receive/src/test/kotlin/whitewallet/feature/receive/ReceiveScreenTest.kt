@@ -3,6 +3,8 @@ package whitewallet.feature.receive
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -119,13 +121,26 @@ class ReceiveScreenTest {
     }
 
     @Test
-    fun anInvoiceTheHomeMintDidNotAnswerForNamesItAndOfflineSaysSo() {
+    fun anInvoiceTheHomeMintDidNotAnswerForNamesIt() {
         var state by
             mutableStateOf(ReceiveState(address = null, amountText = "21", problem = InvoiceProblem.MintNotAnswering("home.example")))
         compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}) }
         compose.onNodeWithText(text(R.string.receive_invoice_mint_silent, "home.example")).assertExists()
-        state = state.copy(problem = InvoiceProblem.Offline)
+        // No answer over a network not known to reach the internet: nobody is named.
+        state = state.copy(problem = InvoiceProblem.NoAnswer)
+        compose.onNodeWithText(text(R.string.receive_invoice_refused)).assertExists()
+    }
+
+    @Test
+    fun offlineTheAmountFormSaysSoBeforeTheUserTriesAndNotOnceBack() {
+        var state by mutableStateOf(ReceiveState(address = null, amountText = "21", offline = true))
+        compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}) }
         compose.onNodeWithText(text(R.string.receive_invoice_offline)).assertExists()
+        compose.onNodeWithText(text(R.string.receive_invoice_create)).assertIsNotEnabled()
+        // Tried as the connection dropped: back online, it's gone, not an error left over.
+        state = state.copy(offline = false, problem = InvoiceProblem.Offline)
+        compose.onNodeWithText(text(R.string.receive_invoice_offline)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.receive_invoice_create)).assertIsEnabled()
     }
 
     @Test

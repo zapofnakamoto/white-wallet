@@ -145,12 +145,19 @@ class ClaimScreenTest {
     }
 
     @Test
-    fun theUsersOwnSharedNoteOfflineOffersNothingButToCheckAgain() {
+    fun theUsersOwnSharedNoteItsMintDidNotAnswerForOffersNothingButToCheckAgain() {
         show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false)))
         compose.onNodeWithText(text(R.string.claim_own_offline)).assertExists()
         compose.onNodeWithText("Take back", substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.claim_check)).assertIsEnabled()
+    }
+
+    @Test
+    fun theUsersOwnSharedNoteOpenedOfflineBlamesTheConnectionNotTheMint() {
+        show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false), offline = true))
+        compose.onNodeWithText(text(R.string.claim_own_phone_offline)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_own_offline)).assertDoesNotExist()
     }
 
     @Test
@@ -176,9 +183,9 @@ class ClaimScreenTest {
 
     private val link = ready.link
 
-    private fun showKeep(preview: ClaimPreview, onKeep: () -> Unit = {}) = compose.setContent {
+    private fun showKeep(preview: ClaimPreview, onKeep: () -> Unit = {}, offline: Boolean = false) = compose.setContent {
         ClaimScreen(
-            ClaimState(input = "x", preview = preview),
+            ClaimState(input = "x", preview = preview, offline = offline),
             onBack = {},
             onInputChange = {},
             onCheck = {},
@@ -190,13 +197,21 @@ class ClaimScreenTest {
     @Test
     fun aNoteOpenedOfflineCanBeKept() {
         var kept = false
-        showKeep(ClaimPreview.Offline(link, 5_000_000, 5_000_000), onKeep = { kept = true })
+        showKeep(ClaimPreview.Offline(link, 5_000_000, 5_000_000), onKeep = { kept = true }, offline = true)
         compose.onNodeWithText(text(R.string.claim_offline)).assertExists()
         // A certified amount is shown plainly, without a word about it.
         compose.onNodeWithText("certified", substring = true, ignoreCase = true).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.claim_kept_hint)).assertExists()
         compose.onNodeWithText(text(R.string.claim_keep)).performScrollTo().performClick()
         assertTrue(kept)
+    }
+
+    @Test
+    fun aNoteWhoseMintCouldNotBeReachedOnlineDoesNotSayOffline() {
+        showKeep(ClaimPreview.Offline(link, 5_000_000, 5_000_000))
+        compose.onNodeWithText(text(R.string.claim_unreachable)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_offline)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.claim_keep)).assertExists()
     }
 
     @Test

@@ -53,7 +53,7 @@ data class HomeState(
     val activity: List<Activity> = emptyList(),
     val refreshing: Boolean = false,
     val unresolved: Int = 0,
-    /** The last refresh found the phone offline: what Home shows may be out of date, and no mint's silence says anything. */
+    /** The phone is offline now: what Home shows may be out of date until it's back, and no mint's silence says anything. */
     val offline: Boolean = false,
     /** The last refresh failed for another reason. */
     val refreshFailed: Boolean = false,
@@ -318,6 +318,23 @@ class HomeViewModel(
         viewModelScope.launch {
             wallet.receivedNotes.collect { notes -> status.update { it.copy(received = ReceivedNote.shown(notes)) } }
         }
+        viewModelScope.launch { followConnection() }
+    }
+
+    /**
+     * Says at once when the phone goes offline, and refreshes as soon as it is back: what was shown while offline may be out of date. A
+     * refresh still running then is waited for, as it may have asked while offline.
+     */
+    private suspend fun followConnection() {
+        var wasOffline = !wallet.isOnline()
+        wallet.offline.collect { offline ->
+            status.update { it.copy(offline = offline) }
+            if (wasOffline && !offline) {
+                status.first { !it.refreshing }
+                refresh()
+            }
+            wasOffline = offline
+        }
     }
 
     /** Forgets a received note someone else spent. */
@@ -404,12 +421,11 @@ class HomeViewModel(
                     keyChanged = e.host
                     false
                 }
-            val offline = !wallet.isOnline()
             status.update {
                 it.copy(
                     refreshing = false,
-                    offline = offline,
-                    refreshFailed = failed && !offline,
+                    // Offline, Home says that instead; a refresh follows once the phone is back.
+                    refreshFailed = failed && wallet.isOnline(),
                     keyChangedHost = keyChanged,
                     unresolved = wallet.unresolvedOperations(),
                 )

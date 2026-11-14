@@ -10,6 +10,8 @@ import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertIs
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.HttpUrl
@@ -190,7 +192,7 @@ internal object Regtest {
         now: () -> Long = System::currentTimeMillis,
         receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
         settings: WalletSettings = WalletSettings(),
-        online: () -> Boolean = { true },
+        connection: StateFlow<Connection> = MutableStateFlow(Connection.Online),
     ): Phone {
         val store = InMemoryWalletStore()
         val wallet =
@@ -204,7 +206,7 @@ internal object Regtest {
                 now = now,
                 receivedGiveUpMillis = receivedGiveUpMillis,
                 settings = settings,
-                online = online,
+                connection = connection,
             )
         val name = name()
         registered(wallet, wallet.onboard(name, host))

@@ -109,7 +109,8 @@
     <string name="onboarding_error_hold_expired">Die Reservierung ist abgelaufen, bevor die Gebühr bezahlt wurde. Du kannst es erneut versuchen.</string>
     <string name="add_mint_done_title">Fertig</string>
     <string name="add_mint_failed_title">Fehler beim Wiederherstellen</string>
-    <string name="add_mint_error_unreachable">Nicht erreichbar: %1$s. Prüfe die Adresse und deine Verbindung.</string>
+    <string name="add_mint_error_unreachable">Nicht erreichbar. Prüfe die Adresse und versuche es erneut.</string>
+    <string name="add_mint_offline">Du bist offline. Verbinde dich, um fortzufahren.</string>
     <string name="add_mint_next">Weiter</string>
     <string name="add_mint_fees">Gebühren pro Zahlung</string>
     <string name="add_mint_fees_value">%1$s + %2$s %%</string>

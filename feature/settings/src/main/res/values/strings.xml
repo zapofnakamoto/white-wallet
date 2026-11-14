@@ -283,6 +283,7 @@
 
     <string name="mint_reachable">Reachable</string>
     <string name="mint_unreachable">Not answering right now</string>
+    <string name="mint_offline">You\'re offline</string>
     <string name="mint_key_changed_short">Signing key doesn\'t match</string>
     <string name="mint_check_again">Check again</string>
     <string name="mint_key_remembered">Remembered key</string>
@@ -369,7 +370,8 @@
     <string name="money_move_from">All your money on %1$s goes to the one you pick, combined into one payment.</string>
     <string name="money_move_target">To</string>
     <string name="money_error_mint">That one doesn\'t answer as expected: %1$s</string>
-    <string name="money_error_network">No connection: %1$s</string>
+    <string name="money_error_network">Couldn\'t connect. Try again later.</string>
+    <string name="money_offline">You\'re offline. Connect to continue.</string>
     <string name="money_continue">Continue</string>
     <string name="money_back">Back</string>
     <string name="money_review_to">To %1$s</string>

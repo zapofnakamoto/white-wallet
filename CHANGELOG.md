@@ -48,8 +48,21 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `home_mint_is_home_not_answering`, `home_mint_silent_title_home`, `home_mint_silent_title_unnamed`,
   `receive_address_mint_silent_unnamed`, `receive_invoice_mint_silent_unnamed` and
   `send_problem_mint_silent_unnamed`. The app now declares `ACCESS_NETWORK_STATE` (WorkManager declared it already).
-  For developers: `Wallet.mintsNotAnswering`, `Wallet.isOnline()` and the `online` constructor parameter,
-  `AccountMint.answering`, `PayProblem.MintNotAnswering` with `PayResult.Failed.host`.
+  For developers: `Wallet.mintsNotAnswering`, `Wallet.isOnline()`, `AccountMint.answering`,
+  `PayProblem.MintNotAnswering` with `PayResult.Failed.host`.
+- Being offline is told as it happens, and before the user tries what needs a connection. Home says so at once, and
+  updates by itself as soon as the phone is back, so it offers nothing to try while offline. Send, sending as a note,
+  Receive's invoice, adding a mint and moving money say "You're offline" above the button that needs a connection,
+  which waits for one; a note link entered on Send still goes to Claim, which keeps it. Claim, a shared note's "Take
+  back" and a mint's page say the phone is offline instead of blaming the mint, and ask again once it's back. A
+  network that doesn't reach the internet (a hotel's login page) blames no mint either. Adding a mint and moving money
+  no longer show the network's own error text in English.
+- For brands: a new brand term, `claim_own_phone_offline`, and new strings `send_offline`, `note_reclaim_offline`,
+  `claim_unreachable`, `add_mint_offline`, `mint_offline` and `money_offline`. `add_mint_error_unreachable` and
+  `money_error_network` take no argument any more; `home_offline`, `claim_offline`, `receive_invoice_offline` and
+  `send_problem_unreachable` say new words. For developers: `Wallet.connection` (`Connection`: `Offline`,
+  `Unverified`, `Online`; the constructor takes it in place of `online`) and `Wallet.offline`;
+  `InvoiceProblem.NoAnswer`; `AddMintError.Unreachable` and `MoneyMoveError.Network` carry no detail.
 
 ### Changed
 

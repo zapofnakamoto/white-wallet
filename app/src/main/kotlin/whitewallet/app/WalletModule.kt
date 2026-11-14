@@ -2,6 +2,7 @@ package whitewallet.app
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
 import dagger.Module
 import dagger.Provides
@@ -11,6 +12,8 @@ import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.wallet.AddressFeeChoice
@@ -20,6 +23,7 @@ import whitewallet.core.wallet.AppLockPolicy
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.BackupRequired
 import whitewallet.core.wallet.CollectDefaults
+import whitewallet.core.wallet.Connection
 import whitewallet.core.wallet.DeveloperOptions
 import whitewallet.core.wallet.HistoryFilterOption
 import whitewallet.core.wallet.MaintenanceNoticeDefaults
@@ -97,17 +101,36 @@ object WalletModule {
                     BuildConfig.COLLECT_RETRY_MILLIS,
                 ),
             onWaitingForNetwork = { SyncWorker.scheduleOnce(context) },
-            online = { context.online() },
+            connection = context.connection(),
             payWaitMillis = BuildConfig.SYNC_PAYMENT_WAIT_MILLIS,
             receivedGiveUpMillis = BuildConfig.RECEIVED_GIVE_UP_MILLIS,
         )
 
-    /** Whether the phone has a network that reaches the internet now. */
-    private fun Context.online(): Boolean {
-        val connectivity = getSystemService(ConnectivityManager::class.java) ?: return true
-        val network = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return false
-        return network.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    /** The phone's connection, kept up to date by the system's default network: the screens follow it as it changes. */
+    private fun Context.connection(): StateFlow<Connection> {
+        val connectivity = getSystemService(ConnectivityManager::class.java) ?: return MutableStateFlow(Connection.Online)
+        val connection = MutableStateFlow(connectivity.getNetworkCapabilities(connectivity.activeNetwork).connection())
+        connectivity.registerDefaultNetworkCallback(
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                    connection.value = capabilities.connection()
+                }
+
+                override fun onLost(network: Network) {
+                    connection.value = Connection.Offline
+                }
+            }
+        )
+        return connection
     }
+
+    /** What the default network's capabilities (null without one) say: none that could reach the internet, one not found to, or one. */
+    private fun NetworkCapabilities?.connection(): Connection =
+        when {
+            this == null || !hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) -> Connection.Offline
+            !hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) -> Connection.Unverified
+            else -> Connection.Online
+        }
 
     /** dev/regtest's faucet in debug builds; without a host (release) it pays nothing. */
     @Provides

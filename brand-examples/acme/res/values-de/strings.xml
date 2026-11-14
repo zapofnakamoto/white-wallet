@@ -46,6 +46,7 @@
     <string name="claim_in_wallet">Dieser Geldschein ist bereits in deiner Wallet.</string>
     <string name="claim_own_shared">Du hast diesen Geldschein geteilt, und niemand hat ihn bisher eingelöst.</string>
     <string name="claim_own_offline">Du hast diesen Geldschein geteilt. Dein Anbieter antwortet gerade nicht, darum lässt er sich noch nicht zurückholen.</string>
+    <string name="claim_own_phone_offline">Du hast diesen Geldschein geteilt. Du bist offline, darum lässt er sich noch nicht zurückholen.</string>
     <string name="claim_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt, deshalb wird nichts dorthin gesendet. Behalte ihn: Deine Wallet löst ihn ein, sobald der Schlüssel wieder passt oder du in den Details des Anbieters einen neuen annimmst.</string>
     <string name="claim_kept_key_changed">Behalten. Deine Wallet löst ihn ein, sobald der Signaturschlüssel des Anbieters wieder passt oder du in seinen Details einen neuen annimmst.</string>
     <string name="claim_other_mint">Dieser Geldschein liegt bei %1$s und bleibt dort.</string>
