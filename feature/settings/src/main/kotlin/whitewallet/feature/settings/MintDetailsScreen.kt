@@ -365,13 +365,16 @@ private fun RemoveSection(mint: MintInfo, refused: MintUse?, removing: Boolean, 
             supportingContent = { Text(stringResource(R.string.mints_remove_in_use)) },
         )
     }
-    refused?.let {
-        Text(
-            stringResource(R.string.mints_remove_in_use),
-            color = MaterialTheme.colorScheme.error,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        )
-    }
+    // Once it isn't removable, the row above says why; the refusal only does for what the row doesn't know (an unfinished payment).
+    refused
+        ?.takeIf { mint.removable }
+        ?.let {
+            Text(
+                stringResource(R.string.mints_remove_in_use),
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
     if (confirming) {
         WalletDialog(
             onDismissRequest = { if (!removing) confirming = false },

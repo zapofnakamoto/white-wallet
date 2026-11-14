@@ -45,7 +45,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Removing a mint or an account did nothing visible while the wallet was busy (a refresh, which opening Settings or an
   account's page starts, or a mint being added), and leaving the page then dropped the removal. The question now stays
   and shows that it is working until the wallet gets to it, and the removal goes through even if the page is left.
-  "Remove this account" opens its question at once instead of waiting for the refresh.
+  "Remove this account" opens its question at once instead of waiting for the refresh. A refused removal no longer
+  says "Can't be removed" twice on the mint's page.
 
 ## [0.9.0]
 

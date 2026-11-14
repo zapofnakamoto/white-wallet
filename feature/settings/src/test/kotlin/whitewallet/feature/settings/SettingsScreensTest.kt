@@ -3,10 +3,12 @@ package whitewallet.feature.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -25,6 +27,7 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
+import whitewallet.core.wallet.MintUse
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsScreensTest {
@@ -280,6 +283,29 @@ class SettingsScreensTest {
         compose.onNodeWithText(text(R.string.mints_remove_title, "other.example")).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_home_mint)).assertExists()
         compose.onNodeWithText("Can't be removed", substring = true).performScrollTo().assertExists()
+    }
+
+    @Test
+    fun aRefusedRemovalSaysWhyOnce() {
+        val removable = MintInfo("other.example", mint.mintPubkey, trusted = false, trustedByDefault = null, removable = true)
+        var state by
+            mutableStateOf(
+                MintDetailsState(
+                    details(MintDetails.Reachability.Reachable).copy(host = "other.example", isHome = false),
+                    loading = false,
+                    device = true,
+                    mint = removable.copy(removable = false),
+                    removeRefused = MintUse.Address,
+                )
+            )
+        compose.setContent { MintDetailsScreen(state, {}, {}) }
+        // An address there by now: the row says it can't be removed, and the refusal doesn't say it again.
+        compose.onAllNodesWithText(text(R.string.mints_remove_in_use)).assertCountEquals(1)
+
+        // An unfinished payment there: the row still offers it, so the refusal says why.
+        state = state.copy(mint = removable, removeRefused = MintUse.OpenOperation)
+        compose.onAllNodesWithText(text(R.string.mints_remove_in_use)).assertCountEquals(1)
+        compose.onNodeWithText(text(R.string.mints_remove_mint)).assertExists()
     }
 
     @Test
