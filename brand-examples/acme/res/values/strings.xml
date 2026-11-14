@@ -29,6 +29,13 @@
     <string name="mint_title">Provider</string>
     <string name="about_body">A Lightning wallet that keeps your money as banknotes with a provider you choose. Your recovery phrase stays on this device.</string>
     <string name="mints_intro">Trust a provider by its signing key: banknotes from trusted providers are marked with a check. If a provider ever signs with a different key, it is no longer trusted.</string>
+    <string name="mints_empty">This wallet has no provider yet, so nothing can be received.</string>
+    <string name="settings_no_home">This account has no provider of its own. Choose one of your providers to receive there.</string>
+    <string name="settings_no_home_action">Choose provider</string>
+    <string name="money_change_no_mints">You have no other provider to change to.</string>
+    <string name="money_change_no_mints_add">You have no other provider to change to. Add one, then pick it here.</string>
+    <string name="money_move_no_mints">There is no other provider to move this money to.</string>
+    <string name="money_move_no_mints_add">There is no other provider to move this money to. Add one, then pick it here.</string>
     <string name="onboarding_tagline">Pocket money on Lightning.</string>
     <string name="claim_title">Claim a banknote</string>
     <string name="claim_input">Paste a banknote link</string>
@@ -43,7 +50,6 @@
     <string name="claim_kept_key_changed">Kept. Your wallet claims it once the provider\'s signing key matches again, or you accept a new key in its details.</string>
     <string name="claim_other_mint">This banknote is held by %1$s and stays there.</string>
     <string name="home_tab_notes">Banknotes</string>
-    <string name="home_empty">Nothing here yet. Share your address to get paid, or claim a banknote.</string>
     <string name="home_wallet_empty">Nothing here yet. Share your address to get paid, or claim a banknote.</string>
     <string name="history_filter_maintenance">Banknote maintenance</string>
     <string name="history_only_maintenance">So far only banknote maintenance, which doesn\'t change your balance.</string>
@@ -113,7 +119,7 @@
     </plurals>
     <string name="notice_unknown_unreachable_unnamed">Couldn\'t reach the provider. Your wallet asks again later.</string>
     <string name="notes_already_spent">This banknote was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
-    <string name="notes_empty">No banknotes yet. Banknotes appear here once you receive money.</string>
+    <string name="notes_empty">No banknotes yet. Money you receive is held as banknotes, and they show up here.</string>
     <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your banknotes again on every refresh.</string>
     <plurals name="notes_selected">
         <item quantity="one">%1$d banknote selected · %2$s</item>

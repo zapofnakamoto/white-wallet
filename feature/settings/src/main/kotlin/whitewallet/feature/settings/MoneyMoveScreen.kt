@@ -1,6 +1,7 @@
 package whitewallet.feature.settings
 
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -39,7 +40,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.Page
+import whitewallet.core.designsystem.BrandBody
+import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletButton
@@ -100,7 +105,13 @@ data class MoneyMoveState(
     val homeChanged: Boolean = false,
     /** What the page is for and the mints to pick from are known: until then it draws nothing. */
     val loaded: Boolean = true,
+    /** Adding a mint would give one to pick: the brand lets users add one, and it could be a target (not while collecting at home). */
+    val canAddMint: Boolean = false,
 ) {
+    /** Nothing to pick, and nothing picked yet: the page's empty state. */
+    val nothingToPick: Boolean
+        get() = targets.isEmpty() && preview == null && outcome == null
+
     val changingHome: Boolean
         get() = mode == MoneyMoveMode.ChangeHome && !homeChanged
 
@@ -143,10 +154,35 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
             val home = wallet.homeHost.first()
             val from = host.takeIf { mode == MoneyMoveMode.Move }
             val collects = wallet.collectAtHome.first()
-            val targets =
-                moveTargets(mode, known = wallet.mints.first().map { it.host }, home, from, collects, allowed = defaults::mintAllowed)
-            val preset = host.takeIf { mode == MoneyMoveMode.ChangeHome && it in targets } ?: targets.firstOrNull()
-            _state.update { it.copy(mode = mode, from = from, targets = targets, target = preset, collects = collects, loaded = true) }
+            val addable = mode == MoneyMoveMode.ChangeHome || (mode == MoneyMoveMode.Move && !collects)
+            var before: List<String>? = null
+            // While the user picks, a mint added meanwhile (the empty page's Add a mint) joins the list, picked.
+            wallet.mints.collect { mints ->
+                val known = mints.map { it.host }
+                val targets = moveTargets(mode, known, home, from, collects, allowed = defaults::mintAllowed)
+                val canAdd = addable && (defaults.customMints || defaults.mintSuggestions.any { it !in known })
+                _state.update { s ->
+                    if (s.loaded && (s.preview != null || s.outcome != null || s.busy)) return@update s
+                    val added = before?.let { old -> targets.firstOrNull { it !in old } }
+                    val target =
+                        when {
+                            before == null -> host.takeIf { mode == MoneyMoveMode.ChangeHome && it in targets } ?: targets.firstOrNull()
+                            added != null -> added
+                            s.target in targets -> s.target
+                            else -> targets.firstOrNull()
+                        }
+                    s.copy(
+                        mode = mode,
+                        from = from,
+                        targets = targets,
+                        target = target,
+                        collects = collects,
+                        canAddMint = canAdd,
+                        loaded = true,
+                    )
+                }
+                before = known
+            }
         }
     }
 
@@ -238,10 +274,18 @@ class MoneyMoveActions(
     val onBack: () -> Unit = {},
     val onRetry: () -> Unit = {},
     val onDone: () -> Unit = {},
+    /** The empty page's way forward: add a mint, then come back to pick it. */
+    val onAddMint: () -> Unit = {},
 )
 
 @Composable
-fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, viewModel: MoneyMoveViewModel = hiltViewModel()) {
+fun MoneyMoveRoute(
+    mode: MoneyMoveMode,
+    host: String?,
+    onClose: () -> Unit,
+    onAddMint: () -> Unit = {},
+    viewModel: MoneyMoveViewModel = hiltViewModel(),
+) {
     LaunchedEffect(Unit) { viewModel.init(mode, host) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     MoneyMoveScreen(
@@ -256,6 +300,7 @@ fun MoneyMoveRoute(mode: MoneyMoveMode, host: String?, onClose: () -> Unit, view
             onBack = viewModel::back,
             onRetry = viewModel::retry,
             onDone = onClose,
+            onAddMint = onAddMint,
         ),
     )
 }
@@ -277,13 +322,15 @@ fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMo
     Scaffold(topBar = { WalletTopBar(title, onClose.takeIf { state.outcome == null && !state.busy }) }) { padding ->
         // Before the mints to pick from are known (a moment): only the title, not "no mints".
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
-        ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-            val outcome = state.outcome
-            val preview = state.preview
-            when {
-                outcome != null -> OutcomeContent(outcome, state, actions)
-                preview != null -> ReviewContent(preview, state, actions)
-                else -> PickContent(state, actions)
+        BrandBody(Page.MoneyMove, if (state.nothingToPick) WalletStatus.Empty else WalletStatus.Idle) {
+            ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
+                val outcome = state.outcome
+                val preview = state.preview
+                when {
+                    outcome != null -> OutcomeContent(outcome, state, actions)
+                    preview != null -> ReviewContent(preview, state, actions)
+                    else -> PickContent(state, actions)
+                }
             }
         }
     }
@@ -293,7 +340,19 @@ fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMo
 @Composable
 private fun PickContent(state: MoneyMoveState, actions: MoneyMoveActions) {
     if (state.targets.isEmpty()) {
-        Text(stringResource(R.string.money_move_no_mints), textAlign = TextAlign.Center)
+        val add = state.canAddMint
+        val text =
+            when {
+                state.mode == MoneyMoveMode.ChangeHome -> if (add) R.string.money_change_no_mints_add else R.string.money_change_no_mints
+                add -> R.string.money_move_no_mints_add
+                else -> R.string.money_move_no_mints
+            }
+        // The page's column pads already.
+        EmptyState(
+            stringResource(text),
+            padding = PaddingValues(),
+            action = if (add) ({ PrimaryButton(stringResource(R.string.mints_add), actions.onAddMint) }) else null,
+        )
         return
     }
     if (state.mode == MoneyMoveMode.MoveHome) Text(stringResource(R.string.money_move_all_body), textAlign = TextAlign.Center)

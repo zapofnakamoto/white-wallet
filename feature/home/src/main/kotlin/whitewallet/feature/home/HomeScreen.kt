@@ -76,11 +76,14 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.MoneyDirection
 import whitewallet.brand.ui.NavigationItem
+import whitewallet.brand.ui.Page
 import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.AmountText
+import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.BrandTitle
+import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.LoadingIndicator
 import whitewallet.core.designsystem.LoadingPhase
 import whitewallet.core.designsystem.PrimaryButton
@@ -379,6 +382,7 @@ fun HomeScreen(
                                 selected = historyFilters,
                                 onSelect = { historyFilters = it },
                                 onOpenNote,
+                                onReceive,
                             )
                     }
             }
@@ -671,8 +675,9 @@ private fun WalletTab(
                 )
             }
             if (state.received.isNotEmpty()) ReceivedCard(state, received)
-            // Nothing in the wallet yet: say how money gets in. Not while the balance is hidden, which would give it away.
-            if (state.status == WalletStatus.Empty && !state.balanceHidden) {
+            // Nothing in the wallet yet: say how money gets in. Not while the balance is hidden, which would give it away, nor without a
+            // mint, whose card already says what to do.
+            if (state.status == WalletStatus.Empty && !state.balanceHidden && !state.showAddMintPrompt) {
                 Text(stringResource(R.string.home_wallet_empty), textAlign = TextAlign.Center)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -781,6 +786,7 @@ private fun HistoryTab(
     selected: Set<HistoryFilter>,
     onSelect: (Set<HistoryFilter>) -> Unit,
     onOpenNote: (String) -> Unit,
+    onReceive: () -> Unit,
 ) {
     val available =
         when (option) {
@@ -800,21 +806,47 @@ private fun HistoryTab(
             active.isNotEmpty() -> activity.filter { HistoryFilter.of(it.kind) in active }
             else -> activity.filterNot { it.kind.isMaintenance }
         }
-    LazyColumn(Modifier.fillMaxSize()) {
-        if (chips.isNotEmpty()) {
-            item {
-                Row(
-                    Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    chips.forEach { filter ->
-                        WalletFilterChip(
-                            selected = filter in active,
-                            onClick = { onSelect(if (filter in active) active - filter else active + filter) },
-                            label = { Text(stringResource(filter.label)) },
-                            leadingIcon =
-                                if (option == HistoryFilterOption.Types) {
-                                    { Icon(painterResource(filter.icon), contentDescription = null, modifier = Modifier.size(18.dp)) }
+    BrandBody(Page.History, if (activity.isEmpty()) WalletStatus.Empty else WalletStatus.Idle) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            if (chips.isNotEmpty()) {
+                item {
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        chips.forEach { filter ->
+                            WalletFilterChip(
+                                selected = filter in active,
+                                onClick = { onSelect(if (filter in active) active - filter else active + filter) },
+                                label = { Text(stringResource(filter.label)) },
+                                leadingIcon =
+                                    if (option == HistoryFilterOption.Types) {
+                                        { Icon(painterResource(filter.icon), contentDescription = null, modifier = Modifier.size(18.dp)) }
+                                    } else {
+                                        null
+                                    },
+                            )
+                        }
+                    }
+                }
+            }
+            if (visible.isEmpty()) {
+                item {
+                    if (activity.isEmpty()) {
+                        EmptyState(stringResource(R.string.home_empty), anchor = Anchor.EmptyHistory) {
+                            PrimaryButton(stringResource(R.string.home_receive), onReceive)
+                        }
+                    } else {
+                        EmptyState(
+                            stringResource(R.string.history_only_maintenance),
+                            action =
+                                if (HistoryFilter.Maintenance in available) {
+                                    {
+                                        PrimaryButton(
+                                            stringResource(R.string.history_show_maintenance),
+                                            { onSelect(setOf(HistoryFilter.Maintenance)) },
+                                        )
+                                    }
                                 } else {
                                     null
                                 },
@@ -822,25 +854,8 @@ private fun HistoryTab(
                     }
                 }
             }
+            items(visible, key = { it.id }) { row -> ActivityRow(row, onClick = row.sentNoteId?.let { id -> { onOpenNote(id) } }) }
         }
-        if (visible.isEmpty()) {
-            item {
-                Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (activity.isEmpty()) {
-                        WalletStatusScope(WalletStatus.Empty) { BrandDecoration(Anchor.EmptyHistory) }
-                        Text(stringResource(R.string.home_empty), textAlign = TextAlign.Center)
-                    } else {
-                        Text(stringResource(R.string.history_only_maintenance), textAlign = TextAlign.Center)
-                        if (HistoryFilter.Maintenance in available) {
-                            WalletButton(kind = ButtonKind.Text, onClick = { onSelect(setOf(HistoryFilter.Maintenance)) }) {
-                                Text(stringResource(R.string.history_show_maintenance))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        items(visible, key = { it.id }) { row -> ActivityRow(row, onClick = row.sentNoteId?.let { id -> { onOpenNote(id) } }) }
     }
 }
 

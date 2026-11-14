@@ -58,6 +58,7 @@ import whitewallet.core.model.SetupStep
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.BackupRequired
 import whitewallet.core.wallet.IncomingLink
+import whitewallet.core.wallet.NoHome
 import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.Wallet
 import whitewallet.core.wallet.WalletSettings
@@ -79,7 +80,6 @@ import whitewallet.feature.onboarding.OnboardingRoute
 import whitewallet.feature.onboarding.RestoreRoute
 import whitewallet.feature.onboarding.ScanRoute
 import whitewallet.feature.onboarding.WelcomeRoute
-import whitewallet.feature.receive.NoHome
 import whitewallet.feature.receive.ReceiveRoute
 import whitewallet.feature.send.CreateNoteRoute
 import whitewallet.feature.send.ScanRoute
@@ -420,6 +420,7 @@ private fun WalletApp(
                             onOpenShared = { id -> nav.navigate(Routes.note(id)) },
                             onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
                             onClaim = openClaim,
+                            onReceive = { nav.navigate(Routes.RECEIVE) },
                         )
                     else null,
             )
@@ -431,6 +432,7 @@ private fun WalletApp(
                 onOpenShared = { id -> nav.navigate(Routes.note(id)) },
                 onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
                 onClaim = openClaim,
+                onReceive = { nav.navigate(Routes.RECEIVE) },
             )
         }
         composable(Routes.ARCHIVE) { ArchiveRoute(onBack = { nav.popBackStack() }) }
@@ -584,7 +586,12 @@ private fun WalletApp(
                     }
                 ),
         ) { entry ->
-            MoneyMoveRoute(MoneyMoveMode.ChangeHome, entry.arguments?.getString("host"), onClose = { nav.popBackStack() })
+            MoneyMoveRoute(
+                MoneyMoveMode.ChangeHome,
+                entry.arguments?.getString("host"),
+                onClose = { nav.popBackStack() },
+                onAddMint = { nav.navigate(Routes.ADD_MINT) },
+            )
         }
         composable(
             Routes.MOVE_MONEY,
@@ -597,13 +604,22 @@ private fun WalletApp(
                     }
                 ),
         ) { entry ->
-            MoneyMoveRoute(MoneyMoveMode.Move, entry.arguments?.getString("from"), onClose = { nav.popBackStack() })
+            MoneyMoveRoute(
+                MoneyMoveMode.Move,
+                entry.arguments?.getString("from"),
+                onClose = { nav.popBackStack() },
+                onAddMint = { nav.navigate(Routes.ADD_MINT) },
+            )
         }
         composable(Routes.MOVE_HOME) {
             MoneyMoveRoute(MoneyMoveMode.MoveHome, null, onClose = { nav.popBackStack() })
         }
         composable(Routes.ACCOUNT_MINTS) {
-            AccountMintsRoute(onBack = { nav.popBackStack() }, onOpen = { host -> nav.navigate(Routes.mint(host)) })
+            AccountMintsRoute(
+                onBack = { nav.popBackStack() },
+                onOpen = { host -> nav.navigate(Routes.mint(host)) },
+                onNoHome = { noHome -> nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) },
+            )
         }
         composable(Routes.MINTS) {
             MintsRoute(
@@ -630,6 +646,7 @@ private fun WalletApp(
                 onAdd = { nav.navigate(Routes.ADD_ADDRESS) },
                 onChangePrimary = { nav.navigate(Routes.CHANGE_ADDRESS) },
                 onAddElsewhere = { nav.navigate(Routes.ADD_ADDRESS_ELSEWHERE) },
+                onNoHome = { noHome -> nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) },
             )
         }
         composable(Routes.ADD_ADDRESS) {
@@ -716,6 +733,7 @@ private fun notesTab(
     onOpenShared: (String) -> Unit,
     onOpenArchive: () -> Unit,
     onClaim: (String) -> Unit,
+    onReceive: () -> Unit,
     viewModel: NotesViewModel = hiltViewModel(),
 ): NotesTabSlot {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -723,7 +741,7 @@ private fun notesTab(
         refreshing = state.refreshing,
         onRefresh = viewModel::refresh,
         actions = { NoteSettingsButton(onSettings) },
-        content = { NotesTab(viewModel, onOpenShared, onOpenArchive, onClaim) },
+        content = { NotesTab(viewModel, onOpenShared, onOpenArchive, onClaim, onReceive) },
     )
 }
 

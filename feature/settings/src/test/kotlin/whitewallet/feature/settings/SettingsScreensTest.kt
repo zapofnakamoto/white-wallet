@@ -28,6 +28,7 @@ import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintUse
+import whitewallet.core.wallet.NoHome
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsScreensTest {
@@ -332,6 +333,21 @@ class SettingsScreensTest {
         compose.onNodeWithText("1 address").assertExists()
         compose.onNodeWithText("other.example").performClick()
         assertEquals("other.example", opened)
+    }
+
+    @Test
+    fun anAccountWithoutMintsSaysWhatIsMissingAndLeadsThere() {
+        var asked: NoHome? = null
+        var noHome by mutableStateOf(NoHome.NoMint)
+        compose.setContent { AccountMintsScreen(emptyList(), {}, {}, noHome, { asked = it }) }
+        compose.onNodeWithText(text(R.string.mints_empty)).assertExists()
+        compose.onNodeWithText(text(R.string.account_mints_intro)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mints_add)).performClick()
+        assertEquals(NoHome.NoMint, asked)
+
+        noHome = NoHome.PickHome
+        compose.onNodeWithText(text(R.string.settings_no_home_action)).performClick()
+        assertEquals(NoHome.PickHome, asked)
     }
 
     @Test

@@ -11,7 +11,7 @@
     </plurals>
     <string name="activity_moved_mint_other">Zu einer anderen Mint verschoben</string>
     <string name="home_tab_notes">Scheine</string>
-    <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Schein ein.</string>
+    <string name="home_empty">Noch keine Zahlungen. Was du empfängst und sendest, erscheint hier.</string>
     <string name="home_wallet_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Schein ein.</string>
     <string name="history_filter_maintenance">Pflege der Scheine</string>
     <string name="history_only_maintenance">Bisher nur Pflege der Scheine.</string>

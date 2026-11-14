@@ -16,6 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import whitewallet.core.wallet.InvoiceRequest
 import whitewallet.core.wallet.InvoiceStatus
+import whitewallet.core.wallet.NoHome
 
 @RunWith(RobolectricTestRunner::class)
 class ReceiveScreenTest {

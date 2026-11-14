@@ -42,6 +42,7 @@ import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteGroupParams
 import whitewallet.brand.ui.NoteStatus
+import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -102,9 +103,12 @@ class NotesScreenTest {
     }
 
     @Test
-    fun emptyWalletSaysSo() {
-        compose.setContent { NotesContent(NotesState(loaded = true), NotesActions()) }
+    fun emptyWalletSaysSoAndLeadsToReceive() {
+        var receiving = 0
+        compose.setContent { NotesContent(NotesState(loaded = true), NotesActions(openReceive = { receiving++ })) }
         compose.onNodeWithText(text(R.string.notes_empty)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_receive)).performClick()
+        assertEquals(1, receiving)
     }
 
     @Test
@@ -415,11 +419,18 @@ class NotesScreenTest {
     @Test
     fun aBrandDecoratesTheTopOfTheNotesAndAnEmptyView() {
         val seen = mutableListOf<Pair<Anchor, WalletStatus>>()
+        val bodies = mutableListOf<Pair<Page, WalletStatus>>()
         val design =
             object : BrandDesign {
                 @Composable
                 override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
                     if (anchor == Anchor.NotesHeader || anchor == Anchor.NotesEmpty) seen += anchor to context.status
+                }
+
+                @Composable
+                override fun Body(page: Page, context: DecorationContext, content: @Composable () -> Unit) {
+                    bodies += page to context.status
+                    content()
                 }
             }
         val mint = MintNotes("mint.example", true, listOf(note("a", "mint.example", 1_000)), trusted = true)
@@ -427,11 +438,13 @@ class NotesScreenTest {
         compose.setContent { CompositionLocalProvider(LocalBrandDesign provides design) { NotesContent(state, NotesActions()) } }
         compose.waitForIdle()
         assertEquals(setOf(Anchor.NotesHeader to WalletStatus.Empty, Anchor.NotesEmpty to WalletStatus.Empty), seen.toSet())
+        assertEquals(Page.Notes to WalletStatus.Empty, bodies.last())
 
         seen.clear()
         state = NotesState(loaded = true, mints = listOf(mint), shared = listOf(note("s", "mint.example", 500, NoteState.Shared)))
         compose.waitForIdle()
         assertEquals(setOf(Anchor.NotesHeader to WalletStatus.WaitingForRecipient), seen.toSet())
+        assertEquals(Page.Notes to WalletStatus.WaitingForRecipient, bodies.last())
 
         seen.clear()
         state = NotesState(loaded = true, mints = listOf(mint))

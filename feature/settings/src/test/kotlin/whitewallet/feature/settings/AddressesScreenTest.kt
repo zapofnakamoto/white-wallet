@@ -22,6 +22,7 @@ import org.robolectric.annotation.Config
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.AddressEntry
 import whitewallet.core.wallet.AddressStatus
+import whitewallet.core.wallet.NoHome
 
 /** Addresses on the home mint and on other mints. */
 @RunWith(RobolectricTestRunner::class)
@@ -119,5 +120,38 @@ class AddressesScreenTest {
     fun untilTheAddressesAreReadThePageDoesNotSayThereAreNone() {
         show(AddressesState(loaded = false))
         compose.onNodeWithText(text(R.string.addresses_none)).assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutAnAddressGettingOneIsTheWayForward() {
+        var adding = 0
+        compose.setContent {
+            AddressesScreen(AddressesState(homeHost = "home.example"), {}, { adding++ }, {}, {}, AddressActions({}, {}, {}), {}, {})
+        }
+        compose.onNodeWithText(text(R.string.addresses_none)).assertExists()
+        compose.onNodeWithText(text(R.string.addresses_get)).performClick()
+        assertEquals(1, adding)
+    }
+
+    @Test
+    fun withoutAHomeMintThePageSaysWhatIsMissingAndLeadsThere() {
+        var asked: NoHome? = null
+        compose.setContent {
+            AddressesScreen(
+                AddressesState(homeHost = null, hasMint = true),
+                {},
+                {},
+                {},
+                {},
+                AddressActions({}, {}, {}),
+                {},
+                {},
+                onNoHome = { asked = it },
+            )
+        }
+        compose.onNodeWithText(text(R.string.settings_no_home)).assertExists()
+        compose.onNodeWithText(text(R.string.addresses_get)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_no_home_action)).performClick()
+        assertEquals(NoHome.PickHome, asked)
     }
 }

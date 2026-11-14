@@ -55,7 +55,11 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
+import whitewallet.brand.ui.Page
+import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.designsystem.ReceivedNoteRow
@@ -101,11 +105,12 @@ class NotesActions(
     val simulateFailure: (SimulatedFailure.Kind?) -> Unit = {},
     val received: ReceivedNoteActions = ReceivedNoteActions(),
     val openArchive: () -> Unit = {},
+    val openReceive: () -> Unit = {},
 )
 
 /**
  * Wires [NotesViewModel] to [NotesContent]; [onOpenShared] shows a shared note (its QR code, or taking it back), [onOpenArchive] the
- * archived received notes, [onClaim] a link in Claim.
+ * archived received notes, [onClaim] a link in Claim, [onReceive] Receive (the empty view's way forward).
  */
 @Composable
 fun rememberNotesActions(
@@ -113,8 +118,9 @@ fun rememberNotesActions(
     onOpenShared: (String) -> Unit,
     onOpenArchive: () -> Unit,
     onClaim: (String) -> Unit,
+    onReceive: () -> Unit,
 ): NotesActions =
-    remember(viewModel, onOpenShared, onOpenArchive, onClaim) {
+    remember(viewModel, onOpenShared, onOpenArchive, onClaim, onReceive) {
         NotesActions(
             tap = viewModel::tap,
             longPress = viewModel::select,
@@ -145,6 +151,7 @@ fun rememberNotesActions(
                     receive = { id -> viewModel.receiveReceived(id, onClaim) },
                 ),
             openArchive = onOpenArchive,
+            openReceive = onReceive,
         )
     }
 
@@ -153,7 +160,13 @@ fun rememberNotesActions(
  * opens through [onOpenShared].
  */
 @Composable
-fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit, onOpenArchive: () -> Unit, onClaim: (String) -> Unit = {}) {
+fun NotesTab(
+    viewModel: NotesViewModel,
+    onOpenShared: (String) -> Unit,
+    onOpenArchive: () -> Unit,
+    onClaim: (String) -> Unit = {},
+    onReceive: () -> Unit = {},
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.sharedId) {
         state.sharedId?.let {
@@ -161,7 +174,7 @@ fun NotesTab(viewModel: NotesViewModel, onOpenShared: (String) -> Unit, onOpenAr
             viewModel.sharedShown()
         }
     }
-    NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive, onClaim))
+    NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive, onClaim, onReceive))
 }
 
 /** The notes view on its own page, for brands with `notes.view=settings`; reached from account settings. */
@@ -173,6 +186,7 @@ fun NotesRoute(
     onOpenShared: (String) -> Unit,
     onOpenArchive: () -> Unit,
     onClaim: (String) -> Unit = {},
+    onReceive: () -> Unit = {},
     viewModel: NotesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -189,7 +203,7 @@ fun NotesRoute(
             onRefresh = viewModel::refresh,
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {
-            NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive, onClaim))
+            NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive, onClaim, onReceive))
         }
     }
 }
@@ -210,46 +224,47 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
     BackHandler(enabled = state.selecting) { actions.stopSelecting() }
     if (!pageLoaded(state.loaded)) return
     val working = showsWorking(state.busy)
-    Box(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize()) {
-            item { Summary(state) }
-            if (working) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
-            state.outcome
-                ?.takeIf { state.open == null }
-                ?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
-            if (state.mints.isEmpty() && state.shared.isEmpty() && state.received.isEmpty() && state.archivedCount == 0) {
-                item {
-                    Column(Modifier.padding(16.dp)) {
-                        WalletStatusScope(WalletStatus.Empty) { BrandDecoration(Anchor.NotesEmpty) }
-                        Text(stringResource(R.string.notes_empty), style = MaterialTheme.typography.bodyMedium)
+    BrandBody(Page.Notes, notesStatus(state)) {
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(Modifier.fillMaxSize()) {
+                item { Summary(state) }
+                if (working) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
+                state.outcome
+                    ?.takeIf { state.open == null }
+                    ?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
+                if (state.mints.isEmpty() && state.shared.isEmpty() && state.received.isEmpty() && state.archivedCount == 0) {
+                    item {
+                        EmptyState(stringResource(R.string.notes_empty), anchor = Anchor.NotesEmpty) {
+                            PrimaryButton(stringResource(R.string.notes_receive), actions.openReceive)
+                        }
                     }
                 }
-            }
-            if (state.mints.isNotEmpty()) item { Toolbar(state, actions) }
-            state.mints.forEach { mint ->
-                if (state.groupHeaders) item(key = "mint:${mint.host}") { MintHeader(mint, state, actions.moveAnyway) }
-                items(mint.notes, key = { it.id }) { note -> NoteRow(note, state, actions) }
-            }
-            if (state.received.isNotEmpty()) {
-                item { ReceivedHeader() }
-                items(state.received, key = { "received:${it.id}" }) { note ->
-                    ReceivedNoteRow(
-                        note,
-                        state.showMints,
-                        amountHidden = false,
-                        actions.received,
-                    )
+                if (state.mints.isNotEmpty()) item { Toolbar(state, actions) }
+                state.mints.forEach { mint ->
+                    if (state.groupHeaders) item(key = "mint:${mint.host}") { MintHeader(mint, state, actions.moveAnyway) }
+                    items(mint.notes, key = { it.id }) { note -> NoteRow(note, state, actions) }
                 }
+                if (state.received.isNotEmpty()) {
+                    item { ReceivedHeader() }
+                    items(state.received, key = { "received:${it.id}" }) { note ->
+                        ReceivedNoteRow(
+                            note,
+                            state.showMints,
+                            amountHidden = false,
+                            actions.received,
+                        )
+                    }
+                }
+                if (state.archivedCount > 0) item(key = "archived") { ArchivedRow(state.archivedCount, actions.openArchive) }
+                if (state.shared.isNotEmpty()) {
+                    item { SharedHeader() }
+                    items(state.shared, key = { "shared:${it.id}" }) { note -> SharedRow(note, state.showMints, actions.openShared) }
+                }
+                // Room for the selection bar, so the last note can scroll above it.
+                if (state.selecting) item { Spacer(Modifier.height(120.dp)) }
             }
-            if (state.archivedCount > 0) item(key = "archived") { ArchivedRow(state.archivedCount, actions.openArchive) }
-            if (state.shared.isNotEmpty()) {
-                item { SharedHeader() }
-                items(state.shared, key = { "shared:${it.id}" }) { note -> SharedRow(note, state.showMints, actions.openShared) }
-            }
-            // Room for the selection bar, so the last note can scroll above it.
-            if (state.selecting) item { Spacer(Modifier.height(120.dp)) }
+            if (state.selecting) SelectionBar(state, actions, Modifier.align(Alignment.BottomCenter))
         }
-        if (state.selecting) SelectionBar(state, actions, Modifier.align(Alignment.BottomCenter))
     }
     state.openNote?.let { NoteSheet(it, state, actions) }
     when (val d = state.dialog) {

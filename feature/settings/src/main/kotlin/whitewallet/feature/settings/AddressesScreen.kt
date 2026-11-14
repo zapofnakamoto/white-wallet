@@ -41,9 +41,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.Page
 import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
+import whitewallet.core.designsystem.BrandBody
+import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.SensitiveClipboard
 import whitewallet.core.designsystem.WalletButton
@@ -57,6 +62,7 @@ import whitewallet.core.wallet.AddressEntry
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
+import whitewallet.core.wallet.NoHome
 import whitewallet.core.wallet.PayResult
 import whitewallet.core.wallet.UnregisterResult
 import whitewallet.core.wallet.Wallet
@@ -81,7 +87,13 @@ data class AddressesState(
     val otherMints: Boolean = false,
     /** The addresses were read: until then the page draws none (rather than "no address" first). */
     val loaded: Boolean = true,
+    /** The wallet has a mint at all; without a home mint, it decides what is missing ([noHome]). */
+    val hasMint: Boolean = true,
 ) {
+    /** Without a home mint no address can be added: what is missing, as on Receive. */
+    val noHome: NoHome?
+        get() = if (homeHost != null) null else if (hasMint) NoHome.PickHome else NoHome.NoMint
+
     /** Addresses on the home mint, where new ones are added. */
     val onHomeMint: Int
         get() = entries.count { it.address.host == homeHost }
@@ -136,6 +148,7 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
                     ui.watchOnly,
                     homeHost = home,
                     otherMints = defaults.allowMintChange && mints.any { it.host != home && defaults.mintAllowed(it.host) },
+                    hasMint = mints.isNotEmpty(),
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddressesState(loaded = false))
@@ -230,6 +243,7 @@ fun AddressesRoute(
     onAdd: () -> Unit,
     onChangePrimary: () -> Unit,
     onAddElsewhere: () -> Unit = {},
+    onNoHome: (NoHome) -> Unit = {},
     viewModel: AddressesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -252,6 +266,7 @@ fun AddressesRoute(
         onConfirmUnregister = viewModel::confirmUnregister,
         onDismissUnregister = viewModel::dismissUnregister,
         onAddElsewhere,
+        onNoHome,
     )
 }
 
@@ -267,6 +282,7 @@ fun AddressesScreen(
     onConfirmUnregister: () -> Unit,
     onDismissUnregister: () -> Unit,
     onAddElsewhere: () -> Unit = {},
+    onNoHome: (NoHome) -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -278,27 +294,48 @@ fun AddressesScreen(
         }
     ) { padding ->
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
-        LazyColumn(Modifier.padding(padding).fillMaxWidth()) {
-            item {
-                Text(
-                    stringResource(if (state.entries.isEmpty()) R.string.addresses_none else R.string.addresses_intro),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            }
-            state.message?.let { item { MessageText(it) } }
-            state.byMint.forEach { (host, entries) ->
-                item(key = "host:$host") {
-                    Text(
-                        host,
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
-                    )
+        val empty = state.entries.isEmpty()
+        BrandBody(Page.Addresses, if (empty) WalletStatus.Empty else WalletStatus.Idle) {
+            LazyColumn(Modifier.padding(padding).fillMaxWidth()) {
+                item {
+                    val noHome = state.noHome
+                    when {
+                        !empty ->
+                            Text(
+                                stringResource(R.string.addresses_intro),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            )
+                        // No home mint, so nowhere to add one: what is missing, and the way to it.
+                        noHome != null -> {
+                            val mint = noHome == NoHome.NoMint
+                            EmptyState(stringResource(if (mint) R.string.mints_empty else R.string.settings_no_home)) {
+                                PrimaryButton(
+                                    stringResource(if (mint) R.string.mints_add else R.string.settings_no_home_action),
+                                    { onNoHome(noHome) },
+                                )
+                            }
+                        }
+                        else ->
+                            EmptyState(stringResource(R.string.addresses_none)) {
+                                PrimaryButton(stringResource(R.string.addresses_get), onAdd, enabled = state.canAdd)
+                            }
+                    }
                 }
-                items(entries, key = { it.address.address }) { entry -> AddressCard(entry, state, actions) }
+                state.message?.let { item { MessageText(it) } }
+                state.byMint.forEach { (host, entries) ->
+                    item(key = "host:$host") {
+                        Text(
+                            host,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                        )
+                    }
+                    items(entries, key = { it.address.address }) { entry -> AddressCard(entry, state, actions) }
+                }
+                if (!empty) item { AddSection(state, onAdd, onChangePrimary) }
+                if (state.otherMints) item { AddElsewhereSection(state, onAddElsewhere) }
             }
-            item { AddSection(state, onAdd, onChangePrimary) }
-            if (state.otherMints) item { AddElsewhereSection(state, onAddElsewhere) }
         }
     }
     state.confirm?.let { UnregisterDialog(it, onConfirmUnregister, onDismissUnregister) }
@@ -421,12 +458,12 @@ private fun MessageText(message: AddressesMessage) {
 @Composable
 private fun AddSection(state: AddressesState, onAdd: () -> Unit, onChangePrimary: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // The limit is per mint: only the home mint's count here, where this adds one.
-        val first = state.entries.isEmpty()
+        // The first address is the empty page's way forward; this adds more.
         WalletButton(onClick = onAdd, enabled = state.canAdd, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(if (first) R.string.addresses_get else R.string.addresses_add))
+            Text(stringResource(R.string.addresses_add))
         }
-        if (!first && state.limit != AppDefaults.UNLIMITED) {
+        // The limit is per mint: only the home mint's count here, where this adds one.
+        if (state.limit != AppDefaults.UNLIMITED) {
             Text(
                 if (state.onHomeMint > state.limit) {
                     stringResource(R.string.addresses_over_limit, state.limit)
@@ -437,21 +474,14 @@ private fun AddSection(state: AddressesState, onAdd: () -> Unit, onChangePrimary
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (!first) {
-            WalletButton(
-                kind = ButtonKind.Secondary,
-                onClick = onChangePrimary,
-                enabled = !state.busy,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.addresses_change_primary))
-            }
-            Text(
-                stringResource(R.string.addresses_change_primary_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        WalletButton(kind = ButtonKind.Secondary, onClick = onChangePrimary, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.addresses_change_primary))
         }
+        Text(
+            stringResource(R.string.addresses_change_primary_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

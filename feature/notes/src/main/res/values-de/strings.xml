@@ -32,7 +32,7 @@
         <item quantity="other">Die Mint kennt %1$d Scheine nicht. Sie sind beiseitegelegt, nicht in deinem Guthaben, und deine Wallet fragt von selbst wieder.</item>
     </plurals>
     <string name="notes_already_spent">Dieser Schein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
-    <string name="notes_empty">Noch keine Scheine. Scheine erscheinen hier, sobald du Geld empfängst.</string>
+    <string name="notes_empty">Noch keine Scheine. Geld, das du empfängst, wird als Scheine gehalten und erscheint hier.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Scheine bei jedem Aktualisieren neu.</string>
     <plurals name="notes_selected">
         <item quantity="one">%1$d Schein ausgewählt · %2$s</item>
@@ -121,4 +121,5 @@
     <string name="notes_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Dein Geld ist zurück.</string>
     <string name="notes_problem_declined">Nicht verschoben: Die Gebühr ist höher als dein Limit.</string>
     <string name="notes_trusted">Vertraut</string>
+    <string name="notes_receive">Empfangen</string>
 </resources>

@@ -137,4 +137,26 @@ class MoneyMoveScreenTest {
         compose.onNodeWithText(text(R.string.money_move_title)).assertExists()
         compose.onNodeWithText(text(R.string.money_move_no_mints)).assertDoesNotExist()
     }
+
+    @Test
+    fun withNoOtherMintChangingHomeOffersAddingOne() {
+        var adding = 0
+        compose.setContent {
+            MoneyMoveScreen(
+                MoneyMoveState(mode = MoneyMoveMode.ChangeHome, canAddMint = true),
+                {},
+                MoneyMoveActions(onAddMint = { adding++ }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.money_change_no_mints_add)).assertExists()
+        compose.onNodeWithText(text(R.string.mints_add)).performClick()
+        assertEquals(1, adding)
+    }
+
+    @Test
+    fun whenNoMintCanBeAddedTheEmptyPageOnlySaysSo() {
+        compose.setContent { MoneyMoveScreen(MoneyMoveState(mode = MoneyMoveMode.ChangeHome), {}, MoneyMoveActions()) }
+        compose.onNodeWithText(text(R.string.money_change_no_mints)).assertExists()
+        compose.onNodeWithText(text(R.string.mints_add)).assertDoesNotExist()
+    }
 }

@@ -29,7 +29,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.Page
+import whitewallet.core.designsystem.BrandBody
+import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletSwitch
@@ -91,17 +96,33 @@ fun MintsScreen(
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_mints), onBack) }) { padding ->
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
-        LazyColumn(Modifier.padding(padding).imePadding().fillMaxWidth()) {
-            item {
-                Text(stringResource(R.string.mints_intro), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))
-            }
-            items(state.mints, key = { it.host }) { mint -> MintRow(mint, onOpen, onTrusted) }
-            if (state.canAdd)
-                item {
-                    WalletButton(kind = ButtonKind.Secondary, onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text(stringResource(R.string.mints_add))
+        val empty = state.mints.isEmpty()
+        BrandBody(Page.Mints, if (empty) WalletStatus.Empty else WalletStatus.Idle) {
+            LazyColumn(Modifier.padding(padding).imePadding().fillMaxWidth()) {
+                if (empty) {
+                    item {
+                        EmptyState(
+                            stringResource(R.string.mints_empty),
+                            action = if (state.canAdd) ({ PrimaryButton(stringResource(R.string.mints_add), onAdd) }) else null,
+                        )
                     }
+                    return@LazyColumn
                 }
+                item {
+                    Text(
+                        stringResource(R.string.mints_intro),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+                items(state.mints, key = { it.host }) { mint -> MintRow(mint, onOpen, onTrusted) }
+                if (state.canAdd)
+                    item {
+                        WalletButton(kind = ButtonKind.Secondary, onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(stringResource(R.string.mints_add))
+                        }
+                    }
+            }
         }
     }
 }

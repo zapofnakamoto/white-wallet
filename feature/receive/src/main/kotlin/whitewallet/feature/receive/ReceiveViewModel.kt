@@ -19,8 +19,10 @@ import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceRequest
 import whitewallet.core.wallet.InvoiceStatus
+import whitewallet.core.wallet.NoHome
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.noHome
 
 /** Why no invoice could be made; each maps to a full string. */
 sealed interface InvoiceProblem {
@@ -29,15 +31,6 @@ sealed interface InvoiceProblem {
     data object Unreachable : InvoiceProblem
 
     data object Refused : InvoiceProblem
-}
-
-/** Why the account can't receive yet: its wallet has no home mint. */
-enum class NoHome {
-    /** Its wallet has no mint at all: add one. */
-    NoMint,
-
-    /** Its wallet has mints, but its home mint was removed: pick one of them. */
-    PickHome,
 }
 
 /** An invoice on screen and where it stands. */
@@ -112,7 +105,7 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
     private var watch: Job? = null
 
     val state: StateFlow<ReceiveState> =
-        combine(addressChoice(), received, ui, faucet.available, noHome()) { choice, msat, u, canFaucet, noHome ->
+        combine(addressChoice(), received, ui, faucet.available, wallet.noHome) { choice, msat, u, canFaucet, noHome ->
                 ReceiveState(
                     u.chosen?.takeIf { it in choice.all } ?: choice.first,
                     choice.all.size,
@@ -134,15 +127,6 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
             val registered = entries.map { it.address }.filter { it.feeInvoice == null }
             val first = primary?.takeIf { it.feeInvoice == null } ?: registered.firstOrNull { it.host == home }
             AddressChoice(first?.address, (listOfNotNull(first) + registered).distinct().map { it.address })
-        }
-
-    private fun noHome() =
-        combine(wallet.activeAccount, wallet.homeHost, wallet.hasMint) { active, home, hasMint ->
-            when {
-                active == null || home != null -> null
-                hasMint -> NoHome.PickHome
-                else -> NoHome.NoMint
-            }
         }
 
     init {

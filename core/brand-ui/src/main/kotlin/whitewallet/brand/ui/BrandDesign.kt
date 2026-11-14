@@ -40,6 +40,16 @@ interface BrandDesign {
     fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
         default()
     }
+
+    /**
+     * Around a page's body, below its top bar ([Page]): a background, a frame, a picture above, below or behind it, or a change between
+     * states ([DecorationContext.status], such as `Empty` while the page has nothing to show). Call [content] exactly once: it is the page,
+     * with its texts and actions.
+     */
+    @Composable
+    fun Body(page: Page, context: DecorationContext, content: @Composable () -> Unit) {
+        content()
+    }
 }
 
 /** What a [BrandDesign.Decoration] knows about where it is shown. */

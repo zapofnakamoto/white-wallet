@@ -31,6 +31,7 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.designsystem.R as DesignR
@@ -111,6 +112,8 @@ class HomeScreenTest {
             )
         }
         compose.onNodeWithText(text(R.string.home_add_mint_title)).assertExists()
+        // Without a mint there is no address to share: the card says what to do instead.
+        compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
         // No way to put it off: only adding a mint takes it away.
         compose.onNodeWithText(text(R.string.home_backup_later)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.home_add_mint_action)).performClick()
@@ -222,6 +225,42 @@ class HomeScreenTest {
     fun anEmptyWalletSaysHowMoneyGetsIn() {
         show(HomeState(activeAccountId = "a"))
         compose.onNodeWithText(text(R.string.home_wallet_empty)).assertExists()
+    }
+
+    @Test
+    fun anEmptyHistorySaysWhatShowsUpThereAndLeadsToReceive() {
+        var receiving = 0
+        val bodies = mutableListOf<Pair<Page, WalletStatus>>()
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Body(page: Page, context: DecorationContext, content: @Composable () -> Unit) {
+                    bodies += page to context.status
+                    content()
+                }
+            }
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design) {
+                HomeScreen(
+                    "Wallet",
+                    HomeState(activeAccountId = "a"),
+                    onSend = {},
+                    onReceive = { receiving++ },
+                    onRefresh = {},
+                    onSettings = {},
+                    onBackup = {},
+                    onDismissBackup = {},
+                    onOpenAddresses = {},
+                    accountActions = AccountActions({}, {}, {}),
+                )
+            }
+        }
+        compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
+        compose.onNodeWithText(text(R.string.home_empty)).assertExists()
+        assertEquals(listOf(Page.History to WalletStatus.Empty), bodies.distinct())
+        // The empty history's way forward; the wallet tab's own Receive is not on this tab.
+        compose.onNodeWithText(text(R.string.home_receive)).performClick()
+        assertEquals(1, receiving)
     }
 
     @Test

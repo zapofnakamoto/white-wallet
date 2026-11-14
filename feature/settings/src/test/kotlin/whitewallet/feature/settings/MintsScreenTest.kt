@@ -86,4 +86,21 @@ class MintsScreenTest {
         compose.onNodeWithText(text(R.string.mints_intro)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.mints_add)).assertDoesNotExist()
     }
+
+    @Test
+    fun withoutMintsThePageSaysWhyAndAddingIsTheWayForward() {
+        var adding = false
+        show(MintsState(emptyList()), onAdd = { adding = true })
+        compose.onNodeWithText(text(R.string.mints_empty)).assertExists()
+        compose.onNodeWithText(text(R.string.mints_intro)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mints_add)).performClick()
+        assertTrue(adding)
+    }
+
+    @Test
+    fun withoutMintsAndNoneToAddOnlyTheReasonShows() {
+        show(MintsState(emptyList(), custom = false))
+        compose.onNodeWithText(text(R.string.mints_empty)).assertExists()
+        compose.onNodeWithText(text(R.string.mints_add)).assertDoesNotExist()
+    }
 }

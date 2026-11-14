@@ -24,8 +24,26 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   The name was the legacy stack's: empty both old stacks once, with `just regtest reset` and
   `docker compose -p whitewallet-regtest-current -f dev/regtest/docker-compose.yml down -v`.
 
+### Added
+
+- A screen with nothing to show says why and offers the way forward, the same on every screen: History and Notes
+  lead to Receive; Settings → Mints and Account → Mints to adding a mint; Lightning addresses to getting the first
+  one, or without a home mint to adding or choosing one, as Receive does. "Change home mint" and "Move money" with no
+  other mint offer adding one (where the brand lets users add mints) and come back with it picked.
+- For brands: `BrandDesign.Body(page, context, content)` wraps a page's body, below its top bar, for empty and
+  non-empty states alike (`context.status`, `Empty` while the page has nothing to show): a background, a frame, a
+  picture by state. Call `content()` exactly once. Pages so far (`Page`): `History`, `Notes`, `Archive`, `Receive`,
+  `Mints`, `AccountMints`, `Addresses`, `MoneyMove`; the default draws the body as before.
+
 ### Changed
 
+- The empty History says what shows up there ("No payments yet…") instead of repeating the wallet tab's hint, which
+  without a mint suggested an address that doesn't exist yet; the wallet tab drops that hint while it asks for a
+  mint. The empty Notes view says what a note is.
+- For brands: `money_move_no_mints` names the mint now and is a brand term, with `money_move_no_mints_add`,
+  `money_change_no_mints` and `money_change_no_mints_add` beside it; new brand terms `mints_empty`,
+  `settings_no_home` and `settings_no_home_action`, and `notes_receive`. `home_empty` is no longer a brand term. For
+  developers: `NoHome` moved to `whitewallet.core.wallet`, with `Wallet.noHome`.
 - For developers, with one draft left: `KeySet` is `KeySet.Wallet`, `KeySet.Change` or `KeySet.Share(n)`
   (`KeySet.share(n)` and `KeySet.isAddress` are gone), and `KeyId` holds its `KeySet` in place of `purpose` and
   `share`. `PayDestination.PayLink.transfer` (`InternalTransfer?`) is `internalTransfer`, a `Boolean`.
@@ -38,6 +56,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- The app could close while adding a mint (or on any other lookup after a dropped connection, with another mint's
+  connection still open): the retry closed the open connections on the screen's own thread, which Android forbids.
 - A home mint removed under Settings → Mints came back at once, no longer home and no longer trusted, with whatever
   signing key it showed then: its page, reloading as the home changed, added it again. Looking at a mint's page no
   longer adds a mint the wallet doesn't have; it only stores the fresh fees and limits of one it has, and doesn't wait

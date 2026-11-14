@@ -19,6 +19,10 @@
     <string name="mint_title">Mint</string>
     <string name="about_body">A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device.</string>
     <string name="mints_intro">Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted.</string>
+    <string name="mints_empty">This wallet has no mint yet, so nothing can be received.</string>
+    <!-- An account without a home mint, as on Receive (Lightning addresses, Account → Mints). -->
+    <string name="settings_no_home">This account has no home mint. Choose one of your mints to receive there.</string>
+    <string name="settings_no_home_action">Choose home mint</string>
     <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent or received there until it matches again, or you accept a new key. Your notes there are unchanged.</string>
     <string name="settings_notes">Note settings</string>
     <string name="settings_note_list">Notes</string>
@@ -44,6 +48,11 @@
     <string name="notes_pay_from_others_first_hint">Payments use notes on your other mints before those at %1$s, so your money gathers at your home mint.</string>
     <string name="notes_collect_confirm_body">Turning this on moves your notes on other mints there now:</string>
     <string name="money_change_body">Pick the new home mint. Invoices are made there, and moving everything to it collects your notes there. Your addresses stay where they are.</string>
+    <!-- Changing the home mint or moving money with no other mint to pick; the _add ones where the user can add one. -->
+    <string name="money_change_no_mints">You have no other mint to make your home.</string>
+    <string name="money_change_no_mints_add">You have no other mint to make your home. Add one, then pick it here.</string>
+    <string name="money_move_no_mints">There is no other mint to move this money to.</string>
+    <string name="money_move_no_mints_add">There is no other mint to move this money to. Add one, then pick it here.</string>
     <string name="mints_add">Add a mint</string>
 
     <string name="settings_title">Settings</string>
@@ -359,7 +368,6 @@
     <string name="money_move_title">Move money</string>
     <string name="money_move_from">All your money on %1$s goes to the one you pick, combined into one payment.</string>
     <string name="money_move_target">To</string>
-    <string name="money_move_no_mints">There is nowhere else to move it. Add one under Settings first.</string>
     <string name="money_error_mint">That one doesn\'t answer as expected: %1$s</string>
     <string name="money_error_network">No connection: %1$s</string>
     <string name="money_continue">Continue</string>

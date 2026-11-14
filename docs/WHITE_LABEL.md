@@ -122,6 +122,9 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `mint_title` | Mint |
 | `about_body` | A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device. |
 | `mints_intro` | Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted. |
+| `mints_empty` | This wallet has no mint yet, so nothing can be received. |
+| `settings_no_home` | This account has no home mint. Choose one of your mints to receive there. |
+| `settings_no_home_action` | Choose home mint |
 | `notice_moved_home` | Moved %1$s to your home mint |
 | `notes_checked_unknown` | The mint doesn't know %1$d note. It's set aside, out of your balance, and your wallet asks again by itself. / The mint doesn't know %1$d notes. They're set aside, out of your balance, and your wallet asks again by itself. (plural) |
 | `notes_state_unknown` | Unknown to the mint |
@@ -193,7 +196,6 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `claim_own_offline` | You shared this note. Its mint can't be reached right now, so it can't be taken back yet. |
 | `claim_other_mint` | This note is held by %1$s and stays there. |
 | `home_tab_notes` | Notes |
-| `home_empty` | Nothing here yet. Share your address to get paid, or claim a note. |
 | `home_wallet_empty` | Nothing here yet. Share your address to get paid, or claim a note. |
 | `history_filter_maintenance` | Note maintenance |
 | `history_only_maintenance` | So far only note maintenance. |
@@ -220,7 +222,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notes_checked_ok` | Checked %1$d note: still there. / Checked %1$d notes: all still there. (plural) |
 | `notes_checked_gone` | %1$d note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone. / %1$d notes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone. (plural) |
 | `notes_already_spent` | This note was already spent, so it wasn't shared. It's no longer in your balance. |
-| `notes_empty` | No notes yet. Notes appear here once you receive money. |
+| `notes_empty` | No notes yet. Money you receive is held as notes, and they show up here. |
 | `notes_strategy_warning` | "%1$s" is on: it rearranges your notes again on every refresh. |
 | `notes_selected` | %1$d note selected · %2$s / %1$d notes selected · %2$s (plural) |
 | `notes_combined` | Combined into one note of %1$s. |
@@ -279,6 +281,10 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notes_pay_from_others_first_hint` | Payments use notes on your other mints before those at %1$s, so your money gathers at your home mint. |
 | `notes_collect_confirm_body` | Turning this on moves your notes on other mints there now: |
 | `money_change_body` | Pick the new home mint. Invoices are made there, and moving everything to it collects your notes there. Your addresses stay where they are. |
+| `money_change_no_mints` | You have no other mint to make your home. |
+| `money_change_no_mints_add` | You have no other mint to make your home. Add one, then pick it here. |
+| `money_move_no_mints` | There is no other mint to move this money to. |
+| `money_move_no_mints_add` | There is no other mint to move this money to. Add one, then pick it here. |
 | `claim_not_spendable` | This link doesn't unlock the note it names, so it can't be claimed. |
 | `claim_other_paths` | This note can also be spent another way, so someone else may take it before you claim it. |
 | `home_working_checking_notes` | Checking your note… / Checking note %1$d of %2$d… (plural) |
@@ -430,6 +436,25 @@ releases don't break it; the parameter objects of components (`ButtonParams`, �
   | `NotesEmpty` | above the text of an empty notes view | nothing |
   | `AppLock` | the app lock screen | `ic_brand_logo` |
   | `EmptyHistory` | above the text of an empty history | nothing |
+
+- **Bodies:** `Body(page, context, content)` wraps a page's body, below its top bar, whether it shows something or
+  nothing: `context.status` is `Empty` while the page has nothing to show (its text and its way forward, the same on
+  every page), else what the page is about. Draw around `content`: a background, a frame, a picture above, below or
+  behind it, or a change between states. Call `content()` exactly once; it holds the page's texts and actions, which
+  stay the app's. The default draws the body as it is.
+
+  | Page | What it is | `Empty` when |
+  |---|---|---|
+  | `History` | the history tab | there is no entry (else `Idle`) |
+  | `Notes` | the notes view | there are no notes (else `WaitingForRecipient` while handed-out notes wait, or `Idle`) |
+  | `Archive` | archived received notes | there are none (else `Idle`) |
+  | `Receive` | Receive | there is no mint, or no home mint (else what `ReceiveHeader` gets) |
+  | `Mints` | Settings → Mints | the wallet has no mint (else `Idle`) |
+  | `AccountMints` | Account → Mints | the account has none (else `Idle`) |
+  | `Addresses` | Lightning addresses | the account has none (else `Idle`) |
+  | `MoneyMove` | Change home mint, Move money | there is no mint to pick (else `Idle`) |
+
+  New pages may come in later releases: give a `when` over `page` an `else` that calls `content()`.
 
 - **Status and events:** `context.status` (also `LocalWalletStatus`) is what the screen is about: `None`, `Idle`
   (money, nothing happening), `Empty`, `AwaitingPayment`, `WaitingForRecipient` (a handed-out note nobody has

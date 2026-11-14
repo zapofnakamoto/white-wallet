@@ -18,6 +18,7 @@ import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.LocalReduceMotion
 import whitewallet.brand.ui.LocalWalletStatus
+import whitewallet.brand.ui.Page
 
 /**
  * The brand's content at [anchor] (or [default] without a brand design), with the current screen's status. It is decorative: screen readers
@@ -28,6 +29,12 @@ fun BrandDecoration(anchor: Anchor, modifier: Modifier = Modifier, default: @Com
     Box(modifier.clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
         LocalBrandDesign.current.Decoration(anchor, decorationContext(), default)
     }
+}
+
+/** [page]'s body ([content]), wrapped by the brand's design, which learns what the page is about from [status]. */
+@Composable
+fun BrandBody(page: Page, status: WalletStatus, content: @Composable () -> Unit) {
+    WalletStatusScope(status) { LocalBrandDesign.current.Body(page, decorationContext(), content) }
 }
 
 /**

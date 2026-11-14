@@ -31,7 +31,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.Page
+import whitewallet.core.designsystem.BrandBody
+import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
@@ -144,42 +148,41 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.archive_title), onBack) }, snackbarHost = { WalletSnackbarHost(snackbars) }) {
         padding ->
         if (!pageLoaded(state.loaded)) return@Scaffold
-        LazyColumn(Modifier.padding(padding).fillMaxSize()) {
-            item {
-                WalletListItem(
-                    headlineContent = {
-                        Text(
-                            stringResource(if (state.notes.isEmpty()) R.string.archive_empty else R.string.archive_hint),
-                            style = MaterialTheme.typography.bodyMedium,
+        BrandBody(Page.Archive, if (state.notes.isEmpty()) WalletStatus.Empty else WalletStatus.Idle) {
+            LazyColumn(Modifier.padding(padding).fillMaxSize()) {
+                item {
+                    if (state.notes.isEmpty()) EmptyState(stringResource(R.string.archive_empty))
+                    else
+                        WalletListItem(
+                            headlineContent = { Text(stringResource(R.string.archive_hint), style = MaterialTheme.typography.bodyMedium) }
                         )
-                    }
-                )
-            }
-            items(state.notes, key = { it.id }) { note ->
-                ReceivedNoteRow(
-                    note,
-                    state.showMints,
-                    amountHidden = false,
-                    trailing = {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            WalletButton(
-                                kind = ButtonKind.Text,
-                                enabled = state.retrying == null,
-                                busy = state.retrying == note.id,
-                                onClick = { actions.retry(note.id) },
-                            ) {
-                                Text(stringResource(R.string.archive_retry))
+                }
+                items(state.notes, key = { it.id }) { note ->
+                    ReceivedNoteRow(
+                        note,
+                        state.showMints,
+                        amountHidden = false,
+                        trailing = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                WalletButton(
+                                    kind = ButtonKind.Text,
+                                    enabled = state.retrying == null,
+                                    busy = state.retrying == note.id,
+                                    onClick = { actions.retry(note.id) },
+                                ) {
+                                    Text(stringResource(R.string.archive_retry))
+                                }
+                                WalletButton(
+                                    kind = ButtonKind.Text,
+                                    enabled = state.retrying == null,
+                                    onClick = { actions.askRemove(note.id) },
+                                ) {
+                                    Text(stringResource(R.string.archive_remove))
+                                }
                             }
-                            WalletButton(
-                                kind = ButtonKind.Text,
-                                enabled = state.retrying == null,
-                                onClick = { actions.askRemove(note.id) },
-                            ) {
-                                Text(stringResource(R.string.archive_remove))
-                            }
-                        }
-                    },
-                )
+                        },
+                    )
+                }
             }
         }
     }

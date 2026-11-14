@@ -3,6 +3,7 @@ package whitewallet.feature.receive
 import android.content.ClipData
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -36,7 +37,10 @@ import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.Page
+import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.ScreenColumn
@@ -50,6 +54,7 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceStatus
+import whitewallet.core.wallet.NoHome
 
 @Composable
 fun ReceiveRoute(
@@ -116,18 +121,20 @@ fun ReceiveScreen(
             )
             return@Scaffold
         }
-        ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-            val shown = state.invoice
-            WalletStatusScope(receiveStatus(state)) { BrandDecoration(Anchor.ReceiveHeader) }
-            when {
-                state.noHome != null -> NoHomeContent(state.noHome, onNoHome)
-                shown != null -> InvoiceContent(shown, onBack, invoice.onNewInvoice)
-                state.showAmountForm -> AmountForm(state, invoice)
-                state.address != null -> AddressContent(state.address, others = state.addressCount > 1, invoice)
+        BrandBody(Page.Receive, if (state.noHome != null) WalletStatus.Empty else receiveStatus(state)) {
+            ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
+                val shown = state.invoice
+                WalletStatusScope(receiveStatus(state)) { BrandDecoration(Anchor.ReceiveHeader) }
+                when {
+                    state.noHome != null -> NoHomeContent(state.noHome, onNoHome)
+                    shown != null -> InvoiceContent(shown, onBack, invoice.onNewInvoice)
+                    state.showAmountForm -> AmountForm(state, invoice)
+                    state.address != null -> AddressContent(state.address, others = state.addressCount > 1, invoice)
+                }
+                if (shown == null) WalletButton(kind = ButtonKind.Text, onClick = onClaim) { Text(stringResource(R.string.receive_claim)) }
+                val payable = shown?.status == InvoiceStatus.Waiting || (shown == null && !state.showAmountForm && state.address != null)
+                state.faucet?.takeIf { payable }?.let { FaucetButton(it, invoice = shown != null, onPay = invoice.onFaucet) }
             }
-            if (shown == null) WalletButton(kind = ButtonKind.Text, onClick = onClaim) { Text(stringResource(R.string.receive_claim)) }
-            val payable = shown?.status == InvoiceStatus.Waiting || (shown == null && !state.showAmountForm && state.address != null)
-            state.faucet?.takeIf { payable }?.let { FaucetButton(it, invoice = shown != null, onPay = invoice.onFaucet) }
         }
     }
 }
@@ -136,12 +143,9 @@ fun ReceiveScreen(
 @Composable
 private fun NoHomeContent(noHome: NoHome, onNoHome: (NoHome) -> Unit) {
     val mint = noHome == NoHome.NoMint
-    Text(
-        stringResource(if (mint) R.string.receive_no_mint else R.string.receive_no_home),
-        style = MaterialTheme.typography.bodyLarge,
-        textAlign = TextAlign.Center,
-    )
-    PrimaryButton(stringResource(if (mint) R.string.receive_no_mint_action else R.string.receive_no_home_action), { onNoHome(noHome) })
+    EmptyState(stringResource(if (mint) R.string.receive_no_mint else R.string.receive_no_home), padding = PaddingValues()) {
+        PrimaryButton(stringResource(if (mint) R.string.receive_no_mint_action else R.string.receive_no_home_action), { onNoHome(noHome) })
+    }
 }
 
 /** What the screen is about, for the brand's design: waiting, or a problem. What arrived has its own screen. */

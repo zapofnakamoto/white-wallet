@@ -29,6 +29,13 @@
     <string name="mint_title">Anbieter</string>
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Geldscheine bei einem Anbieter deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
     <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Geldscheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut.</string>
+    <string name="mints_empty">Diese Wallet hat noch keinen Anbieter, also kann nichts empfangen werden.</string>
+    <string name="settings_no_home">Dieses Konto hat keinen eigenen Anbieter. Wähle einen deiner Anbieter, um dort zu empfangen.</string>
+    <string name="settings_no_home_action">Anbieter wählen</string>
+    <string name="money_change_no_mints">Du hast keinen anderen Anbieter, zu dem du wechseln kannst.</string>
+    <string name="money_change_no_mints_add">Du hast keinen anderen Anbieter, zu dem du wechseln kannst. Füge einen hinzu und wähle ihn dann hier.</string>
+    <string name="money_move_no_mints">Es gibt keinen anderen Anbieter, zu dem du dieses Geld verschieben kannst.</string>
+    <string name="money_move_no_mints_add">Es gibt keinen anderen Anbieter, zu dem du dieses Geld verschieben kannst. Füge einen hinzu und wähle ihn dann hier.</string>
     <string name="onboarding_tagline">Taschengeld auf Lightning.</string>
     <string name="claim_title">Geldschein einlösen</string>
     <string name="claim_input">Link eines Geldscheins einfügen</string>
@@ -43,7 +50,6 @@
     <string name="claim_kept_key_changed">Behalten. Deine Wallet löst ihn ein, sobald der Signaturschlüssel des Anbieters wieder passt oder du in seinen Details einen neuen annimmst.</string>
     <string name="claim_other_mint">Dieser Geldschein liegt bei %1$s und bleibt dort.</string>
     <string name="home_tab_notes">Geldscheine</string>
-    <string name="home_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Geldschein ein.</string>
     <string name="home_wallet_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Geldschein ein.</string>
     <string name="history_filter_maintenance">Pflege der Geldscheine</string>
     <string name="history_only_maintenance">Bisher nur Pflege der Geldscheine, die dein Guthaben nicht verändert.</string>
@@ -113,7 +119,7 @@
     </plurals>
     <string name="notice_unknown_unreachable_unnamed">Der Anbieter war nicht erreichbar. Deine Wallet fragt später wieder.</string>
     <string name="notes_already_spent">Dieser Geldschein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
-    <string name="notes_empty">Noch keine Geldscheine. Geldscheine erscheinen hier, sobald du Geld empfängst.</string>
+    <string name="notes_empty">Noch keine Geldscheine. Geld, das du empfängst, wird als Geldscheine gehalten und erscheint hier.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Geldscheine bei jedem Aktualisieren neu.</string>
     <plurals name="notes_selected">
         <item quantity="one">%1$d Geldschein ausgewählt · %2$s</item>
