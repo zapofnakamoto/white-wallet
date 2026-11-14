@@ -43,7 +43,14 @@ fi
 # release) is silently unused, and the app's own text shows instead: name it. The brand's own strings live in code/.
 names() { grep -rhoE '<(string|plurals) name="[^"]+"' "$@" 2>/dev/null | sed -E 's/.*name="//; s/"$//' | sort -u; }
 if overrides=$(names "$brand"/res/values*/strings.xml) && [ -n "$overrides" ]; then
-  stale=$(comm -23 <(echo "$overrides") <(names app/src/main/res/values/strings.xml core/*/src/main/res/values/strings.xml feature/*/src/main/res/values/strings.xml))
+  # The brand's res/ joins the app module's own, so a string of the app module itself clashes instead of overriding.
+  clash=$(comm -12 <(echo "$overrides") <(names app/src/main/res/values/strings.xml))
+  if [ -n "$clash" ]; then
+    echo "$brand/res overrides strings of White Wallet's app module, which a brand can't override (only the core and feature modules'):"
+    echo "$clash" | sed 's/^/  /'
+    exit 1
+  fi
+  stale=$(comm -23 <(echo "$overrides") <(names core/*/src/main/res/values/strings.xml feature/*/src/main/res/values/strings.xml))
   if [ -n "$stale" ]; then
     echo "$brand/res overrides strings the app doesn't have (renamed? see CHANGELOG.md):"
     echo "$stale" | sed 's/^/  /'

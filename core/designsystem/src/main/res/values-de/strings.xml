@@ -26,6 +26,9 @@
     <string name="release_notice_beta">Diese App ist eine Beta-Version: Sie wird noch getestet und kann Fehler haben.</string>
     <string name="release_notes_title">Neuigkeiten</string>
     <string name="release_notes_done">Verstanden</string>
+    <!-- What's new in the release that dropped the older key derivation (LUD-26 draft 2f17578); shown once to users who updated. -->
+    <string name="release_note_old_keys_title">Scheine von vor Version 0.8</string>
+    <string name="release_note_old_keys_body">Diese Version findet keine Scheine und Lightning-Adressen mehr, die so angelegt wurden wie vor Version 0.8. Seitdem hat die App sie bei jedem Öffnen von selbst umgezogen. Fehlt Geld, öffne deine Wiederherstellungsphrase einmal in Version 0.9.0, die sie noch umzieht, und nutze dann hier „Nach Scheinen suchen“.</string>
 
     <string name="received_title">Erhalten, noch nicht eingelöst</string>
     <string name="received_hint">Deine Wallet löst sie von selbst ein. Bis dahin sind sie nicht in deinem Guthaben, deine Wiederherstellungsphrase deckt sie nicht ab, und wer dir einen Link gegeben hat, kann ihn noch ausgeben.</string>

@@ -308,7 +308,7 @@ To use another word ("custodian", "provider", "voucher", …), override exactly 
 | `mipmap-anydpi/ic_launcher.xml` | Usually unchanged; combines background color and foreground |
 | `mipmap-*dpi/ic_launcher.png` | Optional. The build draws the launcher icon as PNGs from the adaptive icon (48dp, `mdpi` to `xxxhdpi`), for app stores that read the APK and can't draw the adaptive icon: they would show another image from it. It draws colours and vector drawables with paths, groups and clip paths; for anything else (a gradient, a bitmap layer, a colour from outside the brand's `res/values`) it says so and goes on without, and you add the PNGs here yourself (`mipmap-xxxhdpi/ic_launcher.png`, 192 px, is enough). PNGs here are used as they are |
 
-You can also add `values/strings.xml` here to override any user-facing string from the feature modules, using the same names (for example `onboarding_tagline`). App resources take precedence over library resources. The app ships in English and German; for each language you support, put its brand-term strings in `values-<lang>/strings.xml`.
+You can also add `values/strings.xml` here to override any user-facing string from the core and feature modules, using the same names (for example `onboarding_tagline`); the app module's own strings can't be overridden. App resources take precedence over library resources. The app ships in English and German; for each language you support, put its brand-term strings in `values-<lang>/strings.xml`.
 
 | File | What to change |
 |---|---|
