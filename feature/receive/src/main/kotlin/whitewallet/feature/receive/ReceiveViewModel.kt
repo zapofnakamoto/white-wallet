@@ -153,6 +153,12 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
 
     init {
         viewModelScope.launch {
+            // Back online, an invoice that failed for being offline is no news: the form says what it is now.
+            wallet.followOffline { _, back ->
+                if (back) ui.update { it.copy(problem = it.problem.takeUnless { p -> p == InvoiceProblem.Offline }) }
+            }
+        }
+        viewModelScope.launch {
             while (isActive) {
                 delay(timings.receivePollMillis)
                 // Offline, there's nobody to ask: what arrived meanwhile is found once the phone is back.

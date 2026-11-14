@@ -74,11 +74,43 @@ class BackOnlineTest {
     }
 
     @Test
+    fun `a network that comes before the state is first followed still waits to be found to work`() = runTest {
+        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), connection = connection, scope = backgroundScope)
+        connection.value = Connection.Unverified
+        runCurrent()
+        advanceTimeBy(wait / 2)
+        assertEquals(true, wallet.offline.value)
+    }
+
+    @Test
     fun `a screen that starts looking during the wait sees offline too`() = runTest {
         val wallet = wallet()
         connection.value = Connection.Unverified
         advanceTimeBy(wait / 2)
         assertEquals(listOf(true), seen(wallet))
+    }
+
+    @Test
+    fun `a screen following offline is told the return once, with the value that ends offline`() = runTest {
+        val wallet = wallet()
+        val told = mutableListOf<Pair<Boolean, Boolean>>()
+        backgroundScope.launch { wallet.followOffline { offline, back -> told += offline to back } }
+        runCurrent()
+        connection.value = Connection.Online
+        runCurrent()
+        connection.value = Connection.Offline
+        runCurrent()
+        assertEquals(listOf(true to false, false to true, true to false), told)
+    }
+
+    @Test
+    fun `a screen that starts following while online is told no return`() = runTest {
+        connection.value = Connection.Online
+        val wallet = wallet()
+        val told = mutableListOf<Pair<Boolean, Boolean>>()
+        backgroundScope.launch { wallet.followOffline { offline, back -> told += offline to back } }
+        runCurrent()
+        assertEquals(listOf(false to false), told)
     }
 
     @Test

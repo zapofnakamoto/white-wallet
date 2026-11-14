@@ -154,8 +154,11 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
         if (initialized) return
         initialized = true
         viewModelScope.launch {
-            wallet.offline.collect { offline ->
-                _state.update { it.copy(offline = offline, error = it.error.takeUnless { offline && it == MoneyMoveError.Network }) }
+            // No answer while offline, or from before the phone was back, is no news: the page says what it is now.
+            wallet.followOffline { offline, back ->
+                _state.update {
+                    it.copy(offline = offline, error = it.error.takeUnless { (offline || back) && it == MoneyMoveError.Network })
+                }
             }
         }
         viewModelScope.launch {

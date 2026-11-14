@@ -171,22 +171,37 @@ class Wallet(
      * the first requests could go out before the network carries them, and a screen would take back "offline" only to say a mint doesn't
      * answer.
      */
-    val offline: StateFlow<Boolean> = channelFlow {
-        var wasOffline = connection.value == Connection.Offline
-        connection
-            .map { it == Connection.Offline }
-            .distinctUntilChanged()
-            .collectLatest { nowOffline ->
-                val back = wasOffline && !nowOffline
-                wasOffline = nowOffline
-                if (back) withTimeoutOrNull(settings.backOnlineVerifiedWaitMillis) { connection.first { it == Connection.Online } }
-                send(nowOffline)
-            }
-    }
-        .stateIn(scope, SharingStarted.Eagerly, connection.value == Connection.Offline)
+    val offline: StateFlow<Boolean> =
+        // Read once: the state starts from it, and the wait applies if the network comes before the state is first followed.
+        (connection.value == Connection.Offline).let { atStart ->
+            channelFlow {
+                    var wasOffline = atStart
+                    connection
+                        .map { it == Connection.Offline }
+                        .distinctUntilChanged()
+                        .collectLatest { nowOffline ->
+                            val back = wasOffline && !nowOffline
+                            wasOffline = nowOffline
+                            if (back)
+                                withTimeoutOrNull(settings.backOnlineVerifiedWaitMillis) { connection.first { it == Connection.Online } }
+                            send(nowOffline)
+                        }
+                }
+                .stateIn(scope, SharingStarted.Eagerly, atStart)
+        }
 
-    /** Whether the phone has a network connection now, one that may reach the internet (see [connection]). */
-    fun isOnline(): Boolean = connection.value != Connection.Offline
+    /**
+     * Follows [offline] for a screen: [onChange] gets each value, and whether the phone just came back (`back`), when what couldn't be
+     * asked is asked again and what failed for being offline is no longer said. One collector for both, so the screen has taken back
+     * "offline" before it acts on the return.
+     */
+    suspend fun followOffline(onChange: suspend (offline: Boolean, back: Boolean) -> Unit) {
+        var wasOffline: Boolean? = null
+        offline.collect { nowOffline ->
+            onChange(nowOffline, wasOffline == true && !nowOffline)
+            wasOffline = nowOffline
+        }
+    }
 
     /** Whether a mint that doesn't answer now is told as such: only over a network known to reach the internet ([Connection.Online]). */
     internal fun silenceCounts(): Boolean = connection.value == Connection.Online

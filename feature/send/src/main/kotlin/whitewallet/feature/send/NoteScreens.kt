@@ -108,7 +108,12 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet) : View
 
     init {
         viewModelScope.launch { _state.update { it.copy(availableMsat = wallet.sendableNoteMsat()) } }
-        viewModelScope.launch { wallet.offline.collect { offline -> _state.update { it.copy(offline = offline) } } }
+        viewModelScope.launch {
+            // Back online, a failure to connect from while offline is no news.
+            wallet.followOffline { offline, back ->
+                _state.update { it.copy(offline = offline, problem = it.problem.takeUnless { back && it == PayProblem.Unreachable }) }
+            }
+        }
     }
 
     fun onAmountChange(value: String) {
@@ -234,7 +239,12 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
     val state: StateFlow<SharedNoteUiState> = _state
 
     init {
-        viewModelScope.launch { wallet.offline.collect { offline -> _state.update { it.copy(offline = offline) } } }
+        viewModelScope.launch {
+            // Back online, a failure to connect from while offline is no news.
+            wallet.followOffline { offline, back ->
+                _state.update { it.copy(offline = offline, problem = it.problem.takeUnless { back && it == PayProblem.Unreachable }) }
+            }
+        }
         viewModelScope.launch {
             _state.update { it.copy(note = wallet.sharedNote(id), loading = false) }
             // While the screen is open, notice when the recipient claims it.

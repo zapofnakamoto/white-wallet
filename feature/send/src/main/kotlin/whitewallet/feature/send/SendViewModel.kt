@@ -89,7 +89,12 @@ constructor(
                 _state.update { it.copy(faucet = if (available) it.faucet ?: FaucetState() else null, loaded = true) }
             }
         }
-        viewModelScope.launch { wallet.offline.collect { offline -> _state.update { it.copy(offline = offline) } } }
+        viewModelScope.launch {
+            // Back online, a failure to connect from while offline is no news: the screen says what it is now.
+            wallet.followOffline { offline, back ->
+                _state.update { it.copy(offline = offline, problem = it.problem.takeUnless { back && it == PayProblem.Unreachable }) }
+            }
+        }
         // Opened from a link, shared text or NFC tag: check it right away.
         savedState.get<String>("input")?.takeIf { it.isNotBlank() }?.let(::onScanned)
     }

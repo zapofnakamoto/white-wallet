@@ -106,18 +106,52 @@ object WalletModule {
             receivedGiveUpMillis = BuildConfig.RECEIVED_GIVE_UP_MILLIS,
         )
 
-    /** The phone's connection, kept up to date by the system's default network: the screens follow it as it changes. */
+    /**
+     * The phone's connection, kept up to date by the system's default network: the screens follow it as it changes. A network the system
+     * blocks for this app (Data Saver, Doze, a background restriction) is offline for it: no request gets through, which says nothing about
+     * a mint. (The active network, read at the start, is null while blocked.)
+     */
     private fun Context.connection(): StateFlow<Connection> {
         val connectivity = getSystemService(ConnectivityManager::class.java) ?: return MutableStateFlow(Connection.Online)
-        val connection = MutableStateFlow(connectivity.getNetworkCapabilities(connectivity.activeNetwork).connection())
+        val connection = MutableStateFlow(connectivity.activeNetwork?.let(connectivity::getNetworkCapabilities).connection())
         connectivity.registerDefaultNetworkCallback(
             object : ConnectivityManager.NetworkCallback() {
+                /** The default network, and what is known of it. */
+                private var network: Network? = null
+                private var capabilities: NetworkCapabilities? = null
+                private var blocked = false
+
+                override fun onAvailable(network: Network) {
+                    if (network == this.network) return
+                    // Another network became the default: nothing of the last one carries over.
+                    this.network = network
+                    capabilities = null
+                    blocked = false
+                }
+
                 override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                    connection.value = capabilities.connection()
+                    onAvailable(network)
+                    this.capabilities = capabilities
+                    update()
+                }
+
+                override fun onBlockedStatusChanged(network: Network, blocked: Boolean) {
+                    onAvailable(network)
+                    this.blocked = blocked
+                    update()
                 }
 
                 override fun onLost(network: Network) {
-                    connection.value = Connection.Offline
+                    // A network that is no longer the default may be reported lost after the new one came.
+                    if (network != this.network) return
+                    this.network = null
+                    capabilities = null
+                    blocked = false
+                    update()
+                }
+
+                private fun update() {
+                    connection.value = if (blocked) Connection.Offline else capabilities.connection()
                 }
             }
         )

@@ -48,7 +48,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `home_mint_is_home_not_answering`, `home_mint_silent_title_home`, `home_mint_silent_title_unnamed`,
   `receive_address_mint_silent_unnamed`, `receive_invoice_mint_silent_unnamed` and
   `send_problem_mint_silent_unnamed`. The app now declares `ACCESS_NETWORK_STATE` (WorkManager declared it already).
-  For developers: `Wallet.mintsNotAnswering`, `Wallet.isOnline()`, `AccountMint.answering`,
+  For developers: `Wallet.mintsNotAnswering`, `AccountMint.answering`,
   `PayProblem.MintNotAnswering` with `PayResult.Failed.host`.
 - Being offline is told as it happens, and before the user tries what needs a connection. Home says so at once, and
   updates by itself once the phone is back, so it offers nothing to try while offline. Send, sending as a note,
@@ -58,14 +58,16 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   on a network, the app counts as offline until the system has found that the network reaches the internet (at most
   10 seconds, `back.online.verified.wait.millis` in wallet.properties): the first requests don't go out before the
   network carries them, and "offline" never gives way to a mint that seems not to answer. A network that doesn't
-  reach the internet (a hotel's login page) blames no mint either. Adding a mint and moving money no longer show the
-  network's own error text in English.
+  reach the internet (a hotel's login page) blames no mint either, and one the system blocks for the app (Data Saver,
+  Doze) counts as offline. Back online, an error that came from being offline is no longer shown. Adding a mint and
+  moving money no longer show the network's own error text in English.
 - For brands: a new brand term, `claim_own_phone_offline`, and new strings `send_offline`, `note_reclaim_offline`,
   `claim_unreachable`, `add_mint_offline`, `mint_offline` and `money_offline`. `add_mint_error_unreachable` and
   `money_error_network` take no argument any more; `home_offline`, `claim_offline`, `receive_invoice_offline` and
   `send_problem_unreachable` say new words. For developers: `Wallet.connection` (`Connection`: `Offline`,
   `Unverified`, `Online`; the constructor takes it in place of `online`), `Wallet.offline` (one state for every
-  screen, kept up to date in the constructor's new `scope`), `AppPreferences.InMemory` for tests;
+  screen, kept up to date in the constructor's new `scope`) and `Wallet.followOffline` (a screen's value and its
+  return, in one collector), `AppPreferences.InMemory` for tests;
   `InvoiceProblem.NoAnswer`; `AddMintError.Unreachable` and `MoneyMoveError.Network` carry no detail.
 
 ### Changed

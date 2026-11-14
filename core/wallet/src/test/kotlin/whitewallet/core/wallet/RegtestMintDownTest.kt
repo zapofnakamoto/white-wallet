@@ -83,7 +83,6 @@ class RegtestMintDownTest {
             down += HOST
             alice.wallet.refresh()
             assertEquals(emptySet(), alice.silent())
-            assertFalse(alice.wallet.isOnline())
         }
 
     @Test
@@ -94,7 +93,6 @@ class RegtestMintDownTest {
             down += HOST
             alice.wallet.refresh()
             assertEquals(emptySet(), alice.silent())
-            assertTrue(alice.wallet.isOnline(), "requests are still tried")
         }
 
     @Test

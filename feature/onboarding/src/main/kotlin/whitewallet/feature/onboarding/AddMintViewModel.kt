@@ -138,16 +138,13 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
     }
 
     /**
-     * Says at once when the phone goes offline. Back online, where there is nothing to pick (a brand with a single mint), the screen goes
-     * on to what it is, as it would have at the start.
+     * Says at once when the phone goes offline; no answer from a mint then is no news. Back online, where there is nothing to pick (a brand
+     * with a single mint), the screen goes on to what it is, as it would have at the start.
      */
-    private suspend fun followConnection() {
-        wallet.offline.collect { offline ->
-            val back = _state.value.offline && !offline
-            _state.update { it.copy(offline = offline, error = it.error.takeUnless { offline && it == AddMintError.Unreachable }) }
-            val s = _state.value
-            if (back && s.loaded && s.step == AddMintStep.Pick && !s.showMintPicker && s.host.isNotBlank()) next()
-        }
+    private suspend fun followConnection() = wallet.followOffline { offline, back ->
+        _state.update { it.copy(offline = offline, error = it.error.takeUnless { offline && it == AddMintError.Unreachable }) }
+        val s = _state.value
+        if (back && s.loaded && s.step == AddMintStep.Pick && !s.showMintPicker && s.host.isNotBlank()) next()
     }
 
     fun onMintSelected(option: MintOption) = _state.update {

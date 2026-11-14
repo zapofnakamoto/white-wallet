@@ -76,10 +76,9 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
         viewModelScope.launch { faucet.noteMints.collect { mints -> _state.update { it.copy(faucetMints = mints, loaded = true) } } }
         viewModelScope.launch { wallet.homeHost.collect { home -> _state.update { it.copy(home = home) } } }
         viewModelScope.launch {
-            wallet.offline.collect { offline ->
-                // Back online: what couldn't be asked is asked now, rather than leaving the user to check again.
-                val back = _state.value.offline && !offline
+            wallet.followOffline { offline, back ->
                 _state.update { it.copy(offline = offline) }
+                // Back online: what couldn't be asked is asked now, rather than leaving the user to check again.
                 if (back && _state.value.waitsForConnection) check()
             }
         }
