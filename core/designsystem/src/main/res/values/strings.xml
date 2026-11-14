@@ -1,5 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+      Brand terms: the strings in this block name the party that holds users' funds ("mint" by default) or the notes
+      it issues ("note"). A brand that uses other words overrides exactly these, per language, in
+      brand/res/values*/strings.xml. All other strings are written without either word. See docs/WHITE_LABEL.md.
+    -->
+    <!-- What's new in the release that dropped the older key derivation (LUD-26 draft 2f17578); shown once to users who updated. -->
+    <string name="release_note_old_keys_title">Notes from before version 0.8</string>
+    <string name="release_note_old_keys_body">This version no longer finds notes and Lightning addresses made the way the app made them before version 0.8. Since then, the app moved them over by itself whenever it was opened. If money is missing, open your recovery phrase once in version 0.9.0, which still moves them, then use “Scan for notes” here.</string>
+    <!-- Why a note received as a link wasn't claimed (see received_title below). -->
+    <string name="received_key_changed">The signing key of its mint doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint\'s details.</string>
+    <string name="received_refused">Its mint kept refusing it, so your wallet stopped trying.</string>
+    <plurals name="received_refused_hours">
+        <item quantity="one">Its mint kept refusing it for %d hour, so your wallet stopped trying.</item>
+        <item quantity="other">Its mint kept refusing it for %d hours, so your wallet stopped trying.</item>
+    </plurals>
+    <plurals name="received_refused_days">
+        <item quantity="one">Its mint kept refusing it for %d day, so your wallet stopped trying.</item>
+        <item quantity="other">Its mint kept refusing it for %d days, so your wallet stopped trying.</item>
+    </plurals>
+    <plurals name="received_unreachable_hours">
+        <item quantity="one">Its mint didn\'t answer for %d hour, so your wallet stopped trying.</item>
+        <item quantity="other">Its mint didn\'t answer for %d hours, so your wallet stopped trying.</item>
+    </plurals>
+    <plurals name="received_unreachable_days">
+        <item quantity="one">Its mint didn\'t answer for %d day, so your wallet stopped trying.</item>
+        <item quantity="other">Its mint didn\'t answer for %d days, so your wallet stopped trying.</item>
+    </plurals>
+    <string name="received_unreachable">Its mint didn\'t answer, so your wallet stopped trying.</string>
+    <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
+    <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
+
     <string name="back">Back</string>
     <string name="loading">Loading</string>
     <string name="refresh">Refresh</string>
@@ -28,9 +59,6 @@
     <string name="release_notice_beta">This app is a beta version: it is still being tested and may have bugs.</string>
     <string name="release_notes_title">What\'s new</string>
     <string name="release_notes_done">Got it</string>
-    <!-- What's new in the release that dropped the older key derivation (LUD-26 draft 2f17578); shown once to users who updated. -->
-    <string name="release_note_old_keys_title">Notes from before version 0.8</string>
-    <string name="release_note_old_keys_body">This version no longer finds notes and Lightning addresses made the way the app made them before version 0.8. Since then, the app moved them over by itself whenever it was opened. If money is missing, open your recovery phrase once in version 0.9.0, which still moves them, then use “Scan for notes” here.</string>
 
     <!-- Received as a link, not claimed yet (the notes view, and Home under the balance). -->
     <string name="received_title">Received, not claimed yet</string>
@@ -42,33 +70,12 @@
     <string name="received_waiting">Not claimed yet. Tried again when online.</string>
     <string name="received_locked_until">Locked until %1$s</string>
     <string name="received_locked">Locked for now. Tried again on every refresh.</string>
-    <string name="received_key_changed">The signing key of its mint doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint\'s details.</string>
     <string name="received_claiming">Being claimed. Checked again on the next refresh.</string>
     <string name="received_melting">Being received over Lightning. Checked again on the next refresh.</string>
     <string name="received_claimed">Claimed</string>
     <string name="received_gone">Someone else spent it before you claimed it.</string>
-    <string name="received_refused">Its mint kept refusing it, so your wallet stopped trying.</string>
-    <plurals name="received_refused_hours">
-        <item quantity="one">Its mint kept refusing it for %d hour, so your wallet stopped trying.</item>
-        <item quantity="other">Its mint kept refusing it for %d hours, so your wallet stopped trying.</item>
-    </plurals>
-    <plurals name="received_refused_days">
-        <item quantity="one">Its mint kept refusing it for %d day, so your wallet stopped trying.</item>
-        <item quantity="other">Its mint kept refusing it for %d days, so your wallet stopped trying.</item>
-    </plurals>
     <string name="received_dismiss">Remove</string>
     <string name="received_archive">Archive</string>
     <string name="received_archived_by_you">You archived it.</string>
-    <plurals name="received_unreachable_hours">
-        <item quantity="one">Its mint didn\'t answer for %d hour, so your wallet stopped trying.</item>
-        <item quantity="other">Its mint didn\'t answer for %d hours, so your wallet stopped trying.</item>
-    </plurals>
-    <plurals name="received_unreachable_days">
-        <item quantity="one">Its mint didn\'t answer for %d day, so your wallet stopped trying.</item>
-        <item quantity="other">Its mint didn\'t answer for %d days, so your wallet stopped trying.</item>
-    </plurals>
-    <string name="received_unreachable">Its mint didn\'t answer, so your wallet stopped trying.</string>
-    <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
-    <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
     <string name="received_receive">Receive</string>
 </resources>

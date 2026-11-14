@@ -574,11 +574,12 @@ LAUNCHER_ICON = """<?xml version="1.0" encoding="utf-8"?>
 
 def brand_terms(qualifier: str) -> list[tuple[str, str]]:
     """
-    The brand-term strings (and plurals) of every feature module in one language, in module order, each as its whole
-    element. The block marked "Brand terms" in the English strings names them; the elements come from that language's file.
+    The brand-term strings (and plurals) of every core and feature module in one language, in module order, each as its
+    whole element. The block marked "Brand terms" in the English strings names them; the elements come from that language's
+    file.
     """
     terms = []
-    for english in sorted(ROOT.glob("feature/*/src/main/res/values/strings.xml")):
+    for english in module_strings("values"):
         block = re.search(r"Brand terms?:.*?-->(.*?)(?:\n\s*\n|</resources>)", english.read_text(encoding="utf-8"), re.S)
         if not block:
             continue
@@ -586,6 +587,11 @@ def brand_terms(qualifier: str) -> list[tuple[str, str]]:
         elements = {m.group(2): m.group(0) for m in re.finditer(r'<(string|plurals) name="([^"]+)">.*?</\1>', translated.read_text(encoding="utf-8"), re.S)} if translated.exists() else {}
         terms += [(name, elements[name]) for name in re.findall(r'<(?:string|plurals) name="([^"]+)">', block.group(1)) if name in elements]
     return terms
+
+
+def module_strings(qualifier: str) -> list[Path]:
+    """The strings files of the core and feature modules in one language (a brand overrides those, not the app module's)."""
+    return sorted(ROOT.glob(f"core/*/src/main/res/{qualifier}/strings.xml")) + sorted(ROOT.glob(f"feature/*/src/main/res/{qualifier}/strings.xml"))
 
 
 def languages() -> list[str]:

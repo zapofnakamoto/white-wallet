@@ -113,6 +113,7 @@ class BrandDirectoryTest(unittest.TestCase):
         english = [name for name, _ in nb.brand_terms("values")]
         self.assertIn("onboarding_mint", english)
         self.assertIn("notes_mints", english)  # plurals count too
+        self.assertIn("received_refused", english)  # a core module's too
         for qualifier in nb.languages():
             with self.subTest(qualifier):
                 self.assertEqual(english, [name for name, _ in nb.brand_terms(qualifier)])
@@ -124,7 +125,7 @@ class BrandDirectoryTest(unittest.TestCase):
         allowed = re.compile(r"^(keys_|regtest_|logs_hint$|onboarding_mint_local$)")
         terms = {name for name, _ in nb.brand_terms("values")}
         for qualifier, word in words.items():
-            for strings in sorted(nb.ROOT.glob(f"feature/*/src/main/res/{qualifier}/strings.xml")):
+            for strings in nb.module_strings(qualifier):
                 for element in ET.parse(strings).getroot():
                     name = element.get("name")
                     text = "".join(element.itertext())

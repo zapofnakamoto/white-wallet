@@ -86,7 +86,7 @@ Three keys decide it. At setup and restore, the mint picker shows only when ther
 
 ### Naming the custodian and its notes, in any language
 
-The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them. They sit in one block marked *Brand terms* at the top of each feature module's `res/values/strings.xml`, ending at its first blank line. A brand made with `just new-brand` gets all of them, in every language, as a commented-out override in its own strings. Developer options are not brand terms.
+The app has two brand terms: the party that holds users' funds is a **mint**, and what it issues, the money users hold, claim and hand out, is a **note**. Most text is written without either word ("Couldn't connect", "Payment received"), so translations stay natural. Only the strings that can't do without them name them. They sit in one block marked *Brand terms* at the top of each core and feature module's `res/values/strings.xml`, ending at its first blank line. A brand made with `just new-brand` gets all of them, in every language, as a commented-out override in its own strings. Developer options are not brand terms.
 
 #### The mint
 
@@ -179,6 +179,15 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `claim_kept_for_lightning` | Kept. Receive it over Lightning once you've added a mint. |
 | `claim_melt_no_signing_key` | %1$s publishes no signing key, so your wallet doesn't keep money there. It can be received over Lightning instead, for a fee. |
 | `onboarding_error_mint_without_key` | This mint publishes no signing key, so your wallet can't check that its notes are real or notice if it is swapped. Choose another mint. |
+| `received_key_changed` | The signing key of its mint doesn't match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint's details. |
+| `received_refused` | Its mint kept refusing it, so your wallet stopped trying. |
+| `received_refused_hours` | Its mint kept refusing it for %d hour, so your wallet stopped trying. / Its mint kept refusing it for %d hours, so your wallet stopped trying. (plural) |
+| `received_refused_days` | Its mint kept refusing it for %d day, so your wallet stopped trying. / Its mint kept refusing it for %d days, so your wallet stopped trying. (plural) |
+| `received_unreachable` | Its mint didn't answer, so your wallet stopped trying. |
+| `received_unreachable_hours` | Its mint didn't answer for %d hour, so your wallet stopped trying. / Its mint didn't answer for %d hours, so your wallet stopped trying. (plural) |
+| `received_unreachable_days` | Its mint didn't answer for %d day, so your wallet stopped trying. / Its mint didn't answer for %d days, so your wallet stopped trying. (plural) |
+| `received_lightning_no_key` | Its mint publishes no signing key, so it can only be received over Lightning, for a fee. |
+| `received_lightning_not_a_note` | Its mint doesn't answer for it as a note, so it can only be received over Lightning, for a fee. |
 
 `brand-examples/acme/` is a complete brand that does this ("provider", in English and German), locks users to one mint, shows sats and adds a note strategy of its own (see "Custom code").
 
@@ -301,6 +310,8 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `note_unknown_to_mint` | Its mint doesn't know this note, so the link may not work. |
 | `scan_unknown` | This QR code isn't a payment or a note. |
 | `claim_melt_not_a_note` | %1$s doesn't answer for this as a note: it may be a withdraw link of another kind. It can be received over Lightning instead, for a fee. |
+| `release_note_old_keys_title` | Notes from before version 0.8 |
+| `release_note_old_keys_body` | This version no longer finds notes and Lightning addresses made the way the app made them before version 0.8. Since then, the app moved them over by itself whenever it was opened. If money is missing, open your recovery phrase once in version 0.9.0, which still moves them, then use “Scan for notes” here. |
 
 #### Using your own words
 

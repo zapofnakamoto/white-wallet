@@ -265,4 +265,27 @@
     <string name="receive_address_mint_silent_unnamed">Your provider isn\'t answering, so payments to this address can\'t arrive right now.</string>
     <string name="receive_invoice_mint_silent_unnamed">Your provider isn\'t answering, so no invoice can be created right now. Try again later.</string>
     <string name="send_problem_mint_silent_unnamed">Your provider isn\'t answering. Nothing was paid. Try again later.</string>
+    <string name="release_note_old_keys_title">Banknotes from before version 0.8</string>
+    <string name="release_note_old_keys_body">This version no longer finds banknotes and Lightning addresses made the way the app made them before version 0.8. Since then, the app moved them over by itself whenever it was opened. If money is missing, open your recovery phrase once in version 0.9.0, which still moves them, then use “Scan for banknotes” here.</string>
+    <string name="received_key_changed">The signing key of its provider doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept a new key in the provider\'s details.</string>
+    <string name="received_refused">Its provider kept refusing it, so your wallet stopped trying.</string>
+    <plurals name="received_refused_hours">
+        <item quantity="one">Its provider kept refusing it for %d hour, so your wallet stopped trying.</item>
+        <item quantity="other">Its provider kept refusing it for %d hours, so your wallet stopped trying.</item>
+    </plurals>
+    <plurals name="received_refused_days">
+        <item quantity="one">Its provider kept refusing it for %d day, so your wallet stopped trying.</item>
+        <item quantity="other">Its provider kept refusing it for %d days, so your wallet stopped trying.</item>
+    </plurals>
+    <plurals name="received_unreachable_hours">
+        <item quantity="one">Its provider didn\'t answer for %d hour, so your wallet stopped trying.</item>
+        <item quantity="other">Its provider didn\'t answer for %d hours, so your wallet stopped trying.</item>
+    </plurals>
+    <plurals name="received_unreachable_days">
+        <item quantity="one">Its provider didn\'t answer for %d day, so your wallet stopped trying.</item>
+        <item quantity="other">Its provider didn\'t answer for %d days, so your wallet stopped trying.</item>
+    </plurals>
+    <string name="received_unreachable">Its provider didn\'t answer, so your wallet stopped trying.</string>
+    <string name="received_lightning_no_key">Its provider publishes no signing key, so it can only be received over Lightning, for a fee.</string>
+    <string name="received_lightning_not_a_note">Its provider doesn\'t answer for it as a banknote, so it can only be received over Lightning, for a fee.</string>
 </resources>

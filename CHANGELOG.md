@@ -60,6 +60,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `receive_invoice_unreachable` is `receive_invoice_offline`. For developers: `InvoiceProblem.Unreachable` is
   `InvoiceProblem.Offline` or `InvoiceProblem.MintNotAnswering`, and `HomeState.error` is `offline` and
   `refreshFailed`.
+- For brands: the core modules have brand terms too, not only the feature modules. White Wallet's design system names
+  the mint and the note in 11 strings, which no brand was told about and `just new-brand` left out:
+  `release_note_old_keys_title`, `release_note_old_keys_body`, `received_key_changed`, `received_refused`,
+  `received_refused_hours`, `received_refused_days`, `received_unreachable`, `received_unreachable_hours`,
+  `received_unreachable_days`, `received_lightning_no_key` and `received_lightning_not_a_note`. They are listed in
+  docs/WHITE_LABEL.md now, and a new brand gets them; a brand that says other words overrides them in its own strings.
 
 - The empty History says what shows up there ("No payments yet…") instead of repeating the wallet tab's hint, which
   without a mint suggested an address that doesn't exist yet; the wallet tab drops that hint while it asks for a
