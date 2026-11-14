@@ -28,7 +28,11 @@ import whitewallet.core.wallet.noHome
 sealed interface InvoiceProblem {
     data class OutOfRange(val minMsat: Long, val maxMsat: Long) : InvoiceProblem
 
-    data object Unreachable : InvoiceProblem
+    /** The phone is offline. */
+    data object Offline : InvoiceProblem
+
+    /** The home mint, which makes the invoice, didn't answer. */
+    data class MintNotAnswering(val host: String) : InvoiceProblem
 
     data object Refused : InvoiceProblem
 }
@@ -57,7 +61,15 @@ data class ReceiveState(
     val noHome: NoHome? = null,
     /** The account's addresses and home mint were read: until then nothing is drawn, not the amount form first and the address after. */
     val loaded: Boolean = true,
+    /** The mint of the [address] shown didn't answer the last time the wallet asked: payments to it can't arrive until it does. */
+    val addressMintNotAnswering: Boolean = false,
+    /** The brand names mints (brand `mints.visible`). */
+    val mintsVisible: Boolean = true,
 ) {
+    /** The mint of the [address] shown. */
+    val addressHost: String?
+        get() = address?.substringAfterLast('@')
+
     /** The amount form shows: always without an address, else once asked for; never without a home mint. */
     val showAmountForm: Boolean
         get() = noHome == null && invoice == null && (address == null || requestingAmount)
@@ -100,6 +112,7 @@ private data class AddressChoice(val first: String?, val all: List<String>)
 class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, defaults: AppDefaults) :
     ViewModel() {
     private val timings = defaults.timings
+    private val mintsVisible = defaults.showMints
     private val received = MutableStateFlow(0L)
     private val ui = MutableStateFlow(ReceiveUi())
     private var watch: Job? = null
@@ -117,8 +130,10 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
                     u.invoice,
                     faucet = u.faucet.takeIf { canFaucet },
                     noHome = noHome,
+                    mintsVisible = mintsVisible,
                 )
             }
+            .combine(wallet.mintsNotAnswering) { state, silent -> state.copy(addressMintNotAnswering = state.addressHost in silent) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState(loaded = false))
 
     /** The primary address first, else one on the home mint; addresses still held for their fee aren't offered. */
@@ -167,7 +182,9 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
                         return@launch
                     }
                     is InvoiceRequest.OutOfRange -> InvoiceProblem.OutOfRange(result.minMsat, result.maxMsat)
-                    InvoiceRequest.Unreachable -> InvoiceProblem.Unreachable
+                    InvoiceRequest.Unreachable ->
+                        wallet.homeHost.first()?.takeIf { wallet.isOnline() }?.let(InvoiceProblem::MintNotAnswering)
+                            ?: InvoiceProblem.Offline
                     InvoiceRequest.Refused -> InvoiceProblem.Refused
                 }
             ui.update { it.copy(creating = false, problem = problem) }

@@ -10,7 +10,7 @@
     <string name="claim_spent">Dieser Schein wurde bereits ausgegeben.</string>
     <string name="claim_in_wallet">Dieser Schein ist bereits in deiner Wallet.</string>
     <string name="claim_own_shared">Du hast diesen Schein geteilt, und niemand hat ihn bisher eingelöst.</string>
-    <string name="claim_own_offline">Du hast diesen Schein geteilt. Die Mint ist gerade nicht erreichbar, darum lässt er sich noch nicht zurückholen.</string>
+    <string name="claim_own_offline">Du hast diesen Schein geteilt. Die Mint antwortet gerade nicht, darum lässt er sich noch nicht zurückholen.</string>
     <string name="claim_other_mint">Dieser Schein liegt bei %1$s und bleibt dort.</string>
     <string name="claim_not_spendable">Dieser Link öffnet den Schein nicht, den er nennt; er lässt sich nicht einlösen.</string>
     <string name="claim_other_paths">Dieser Schein lässt sich auch auf anderem Weg ausgeben; jemand anderes kann ihn also nehmen, bevor du ihn einlöst.</string>
@@ -70,7 +70,7 @@
     <string name="claim_melt_ask_hint">Um zu erfahren, was er auszahlt, muss deine Wallet den Link selbst %1$s zeigen. Frag nur, wenn der Link von %1$s stammt.</string>
     <string name="claim_melt_ask">%1$s fragen</string>
     <string name="claim_melt_out_of_range">Dieser Link zahlt %1$s, aber %2$s nimmt %3$s bis %4$s an.</string>
-    <string name="claim_melt_unreachable">%1$s ist gerade nicht erreichbar. Versuch es wieder, sobald sie zurück ist.</string>
+    <string name="claim_melt_unreachable">%1$s antwortet gerade nicht. Versuch es später noch einmal.</string>
     <string name="claim_melt_action">Etwa %1$s empfangen</string>
     <string name="claim_melt_receive">Über Lightning empfangen</string>
     <string name="claim_keep_for_later">Für später behalten</string>

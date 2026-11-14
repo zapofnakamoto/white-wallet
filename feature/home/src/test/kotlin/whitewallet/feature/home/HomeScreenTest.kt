@@ -51,22 +51,23 @@ import whitewallet.core.wallet.MaintenanceNotice
 class HomeScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    private fun show(state: HomeState, onOpenMint: (String) -> Unit = {}, onToggle: () -> Unit = {}) = compose.setContent {
-        HomeScreen(
-            "Wallet",
-            state,
-            onSend = {},
-            onReceive = {},
-            onRefresh = {},
-            onSettings = {},
-            onBackup = {},
-            onDismissBackup = {},
-            onOpenAddresses = {},
-            accountActions = AccountActions({}, {}, {}),
-            onToggleBalance = onToggle,
-            onOpenMint = onOpenMint,
-        )
-    }
+    private fun show(state: HomeState, onOpenMint: (String) -> Unit = {}, onToggle: () -> Unit = {}, onRefresh: () -> Unit = {}) =
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                state,
+                onSend = {},
+                onReceive = {},
+                onRefresh = onRefresh,
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onOpenAddresses = {},
+                accountActions = AccountActions({}, {}, {}),
+                onToggleBalance = onToggle,
+                onOpenMint = onOpenMint,
+            )
+        }
 
     @Test
     fun homeOffersToScanAnyQrCode() {
@@ -428,6 +429,70 @@ class HomeScreenTest {
         compose.onNodeWithText(text(R.string.home_key_changed_title, "mint.example")).assertExists()
         compose.onNodeWithText(text(R.string.home_key_changed_action)).performClick()
         assertEquals("mint.example", opened)
+    }
+
+    private fun mint(host: String, msat: Long, home: Boolean = false, answering: Boolean = true) =
+        AccountMint(host, home, msat, 1, 0, trusted = true, answering = answering)
+
+    @Test
+    fun aHomeMintThatDoesNotAnswerIsNamedWithWhatItStopsAndCanBeCheckedAgain() {
+        var refreshed = 0
+        show(
+            HomeState(activeAccountId = "a", mints = listOf(mint("home.example", 5_000, home = true, answering = false))),
+            onRefresh = { refreshed++ },
+        )
+        compose.onNodeWithText(text(R.string.home_mint_silent_title_home, "home.example")).assertExists()
+        compose.onNodeWithText(text(R.string.home_mint_silent_body_home)).assertExists()
+        compose.onNodeWithText(text(R.string.home_mint_silent_action)).performClick()
+        assertEquals(1, refreshed)
+    }
+
+    @Test
+    fun anotherMintThatDoesNotAnswerIsMarkedUnderTheBalanceToo() {
+        show(
+            HomeState(
+                activeAccountId = "a",
+                balanceMsat = 7_000,
+                mints = listOf(mint("home.example", 5_000, home = true), mint("other.example", 2_000, answering = false)),
+            )
+        )
+        compose.onNodeWithText(text(R.string.home_mint_silent_title, "other.example")).assertExists()
+        compose.onNodeWithText(text(R.string.home_mint_silent_body)).assertExists()
+        compose.onNodeWithText(text(R.string.home_mint_not_answering)).assertExists()
+        compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
+    }
+
+    @Test
+    fun whereMintsDoNotShowTheCardDoesNotNameOne() {
+        show(
+            HomeState(
+                activeAccountId = "a",
+                mintsVisible = false,
+                mints = listOf(mint("home.example", 0, home = true, answering = false)),
+            )
+        )
+        compose.onNodeWithText(text(R.string.home_mint_silent_title_unnamed)).assertExists()
+        compose.onNodeWithText(text(R.string.home_mint_silent_body_home_empty)).assertExists()
+    }
+
+    @Test
+    fun offlineHomeSaysSoAndOffersToTryAgainInsteadOfBlamingAMint() {
+        var refreshed = 0
+        show(
+            HomeState(
+                activeAccountId = "a",
+                offline = true,
+                mints =
+                    listOf(mint("home.example", 5_000, home = true, answering = false), mint("other.example", 2_000, answering = false)),
+            ),
+            onRefresh = { refreshed++ },
+        )
+        compose.onNodeWithText(text(R.string.home_offline)).assertExists()
+        compose.onAllNodesWithText(text(R.string.home_mint_silent_title_home, "home.example")).assertCountEquals(0)
+        compose.onAllNodesWithText(text(R.string.home_mint_not_answering)).assertCountEquals(0)
+        compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
+        compose.onNodeWithText(text(R.string.home_try_again)).performScrollTo().performClick()
+        assertEquals(1, refreshed)
     }
 
     private fun combined(feeMsat: Long) =

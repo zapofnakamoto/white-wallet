@@ -60,14 +60,14 @@
     <string name="received_archive">Archive</string>
     <string name="received_archived_by_you">You archived it.</string>
     <plurals name="received_unreachable_hours">
-        <item quantity="one">Its mint couldn\'t be reached for %d hour, so your wallet stopped trying.</item>
-        <item quantity="other">Its mint couldn\'t be reached for %d hours, so your wallet stopped trying.</item>
+        <item quantity="one">Its mint didn\'t answer for %d hour, so your wallet stopped trying.</item>
+        <item quantity="other">Its mint didn\'t answer for %d hours, so your wallet stopped trying.</item>
     </plurals>
     <plurals name="received_unreachable_days">
-        <item quantity="one">Its mint couldn\'t be reached for %d day, so your wallet stopped trying.</item>
-        <item quantity="other">Its mint couldn\'t be reached for %d days, so your wallet stopped trying.</item>
+        <item quantity="one">Its mint didn\'t answer for %d day, so your wallet stopped trying.</item>
+        <item quantity="other">Its mint didn\'t answer for %d days, so your wallet stopped trying.</item>
     </plurals>
-    <string name="received_unreachable">Its mint couldn\'t be reached, so your wallet stopped trying.</string>
+    <string name="received_unreachable">Its mint didn\'t answer, so your wallet stopped trying.</string>
     <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
     <string name="received_receive">Receive</string>

@@ -5,6 +5,15 @@
     <string name="home_add_mint_body">Diese Wallet hat noch keine Mint, deshalb kann nichts empfangen werden. Fügst du die Mint hinzu, die du benutzt, wird das Geld gefunden, das deine Wiederherstellungsphrase dort hat.</string>
     <string name="home_add_mint_action">Mint hinzufügen</string>
     <string name="home_mint_is_home">Haupt-Mint</string>
+    <string name="home_mint_not_answering">Antwortet nicht</string>
+    <string name="home_mint_is_home_not_answering">Haupt-Mint · antwortet nicht</string>
+    <string name="home_mint_silent_title_home">Deine Haupt-Mint, %1$s, antwortet nicht</string>
+    <string name="home_mint_silent_title">%1$s antwortet nicht</string>
+    <string name="home_mint_silent_title_unnamed">Deine Mint antwortet nicht</string>
+    <string name="home_mint_silent_body">Bis eine Antwort kommt, kannst du das Geld dort nicht ausgeben. Deine Wallet fragt weiter nach.</string>
+    <string name="home_mint_silent_body_home">Bis eine Antwort kommt, kannst du dort weder empfangen noch Geld ausgeben. Deine Wallet fragt weiter nach.</string>
+    <string name="home_mint_silent_body_home_empty">Bis eine Antwort kommt, kannst du dort nichts empfangen. Deine Wallet fragt weiter nach.</string>
+    <string name="home_mint_silent_action">Erneut prüfen</string>
     <plurals name="home_more_mints">
         <item quantity="one">%1$d weitere Mint</item>
         <item quantity="other">%1$d weitere Mints</item>
@@ -86,7 +95,7 @@
         <item quantity="one">Gerade gefragt: Die Mint kennt deinen Schein noch immer nicht.</item>
         <item quantity="other">Gerade gefragt: Die Mint kennt deine Scheine noch immer nicht.</item>
     </plurals>
-    <string name="notice_unknown_unreachable_unnamed">Die Mint war nicht erreichbar. Deine Wallet fragt später wieder.</string>
+    <string name="notice_unknown_unreachable_unnamed">Keine Antwort von der Mint. Deine Wallet fragt später wieder.</string>
 
     <string name="home_link_unreadable">Dieser Link lässt sich hier nicht verwenden.</string>
     <string name="home_receive">Empfangen</string>
@@ -121,7 +130,9 @@
     <string name="activity_automatic">Automatisch</string>
     <string name="activity_manual">Von dir</string>
     <string name="activity_detail_separator">" · "</string>
-    <string name="home_refresh_failed">Aktualisieren fehlgeschlagen: %1$s</string>
+    <string name="home_offline">Du bist offline. Was du siehst, ist vielleicht nicht aktuell.</string>
+    <string name="home_update_failed">Aktualisieren fehlgeschlagen. Was du siehst, ist vielleicht nicht aktuell.</string>
+    <string name="home_try_again">Erneut versuchen</string>
     <string name="home_backup_title">Sichere deine Wallet</string>
     <string name="home_backup_body">Wenn du dieses Handy verlierst, bekommst du dein Geld nur mit deiner Wiederherstellungsphrase zurück. Es dauert zwei Minuten.</string>
     <string name="home_backup_action">Sichern</string>
@@ -135,7 +146,7 @@
     <string name="home_unknown_action">Erneut prüfen</string>
     <string name="home_unknown_asked">Zuletzt gefragt: %1$s</string>
     <string name="home_unknown_asked_now">Zuletzt gefragt: gerade eben</string>
-    <string name="notice_unknown_unreachable">%1$s war nicht erreichbar. Deine Wallet fragt später wieder.</string>
+    <string name="notice_unknown_unreachable">Keine Antwort von %1$s. Deine Wallet fragt später wieder.</string>
     <string name="accounts_title">Konten</string>
     <string name="accounts_manage">Wallets verwalten</string>
     <string name="accounts_move">Guthaben verschieben</string>

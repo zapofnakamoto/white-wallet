@@ -137,7 +137,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `home_unknown_show` | Show note / Show notes (plural) |
 | `notice_unknown_back` | A note is back in your balance: the mint knows it again. / %1$d notes are back in your balance: the mint knows them again. (plural) |
 | `notice_unknown_still` | Asked just now: the mint still doesn't know your note. / Asked just now: the mint still doesn't know your notes. (plural) |
-| `notice_unknown_unreachable_unnamed` | Couldn't reach the mint. Your wallet asks again later. |
+| `notice_unknown_unreachable_unnamed` | No answer from the mint. Your wallet asks again later. |
 | `claim_key_changed` | The signing key of %1$s doesn't match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the mint's details. |
 | `claim_kept_key_changed` | Kept. Your wallet claims it once the mint's signing key matches again, or you accept a new key in its details. |
 | `home_working_moving_home` | Moving your money to your home mint… |
@@ -148,6 +148,9 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `home_add_mint_body` | This wallet has no mint yet, so nothing can be received. Adding the mint you use finds the money your recovery phrase holds there. |
 | `home_add_mint_action` | Add mint |
 | `home_mint_is_home` | Home mint |
+| `home_mint_is_home_not_answering` | Home mint · not answering |
+| `home_mint_silent_title_home` | Your home mint, %1$s, isn't answering |
+| `home_mint_silent_title_unnamed` | Your mint isn't answering |
 | `home_more_mints` | %1$d more mint / %1$d more mints (plural) |
 | `receive_no_mint` | This wallet has no mint yet. Add one to receive. |
 | `receive_no_mint_action` | Add mint |
@@ -193,7 +196,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `claim_spent` | This note has already been spent. |
 | `claim_in_wallet` | This note is already in your wallet. |
 | `claim_own_shared` | You shared this note, and nobody has claimed it yet. |
-| `claim_own_offline` | You shared this note. Its mint can't be reached right now, so it can't be taken back yet. |
+| `claim_own_offline` | You shared this note. Its mint isn't answering right now, so it can't be taken back yet. |
 | `claim_other_mint` | This note is held by %1$s and stays there. |
 | `home_tab_notes` | Notes |
 | `home_wallet_empty` | Nothing here yet. Share your address to get paid, or claim a note. |
@@ -241,8 +244,11 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `onboarding_tagline` | Bearer notes on Lightning. Ready in one tap. |
 | `receive_hint` | Anyone can pay this address from any Lightning wallet. Payments arrive as notes in this wallet. |
 | `receive_claim` | Claim a note instead |
+| `receive_address_mint_silent_unnamed` | Your mint isn't answering, so payments to this address can't arrive right now. |
+| `receive_invoice_mint_silent_unnamed` | Your mint isn't answering, so no invoice can be created right now. Try again later. |
 | `send_create_note` | Create a note |
 | `send_problem_refused` | The mint refused this payment. |
+| `send_problem_mint_silent_unnamed` | Your mint isn't answering. Nothing was paid. Try again later. |
 | `send_problem_key_changed` | The signing key of the mint doesn't match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the mint's details. Your notes there are unchanged. |
 | `send_problem_own_mint_invoice` | This invoice is from your own mint, which can't pay itself over Lightning. Ask for a Lightning address instead. |
 | `send_problem_invoice_used` | This invoice was already used. Ask for a new one. |
@@ -461,8 +467,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, �
   claimed yet), `PaymentReceived`, `Sending`, `Sent`, `Working` (with a `WalletTask`: `Updating`, asking the mints
   what changed; `CheckingNotes`, with how many are checked of how many; `Maintaining`, with its `MaintenanceStep`,
   `Combining`, `Splitting`, `Renewing` or `MovingHome`, and the note strategy's id when the step is the strategy's),
-  `Problem` (`NotEnoughFunds`, `Offline`, `Other`). `WalletEvent`s (`PaymentReceived`, `PaymentSent`, `Problem`,
-  `BackupDone`, `AccountCreated`, `NoteSpent` and `NoteTakenBack` for a handed-out note, whose `PaymentSent` came
+  `Problem` (`NotEnoughFunds`, `Offline`, `MintNotAnswering`, `Other`; give a `when` over the kind an `else`).
+  `WalletEvent`s (`PaymentReceived`, `PaymentSent`, `Problem`, `BackupDone`, `AccountCreated`, `NoteSpent` and `NoteTakenBack` for a handed-out note, whose `PaymentSent` came
   when it was handed out, and `NoteMaintenance` when a note strategy, auto-renew or collecting at the home mint looked
   after the notes by itself, once per run however many notes, with what it did and what that did to the balance) say what just happened anywhere in the app: collect `LocalWalletEvents` in a
   composable, or register a `WalletEventListener` (called on the main thread). Both carry amounts and kinds only.

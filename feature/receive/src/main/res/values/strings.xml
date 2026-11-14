@@ -12,7 +12,13 @@
     <string name="receive_no_home">This account has no home mint. Choose one of your mints to receive there.</string>
     <string name="receive_no_home_action">Choose home mint</string>
     <string name="receive_claim">Claim a note instead</string>
+    <!-- Under the Lightning address, instead of receive_hint, when its mint didn't answer the last time. %1$s: the mint. -->
+    <string name="receive_address_mint_silent_unnamed">Your mint isn\'t answering, so payments to this address can\'t arrive right now.</string>
+    <!-- The home mint makes the invoice, and didn't answer. %1$s: the mint. -->
+    <string name="receive_invoice_mint_silent_unnamed">Your mint isn\'t answering, so no invoice can be created right now. Try again later.</string>
 
+    <string name="receive_address_mint_silent">%1$s isn\'t answering, so payments to this address can\'t arrive right now.</string>
+    <string name="receive_invoice_mint_silent">%1$s isn\'t answering, so no invoice can be created right now. Try again later.</string>
     <string name="receive_title">Receive</string>
     <string name="receive_copy">Copy</string>
     <string name="receive_share">Share</string>
@@ -23,7 +29,7 @@
     <string name="receive_invoice_intro">Create a Lightning invoice for the amount you want. It can be paid from any Lightning wallet, once.</string>
     <string name="receive_invoice_create">Create invoice</string>
     <string name="receive_invoice_range">Choose an amount from %1$s to %2$s.</string>
-    <string name="receive_invoice_unreachable">Couldn\'t connect. Check your connection and try again.</string>
+    <string name="receive_invoice_offline">You\'re offline. Connect and try again.</string>
     <string name="receive_invoice_refused">No invoice could be created. Try again later.</string>
     <string name="receive_invoice_qr">Lightning invoice</string>
     <string name="receive_invoice_fee">You receive %1$s after a fee of %2$s.</string>

@@ -12,6 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.UnclaimedReason
@@ -52,7 +53,7 @@ class ArchiveScreenTest {
         compose.setContent { ArchiveScreen(ArchiveState(notes = notes), ArchiveActions(), onBack = {}) }
         compose.onNodeWithText(text(R.string.archive_hint)).assertExists()
         compose.onNodeWithText("Its mint kept refusing it for 7 days, so your wallet stopped trying.").assertExists()
-        compose.onNodeWithText("Its mint couldn't be reached for 7 days, so your wallet stopped trying.").assertExists()
+        compose.onNodeWithText(plural(DesignR.plurals.received_unreachable_days, 7, 7)).assertExists()
         compose.onNodeWithText("Its mint kept refusing it for 2 hours, so your wallet stopped trying.").assertExists()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("You archived it."))
         compose.onNodeWithText("You archived it.").assertExists()

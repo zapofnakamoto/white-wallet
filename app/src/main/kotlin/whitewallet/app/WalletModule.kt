@@ -1,6 +1,8 @@
 package whitewallet.app
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -95,9 +97,17 @@ object WalletModule {
                     BuildConfig.COLLECT_RETRY_MILLIS,
                 ),
             onWaitingForNetwork = { SyncWorker.scheduleOnce(context) },
+            online = { context.online() },
             payWaitMillis = BuildConfig.SYNC_PAYMENT_WAIT_MILLIS,
             receivedGiveUpMillis = BuildConfig.RECEIVED_GIVE_UP_MILLIS,
         )
+
+    /** Whether the phone has a network that reaches the internet now. */
+    private fun Context.online(): Boolean {
+        val connectivity = getSystemService(ConnectivityManager::class.java) ?: return true
+        val network = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return false
+        return network.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
 
     /** dev/regtest's faucet in debug builds; without a host (release) it pays nothing. */
     @Provides

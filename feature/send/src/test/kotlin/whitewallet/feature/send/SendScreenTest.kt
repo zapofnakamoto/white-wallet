@@ -111,6 +111,18 @@ class SendScreenTest {
     }
 
     @Test
+    fun aMintThatDidNotAnswerIsNamedAndAnInvoiceNothingWasAskedToPayCanBeTriedAgain() {
+        val invoice = Bolt11Invoice("lnbc1…", "bc", 1_000_000, 0, "00", null, null, 3600, null)
+        val failed = PayResult.Failed(PayProblem.MintNotAnswering, host = "home.example")
+        var state by mutableStateOf(SendState(preview = payLink.copy(destination = PayDestination.Invoice(invoice)), result = failed))
+        compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_problem_mint_silent, "home.example")).assertExists()
+        compose.onNodeWithText(text(R.string.send_try_again)).assertExists()
+        state = state.copy(mintsVisible = false)
+        compose.onNodeWithText(text(R.string.send_problem_mint_silent_unnamed)).assertExists()
+    }
+
+    @Test
     fun onlyAPayLinkOffersToTryAgainAfterAFailedPayment() {
         val invoice = Bolt11Invoice("lnbc1…", "bc", 1_000_000, 0, "00", null, null, 3600, null)
         var preview by mutableStateOf(payLink)

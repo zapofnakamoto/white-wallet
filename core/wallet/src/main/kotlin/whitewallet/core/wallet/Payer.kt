@@ -48,8 +48,11 @@ enum class PayProblem {
     NoAmount,
     Expired,
 
-    /** The pay link or service couldn't be reached. */
+    /** The pay link or service couldn't be reached, or the phone is offline. */
     Unreachable,
+
+    /** The mint the money is at didn't answer ([PayResult.Failed.host]), and no other mint could pay instead: nothing was paid. */
+    MintNotAnswering,
 
     /** The signing key of the mint the money is at doesn't match the pinned one: nothing was sent (see [Pinning]). */
     KeyChanged,
@@ -133,6 +136,8 @@ sealed interface PayResult {
         val problem: PayProblem,
         /** The mint's own words for a refusal the wallet doesn't recognize: its text, in its language, never the app's. */
         val mintMessage: String? = null,
+        /** The mint that didn't answer ([PayProblem.MintNotAnswering]). */
+        val host: String? = null,
     ) : PayResult
 }
 
@@ -236,7 +241,7 @@ internal class Payer(private val wallet: Wallet) {
             is PayQuote.Invalid -> return PayResult.Failed(quote.problem)
         }
         val accountId = wallet.activeId()
-        val (host, plan) = choose(accountId, preview, amountMsat) ?: return PayResult.Failed(PayProblem.TooMuch)
+        var (host, plan) = choose(accountId, preview, amountMsat) ?: return PayResult.Failed(PayProblem.TooMuch)
         val destination = preview.destination
         // Who was paid; an invoice's description isn't a recipient, so a bare invoice has none.
         val counterparty = preview.payee
@@ -254,12 +259,36 @@ internal class Payer(private val wallet: Wallet) {
                     }
             }
         if (invoice?.isExpired(wallet.now()) == true) return PayResult.Failed(PayProblem.Expired)
+        // A mint that doesn't answer before anything is sent: the next one that can pay, if any, pays instead.
+        val silent = mutableSetOf<String>()
+        while (true) {
+            val result = payFrom(accountId, host, plan, amountMsat, invoice, transferTo, counterparty)
+            if (result !is PayResult.Failed || result.problem != PayProblem.MintNotAnswering) return result
+            silent += host
+            choose(accountId, preview, amountMsat, skip = silent)?.let { (next, nextPlan) ->
+                host = next
+                plan = nextPlan
+            } ?: return result
+        }
+    }
+
+    /** Pays from [host]'s notes as [plan] says: melts into [invoice], or transfers to [transferTo]. Null as for [attempt]. */
+    private suspend fun payFrom(
+        accountId: String,
+        host: String,
+        plan: PayPlan,
+        amountMsat: Long,
+        invoice: Bolt11Invoice?,
+        transferTo: String?,
+        counterparty: String?,
+    ): PayResult? {
         val note =
             when (val made = exact(accountId, host, plan, amountMsat)) {
                 is MutationResult.Done -> made.outputs.first()
                 // Nothing is paid; the merge or split itself is settled by reconciliation on a later refresh.
                 is MutationResult.Pending -> return PayResult.Failed(PayProblem.Unreachable)
                 is MutationResult.Refused -> return if (made.setAside.isNotEmpty()) null else made.toFailure()
+                is MutationResult.Unreachable if !made.keyChanged -> return notAnswering(host)
                 is MutationResult.Unreachable -> return made.toFailure()
             }
         val amount = note.amountMsat.takeIf { it > 0 } ?: invoice?.amountMsat ?: amountMsat
@@ -268,6 +297,13 @@ internal class Payer(private val wallet: Wallet) {
             else melter.transfer(accountId, host, note, checkNotNull(transferTo), record)
         }
     }
+
+    /** [host] didn't answer before anything was sent; with the phone offline, that says nothing about the mint. */
+    private fun notAnswering(host: String): PayResult.Failed =
+        if (wallet.isOnline()) {
+            wallet.heardFrom(host, answered = false)
+            PayResult.Failed(PayProblem.MintNotAnswering, host = host)
+        } else PayResult.Failed(PayProblem.Unreachable)
 
     /** Whether the payee's pay link is on [host]'s mint, the one whose keys are pinned here: a note may go to its callback then. */
     private suspend fun sharesMint(accountId: String, pay: LnurlResponse.PayRequest, host: String): Boolean {
@@ -351,32 +387,42 @@ internal class Payer(private val wallet: Wallet) {
                 journalId = journalId,
             )
         }
+        if (outcome != MeltOutcome.Unreachable) wallet.heardFrom(host)
         return when (outcome) {
             is MeltOutcome.Paid -> PayResult.Paid(amount, feeMsat.coerceAtLeast(0))
             is MeltOutcome.Pending -> PayResult.Pending(amount)
             is MeltOutcome.PaymentFailed -> PayResult.Failed(PayProblem.PaymentFailed)
             is MeltOutcome.Refused -> refused(outcome.reason)
-            MeltOutcome.Unreachable -> PayResult.Failed(PayProblem.Unreachable)
+            MeltOutcome.Unreachable -> notAnswering(host)
             MeltOutcome.KeyChanged -> PayResult.Failed(PayProblem.KeyChanged)
             MeltOutcome.NoteGone -> null
         }
     }
 
     /** The mint and plan to pay [amountMsat] with: the home mint first, then the others (or the other way round, see [Wallet.payOrder]). */
-    private suspend fun choose(accountId: String, preview: PayPreview.Ready, amountMsat: Long): Pair<String, PayPlan>? =
-        candidates(accountId, preview).firstNotNullOfOrNull { (host, notes) ->
-            PayPlanner.plan(notes, amountMsat, baseFee(accountId, host))?.let { host to it }
-        }
+    private suspend fun choose(
+        accountId: String,
+        preview: PayPreview.Ready,
+        amountMsat: Long,
+        skip: Set<String> = emptySet(),
+    ): Pair<String, PayPlan>? =
+        candidates(accountId, preview)
+            .filter { it.first !in skip }
+            .firstNotNullOfOrNull { (host, notes) ->
+                PayPlanner.plan(notes, amountMsat, baseFee(accountId, host))?.let { host to it }
+            }
 
     private suspend fun candidates(accountId: String, preview: PayPreview.Ready): List<Pair<String, List<Note>>> {
         val transferHost =
             (preview.destination as? PayDestination.PayLink)?.takeIf { it.internalTransfer }?.url?.let(Lnurl::host)?.lowercase()
         val order = wallet.payOrder(accountId)
+        // A mint that didn't answer the last time is tried last: asking it first would wait for nothing.
+        val silent = wallet.mintsNotAnswering.first()
         return outstanding(accountId)
             .groupBy { it.host }
             .filterKeys { transferHost == null || it == transferHost }
             .entries
-            .sortedBy { order(it.key) }
+            .sortedWith(compareBy({ it.key in silent }, { order(it.key) }))
             .map { it.key to it.value }
     }
 

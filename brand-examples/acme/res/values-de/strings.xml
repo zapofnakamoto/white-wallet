@@ -45,7 +45,7 @@
     <string name="claim_spent">Dieser Geldschein wurde bereits ausgegeben.</string>
     <string name="claim_in_wallet">Dieser Geldschein ist bereits in deiner Wallet.</string>
     <string name="claim_own_shared">Du hast diesen Geldschein geteilt, und niemand hat ihn bisher eingelöst.</string>
-    <string name="claim_own_offline">Du hast diesen Geldschein geteilt. Dein Anbieter ist gerade nicht erreichbar, darum lässt er sich noch nicht zurückholen.</string>
+    <string name="claim_own_offline">Du hast diesen Geldschein geteilt. Dein Anbieter antwortet gerade nicht, darum lässt er sich noch nicht zurückholen.</string>
     <string name="claim_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt, deshalb wird nichts dorthin gesendet. Behalte ihn: Deine Wallet löst ihn ein, sobald der Schlüssel wieder passt oder du in den Details des Anbieters einen neuen annimmst.</string>
     <string name="claim_kept_key_changed">Behalten. Deine Wallet löst ihn ein, sobald der Signaturschlüssel des Anbieters wieder passt oder du in seinen Details einen neuen annimmst.</string>
     <string name="claim_other_mint">Dieser Geldschein liegt bei %1$s und bleibt dort.</string>
@@ -117,7 +117,7 @@
         <item quantity="one">Gerade gefragt: Der Anbieter kennt deinen Geldschein noch immer nicht.</item>
         <item quantity="other">Gerade gefragt: Der Anbieter kennt deine Geldscheine noch immer nicht.</item>
     </plurals>
-    <string name="notice_unknown_unreachable_unnamed">Der Anbieter war nicht erreichbar. Deine Wallet fragt später wieder.</string>
+    <string name="notice_unknown_unreachable_unnamed">Keine Antwort vom Anbieter. Deine Wallet fragt später wieder.</string>
     <string name="notes_already_spent">Dieser Geldschein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
     <string name="notes_empty">Noch keine Geldscheine. Geld, das du empfängst, wird als Geldscheine gehalten und erscheint hier.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Geldscheine bei jedem Aktualisieren neu.</string>
@@ -259,4 +259,10 @@
     <string name="claim_kept_for_lightning">Behalten. Empfange es über Lightning, sobald du einen Anbieter hinzugefügt hast.</string>
     <string name="claim_melt_no_signing_key">%1$s veröffentlicht keinen Signaturschlüssel, deshalb bewahrt deine Wallet dort kein Geld auf. Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="onboarding_error_mint_without_key">Dieser Anbieter veröffentlicht keinen Signaturschlüssel, daher kann deine Wallet nicht prüfen, ob seine Geldscheine echt sind, oder bemerken, wenn er ausgetauscht wird. Wähle einen anderen Anbieter.</string>
+    <string name="home_mint_is_home_not_answering">Anbieter · antwortet nicht</string>
+    <string name="home_mint_silent_title_home">Dein Anbieter, %1$s, antwortet nicht</string>
+    <string name="home_mint_silent_title_unnamed">Dein Anbieter antwortet nicht</string>
+    <string name="receive_address_mint_silent_unnamed">Dein Anbieter antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
+    <string name="receive_invoice_mint_silent_unnamed">Dein Anbieter antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>
+    <string name="send_problem_mint_silent_unnamed">Dein Anbieter antwortet nicht. Es wurde nichts bezahlt. Versuche es später erneut.</string>
 </resources>

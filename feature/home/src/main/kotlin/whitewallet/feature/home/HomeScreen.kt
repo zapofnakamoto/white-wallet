@@ -367,6 +367,7 @@ fun HomeScreen(
                                 onToggleBalance,
                                 onOpenMint,
                                 onRecheckUnknown,
+                                onRefresh,
                                 received,
                                 onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
                                 onOpenShared = { saved = if (notesTab != null) HomeTab.Notes else HomeTab.History },
@@ -568,6 +569,7 @@ private fun WalletTab(
     onToggleBalance: () -> Unit,
     onOpenMint: (String) -> Unit,
     onRecheckUnknown: () -> Unit,
+    onRefresh: () -> Unit,
     received: ReceivedNoteActions,
     /** Opens the notes view, where received notes and those a mint doesn't know are listed too; null without one. */
     onOpenIncoming: (() -> Unit)?,
@@ -603,6 +605,8 @@ private fun WalletTab(
                             onRecheck = onRecheckUnknown,
                             onShowNotes = onOpenIncoming,
                         )
+                    is HomeAlert.MintNotAnswering ->
+                        MintNotAnswering(alert.mint, state.mintsVisible, checking = state.refreshing, onCheck = onRefresh)
                     is HomeAlert.AddressInactive -> AddressInactive(alert.address, onOpenAddresses)
                     HomeAlert.AddMint -> AddMintPrompt(onAddMint)
                     HomeAlert.Backup -> BackupPrompt(onBackup, onDismissBackup)
@@ -662,7 +666,9 @@ private fun WalletTab(
                     modifier = onOpenIncoming?.let { Modifier.clickable(onClick = it) } ?: Modifier,
                 )
             }
-            if (state.mintRows.isNotEmpty()) BalanceByMint(state.mintRows, state.moreMints, onOpenMint, onOpenMints)
+            if (state.mintRows.isNotEmpty()) {
+                BalanceByMint(state.mintRows, state.moreMints, state.mintsNotAnswering.map { it.host }.toSet(), onOpenMint, onOpenMints)
+            }
             // Handed out as links and not claimed yet: out of the balance, and the user's until someone claims them.
             if (state.sharedMsat > 0) {
                 Text(
@@ -690,12 +696,18 @@ private fun WalletTab(
                 )
                 PrimaryButton(stringResource(R.string.home_receive), onReceive, Modifier.weight(1f))
             }
-            state.error?.let {
-                Text(
-                    stringResource(R.string.home_refresh_failed, it),
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
-                )
+            // What Home shows may be out of date: say why, and offer to try again.
+            val refreshProblem =
+                when {
+                    state.offline -> R.string.home_offline
+                    state.refreshFailed -> R.string.home_update_failed
+                    else -> null
+                }
+            refreshProblem?.let {
+                Text(stringResource(it), textAlign = TextAlign.Center)
+                WalletButton(kind = ButtonKind.Text, onClick = onRefresh, enabled = !state.refreshing) {
+                    Text(stringResource(R.string.home_try_again))
+                }
             }
             if (state.unresolved > 0) {
                 Text(
@@ -1027,17 +1039,38 @@ private fun lastAsked(atMillis: Long): String {
 private const val ASKED_TICK_MILLIS = 20_000L
 
 /**
- * What of the balance is on which mint, a row each, leading to the mint's page. The mints [more] share a last row, with what they hold
- * together, leading to the account's mints.
+ * What of the balance is on which mint, a row each, leading to the mint's page; those of [silent] say they don't answer. The mints [more]
+ * share a last row, with what they hold together, leading to the account's mints.
  */
 @Composable
-private fun BalanceByMint(mints: List<AccountMint>, more: List<AccountMint>, onOpenMint: (String) -> Unit, onOpenMints: () -> Unit) {
+private fun BalanceByMint(
+    mints: List<AccountMint>,
+    more: List<AccountMint>,
+    silent: Set<String>,
+    onOpenMint: (String) -> Unit,
+    onOpenMints: () -> Unit,
+) {
     WalletCard(modifier = Modifier.fillMaxWidth()) {
         mints.forEach { mint ->
+            val answering = mint.host !in silent
+            val note =
+                when {
+                    !answering && mint.isHome -> R.string.home_mint_is_home_not_answering
+                    !answering -> R.string.home_mint_not_answering
+                    mint.isHome -> R.string.home_mint_is_home
+                    else -> null
+                }
             WalletListItem(
                 headlineContent = { Text(mint.host) },
-                supportingContent = if (mint.isHome) ({ Text(stringResource(R.string.home_mint_is_home)) }) else null,
-                trailingContent = { Text(formatAmount(mint.balanceMsat), style = MaterialTheme.typography.titleMedium) },
+                supportingContent = note?.let { { Text(stringResource(it)) } },
+                // Money that can't be spent for now: quieter than the rest.
+                trailingContent = {
+                    Text(
+                        formatAmount(mint.balanceMsat),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (answering) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
                 modifier = Modifier.clickable { onOpenMint(mint.host) },
             )
         }
@@ -1078,6 +1111,39 @@ private fun ReceivedCard(state: HomeState, actions: ReceivedNoteActions) {
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
+            }
+        }
+    }
+}
+
+/**
+ * [mint] didn't answer the last time the wallet asked: say what that stops (spending the money there; for the home mint, money coming in
+ * too), that the wallet keeps asking, and offer to check now. Nothing is lost by waiting, so nothing more is urged.
+ */
+@Composable
+private fun MintNotAnswering(mint: AccountMint, mintsVisible: Boolean, checking: Boolean, onCheck: () -> Unit) {
+    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                when {
+                    !mintsVisible -> stringResource(R.string.home_mint_silent_title_unnamed)
+                    mint.isHome -> stringResource(R.string.home_mint_silent_title_home, mint.host)
+                    else -> stringResource(R.string.home_mint_silent_title, mint.host)
+                },
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                stringResource(
+                    when {
+                        !mint.isHome -> R.string.home_mint_silent_body
+                        mint.balanceMsat > 0 -> R.string.home_mint_silent_body_home
+                        else -> R.string.home_mint_silent_body_home_empty
+                    }
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            WalletButton(kind = ButtonKind.Secondary, onClick = onCheck, enabled = !checking) {
+                Text(stringResource(R.string.home_mint_silent_action))
             }
         }
     }

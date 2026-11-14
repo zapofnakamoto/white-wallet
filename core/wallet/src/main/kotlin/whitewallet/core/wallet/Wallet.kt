@@ -3,6 +3,7 @@ package whitewallet.core.wallet
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.MnemonicCode
 import fr.acinq.bitcoin.PublicKey
+import java.io.IOException
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,7 @@ import whitewallet.lnurlcash.ServiceRoot
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.NoteLink
+import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.spendDomain
 
 /**
@@ -89,6 +91,8 @@ class Wallet(
      * needs a network).
      */
     private val onWaitingForNetwork: () -> Unit = {},
+    /** Whether the phone has a network connection now: without one, a mint that doesn't answer says nothing about the mint. */
+    private val online: () -> Boolean = { true },
     /** How long [pay] waits for a melt's payment to settle before reporting it as pending (brand `sync.paymentWait`). */
     payWaitMillis: Long = 30_000L,
     /** How long a received note its mint refuses is tried again before it counts as refused (brand `notes.received.giveUpAfter`). */
@@ -138,6 +142,30 @@ class Wallet(
      * shows again after a restart.
      */
     private val failedProbes = MutableStateFlow<Map<KeyId, KeyProbe.Failed>>(emptyMap())
+
+    /** Whether each mint answered the last time the wallet asked it, and when, by host, since the app started. */
+    private val mintAnswers = MutableStateFlow<Map<String, MintAnswer>>(emptyMap())
+
+    private data class MintAnswer(val answered: Boolean, val atMillis: Long)
+
+    /**
+     * The mints that didn't answer the last time the wallet asked them (since the app started), by host: until one answers again, money
+     * there can't be spent, and none comes in there.
+     */
+    val mintsNotAnswering: Flow<Set<String>> =
+        mintAnswers.map { answers -> answers.filterValues { !it.answered }.keys }.distinctUntilChanged()
+
+    /** Whether the phone has a network connection now (see the constructor). */
+    fun isOnline(): Boolean = online()
+
+    /**
+     * [host] answered, or ([answered] false) didn't: kept for [mintsNotAnswering]. No answer while the phone is offline isn't counted: it
+     * says nothing about the mint.
+     */
+    internal fun heardFrom(host: String, answered: Boolean = true) {
+        if (!answered && !online()) return
+        mintAnswers.update { it + (host to MintAnswer(answered, now())) }
+    }
 
     /**
      * The mint's last answer for each of the active account's looked-up keys (scans, rechecks, rotates), for the developer key page. Saved,
@@ -708,7 +736,11 @@ class Wallet(
      * The active account's mints: its home, then every mint where it has money (or notes it doesn't know) or a Lightning address, by host;
      * with its money there. What the account can do there (change home, move money) starts from here.
      */
-    val accountMints: Flow<List<AccountMint>> =
+    val accountMints: Flow<List<AccountMint>>
+        get() = mintsHeld.combine(mintsNotAnswering) { mints, silent -> mints.map { it.copy(answering = it.host !in silent) } }
+
+    /** [accountMints], without whether each answers. */
+    private val mintsHeld: Flow<List<AccountMint>> =
         combine(homeHost, notes, ofActive(emptyList(), store::addresses), trustedHosts(), unknownAnsweredAt) {
             home,
             notes,
@@ -1094,6 +1126,7 @@ class Wallet(
     }
 
     private suspend fun refreshLocked(): RefreshResult {
+        val start = now()
         val ids = walletAccountIds()
         reconciler.reconcileAll(ids)
         received.retryAll(ids)
@@ -1121,7 +1154,32 @@ class Wallet(
             // Note policies move money: only ever the active account's.
             if (id == active) applyPolicies(id)
         }
+        active?.let { askOthers(it, since = start) }
         return result
+    }
+
+    /**
+     * Asks the mints [accountId] holds money on (and its home mint) that nothing has asked since [since] whether they are there, so the
+     * wallet knows of one that doesn't answer before the user finds out by paying ([mintsNotAnswering]).
+     */
+    private suspend fun askOthers(accountId: String, since: Long) {
+        // Offline, no answer would say anything: asking would only wait.
+        if (!online()) return
+        val held = store.notes(accountId).first().filter { it.state == NoteState.Outstanding }.map { it.host }
+        for (host in (listOfNotNull(homeOf(accountId)) + held).distinct()) {
+            if ((mintAnswers.value[host]?.atMillis ?: -1) >= since) continue
+            val answered =
+                try {
+                    client.withdrawDiscovery(host)
+                    true
+                } catch (e: IOException) {
+                    false
+                } catch (e: ProtocolViolation) {
+                    // A server that answers, but not as a mint: one behind a proxy that is down answers like that.
+                    false
+                }
+            heardFrom(host, answered)
+        }
     }
 
     /** The mints where [accountId] has handed out shares or holds a note paid to an address, whether or not it knows the address. */

@@ -152,10 +152,13 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
             try {
                 wallet.client.servicePayRequest(host)
             } catch (e: IOException) {
+                wallet.heardFrom(host, answered = false)
                 return InvoiceRequest.Unreachable
             } catch (e: ProtocolViolation) {
+                wallet.heardFrom(host, answered = false)
                 return InvoiceRequest.Unreachable
             }
+        wallet.heardFrom(host)
         return request(accountId, host, pay, amountMsat)
     }
 
@@ -176,7 +179,7 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
                 MintInvoice.journal(wallet, id, accountId, mint, fetched.output, answer.invoice)
                 InvoiceRequest.Ready(id, answer.invoice, amountMsat, expected, answer.expiresAtMillis)
             }
-            MintInvoice.Unreachable -> InvoiceRequest.Unreachable
+            MintInvoice.Unreachable -> InvoiceRequest.Unreachable.also { wallet.heardFrom(host, answered = false) }
             MintInvoice.InUse,
             MintInvoice.Refused,
             MintInvoice.Mismatch -> InvoiceRequest.Refused

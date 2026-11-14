@@ -93,6 +93,8 @@ data class AccountMint(
     val unknownMsat: Long = 0,
     /** When the mint last said so about one of them (0: none are unknown). */
     val unknownAskedAtMillis: Long = 0,
+    /** It answered the last time the wallet asked it, or wasn't asked yet ([Wallet.mintsNotAnswering]). */
+    val answering: Boolean = true,
 )
 
 /** What [Wallet.removeMint] did. */

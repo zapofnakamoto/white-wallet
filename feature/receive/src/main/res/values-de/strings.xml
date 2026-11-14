@@ -7,6 +7,10 @@
     <string name="receive_no_home">Dieses Konto hat keine Haupt-Mint. Wähle eine deiner Mints, um dort zu empfangen.</string>
     <string name="receive_no_home_action">Haupt-Mint wählen</string>
     <string name="receive_claim">Stattdessen einen Schein einlösen</string>
+    <string name="receive_address_mint_silent">%1$s antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
+    <string name="receive_address_mint_silent_unnamed">Deine Mint antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
+    <string name="receive_invoice_mint_silent">%1$s antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>
+    <string name="receive_invoice_mint_silent_unnamed">Deine Mint antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>
 
     <string name="receive_title">Empfangen</string>
     <string name="receive_copy">Kopieren</string>
@@ -18,7 +22,7 @@
     <string name="receive_invoice_intro">Erstelle eine Lightning-Rechnung über den gewünschten Betrag. Sie kann aus jeder Lightning-Wallet bezahlt werden, einmal.</string>
     <string name="receive_invoice_create">Rechnung erstellen</string>
     <string name="receive_invoice_range">Wähle einen Betrag von %1$s bis %2$s.</string>
-    <string name="receive_invoice_unreachable">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut.</string>
+    <string name="receive_invoice_offline">Du bist offline. Verbinde dich und versuche es erneut.</string>
     <string name="receive_invoice_refused">Es konnte keine Rechnung erstellt werden. Versuche es später erneut.</string>
     <string name="receive_invoice_qr">Lightning-Rechnung</string>
     <string name="receive_invoice_fee">Du erhältst %1$s nach einer Gebühr von %2$s.</string>

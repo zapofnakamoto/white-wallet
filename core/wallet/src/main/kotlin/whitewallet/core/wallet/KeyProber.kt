@@ -72,6 +72,11 @@ internal class KeyProber(private val wallet: Wallet) {
 
     /** Brings the wallet in line with the mint's [answer] for [id] (see the class). */
     suspend fun apply(id: KeyId, mint: Mint, answer: Result<NoteInfo>): KeyProbe {
+        // A refusal is an answer; no connection, or an answer that isn't a mint's (a proxy in front of one that is down), isn't.
+        wallet.heardFrom(
+            id.host,
+            answered = answer.exceptionOrNull().let { it !is IOException && it !is ProtocolViolation || it is InvalidMintPubkey },
+        )
         val q = wallet.keys(id.accountId, id.host).pubkey(id)
         val noteId = q.toHex()
         val now = wallet.now()

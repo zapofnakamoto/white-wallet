@@ -135,6 +135,8 @@ internal class MintInspector(private val wallet: Wallet) {
             } catch (e: IOException) {
                 MintDetails.Reachability.Unreachable
             }
+        if (reachability != MintDetails.Reachability.Invalid)
+            wallet.heardFrom(h, answered = reachability != MintDetails.Reachability.Unreachable)
         val notes = wallet.store.notes(accountId).first().filter { it.host == h && it.state == NoteState.Outstanding }
         return MintDetails(
             host = h,

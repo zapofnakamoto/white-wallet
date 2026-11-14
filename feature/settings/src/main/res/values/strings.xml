@@ -282,7 +282,7 @@
     <string name="keys_set_body">Lowest allowed: #%1$d. Used keys are never reissued, so the index can\'t go below keys this wallet has used.</string>
 
     <string name="mint_reachable">Reachable</string>
-    <string name="mint_unreachable">Not reachable right now</string>
+    <string name="mint_unreachable">Not answering right now</string>
     <string name="mint_key_changed_short">Signing key doesn\'t match</string>
     <string name="mint_check_again">Check again</string>
     <string name="mint_key_remembered">Remembered key</string>

@@ -190,6 +190,7 @@ internal object Regtest {
         now: () -> Long = System::currentTimeMillis,
         receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
         settings: WalletSettings = WalletSettings(),
+        online: () -> Boolean = { true },
     ): Phone {
         val store = InMemoryWalletStore()
         val wallet =
@@ -203,6 +204,7 @@ internal object Regtest {
                 now = now,
                 receivedGiveUpMillis = receivedGiveUpMillis,
                 settings = settings,
+                online = online,
             )
         val name = name()
         registered(wallet, wallet.onboard(name, host))

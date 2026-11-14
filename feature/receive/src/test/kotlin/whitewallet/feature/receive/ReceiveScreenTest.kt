@@ -108,6 +108,27 @@ class ReceiveScreenTest {
     }
 
     @Test
+    fun anAddressWhoseMintDoesNotAnswerStillShowsAndSaysPaymentsCannotArrive() {
+        var state by mutableStateOf(ReceiveState("alice@mint.example", addressMintNotAnswering = true))
+        compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}) }
+        compose.onNodeWithText("alice@mint.example").assertExists()
+        compose.onNodeWithText(text(R.string.receive_address_mint_silent, "mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.receive_hint)).assertDoesNotExist()
+        state = state.copy(mintsVisible = false)
+        compose.onNodeWithText(text(R.string.receive_address_mint_silent_unnamed)).assertExists()
+    }
+
+    @Test
+    fun anInvoiceTheHomeMintDidNotAnswerForNamesItAndOfflineSaysSo() {
+        var state by
+            mutableStateOf(ReceiveState(address = null, amountText = "21", problem = InvoiceProblem.MintNotAnswering("home.example")))
+        compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}) }
+        compose.onNodeWithText(text(R.string.receive_invoice_mint_silent, "home.example")).assertExists()
+        state = state.copy(problem = InvoiceProblem.Offline)
+        compose.onNodeWithText(text(R.string.receive_invoice_offline)).assertExists()
+    }
+
+    @Test
     fun untilTheAddressesAreReadNothingIsDrawnNotTheAmountFormFirst() {
         compose.setContent { ReceiveScreen(ReceiveState(loaded = false), onBack = {}, onClaim = {}) }
         compose.onNodeWithText(text(R.string.receive_claim)).assertDoesNotExist()

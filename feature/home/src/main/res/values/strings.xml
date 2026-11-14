@@ -10,6 +10,12 @@
     <string name="home_add_mint_body">This wallet has no mint yet, so nothing can be received. Adding the mint you use finds the money your recovery phrase holds there.</string>
     <string name="home_add_mint_action">Add mint</string>
     <string name="home_mint_is_home">Home mint</string>
+    <!-- Under the home mint's row below the balance: it didn't answer the last time the wallet asked it. -->
+    <string name="home_mint_is_home_not_answering">Home mint · not answering</string>
+    <!-- A card on the home screen: a mint the account uses didn't answer. %1$s: the mint. -->
+    <string name="home_mint_silent_title_home">Your home mint, %1$s, isn\'t answering</string>
+    <!-- Where the brand doesn't name mints (mints.visible=false). -->
+    <string name="home_mint_silent_title_unnamed">Your mint isn\'t answering</string>
     <!-- The mints without a row of their own under the balance, as one row. %1$d: how many. -->
     <plurals name="home_more_mints">
         <item quantity="one">%1$d more mint</item>
@@ -101,8 +107,17 @@
         <item quantity="other">Asked just now: the mint still doesn\'t know your notes.</item>
     </plurals>
     <!-- It got no answer, where mints aren't named (brand mints.visible=false) or it isn't known which; else notice_unknown_unreachable. -->
-    <string name="notice_unknown_unreachable_unnamed">Couldn\'t reach the mint. Your wallet asks again later.</string>
+    <string name="notice_unknown_unreachable_unnamed">No answer from the mint. Your wallet asks again later.</string>
 
+    <!-- A card on the home screen: a mint the account uses (not the home mint) didn't answer. %1$s: the mint. -->
+    <!-- Under a mint's row below the balance: it didn't answer the last time the wallet asked it. -->
+    <string name="home_mint_not_answering">Not answering</string>
+    <string name="home_mint_silent_title">%1$s isn\'t answering</string>
+    <!-- Under the title: what that stops. A mint that isn't the home mint only holds money. -->
+    <string name="home_mint_silent_body">Until it answers, you can\'t spend the money there. Your wallet keeps asking.</string>
+    <string name="home_mint_silent_body_home">Until it answers, you can\'t receive or spend money there. Your wallet keeps asking.</string>
+    <string name="home_mint_silent_body_home_empty">Until it answers, you can\'t receive money there. Your wallet keeps asking.</string>
+    <string name="home_mint_silent_action">Check again</string>
     <string name="home_link_unreadable">This link can\'t be used here.</string>
     <string name="home_receive">Receive</string>
     <string name="home_empty">No payments yet. What you receive and send shows up here.</string>
@@ -140,7 +155,10 @@
     <string name="activity_manual">By you</string>
     <!-- Joins the parts of a history row's detail line (time, status, fee). -->
     <string name="activity_detail_separator">" · "</string>
-    <string name="home_refresh_failed">Could not refresh: %1$s</string>
+    <!-- Under Send and Receive, when the last update of the wallet didn't go through, with a button to try again. -->
+    <string name="home_offline">You\'re offline. What you see may be out of date.</string>
+    <string name="home_update_failed">Couldn\'t update. What you see may be out of date.</string>
+    <string name="home_try_again">Try again</string>
     <string name="home_backup_title">Back up your wallet</string>
     <string name="home_backup_body">If you lose this phone, your recovery phrase is the only way to get your money back. It takes two minutes.</string>
     <string name="home_backup_action">Back up</string>
@@ -156,7 +174,7 @@
     <string name="home_unknown_asked">Last asked: %1$s</string>
     <string name="home_unknown_asked_now">Last asked: just now</string>
     <!-- "Check again" got no answer. %1$s: the mint. -->
-    <string name="notice_unknown_unreachable">Couldn\'t reach %1$s. Your wallet asks again later.</string>
+    <string name="notice_unknown_unreachable">No answer from %1$s. Your wallet asks again later.</string>
     <string name="accounts_title">Accounts</string>
     <string name="accounts_manage">Manage wallets</string>
     <string name="accounts_move">Move funds</string>

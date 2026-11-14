@@ -144,7 +144,7 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
             val result = state.result
             if (preview != null) WalletStatusScope(sendStatus(state)) { BrandDecoration(Anchor.SendHeader) }
             when {
-                result != null && preview != null -> ResultContent(result, preview, onDone, actions.onEdit)
+                result != null && preview != null -> ResultContent(result, preview, state.mintsVisible, onDone, actions.onEdit)
                 preview != null -> ReviewContent(state, preview, actions)
                 state.scanning -> ScanContent(actions)
                 else -> InputContent(state, actions)
@@ -175,6 +175,7 @@ internal fun problemKind(problem: PayProblem): ProblemKind =
         PayProblem.NoFunds,
         PayProblem.TooMuch -> ProblemKind.NotEnoughFunds
         PayProblem.Unreachable -> ProblemKind.Offline
+        PayProblem.MintNotAnswering -> ProblemKind.MintNotAnswering
         else -> ProblemKind.Other
     }
 
@@ -370,7 +371,13 @@ private fun QuoteText(quote: PayQuote?) {
 }
 
 @Composable
-private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: () -> Unit, onTryAgain: () -> Unit) {
+private fun ResultContent(
+    result: PayResult,
+    preview: PayPreview.Ready,
+    mintsVisible: Boolean,
+    onDone: () -> Unit,
+    onTryAgain: () -> Unit,
+) {
     val to = preview.payee
     when (result) {
         // Shown by SuccessScreen instead.
@@ -390,7 +397,7 @@ private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: 
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.error,
             )
-            Text(problemText(result.problem), textAlign = TextAlign.Center)
+            Text(problemText(result.problem, result.host?.takeIf { mintsVisible }), textAlign = TextAlign.Center)
             result.mintMessage?.let {
                 Text(
                     stringResource(R.string.send_problem_mint_message, it),
@@ -399,8 +406,8 @@ private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: 
                 )
             }
             // Only a pay link can be tried again, with a new invoice: a mint pays an invoice once, and takes no second try at one that
-            // failed.
-            if (preview.destination is PayDestination.PayLink) {
+            // failed. One that no mint was asked to pay is as good as new.
+            if (preview.destination is PayDestination.PayLink || result.problem == PayProblem.MintNotAnswering) {
                 WalletButton(kind = ButtonKind.Text, onClick = onTryAgain) { Text(stringResource(R.string.send_try_again)) }
             }
         }
@@ -408,27 +415,31 @@ private fun ResultContent(result: PayResult, preview: PayPreview.Ready, onDone: 
     PrimaryButton(stringResource(R.string.send_done), onDone)
 }
 
+/** What [problem] means, in a full sentence; [host] names the mint that didn't answer ([PayProblem.MintNotAnswering]), where mints show. */
 @Composable
-internal fun problemText(problem: PayProblem): String =
-    stringResource(
-        when (problem) {
-            PayProblem.NotRecognized -> R.string.send_problem_not_recognized
-            PayProblem.WithdrawLink -> R.string.send_problem_withdraw_link
-            PayProblem.NoAmount -> R.string.send_problem_no_amount
-            PayProblem.Expired -> R.string.send_problem_expired
-            PayProblem.Unreachable -> R.string.send_problem_unreachable
-            PayProblem.KeyChanged -> R.string.send_problem_key_changed
-            PayProblem.PayeeRefused -> R.string.send_problem_payee_refused
-            PayProblem.InvoiceMismatch -> R.string.send_problem_mismatch
-            PayProblem.OwnAddress -> R.string.send_problem_own_address
-            PayProblem.NoFunds -> R.string.send_problem_no_funds
-            PayProblem.TooMuch -> R.string.send_problem_too_much
-            PayProblem.NotExact -> R.string.send_problem_not_exact
-            PayProblem.BelowMinimum -> R.string.send_problem_below_minimum
-            PayProblem.AboveMaximum -> R.string.send_problem_above_maximum
-            PayProblem.Refused -> R.string.send_problem_refused
-            PayProblem.OwnMintInvoice -> R.string.send_problem_own_mint_invoice
-            PayProblem.InvoiceUsed -> R.string.send_problem_invoice_used
-            PayProblem.PaymentFailed -> R.string.send_problem_payment_failed
-        }
-    )
+internal fun problemText(problem: PayProblem, host: String? = null): String =
+    if (problem == PayProblem.MintNotAnswering && host != null) stringResource(R.string.send_problem_mint_silent, host)
+    else
+        stringResource(
+            when (problem) {
+                PayProblem.NotRecognized -> R.string.send_problem_not_recognized
+                PayProblem.WithdrawLink -> R.string.send_problem_withdraw_link
+                PayProblem.NoAmount -> R.string.send_problem_no_amount
+                PayProblem.Expired -> R.string.send_problem_expired
+                PayProblem.Unreachable -> R.string.send_problem_unreachable
+                PayProblem.MintNotAnswering -> R.string.send_problem_mint_silent_unnamed
+                PayProblem.KeyChanged -> R.string.send_problem_key_changed
+                PayProblem.PayeeRefused -> R.string.send_problem_payee_refused
+                PayProblem.InvoiceMismatch -> R.string.send_problem_mismatch
+                PayProblem.OwnAddress -> R.string.send_problem_own_address
+                PayProblem.NoFunds -> R.string.send_problem_no_funds
+                PayProblem.TooMuch -> R.string.send_problem_too_much
+                PayProblem.NotExact -> R.string.send_problem_not_exact
+                PayProblem.BelowMinimum -> R.string.send_problem_below_minimum
+                PayProblem.AboveMaximum -> R.string.send_problem_above_maximum
+                PayProblem.Refused -> R.string.send_problem_refused
+                PayProblem.OwnMintInvoice -> R.string.send_problem_own_mint_invoice
+                PayProblem.InvoiceUsed -> R.string.send_problem_invoice_used
+                PayProblem.PaymentFailed -> R.string.send_problem_payment_failed
+            }
+        )

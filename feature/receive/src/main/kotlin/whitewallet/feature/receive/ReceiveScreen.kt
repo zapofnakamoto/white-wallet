@@ -129,7 +129,7 @@ fun ReceiveScreen(
                     state.noHome != null -> NoHomeContent(state.noHome, onNoHome)
                     shown != null -> InvoiceContent(shown, onBack, invoice.onNewInvoice)
                     state.showAmountForm -> AmountForm(state, invoice)
-                    state.address != null -> AddressContent(state.address, others = state.addressCount > 1, invoice)
+                    state.address != null -> AddressContent(state, others = state.addressCount > 1, invoice)
                 }
                 if (shown == null) WalletButton(kind = ButtonKind.Text, onClick = onClaim) { Text(stringResource(R.string.receive_claim)) }
                 val payable = shown?.status == InvoiceStatus.Waiting || (shown == null && !state.showAmountForm && state.address != null)
@@ -153,8 +153,11 @@ private fun receiveStatus(state: ReceiveState): WalletStatus {
     val invoice = state.invoice?.status
     return when {
         invoice == InvoiceStatus.Expired -> WalletStatus.Problem(ProblemKind.Other)
-        state.problem == InvoiceProblem.Unreachable -> WalletStatus.Problem(ProblemKind.Offline)
+        state.problem == InvoiceProblem.Offline -> WalletStatus.Problem(ProblemKind.Offline)
+        state.problem is InvoiceProblem.MintNotAnswering -> WalletStatus.Problem(ProblemKind.MintNotAnswering)
         state.problem != null -> WalletStatus.Problem(ProblemKind.Other)
+        state.invoice == null && state.address != null && !state.showAmountForm && state.addressMintNotAnswering ->
+            WalletStatus.Problem(ProblemKind.MintNotAnswering)
         state.invoice != null || (state.address != null && !state.showAmountForm) -> WalletStatus.AwaitingPayment
         else -> WalletStatus.None
     }
@@ -178,10 +181,22 @@ private fun FaucetButton(faucet: FaucetState, invoice: Boolean, onPay: () -> Uni
 }
 
 @Composable
-private fun AddressContent(address: String, others: Boolean, actions: InvoiceActions) {
+private fun AddressContent(state: ReceiveState, others: Boolean, actions: InvoiceActions) {
+    val address = state.address ?: return
     QrCode("lightning:${address.uppercase()}")
     Text(address, style = MaterialTheme.typography.titleMedium)
-    Text(stringResource(R.string.receive_hint), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
+    // The address still shows: the mint may be back by the time someone pays it, and the screen keeps asking.
+    if (state.addressMintNotAnswering) {
+        Text(
+            if (state.mintsVisible) stringResource(R.string.receive_address_mint_silent, state.addressHost.orEmpty())
+            else stringResource(R.string.receive_address_mint_silent_unnamed),
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    } else {
+        Text(stringResource(R.string.receive_hint), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
+    }
     CopyShare(address, stringResource(R.string.receive_copied))
     WalletButton(kind = ButtonKind.Text, onClick = actions.onRequestAmount) { Text(stringResource(R.string.receive_request_amount)) }
     if (others)
@@ -206,7 +221,10 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions) {
             when (problem) {
                 is InvoiceProblem.OutOfRange ->
                     stringResource(R.string.receive_invoice_range, formatAmount(problem.minMsat), formatAmount(problem.maxMsat))
-                InvoiceProblem.Unreachable -> stringResource(R.string.receive_invoice_unreachable)
+                InvoiceProblem.Offline -> stringResource(R.string.receive_invoice_offline)
+                is InvoiceProblem.MintNotAnswering ->
+                    if (state.mintsVisible) stringResource(R.string.receive_invoice_mint_silent, problem.host)
+                    else stringResource(R.string.receive_invoice_mint_silent_unnamed)
                 InvoiceProblem.Refused -> stringResource(R.string.receive_invoice_refused)
             }
         Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)

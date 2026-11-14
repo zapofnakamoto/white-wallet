@@ -34,12 +34,18 @@ sealed interface WalletStatus {
     /** The wallet works on [task] for a while; the screen shows that rather than figures about to change. */
     data class Working(val task: WalletTask) : WalletStatus
 
-    /** Something stopped the user: not enough money, no connection, or anything else. */
+    /** Something stopped the user: not enough money, no connection, a mint that doesn't answer, or anything else. */
     data class Problem(val kind: ProblemKind) : WalletStatus
 }
 
+/** New kinds may be added in later releases: a brand's `when` needs an `else` branch. */
 enum class ProblemKind {
     NotEnoughFunds,
+
+    /** The phone has no connection. */
     Offline,
+
+    /** The phone is online, but a mint the user's money is on (or that receives for them) doesn't answer. */
+    MintNotAnswering,
     Other,
 }

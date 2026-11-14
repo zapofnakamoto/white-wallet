@@ -34,8 +34,32 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   non-empty states alike (`context.status`, `Empty` while the page has nothing to show): a background, a frame, a
   picture by state. Call `content()` exactly once. Pages so far (`Page`): `History`, `Notes`, `Archive`, `Receive`,
   `Mints`, `AccountMints`, `Addresses`, `MoneyMove`; the default draws the body as before.
+- A mint that doesn't answer is told, before the user finds out by paying. Home shows a card naming it and what that
+  stops (for the home mint: receiving and spending there; for another mint: spending the money there), with "Check
+  again"; its row under the balance says "Not answering". Receive says so under a Lightning address whose mint is
+  silent, and when the home mint can't make an invoice. A refresh asks the mints the account holds money on that it
+  had nothing else to ask, so it knows. When the phone is offline, Home, Receive and Send say that instead, and blame
+  no mint.
+- A payment the first mint doesn't answer for, before anything was sent, is paid from the next mint that can; a mint
+  that didn't answer the last time is tried last. With none, Send names the mint, and an invoice can be tried again,
+  as none was paid.
+- For brands: `ProblemKind.MintNotAnswering`, a mint the money is on (or that receives) doesn't answer while the phone
+  is online, on Home, Receive and Send; `Offline` now only means the phone has no connection. New brand terms
+  `home_mint_is_home_not_answering`, `home_mint_silent_title_home`, `home_mint_silent_title_unnamed`,
+  `receive_address_mint_silent_unnamed`, `receive_invoice_mint_silent_unnamed` and
+  `send_problem_mint_silent_unnamed`. The app now declares `ACCESS_NETWORK_STATE` (WorkManager declared it already).
+  For developers: `Wallet.mintsNotAnswering`, `Wallet.isOnline()` and the `online` constructor parameter,
+  `AccountMint.answering`, `PayProblem.MintNotAnswering` with `PayResult.Failed.host`.
 
 ### Changed
+
+- One way to say a mint is down, on every screen: it "isn't answering", or "No answer from" it, in place of
+  "can't be reached", "couldn't reach" and "not reachable". Home no longer shows "Could not refresh:" with the
+  network's own error text: it says the phone is offline, or that the update didn't go through, with "Try again".
+  For brands: `home_refresh_failed` is gone, in its place `home_offline`, `home_update_failed` and `home_try_again`;
+  `receive_invoice_unreachable` is `receive_invoice_offline`. For developers: `InvoiceProblem.Unreachable` is
+  `InvoiceProblem.Offline` or `InvoiceProblem.MintNotAnswering`, and `HomeState.error` is `offline` and
+  `refreshFailed`.
 
 - The empty History says what shows up there ("No payments yet…") instead of repeating the wallet tab's hint, which
   without a mint suggested an address that doesn't exist yet; the wallet tab drops that hint while it asks for a

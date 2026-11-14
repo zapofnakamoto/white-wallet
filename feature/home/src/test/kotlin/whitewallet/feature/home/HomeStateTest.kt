@@ -2,6 +2,7 @@ package whitewallet.feature.home
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
@@ -70,7 +71,20 @@ class HomeStateTest {
         assertEquals(null, UnknownCheck.of(NotesCheck(0, 0, emptyList())))
     }
 
-    private fun mint(host: String, msat: Long, home: Boolean = false) = AccountMint(host, home, msat, 1, 0, trusted = true)
+    private fun mint(host: String, msat: Long, home: Boolean = false, answering: Boolean = true) =
+        AccountMint(host, home, msat, 1, 0, trusted = true, answering = answering)
+
+    @Test
+    fun `mints that don't answer are warned about, one card where mints don't show, none while offline`() {
+        val silent = listOf(mint("a.example", 6_000, home = true, answering = false), mint("b.example", 2_000, answering = false))
+        val state = HomeState(activeAccountId = "a", mints = silent + mint("c.example", 1_000))
+        assertEquals(silent.map(HomeAlert::MintNotAnswering), state.alerts)
+        assertEquals(WalletStatus.Problem(ProblemKind.MintNotAnswering), state.status)
+        assertEquals(listOf(HomeAlert.MintNotAnswering(silent.first())), state.copy(mintsVisible = false).alerts)
+        assertEquals(emptyList(), state.copy(offline = true).alerts)
+        assertEquals(WalletStatus.Problem(ProblemKind.Offline), state.copy(offline = true).status)
+        assertEquals(WalletStatus.Problem(ProblemKind.Other), HomeState(activeAccountId = "a", refreshFailed = true).status)
+    }
 
     @Test
     fun `the balance is told per mint only once it is on several, and where mints and the balance show`() {

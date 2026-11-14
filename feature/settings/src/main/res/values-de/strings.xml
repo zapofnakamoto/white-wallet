@@ -275,7 +275,7 @@
     <string name="keys_set_body">Niedrigster erlaubter Wert: #%1$d. Benutzte Schlüssel werden nie neu vergeben, daher kann der Index nicht unter Schlüssel fallen, die diese Wallet benutzt hat.</string>
 
     <string name="mint_reachable">Erreichbar</string>
-    <string name="mint_unreachable">Gerade nicht erreichbar</string>
+    <string name="mint_unreachable">Antwortet gerade nicht</string>
     <string name="mint_key_changed_short">Signaturschlüssel passt nicht</string>
     <string name="mint_check_again">Erneut prüfen</string>
     <string name="mint_key_remembered">Gemerkter Schlüssel</string>

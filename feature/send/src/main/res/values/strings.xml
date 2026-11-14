@@ -8,6 +8,8 @@
     -->
     <string name="send_create_note">Create a note</string>
     <string name="send_problem_refused">The mint refused this payment.</string>
+    <!-- The mint the money is on didn't answer, and no other could pay instead. %1$s: the mint. -->
+    <string name="send_problem_mint_silent_unnamed">Your mint isn\'t answering. Nothing was paid. Try again later.</string>
     <string name="send_problem_key_changed">The signing key of the mint doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the mint\'s details. Your notes there are unchanged.</string>
     <string name="send_problem_own_mint_invoice">This invoice is from your own mint, which can\'t pay itself over Lightning. Ask for a Lightning address instead.</string>
     <string name="send_problem_invoice_used">This invoice was already used. Ask for a new one.</string>
@@ -29,6 +31,7 @@
     <string name="note_unknown_to_mint">Its mint doesn\'t know this note, so the link may not work.</string>
     <string name="scan_unknown">This QR code isn\'t a payment or a note.</string>
 
+    <string name="send_problem_mint_silent">%1$s isn\'t answering. Nothing was paid. Try again later.</string>
     <string name="send_title">Send</string>
     <string name="send_input">Invoice, Lightning address or link</string>
     <string name="send_input_hint">lnbc… or name@example.com</string>

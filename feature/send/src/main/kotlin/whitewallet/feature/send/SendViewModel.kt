@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.IncomingLink
 import whitewallet.core.wallet.PayPreview
@@ -48,6 +49,8 @@ data class SendState(
     /** The account's balance, and the most one payment can be: set when that is less, its money being on several mints. */
     val balanceMsat: Long = 0,
     val limitMsat: Long? = null,
+    /** The brand names mints (brand `mints.visible`). */
+    val mintsVisible: Boolean = true,
 ) {
     /** The amount to pay in msat, or null while none is entered. */
     val amountMsat: Long?
@@ -63,9 +66,10 @@ class SendViewModel
 constructor(
     private val wallet: Wallet,
     private val faucet: RegtestFaucet,
+    defaults: AppDefaults,
     savedState: SavedStateHandle,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(SendState(loaded = false))
+    private val _state = MutableStateFlow(SendState(loaded = false, mintsVisible = defaults.showMints))
     val state: StateFlow<SendState> = _state
     private var quoteJob: Job? = null
 

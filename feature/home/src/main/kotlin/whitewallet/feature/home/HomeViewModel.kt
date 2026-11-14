@@ -53,7 +53,10 @@ data class HomeState(
     val activity: List<Activity> = emptyList(),
     val refreshing: Boolean = false,
     val unresolved: Int = 0,
-    val error: String? = null,
+    /** The last refresh found the phone offline: what Home shows may be out of date, and no mint's silence says anything. */
+    val offline: Boolean = false,
+    /** The last refresh failed for another reason. */
+    val refreshFailed: Boolean = false,
     /** A mint that now presents another signing key than the pinned one: the wallet stops working with it. */
     val keyChangedHost: String? = null,
     /** Funds are at risk until the recovery phrase is backed up. */
@@ -107,6 +110,10 @@ data class HomeState(
     val activeAccount: AccountSummary?
         get() = accounts.firstOrNull { it.account.id == activeAccountId }
 
+    /** The [mints] that didn't answer the last time the wallet asked them, the home mint first; none while the phone is offline. */
+    val mintsNotAnswering: List<AccountMint>
+        get() = if (offline) emptyList() else mints.filter { !it.answering }
+
     /** How many wallets (recovery phrases) the accounts belong to. */
     val walletCount: Int
         get() = accounts.distinctBy { it.account.walletId }.size
@@ -131,18 +138,25 @@ data class HomeState(
         get() = buildList {
             keyChangedMint?.let { add(HomeAlert.KeyChanged(it)) }
             unknownNotes.forEach { add(HomeAlert.UnknownNotes(it)) }
+            // Where the brand hides mints, one card says it: they can't be told apart.
+            mintsNotAnswering.let { if (mintsVisible) it else it.take(1) }.forEach { add(HomeAlert.MintNotAnswering(it)) }
             inactiveAddress?.let { add(HomeAlert.AddressInactive(it)) }
             if (showAddMintPrompt) add(HomeAlert.AddMint)
             if (showBackupPrompt) add(HomeAlert.Backup)
             if (showScanPrompt) add(HomeAlert.Scan)
         }
 
-    /** What the wallet tab is about, for the brand's design: a failed refresh, money, or none yet. */
+    /**
+     * What the wallet tab is about, for the brand's design: no connection, a mint that doesn't answer, a failed refresh, money, or none
+     * yet.
+     */
     val status: WalletStatus
         get() =
             when {
                 activeAccountId == null -> WalletStatus.None
-                error != null -> WalletStatus.Problem(ProblemKind.Offline)
+                offline -> WalletStatus.Problem(ProblemKind.Offline)
+                mintsNotAnswering.isNotEmpty() -> WalletStatus.Problem(ProblemKind.MintNotAnswering)
+                refreshFailed -> WalletStatus.Problem(ProblemKind.Other)
                 balanceMsat > 0 || sharedMsat > 0 || received.any { it.isPending } -> WalletStatus.Idle
                 else -> WalletStatus.Empty
             }
@@ -153,6 +167,9 @@ sealed interface HomeAlert {
     data class KeyChanged(val host: String) : HomeAlert
 
     data class UnknownNotes(val mint: AccountMint) : HomeAlert
+
+    /** [mint] didn't answer: until it does, money there can't be spent (and, the home mint, none comes in). */
+    data class MintNotAnswering(val mint: AccountMint) : HomeAlert
 
     data class AddressInactive(val address: String) : HomeAlert
 
@@ -374,21 +391,28 @@ class HomeViewModel(
 
     fun refresh() {
         if (status.value.refreshing) return
-        status.update { it.copy(refreshing = true, error = null) }
+        status.update { it.copy(refreshing = true, refreshFailed = false) }
         viewModelScope.launch {
             var keyChanged: String? = null
-            val error =
+            val failed =
                 try {
                     keyChanged = wallet.refresh().keyChanged.firstOrNull()
-                    null
+                    false
                 } catch (e: IOException) {
-                    e.message ?: "network error"
+                    true
                 } catch (e: MintKeyChangedException) {
                     keyChanged = e.host
-                    null
+                    false
                 }
+            val offline = !wallet.isOnline()
             status.update {
-                it.copy(refreshing = false, error = error, keyChangedHost = keyChanged, unresolved = wallet.unresolvedOperations())
+                it.copy(
+                    refreshing = false,
+                    offline = offline,
+                    refreshFailed = failed && !offline,
+                    keyChangedHost = keyChanged,
+                    unresolved = wallet.unresolvedOperations(),
+                )
             }
         }
     }
