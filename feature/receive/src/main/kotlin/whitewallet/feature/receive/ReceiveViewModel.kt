@@ -156,7 +156,7 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
             while (isActive) {
                 delay(timings.receivePollMillis)
                 // Offline, there's nobody to ask: what arrived meanwhile is found once the phone is back.
-                if (!wallet.isOnline()) continue
+                if (wallet.offline.value) continue
                 val result = runCatching { wallet.refresh() }.getOrNull()
                 if (result != null && result.receivedMsat > 0) received.value += result.receivedMsat
             }

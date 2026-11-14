@@ -12,13 +12,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import whitewallet.core.model.AmountUnit
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.CreateAccountResult
@@ -28,7 +26,6 @@ import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.NotePolicies
 import whitewallet.core.wallet.Wallet
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.NetworkConditions
 
 /**
  * What the address form starts with: the mint and the name are there before it shows, and never change by themselves afterwards. Runs
@@ -50,7 +47,7 @@ class AddressPrefillTest {
 
     /** Every state the screen showed until the form was free to use: before [OnboardingState.ready] there is nothing to see. */
     private suspend fun shown(mode: OnboardingMode, presetHost: String? = null): List<OnboardingState> {
-        val screen = OnboardingViewModel(wallet, defaults, Preferences())
+        val screen = OnboardingViewModel(wallet, defaults, AppPreferences.InMemory())
         val seen = mutableListOf<OnboardingState>()
         val watching = CoroutineScope(Dispatchers.Unconfined).launch { screen.state.collect { if (it.ready) seen += it } }
         screen.init(mode, presetHost)
@@ -94,34 +91,4 @@ class AddressPrefillTest {
                 assertFalse(seen.first().busy, "nothing comes back by itself here, so the field is free from the start")
             }
         }
-
-    private class Preferences : AppPreferences {
-        override val developerMode = MutableStateFlow(false)
-        override val developerOptionsUnlocked = MutableStateFlow(false)
-        override val maxAddressesPerMint = MutableStateFlow<Int?>(null)
-        override val networkProfile = MutableStateFlow(NetworkConditions.Profile.Normal)
-        override val amountUnit = MutableStateFlow<AmountUnit?>(null)
-        override val balanceHidden = MutableStateFlow(false)
-        override val appLock = MutableStateFlow(false)
-        override val notesSort = MutableStateFlow<String?>(null)
-        override val seenReleaseNotes = MutableStateFlow<Set<String>?>(null)
-
-        override suspend fun setDeveloperMode(enabled: Boolean) = Unit
-
-        override suspend fun setDeveloperOptionsUnlocked() = Unit
-
-        override suspend fun setMaxAddressesPerMint(max: Int) = Unit
-
-        override suspend fun setNetworkProfile(profile: NetworkConditions.Profile) = Unit
-
-        override suspend fun setAmountUnit(unit: AmountUnit) = Unit
-
-        override suspend fun setBalanceHidden(hidden: Boolean) = Unit
-
-        override suspend fun setAppLock(enabled: Boolean) = Unit
-
-        override suspend fun setNotesSort(sort: String) = Unit
-
-        override suspend fun setSeenReleaseNotes(ids: Set<String>) = Unit
-    }
 }

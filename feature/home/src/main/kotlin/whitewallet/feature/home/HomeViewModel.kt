@@ -322,18 +322,17 @@ class HomeViewModel(
     }
 
     /**
-     * Says at once when the phone goes offline, and refreshes as soon as it is back: what was shown while offline may be out of date. A
-     * refresh still running then is waited for, as it may have asked while offline.
+     * Says at once when the phone goes offline, and refreshes once it is back ([Wallet.offline] turns false): what was shown while offline
+     * may be out of date. A refresh still running then is waited for, as it may have asked while offline.
      */
     private suspend fun followConnection() {
-        var wasOffline = !wallet.isOnline()
         wallet.offline.collect { offline ->
+            val back = status.value.offline && !offline
             status.update { it.copy(offline = offline) }
-            if (wasOffline && !offline) {
+            if (back) {
                 status.first { !it.refreshing }
                 refresh()
             }
-            wasOffline = offline
         }
     }
 
@@ -425,7 +424,7 @@ class HomeViewModel(
                 it.copy(
                     refreshing = false,
                     // Offline, Home says that instead; a refresh follows once the phone is back.
-                    refreshFailed = failed && wallet.isOnline(),
+                    refreshFailed = failed && !wallet.offline.value,
                     keyChangedHost = keyChanged,
                     unresolved = wallet.unresolvedOperations(),
                 )

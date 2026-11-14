@@ -13,8 +13,6 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -22,7 +20,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assumptions.assumeTrue
-import whitewallet.core.model.AmountUnit
 import whitewallet.core.model.SetupStep
 import whitewallet.core.wallet.AddressFeeChoice
 import whitewallet.core.wallet.AppDefaults
@@ -37,7 +34,6 @@ import whitewallet.core.wallet.NotePolicies
 import whitewallet.core.wallet.RestoreResult
 import whitewallet.core.wallet.Wallet
 import whitewallet.lnurlcash.client.LnurlcashClient
-import whitewallet.lnurlcash.client.NetworkConditions
 
 /**
  * A wallet's setup on a mint that charges for an address (dev/regtest's second mint, 21 sats), as the screens run it: the add-mint and the
@@ -67,7 +63,7 @@ class RegtestAddressFeeFlowTest {
         val wallet =
             Wallet(store, seeds, LnurlcashClient(), maxAddressFeeMsat = maxFee, policies = NotePolicies.InMemory(ManualStrategy.ID))
         val defaults = AppDefaults(listOf(host), allowMintChange = true, addressFee = choice)
-        val preferences = Preferences()
+        val preferences = AppPreferences.InMemory()
 
         /** The setup's mint step, up to where the address step opens: what the mint says an address costs, as shown before adding it. */
         suspend fun addMint(): Long? {
@@ -312,35 +308,5 @@ class RegtestAddressFeeFlowTest {
         val process = ProcessBuilder(script.path, "pay", invoice, "0").redirectErrorStream(true).start()
         val output = process.inputStream.bufferedReader().readText()
         check(process.waitFor() == 0) { output }
-    }
-
-    private class Preferences : AppPreferences {
-        override val developerMode = MutableStateFlow(false)
-        override val developerOptionsUnlocked = MutableStateFlow(false)
-        override val maxAddressesPerMint = MutableStateFlow<Int?>(null)
-        override val networkProfile = MutableStateFlow(NetworkConditions.Profile.Normal)
-        override val amountUnit = MutableStateFlow<AmountUnit?>(null)
-        override val balanceHidden = MutableStateFlow(false)
-        override val appLock = MutableStateFlow(false)
-        override val notesSort = MutableStateFlow<String?>(null)
-        override val seenReleaseNotes: Flow<Set<String>?> = MutableStateFlow(null)
-
-        override suspend fun setDeveloperMode(enabled: Boolean) = Unit
-
-        override suspend fun setDeveloperOptionsUnlocked() = Unit
-
-        override suspend fun setMaxAddressesPerMint(max: Int) = Unit
-
-        override suspend fun setNetworkProfile(profile: NetworkConditions.Profile) = Unit
-
-        override suspend fun setAmountUnit(unit: AmountUnit) = Unit
-
-        override suspend fun setBalanceHidden(hidden: Boolean) = Unit
-
-        override suspend fun setAppLock(enabled: Boolean) = Unit
-
-        override suspend fun setNotesSort(sort: String) = Unit
-
-        override suspend fun setSeenReleaseNotes(ids: Set<String>) = Unit
     }
 }

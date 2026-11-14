@@ -6,13 +6,18 @@ import fr.acinq.bitcoin.PublicKey
 import java.io.IOException
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
@@ -22,10 +27,12 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import whitewallet.brand.NoteStrategy
 import whitewallet.brand.WalletTask
 import whitewallet.core.model.Account
@@ -99,6 +106,8 @@ class Wallet(
     internal val receivedGiveUpMillis: Long = 7 * 24 * 60 * 60_000L,
     /** How the wallet behaves: wallet.properties, not the brand. */
     internal val settings: WalletSettings = WalletSettings(),
+    /** Where the wallet keeps state of its own up to date, for as long as it lives ([offline]); tests pass theirs. */
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
     private val lock = Mutex()
 
@@ -155,8 +164,26 @@ class Wallet(
     val mintsNotAnswering: Flow<Set<String>> =
         mintAnswers.map { answers -> answers.filterValues { !it.answered }.keys }.distinctUntilChanged()
 
-    /** Whether the phone is offline, as it changes: the screens say so before the user tries what needs a connection. */
-    val offline: Flow<Boolean> = connection.map { it == Connection.Offline }.distinctUntilChanged()
+    /**
+     * Whether the phone is offline, one state for every screen: they say so before the user tries what needs a connection, and ask again
+     * what couldn't be asked when it turns false. Back on a network, it stays true until the network is found to reach the internet
+     * ([Connection.Online]), at most `back.online.verified.wait.millis` (a network that blocks the system's check never is): asked sooner,
+     * the first requests could go out before the network carries them, and a screen would take back "offline" only to say a mint doesn't
+     * answer.
+     */
+    val offline: StateFlow<Boolean> = channelFlow {
+        var wasOffline = connection.value == Connection.Offline
+        connection
+            .map { it == Connection.Offline }
+            .distinctUntilChanged()
+            .collectLatest { nowOffline ->
+                val back = wasOffline && !nowOffline
+                wasOffline = nowOffline
+                if (back) withTimeoutOrNull(settings.backOnlineVerifiedWaitMillis) { connection.first { it == Connection.Online } }
+                send(nowOffline)
+            }
+    }
+        .stateIn(scope, SharingStarted.Eagerly, connection.value == Connection.Offline)
 
     /** Whether the phone has a network connection now, one that may reach the internet (see [connection]). */
     fun isOnline(): Boolean = connection.value != Connection.Offline

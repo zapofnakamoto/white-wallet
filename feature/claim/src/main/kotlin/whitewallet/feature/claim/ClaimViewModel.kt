@@ -76,12 +76,11 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
         viewModelScope.launch { faucet.noteMints.collect { mints -> _state.update { it.copy(faucetMints = mints, loaded = true) } } }
         viewModelScope.launch { wallet.homeHost.collect { home -> _state.update { it.copy(home = home) } } }
         viewModelScope.launch {
-            var wasOffline = !wallet.isOnline()
             wallet.offline.collect { offline ->
-                _state.update { it.copy(offline = offline) }
                 // Back online: what couldn't be asked is asked now, rather than leaving the user to check again.
-                if (wasOffline && !offline && _state.value.waitsForConnection) check()
-                wasOffline = offline
+                val back = _state.value.offline && !offline
+                _state.update { it.copy(offline = offline) }
+                if (back && _state.value.waitsForConnection) check()
             }
         }
         // Opened from a link, shared text or NFC tag: check it right away.

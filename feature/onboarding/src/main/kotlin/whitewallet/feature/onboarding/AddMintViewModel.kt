@@ -142,12 +142,11 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
      * on to what it is, as it would have at the start.
      */
     private suspend fun followConnection() {
-        var wasOffline = !wallet.isOnline()
         wallet.offline.collect { offline ->
+            val back = _state.value.offline && !offline
             _state.update { it.copy(offline = offline, error = it.error.takeUnless { offline && it == AddMintError.Unreachable }) }
             val s = _state.value
-            if (wasOffline && !offline && s.loaded && s.step == AddMintStep.Pick && !s.showMintPicker && s.host.isNotBlank()) next()
-            wasOffline = offline
+            if (back && s.loaded && s.step == AddMintStep.Pick && !s.showMintPicker && s.host.isNotBlank()) next()
         }
     }
 

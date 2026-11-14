@@ -215,6 +215,73 @@ interface AppPreferences {
     val seenReleaseNotes: Flow<Set<String>?>
 
     suspend fun setSeenReleaseNotes(ids: Set<String>)
+
+    /** Kept in memory only: for tests, each preference at its default until set. */
+    class InMemory : AppPreferences {
+        private val developer = MutableStateFlow(false)
+        private val unlocked = MutableStateFlow(false)
+        private val maxAddresses = MutableStateFlow<Int?>(null)
+        private val profile = MutableStateFlow(NetworkConditions.Profile.Normal)
+        private val unit = MutableStateFlow<AmountUnit?>(null)
+        private val hidden = MutableStateFlow(false)
+        private val lock = MutableStateFlow(false)
+        private val sort = MutableStateFlow<String?>(null)
+        private val seen = MutableStateFlow<Set<String>?>(null)
+
+        override val developerMode: Flow<Boolean> = developer
+
+        override suspend fun setDeveloperMode(enabled: Boolean) {
+            developer.value = enabled
+        }
+
+        override val developerOptionsUnlocked: Flow<Boolean> = unlocked
+
+        override suspend fun setDeveloperOptionsUnlocked() {
+            unlocked.value = true
+        }
+
+        override val maxAddressesPerMint: Flow<Int?> = maxAddresses
+
+        override suspend fun setMaxAddressesPerMint(max: Int) {
+            maxAddresses.value = max
+        }
+
+        override val networkProfile: Flow<NetworkConditions.Profile> = profile
+
+        override suspend fun setNetworkProfile(profile: NetworkConditions.Profile) {
+            this.profile.value = profile
+        }
+
+        override val amountUnit: Flow<AmountUnit?> = unit
+
+        override suspend fun setAmountUnit(unit: AmountUnit) {
+            this.unit.value = unit
+        }
+
+        override val balanceHidden: Flow<Boolean> = hidden
+
+        override suspend fun setBalanceHidden(hidden: Boolean) {
+            this.hidden.value = hidden
+        }
+
+        override val appLock: Flow<Boolean> = lock
+
+        override suspend fun setAppLock(enabled: Boolean) {
+            lock.value = enabled
+        }
+
+        override val notesSort: Flow<String?> = sort
+
+        override suspend fun setNotesSort(sort: String) {
+            this.sort.value = sort
+        }
+
+        override val seenReleaseNotes: Flow<Set<String>?> = seen
+
+        override suspend fun setSeenReleaseNotes(ids: Set<String>) {
+            seen.value = ids
+        }
+    }
 }
 
 /**

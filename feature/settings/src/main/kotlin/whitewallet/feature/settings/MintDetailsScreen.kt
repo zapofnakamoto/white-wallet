@@ -104,13 +104,12 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
         viewModelScope.launch { wallet.homeHost.drop(1).collect { refresh() } }
         viewModelScope.launch { wallet.collectAtHome.collect { c -> _state.update { it.copy(collects = c) } } }
         viewModelScope.launch {
-            var wasOffline = !wallet.isOnline()
             wallet.offline.collect { offline ->
-                _state.update { it.copy(offline = offline) }
                 // Back online: the mint that couldn't be asked is asked now.
+                val back = _state.value.offline && !offline
+                _state.update { it.copy(offline = offline) }
                 val unasked = _state.value.details?.reachability == MintDetails.Reachability.Unreachable
-                if (wasOffline && !offline && unasked && !_state.value.loading) refresh()
-                wasOffline = offline
+                if (back && unasked && !_state.value.loading) refresh()
             }
         }
         viewModelScope.launch {
