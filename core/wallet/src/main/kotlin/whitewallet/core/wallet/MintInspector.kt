@@ -4,6 +4,7 @@ import java.io.IOException
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Mint
 import whitewallet.core.model.NoteState
+import whitewallet.lnurlcash.protocol.MintingPayRequest
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 
 /** What the mint details page shows about one mint (brief §6): stored facts, checked live where possible. */
@@ -89,8 +90,12 @@ internal class MintInspector(private val wallet: Wallet) {
         }
     }
 
-    private val onboarding = Onboarding(wallet)
-
+    /**
+     * What the mint at [host] is, as asked now, with its fresh fees and limits. Only a mint the wallet has gets them stored (and its key,
+     * if none was pinned yet), and only while the wallet is free: the page doesn't wait for a refresh, and the next look stores them.
+     * Looking adds no mint: not one the user just removed (the page of a home mint that went reloads as the home changes), not one the
+     * wallet only holds notes from.
+     */
     suspend fun details(host: String): MintDetails {
         val accountId = wallet.activeId()
         val h =
@@ -106,6 +111,7 @@ internal class MintInspector(private val wallet: Wallet) {
                 )
         var description: String? = null
         var presented: String? = null
+        var fresh: Mint? = null
         val reachability =
             try {
                 val pay = wallet.client.servicePayRequest(h)
@@ -118,9 +124,11 @@ internal class MintInspector(private val wallet: Wallet) {
                 if (pinned != null && discovery != null && pinned != presented) {
                     MintDetails.Reachability.KeyChanged
                 } else {
-                    // Stores fresh fees and limits (and pins the key if it wasn't yet).
-                    if (onboarding.connectMint(wallet.walletOf(accountId), h) is ConnectResult.Connected) MintDetails.Reachability.Reachable
-                    else MintDetails.Reachability.Invalid
+                    val walletId = wallet.walletOf(accountId)
+                    fresh = wallet.mintOf(accountId, h)?.withTerms(pay, presented)
+                    fresh?.let { mint -> wallet.ifFree { if (wallet.store.mint(walletId, h) != null) wallet.store.saveMint(mint) } }
+                    // One the wallet doesn't have is a mint it could add only with its signing key.
+                    if (fresh != null || presented != null) MintDetails.Reachability.Reachable else MintDetails.Reachability.Invalid
                 }
             } catch (e: ProtocolViolation) {
                 MintDetails.Reachability.Invalid
@@ -130,7 +138,7 @@ internal class MintInspector(private val wallet: Wallet) {
         val notes = wallet.store.notes(accountId).first().filter { it.host == h && it.state == NoteState.Outstanding }
         return MintDetails(
             host = h,
-            mint = wallet.mintOf(accountId, h),
+            mint = fresh ?: wallet.mintOf(accountId, h),
             reachability = reachability,
             description = description,
             balanceMsat = notes.sumOf { it.amountMsat },
@@ -140,3 +148,14 @@ internal class MintInspector(private val wallet: Wallet) {
         )
     }
 }
+
+/** [this] mint with the fees, limits and withdraw link of [pay], and [presented] as its key if it had none pinned. */
+private fun Mint.withTerms(pay: MintingPayRequest, presented: String?): Mint =
+    copy(
+        withdrawUrl = pay.withdrawUrl,
+        mintPubkey = mintPubkey ?: presented,
+        minSendableMsat = pay.pay.minSendable,
+        maxSendableMsat = pay.pay.maxSendable,
+        feeBaseMsat = pay.fee?.baseMsat,
+        feePpm = pay.fee?.ppm,
+    )

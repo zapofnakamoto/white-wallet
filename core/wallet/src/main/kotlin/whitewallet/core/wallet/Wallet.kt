@@ -287,6 +287,16 @@ class Wallet(
      */
     val task: StateFlow<WalletTask?> = _task.asStateFlow()
 
+    /** Runs [block] under the wallet's lock if nothing holds it now: a write that may wait for the next time ([MintInspector.details]). */
+    internal suspend fun ifFree(block: suspend () -> Unit) {
+        if (!lock.tryLock()) return
+        try {
+            block()
+        } finally {
+            lock.unlock()
+        }
+    }
+
     /**
      * Runs [block] as [task], then goes back to what the wallet worked on before (a refresh around maintenance). Only under the lock, so
      * tasks nest and never interleave.
@@ -368,8 +378,11 @@ class Wallet(
         }
     }
 
-    /** What removing the active account would meet: what stands against it, the money it holds and the addresses it would leave. */
-    suspend fun accountRemoval(): AccountRemoval = lock.withLock { removal(activeId()) }
+    /**
+     * What removing the active account would meet: what stands against it, the money it holds and the addresses it would leave. Only read,
+     * so it doesn't wait for an operation under way (a refresh); [removeAccount] checks again.
+     */
+    suspend fun accountRemoval(): AccountRemoval = removal(activeId())
 
     private suspend fun removal(id: String): AccountRemoval {
         val notes = store.notes(id).first()
@@ -394,17 +407,20 @@ class Wallet(
      * Removes the active account from this phone, if it holds nothing and isn't its wallet's last ([accountRemoval]): its history, its
      * addresses as this phone knows them and its settings go. Nothing changes at a mint: its addresses stay registered, and whatever is
      * paid to its keys later is found when an account is added again, which takes the lowest free index ([createAccount]). Another account
-     * of the wallet becomes active.
+     * of the wallet becomes active. Runs to its end if the screen that asked is left.
      */
-    suspend fun removeAccount(): RemoveAccountResult = lock.withLock {
-        val id = activeId()
-        removal(id).blocked?.let {
-            return@withLock it
+    suspend fun removeAccount(): RemoveAccountResult =
+        withContext(NonCancellable) {
+            lock.withLock {
+                val id = activeId()
+                removal(id).blocked?.let {
+                    return@withLock it
+                }
+                val next = siblings(id).filter { it.id != id }.minBy { it.index }.id
+                deleteActive(prefer = next, wholeWallet = false)
+                RemoveAccountResult.Removed(next)
+            }
         }
-        val next = siblings(id).filter { it.id != id }.minBy { it.index }.id
-        deleteActive(prefer = next, wholeWallet = false)
-        RemoveAccountResult.Removed(next)
-    }
 
     /**
      * Gives up the active wallet's setup: the wallet goes from this device, and the account active before it is active again. Refused for a
@@ -724,28 +740,31 @@ class Wallet(
      * Forgets the active wallet's mint at [host]: its pinned signing key and the user's trust choice for it, so adding it again is a first
      * contact (as after a restore). Only if no account of the wallet has a note that isn't spent, an address or an unsettled operation
      * there ([RemoveMintResult.InUse] says which); notes and history are never touched. An account that had it as its home mint has none
-     * afterwards, until the user picks one. Another wallet's mint stays.
+     * afterwards, until the user picks one. Another wallet's mint stays. Runs to its end if the screen that asked is left.
      */
-    suspend fun removeMint(host: String): RemoveMintResult = lock.withLock {
-        val h = Onboarding.normalizeHost(host) ?: host
-        val id = activeId()
-        val walletId = walletOf(id)
-        val accounts = siblings(id)
-        val ids = accounts.map { it.id }.toSet()
-        val use =
-            when {
-                accounts.any { a -> store.notes(a.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
-                accounts.any { a -> store.addresses(a.id).first().any { it.host == h } } -> MintUse.Address
-                store.journal(UNSETTLED).any { it.host == h && it.accountId in ids } -> MintUse.OpenOperation
-                else -> null
+    suspend fun removeMint(host: String): RemoveMintResult =
+        withContext(NonCancellable) {
+            lock.withLock {
+                val h = Onboarding.normalizeHost(host) ?: host
+                val id = activeId()
+                val walletId = walletOf(id)
+                val accounts = siblings(id)
+                val ids = accounts.map { it.id }.toSet()
+                val use =
+                    when {
+                        accounts.any { a -> store.notes(a.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
+                        accounts.any { a -> store.addresses(a.id).first().any { it.host == h } } -> MintUse.Address
+                        store.journal(UNSETTLED).any { it.host == h && it.accountId in ids } -> MintUse.OpenOperation
+                        else -> null
+                    }
+                if (use != null) return@withLock RemoveMintResult.InUse(use)
+                store.mint(walletId, h)?.mintPubkey?.let { trust.forget(walletId, MintKey(h, it)) }
+                store.removeMint(walletId, h)
+                // Nothing of any account is left there: the ones that had it as home have none now.
+                accounts.filter { it.homeHost == h }.forEach { store.saveAccount(it.copy(homeHost = null)) }
+                RemoveMintResult.Removed
             }
-        if (use != null) return@withLock RemoveMintResult.InUse(use)
-        store.mint(walletId, h)?.mintPubkey?.let { trust.forget(walletId, MintKey(h, it)) }
-        store.removeMint(walletId, h)
-        // Nothing of any account is left there: the ones that had it as home have none now.
-        accounts.filter { it.homeHost == h }.forEach { store.saveAccount(it.copy(homeHost = null)) }
-        RemoveMintResult.Removed
-    }
+        }
 
     /** Whether the active wallet has a mint at all; without one, it can't receive until one is added ([addMint]). */
     val hasMint: Flow<Boolean> = ofActiveWallet(true) { id -> store.mints(id).map { it.isNotEmpty() } }.distinctUntilChanged()

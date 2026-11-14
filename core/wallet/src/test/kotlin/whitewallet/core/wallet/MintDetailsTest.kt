@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -45,6 +46,16 @@ class MintDetailsTest {
         assertEquals(1, details.noteCount)
         assertEquals(true, details.isHome)
         assertEquals(keys.share(0).cx1(), wallet.watchOnlyKey(store.addresses(wallet.activeId()).first().single()))
+    }
+
+    @Test
+    fun `looking at a mint the wallet doesn't have adds nothing`() = withWallet { mint, store, wallet ->
+        // As after the user removed it: the page of a home mint that went reloads, and must find it gone.
+        store.removeMint(wallet.walletOf(wallet.activeId()), mint.host)
+        val details = wallet.mintDetails(mint.host)
+        assertEquals(MintDetails.Reachability.Reachable, details.reachability)
+        assertNull(details.mint)
+        assertNull(store.mint(mint.host), "not added back")
     }
 
     @Test

@@ -36,6 +36,17 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   keys are no longer read. The comment of each time setting says its default and bounds as durations (`5m`, `1d`),
   checked by the build.
 
+### Fixed
+
+- A home mint removed under Settings → Mints came back at once, no longer home and no longer trusted, with whatever
+  signing key it showed then: its page, reloading as the home changed, added it again. Looking at a mint's page no
+  longer adds a mint the wallet doesn't have; it only stores the fresh fees and limits of one it has, and doesn't wait
+  for a refresh to do that.
+- Removing a mint or an account did nothing visible while the wallet was busy (a refresh, which opening Settings or an
+  account's page starts, or a mint being added), and leaving the page then dropped the removal. The question now stays
+  and shows that it is working until the wallet gets to it, and the removal goes through even if the page is left.
+  "Remove this account" opens its question at once instead of waiting for the refresh.
+
 ## [0.9.0]
 
 ### Added

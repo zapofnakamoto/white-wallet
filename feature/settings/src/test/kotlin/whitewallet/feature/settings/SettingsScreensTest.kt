@@ -270,7 +270,14 @@ class SettingsScreensTest {
         compose.onNodeWithText(text(R.string.mints_remove_confirm)).performClick()
         assertEquals(true, removed)
 
-        state = state.copy(mint = removable.copy(removable = false, isHome = true))
+        // While the wallet gets to it (it may be busy with something else), the question stays, and can't be left or asked again.
+        state = state.copy(removing = true)
+        compose.onNodeWithText(text(R.string.mints_remove_title, "other.example")).assertExists()
+        compose.onNodeWithText(text(R.string.backup_cancel)).assertIsNotEnabled()
+
+        // Something ties an account to it by now: the question goes, and the page says it can't be removed.
+        state = state.copy(removing = false, mint = removable.copy(removable = false, isHome = true))
+        compose.onNodeWithText(text(R.string.mints_remove_title, "other.example")).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_home_mint)).assertExists()
         compose.onNodeWithText("Can't be removed", substring = true).performScrollTo().assertExists()
     }

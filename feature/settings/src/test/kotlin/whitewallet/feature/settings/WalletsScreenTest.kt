@@ -189,7 +189,7 @@ class WalletsScreenTest {
     fun removingAnAccountNamesTheAddressesItLeaves() {
         var removed = false
         val removal = AccountRemoval(null, 0, listOf("alice@mint.example", "shop@mint.example"))
-        compose.setContent { AccountRemovalDialog("Savings", removal, {}) { removed = true } }
+        compose.setContent { AccountRemovalDialog("Savings", removal, removing = false, {}) { removed = true } }
         compose.onNodeWithText(text(R.string.account_remove_title, "Savings")).assertExists()
         compose.onNodeWithText(plural(R.plurals.account_remove_addresses, 2, "alice@mint.example, shop@mint.example")).assertExists()
         compose.onNodeWithText(text(R.string.account_remove_confirm)).performClick()
@@ -197,11 +197,21 @@ class WalletsScreenTest {
     }
 
     @Test
+    fun whileTheAccountIsRemovedTheQuestionStaysAndCantBeLeft() {
+        var dismissed = false
+        val removal = AccountRemoval(null, 0, emptyList())
+        compose.setContent { AccountRemovalDialog("Savings", removal, removing = true, { dismissed = true }, {}) }
+        compose.onNodeWithText(text(R.string.account_remove_title, "Savings")).assertExists()
+        compose.onNodeWithText(text(R.string.rename_cancel)).assertIsNotEnabled()
+        assertEquals(false, dismissed)
+    }
+
+    @Test
     @Config(qualifiers = "de")
     fun anAccountThatHoldsMoneyCantBeRemoved() {
         var removed = false
         val removal = AccountRemoval(RemoveAccountResult.InUse(AccountUse.Money), 3_000_000, emptyList())
-        compose.setContent { AccountRemovalDialog("Sparen", removal, {}) { removed = true } }
+        compose.setContent { AccountRemovalDialog("Sparen", removal, removing = false, {}) { removed = true } }
         compose.onNodeWithText("Dieses Konto kann noch nicht entfernt werden").assertExists()
         compose.onNodeWithText("Es hält noch", substring = true).assertExists()
         compose.onNodeWithText("Konto entfernen").assertDoesNotExist()
@@ -211,7 +221,7 @@ class WalletsScreenTest {
     @Test
     fun anAccountWithArchivedNotesCantBeRemoved() {
         val removal = AccountRemoval(RemoveAccountResult.InUse(AccountUse.ArchivedNotes), 0, emptyList())
-        compose.setContent { AccountRemovalDialog("Savings", removal, {}, {}) }
+        compose.setContent { AccountRemovalDialog("Savings", removal, removing = false, {}, {}) }
         compose.onNodeWithText(text(R.string.account_remove_blocked_archived)).assertExists()
         compose.onNodeWithText(text(R.string.account_remove_confirm)).assertDoesNotExist()
     }
@@ -219,7 +229,7 @@ class WalletsScreenTest {
     @Test
     fun anAccountWithSomethingUnfinishedCantBeRemoved() {
         val removal = AccountRemoval(RemoveAccountResult.InUse(AccountUse.OpenOperation), 0, emptyList())
-        compose.setContent { AccountRemovalDialog("Savings", removal, {}, {}) }
+        compose.setContent { AccountRemovalDialog("Savings", removal, removing = false, {}, {}) }
         compose.onNodeWithText(text(R.string.account_remove_blocked_open)).assertExists()
         compose.onNodeWithText(text(R.string.account_remove_confirm)).assertDoesNotExist()
     }

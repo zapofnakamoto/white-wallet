@@ -48,6 +48,7 @@ import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.screenLoaded
+import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.WalletGroup
 import whitewallet.core.wallet.AccountRemoval
@@ -114,15 +115,23 @@ class WalletsViewModel @Inject constructor(private val wallet: Wallet) : ViewMod
         viewModelScope.launch { _removal.value = wallet.accountRemoval() }
     }
 
+    private val _removing = MutableStateFlow(false)
+
+    /** Asked to remove it: the wallet gets to it once it is done with what it works on (a refresh). */
+    val removing: StateFlow<Boolean> = _removing
+
     fun dismissRemoval() {
-        _removal.value = null
+        if (!_removing.value) _removal.value = null
     }
 
     /** Removes the account in use; if something stands against it by now, the question shows that instead. */
     fun removeAccount() {
+        if (_removing.value) return
+        _removing.value = true
         viewModelScope.launch {
             val result = wallet.removeAccount()
             _removal.value = if (result is RemoveAccountResult.Removed) null else wallet.accountRemoval()
+            _removing.value = false
         }
     }
 }
@@ -337,6 +346,7 @@ fun AccountSettingsRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val active by settings.state.collectAsStateWithLifecycle()
     val removal by viewModel.removal.collectAsStateWithLifecycle()
+    val removing by viewModel.removing.collectAsStateWithLifecycle()
     val summary = state.account(accountId)
     // Removed meanwhile: nothing to show.
     LaunchedEffect(state.loaded, summary == null) { if (state.loaded && summary == null) onBack() }
@@ -347,7 +357,7 @@ fun AccountSettingsRoute(
             // A wallet's only account goes with the wallet, on the wallet's page.
             val siblings = state.wallet(summary.account.walletId)?.accounts?.size ?: 1
             AccountSettingsScreen(active, onBack, onOpen, viewModel::renameAccount, viewModel::askRemoval.takeIf { siblings > 1 })
-            removal?.let { AccountRemovalDialog(summary.account.name, it, viewModel::dismissRemoval, viewModel::removeAccount) }
+            removal?.let { AccountRemovalDialog(summary.account.name, it, removing, viewModel::dismissRemoval, viewModel::removeAccount) }
         }
         else -> AccountNotInUseScreen(summary, state.places[accountId] ?: 0, onBack) { viewModel.use(accountId) }
     }
@@ -466,10 +476,10 @@ fun AccountSettingsScreen(
 
 /**
  * Asked before the account [name] is removed: what goes and which addresses it leaves behind, or, if it still holds something, why it can't
- * go yet.
+ * go yet. It stays while the account is [removing].
  */
 @Composable
-internal fun AccountRemovalDialog(name: String, removal: AccountRemoval, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+internal fun AccountRemovalDialog(name: String, removal: AccountRemoval, removing: Boolean, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     val blocked = removal.blocked
     if (blocked != null) {
         val holdsMoney = (blocked as? RemoveAccountResult.InUse)?.use == AccountUse.Money && removal.heldMsat > 0
@@ -494,13 +504,15 @@ internal fun AccountRemovalDialog(name: String, removal: AccountRemoval, onDismi
         return
     }
     WalletDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!removing) onDismiss() },
         confirmButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = onConfirm) {
+            WalletButton(kind = ButtonKind.Text, onClick = onConfirm, enabled = !removing, busy = showsWorking(removing)) {
                 Text(stringResource(R.string.account_remove_confirm), color = MaterialTheme.colorScheme.error)
             }
         },
-        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.rename_cancel)) } },
+        dismissButton = {
+            WalletButton(kind = ButtonKind.Text, onClick = onDismiss, enabled = !removing) { Text(stringResource(R.string.rename_cancel)) }
+        },
         title = { Text(stringResource(R.string.account_remove_title, name)) },
         text = {
             Column {

@@ -68,6 +68,8 @@ data class MintDetailsState(
     val mint: MintInfo? = null,
     /** Why the last removal was refused. */
     val removeRefused: MintUse? = null,
+    /** Asked to remove it: the wallet gets to it once it is done with what it works on (a refresh). */
+    val removing: Boolean = false,
     val removed: Boolean = false,
     /** The account has money on other mints (on the home's page: "Move all money here"). */
     val moneyElsewhere: Boolean = false,
@@ -112,6 +114,8 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
     }
 
     fun refresh() {
+        // Removing it clears the home of an account that had it: nothing to show again, the page closes.
+        if (_state.value.removing || _state.value.removed) return
         _state.update { it.copy(loading = true) }
         viewModelScope.launch {
             val host = requestedHost ?: wallet.homeHost.first() ?: return@launch _state.update { it.copy(loading = false) }
@@ -138,10 +142,12 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
     /** Forgets this mint (see [Wallet.removeMint]); the page closes once it's gone. */
     fun remove() {
         val host = _state.value.details?.host ?: return
+        if (_state.value.removing) return
+        _state.update { it.copy(removing = true, removeRefused = null) }
         viewModelScope.launch {
             when (val r = wallet.removeMint(host)) {
                 RemoveMintResult.Removed -> _state.update { it.copy(removed = true) }
-                is RemoveMintResult.InUse -> _state.update { it.copy(removeRefused = r.reason) }
+                is RemoveMintResult.InUse -> _state.update { it.copy(removing = false, removeRefused = r.reason) }
             }
         }
     }
@@ -271,7 +277,7 @@ fun MintDetailsScreen(
                     }
                 },
             )
-            if (state.device) state.mint?.let { RemoveSection(it, state.removeRefused, onRemove) }
+            if (state.device) state.mint?.let { RemoveSection(it, state.removeRefused, state.removing, onRemove) }
         }
     }
 }
@@ -336,10 +342,14 @@ private fun AccountSection(
     }
 }
 
-/** Removing the mint from this wallet: only when nothing ties an account to it, after a confirmation. */
+/**
+ * Removing the mint from this wallet: only when nothing ties an account to it, after a confirmation. The question stays while it is
+ * [removing] (the page closes once it's gone); a refusal closes it.
+ */
 @Composable
-private fun RemoveSection(mint: MintInfo, refused: MintUse?, onRemove: () -> Unit) {
+private fun RemoveSection(mint: MintInfo, refused: MintUse?, removing: Boolean, onRemove: () -> Unit) {
     var confirming by remember { mutableStateOf(false) }
+    LaunchedEffect(removing) { if (!removing) confirming = false }
     HorizontalDivider()
     if (mint.removable) {
         WalletButton(
@@ -364,22 +374,18 @@ private fun RemoveSection(mint: MintInfo, refused: MintUse?, onRemove: () -> Uni
     }
     if (confirming) {
         WalletDialog(
-            onDismissRequest = { confirming = false },
+            onDismissRequest = { if (!removing) confirming = false },
             title = { Text(stringResource(R.string.mints_remove_title, mint.host)) },
             text = { Text(stringResource(R.string.mints_remove_body)) },
             confirmButton = {
-                WalletButton(
-                    kind = ButtonKind.Text,
-                    onClick = {
-                        confirming = false
-                        onRemove()
-                    },
-                ) {
+                WalletButton(kind = ButtonKind.Text, onClick = onRemove, enabled = !removing, busy = showsWorking(removing)) {
                     Text(stringResource(R.string.mints_remove_confirm))
                 }
             },
             dismissButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) }
+                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }, enabled = !removing) {
+                    Text(stringResource(R.string.backup_cancel))
+                }
             },
         )
     }
