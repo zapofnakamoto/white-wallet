@@ -119,7 +119,8 @@ public class LnurlcashClient(
     private suspend fun readOnce(request: Request): HttpResult =
         execute(request).let {
             if (it !is HttpResult.TransportFailure) return it
-            http.connectionPool.evictAll()
+            // Closing a pooled TLS connection writes to it: never on the caller's thread, which may be Android's main thread.
+            withContext(io) { http.connectionPool.evictAll() }
             execute(request, freshConnectionHttp)
         }
 

@@ -8,6 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -121,6 +122,67 @@ class ClientTest {
                 assertEquals(3, (0 until 3).map { server.takeRequest().connectionIndex }.distinct().size, "three connections")
 
                 assertIs<whitewallet.lnurl.LnurlResponse.Ok>(client.get(server.url("/w?p=cp1x").toString()))
+            }
+        }
+
+    @Test
+    fun `the retry closes the other pooled connections off the caller's thread`() =
+        runBlocking<Unit> {
+            // Closing a TLS socket writes to the network: on Android's main thread that is a crash (NetworkOnMainThreadException).
+            val closers = java.util.Collections.synchronizedList(mutableListOf<String>())
+            val sockets =
+                object : javax.net.SocketFactory() {
+                    private fun socket() =
+                        object : java.net.Socket() {
+                            override fun close() {
+                                closers += Thread.currentThread().name
+                                super.close()
+                            }
+                        }
+
+                    override fun createSocket() = socket()
+
+                    override fun createSocket(host: String, port: Int) = socket().apply { connect(java.net.InetSocketAddress(host, port)) }
+
+                    override fun createSocket(host: String, port: Int, localHost: java.net.InetAddress, localPort: Int) =
+                        createSocket(host, port)
+
+                    override fun createSocket(host: java.net.InetAddress, port: Int) =
+                        socket().apply { connect(java.net.InetSocketAddress(host, port)) }
+
+                    override fun createSocket(
+                        address: java.net.InetAddress,
+                        port: Int,
+                        localAddress: java.net.InetAddress,
+                        localPort: Int,
+                    ) = createSocket(address, port)
+                }
+            val io = java.util.concurrent.Executors.newSingleThreadExecutor { Thread(it, "client-io") }
+            try {
+                MockWebServer().use { other ->
+                    MockWebServer().use { server ->
+                        other.enqueue(MockResponse(body = """{"status":"OK"}"""))
+                        other.start()
+                        server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())
+                        server.enqueue(MockResponse(body = """{"status":"OK"}"""))
+                        server.start()
+                        val client =
+                            LnurlcashClient(
+                                http = LnurlcashClient.defaultHttpClient().newBuilder().socketFactory(sockets).build(),
+                                io = io.asCoroutineDispatcher(),
+                            )
+                        // An idle connection to another mint stays in the pool, until the retry empties it.
+                        client.get(other.url("/w?p=cp1o").toString())
+                        val caller = Thread.currentThread().name
+                        closers.clear()
+
+                        assertIs<whitewallet.lnurl.LnurlResponse.Ok>(client.get(server.url("/w?p=cp1x").toString()))
+                        assertTrue(closers.isNotEmpty(), "the retry closed the pooled connection")
+                        assertTrue(caller !in closers, "closed on $closers, not on the caller's thread $caller")
+                    }
+                }
+            } finally {
+                io.shutdown()
             }
         }
 
