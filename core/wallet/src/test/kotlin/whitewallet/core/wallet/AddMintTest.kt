@@ -310,8 +310,12 @@ abstract class AddMintTest {
             val rest = credit(words, other, KeySet.Change, 0, SATS)
             var lookups = 0
             var limit = Int.MAX_VALUE
+            // One lookup at a time: the first two are always the wallet chain's first keys (one used, one not), whatever answers first.
             val phone =
-                Fresh(onLookup(other) { chain -> if (++lookups > limit) throw IOException("dropped") else chain.proceed(chain.request()) })
+                Fresh(
+                    onLookup(other) { chain -> if (++lookups > limit) throw IOException("dropped") else chain.proceed(chain.request()) },
+                    settings = WalletSettings(scanStopAfterUnusedShares = 3, scanLookupsAtOnce = 1),
+                )
             assertIs<RestoreResult.Restored>(phone.restore(words))
 
             limit = 2
@@ -443,7 +447,11 @@ abstract class AddMintTest {
     }
 
     /** A phone with nothing on it yet; a restore stops after a few unused shares, as the tests use only the first. */
-    private inner class Fresh(intercept: Interceptor? = null, maxAccounts: Int = AppDefaults.UNLIMITED) {
+    private inner class Fresh(
+        intercept: Interceptor? = null,
+        maxAccounts: Int = AppDefaults.UNLIMITED,
+        settings: WalletSettings = WalletSettings(scanStopAfterUnusedShares = 3),
+    ) {
         val store = InMemoryWalletStore()
         val wallet =
             Wallet(
@@ -451,7 +459,7 @@ abstract class AddMintTest {
                 InMemorySeedStore(),
                 client(intercept),
                 policies = NotePolicies.InMemory(ManualStrategy.ID),
-                settings = WalletSettings(scanStopAfterUnusedShares = 3),
+                settings = settings,
                 maxAccounts = maxAccounts,
             )
 
