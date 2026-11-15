@@ -288,7 +288,7 @@ internal class Restore(private val wallet: Wallet) {
     private suspend fun scan(accountId: String, h: String, run: LookupRun, report: (KeyProbe) -> Unit = {}): Scan {
         var used = false
         for (set in listOf(KeySet.Wallet, KeySet.Change)) {
-            val found = discovery.discover(accountId, h, set, run = run, onProbe = report)
+            val found = discovery.discover(accountId, h, set, run = run) { _, probe -> report(probe) }
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))
             }
@@ -300,7 +300,7 @@ internal class Restore(private val wallet: Wallet) {
         var unused = 0
         var last = -1L
         while (unused < wallet.settings.scanStopAfterUnusedShares) {
-            val found = discovery.discover(accountId, h, KeySet.Share(share), run = run, onProbe = report)
+            val found = discovery.discover(accountId, h, KeySet.Share(share), run = run) { _, probe -> report(probe) }
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))
             }

@@ -1284,6 +1284,7 @@ class Wallet(
         received.retryAll(ids)
         val active = store.currentAccountId()
         var result = RefreshResult(0, 0)
+        val run = LookupRun(settings.scanLookupsAtOnce)
         for (summary in store.accounts.first().filter { it.account.id in ids }) {
             val id = summary.account.id
             unknownNotes.recheckDue(id)
@@ -1299,7 +1300,7 @@ class Wallet(
             // mint, or a mint it added, before the phone knows their names.
             val hosts = addresses.map { it.host } + listOfNotNull(homeOf(id)) + hostsPaidAt(id)
             for (host in hosts.distinct()) {
-                val scanned = scanner.scanAll(id, host)
+                val scanned = scanner.scanAll(id, host, run)
                 result += if (id == active) scanned else scanned.keyChangedOnly()
             }
             sender.reconcile(id)

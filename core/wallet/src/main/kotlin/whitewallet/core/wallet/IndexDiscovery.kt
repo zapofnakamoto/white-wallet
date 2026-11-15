@@ -67,12 +67,19 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         set: KeySet,
         gap: Int = wallet.settings.scanStopAfterUnusedKeys,
         run: LookupRun = LookupRun(wallet.settings.scanLookupsAtOnce),
-        onProbe: (KeyProbe) -> Unit = {},
+        from: Long? = null,
+        onProbe: (index: Long, KeyProbe) -> Unit = { _, _ -> },
     ): DiscoveryResult {
         val current = wallet.store.indexOf(accountId, host, set)
         val mint = wallet.mintOf(accountId, host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
-        var lastUsed = highestKnownUsed(accountId, host, set)
+        var lastUsed = from?.let { it - 1 } ?: highestKnownUsed(accountId, host, set)
         var index = lastUsed + 1
+        // Stopped early: what it found until then stays found, so the next look goes on past it. The index never goes back.
+        val kept = suspend {
+            val next = maxOf(lastUsed + 1, wallet.store.indexOf(accountId, host, set))
+            if (next > current) wallet.store.setIndexOf(accountId, host, set, next)
+            next
+        }
         var unused = 0
         var checked = 0
         var imported = 0
@@ -88,8 +95,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
                         prober.apply(id, mint, answer)
                     } catch (e: MintKeyChangedException) {
                         // Nothing more is asked of this mint until its key matches.
-                        val next = wallet.store.indexOf(accountId, host, set)
-                        return DiscoveryResult(next, checked, imported, MINT_KEY_CHANGED, refused = true, keyChanged = true)
+                        return DiscoveryResult(kept(), checked, imported, MINT_KEY_CHANGED, refused = true, keyChanged = true)
                     }
                 // One of several lookups failed, perhaps one too many for the mint: that key again, alone, before giving up.
                 if (probe is KeyProbe.Failed && atOnce > 1) {
@@ -97,7 +103,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
                     break
                 }
                 checked++
-                onProbe(probe)
+                onProbe(index, probe)
                 when (probe) {
                     is KeyProbe.Outstanding -> {
                         lastUsed = index
@@ -113,17 +119,10 @@ internal class IndexDiscovery(private val wallet: Wallet) {
                             lastUsed = index
                             unused = 0
                         } else {
-                            return DiscoveryResult(
-                                next = wallet.store.indexOf(accountId, host, set),
-                                checked,
-                                imported,
-                                stoppedEarly = probe.reason ?: "refused",
-                                refused = true,
-                            )
+                            return DiscoveryResult(kept(), checked, imported, stoppedEarly = probe.reason ?: "refused", refused = true)
                         }
                     is KeyProbe.Unused -> unused++
-                    is KeyProbe.Failed ->
-                        return DiscoveryResult(wallet.store.indexOf(accountId, host, set), checked, imported, probe.reason)
+                    is KeyProbe.Failed -> return DiscoveryResult(kept(), checked, imported, probe.reason)
                 }
                 index++
             }

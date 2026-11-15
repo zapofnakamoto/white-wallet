@@ -6,76 +6,37 @@ import whitewallet.core.model.KeyCounter
 import whitewallet.lnurlcash.spendDomain
 
 /**
- * Finds notes the mint auto-minted for Lightning address payments (LUD-26: a share's notes) by looking up each derived key by `p`, stopping
- * after [WalletSettings.scanStopAfterUnusedKeys] consecutive unused indices, or at a lookup the mint refuses or doesn't answer, or that
- * comes with a signing key other than the pinned one ([RefreshResult.keyChanged]).
+ * Finds notes the mint auto-minted for Lightning address payments (LUD-26: a share's notes) with the walker a restore uses
+ * ([IndexDiscovery.discover]): from where the share's last scan stopped, several lookups at once, until
+ * [WalletSettings.scanStopAfterUnusedKeys] unused keys in a row. A lookup the mint refuses or doesn't answer ends that share's scan
+ * quietly, keeping what it found; a signing key other than the pinned one ends it too ([RefreshResult.keyChanged]). Each payment found is a
+ * "Received" row.
  */
 internal class AddressScanner(private val wallet: Wallet) {
-    private val prober = KeyProber(wallet)
+    private val discovery = IndexDiscovery(wallet)
     private val log = ActivityLog(wallet)
 
     /** Every address key set of the account on [host]: the share of each of its addresses there, and every share it handed out. */
-    suspend fun scanAll(accountId: String, host: String): RefreshResult {
+    suspend fun scanAll(accountId: String, host: String, run: LookupRun): RefreshResult {
         val addresses = wallet.store.addresses(accountId).first().filter { it.host == host }
         // Every share handed out, not only those of known addresses: a restored phone doesn't know its names, and they still get paid.
         val handedOut = wallet.store.keyIndexOrNull(accountId, spendDomain(host), KeyCounter.Shares) ?: 0
         val sets = (addresses.map { it.share } + (0 until handedOut)).distinct().map(KeySet::Share)
-        return sets.fold(RefreshResult(0, 0)) { total, set -> total + scan(accountId, host, set) }
+        return sets.fold(RefreshResult(0, 0)) { total, set -> total + scan(accountId, host, set, run) }
     }
 
-    suspend fun scan(accountId: String, host: String, set: KeySet): RefreshResult {
-        require(set is KeySet.Share)
+    private suspend fun scan(accountId: String, host: String, set: KeySet.Share, run: LookupRun): RefreshResult {
         val mint = wallet.mintOf(accountId, host) ?: return RefreshResult(0, 0)
-        val start = wallet.store.indexOf(accountId, host, set)
-        var index = start
-        var gap = 0
-        var lastUsed = start - 1
-        var found = 0
-        var received = 0L
-        var keyChanged = false
-        while (gap < wallet.settings.scanStopAfterUnusedKeys) {
-            val probe =
-                try {
-                    prober.probe(set.key(accountId, host, index), mint)
-                } catch (e: MintKeyChangedException) {
-                    // Nothing more is asked of this mint until its key matches; the rest of the refresh goes on.
-                    keyChanged = true
-                    break
-                }
-            when (probe) {
-                is KeyProbe.Outstanding -> {
-                    if (probe.imported) {
-                        found++
-                        received += probe.amountMsat
-                        // Each address key is paid once, so its note's Q identifies the payment.
-                        val q = wallet.keys(accountId, host).pubkey(set, index).toHex()
-                        log.record(
-                            id = "recv:$q",
-                            accountId,
-                            kind = ActivityKind.Received,
-                            probe.amountMsat,
-                            host,
-                            certified = probe.certified,
-                        )
-                    }
-                    lastUsed = index
-                    gap = 0
-                }
-                is KeyProbe.Spent -> {
-                    lastUsed = index
-                    gap = 0
-                }
-                is KeyProbe.Refused ->
-                    if (probe.pending) {
-                        lastUsed = index
-                        gap = 0
-                    } else break
-                is KeyProbe.Unused -> gap++
-                is KeyProbe.Failed -> break
+        val payments = mutableListOf<Pair<Long, KeyProbe.Outstanding>>()
+        val scanned =
+            discovery.discover(accountId, host, set, run = run, from = wallet.store.indexOf(accountId, host, set)) { index, probe ->
+                if (probe is KeyProbe.Outstanding && probe.imported) payments += index to probe
             }
-            index++
+        for ((index, probe) in payments) {
+            // Each address key is paid once, so its note's Q identifies the payment.
+            val q = wallet.keys(accountId, host).pubkey(set, index).toHex()
+            log.record(id = "recv:$q", accountId, kind = ActivityKind.Received, probe.amountMsat, mint.host, certified = probe.certified)
         }
-        if (lastUsed + 1 > start) wallet.store.setIndexOf(accountId, host, set, lastUsed + 1)
-        return RefreshResult(found, received, if (keyChanged) setOf(host) else emptySet())
+        return RefreshResult(payments.size, payments.sumOf { it.second.amountMsat }, if (scanned.keyChanged) setOf(host) else emptySet())
     }
 }
