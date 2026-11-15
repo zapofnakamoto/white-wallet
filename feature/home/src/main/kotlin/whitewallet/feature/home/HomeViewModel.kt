@@ -92,6 +92,8 @@ data class HomeState(
     val mints: List<AccountMint> = emptyList(),
     /** The account's mints it can receive on (the brand lets them hold money): a mint's row offers Receive. */
     val receiveHosts: Set<String> = emptySet(),
+    /** The mints whose signing key doesn't match the pinned one: their rows offer neither Send nor Receive, only Details. */
+    val keyChangedHosts: Set<String> = emptySet(),
 ) {
     /**
      * The balance per mint, shown under it once some of it is outside the home mint (or, without a home mint, on more than one): a payment
@@ -313,6 +315,7 @@ class HomeViewModel(
                 }
             }
         }
+        viewModelScope.launch { wallet.mintsWithChangedKey.collect { hosts -> status.update { it.copy(keyChangedHosts = hosts) } } }
         viewModelScope.launch {
             wallet.notes.collect { notes ->
                 status.update { it.copy(sharedMsat = notes.filter { n -> n.state.isShared }.sumOf { n -> n.amountMsat }) }

@@ -161,7 +161,7 @@
     <string name="note_unconfirmed">The provider hasn\'t been asked about this banknote yet. Your wallet asks once it\'s online.</string>
     <string name="note_unknown_to_mint">The provider doesn\'t know this banknote, so the link may not work.</string>
     <string name="scan_unknown">This QR code isn\'t a payment or a banknote.</string>
-    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent or received there until it matches again, or you accept a new key. Your banknotes there are unchanged.</string>
+    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created there until it matches again, or you accept a new key. Payments to your addresses there wait until then. Your banknotes there are unchanged.</string>
     <string name="settings_notes">Banknote settings</string>
     <string name="settings_note_list">Banknotes</string>
     <string name="settings_note_list_hint">See your banknotes one by one, share, split or combine them</string>
@@ -294,4 +294,6 @@
     <string name="receive_on_home">On %1$s, your provider</string>
     <string name="receive_on_home_detail">Your provider · %1$s</string>
     <string name="send_from_detail_home">Your provider · up to %1$s</string>
+    <string name="receive_address_key_changed_unnamed">The signing key of your provider doesn\'t match the one your wallet knows, so payments to this address wait there for now.</string>
+    <string name="receive_invoice_key_changed_unnamed">The signing key of your provider doesn\'t match the one your wallet knows, so no invoice can be created right now.</string>
 </resources>

@@ -260,6 +260,8 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `receive_invoice_mint_silent_unnamed` | Your mint isn't answering, so no invoice can be created right now. Try again later. |
 | `receive_on_home` | On %1$s, your home mint |
 | `receive_on_home_detail` | Home mint · %1$s |
+| `receive_address_key_changed_unnamed` | The signing key of your mint doesn't match the one your wallet knows, so payments to this address wait there for now. |
+| `receive_invoice_key_changed_unnamed` | The signing key of your mint doesn't match the one your wallet knows, so no invoice can be created right now. |
 | `send_create_note` | Create a note |
 | `send_problem_refused` | The mint refused this payment. |
 | `send_problem_mint_silent_unnamed` | Your mint isn't answering. Nothing was paid. Try again later. |
@@ -280,7 +282,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `note_reclaim_title` | Take this note back? |
 | `note_already_spent` | Too late: this note has already been spent. |
 | `note_not_found` | This note isn't in this account. |
-| `mint_key_changed` | The signing key of %1$s doesn't match the one your wallet knows. Nothing is sent or received there until it matches again, or you accept a new key. Your notes there are unchanged. |
+| `mint_key_changed` | The signing key of %1$s doesn't match the one your wallet knows. Nothing is sent there and no invoice is created there until it matches again, or you accept a new key. Payments to your addresses there wait until then. Your notes there are unchanged. |
 | `settings_notes` | Note settings |
 | `settings_note_list` | Notes |
 | `settings_note_list_hint` | See your notes one by one, share, split or combine them |

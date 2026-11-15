@@ -17,7 +17,7 @@
     <string name="mints_empty">Diese Wallet hat noch keine Mint, also kann nichts empfangen werden.</string>
     <string name="settings_no_home">Dieses Konto hat keine Haupt-Mint. Wähle eine deiner Mints, um dort zu empfangen.</string>
     <string name="settings_no_home_action">Haupt-Mint wählen</string>
-    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet oder empfangen, bis er wieder passt oder du einen neuen Schlüssel annimmst. Deine Scheine dort sind unverändert.</string>
+    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin. Deine Scheine dort sind unverändert.</string>
     <string name="settings_notes">Schein-Einstellungen</string>
     <string name="settings_note_list">Scheine</string>
     <string name="settings_note_list_hint">Deine Scheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>

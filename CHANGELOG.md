@@ -121,6 +121,15 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- Receive made invoices on a mint whose signing key no longer matched the one the wallet knows, so a payment became
+  money the wallet wouldn't spend there. Receive now asks each mint for its key as it opens and says so before the user
+  tries, with the way to the mint's details, where the new key can be accepted; Send and Receive lists show such a mint
+  but don't let it be picked, and its row on Home offers only Details. Under a Lightning address on that mint, Receive
+  says payments wait there until the key matches again or is accepted, and the mint's page says the same. For developers
+  and brands: `InvoiceRequest.KeyChanged`, `Wallet.mintsWithChangedKey` and `Wallet.checkMintKey`; new strings
+  `receive_on_key_changed`, `receive_address_key_changed`, `receive_invoice_key_changed`, `receive_key_changed_action`,
+  `send_from_key_changed`, and the brand terms `receive_address_key_changed_unnamed` and
+  `receive_invoice_key_changed_unnamed`; `mint_key_changed` says it anew.
 - A restore from the recovery phrase could miss whole accounts. It stops at the first account that never received
   money, yet the wallet let an account be added after an empty one; and it judged that one mint at a time, so an
   account used on another mint alone stopped it too. An account is now added only once the one before it has received

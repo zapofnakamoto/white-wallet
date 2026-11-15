@@ -1078,12 +1078,12 @@ private fun BalanceByMint(state: HomeState, onOpenMint: (String) -> Unit, action
                         open = null
                         actions.onSend(mint.host)
                     }
-                        .takeIf { mint.balanceMsat > 0 },
+                        .takeIf { mint.balanceMsat > 0 && mint.host !in state.keyChangedHosts },
                 onReceive = {
                         open = null
                         actions.onReceive(mint.host)
                     }
-                        .takeIf { mint.host in state.receiveHosts },
+                        .takeIf { mint.host in state.receiveHosts && mint.host !in state.keyChangedHosts },
                 onDetails = {
                     open = null
                     onOpenMint(mint.host)

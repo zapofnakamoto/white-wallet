@@ -22,8 +22,11 @@ import whitewallet.core.wallet.PayResult
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
 
-/** A mint a payment can be made from: whether it is home, and the most one payment from it can be. */
-data class SendMint(val host: String, val isHome: Boolean, val maxMsat: Long)
+/**
+ * A mint a payment can be made from: whether it is home, the most one payment from it can be, and whether its signing key no longer matches
+ * (nothing is sent from it then).
+ */
+data class SendMint(val host: String, val isHome: Boolean, val maxMsat: Long, val keyChanged: Boolean = false)
 
 /** What the regtest faucet's invoice asks for. */
 internal const val FAUCET_SATS = 1_000L
@@ -237,7 +240,9 @@ constructor(
         val balance = wallet.balanceMsat.first()
         val most = wallet.sendableNoteMsat()
         val home = wallet.homeHost.first()
-        val mints = wallet.sendableByMint().map { (host, max) -> SendMint(host, host == home, max) }.sortedBy { !it.isHome }
+        val changed = wallet.mintsWithChangedKey.first()
+        val mints =
+            wallet.sendableByMint().map { (host, max) -> SendMint(host, host == home, max, host in changed) }.sortedBy { !it.isHome }
         _state.update { it.copy(balanceMsat = balance, limitMsat = most.takeIf { m -> m < balance }, mints = mints) }
     }
 

@@ -133,6 +133,54 @@ class ReceiveScreenTest {
     }
 
     @Test
+    fun anInvoiceOnAMintWhoseKeyChangedSaysSoAndLeadsToItsDetails() {
+        val opened = mutableListOf<String>()
+        var state by mutableStateOf(ReceiveState(address = null, amountText = "21", problem = InvoiceProblem.KeyChanged("home.example")))
+        compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}, InvoiceActions(onOpenMint = { opened += it })) }
+        compose.onNodeWithText(text(R.string.receive_invoice_key_changed, "home.example")).assertExists()
+        compose.onNodeWithText(text(R.string.receive_invoice_refused)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.receive_key_changed_action)).performScrollTo().performClick()
+        assertEquals(listOf("home.example"), opened)
+        // Where the brand hides mints, none is named, and there is no page to go to.
+        state = state.copy(mintsVisible = false)
+        compose.onNodeWithText(text(R.string.receive_invoice_key_changed_unnamed)).assertExists()
+        compose.onNodeWithText(text(R.string.receive_key_changed_action)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theFormSaysUpFrontThatTheMintsKeyChangedAndMakesNothingThere() {
+        compose.setContent {
+            ReceiveState(
+                    address = null,
+                    amountText = "21",
+                    homeHost = "home.example",
+                    mints = twoMints.map { it.copy(keyChanged = it.isHome) },
+                )
+                .let { ReceiveScreen(it, onBack = {}, onClaim = {}) }
+        }
+        compose.onNodeWithText(text(R.string.receive_invoice_key_changed, "home.example")).assertExists()
+        compose.onNodeWithText(text(R.string.receive_invoice_create)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun anAddressOnAMintWhoseKeyChangedSaysPaymentsWaitThere() {
+        val opened = mutableListOf<String>()
+        compose.setContent {
+            ReceiveScreen(
+                ReceiveState("alice@home.example", addressKeyChanged = true, addressMintNotAnswering = true),
+                onBack = {},
+                onClaim = {},
+                InvoiceActions(onOpenMint = { opened += it }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.receive_address_key_changed, "home.example")).assertExists()
+        compose.onNodeWithText(text(R.string.receive_address_mint_silent, "home.example")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.receive_hint)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.receive_key_changed_action)).performScrollTo().performClick()
+        assertEquals(listOf("home.example"), opened)
+    }
+
+    @Test
     fun offlineTheAmountFormSaysSoBeforeTheUserTriesAndNotOnceBack() {
         var state by mutableStateOf(ReceiveState(address = null, amountText = "21", offline = true))
         compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}) }
@@ -172,6 +220,23 @@ class ReceiveScreenTest {
         compose.onNodeWithText(text(R.string.receive_on_invoice)).assertExists()
         compose.onNodeWithText("other.example").performClick()
         assertEquals(listOf("other.example"), picked)
+    }
+
+    @Test
+    fun aMintWhoseKeyChangedIsListedButCantBePicked() {
+        val picked = mutableListOf<String>()
+        compose.setContent {
+            ReceiveScreen(
+                ReceiveState("alice@home.example", homeHost = "home.example", mints = twoMints.map { it.copy(keyChanged = !it.isHome) }),
+                onBack = {},
+                onClaim = {},
+                InvoiceActions(onReceiveOn = { picked += it }),
+            )
+        }
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.receive_on_key_changed)).assertExists()
+        compose.onNodeWithText("other.example").performClick()
+        assertTrue(picked.isEmpty())
     }
 
     @Test

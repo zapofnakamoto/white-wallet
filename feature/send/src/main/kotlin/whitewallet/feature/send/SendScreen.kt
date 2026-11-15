@@ -198,7 +198,14 @@ private fun sendStatus(state: SendState): WalletStatus {
 internal fun SendFromSheet(mints: List<SendMint>, from: String?, amountMsat: Long?, onDismiss: () -> Unit, onSelect: (String?) -> Unit) {
     MintChoiceSheet(
         title = stringResource(R.string.send_from_title),
-        options = mints.map { MintOption(it.host, mintDetail(it, amountMsat), enabled = amountMsat == null || it.maxMsat >= amountMsat) },
+        options =
+            mints.map {
+                MintOption(
+                    it.host,
+                    mintDetail(it, amountMsat),
+                    enabled = !it.keyChanged && (amountMsat == null || it.maxMsat >= amountMsat),
+                )
+            },
         selected = from,
         onSelect = onSelect,
         onDismiss = onDismiss,
@@ -206,11 +213,15 @@ internal fun SendFromSheet(mints: List<SendMint>, from: String?, amountMsat: Lon
     )
 }
 
-/** What [mint] can pay: the most, home said first; not enough for [amountMsat], when given and more than that. */
+/**
+ * What [mint] can pay: the most, home said first; not enough for [amountMsat], when given and more than that. Nothing, if its signing key
+ * doesn't match.
+ */
 @Composable
 internal fun mintDetail(mint: SendMint, amountMsat: Long?): String {
     val most = formatAmount(mint.maxMsat)
     return when {
+        mint.keyChanged -> stringResource(R.string.send_from_key_changed)
         amountMsat != null && mint.maxMsat < amountMsat -> stringResource(R.string.send_from_not_enough, most)
         mint.isHome -> stringResource(R.string.send_from_detail_home, most)
         else -> stringResource(R.string.send_from_detail, most)

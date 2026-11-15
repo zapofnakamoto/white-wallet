@@ -20,6 +20,9 @@
     <string name="receive_on_home">On %1$s, your home mint</string>
     <!-- The home mint in the Receive on list. %1$s: the address, or receive_on_invoice. -->
     <string name="receive_on_home_detail">Home mint · %1$s</string>
+    <!-- As receive_address_key_changed and receive_invoice_key_changed, where the brand doesn't name mints. -->
+    <string name="receive_address_key_changed_unnamed">The signing key of your mint doesn\'t match the one your wallet knows, so payments to this address wait there for now.</string>
+    <string name="receive_invoice_key_changed_unnamed">The signing key of your mint doesn\'t match the one your wallet knows, so no invoice can be created right now.</string>
 
     <string name="receive_address_mint_silent">%1$s isn\'t answering, so payments to this address can\'t arrive right now.</string>
     <string name="receive_invoice_mint_silent">%1$s isn\'t answering, so no invoice can be created right now. Try again later.</string>
@@ -55,4 +58,12 @@
     <string name="receive_on_title">Receive on</string>
     <!-- A mint in that list where the account has no Lightning address -->
     <string name="receive_on_invoice">With an invoice for an amount</string>
+    <!-- A mint in that list whose signing key doesn't match: it can't be picked -->
+    <string name="receive_on_key_changed">Signing key doesn\'t match</string>
+    <!-- Under the Lightning address, instead of receive_hint, when its mint's signing key doesn't match. %1$s: the mint. -->
+    <string name="receive_address_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Payments to this address wait there until it matches again, or you accept a new key in its details.</string>
+    <!-- No invoice was made on that mint (%1$s): its signing key doesn't match. -->
+    <string name="receive_invoice_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so no invoice is created there until it matches again, or you accept a new key in its details.</string>
+    <!-- Opens the mint's details, where its new signing key can be accepted -->
+    <string name="receive_key_changed_action">Details</string>
 </resources>

@@ -23,7 +23,7 @@
     <!-- An account without a home mint, as on Receive (Lightning addresses, Account → Mints). -->
     <string name="settings_no_home">This account has no home mint. Choose one of your mints to receive there.</string>
     <string name="settings_no_home_action">Choose home mint</string>
-    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent or received there until it matches again, or you accept a new key. Your notes there are unchanged.</string>
+    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created there until it matches again, or you accept a new key. Payments to your addresses there wait until then. Your notes there are unchanged.</string>
     <string name="settings_notes">Note settings</string>
     <string name="settings_note_list">Notes</string>
     <string name="settings_note_list_hint">See your notes one by one, share, split or combine them</string>

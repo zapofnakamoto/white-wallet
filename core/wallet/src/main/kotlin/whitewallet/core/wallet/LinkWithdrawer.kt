@@ -202,6 +202,7 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
                 is InvoiceRequest.OutOfRange -> return ClaimResult.Failed(RejectionKind.Other, "out of range")
                 InvoiceRequest.Unreachable -> return ClaimResult.Failed(RejectionKind.Other, "unreachable")
                 InvoiceRequest.Refused -> return ClaimResult.Failed(RejectionKind.Other, "refused")
+                InvoiceRequest.KeyChanged -> return ClaimResult.Failed(RejectionKind.Other, MINT_KEY_CHANGED)
             }
         val received = ReceivedNotes(wallet)
         // A note link's preview always says why it is melted.

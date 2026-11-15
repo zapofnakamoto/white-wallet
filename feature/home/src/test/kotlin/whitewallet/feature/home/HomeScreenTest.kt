@@ -1088,6 +1088,20 @@ class HomeScreenTest {
         compose.onNodeWithText("b.example").assert(offers(listOf(send, text(R.string.home_mint_details))))
     }
 
+    @Test
+    fun aMintWhoseKeyChangedOffersOnlyItsDetails() {
+        show(
+            HomeState(
+                activeAccountId = "a",
+                balanceMsat = 2_000_000,
+                mints = listOf(mint("a.example", 0, home = true), mint("b.example", 2_000_000)),
+                receiveHosts = setOf("a.example", "b.example"),
+                keyChangedHosts = setOf("b.example"),
+            )
+        )
+        compose.onNodeWithText("b.example").assert(offers(listOf(text(R.string.home_mint_details))))
+    }
+
     private fun offers(labels: List<String>) =
         SemanticsMatcher("offers $labels") { node ->
             node.config.getOrElseNullable(SemanticsActions.CustomActions) { null }?.map { it.label } == labels

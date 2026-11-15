@@ -520,6 +520,7 @@ private fun WalletApp(
                 onNoHome = { noHome ->
                     nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) { popUpTo(Routes.HOME) }
                 },
+                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
             )
         }
         composable(

@@ -66,6 +66,8 @@ fun ReceiveRoute(
     onClaim: () -> Unit,
     /** Opens where a mint is added ([NoHome.NoMint]) or the account's home is picked ([NoHome.PickHome]). */
     onNoHome: (NoHome) -> Unit = {},
+    /** Opens a mint's details, where a new signing key is accepted. */
+    onOpenMint: (String) -> Unit = {},
     viewModel: ReceiveViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -82,6 +84,7 @@ fun ReceiveRoute(
             onReceiveMore = viewModel::receiveMore,
             onFaucet = viewModel::payFromFaucet,
             onReceiveOn = viewModel::receiveOn,
+            onOpenMint = onOpenMint,
         ),
         onNoHome,
     )
@@ -101,6 +104,8 @@ class InvoiceActions(
     val onFaucet: () -> Unit = {},
     /** Receives on the mint picked. */
     val onReceiveOn: (String) -> Unit = {},
+    /** Opens a mint's details (its signing key changed). */
+    val onOpenMint: (String) -> Unit = {},
 )
 
 @Composable
@@ -144,7 +149,7 @@ fun ReceiveScreen(
                 if (picking && state.canPickMint) {
                     MintChoiceSheet(
                         title = stringResource(R.string.receive_on_title),
-                        options = state.mints.map { MintOption(it.host, mintDetail(it)) },
+                        options = state.mints.map { MintOption(it.host, mintDetail(it), enabled = !it.keyChanged) },
                         selected = state.receivingHost,
                         onSelect = { host ->
                             picking = false
@@ -175,6 +180,7 @@ private fun MintLine(state: ReceiveState, onChange: (() -> Unit)?) {
 /** What [mint] has to receive with: its address there, else an invoice; home said first. */
 @Composable
 private fun mintDetail(mint: ReceiveMint): String {
+    if (mint.keyChanged) return stringResource(R.string.receive_on_key_changed)
     val how = mint.address ?: stringResource(R.string.receive_on_invoice)
     return if (mint.isHome) stringResource(R.string.receive_on_home_detail, how) else how
 }
@@ -226,7 +232,15 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
     QrCode("lightning:${address.uppercase()}")
     Text(address, style = MaterialTheme.typography.titleMedium)
     // The address still shows: the mint may be back by the time someone pays it, and the screen keeps asking.
-    if (state.addressMintNotAnswering) {
+    if (state.addressKeyChanged) {
+        KeyChanged(
+            state,
+            if (state.mintsVisible) stringResource(R.string.receive_address_key_changed, state.addressHost.orEmpty())
+            else stringResource(R.string.receive_address_key_changed_unnamed),
+            state.addressHost,
+            actions.onOpenMint,
+        )
+    } else if (state.addressMintNotAnswering) {
         Text(
             if (state.mintsVisible) stringResource(R.string.receive_address_mint_silent, state.addressHost.orEmpty())
             else stringResource(R.string.receive_address_mint_silent_unnamed),
@@ -244,6 +258,15 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
         WalletButton(kind = ButtonKind.Text, onClick = actions.onOtherAddress) { Text(stringResource(R.string.receive_other_address)) }
 }
 
+/** Why nothing is received on [host] now, with the way to its details where the new key is accepted (where the brand names mints). */
+@Composable
+private fun KeyChanged(state: ReceiveState, message: String, host: String?, onOpenMint: (String) -> Unit) {
+    Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+    if (state.mintsVisible && host != null) {
+        WalletButton(kind = ButtonKind.Text, onClick = { onOpenMint(host) }) { Text(stringResource(R.string.receive_key_changed_action)) }
+    }
+}
+
 @Composable
 private fun AmountForm(state: ReceiveState, actions: InvoiceActions, mintLine: @Composable () -> Unit) {
     Text(stringResource(R.string.receive_invoice_intro), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
@@ -259,8 +282,19 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions, mintLine: @
         modifier = Modifier.fillMaxWidth(),
     )
     // Being offline is said as it is, before the user tries, and not as an error once the phone is back.
+    // Known before the user tries, said up front; else as the mint's answer to the attempt.
+    val keyChanged = state.receivingHost.takeIf { state.receivingKeyChanged } ?: (state.problem as? InvoiceProblem.KeyChanged)?.host
+    keyChanged?.let { host ->
+        KeyChanged(
+            state,
+            if (state.mintsVisible) stringResource(R.string.receive_invoice_key_changed, host)
+            else stringResource(R.string.receive_invoice_key_changed_unnamed),
+            host,
+            actions.onOpenMint,
+        )
+    }
     state.problem
-        ?.takeUnless { it == InvoiceProblem.Offline }
+        ?.takeUnless { it == InvoiceProblem.Offline || it is InvoiceProblem.KeyChanged }
         ?.let { problem ->
             val message =
                 when (problem) {
@@ -271,7 +305,8 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions, mintLine: @
                         else stringResource(R.string.receive_invoice_mint_silent_unnamed)
                     InvoiceProblem.Offline,
                     InvoiceProblem.NoAnswer,
-                    InvoiceProblem.Refused -> stringResource(R.string.receive_invoice_refused)
+                    InvoiceProblem.Refused,
+                    is InvoiceProblem.KeyChanged -> stringResource(R.string.receive_invoice_refused)
                 }
             Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
         }
@@ -279,7 +314,7 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions, mintLine: @
     PrimaryButton(
         stringResource(R.string.receive_invoice_create),
         actions.onCreate,
-        enabled = state.amountMsat != null && !state.offline,
+        enabled = state.amountMsat != null && !state.offline && !state.receivingKeyChanged,
         busy = state.creating,
     )
     if (state.addressCount > 0) {

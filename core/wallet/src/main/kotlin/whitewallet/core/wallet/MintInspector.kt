@@ -121,6 +121,7 @@ internal class MintInspector(private val wallet: Wallet) {
                 // Null if it can't be asked now; an answer without a valid key, from a pinned mint, is a changed key.
                 val discovery = runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
                 presented = discovery?.mintPubkey?.toHex()
+                if (pinned != null && discovery != null) wallet.sawKey(wallet.walletOf(accountId), h, changed = pinned != presented)
                 if (pinned != null && discovery != null && pinned != presented) {
                     MintDetails.Reachability.KeyChanged
                 } else {

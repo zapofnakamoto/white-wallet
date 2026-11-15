@@ -22,8 +22,10 @@ internal object Pinning {
             wallet.store.saveMint(mint.copy(mintPubkey = presented.toHex()))
             return presented
         }
-        if (presented == null || pinned != presented.toHex()) throw MintKeyChangedException(mint.host)
-        return presented
+        val changed = presented == null || pinned != presented.toHex()
+        wallet.sawKey(mint.walletId, mint.host, changed)
+        if (changed) throw MintKeyChangedException(mint.host)
+        return checkNotNull(presented)
     }
 
     /**

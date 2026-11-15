@@ -40,13 +40,19 @@ sealed interface InvoiceProblem {
     data object NoAnswer : InvoiceProblem
 
     data object Refused : InvoiceProblem
+
+    /** The mint's signing key doesn't match the pinned one: no invoice is made there until it does, or the user accepts the new key. */
+    data class KeyChanged(val host: String) : InvoiceProblem
 }
 
 /** An invoice on screen, the mint it is on, and where it stands. */
 data class ShownInvoice(val request: InvoiceRequest.Ready, val status: InvoiceStatus = InvoiceStatus.Waiting, val host: String? = null)
 
-/** A mint the account can receive on: whether it is home, and the Lightning address it has there, if any. */
-data class ReceiveMint(val host: String, val isHome: Boolean, val address: String?)
+/**
+ * A mint the account can receive on: whether it is home, the Lightning address it has there, if any, and whether its signing key no longer
+ * matches (nothing is received there then).
+ */
+data class ReceiveMint(val host: String, val isHome: Boolean, val address: String?, val keyChanged: Boolean = false)
 
 data class ReceiveState(
     /**
@@ -71,6 +77,8 @@ data class ReceiveState(
     val loaded: Boolean = true,
     /** The mint of the [address] shown didn't answer the last time the wallet asked: payments to it can't arrive until it does. */
     val addressMintNotAnswering: Boolean = false,
+    /** The signing key of the [address]'s mint doesn't match the pinned one: payments to it wait there until it does. */
+    val addressKeyChanged: Boolean = false,
     /** The brand names mints (brand `mints.visible`). */
     val mintsVisible: Boolean = true,
     /** The phone is offline: no invoice can be made, and the amount form says so before the user tries. */
@@ -84,6 +92,10 @@ data class ReceiveState(
     /** The mint what is shown receives on: the invoice's, the address's, else the one an invoice would be made on. */
     val receivingHost: String?
         get() = invoice?.host ?: addressHost.takeIf { invoice == null && !showAmountForm } ?: on ?: homeHost
+
+    /** The signing key of the mint received on doesn't match the pinned one: the form says so before the user tries, and makes nothing. */
+    val receivingKeyChanged: Boolean
+        get() = mints.any { it.host == receivingHost && it.keyChanged }
 
     /** Another mint can be picked: the brand names mints and the account has more than one to receive on. */
     val canPickMint: Boolean
@@ -170,6 +182,12 @@ constructor(
             }
             .combine(receiveMints()) { state, (home, mints) -> state.copy(homeHost = home, mints = mints) }
             .combine(wallet.mintsNotAnswering) { state, silent -> state.copy(addressMintNotAnswering = state.addressHost in silent) }
+            .combine(wallet.mintsWithChangedKey) { state, changed ->
+                state.copy(
+                    addressKeyChanged = state.addressHost in changed,
+                    mints = state.mints.map { it.copy(keyChanged = it.host in changed) },
+                )
+            }
             .combine(wallet.offline) { state, offline -> state.copy(offline = offline) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState(loaded = false))
 
@@ -197,6 +215,8 @@ constructor(
         }
 
     init {
+        // Whether each mint's signing key still matches, asked before the user tries: the address and the list say so.
+        viewModelScope.launch { receiveMints().first().second.forEach { mint -> launch { wallet.checkMintKey(mint.host) } } }
         viewModelScope.launch {
             // Back online, an invoice that failed for being offline is no news: the form says what it is now.
             wallet.followOffline { _, back ->
@@ -260,6 +280,7 @@ constructor(
                             Connection.Online -> host?.let(InvoiceProblem::MintNotAnswering) ?: InvoiceProblem.NoAnswer
                         }
                     InvoiceRequest.Refused -> InvoiceProblem.Refused
+                    InvoiceRequest.KeyChanged -> host?.let(InvoiceProblem::KeyChanged) ?: InvoiceProblem.Refused
                 }
             ui.update { it.copy(creating = false, problem = problem) }
         }

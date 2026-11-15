@@ -160,7 +160,7 @@
     <string name="note_unconfirmed">Der Anbieter wurde zu diesem Geldschein noch nicht gefragt. Deine Wallet fragt, sobald sie online ist.</string>
     <string name="note_unknown_to_mint">Der Anbieter kennt diesen Geldschein nicht, deshalb funktioniert der Link vielleicht nicht.</string>
     <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Geldschein.</string>
-    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet oder empfangen, bis er wieder passt oder du einen neuen Schlüssel annimmst. Deine Geldscheine dort sind unverändert.</string>
+    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin. Deine Geldscheine dort sind unverändert.</string>
     <string name="settings_notes">Geldschein-Einstellungen</string>
     <string name="settings_note_list">Geldscheine</string>
     <string name="settings_note_list_hint">Deine Geldscheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>
@@ -294,4 +294,6 @@
     <string name="receive_on_home">Bei %1$s, deinem Anbieter</string>
     <string name="receive_on_home_detail">Dein Anbieter · %1$s</string>
     <string name="send_from_detail_home">Dein Anbieter · bis zu %1$s</string>
+    <string name="receive_address_key_changed_unnamed">Der Signaturschlüssel deines Anbieters passt nicht zu dem, den deine Wallet kennt, darum warten Zahlungen an diese Adresse vorerst dort.</string>
+    <string name="receive_invoice_key_changed_unnamed">Der Signaturschlüssel deines Anbieters passt nicht zu dem, den deine Wallet kennt, darum lässt sich gerade keine Rechnung erstellen.</string>
 </resources>

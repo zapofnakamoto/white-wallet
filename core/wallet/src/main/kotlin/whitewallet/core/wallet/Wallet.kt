@@ -165,6 +165,37 @@ class Wallet(
         mintAnswers.map { answers -> answers.filterValues { !it.answered }.keys }.distinctUntilChanged()
 
     /**
+     * By wallet, then by host: whether the mint's signing key differed from the one that wallet pinned the last time they were compared
+     * (true: changed), since the app started.
+     */
+    private val keyComparisons = MutableStateFlow<Map<String, Map<String, Boolean>>>(emptyMap())
+
+    /** [walletId] compared [host]'s signing key with its pinned one: kept for [mintsWithChangedKey]. */
+    internal fun sawKey(walletId: String, host: String, changed: Boolean) = keyComparisons.update { all ->
+        all + (walletId to all[walletId].orEmpty() + (host to changed))
+    }
+
+    /**
+     * Compares [host]'s signing key with the one the active wallet pinned, for [mintsWithChangedKey], once per app session: a screen that
+     * says what can be done with a mint asks before the user tries. Nothing is recorded if the mint can't be asked; the next call asks
+     * again.
+     */
+    suspend fun checkMintKey(host: String) {
+        val walletId = walletOf(activeId())
+        val pinned = store.mint(walletId, host)?.mintPubkey ?: return
+        if (keyComparisons.value[walletId]?.containsKey(host) == true) return
+        val presented =
+            try {
+                client.withdrawDiscovery(host).mintPubkey
+            } catch (e: IOException) {
+                return
+            } catch (e: ProtocolViolation) {
+                return
+            }
+        sawKey(walletId, host, presented?.toHex() != pinned)
+    }
+
+    /**
      * Whether the phone is offline, one state for every screen: they say so before the user tries what needs a connection, and ask again
      * what couldn't be asked when it turns false. Back on a network, it stays true until the network is found to reach the internet
      * ([Connection.Online]), at most `back.online.verified.wait.millis` (a network that blocks the system's check never is): asked sooner,
@@ -233,6 +264,14 @@ class Wallet(
     /** The active account's wallet; null before there is an account. */
     val activeWallet: Flow<WalletRecord?> =
         combine(store.wallets, activeAccount) { wallets, active -> wallets.firstOrNull { it.id == active?.account?.walletId } }
+
+    /**
+     * The active wallet's mints whose signing key didn't match the pinned one the last time the wallet compared them (since the app
+     * started), by host: until it matches again, or the user accepts the new key, nothing is sent there and nothing is received there.
+     */
+    val mintsWithChangedKey: Flow<Set<String>> =
+        combine(keyComparisons, activeWallet) { compared, active -> compared[active?.id].orEmpty().filterValues { it }.keys }
+            .distinctUntilChanged()
 
     /** Every wallet on the phone, oldest first, with its accounts. Only the active one is ever used; the others are listed. */
     val walletGroups: Flow<List<WalletGroup>> =
@@ -897,6 +936,7 @@ class Wallet(
         if (presented == null || presented.toHex() != key) return false
         val old = mint.mintPubkey
         store.saveMint(mint.copy(mintPubkey = key))
+        sawKey(walletId, host, changed = false)
         if (old != null && MintKey(host, old) in trust.trusted(walletId).first()) trust.setTrusted(walletId, MintKey(host, key), true)
         recertify(mint, presented)
         true

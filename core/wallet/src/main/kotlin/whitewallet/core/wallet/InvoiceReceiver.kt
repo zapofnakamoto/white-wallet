@@ -27,6 +27,9 @@ sealed interface InvoiceRequest {
     data object Unreachable : InvoiceRequest
 
     data object Refused : InvoiceRequest
+
+    /** The mint presents another signing key than the pinned one (or none): its notes couldn't be spent, so no invoice was made. */
+    data object KeyChanged : InvoiceRequest
 }
 
 /** Where an invoice from [Wallet.requestInvoice] stands. */
@@ -144,7 +147,6 @@ internal sealed interface MintInvoice {
 internal class InvoiceReceiver(private val wallet: Wallet) {
     private val guard = IndexGuard(wallet)
 
-    /** An invoice of the active account's home mint for [amountMsat]. */
     /** An invoice of [on], one of the active account's mints, else of its home mint. */
     suspend fun request(amountMsat: Long, on: String? = null): InvoiceRequest {
         val accountId = wallet.activeId()
@@ -173,6 +175,7 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
             return InvoiceRequest.OutOfRange(pay.pay.minSendable, pay.pay.maxSendable)
         }
         val mint = wallet.mintOf(accountId, host) ?: return InvoiceRequest.Unreachable
+        if (keyChanged(mint)) return InvoiceRequest.KeyChanged
         val fetched = MintInvoice.forFreshKey(wallet, guard, accountId, host, pay, amountMsat)
         return when (val answer = fetched.answer) {
             is MintInvoice.Ok -> {
@@ -185,6 +188,23 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
             MintInvoice.Refused,
             MintInvoice.Mismatch -> InvoiceRequest.Refused
         }
+    }
+
+    /**
+     * Whether [mint] now presents another signing key than the pinned one, or none, as [Onboarding.connectMint] takes it. One that can't be
+     * asked counts as unchanged there too; its invoice then fails on its own.
+     */
+    private suspend fun keyChanged(mint: Mint): Boolean {
+        val pinned = mint.mintPubkey ?: return false
+        val discovery =
+            try {
+                wallet.client.withdrawDiscovery(mint.host)
+            } catch (e: IOException) {
+                return false
+            } catch (e: ProtocolViolation) {
+                return false
+            }
+        return (discovery.mintPubkey?.toHex() != pinned).also { wallet.sawKey(mint.walletId, mint.host, it) }
     }
 
     suspend fun status(id: String): InvoiceStatus {

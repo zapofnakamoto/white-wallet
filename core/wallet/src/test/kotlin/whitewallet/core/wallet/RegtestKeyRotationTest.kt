@@ -124,6 +124,29 @@ class RegtestKeyRotationTest {
         }
 
     @Test
+    fun `once the key changed no invoice is made there, and a payment to the address waits until the new key is accepted`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone(host = HOST3)
+            alice.fund(2000)
+            val before = alice.balance()
+            val newKey = Regtest.rotateMint3()
+
+            assertEquals(InvoiceRequest.KeyChanged, alice.wallet.requestInvoice(1_000_000))
+            assertEquals(setOf(HOST3), alice.wallet.mintsWithChangedKey.first())
+
+            // Paid to the address meanwhile: the mint holds it, and the wallet doesn't take it in under a key it doesn't know.
+            Regtest.pay(alice.address, 3000)
+            assertEquals(setOf(HOST3), alice.wallet.refresh().keyChanged)
+            assertEquals(before, alice.balance())
+
+            assertTrue(alice.wallet.acceptMintKey(HOST3, newKey))
+            assertEquals(emptySet(), alice.wallet.mintsWithChangedKey.first())
+            alice.refreshUntil { alice.balance() > before }
+            assertEquals(2, alice.notes(HOST3).size, "the payment that waited is there")
+            assertIs<InvoiceRequest.Ready>(alice.wallet.requestInvoice(1_000_000))
+        }
+
+    @Test
     fun `a mint the brand trusts is trusted again only by the user after its key changed, and its notes keep working`() =
         runBlocking<Unit> {
             val store = InMemoryWalletStore()

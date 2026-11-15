@@ -212,6 +212,23 @@ class SendScreenTest {
     }
 
     @Test
+    fun aMintWhoseKeyChangedIsListedButCannotBePicked() {
+        val picked = mutableListOf<String?>()
+        compose.setContent {
+            SendScreen(
+                SendState(from = "other.example", mints = mints.map { it.copy(keyChanged = it.isHome) }),
+                onBack = {},
+                onDone = {},
+                actions = SendActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, onPayFrom = { picked += it }),
+            )
+        }
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performClick()
+        compose.onNodeWithText(text(R.string.send_from_key_changed)).assertIsNotEnabled()
+        compose.onNodeWithText("home.example").performClick()
+        assertEquals(emptyList<String?>(), picked)
+    }
+
+    @Test
     fun withMoneyOnOneMintNothingIsSaidAboutMints() {
         val state = SendState(preview = payLink, amountText = "1", quote = PayQuote.Ok(1_000, 0, "home.example"), mints = mints.take(1))
         compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }

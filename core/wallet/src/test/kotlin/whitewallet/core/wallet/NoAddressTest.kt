@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
@@ -84,6 +85,26 @@ class NoAddressTest {
         mint.payAll()
         wallet.refresh()
         assertEquals(8_000, wallet.balanceMsat.first())
+    }
+
+    @Test
+    fun `no invoice is made on a mint whose signing key changed, until the user accepts the new key`() = withMint { mint, store, wallet ->
+        wallet.createAccount(mint.host, "Main")
+        val pinned = assertNotNull(store.mint(mint.host))
+        val presented = assertNotNull(pinned.mintPubkey)
+        wallet.checkMintKey(mint.host)
+        assertEquals(emptySet(), wallet.mintsWithChangedKey.first())
+        store.saveMint(pinned.copy(mintPubkey = "02" + "11".repeat(32)))
+        // Asked once per session: Receive asks on opening, an invoice asks again.
+        wallet.checkMintKey(mint.host)
+        assertEquals(emptySet(), wallet.mintsWithChangedKey.first())
+        assertEquals(InvoiceRequest.KeyChanged, wallet.requestInvoice(8_000))
+        assertEquals(setOf(mint.host), wallet.mintsWithChangedKey.first())
+        assertTrue(store.journal(JournalStatus.entries.toSet()).isEmpty(), "nothing journaled: no key of the account went out")
+
+        assertTrue(wallet.acceptMintKey(mint.host, presented))
+        assertEquals(emptySet(), wallet.mintsWithChangedKey.first())
+        assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(8_000))
     }
 
     @Test

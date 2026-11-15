@@ -109,4 +109,5 @@
     <string name="send_from_automatic_detail">Wie in den Einstellungen festgelegt</string>
     <string name="send_from_detail">Bis zu %1$s</string>
     <string name="send_from_not_enough">Bis zu %1$s, zu wenig dafür</string>
+    <string name="send_from_key_changed">Signaturschlüssel passt nicht</string>
 </resources>

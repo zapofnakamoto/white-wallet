@@ -121,4 +121,6 @@
     <!-- A mint in that list (%1$s: the most one payment from it can be) -->
     <string name="send_from_detail">Up to %1$s</string>
     <string name="send_from_not_enough">Up to %1$s, not enough for this</string>
+    <!-- A mint in that list whose signing key doesn't match: it can't be picked -->
+    <string name="send_from_key_changed">Signing key doesn\'t match</string>
 </resources>

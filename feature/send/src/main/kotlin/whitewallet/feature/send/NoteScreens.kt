@@ -131,7 +131,9 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
     init {
         viewModelScope.launch {
             val home = wallet.homeHost.first()
-            val mints = wallet.sendableByMint().map { (host, max) -> SendMint(host, host == home, max) }.sortedBy { !it.isHome }
+            val changed = wallet.mintsWithChangedKey.first()
+            val mints =
+                wallet.sendableByMint().map { (host, max) -> SendMint(host, host == home, max, host in changed) }.sortedBy { !it.isHome }
             _state.update { it.copy(availableMsat = wallet.sendableNoteMsat(it.from), mints = mints) }
         }
         viewModelScope.launch {

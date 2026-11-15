@@ -413,6 +413,7 @@ internal class Onboarding(private val wallet: Wallet) {
                 if (existing == null) wallet.client.withdrawDiscovery(h) else runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
             val discovered = discovery?.mintPubkey
             if (existing == null && discovered == null) return ConnectResult.Failed(OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY))
+            if (pinned != null && discovery != null) wallet.sawKey(walletId, h, changed = pinned != discovered?.toHex())
             // A pinned mint that answers without a valid key changed it as much as one presenting another.
             if (
                 pinned != null && discovery != null && pinned != discovered?.toHex() ||
