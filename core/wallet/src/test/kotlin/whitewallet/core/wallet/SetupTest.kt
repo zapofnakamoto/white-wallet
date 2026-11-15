@@ -51,10 +51,12 @@ class SetupTest {
         runBlocking<Unit> {
             val first = assertIs<CreateAccountResult.Created>(wallet.createWallet("Main")).accountId
             wallet.setSetupStep(null)
+            store.useAccount(first)
             val second = assertIs<CreateAccountResult.Created>(wallet.createAccount("Savings")).accountId
             assertEquals(second, store.currentAccountId())
             assertEquals(first to 1L, store.account(second)?.let { it.walletId to it.index })
             assertTrue(wallet.isSetUp(), "an account needs no setup")
+            store.useAccount(second)
             assertEquals(CreateAccountResult.AccountLimitReached(2), wallet.createAccount("Third"))
         }
 
@@ -66,7 +68,9 @@ class SetupTest {
             wallet.setSetupStep(null)
             assertEquals(RemoveAccountResult.LastAccount, wallet.removeAccount())
             assertEquals(AccountRemoval(RemoveAccountResult.LastAccount, 0, emptyList()), wallet.accountRemoval())
+            store.useAccount(first)
             val second = assertIs<CreateAccountResult.Created>(wallet.createAccount("Savings")).accountId
+            store.useAccount(second)
             val third = assertIs<CreateAccountResult.Created>(wallet.createAccount("Travel")).accountId
 
             // The one in use goes; the wallet's oldest other account is in use then.
@@ -85,8 +89,9 @@ class SetupTest {
     fun `an account with received notes in its archive isn't removed, as their spends are only on this phone`() =
         runBlocking<Unit> {
             val wallet = Wallet(store, seeds, LnurlcashClient(), maxAccounts = 2)
-            assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
+            val first = assertIs<CreateAccountResult.Created>(wallet.createWallet("Main")).accountId
             wallet.setSetupStep(null)
+            store.useAccount(first)
             val second = assertIs<CreateAccountResult.Created>(wallet.createAccount("Savings")).accountId
             val archived =
                 ReceivedNote(

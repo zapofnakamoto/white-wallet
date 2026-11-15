@@ -16,7 +16,8 @@ internal interface WalletDao {
     @Query(
         """
         SELECT a.id, a.name, a.createdAtMillis, a.walletId, a.accountIndex, a.homeHost,
-               COALESCE((SELECT SUM(n.amountMsat) FROM notes n WHERE n.accountId = a.id AND n.state = 'Outstanding'), 0) AS balanceMsat
+               COALESCE((SELECT SUM(n.amountMsat) FROM notes n WHERE n.accountId = a.id AND n.state = 'Outstanding'), 0) AS balanceMsat,
+               EXISTS (SELECT 1 FROM notes n WHERE n.accountId = a.id) AS used
         FROM accounts a
         ORDER BY a.createdAtMillis
         """

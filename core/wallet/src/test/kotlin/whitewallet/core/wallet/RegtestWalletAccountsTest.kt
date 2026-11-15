@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -68,10 +69,26 @@ class RegtestWalletAccountsTest {
         }
 
     @Test
+    fun `no account is added after one that never received money, and once it has, the next one is`() =
+        runBlocking<Unit> {
+            val phone = phone()
+            val first = phone.wallet.activeId()
+            val refused = assertIs<CreateAccountResult.UseFirst>(phone.wallet.createAccount("Savings"), "an address alone isn't money")
+            assertEquals(first, refused.first.account.id)
+            assertEquals(refused.first, phone.wallet.accountToUseFirst.first())
+            assertEquals(listOf(first), phone.store.accounts.first().map { it.account.id })
+
+            phone.fund(2000)
+            assertNull(phone.wallet.accountToUseFirst.first())
+            assertIs<CreateAccountResult.Created>(phone.wallet.createAccount("Savings"))
+        }
+
+    @Test
     fun `deleting a wallet takes all its accounts and only them`() =
         runBlocking<Unit> {
             val phone = phone()
             val other = phone.wallet.activeId()
+            phone.fund(1000)
             secondAccount(phone, 1000)
             assertEquals(listOf(0L, 1L), phone.store.accounts.first().map { it.account.index }.sorted())
             assertEquals(false, phone.wallet.deleteActiveAccount(), "the wallet was the only one")
@@ -83,6 +100,7 @@ class RegtestWalletAccountsTest {
         runBlocking<Unit> {
             val phone = phone()
             val name = phone.address.substringBefore('@')
+            phone.fund(1000)
             secondAccount(phone, 1000)
 
             val store = InMemoryWalletStore()
@@ -110,6 +128,9 @@ class RegtestWalletAccountsTest {
             }
             second()
             for (account in listOf("Savings", "Spare")) {
+                // The account before has received money: another may follow it (BIP-44).
+                Regtest.pay("${names[names.size - 2]}@$HOST", 1000)
+                phone.wallet.refresh()
                 names += Regtest.name()
                 assertIs<OnboardResult.Ready>(phone.wallet.onboard(names.last(), HOST, account, inActiveWallet = true))
                 second()
@@ -119,7 +140,7 @@ class RegtestWalletAccountsTest {
             val store = InMemoryWalletStore()
             val other = restored(store)
             assertIs<RestoreResult.Restored>(other.restore(phone.wallet.recoveryPhrase().joinToString(" "), HOST, "Main"))
-            val paid = mapOf(0L to 999_000L + 1_999_000, 1L to 2_999_000L + 3_999_000, 2L to 4_999_000L + 5_999_000)
+            val paid = mapOf(0L to 999_000L + 999_000 + 1_999_000, 1L to 999_000L + 2_999_000 + 3_999_000, 2L to 4_999_000L + 5_999_000)
             assertEquals(paid, other.balances())
             val ids = store.accounts.first().associate { it.account.index to it.account.id }
             assertEquals(
@@ -196,11 +217,16 @@ class RegtestWalletAccountsTest {
             val phone = Regtest.Phone(store, wallet, address)
             val first = wallet.activeId()
             assertEquals(RemoveAccountResult.LastAccount, wallet.removeAccount(), "a wallet keeps one account")
+            // The first account has received money, so another may follow it (BIP-44); it then gives that money to the second.
+            phone.fund(1000)
             secondAccount(phone, 3000)
             val second = wallet.activeId()
+            wallet.switchAccount(first)
+            assertEquals(MoveResult.Moved(999_000), wallet.moveFunds(second, null))
+            wallet.switchAccount(second)
 
             // Money keeps an account on the phone.
-            assertEquals(AccountRemoval(RemoveAccountResult.InUse(AccountUse.Money), 2_999_000, emptyList()), wallet.accountRemoval())
+            assertEquals(AccountRemoval(RemoveAccountResult.InUse(AccountUse.Money), 3_998_000, emptyList()), wallet.accountRemoval())
             assertEquals(RemoveAccountResult.InUse(AccountUse.Money), wallet.removeAccount())
             assertEquals(listOf(0L, 1L), store.accounts.first().map { it.account.index }.sorted())
 
@@ -209,12 +235,12 @@ class RegtestWalletAccountsTest {
             assertEquals(AccountRemoval(null, 0, listOf(address)), wallet.accountRemoval())
             assertEquals(RemoveAccountResult.Removed(second), wallet.removeAccount())
             assertEquals(second, wallet.activeId())
-            assertEquals(mapOf(1L to 2_999_000L), wallet.balances())
+            assertEquals(mapOf(1L to 3_998_000L), wallet.balances())
 
             // Its address is still registered at the mint and is paid; the account left doesn't see that money.
             Regtest.pay(address, 2000)
             wallet.refresh()
-            assertEquals(mapOf(1L to 2_999_000L), wallet.balances())
+            assertEquals(mapOf(1L to 3_998_000L), wallet.balances())
 
             // While the mint doesn't answer no account is added: an account that looks empty would hide that money.
             val offline =
@@ -233,27 +259,28 @@ class RegtestWalletAccountsTest {
             val again = assertIs<CreateAccountResult.Created>(wallet.createAccount("Again") { progress = it.accounts.single() }).accountId
             assertEquals(again, wallet.activeId())
             assertEquals(0L, store.account(again)?.index)
-            assertEquals(mapOf(0L to 1_999_000L, 1L to 2_999_000L), wallet.balances())
+            assertEquals(mapOf(0L to 1_999_000L, 1L to 3_998_000L), wallet.balances())
             assertEquals(true to 1_999_000L, progress?.let { it.done to it.foundMsat })
             wallet.refresh()
-            assertEquals(mapOf(0L to 1_999_000L, 1L to 2_999_000L), wallet.balances(), "counted once")
+            assertEquals(mapOf(0L to 1_999_000L, 1L to 3_998_000L), wallet.balances(), "counted once")
 
             // Its address is listed again, and goes on being paid to it.
             assertEquals(address, wallet.primaryAddress.first()?.address)
             assertEquals(listOf(address), wallet.accountRemoval().addresses)
             phone.fund(1000)
-            assertEquals(mapOf(0L to 2_998_000L, 1L to 2_999_000L), wallet.balances())
+            assertEquals(mapOf(0L to 2_998_000L, 1L to 3_998_000L), wallet.balances())
         }
 
     @Test
     fun `an address of a further account is paid to that account alone`() =
         runBlocking<Unit> {
             val phone = phone()
+            phone.fund(1000)
             val name = Regtest.name()
             assertIs<OnboardResult.Ready>(phone.wallet.onboard(name, HOST, "Savings", inActiveWallet = true))
             assertEquals(AddressStatus.Ours, phone.wallet.checkAddress(name, HOST))
             Regtest.pay("$name@$HOST", 1000)
             phone.wallet.refresh()
-            assertEquals(mapOf(0L to 0L, 1L to 999_000L), phone.wallet.balances())
+            assertEquals(mapOf(0L to 999_000L, 1L to 999_000L), phone.wallet.balances())
         }
 }

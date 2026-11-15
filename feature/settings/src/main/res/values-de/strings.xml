@@ -429,6 +429,8 @@
     <string name="wallets_add_hint">Eine eigene Wiederherstellungsphrase mit eigenen Konten</string>
     <string name="wallet_accounts">Konten</string>
     <string name="wallet_add_account">Konto hinzufügen</string>
+    <string name="wallet_add_account_use_first">Füge ein weiteres Konto hinzu, sobald „%1$s“ Geld erhalten hat.</string>
+    <string name="wallet_account_hides_later">Beim Wiederherstellen deiner Wiederherstellungsphrase werden die Konten nach „%1$s“ erst gefunden, wenn „%1$s“ Geld erhalten hat.</string>
     <string name="wallet_not_in_use">Um diese Wallet zu verwalten, verwende eines ihrer Konten.</string>
     <string name="wallet_name">Name</string>
     <string name="wallet_rename_title">Wallet umbenennen</string>

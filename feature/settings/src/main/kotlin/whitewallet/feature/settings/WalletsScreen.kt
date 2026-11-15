@@ -54,6 +54,7 @@ import whitewallet.core.model.WalletGroup
 import whitewallet.core.wallet.AccountRemoval
 import whitewallet.core.wallet.AccountUse
 import whitewallet.core.wallet.RemoveAccountResult
+import whitewallet.core.wallet.UnusedAccount
 import whitewallet.core.wallet.Wallet
 
 /** Every wallet on the phone with its accounts, and which account is in use. */
@@ -65,6 +66,8 @@ data class WalletsState(
     /** The app may hold another wallet, and the active wallet another account (the brand's limits). */
     val canAddWallet: Boolean = false,
     val canAddAccount: Boolean = false,
+    /** The account of the active wallet to receive money into before another is added, if one is ([Wallet.accountToUseFirst]). */
+    val useFirst: UnusedAccount? = null,
     /** False until the wallets were read: a page of a wallet that isn't there closes only once this is true. */
     val loaded: Boolean = true,
 ) {
@@ -78,16 +81,21 @@ data class WalletsState(
 
 @HiltViewModel
 class WalletsViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
-    private val limits = combine(wallet.canAddWallet, wallet.canAddAccount, ::Pair)
+    private val limits = combine(wallet.canAddWallet, wallet.canAddAccount, wallet.accountToUseFirst, ::Triple)
 
     val state: StateFlow<WalletsState> =
-        combine(wallet.walletGroups, wallet.accounts, wallet.activeAccount, limits) { groups, accounts, active, (addWallet, addAccount) ->
+        combine(wallet.walletGroups, wallet.accounts, wallet.activeAccount, limits) {
+                groups,
+                accounts,
+                active,
+                (addWallet, addAccount, useFirst) ->
                 WalletsState(
                     wallets = groups.filter { it.accounts.isNotEmpty() },
                     activeAccountId = active?.account?.id,
                     places = accounts.mapIndexed { place, summary -> summary.account.id to place }.toMap(),
                     canAddWallet = addWallet,
                     canAddAccount = addAccount,
+                    useFirst = useFirst,
                     loaded = true,
                 )
             }
@@ -299,7 +307,15 @@ fun WalletScreen(
                     modifier = Modifier.clickable { onNavigate(SettingsDestination.Account(account.id)) },
                 )
             }
-            if (inUse && state.canAddAccount) AddButton(R.string.wallet_add_account, onAddAccount)
+            val first = state.useFirst.takeIf { inUse }
+            when {
+                // Money a restore misses is said even at the brand's limit.
+                first?.hidesLater == true ->
+                    AccountRuleLine(stringResource(R.string.wallet_account_hides_later, first.account.name), error = true)
+                !inUse || !state.canAddAccount -> Unit
+                first != null -> AccountRuleLine(stringResource(R.string.wallet_add_account_use_first, first.account.name), error = false)
+                else -> AddButton(R.string.wallet_add_account, onAddAccount)
+            }
             if (inUse || onAddWallet != null) HorizontalDivider()
             if (onAddWallet != null) {
                 SummaryRow(
@@ -605,5 +621,16 @@ private fun RenameDialog(
                 Text(hint, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
             }
         },
+    )
+}
+
+/** Why no account can be added now, where the button would be; [error] when money is at stake. */
+@Composable
+private fun AccountRuleLine(text: String, error: Boolean) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (error) MaterialTheme.colorScheme.error else Color.Unspecified,
+        modifier = Modifier.padding(16.dp),
     )
 }

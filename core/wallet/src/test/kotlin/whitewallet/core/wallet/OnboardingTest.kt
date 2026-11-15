@@ -403,6 +403,7 @@ class OnboardingTest {
         var clock = 1L
         val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), now = { clock++ })
         val main = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main")).accountId
+        store.useAccount(main)
         val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true)).accountId
         val work = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Work")).accountId
         val groups = wallet.walletGroups.first()
@@ -430,6 +431,7 @@ class OnboardingTest {
             val store = InMemoryWalletStore()
             val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient())
             val main = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Main")).accountId
+            store.useAccount(main)
             val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Savings", inActiveWallet = true)).accountId
             assertNull(store.homeOf(main))
             assertFalse(wallet.hasMint.first())
@@ -452,6 +454,7 @@ class OnboardingTest {
             assertEquals(homeHost, store.homeOf(main))
             assertTrue(wallet.mints.first().all { it.trusted }, "every account's home is trusted by default")
             // A new account starts with the home of the account in use.
+            store.useAccount(savings)
             val third = assertIs<CreateAccountResult.Created>(wallet.createAccount(null, "Third", inActiveWallet = true)).accountId
             assertEquals(otherHost, store.homeOf(third))
 

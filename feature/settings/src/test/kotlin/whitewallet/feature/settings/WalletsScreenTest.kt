@@ -1,13 +1,19 @@
 package whitewallet.feature.settings
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.text.TextLayoutResult
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,6 +26,7 @@ import whitewallet.core.model.WalletRecord
 import whitewallet.core.wallet.AccountRemoval
 import whitewallet.core.wallet.AccountUse
 import whitewallet.core.wallet.RemoveAccountResult
+import whitewallet.core.wallet.UnusedAccount
 
 @RunWith(RobolectricTestRunner::class)
 class WalletsScreenTest {
@@ -87,6 +94,66 @@ class WalletsScreenTest {
             opened,
         )
         assertEquals(true, adding)
+    }
+
+    /** The colour [text] is drawn in. */
+    private fun colorOf(text: String): Color {
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText(text).performScrollTo().performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        return layouts.single().layoutInput.style.color
+    }
+
+    /** [screen] on the Wallets page, and the theme's error colour. */
+    private fun showWallet(screen: WalletsState, group: WalletGroup = first): Color {
+        var error = Color.Unspecified
+        compose.setContent {
+            error = MaterialTheme.colorScheme.error
+            WalletScreen(group, screen, active, {}, {}, {}, {})
+        }
+        compose.waitForIdle()
+        return error
+    }
+
+    private val savingsUnused = UnusedAccount(savings.account, hidesLater = false)
+
+    @Test
+    fun whileTheNewestAccountHasReceivedNothingALineNamesItInsteadOfTheButton() {
+        val error = showWallet(state.copy(useFirst = savingsUnused))
+        val line = text(R.string.wallet_add_account_use_first, "Savings")
+        compose.onNodeWithText(line).assertExists()
+        assertNotEquals(error, colorOf(line))
+        compose.onNodeWithText(text(R.string.wallet_add_account)).assertDoesNotExist()
+    }
+
+    @Test
+    fun anAccountThatHidesLaterOnesFromARestoreIsAWarning() {
+        val error = showWallet(state.copy(useFirst = savingsUnused.copy(hidesLater = true)))
+        val warning = text(R.string.wallet_account_hides_later, "Savings")
+        assertEquals(error, colorOf(warning))
+        compose.onNodeWithText(text(R.string.wallet_add_account)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.wallet_add_account_use_first, "Savings")).assertDoesNotExist()
+    }
+
+    @Test
+    fun atTheBrandsAccountLimitOnlyTheWarningIsLeft() {
+        showWallet(state.copy(canAddAccount = false, useFirst = savingsUnused))
+        compose.onNodeWithText(text(R.string.wallet_add_account)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.wallet_add_account_use_first, "Savings")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.wallet_account_hides_later, "Savings")).assertDoesNotExist()
+    }
+
+    @Test
+    fun atTheBrandsAccountLimitMoneyARestoreMissesIsStillSaid() {
+        showWallet(state.copy(canAddAccount = false, useFirst = savingsUnused.copy(hidesLater = true)))
+        compose.onNodeWithText(text(R.string.wallet_account_hides_later, "Savings")).assertExists()
+    }
+
+    @Test
+    fun aWalletNotInUseSaysNothingAboutAddingAccounts() {
+        showWallet(state.copy(useFirst = UnusedAccount(work.account, hidesLater = true)), group = second)
+        compose.onNodeWithText(text(R.string.wallet_add_account)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.wallet_account_hides_later, "Work")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.wallet_add_account_use_first, "Work")).assertDoesNotExist()
     }
 
     @Test

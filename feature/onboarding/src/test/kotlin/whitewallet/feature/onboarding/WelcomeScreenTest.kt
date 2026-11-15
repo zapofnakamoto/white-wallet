@@ -172,6 +172,13 @@ class WelcomeScreenTest {
     }
 
     @Test
+    fun anAccountRefusedUntilAnotherHasReceivedMoneyNamesThatOneAndCreatesNothing() {
+        compose.setContent { AccountNameScreen(CreateState(useFirst = "Savings"), "Travel", onBack = {}, onCreate = {}) }
+        compose.onNodeWithText(text(R.string.account_name_use_first, "Savings")).assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_create_account)).assertIsNotEnabled()
+    }
+
+    @Test
     fun whileANewAccountIsLookedForTheScreenSaysHowFarItIs() {
         val scan = ScanProgress.AccountScan(index = 1, keysChecked = 40, foundMsat = 0, done = false)
         compose.setContent { AccountNameScreen(CreateState(busy = true, scan = scan), "Savings", onBack = {}, onCreate = {}) }

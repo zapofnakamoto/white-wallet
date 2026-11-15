@@ -276,6 +276,19 @@ abstract class RestoreBoundaryTest {
         }
 
     @Test
+    fun `an unused account hides the ones after it until it has received money, then a restore finds them all`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val first = credit(words, KeySet.Wallet, 0, SATS)
+            val third = credit(words, KeySet.Wallet, 0, SATS, account = 2)
+            assertEquals(mapOf(0L to first), Fresh().apply { assertIs<RestoreResult.Restored>(restore(words)) }.balances())
+            val second = credit(words, KeySet.Wallet, 0, SATS, account = 1)
+            val phone = Fresh()
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+            assertEquals(mapOf(0L to first, 1L to second, 2L to third), phone.balances())
+        }
+
+    @Test
     fun `an account whose notes are all spent is still found, and so are the ones after it`() =
         runBlocking<Unit> {
             val words = phrase()

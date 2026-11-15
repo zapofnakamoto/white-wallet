@@ -48,6 +48,7 @@ class RegtestRemoveWhileBusyTest {
             val alice = Regtest.phone(client = client)
             val wallet = alice.wallet
             assertIs<ConnectResult.Connected>(wallet.connectMint(HOST3))
+            alice.fund(1000)
             val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount("Savings")).accountId
 
             slow.set(true)

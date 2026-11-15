@@ -91,8 +91,11 @@ enum class KeyCounter {
     Shares,
 }
 
-/** An account with what the switcher shows about it. */
-data class AccountSummary(val account: Account, val balanceMsat: Long)
+/**
+ * An account with what the switcher shows about it. [used]: it holds or held a note, in any state, at any mint: what a restore sees of an
+ * account (BIP-44's "transaction history"), unlike an address or an unpaid invoice.
+ */
+data class AccountSummary(val account: Account, val balanceMsat: Long, val used: Boolean = false)
 
 /** A wallet with its accounts, lowest index first, and its [number] among the phone's wallets, oldest first, from 1. */
 data class WalletGroup(val wallet: WalletRecord, val number: Int, val accounts: List<AccountSummary>) {

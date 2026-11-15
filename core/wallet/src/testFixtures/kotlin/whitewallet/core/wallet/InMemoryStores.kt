@@ -58,6 +58,7 @@ class InMemoryWalletStore : WalletStore {
                     AccountSummary(
                         a,
                         notes.values.filter { it.accountId == a.id && it.state == NoteState.Outstanding }.sumOf { it.amountMsat },
+                        used = notes.values.any { it.accountId == a.id },
                     )
                 }
         }

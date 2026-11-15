@@ -96,6 +96,8 @@ class RegtestSetupTest {
     fun `an added account receives at once, without contacting a mint first`() =
         runBlocking<Unit> {
             val phone = Regtest.phone()
+            // The first account has received money: another may follow it (BIP-44).
+            phone.fund(1000)
             val mints = phone.store.mintMap.value
             assertIs<CreateAccountResult.Created>(phone.wallet.createAccount("Savings"))
             assertEquals(mints, phone.store.mintMap.value)

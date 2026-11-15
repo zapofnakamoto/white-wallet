@@ -124,6 +124,27 @@ class RoomWalletStoreTest {
         }
 
     @Test
+    fun `an account is used once it holds or held a note in any state, and only its own notes count`() =
+        runBlocking<Unit> {
+            account("acc")
+            account("other", walletId = "acc", index = 1)
+            assertEquals(listOf(false, false), store.accounts.first().map { it.used })
+            for (state in listOf(NoteState.Outstanding, NoteState.Spent, NoteState.Shared, NoteState.Unknown)) {
+                store.upsertNotes(listOf(Note(q1, "acc", "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, state, 1)))
+                assertEquals(
+                    mapOf("acc" to true, "other" to false),
+                    store.accounts.first().associate { it.account.id to it.used },
+                    "$state",
+                )
+            }
+            // A registered address is no note: a restore can't see it.
+            store.saveAddress("other", RegisteredAddress("alice", "mint.example", 1, share = 0))
+            assertFalse(store.accounts.first().single { it.account.id == "other" }.used)
+            store.deleteAccount("acc")
+            assertEquals(listOf(false), store.accounts.first().map { it.used })
+        }
+
+    @Test
     fun `key indexes are handed out once, and key checks of every kind come back`() =
         runBlocking<Unit> {
             account("acc")
@@ -196,7 +217,9 @@ class RoomWalletStoreTest {
                     policies = NotePolicies.InMemory(ManualStrategy.ID),
                     maxWallets = 2,
                 )
-            assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
+            val main = assertIs<CreateAccountResult.Created>(wallet.createWallet("Main")).accountId
+            // A note it held: another account may follow it (BIP-44).
+            store.upsertNotes(listOf(Note(q1, main, "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, NoteState.Spent, 1)))
             assertIs<CreateAccountResult.Created>(wallet.createAccount("Savings"))
             assertEquals(listOf(0L, 1L), wallet.activeWalletAccounts.first().map { it.account.index })
             assertTrue(wallet.canAddWallet.first(), "one wallet of two, of two allowed")

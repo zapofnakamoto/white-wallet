@@ -84,7 +84,7 @@ internal data class WalletEntity(
 /** Single row holding app-wide state. */
 @Entity(tableName = "app_state") internal data class AppStateEntity(@PrimaryKey val id: Int = 0, val activeAccountId: String?)
 
-/** One row of the account switcher: an account with its outstanding balance. */
+/** One row of the account switcher: an account with its outstanding balance, and whether it holds or held any note. */
 internal data class AccountSummaryRow(
     val id: String,
     val name: String,
@@ -94,6 +94,7 @@ internal data class AccountSummaryRow(
     val accountIndex: Long,
     val homeHost: String?,
     val balanceMsat: Long,
+    val used: Boolean,
 )
 
 /** A foreign key to the account: rows the account owns outright go with it. */

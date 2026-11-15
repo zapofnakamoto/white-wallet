@@ -81,6 +81,7 @@ class RemoveWhileBusyTest {
                 // An address: a refresh asks the mint about it.
                 store.addAccount("a", "Main", PrimaryAddress("alice", mint.host), host = mint.host)
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
+                store.useAccount("a")
                 val savings = assertIs<CreateAccountResult.Created>(wallet.createAccount("Savings")).accountId
                 // A mint nothing ties an account to: it can be removed.
                 val other = "other.example"

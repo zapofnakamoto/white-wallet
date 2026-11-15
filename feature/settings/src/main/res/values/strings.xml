@@ -442,6 +442,8 @@
     <string name="wallets_add_hint">Its own recovery phrase and its own accounts</string>
     <string name="wallet_accounts">Accounts</string>
     <string name="wallet_add_account">Add account</string>
+    <string name="wallet_add_account_use_first">Add another account once “%1$s” has received money.</string>
+    <string name="wallet_account_hides_later">Restoring your recovery phrase doesn\'t find the accounts after “%1$s” until “%1$s” has received money.</string>
     <string name="wallet_not_in_use">To manage this wallet, use one of its accounts.</string>
     <string name="wallet_name">Name</string>
     <string name="wallet_rename_title">Rename wallet</string>

@@ -286,6 +286,13 @@ class Wallet(
     /** Whether the active wallet may hold another account ([maxAccounts]). */
     val canAddAccount: Flow<Boolean> = activeWalletAccounts.map { it.isEmpty() || it.size < maxAccounts }
 
+    /**
+     * The account of the active wallet to receive money into before another account can be added ([UnusedAccount], BIP-44's rule), or null
+     * while one can be. [createAccount] refuses the same way.
+     */
+    val accountToUseFirst: Flow<UnusedAccount?> =
+        activeWalletAccounts.map { accountToUseFirst(it, settings.scanStopAfterUnusedAccounts) }.distinctUntilChanged()
+
     /** Whether another recovery phrase may be created or restored ([maxWallets]). */
     val canAddWallet: Flow<Boolean> = store.accounts.map { all -> all.map { it.account.walletId }.distinct().size < maxWallets }
 

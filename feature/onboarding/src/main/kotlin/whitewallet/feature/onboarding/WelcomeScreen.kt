@@ -64,6 +64,8 @@ data class CreateState(
     val scan: ScanProgress.AccountScan? = null,
     /** Adding an account: the mint where that look stopped. The account wasn't added. */
     val scanFailed: String? = null,
+    /** Adding an account: the name of the account to receive money into first ([CreateAccountResult.UseFirst]). It wasn't added. */
+    val useFirst: String? = null,
 )
 
 /**
@@ -95,6 +97,7 @@ class CreateViewModel @Inject constructor(private val wallet: Wallet) : ViewMode
                 is CreateAccountResult.Created -> _state.update { it.copy(busy = false, created = true, accountId = result.accountId) }
                 is CreateAccountResult.AccountLimitReached -> _state.update { it.copy(busy = false, limit = result.limit) }
                 is CreateAccountResult.ScanFailed -> _state.update { it.copy(busy = false, scan = null, scanFailed = result.host) }
+                is CreateAccountResult.UseFirst -> _state.update { it.copy(busy = false, useFirst = result.first.account.name) }
             }
         }
     }
@@ -216,10 +219,17 @@ fun AccountNameScreen(state: CreateState, defaultName: String, onBack: () -> Uni
                     textAlign = TextAlign.Center,
                 )
             }
+            state.useFirst?.let {
+                Text(
+                    stringResource(R.string.account_name_use_first, it),
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                )
+            }
             PrimaryButton(
                 stringResource(if (state.scanFailed != null) R.string.add_mint_try_again else R.string.onboarding_create_account),
                 { onCreate(name) },
-                enabled = name.isNotBlank() && state.limit == null,
+                enabled = name.isNotBlank() && state.limit == null && state.useFirst == null,
                 busy = state.busy,
             )
             if (state.busy) {

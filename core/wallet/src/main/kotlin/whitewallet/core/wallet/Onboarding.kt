@@ -91,6 +91,9 @@ sealed interface CreateAccountResult {
 
     /** The wallet already holds [limit] accounts, or the app [limit] wallets, the most it allows. Nothing changed. */
     data class AccountLimitReached(val limit: Int) : CreateAccountResult
+
+    /** [first] has to receive money before another account is added ([Wallet.accountToUseFirst]). Nothing changed. */
+    data class UseFirst(val first: UnusedAccount) : CreateAccountResult
 }
 
 /**
@@ -174,6 +177,11 @@ internal class Onboarding(private val wallet: Wallet) {
     suspend fun createAccount(name: String, scan: suspend (Account) -> CreateAccountResult.ScanFailed?): CreateAccountResult {
         val active = wallet.activeId()
         if (wallet.siblings(active).size >= wallet.maxAccounts) return CreateAccountResult.AccountLimitReached(wallet.maxAccounts)
+        val walletId = wallet.walletOf(active)
+        val accounts = wallet.store.accounts.first().filter { it.account.walletId == walletId }
+        accountToUseFirst(accounts, wallet.settings.scanStopAfterUnusedAccounts)?.let {
+            return CreateAccountResult.UseFirst(it)
+        }
         val account = sibling(UUID.randomUUID().toString(), name)
         wallet.store.saveAccount(account)
         // A scan that stopped leaves no account: one that shows less than it holds would hide money. What it found is still at the
