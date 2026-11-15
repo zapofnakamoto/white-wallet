@@ -82,6 +82,36 @@ class ClientTest {
         }
 
     @Test
+    fun `a request carrying an invoice is a melt, never replayed whatever type it is sent as`() =
+        runBlocking<Unit> {
+            for (type in MutationType.entries) {
+                for (param in listOf("pr", "PR")) {
+                    MockWebServer().use { server ->
+                        server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())
+                        server.enqueue(MockResponse(body = """{"status":"OK"}"""))
+                        server.start()
+                        val outcome = LnurlcashClient().mutate(type, server.url("/w/cb?k1=a&$param=lnbc1&amount=1000").toString())
+                        assertIs<MutationOutcome.Ambiguous>(outcome, "$type $param")
+                        assertEquals(1, server.requestCount, "$type $param")
+                    }
+                }
+            }
+        }
+
+    @Test
+    fun `a transfer whose answer is lost is replayed like a rotate`() =
+        runBlocking<Unit> {
+            MockWebServer().use { server ->
+                server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())
+                server.enqueue(MockResponse(body = """{"status":"OK"}"""))
+                server.start()
+                val outcome = LnurlcashClient().mutate(MutationType.Transfer, server.url("/p/cb?amount=1000&k1=a").toString())
+                assertIs<MutationOutcome.Confirmed>(outcome)
+                assertEquals(2, server.requestCount)
+            }
+        }
+
+    @Test
     fun `a replay refused after an unanswered attempt stays ambiguous`() =
         runBlocking<Unit> {
             val refusals =

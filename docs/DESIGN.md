@@ -138,8 +138,9 @@ says where each is enforced.
 1. **Persist before disclose.** A key index is reserved and the mutation journaled (`Prepared`) before any `cp1`
    leaves the device.
 2. **No transport retries.** The HTTP client must have retries off (`LnurlcashClient` refuses one that doesn't). Only
-   rotate, split and merge may be replayed, byte for byte, which LUD-25 requires a mint to answer with its original
-   result. **A melt is never retried.**
+   rotate, split, merge and transfer may be replayed, byte for byte, which LUD-25 and LUD-26 require a mint to answer
+   with its original result. **A melt is never retried**, nor any request carrying an invoice (`pr`), whatever type the
+   caller names.
 3. **Every outcome is handled.** `Confirmed`: inputs burned, outputs stored. `Rejected`: nothing changes. `Ambiguous`:
    the notes are `Ambiguous` until `Reconciler` settles them with lookups by `p`, which never disclose a spend.
    `Unverifiable`: the mutation landed, so the outputs are stored, without a verified certificate.

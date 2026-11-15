@@ -30,9 +30,10 @@ import whitewallet.lnurlcash.protocol.WithdrawDiscovery
  * The only place LNURLcash requests touch the network.
  *
  * Every mutation is an HTTP GET that burns its input, so transport-level retries are forbidden: a resend after a dropped connection could
- * be reported as "already spent" while the first attempt minted the outputs. The only retry is a bounded, byte-identical replay of
- * rotate/split/merge, which LUD-25 requires a service to answer with its original success. A melt is never replayed. Only a replay's
- * success replaces an unanswered attempt: a refused replay leaves the outcome ambiguous, since the first attempt may have landed.
+ * be reported as "already spent" while the first attempt minted the outputs. The only retry is a bounded, byte-identical replay of a
+ * rotate, split, merge or transfer, which LUD-25 and LUD-26 require a service to answer with its original success. A melt is never
+ * replayed, nor any request carrying an invoice (`pr`), whatever type it is sent as: it may pay twice. Only a replay's success replaces an
+ * unanswered attempt: a refused replay leaves the outcome ambiguous, since the first attempt may have landed.
  *
  * Servers close idle keep-alive connections (uvicorn after ~5 s), and OkHttp would otherwise reuse such a dead pooled connection after any
  * pause. So read-only requests retry once on a connection failure (they change nothing), on a fresh connection after dropping the idle
@@ -91,11 +92,15 @@ public class LnurlcashClient(
     /** Looks a note up by its output key without disclosing the spend. Throws NoteLookupError if unknown or spent. */
     public suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo = NoteInfo.from(get(Requests.lookup(withdrawUrl, q)), null)
 
-    /** Sends a mutation URL built by [Requests] and classifies the outcome. The only request that carries a spend. */
+    /**
+     * Sends a mutation URL built by [Requests] and classifies the outcome. The only request that carries a spend. Replayed when its answer
+     * is lost, unless it is a melt: [type] says so, or the URL carrying an invoice (`pr`) does.
+     */
     @RevealsNoteSecret
     public suspend fun mutate(type: MutationType, url: String): MutationOutcome {
-        val replays = if (type == MutationType.Melt) 0 else mutationReplays
         val request = Request.Builder().url(url).get().tag(SpendGuard.Mutation::class.java, SpendGuard.Mutation).build()
+        val pays = type == MutationType.Melt || request.url.queryParameterNames.any { it.equals("pr", ignoreCase = true) }
+        val replays = if (pays) 0 else mutationReplays
         var outcome = MutationClassifier.classify(type, execute(request, freshConnectionHttp))
         repeat(replays) {
             if (outcome !is MutationOutcome.Ambiguous) return outcome

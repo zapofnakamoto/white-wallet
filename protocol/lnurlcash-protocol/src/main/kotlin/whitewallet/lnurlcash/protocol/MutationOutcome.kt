@@ -98,7 +98,10 @@ public enum class MutationType {
     Merge,
     Melt,
 
-    /** Internal transfer (LUD-26): a rotate whose output the mint picks, on the payee's share. Answered with a bare OK. */
+    /**
+     * Internal transfer (LUD-26): a rotate whose output the mint picks, on the payee's share. Answered with a bare OK, and replayed like a
+     * rotate when that answer is lost.
+     */
     Transfer,
 }
 
