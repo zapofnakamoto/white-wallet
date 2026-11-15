@@ -31,7 +31,8 @@ import whitewallet.lnurlcash.protocol.WithdrawDiscovery
  *
  * Every mutation is an HTTP GET that burns its input, so transport-level retries are forbidden: a resend after a dropped connection could
  * be reported as "already spent" while the first attempt minted the outputs. The only retry is a bounded, byte-identical replay of
- * rotate/split/merge, which LUD-25 requires a service to answer with its original success. A melt is never replayed.
+ * rotate/split/merge, which LUD-25 requires a service to answer with its original success. A melt is never replayed. Only a replay's
+ * success replaces an unanswered attempt: a refused replay leaves the outcome ambiguous, since the first attempt may have landed.
  *
  * Servers close idle keep-alive connections (uvicorn after ~5 s), and OkHttp would otherwise reuse such a dead pooled connection after any
  * pause. So read-only requests retry once on a connection failure (they change nothing), on a fresh connection after dropping the idle
@@ -98,7 +99,12 @@ public class LnurlcashClient(
         var outcome = MutationClassifier.classify(type, execute(request, freshConnectionHttp))
         repeat(replays) {
             if (outcome !is MutationOutcome.Ambiguous) return outcome
-            outcome = MutationClassifier.classify(type, execute(request, freshConnectionHttp))
+            // A refused replay says nothing about the attempt before it, which may have landed: only a success settles that.
+            outcome =
+                when (val replay = MutationClassifier.classify(type, execute(request, freshConnectionHttp))) {
+                    is MutationOutcome.Rejected -> MutationOutcome.Ambiguous("replay refused: ${replay.reason ?: replay.kind}")
+                    else -> replay
+                }
         }
         return outcome
     }

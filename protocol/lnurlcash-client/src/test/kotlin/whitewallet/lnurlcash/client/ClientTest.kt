@@ -2,6 +2,8 @@
 
 package whitewallet.lnurlcash.client
 
+import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.bitcoin.PrivateKey
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -17,6 +19,7 @@ import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.SocketEffect
 import okhttp3.OkHttpClient
+import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
@@ -75,6 +78,54 @@ class ClientTest {
                 val outcome = LnurlcashClient().mutate(MutationType.Melt, server.url("/w/cb?k1=a&pr=lnbc1").toString())
                 assertIs<MutationOutcome.Ambiguous>(outcome)
                 assertEquals(1, server.requestCount)
+            }
+        }
+
+    @Test
+    fun `a replay refused after an unanswered attempt stays ambiguous`() =
+        runBlocking<Unit> {
+            val refusals =
+                listOf(
+                    200 to """{"status":"ERROR","reason":"rate limited"}""",
+                    200 to """{"status":"ERROR","reason":"pending"}""",
+                    200 to """{"status":"ERROR","reason":"already in use"}""",
+                    502 to """{"status":"ERROR","reason":"Bad Gateway"}""",
+                )
+            for ((code, body) in refusals) {
+                MockWebServer().use { server ->
+                    server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())
+                    server.enqueue(MockResponse(code = code, body = body))
+                    server.start()
+                    val outcome = LnurlcashClient().mutate(MutationType.Rotate, server.url("/w/cb?k1=a&p1=cp1z").toString())
+                    assertIs<MutationOutcome.Ambiguous>(outcome, body)
+                    assertEquals(2, server.requestCount, body)
+                }
+            }
+        }
+
+    @Test
+    fun `a refused replay says what refused it`() =
+        runBlocking<Unit> {
+            MockWebServer().use { server ->
+                server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())
+                server.enqueue(MockResponse(body = """{"status":"ERROR","reason":"rate limited"}"""))
+                server.start()
+                val outcome = LnurlcashClient().mutate(MutationType.Rotate, server.url("/w/cb?k1=a&p1=cp1z").toString())
+                assertEquals(MutationOutcome.Ambiguous("replay refused: rate limited"), outcome)
+            }
+        }
+
+    @Test
+    fun `a replay that lands confirms an unanswered attempt`() =
+        runBlocking<Unit> {
+            MockWebServer().use { server ->
+                val c = Certificates.sign("mint.example", 21_000, ByteVector32.One, PrivateKey(ByteVector32.One)).encode()
+                server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())
+                server.enqueue(MockResponse(body = """{"status":"OK","c":"$c"}"""))
+                server.start()
+                val outcome = LnurlcashClient().mutate(MutationType.Rotate, server.url("/w/cb?k1=a&p1=cp1z").toString())
+                assertEquals(c, assertIs<MutationOutcome.Confirmed>(outcome).certificate)
+                assertEquals(2, server.requestCount)
             }
         }
 

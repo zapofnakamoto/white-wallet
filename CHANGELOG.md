@@ -127,6 +127,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   and shows that it is working until the wallet gets to it, and the removal goes through even if the page is left.
   "Remove this account" opens its question at once instead of waiting for the refresh. A refused removal no longer
   says "Can't be removed" twice on the mint's page.
+- A renew, combine, split or claim whose answer was lost, and whose resend the mint then refused (rate limited, busy,
+  a proxy's error page), counted as refused: its notes stayed in the balance although the first request may have spent
+  them. It now waits for an answer and is settled by looking the notes up, as when no answer comes at all.
 
 ## [0.9.0]
 

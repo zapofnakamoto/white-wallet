@@ -69,7 +69,10 @@ public sealed interface MutationOutcome {
     /** Landed, but a certificate owed for a `cp1` output is missing. The outputs exist; keep their secrets. */
     public data class Unverifiable(val certificate: String?, val changeCertificate: String?, val raw: JsonObject) : MutationOutcome
 
-    /** Processed and refused. Nothing was burned or minted. */
+    /**
+     * Processed and refused. Nothing was burned or minted. Only ever the answer to a first attempt: a replay that is refused leaves the
+     * outcome [Ambiguous], since the attempt before it may have landed.
+     */
     public data class Rejected(val kind: RejectionKind, val reason: String?) : MutationOutcome
 
     /** Not known whether it landed. Reconcile with lookups; never discard output secrets. */
