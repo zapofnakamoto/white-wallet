@@ -43,12 +43,13 @@ class LimitsTest {
     }
 
     @Test
-    fun `changing the address of the only account is not a new account`() = runBlocking {
-        val store = InMemoryWalletStore()
-        store.addAccount("a", "Main", PrimaryAddress("alice", "mint.example"))
-        val result = wallet(store, maxWallets = 1).onboard("bob", "not a host", null)
-        assertIs<OnboardResult.MintInvalid>(result, "gets past the account limit")
-    }
+    fun `changing the address of the only account is not a new account`() =
+        runBlocking<Unit> {
+            val store = InMemoryWalletStore()
+            store.addAccount("a", "Main", PrimaryAddress("alice", "mint.example"))
+            val result = wallet(store, maxWallets = 1).onboard("bob", "not a host", null)
+            assertIs<OnboardResult.MintInvalid>(result, "gets past the account limit")
+        }
 
     @Test
     fun `brand limits read 0 as no limit, and developer mode overrides addresses`() {
