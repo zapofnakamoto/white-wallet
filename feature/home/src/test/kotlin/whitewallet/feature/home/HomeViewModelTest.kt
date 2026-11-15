@@ -2,6 +2,7 @@ package whitewallet.feature.home
 
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import java.io.IOException
@@ -19,10 +20,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.job
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import okhttp3.Interceptor
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.AppDefaults
@@ -65,12 +69,16 @@ class HomeViewModelTest {
     /** Holds the view model, so that clearing it ends what it runs before the next test. */
     private val viewModels = ViewModelStore()
 
+    /** The view models' scopes: cleared, they finish cancelling on the main dispatcher, so it is reset only once they are done. */
+    private val scopes = mutableListOf<Job>()
+
     @BeforeTest fun setMain() = Dispatchers.setMain(Dispatchers.Default)
 
     @AfterTest
     fun cleanUp() {
         screen.cancel()
         viewModels.clear()
+        runBlocking { withTimeout(10_000) { scopes.joinAll() } }
         Dispatchers.resetMain()
     }
 
@@ -89,6 +97,7 @@ class HomeViewModelTest {
             }
         }
         val home = ViewModelProvider.create(viewModels, factory)[HomeViewModel::class]
+        scopes += home.viewModelScope.coroutineContext.job
         screen.launch { home.state.collect {} }
         home.await { it.loaded && it.offline && !it.refreshing }
         return home
