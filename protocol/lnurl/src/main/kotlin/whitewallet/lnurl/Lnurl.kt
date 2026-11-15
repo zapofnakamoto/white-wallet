@@ -10,6 +10,9 @@ public object Lnurl {
     private val ADDRESS = Regex("^([a-z0-9\\-_.+]+)@([a-z0-9\\-.]+(:[0-9]{1,5})?)$", RegexOption.IGNORE_CASE)
     private val WELL_KNOWN_LNURLP = Regex("^(https?://[^/]+)/\\.well-known/lnurlp/([^/?#]+)$")
 
+    /** A canonical dotted-decimal IPv4 address in 127.0.0.0/8: four octets 0–255, no leading zeros. */
+    private val LOOPBACK_IPV4 = Regex("^127(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}$")
+
     /** Decodes a bech32 `lnurl1...` string to its URL, or null. Case-insensitive, with no length limit. */
     public fun decodeBech32(value: String): String? = runCatching {
         val (hrp, data, encoding) = Bech32.decodeBytes(value)
@@ -88,8 +91,14 @@ public object Lnurl {
     private fun schemeFor(hostWithPort: String): String =
         if (isOnionOrLoopback(hostWithPort.substringBefore(':').lowercase())) "http" else "https"
 
+    /** `.onion`, or loopback: `localhost`, a canonical IPv4 address in 127.0.0.0/8, `[::1]` or `0.0.0.0` (url-admission.json). */
     private fun isOnionOrLoopback(host: String): Boolean =
-        host.endsWith(".onion") || host == "localhost" || host.startsWith("127.") || host == "[::1]" || host == "::1"
+        host.endsWith(".onion") ||
+            host == "localhost" ||
+            LOOPBACK_IPV4.matches(host) ||
+            host == "[::1]" ||
+            host == "::1" ||
+            host == "0.0.0.0"
 
     private fun encode(s: String) = URLEncoder.encode(s, Charsets.UTF_8).replace("+", "%20")
 

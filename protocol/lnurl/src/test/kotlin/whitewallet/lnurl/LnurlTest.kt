@@ -3,8 +3,11 @@ package whitewallet.lnurl
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlinx.serialization.json.jsonPrimitive
 import whitewallet.testkit.Vectors
+import whitewallet.testkit.arr
 import whitewallet.testkit.obj
 import whitewallet.testkit.objects
 import whitewallet.testkit.str
@@ -29,6 +32,41 @@ class LnurlTest {
     @Test
     fun `input resolution`() {
         for (c in resolution.objects("lnurl")) assertEquals(c.strOrNull("expect"), Lnurl.resolve(c.str("input")), c.str("input"))
+    }
+
+    @Test
+    fun `url admission`() {
+        val admission = Vectors.conformance("url-admission")
+        for (url in admission.arr("allowed").map { it.jsonPrimitive.content }) assertEquals(url, Lnurl.resolve(url), url)
+        for (c in admission.objects("rejected")) assertNull(Lnurl.resolve(c.str("url")), c.str("why"))
+    }
+
+    @Test
+    fun `cleartext only to a real loopback address`() {
+        val lookalikes =
+            listOf(
+                "127.evil.com",
+                "127.0.0.1.evil.com",
+                "0127.0.0.1",
+                "127.0.0.01",
+                "127.256.0.1",
+                "127.0.0",
+                "127.1",
+                "128.0.0.1",
+                "localhost.evil.com",
+                "0.0.0.0.evil.com",
+            )
+        for (host in lookalikes) {
+            assertNull(Lnurl.resolve("http://$host/w"), host)
+            assertNotEquals("http://$host/w", Lnurl.resolve("lnurlw://$host/w"), host)
+            assertEquals("https://$host/.well-known/lnurlp/alice", Lnurl.lightningAddressUrl("alice@$host"), host)
+        }
+        for (host in listOf("localhost", "127.0.0.1", "127.255.255.255", "127.10.0.250", "0.0.0.0", "[::1]", "mint.onion")) {
+            assertEquals("http://$host:8000/w", Lnurl.resolve("http://$host:8000/w"), host)
+        }
+        for (host in listOf("localhost", "127.0.0.1", "127.10.0.250", "0.0.0.0", "mint.onion")) {
+            assertEquals("http://$host/w", Lnurl.resolve("lnurlw://$host/w"), host)
+        }
     }
 
     @Test

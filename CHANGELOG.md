@@ -146,6 +146,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Claim offered a script note as spendable whose script consensus leaves open to any reading (a leaf version other than
   `0xc0`, an `OP_SUCCESS` opcode, a signature checked against a key of an unknown type), which LUD-25 has a mint refuse.
   Such a note now shows as not spendable. A note already kept stays kept, and its mint decides when it is claimed.
+- A link or address whose host only started like the device's own address (`127.example.com`, `0127.0.0.1`) was
+  fetched over cleartext http. Only a real loopback address (`localhost`, `127.x.x.x` written plainly, `[::1]`,
+  `0.0.0.0`) or a `.onion` host may use http now.
 
 ## [0.9.0]
 
