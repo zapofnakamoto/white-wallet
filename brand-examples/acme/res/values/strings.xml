@@ -208,6 +208,10 @@
         <item quantity="one">Checking your banknote…</item>
         <item quantity="other">Checking banknote %1$d of %2$d…</item>
     </plurals>
+    <plurals name="scan_mint_checking_notes">
+        <item quantity="one">Checking your banknote…</item>
+        <item quantity="other">Checking banknote %1$d of %2$d…</item>
+    </plurals>
     <string name="home_working_combining">Combining your banknotes…</string>
     <string name="home_working_splitting">Splitting your banknotes…</string>
     <string name="home_working_renewing">Renewing your banknotes…</string>

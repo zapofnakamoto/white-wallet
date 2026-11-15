@@ -1,20 +1,47 @@
 package whitewallet.core.wallet
 
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import whitewallet.core.model.Mint
 import whitewallet.core.model.OutputRef
 import whitewallet.lnurlcash.spendDomain
 
-/** [stoppedEarly] says why a scan ended before its gap; [refused] when the mint refused a lookup rather than not answering. */
-data class DiscoveryResult(val next: Long, val checked: Int, val imported: Int, val stoppedEarly: String?, val refused: Boolean = false)
+/**
+ * [stoppedEarly] says why a scan ended before its gap; [refused] when the mint refused a lookup rather than not answering, or presented
+ * another signing key than the pinned one ([keyChanged], with [MINT_KEY_CHANGED]).
+ */
+data class DiscoveryResult(
+    val next: Long,
+    val checked: Int,
+    val imported: Int,
+    val stoppedEarly: String?,
+    val refused: Boolean = false,
+    val keyChanged: Boolean = false,
+)
 
 /** The state of one key set's index on one mint, for the developer key page. */
 data class IndexHealth(val next: Long, val highestUsed: Long, val lastVerifiedAtMillis: Long?) {
     /** The counter would hand out a key the wallet knows is used. */
     val behind: Boolean
         get() = next <= highestUsed
+}
+
+/**
+ * One refresh or scan, as far as how many lookups each mint gets at once: [WalletSettings.scanLookupsAtOnce], until one of several gets no
+ * answer, perhaps one too many for the mint. That mint is asked one at a time for the rest of the run, on every chain and account; another
+ * mint isn't. Nothing is kept: the next run tries them at once again.
+ */
+internal class LookupRun(private val atOnce: Int) {
+    private val oneAtATime: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
+    fun atOnce(host: String): Int = if (host in oneAtATime) 1 else atOnce
+
+    fun oneAtATime(host: String) {
+        oneAtATime += host
+    }
 }
 
 /**
@@ -39,6 +66,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         host: String,
         set: KeySet,
         gap: Int = wallet.settings.scanStopAfterUnusedKeys,
+        run: LookupRun = LookupRun(wallet.settings.scanLookupsAtOnce),
         onProbe: (KeyProbe) -> Unit = {},
     ): DiscoveryResult {
         val current = wallet.store.indexOf(accountId, host, set)
@@ -48,17 +76,24 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         var unused = 0
         var checked = 0
         var imported = 0
-        var atOnce = wallet.settings.scanLookupsAtOnce
         while (unused < gap) {
+            val atOnce = run.atOnce(host)
             // Several lookups go out together, never past the end of the gap; their answers are applied in key order, so the scan finds
             // and stops at the same keys as one at a time would.
             val ids = (0 until minOf(atOnce, gap - unused)).map { set.key(accountId, host, index + it) }
             val answers = coroutineScope { ids.map { async { prober.lookup(it, mint) } }.awaitAll() }
             for ((id, answer) in ids.zip(answers)) {
-                val probe = prober.apply(id, mint, answer)
+                val probe =
+                    try {
+                        prober.apply(id, mint, answer)
+                    } catch (e: MintKeyChangedException) {
+                        // Nothing more is asked of this mint until its key matches.
+                        val next = wallet.store.indexOf(accountId, host, set)
+                        return DiscoveryResult(next, checked, imported, MINT_KEY_CHANGED, refused = true, keyChanged = true)
+                    }
                 // One of several lookups failed, perhaps one too many for the mint: that key again, alone, before giving up.
                 if (probe is KeyProbe.Failed && atOnce > 1) {
-                    atOnce = 1
+                    run.oneAtATime(host)
                     break
                 }
                 checked++
@@ -98,6 +133,36 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         wallet.markIndexVerified(accountId, host, set)
         return DiscoveryResult(next, checked, imported, null)
     }
+
+    /**
+     * Looks up the keys of notes the wallet holds ([ids], all on [mint]), several at once as [discover] does and with the same fallback,
+     * and applies each answer ([KeyProber.apply]): one burned elsewhere is spent, one the mint doesn't know is set aside. A refusal is that
+     * note's alone. False if the mint stopped answering or presented another signing key; the rest weren't looked up.
+     */
+    suspend fun recheck(ids: List<KeyId>, mint: Mint, run: LookupRun, onProbe: (KeyProbe) -> Unit = {}): Boolean {
+        var next = 0
+        while (next < ids.size) {
+            val atOnce = run.atOnce(mint.host)
+            val batch = ids.subList(next, minOf(next + atOnce, ids.size))
+            val answers = coroutineScope { batch.map { async { prober.lookup(it, mint) } }.awaitAll() }
+            for ((id, answer) in batch.zip(answers)) {
+                val probe =
+                    try {
+                        prober.apply(id, mint, answer)
+                    } catch (e: MintKeyChangedException) {
+                        return false
+                    }
+                if (probe is KeyProbe.Failed) {
+                    if (atOnce == 1) return false
+                    run.oneAtATime(mint.host)
+                    break
+                }
+                onProbe(probe)
+                next++
+            }
+        }
+        return true
+    }
 }
 
 /**
@@ -111,7 +176,7 @@ internal class IndexGuard(private val wallet: Wallet) {
     suspend fun reserve(accountId: String, host: String, set: KeySet): ReservedOutput {
         val counter = checkNotNull(set.counter) { "new keys come from the wallet or change chain, not $set" }
         val domain = spendDomain(host)
-        if (wallet.store.keyIndexOrNull(accountId, domain, counter) == null) discovery.discover(accountId, host, set)
+        if (wallet.store.keyIndexOrNull(accountId, domain, counter) == null) discover(accountId, host, set)
         val keys = wallet.keys(accountId, host)
         repeat(wallet.settings.newKeyMaxUsedKeysSkipped) {
             val index = wallet.store.reserveKeyIndex(accountId, domain, counter)
@@ -128,5 +193,9 @@ internal class IndexGuard(private val wallet: Wallet) {
      * with the same phrase made there. Once per operation: a key held by an unpaid invoice looks unknown, so further refusals only mean
      * taking the next key.
      */
-    suspend fun recover(accountId: String, host: String, set: KeySet) = discovery.discover(accountId, host, set)
+    suspend fun recover(accountId: String, host: String, set: KeySet) = discover(accountId, host, set)
+
+    /** A mint whose key changed gets no output key: its callers stop as they do at any other [MintKeyChangedException]. */
+    private suspend fun discover(accountId: String, host: String, set: KeySet) =
+        discovery.discover(accountId, host, set).also { if (it.keyChanged) throw MintKeyChangedException(host) }
 }

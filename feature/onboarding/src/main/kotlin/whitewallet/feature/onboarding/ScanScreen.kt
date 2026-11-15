@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,7 @@ import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.MintScan
 import whitewallet.core.wallet.MintInfo
+import whitewallet.core.wallet.ScanProgress
 import whitewallet.core.wallet.ScanResult
 
 /**
@@ -53,7 +55,7 @@ fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
                     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                         Text(mint.host, style = MaterialTheme.typography.titleSmall)
                         Text(
-                            if (current) stringResource(R.string.scan_mint_scanning) else scanStatus(mint),
+                            if (current) scanningText(state.progress) else scanStatus(mint),
                             style = MaterialTheme.typography.bodySmall,
                             color =
                                 if (current || mint.scan == MintScan.Finished) MaterialTheme.colorScheme.onSurfaceVariant
@@ -83,6 +85,14 @@ fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
             }
         }
     }
+}
+
+/** What the scan does on the mint now: looking for new notes, then looking up the ones the wallet holds there. */
+@Composable
+private fun scanningText(progress: ScanProgress?): String {
+    if (progress == null || progress.notesToCheck == 0) return stringResource(R.string.scan_mint_scanning)
+    val total = progress.notesToCheck
+    return pluralStringResource(R.plurals.scan_mint_checking_notes, total, minOf(progress.notesChecked + 1, total), total)
 }
 
 /** Whether, and when, the mint's keys were looked through; a scan from before this was recorded has no time. */

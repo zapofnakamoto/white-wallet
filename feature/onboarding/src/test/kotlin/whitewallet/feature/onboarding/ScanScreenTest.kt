@@ -69,6 +69,21 @@ class ScanScreenTest {
         compose.onNodeWithText(text(R.string.scan_action)).assertDoesNotExist()
     }
 
+    private fun whileItLooksUpTheNotesItHoldsTheMintCountsThem() {
+        val accounts = listOf(ScanProgress.AccountScan(0, 12, 0, true))
+        show(ScanState(mints, scanning = true, host = "new.example", progress = ScanProgress(accounts, notesChecked = 2, notesToCheck = 5)))
+        compose.onNodeWithText(plural(R.plurals.scan_mint_checking_notes, 5, 3, 5)).assertExists()
+        compose.onNodeWithText(text(R.string.scan_mint_scanning)).assertDoesNotExist()
+        // What the walk found stays on screen.
+        compose.onNodeWithText(text(R.string.add_mint_account, 1)).assertExists()
+    }
+
+    @Test fun whileItLooksUpTheNotesItHoldsTheMintCountsThemInEnglish() = whileItLooksUpTheNotesItHoldsTheMintCountsThem()
+
+    @Test
+    @Config(qualifiers = "de")
+    fun whileItLooksUpTheNotesItHoldsTheMintCountsThemInGerman() = whileItLooksUpTheNotesItHoldsTheMintCountsThem()
+
     @Test
     fun whatWasFoundShowsAndDoneLeaves() {
         var left = 0

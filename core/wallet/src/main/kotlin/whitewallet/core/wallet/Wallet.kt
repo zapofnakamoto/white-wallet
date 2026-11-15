@@ -1048,9 +1048,25 @@ class Wallet(
                 val before = held()
                 // Those never finished first: they are what the user is waiting for.
                 val mints = store.mints(walletId).first().sortedBy { it.scan == MintScan.Finished }
-                val failed = restorer.scanMints(walletId, mints.map { it.host }, onProgress)
-                val stopped = mints.map { it.host }.filter { it in failed }
-                ScanResult(foundMsat = held() - before, stoppedAt = stopped)
+                val run = LookupRun(settings.scanLookupsAtOnce)
+                val shown = mutableMapOf<String, ScanProgress>()
+                val failed =
+                    restorer.scanMints(walletId, mints.map { it.host }, run) { host, progress ->
+                        shown[host] = progress
+                        onProgress(host, progress)
+                    }
+                val found = held() - before
+                // Then the notes it holds, which another phone with the phrase may have spent: the balance is right afterwards.
+                val unchecked =
+                    mints
+                        .map { it.host }
+                        .filter { it !in failed }
+                        .filterNot { host ->
+                            restorer.recheckHeld(walletId, host, run) { checked, total ->
+                                onProgress(host, ScanProgress(shown[host]?.accounts.orEmpty(), checked, total))
+                            }
+                        }
+                ScanResult(foundMsat = found, stoppedAt = mints.map { it.host }.filter { it in failed || it in unchecked })
             }
         }
 

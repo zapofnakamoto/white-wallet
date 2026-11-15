@@ -82,7 +82,7 @@ internal class Restore(private val wallet: Wallet) {
                 }
             }
         }
-        (h?.let { scanMint(accountId, it) } as? WalletScan.Failed)?.let {
+        (h?.let { scanMint(accountId, it, LookupRun(wallet.settings.scanLookupsAtOnce)) } as? WalletScan.Failed)?.let {
             return failed(it.failure)
         }
         wallet.store.setActiveAccount(accountId)
@@ -101,6 +101,7 @@ internal class Restore(private val wallet: Wallet) {
     suspend fun scanMints(
         walletId: String,
         hosts: List<String>,
+        run: LookupRun = LookupRun(wallet.settings.scanLookupsAtOnce),
         onProgress: (host: String, ScanProgress) -> Unit = { _, _ -> },
     ): Map<String, OnboardResult> {
         val highest = suspend { wallet.store.accounts.first().filter { it.account.walletId == walletId }.maxOf { it.account.index } }
@@ -116,7 +117,7 @@ internal class Restore(private val wallet: Wallet) {
                         scan.failure.let { if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason) }
             }
         }
-        for (h in hosts) record(h, scanMint(walletId, h) { onProgress(h, it) })
+        for (h in hosts) record(h, scanMint(walletId, h, run) { onProgress(h, it) })
         while (true) {
             val top = highest()
             // A mint scanned to its end before this call looked through every account the wallet had then.
@@ -126,7 +127,7 @@ internal class Restore(private val wallet: Wallet) {
                     (mint.host to stop).takeIf { mint.host !in failed && stop <= top }
                 }
             if (behind.isEmpty()) return failed
-            for ((h, from) in behind) record(h, scanMint(walletId, h, from, again = true) { onProgress(h, it) })
+            for ((h, from) in behind) record(h, scanMint(walletId, h, run, from, again = true) { onProgress(h, it) })
         }
     }
 
@@ -138,14 +139,42 @@ internal class Restore(private val wallet: Wallet) {
     private suspend fun scanMint(
         walletId: String,
         host: String,
+        run: LookupRun,
         from: Long = 0,
         again: Boolean = false,
         onProgress: (ScanProgress) -> Unit = {},
     ): WalletScan {
         mark(walletId, host) { if (it.scan == MintScan.Finished && !again) it else it.copy(scanStartedAtMillis = wallet.now()) }
-        val scan = scanWallet(walletId, host, from, onProgress)
+        val scan = scanWallet(walletId, host, run, from, onProgress)
         if (scan is WalletScan.Done) mark(walletId, host) { it.copy(scanFinishedAtMillis = wallet.now()) }
         return scan
+    }
+
+    /**
+     * Looks up every note the wallet [walletId] holds on [host], in any of its accounts: another phone with the phrase may have spent one.
+     * [onChecked] follows it, from none of them to all. False if the mint stopped answering or its key changed before all were looked up.
+     */
+    suspend fun recheckHeld(
+        walletId: String,
+        host: String,
+        run: LookupRun,
+        onChecked: (checked: Int, total: Int) -> Unit = { _, _ -> },
+    ): Boolean {
+        val mint = wallet.store.mint(walletId, host) ?: return true
+        val accounts = wallet.store.accounts.first().map { it.account }.filter { it.walletId == walletId }
+        val ids = accounts.flatMap { account ->
+            wallet.store
+                .notes(account.id)
+                .first()
+                .filter { it.host == host && (it.isRecheckable() || it.isUnknown()) }
+                .map {
+                    KeyId(account.id, host, KeySet.of(it), it.index!!)
+                }
+        }
+        if (ids.isEmpty()) return true
+        var checked = 0
+        onChecked(checked, ids.size)
+        return discovery.recheck(ids, mint, run) { onChecked(++checked, ids.size) }
     }
 
     /** The wallet's keys can hold nothing at [host] that this phone doesn't know: its scan counts as done. */
@@ -171,8 +200,9 @@ internal class Restore(private val wallet: Wallet) {
                 )
             onProgress(ScanProgress(listOf(progress)))
         }
+        val run = LookupRun(wallet.settings.scanLookupsAtOnce)
         for (mint in wallet.store.mints(account.walletId).first()) {
-            val found = scan(account.id, mint.host, report)
+            val found = scan(account.id, mint.host, run, report)
             if (found is Scan.Failed) {
                 val why =
                     found.failure.let { if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason) }
@@ -189,7 +219,13 @@ internal class Restore(private val wallet: Wallet) {
      * created one's home is [host], where it was found. Once every account was looked through, where the scan stopped; otherwise why it
      * stopped, and the created accounts that hold nothing are gone again.
      */
-    private suspend fun scanWallet(walletId: String, host: String, from: Long = 0, onProgress: (ScanProgress) -> Unit = {}): WalletScan {
+    private suspend fun scanWallet(
+        walletId: String,
+        host: String,
+        run: LookupRun,
+        from: Long = 0,
+        onProgress: (ScanProgress) -> Unit = {},
+    ): WalletScan {
         val accounts = wallet.store.accounts.first().map { it.account }.filter { it.walletId == walletId }
         val byIndex = accounts.associateBy { it.index }
         val progress = mutableListOf<ScanProgress.AccountScan>()
@@ -216,7 +252,7 @@ internal class Restore(private val wallet: Wallet) {
                     )
                 onProgress(ScanProgress(progress.toList()))
             }
-            val found = scan(account.id, host, report)
+            val found = scan(account.id, host, run, report)
             progress[progress.lastIndex] = progress.last().copy(done = true)
             onProgress(ScanProgress(progress.toList()))
             when (found) {
@@ -249,10 +285,10 @@ internal class Restore(private val wallet: Wallet) {
     }
 
     /** Finds what [accountId] holds on [h]. */
-    private suspend fun scan(accountId: String, h: String, report: (KeyProbe) -> Unit = {}): Scan {
+    private suspend fun scan(accountId: String, h: String, run: LookupRun, report: (KeyProbe) -> Unit = {}): Scan {
         var used = false
         for (set in listOf(KeySet.Wallet, KeySet.Change)) {
-            val found = discovery.discover(accountId, h, set, onProbe = report)
+            val found = discovery.discover(accountId, h, set, run = run, onProbe = report)
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))
             }
@@ -264,7 +300,7 @@ internal class Restore(private val wallet: Wallet) {
         var unused = 0
         var last = -1L
         while (unused < wallet.settings.scanStopAfterUnusedShares) {
-            val found = discovery.discover(accountId, h, KeySet.Share(share), onProbe = report)
+            val found = discovery.discover(accountId, h, KeySet.Share(share), run = run, onProbe = report)
             found.stoppedEarly?.let {
                 return Scan.Failed(Failure(it, found.refused))
             }

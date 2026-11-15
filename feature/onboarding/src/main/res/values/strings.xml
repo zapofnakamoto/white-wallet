@@ -27,6 +27,10 @@
     <string name="add_mint_error_invalid">That isn\'t a mint this app can use: %1$s</string>
     <string name="add_mint_known">This wallet has this mint already. Adding it again looks for your money there again.</string>
     <string name="scan_notes_title">Scan for notes</string>
+    <plurals name="scan_mint_checking_notes">
+        <item quantity="one">Checking your note…</item>
+        <item quantity="other">Checking note %1$d of %2$d…</item>
+    </plurals>
     <string name="add_mint_use">Use this mint</string>
     <string name="add_mint_add">Add this mint</string>
     <string name="add_mint_other">Pick another mint</string>

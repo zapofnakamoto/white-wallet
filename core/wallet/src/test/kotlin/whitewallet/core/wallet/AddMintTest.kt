@@ -1,3 +1,5 @@
+@file:OptIn(RevealsNoteSecret::class)
+
 package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.MnemonicCode
@@ -23,7 +25,11 @@ import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.MintScan
 import whitewallet.lnurlcash.Cp1
+import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.protocol.MutationOutcome
+import whitewallet.lnurlcash.protocol.MutationType
+import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 import whitewallet.testkit.MockMint
 
@@ -421,6 +427,22 @@ abstract class AddMintTest {
         }
 
     @Test
+    fun `a note another phone with the phrase spent leaves the balance on a scan`() =
+        runBlocking<Unit> {
+            val words = phrase()
+            val msat = credit(words, home, KeySet.Wallet, 0, SATS)
+            val kept = credit(words, home, KeySet.Change, 0, SATS)
+            val phone = Fresh()
+            assertIs<RestoreResult.Restored>(phone.restore(words))
+            assertEquals(msat + kept, phone.balance())
+
+            // The other phone spends it: renewed to a key of another phrase, as a payment from there would.
+            spend(words, home, KeySet.Wallet, 0)
+            assertEquals(ScanResult(0, emptyList()), phone.wallet.scan())
+            assertEquals(kept, phone.balance())
+        }
+
+    @Test
     fun `leaving the screen doesn't cut the scan off`() =
         runBlocking<Unit> {
             val words = phrase()
@@ -477,6 +499,16 @@ abstract class AddMintTest {
     }
 
     internal fun keys(words: List<String>, host: String, account: Long): AccountKeys = testKeys(words, host, account)
+
+    /** Spends the note on that key at [host]'s mint, by renewing it to a key of another phrase. */
+    private suspend fun spend(words: List<String>, host: String, set: KeySet, index: Long) {
+        val client = client()
+        val keys = keys(words, host, 0)
+        val info = client.lookup(client.servicePayRequest(host).withdrawUrl, keys.pubkey(set, index))
+        val elsewhere = keys(phrase(), host, 0).pubkey(KeySet.Wallet, 0)
+        val outcome = client.mutate(MutationType.Rotate, Requests.rotate(info.callback, keys.spend(set, index, host).k1, elsewhere))
+        assertIs<MutationOutcome.Confirmed>(outcome)
+    }
 
     private fun phrase(): List<String> = MnemonicCode.toMnemonics(ByteArray(16).also(random::nextBytes))
 

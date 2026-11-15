@@ -142,10 +142,10 @@ sealed interface AbandonResult {
 }
 
 /**
- * How far adding a mint has looked ([Wallet.addMint]): per account index, in order, the keys looked up so far and what the found notes
- * hold.
+ * How far adding a mint ([Wallet.addMint]) or a scan ([Wallet.scan]) has looked: per account index, in order, the keys looked up so far and
+ * what the found notes hold. Then, on a scan, the notes the wallet already holds there are looked up: [notesChecked] of [notesToCheck].
  */
-data class ScanProgress(val accounts: List<AccountScan>) {
+data class ScanProgress(val accounts: List<AccountScan>, val notesChecked: Int = 0, val notesToCheck: Int = 0) {
     /** [done]: every key set of the account was looked through. */
     data class AccountScan(val index: Long, val keysChecked: Int, val foundMsat: Long, val done: Boolean)
 }
