@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
@@ -50,6 +52,7 @@ import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
+import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
@@ -240,6 +243,8 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
             state.addressHost,
             actions.onOpenMint,
         )
+    } else if (state.addressHost in state.keyChecking) {
+        Checking(state, state.addressHost.orEmpty())
     } else if (state.addressMintNotAnswering) {
         Text(
             if (state.mintsVisible) stringResource(R.string.receive_address_mint_silent, state.addressHost.orEmpty())
@@ -256,6 +261,20 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
     WalletButton(kind = ButtonKind.Text, onClick = actions.onRequestAmount) { Text(stringResource(R.string.receive_request_amount)) }
     if (others)
         WalletButton(kind = ButtonKind.Text, onClick = actions.onOtherAddress) { Text(stringResource(R.string.receive_other_address)) }
+}
+
+/** The mint's signing key is being asked for, so nothing is made there yet. */
+@Composable
+private fun Checking(state: ReceiveState, host: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        WalletCircularProgress(Modifier.size(16.dp))
+        Text(
+            if (state.mintsVisible) stringResource(R.string.receive_key_checking, host)
+            else stringResource(R.string.receive_key_checking_unnamed),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 /** Why nothing is received on [host] now, with the way to its details where the new key is accepted (where the brand names mints). */
@@ -282,6 +301,7 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions, mintLine: @
         modifier = Modifier.fillMaxWidth(),
     )
     // Being offline is said as it is, before the user tries, and not as an error once the phone is back.
+    if (!state.receivingChecked) Checking(state, state.receivingHost.orEmpty())
     // Known before the user tries, said up front; else as the mint's answer to the attempt.
     val keyChanged = state.receivingHost.takeIf { state.receivingKeyChanged } ?: (state.problem as? InvoiceProblem.KeyChanged)?.host
     keyChanged?.let { host ->
@@ -314,8 +334,8 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions, mintLine: @
     PrimaryButton(
         stringResource(R.string.receive_invoice_create),
         actions.onCreate,
-        enabled = state.amountMsat != null && !state.offline && !state.receivingKeyChanged,
-        busy = state.creating,
+        enabled = state.amountMsat != null && !state.offline && !state.receivingKeyChanged && state.receivingChecked,
+        busy = state.creating || !state.receivingChecked,
     )
     if (state.addressCount > 0) {
         WalletButton(kind = ButtonKind.Text, onClick = actions.onOtherAddress) { Text(stringResource(R.string.receive_use_address)) }

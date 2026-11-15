@@ -79,6 +79,8 @@ data class ReceiveState(
     val addressMintNotAnswering: Boolean = false,
     /** The signing key of the [address]'s mint doesn't match the pinned one: payments to it wait there until it does. */
     val addressKeyChanged: Boolean = false,
+    /** The mints whose signing key is being asked for: nothing is made on them until the answer is back. */
+    val keyChecking: Set<String> = emptySet(),
     /** The brand names mints (brand `mints.visible`). */
     val mintsVisible: Boolean = true,
     /** The phone is offline: no invoice can be made, and the amount form says so before the user tries. */
@@ -92,6 +94,10 @@ data class ReceiveState(
     /** The mint what is shown receives on: the invoice's, the address's, else the one an invoice would be made on. */
     val receivingHost: String?
         get() = invoice?.host ?: addressHost.takeIf { invoice == null && !showAmountForm } ?: on ?: homeHost
+
+    /** The signing key of the mint received on is being asked for: the form says so and waits. */
+    val receivingChecked: Boolean
+        get() = receivingHost !in keyChecking
 
     /** The signing key of the mint received on doesn't match the pinned one: the form says so before the user tries, and makes nothing. */
     val receivingKeyChanged: Boolean
@@ -161,6 +167,9 @@ constructor(
     private val ui = MutableStateFlow(ReceiveUi(on = savedState.get<String>("on")?.takeIf { it.isNotBlank() }))
     private var watch: Job? = null
 
+    /** The mints whose signing key is being asked for; null until it is known which are: nothing is drawn before. */
+    private val checking = MutableStateFlow<Set<String>?>(null)
+
     val state: StateFlow<ReceiveState> =
         combine(addressChoice(), received, ui, faucet.available, wallet.noHome) { choice, msat, u, canFaucet, noHome ->
                 ReceiveState(
@@ -190,6 +199,7 @@ constructor(
                 )
             }
             .combine(wallet.offline) { state, offline -> state.copy(offline = offline) }
+            .combine(checking) { state, asking -> asking?.let { state.copy(keyChecking = it) } ?: state.copy(loaded = false) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState(loaded = false))
 
     /** The primary address first, else one on the home mint; addresses still held for their fee aren't offered. */
@@ -216,8 +226,22 @@ constructor(
         }
 
     init {
-        // Whether each mint's signing key still matches, asked before the user tries: the address and the list say so.
-        viewModelScope.launch { receiveMints().first().second.forEach { mint -> launch { wallet.checkMintKey(mint.host) } } }
+        // Whether each mint's signing key still matches, asked before the user tries (once per app session): the address and the list say
+        // so,
+        // and nothing is made on a mint while it is asked.
+        viewModelScope.launch {
+            val ask = receiveMints().first().second.map { it.host }.filterNot { wallet.mintKeyCompared(it) }
+            checking.value = ask.toSet()
+            ask.forEach { host ->
+                launch {
+                    try {
+                        wallet.checkMintKey(host)
+                    } finally {
+                        checking.update { it.orEmpty() - host }
+                    }
+                }
+            }
+        }
         viewModelScope.launch {
             // Back online, an invoice that failed for being offline is no news: the form says what it is now.
             wallet.followOffline { _, back ->

@@ -14,6 +14,7 @@
     <string name="receive_on_home">Bei %1$s, deiner Haupt-Mint</string>
     <string name="receive_on_home_detail">Haupt-Mint · %1$s</string>
     <string name="receive_address_key_changed_unnamed">Der Signaturschlüssel deiner Mint passt nicht zu dem, den deine Wallet kennt, darum warten Zahlungen an diese Adresse vorerst dort.</string>
+    <string name="receive_key_checking_unnamed">Prüfe deine Mint …</string>
     <string name="receive_invoice_key_changed_unnamed">Der Signaturschlüssel deiner Mint passt nicht zu dem, den deine Wallet kennt, darum lässt sich gerade keine Rechnung erstellen.</string>
 
     <string name="receive_title">Empfangen</string>
@@ -49,5 +50,6 @@
     <string name="receive_on_key_changed">Signaturschlüssel passt nicht</string>
     <string name="receive_address_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Zahlungen an diese Adresse warten dort, bis er wieder passt oder du in den Details einen neuen annimmst.</string>
     <string name="receive_invoice_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt, darum wird dort keine Rechnung erstellt, bis er wieder passt oder du in den Details einen neuen annimmst.</string>
+    <string name="receive_key_checking">Prüfe %1$s …</string>
     <string name="receive_key_changed_action">Details</string>
 </resources>

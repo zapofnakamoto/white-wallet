@@ -6,7 +6,9 @@
     <string name="home_add_mint_action">Mint hinzufügen</string>
     <string name="home_mint_is_home">Haupt-Mint</string>
     <string name="home_mint_not_answering">Antwortet nicht</string>
+    <string name="home_mint_key_changed">Signaturschlüssel passt nicht</string>
     <string name="home_mint_is_home_not_answering">Haupt-Mint · antwortet nicht</string>
+    <string name="home_mint_is_home_key_changed">Haupt-Mint · Signaturschlüssel passt nicht</string>
     <string name="home_mint_silent_title_home">Deine Haupt-Mint, %1$s, antwortet nicht</string>
     <string name="home_mint_silent_title">%1$s antwortet nicht</string>
     <string name="home_mint_silent_title_unnamed">Deine Mint antwortet nicht</string>
@@ -196,6 +198,8 @@
     <string name="accounts_wallet">Wallet %1$d</string>
     <string name="home_shared_total">%1$s verschickt, noch nicht eingelöst</string>
     <string name="home_shared_title">Verschickt, noch nicht eingelöst</string>
+    <string name="home_key_changed_part">%1$s davon lässt sich gerade nicht ausgeben</string>
+    <string name="home_key_changed_part_title">Ein Teil davon lässt sich gerade nicht ausgeben</string>
     <plurals name="accounts_other_wallets">
         <item quantity="one">%1$d weitere Wallet</item>
         <item quantity="other">%1$d weitere Wallets</item>

@@ -163,6 +163,39 @@ class ReceiveScreenTest {
     }
 
     @Test
+    fun whileTheMintsKeyIsCheckedTheFormSaysSoAndMakesNothingYet() {
+        compose.setContent {
+            ReceiveState(
+                    address = null,
+                    amountText = "21",
+                    homeHost = "home.example",
+                    mints = twoMints,
+                    keyChecking = setOf("home.example"),
+                )
+                .let { ReceiveScreen(it, onBack = {}, onClaim = {}) }
+        }
+        compose.onNodeWithText(text(R.string.receive_key_checking, "home.example")).assertExists()
+        // The button works away instead of its label, and takes no tap.
+        compose.onNodeWithText(text(R.string.receive_invoice_create)).assertDoesNotExist()
+    }
+
+    @Test
+    fun onceTheMintsKeyIsCheckedTheFormCanMakeAnInvoice() {
+        compose.setContent {
+            ReceiveState(
+                    address = null,
+                    amountText = "21",
+                    homeHost = "home.example",
+                    mints = twoMints,
+                    keyChecking = setOf("other.example"),
+                )
+                .let { ReceiveScreen(it, onBack = {}, onClaim = {}) }
+        }
+        compose.onNodeWithText(text(R.string.receive_key_checking, "home.example")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.receive_invoice_create)).assertIsEnabled()
+    }
+
+    @Test
     fun anAddressOnAMintWhoseKeyChangedSaysPaymentsWaitThere() {
         val opened = mutableListOf<String>()
         compose.setContent {

@@ -123,6 +123,36 @@ class NoAddressTest {
     }
 
     @Test
+    fun `a refresh compares a mint's key once per session, and the outcome is known from the start after a restart`() =
+        runBlocking<Unit> {
+            FakeMint(0) { clock }
+                .use { mint ->
+                    val store = InMemoryWalletStore()
+                    val seeds = InMemorySeedStore()
+                    val trust = MintTrustStore.InMemory()
+                    val wallet = Wallet(store, seeds, LnurlcashClient(), trust = trust, now = { clock })
+                    wallet.createAccount(mint.host, "Main")
+                    val pinned = assertNotNull(store.mint(mint.host))
+                    store.saveMint(pinned.copy(mintPubkey = "02" + "11".repeat(32)))
+                    wallet.refresh()
+                    assertEquals(setOf(mint.host), wallet.mintsWithChangedKey.first())
+
+                    // Matching again isn't noticed in the same session: each mint is compared once.
+                    store.saveMint(pinned)
+                    wallet.refresh()
+                    assertEquals(setOf(mint.host), wallet.mintsWithChangedKey.first())
+
+                    // After a restart it is known before anything asks, and the next refresh compares again.
+                    store.saveMint(pinned.copy(mintPubkey = "02" + "11".repeat(32)))
+                    val restarted = Wallet(store, seeds, LnurlcashClient(), trust = trust, now = { clock })
+                    assertEquals(setOf(mint.host), restarted.mintsWithChangedKey.first())
+                    store.saveMint(pinned)
+                    restarted.refresh()
+                    assertEquals(emptySet(), restarted.mintsWithChangedKey.first())
+                }
+        }
+
+    @Test
     fun `an unpaid invoice is dropped once it expired`() = withMint { mint, store, wallet ->
         wallet.createAccount(mint.host, "Main")
         val request = assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(5_000))

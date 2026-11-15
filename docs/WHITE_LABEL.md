@@ -149,6 +149,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `home_add_mint_action` | Add mint |
 | `home_mint_is_home` | Home mint |
 | `home_mint_is_home_not_answering` | Home mint · not answering |
+| `home_mint_is_home_key_changed` | Home mint · signing key doesn't match |
 | `home_mint_silent_title_home` | Your home mint, %1$s, isn't answering |
 | `home_mint_silent_title_unnamed` | Your mint isn't answering |
 | `home_more_mints` | %1$d more mint / %1$d more mints (plural) |
@@ -261,6 +262,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `receive_on_home` | On %1$s, your home mint |
 | `receive_on_home_detail` | Home mint · %1$s |
 | `receive_address_key_changed_unnamed` | The signing key of your mint doesn't match the one your wallet knows, so payments to this address wait there for now. |
+| `receive_key_checking_unnamed` | Checking your mint… |
 | `receive_invoice_key_changed_unnamed` | The signing key of your mint doesn't match the one your wallet knows, so no invoice can be created right now. |
 | `send_create_note` | Create a note |
 | `send_problem_refused` | The mint refused this payment. |
@@ -270,6 +272,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `send_problem_invoice_used` | This invoice was already used. Ask for a new one. |
 | `send_problem_mint_message` | Message from the mint: “%1$s” |
 | `send_from_detail_home` | Home mint · up to %1$s |
+| `send_key_changed_held_unnamed` | %1$s on your mint can't be sent until its signing key matches. |
 | `note_create_title` | Send as a note |
 | `note_create_body` | Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet. |
 | `note_available` | You can make a note of up to %1$s. |

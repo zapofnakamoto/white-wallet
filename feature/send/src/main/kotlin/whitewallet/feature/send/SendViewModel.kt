@@ -28,11 +28,15 @@ import whitewallet.core.wallet.Wallet
  */
 data class SendMint(val host: String, val isHome: Boolean, val maxMsat: Long, val keyChanged: Boolean = false)
 
-/** The mints a payment or note can be made from, home first. */
+/**
+ * The mints a payment or note can be made from, home first; then those holding money whose signing key doesn't match, with what they hold
+ * (nothing is sent from them).
+ */
 internal suspend fun Wallet.sendMints(): List<SendMint> {
     val home = homeHost.first()
-    val changed = mintsWithChangedKey.first()
-    return sendableByMint().map { (host, max) -> SendMint(host, host == home, max, host in changed) }.sortedBy { !it.isHome }
+    val sendable = sendableByMint().map { (host, max) -> SendMint(host, host == home, max) }
+    val held = heldWhereKeyChanged().map { (host, msat) -> SendMint(host, host == home, msat, keyChanged = true) }
+    return (sendable + held).sortedWith(compareBy({ it.keyChanged }, { !it.isHome }))
 }
 
 /** What the regtest faucet's invoice asks for. */
@@ -68,12 +72,12 @@ data class SendState(
     val offline: Boolean = false,
     /** The mint the user picked to pay from; null leaves it to the wallet (see the payment order in Settings). */
     val from: String? = null,
-    /** The mints the account can pay from, home first. */
+    /** The mints the account can pay from, home first; then those holding money whose signing key doesn't match. */
     val mints: List<SendMint> = emptyList(),
 ) {
     /** Another mint can be picked: the brand names mints and the account can pay from more than one. */
     val canPickMint: Boolean
-        get() = mintsVisible && mints.size > 1
+        get() = mintsVisible && mints.count { !it.keyChanged } > 1
 
     /** The mint the payment is made from: the one picked, else the one the quote says the wallet chose. */
     val payingHost: String?

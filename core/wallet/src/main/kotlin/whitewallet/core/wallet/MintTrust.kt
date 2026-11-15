@@ -24,8 +24,16 @@ interface MintTrustStore {
     /** Drops the wallet's choice for [mint] either way, as if it was never made. */
     suspend fun forget(walletId: String, mint: MintKey)
 
-    /** Drops every choice of the wallet: its recovery phrase is gone from the phone. */
+    /** Drops every choice of the wallet, and what it saw of keys: its recovery phrase is gone from the phone. */
     suspend fun forgetWallet(walletId: String)
+
+    /**
+     * The wallet's mints whose signing key differed from the one it pinned when it last compared them, by host: saved, so the app knows
+     * from its first screen after a restart (see [Wallet.mintsWithChangedKey]).
+     */
+    fun changedKeys(walletId: String): Flow<Set<String>>
+
+    suspend fun setKeyChanged(walletId: String, host: String, changed: Boolean)
 
     class InMemory : MintTrustStore {
         /** Each wallet's trusted and untrusted mints. */
@@ -42,7 +50,17 @@ interface MintTrustStore {
 
         override suspend fun forget(walletId: String, mint: MintKey) = change(walletId) { (yes, no) -> (yes - mint) to (no - mint) }
 
-        override suspend fun forgetWallet(walletId: String) = choices.update { it - walletId }
+        override suspend fun forgetWallet(walletId: String) {
+            choices.update { it - walletId }
+            changed.update { it - walletId }
+        }
+
+        private val changed = MutableStateFlow(emptyMap<String, Set<String>>())
+
+        override fun changedKeys(walletId: String): Flow<Set<String>> = changed.map { it[walletId].orEmpty() }
+
+        override suspend fun setKeyChanged(walletId: String, host: String, changed: Boolean) =
+            this.changed.update { all -> all + (walletId to all[walletId].orEmpty().let { if (changed) it + host else it - host }) }
 
         private fun change(walletId: String, how: (Pair<Set<MintKey>, Set<MintKey>>) -> Pair<Set<MintKey>, Set<MintKey>>) = choices.update {
             it + (walletId to how(it[walletId] ?: (emptySet<MintKey>() to emptySet())))

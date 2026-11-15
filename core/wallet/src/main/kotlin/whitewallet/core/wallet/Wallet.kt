@@ -164,16 +164,19 @@ class Wallet(
     val mintsNotAnswering: Flow<Set<String>> =
         mintAnswers.map { answers -> answers.filterValues { !it.answered }.keys }.distinctUntilChanged()
 
-    /**
-     * By wallet, then by host: whether the mint's signing key differed from the one that wallet pinned the last time they were compared
-     * (true: changed), since the app started.
-     */
-    private val keyComparisons = MutableStateFlow<Map<String, Map<String, Boolean>>>(emptyMap())
+    /** By wallet, the mints whose signing key was compared with the pinned one since the app started: [checkMintKey] asks each once. */
+    private val keysCompared = MutableStateFlow<Set<Pair<String, String>>>(emptySet())
 
-    /** [walletId] compared [host]'s signing key with its pinned one: kept for [mintsWithChangedKey]. */
-    internal fun sawKey(walletId: String, host: String, changed: Boolean) = keyComparisons.update { all ->
-        all + (walletId to all[walletId].orEmpty() + (host to changed))
+    /** [walletId] compared [host]'s signing key with its pinned one: saved for [mintsWithChangedKey] when that differs from before. */
+    internal suspend fun sawKey(walletId: String, host: String, changed: Boolean) {
+        keysCompared.update { it + (walletId to host) }
+        if ((host in trust.changedKeys(walletId).first()) != changed) trust.setKeyChanged(walletId, host, changed)
     }
+
+    /**
+     * Whether [host]'s signing key was compared with the active wallet's pinned one since the app started: [checkMintKey] won't ask then.
+     */
+    suspend fun mintKeyCompared(host: String): Boolean = (walletOf(activeId()) to host) in keysCompared.value
 
     /**
      * Compares [host]'s signing key with the one the active wallet pinned, for [mintsWithChangedKey], once per app session: a screen that
@@ -183,7 +186,7 @@ class Wallet(
     suspend fun checkMintKey(host: String) {
         val walletId = walletOf(activeId())
         val pinned = store.mint(walletId, host)?.mintPubkey ?: return
-        if (keyComparisons.value[walletId]?.containsKey(host) == true) return
+        if ((walletId to host) in keysCompared.value) return
         compareMintKey(walletId, host, pinned)
     }
 
@@ -274,11 +277,16 @@ class Wallet(
         combine(store.wallets, activeAccount) { wallets, active -> wallets.firstOrNull { it.id == active?.account?.walletId } }
 
     /**
-     * The active wallet's mints whose signing key didn't match the pinned one the last time the wallet compared them (since the app
-     * started), by host: until it matches again, or the user accepts the new key, nothing is sent there and nothing is received there.
+     * The active wallet's mints whose signing key didn't match the pinned one the last time the wallet compared them, by host; saved, so
+     * known from the first screen after a restart. Until it matches again, or the user accepts the new key, nothing is sent there and
+     * nothing is received there, and money there isn't counted as spendable. Each refresh compares the mints of the balance once per app
+     * session ([askOthers]).
      */
     val mintsWithChangedKey: Flow<Set<String>> =
-        combine(keyComparisons, activeWallet) { compared, active -> compared[active?.id].orEmpty().filterValues { it }.keys }
+        activeWallet
+            .map { it?.id }
+            .distinctUntilChanged()
+            .flatMapLatest { id -> id?.let(trust::changedKeys) ?: flowOf(emptySet()) }
             .distinctUntilChanged()
 
     /** Every wallet on the phone, oldest first, with its accounts. Only the active one is ever used; the others are listed. */
@@ -719,6 +727,16 @@ class Wallet(
     /** The most one payment or note can be from each of the active account's mints, by host; mints it can't pay from aren't in it. */
     suspend fun sendableByMint(): Map<String, Long> = payer.availableByMint()
 
+    /** What the active account holds on each mint whose signing key doesn't match, by host: not sendable until it matches again. */
+    suspend fun heldWhereKeyChanged(): Map<String, Long> {
+        val changed = mintsWithChangedKey.first()
+        return notes
+            .first()
+            .filter { it.state == NoteState.Outstanding && it.host in changed }
+            .groupBy { it.host }
+            .mapValues { (_, n) -> n.sumOf { it.amountMsat } }
+    }
+
     /** Whether [amountMsat] can be paid to [preview]'s destination right now, and the fee. */
     suspend fun quotePayment(preview: PayPreview.Ready, amountMsat: Long): PayQuote = payer.quote(preview, amountMsat)
 
@@ -904,7 +922,8 @@ class Wallet(
                 store.mint(walletId, h)?.mintPubkey?.let { trust.forget(walletId, MintKey(h, it)) }
                 store.removeMint(walletId, h)
                 // Added again, it pins the key it presents then: what was compared with the old one says nothing.
-                keyComparisons.update { all -> all + (walletId to all[walletId].orEmpty() - h) }
+                keysCompared.update { it - (walletId to h) }
+                trust.setKeyChanged(walletId, h, changed = false)
                 // Nothing of any account is left there: the ones that had it as home have none now.
                 accounts.filter { it.homeHost == h }.forEach { store.saveAccount(it.copy(homeHost = null)) }
                 RemoveMintResult.Removed
@@ -1277,17 +1296,21 @@ class Wallet(
 
     /**
      * Asks the mints [accountId] holds money on (and its home mint) that nothing has asked since [since] whether they are there, so the
-     * wallet knows of one that doesn't answer before the user finds out by paying ([mintsNotAnswering]).
+     * wallet knows of one that doesn't answer before the user finds out by paying ([mintsNotAnswering]). The same answer carries the mint's
+     * signing key: each is compared with the pinned one once per app session ([mintsWithChangedKey]), asked for that if need be.
      */
     private suspend fun askOthers(accountId: String, since: Long) {
         // Without a network known to reach the internet, no answer would say anything: asking would only wait.
         if (!silenceCounts()) return
+        val walletId = walletOf(accountId)
         val held = store.notes(accountId).first().filter { it.state == NoteState.Outstanding }.map { it.host }
         for (host in (listOfNotNull(homeOf(accountId)) + held).distinct()) {
-            if ((mintAnswers.value[host]?.atMillis ?: -1) >= since) continue
+            val pinned = store.mint(walletId, host)?.mintPubkey?.takeIf { (walletId to host) !in keysCompared.value }
+            if (pinned == null && (mintAnswers.value[host]?.atMillis ?: -1) >= since) continue
             val answered =
                 try {
-                    client.withdrawDiscovery(host)
+                    val presented = client.withdrawDiscovery(host).mintPubkey
+                    pinned?.let { sawKey(walletId, host, presented?.toHex() != it) }
                     true
                 } catch (e: IOException) {
                     false

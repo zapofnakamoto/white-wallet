@@ -94,6 +94,16 @@ internal class DataStorePreferences(
         prefs.edit {
             it.remove(trustedKey(walletId))
             it.remove(untrustedKey(walletId))
+            it.remove(changedKeysKey(walletId))
+        }
+    }
+
+    override fun changedKeys(walletId: String): Flow<Set<String>> = prefs.data.map { it[changedKeysKey(walletId)].orEmpty() }
+
+    override suspend fun setKeyChanged(walletId: String, host: String, changed: Boolean) {
+        prefs.edit {
+            val hosts = it[changedKeysKey(walletId)].orEmpty()
+            it[changedKeysKey(walletId)] = if (changed) hosts + host else hosts - host
         }
     }
 
@@ -191,6 +201,9 @@ internal class DataStorePreferences(
         internal fun trustedKey(walletId: String) = stringSetPreferencesKey("trusted_mints_$walletId")
 
         internal fun untrustedKey(walletId: String) = stringSetPreferencesKey("untrusted_mints_$walletId")
+
+        /** The hosts of the wallet's mints whose signing key differed from the pinned one when last compared. */
+        internal fun changedKeysKey(walletId: String) = stringSetPreferencesKey("changed_key_mints_$walletId")
 
         /**
          * Keys changed since v0.3.0: an installed app keeps the value under the new name. Trust choices were the device's until each wallet

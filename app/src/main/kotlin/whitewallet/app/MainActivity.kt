@@ -482,6 +482,7 @@ private fun WalletApp(
                 onDone = { nav.popBackStack() },
                 onCreateNote = { from -> nav.navigate(Routes.createNote(from)) },
                 onClaim = openClaim,
+                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
             )
         }
         composable(Routes.SCAN) {
@@ -498,7 +499,11 @@ private fun WalletApp(
                     }
                 ),
         ) {
-            CreateNoteRoute(onBack = { nav.popBackStack() }, onCreated = { id -> nav.navigate(Routes.note(id)) { popUpTo(Routes.HOME) } })
+            CreateNoteRoute(
+                onBack = { nav.popBackStack() },
+                onCreated = { id -> nav.navigate(Routes.note(id)) { popUpTo(Routes.HOME) } },
+                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
+            )
         }
         composable(Routes.NOTE, arguments = listOf(navArgument("id") { type = NavType.StringType })) {
             SharedNoteRoute(onBack = { nav.popBackStack() })

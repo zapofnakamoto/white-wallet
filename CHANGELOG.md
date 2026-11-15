@@ -130,6 +130,22 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `receive_on_key_changed`, `receive_address_key_changed`, `receive_invoice_key_changed`, `receive_key_changed_action`,
   `send_from_key_changed`, and the brand terms `receive_address_key_changed_unnamed` and
   `receive_invoice_key_changed_unnamed`; `mint_key_changed` says it anew.
+- A payment or note left to the wallet could still be made from a mint whose signing key doesn't match: tried there
+  first, it failed though another mint could pay. Such a mint is now passed over, and a payment that finds the key
+  changed before anything was sent goes on to the next mint, as for one that doesn't answer; with the money only
+  there, Send says the key doesn't match instead of "not enough money".
+- Home only knew of a changed signing key once something since the app started had asked that mint. The outcome is
+  now saved, so Home knows from its first screen, and the first refresh of each app start compares the key of every
+  mint the account holds money on (the same request that asks whether it answers). Money there stays in the total,
+  with a line under it ("₿298 of it can't be spent right now") that leads to the mint; its row says "Signing key
+  doesn't match" and the card shows as for any changed key. Send and "Send as a note" say the most one mint can send,
+  and, apart from it, what can't be sent from that mint until its key matches, with Details; with nothing else to send
+  from, that is all the form shows. Receive keeps "Create invoice" waiting, with "Checking mint.example.com…", until
+  it has asked the mint for its key. For developers and brands: `Wallet.heldWhereKeyChanged`; `MintTrustStore` keeps
+  the outcome (`changedKeys`, `setKeyChanged`; an own implementation needs both); `Wallet.sendableByMint` and
+  `sendableNoteMsat` leave such mints out; new strings `home_mint_key_changed`, `home_key_changed_part`,
+  `home_key_changed_part_title`, `receive_key_checking`, `send_key_changed_held`, `send_key_changed_action`, and the
+  brand terms `home_mint_is_home_key_changed`, `receive_key_checking_unnamed` and `send_key_changed_held_unnamed`.
 - A restore from the recovery phrase could miss whole accounts. It stops at the first account that never received
   money, yet the wallet let an account be added after an empty one; and it judged that one mint at a time, so an
   account used on another mint alone stopped it too. An account is now added only once the one before it has received

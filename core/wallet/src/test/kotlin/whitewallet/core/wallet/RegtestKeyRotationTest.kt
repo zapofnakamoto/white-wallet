@@ -147,6 +147,55 @@ class RegtestKeyRotationTest {
         }
 
     @Test
+    fun `a payment left to the wallet goes from another mint once the key changed, and the other mint's notes are all it offers`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone(host = HOST3)
+            alice.fund(3000, 3000)
+            assertIs<ClaimResult.Claimed>(alice.wallet.claim(assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(Regtest.note(2000)))))
+            val onThird = alice.notes(HOST3)
+            Regtest.rotateMint3()
+
+            // Home first, as the wallet pays: its key is found changed before anything is sent, and the other mint pays instead.
+            val preview = assertIs<PayPreview.Ready>(alice.wallet.previewPayment(Regtest.invoice(500)))
+            assertIs<PayResult.Paid>(alice.wallet.pay(preview, 500_000))
+            assertEquals(onThird.map { it.id }.toSet(), alice.notes(HOST3).map { it.id }.toSet(), "nothing taken from home")
+            assertEquals(setOf(HOST3), alice.wallet.mintsWithChangedKey.first())
+
+            // From now on only the other mint's notes count as sendable; what home holds is said apart.
+            val most = alice.wallet.sendableByMint()
+            assertEquals(setOf(HOST), most.keys)
+            assertEquals(mapOf(HOST3 to onThird.sumOf { it.amountMsat }), alice.wallet.heldWhereKeyChanged())
+            val big = assertIs<PayPreview.Ready>(alice.wallet.previewPayment(Regtest.invoice(4000)))
+            assertEquals(PayQuote.Invalid(PayProblem.TooMuch, most.getValue(HOST)), alice.wallet.quotePayment(big, 4_000_000))
+            assertEquals(PayPreview.Invalid(PayProblem.KeyChanged), alice.wallet.previewPayment(Regtest.invoice(100), from = HOST3))
+            assertEquals(PayQuote.Invalid(PayProblem.KeyChanged), alice.wallet.quoteNote(100_000, from = HOST3))
+        }
+
+    @Test
+    fun `the first refresh after the app starts notices the key changed, the next start knows it, and with money only there nothing can be sent`() =
+        runBlocking<Unit> {
+            val store = InMemoryWalletStore()
+            val seeds = InMemorySeedStore()
+            val trust = MintTrustStore.InMemory()
+            fun start() = Wallet(store, seeds, LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID), trust = trust)
+            val first = start()
+            val name = Regtest.name()
+            Regtest.registered(first, first.onboard(name, HOST3))
+            Regtest.pay("$name@$HOST3", 2000)
+            first.refresh()
+            Regtest.rotateMint3()
+
+            val wallet = start()
+            wallet.refresh()
+            assertEquals(setOf(HOST3), wallet.mintsWithChangedKey.first())
+            assertEquals(setOf(HOST3), start().mintsWithChangedKey.first(), "saved: known before anything asks")
+            assertEquals(emptyMap(), wallet.sendableByMint())
+            assertEquals(mapOf(HOST3 to wallet.balanceMsat.first()), wallet.heldWhereKeyChanged())
+            assertEquals(PayPreview.Invalid(PayProblem.KeyChanged), wallet.previewPayment(Regtest.invoice(500)))
+            assertEquals(PayQuote.Invalid(PayProblem.KeyChanged), wallet.quoteNote(500_000))
+        }
+
+    @Test
     fun `a mint the brand trusts is trusted again only by the user after its key changed, and its notes keep working`() =
         runBlocking<Unit> {
             val store = InMemoryWalletStore()

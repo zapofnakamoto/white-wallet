@@ -11,6 +11,7 @@
     <!-- %1$s: the mint's own words, in whatever language it writes. -->
     <string name="send_problem_mint_message">Nachricht der Mint: „%1$s“</string>
     <string name="send_from_detail_home">Haupt-Mint · bis zu %1$s</string>
+    <string name="send_key_changed_held_unnamed">%1$s bei deiner Mint lässt sich erst senden, wenn ihr Signaturschlüssel wieder passt.</string>
     <string name="note_create_title">Als Schein senden</string>
     <string name="note_create_body">Erstelle einen Schein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
     <string name="note_available">Du kannst einen Schein über bis zu %1$s erstellen.</string>
@@ -110,4 +111,6 @@
     <string name="send_from_detail">Bis zu %1$s</string>
     <string name="send_from_not_enough">Bis zu %1$s, zu wenig dafür</string>
     <string name="send_from_key_changed">Signaturschlüssel passt nicht</string>
+    <string name="send_key_changed_held">%1$s bei %2$s lässt sich erst senden, wenn der Signaturschlüssel dort wieder passt.</string>
+    <string name="send_key_changed_action">Details</string>
 </resources>

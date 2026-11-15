@@ -261,6 +261,7 @@
     <string name="claim_melt_no_signing_key">%1$s publishes no signing key, so your wallet doesn\'t keep money there. It can be received over Lightning instead, for a fee.</string>
     <string name="onboarding_error_mint_without_key">This provider publishes no signing key, so your wallet can\'t check that its banknotes are real or notice if it is swapped. Choose another provider.</string>
     <string name="home_mint_is_home_not_answering">Provider · not answering</string>
+    <string name="home_mint_is_home_key_changed">Provider · signing key doesn\'t match</string>
     <string name="home_mint_silent_title_home">Your provider, %1$s, isn\'t answering</string>
     <string name="home_mint_silent_title_unnamed">Your provider isn\'t answering</string>
     <string name="receive_address_mint_silent_unnamed">Your provider isn\'t answering, so payments to this address can\'t arrive right now.</string>
@@ -296,4 +297,6 @@
     <string name="send_from_detail_home">Your provider · up to %1$s</string>
     <string name="receive_address_key_changed_unnamed">The signing key of your provider doesn\'t match the one your wallet knows, so payments to this address wait there for now.</string>
     <string name="receive_invoice_key_changed_unnamed">The signing key of your provider doesn\'t match the one your wallet knows, so no invoice can be created right now.</string>
+    <string name="receive_key_checking_unnamed">Checking your provider…</string>
+    <string name="send_key_changed_held_unnamed">%1$s with your provider can\'t be sent until its signing key matches.</string>
 </resources>

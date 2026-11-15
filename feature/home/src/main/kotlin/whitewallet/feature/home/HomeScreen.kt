@@ -683,6 +683,17 @@ private fun WalletTab(
                     modifier = onOpenIncoming?.let { Modifier.clickable(onClick = it) } ?: Modifier,
                 )
             }
+            // In the balance, yet stuck until the mint's signing key matches again: said under it, leading to that mint.
+            if (state.keyChangedMsat > 0) {
+                Text(
+                    if (state.balanceHidden) stringResource(R.string.home_key_changed_part_title)
+                    else stringResource(R.string.home_key_changed_part, formatAmount(state.keyChangedMsat)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = state.keyChangedMint?.let { host -> Modifier.clickable { onOpenMint(host) } } ?: Modifier,
+                )
+            }
             if (state.mintRows.isNotEmpty()) {
                 BalanceByMint(state, onOpenMint, mintRow, onOpenMints)
             }
@@ -1067,6 +1078,7 @@ private fun BalanceByMint(state: HomeState, onOpenMint: (String) -> Unit, action
             MintRow(
                 mint,
                 answering = mint.host !in silent,
+                keyChanged = mint.host in state.keyChangedHosts,
                 open = open == mint.host,
                 onToggle = { open = mint.host.takeIf { open != it } },
                 // Leaving for one of them closes it: back on Home, the row is as it was.
@@ -1102,6 +1114,7 @@ private fun BalanceByMint(state: HomeState, onOpenMint: (String) -> Unit, action
 private fun MintRow(
     mint: AccountMint,
     answering: Boolean,
+    keyChanged: Boolean,
     open: Boolean,
     onToggle: () -> Unit,
     onSend: (() -> Unit)?,
@@ -1110,6 +1123,8 @@ private fun MintRow(
 ) {
     val note =
         when {
+            keyChanged && mint.isHome -> R.string.home_mint_is_home_key_changed
+            keyChanged -> R.string.home_mint_key_changed
             !answering && mint.isHome -> R.string.home_mint_is_home_not_answering
             !answering -> R.string.home_mint_not_answering
             mint.isHome -> R.string.home_mint_is_home
@@ -1130,7 +1145,7 @@ private fun MintRow(
                 Text(
                     formatAmount(mint.balanceMsat),
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (answering) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (answering && !keyChanged) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             modifier =

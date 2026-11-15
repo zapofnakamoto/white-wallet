@@ -216,7 +216,7 @@ class SendScreenTest {
         val picked = mutableListOf<String?>()
         compose.setContent {
             SendScreen(
-                SendState(from = "other.example", mints = mints.map { it.copy(keyChanged = it.isHome) }),
+                SendState(from = "other.example", mints = mints + SendMint("third.example", false, 1_000_000, keyChanged = true)),
                 onBack = {},
                 onDone = {},
                 actions = SendActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, onPayFrom = { picked += it }),
@@ -224,8 +224,81 @@ class SendScreenTest {
         }
         compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performClick()
         compose.onNodeWithText(text(R.string.send_from_key_changed)).assertIsNotEnabled()
-        compose.onNodeWithText("home.example").performClick()
+        compose.onNodeWithText("third.example").performClick()
         assertEquals(emptyList<String?>(), picked)
+    }
+
+    private val stuck = SendMint("stuck.example", false, 298_000, keyChanged = true)
+
+    @Test
+    fun moneyOnAMintWhoseKeyChangedIsSaidApartFromTheMostOneMintCanSendWithAWayOut() {
+        val opened = mutableListOf<String>()
+        val state = SendState(mints = mints + stuck, balanceMsat = 12_298_000, limitMsat = 9_000_000)
+        compose.setContent {
+            SendScreen(
+                state,
+                onBack = {},
+                onDone = {},
+                actions = SendActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, onOpenMint = { opened += it }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.send_available, "₿9,000")).assertExists()
+        compose.onNodeWithText(text(R.string.send_limit_one_payment, "₿9,000", "₿12,298")).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.send_key_changed_held, "₿298", "stuck.example")).assertExists()
+        compose.onNodeWithText(text(R.string.send_input)).assertExists()
+        compose.onNodeWithText(text(R.string.send_key_changed_action)).performClick()
+        assertEquals(listOf("stuck.example"), opened)
+    }
+
+    @Test
+    fun withMoneyOnlyOnAMintWhoseKeyChangedThatIsAllTheFormSays() {
+        compose.setContent {
+            SendScreen(SendState(mints = listOf(stuck), balanceMsat = 298_000), onBack = {}, onDone = {}, actions = actions())
+        }
+        compose.onNodeWithText(text(R.string.send_key_changed_held, "₿298", "stuck.example")).assertExists()
+        compose.onNodeWithText(text(R.string.send_key_changed_action)).assertExists()
+        compose.onNodeWithText(text(R.string.send_input)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.send_create_note)).assertDoesNotExist()
+    }
+
+    @Test
+    fun whereTheBrandDoesNotNameMintsOneSentenceSaysWhatCannotBeSent() {
+        val state = SendState(mints = mints + stuck + stuck.copy(host = "also.example"), mintsVisible = false)
+        compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_key_changed_held_unnamed, "₿596")).assertExists()
+        compose.onNodeWithText(text(R.string.send_key_changed_action)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNoteCannotBeMadeFromAMintWhoseKeyChangedAndTheFormSaysWhy() {
+        val opened = mutableListOf<String>()
+        compose.setContent {
+            CreateNoteScreen(
+                CreateNoteState(availableMsat = 0, mints = listOf(stuck)),
+                onBack = {},
+                onAmountChange = {},
+                onCreate = {},
+                onOpenMint = { opened += it },
+            )
+        }
+        compose.onNodeWithText(text(R.string.send_key_changed_held, "₿298", "stuck.example")).assertExists()
+        compose.onNodeWithText(text(R.string.note_create)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.send_key_changed_action)).performClick()
+        assertEquals(listOf("stuck.example"), opened)
+    }
+
+    @Test
+    fun aNoteFromAnotherMintCanStillBeMadeBesideWhatIsStuck() {
+        compose.setContent {
+            CreateNoteScreen(
+                CreateNoteState(availableMsat = 9_000_000, mints = mints + stuck),
+                onBack = {},
+                onAmountChange = {},
+                onCreate = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.send_key_changed_held, "₿298", "stuck.example")).assertExists()
+        compose.onNodeWithText(text(R.string.note_available, "₿9,000")).assertExists()
     }
 
     @Test

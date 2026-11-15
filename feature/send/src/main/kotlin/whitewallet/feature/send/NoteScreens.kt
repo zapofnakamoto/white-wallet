@@ -96,14 +96,14 @@ data class CreateNoteState(
     val offline: Boolean = false,
     /** The mint the user picked to make it from; null leaves it to the wallet. */
     val from: String? = null,
-    /** The mints it can be made from, home first. */
+    /** The mints it can be made from, home first; then those holding money whose signing key doesn't match. */
     val mints: List<SendMint> = emptyList(),
     /** The brand names mints (brand `mints.visible`). */
     val mintsVisible: Boolean = true,
 ) {
     /** Another mint can be picked: the brand names mints and the account can pay from more than one. */
     val canPickMint: Boolean
-        get() = mintsVisible && mints.size > 1
+        get() = mintsVisible && mints.count { !it.keyChanged } > 1
 
     /** The mint the note is made from: the one picked, else the one the quote says the wallet chose. */
     val payingHost: String?
@@ -150,7 +150,9 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
         if (_state.value.creating) return
         _state.update { s ->
             // What one note can be: from that mint, or from whichever holds the most.
-            val most = if (host == null) s.mints.maxOfOrNull { it.maxMsat } else s.mints.firstOrNull { it.host == host }?.maxMsat
+            val most =
+                if (host == null) s.mints.filterNot { it.keyChanged }.maxOfOrNull { it.maxMsat }
+                else s.mints.firstOrNull { it.host == host }?.maxMsat
             s.copy(from = host, availableMsat = most ?: 0)
         }
         requote()
@@ -192,10 +194,16 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
 
 /** Send as a note: choose the amount; the note is then shown to hand over ([onCreated]). */
 @Composable
-fun CreateNoteRoute(onBack: () -> Unit, onCreated: (String) -> Unit, viewModel: CreateNoteViewModel = hiltViewModel()) {
+fun CreateNoteRoute(
+    onBack: () -> Unit,
+    onCreated: (String) -> Unit,
+    /** Opens a mint's details: where a new signing key is accepted. */
+    onOpenMint: (String) -> Unit = {},
+    viewModel: CreateNoteViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.createdId) { state.createdId?.let(onCreated) }
-    CreateNoteScreen(state, onBack, viewModel::onAmountChange, viewModel::create, viewModel::makeFrom)
+    CreateNoteScreen(state, onBack, viewModel::onAmountChange, viewModel::create, viewModel::makeFrom, onOpenMint)
 }
 
 @Composable
@@ -205,12 +213,20 @@ fun CreateNoteScreen(
     onAmountChange: (String) -> Unit,
     onCreate: () -> Unit,
     onMakeFrom: (String?) -> Unit = {},
+    onOpenMint: (String) -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_create_title), onBack.takeIf { !state.creating }) }) { padding ->
         // What can be sent is read first (a moment), so it doesn't come in under the field afterwards.
         if (!pageLoaded(state.availableMsat != null, Modifier.padding(padding))) return@Scaffold
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.note_create_body))
+            // Money on a mint whose signing key doesn't match can't go into a note; with nothing else to make one from, that is all there
+            // is to say.
+            val stuck = state.mints.filter { it.keyChanged }.takeIf { state.from == null }.orEmpty()
+            if (stuck.isNotEmpty()) {
+                KeyChangedHeld(stuck, state.mintsVisible, onOpenMint)
+                if (state.mints.all { it.keyChanged }) return@ScreenColumn
+            }
             WalletTextField(
                 value = state.amountText,
                 onValueChange = onAmountChange,

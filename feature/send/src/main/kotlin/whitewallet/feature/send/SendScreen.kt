@@ -69,6 +69,8 @@ fun SendRoute(
     /** Opens making a note link: from the mint given, else as the wallet chooses. */
     onCreateNote: (from: String?) -> Unit,
     onClaim: (String) -> Unit = {},
+    /** Opens a mint's details: where a new signing key is accepted. */
+    onOpenMint: (String) -> Unit = {},
     viewModel: SendViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -105,6 +107,7 @@ fun SendRoute(
                 onFaucet = viewModel::invoiceFromFaucet,
                 onSendMore = viewModel::sendMore,
                 onPayFrom = viewModel::payFrom,
+                onOpenMint = onOpenMint,
             ),
     )
 }
@@ -126,6 +129,8 @@ class SendActions(
     val onSendMore: () -> Unit = {},
     /** Pays from the mint picked; null leaves it to the wallet. */
     val onPayFrom: (String?) -> Unit = {},
+    /** Opens a mint's details: where a new signing key is accepted. */
+    val onOpenMint: (String) -> Unit = {},
 )
 
 @Composable
@@ -243,16 +248,20 @@ private fun InputContent(state: SendState, actions: SendActions, onPickMint: (()
     val scope = rememberCoroutineScope()
     // Opened for a mint: paid from there, up to what it holds. Otherwise the wallet picks once it knows the payment.
     val from = state.from?.takeIf { state.mintsVisible }
+    val stuck = state.mints.filter { it.keyChanged }
+    val sendable = state.mints.filterNot { it.keyChanged }
     if (from != null) {
         val most = state.mints.firstOrNull { it.host == from }?.maxMsat ?: 0
         MintChoiceLine(stringResource(R.string.send_from_up_to, from, formatAmount(most)), onPickMint)
+    } else if (stuck.isNotEmpty()) {
+        // Money on a mint whose signing key doesn't match isn't sendable: said with the most one mint can pay, and where to fix it. With
+        // nothing else to pay from, that is all there is to say.
+        sendable.maxOfOrNull { it.maxMsat }?.let { LimitText(stringResource(R.string.send_available, formatAmount(it))) }
+        KeyChangedHeld(stuck, state.mintsVisible, actions.onOpenMint)
+        if (sendable.isEmpty()) return
     } else
         state.limitMsat?.let {
-            Text(
-                stringResource(R.string.send_limit_one_payment, formatAmount(it), formatAmount(state.balanceMsat)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            LimitText(stringResource(R.string.send_limit_one_payment, formatAmount(it), formatAmount(state.balanceMsat)))
         }
     WalletTextField(
         value = state.input,
@@ -301,6 +310,32 @@ private fun InputContent(state: SendState, actions: SendActions, onPickMint: (()
         Text(stringResource(R.string.send_create_note))
     }
     state.faucet?.let { FaucetButton(it, enabled = !state.checking, onClick = actions.onFaucet) }
+}
+
+@Composable
+private fun LimitText(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
+}
+
+/**
+ * What [stuck] mints hold, whose signing key doesn't match: not sendable until it does. Details opens each, where its new key can be
+ * accepted; where the brand doesn't name mints, one sentence says it for all of them.
+ */
+@Composable
+internal fun KeyChangedHeld(stuck: List<SendMint>, mintsVisible: Boolean, onOpenMint: (String) -> Unit) {
+    if (!mintsVisible) {
+        LimitText(stringResource(R.string.send_key_changed_held_unnamed, formatAmount(stuck.sumOf { it.maxMsat })))
+        return
+    }
+    stuck.forEach { mint ->
+        LimitText(stringResource(R.string.send_key_changed_held, formatAmount(mint.maxMsat), mint.host))
+        WalletButton(kind = ButtonKind.Text, onClick = { onOpenMint(mint.host) }) { Text(stringResource(R.string.send_key_changed_action)) }
+    }
 }
 
 /** Developer mode with a local regtest mint: the faucet makes an invoice to pay, as `regtest.sh invoice` would. */

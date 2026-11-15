@@ -120,7 +120,10 @@ internal class NoteSender(private val wallet: Wallet) {
                 return PayQuote.Ok(amountMsat, plan.feeMsat.coerceAtLeast(0), host)
             }
         val (host, notes) =
-            candidates.maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(accountId, h)) } ?: return PayQuote.Invalid(PayProblem.NoFunds)
+            candidates.maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(accountId, h)) }
+                ?: return PayQuote.Invalid(
+                    if (candidates(accountId, from, keyChanged = true).isEmpty()) PayProblem.NoFunds else PayProblem.KeyChanged
+                )
         val all = PayPlanner.max(notes, baseFee(accountId, host))
         return if (amountMsat > all) PayQuote.Invalid(PayProblem.TooMuch, all)
         else PayQuote.Unreachable(PayPlanner.maxWithChange(notes, baseFee(accountId, host)), all)
@@ -348,13 +351,18 @@ internal class NoteSender(private val wallet: Wallet) {
         wallet.store.activities(accountId).first().firstOrNull { it.id == activityId(noteId) && it.kind == ActivityKind.SentNote }
 
     /** The mints to make the note on: the home mint first, then the others (or the other way round, see [Wallet.payOrder]). */
-    private suspend fun candidates(accountId: String, from: String? = null): List<Pair<String, List<Note>>> {
+    /**
+     * The notes a note can be made from, by mint, in the order the wallet pays ([Wallet.payOrder]); [from] only, if given. Not on a mint
+     * whose signing key doesn't match ([Wallet.mintsWithChangedKey]), or ([keyChanged]) only there.
+     */
+    private suspend fun candidates(accountId: String, from: String? = null, keyChanged: Boolean = false): List<Pair<String, List<Note>>> {
         val order = wallet.payOrder(accountId)
+        val changed = wallet.mintsWithChangedKey.first()
         return wallet.store
             .notes(accountId)
             .first()
             .filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null && it.isPickable() }
-            .filter { from == null || it.host == from }
+            .filter { (from == null || it.host == from) && (it.host in changed) == keyChanged }
             .groupBy { it.host }
             .toList()
             .sortedBy { order(it.first) }

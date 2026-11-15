@@ -22,6 +22,8 @@
     <string name="receive_on_home_detail">Home mint · %1$s</string>
     <!-- As receive_address_key_changed and receive_invoice_key_changed, where the brand doesn't name mints. -->
     <string name="receive_address_key_changed_unnamed">The signing key of your mint doesn\'t match the one your wallet knows, so payments to this address wait there for now.</string>
+    <!-- As receive_key_checking, where the brand doesn't name mints. -->
+    <string name="receive_key_checking_unnamed">Checking your mint…</string>
     <string name="receive_invoice_key_changed_unnamed">The signing key of your mint doesn\'t match the one your wallet knows, so no invoice can be created right now.</string>
 
     <string name="receive_address_mint_silent">%1$s isn\'t answering, so payments to this address can\'t arrive right now.</string>
@@ -64,6 +66,8 @@
     <string name="receive_address_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Payments to this address wait there until it matches again, or you accept a new key in its details.</string>
     <!-- No invoice was made on that mint (%1$s): its signing key doesn't match. -->
     <string name="receive_invoice_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so no invoice is created there until it matches again, or you accept a new key in its details.</string>
+    <!-- While the mint's (%1$s) signing key is asked for, before anything is made there -->
+    <string name="receive_key_checking">Checking %1$s…</string>
     <!-- Opens the mint's details, where its new signing key can be accepted -->
     <string name="receive_key_changed_action">Details</string>
 </resources>

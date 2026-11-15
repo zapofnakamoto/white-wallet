@@ -133,9 +133,13 @@ data class HomeState(
     val incomingMsat: Long
         get() = received.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
 
-    /** The mint whose changed signing key the user should look at: one the last refresh found, or a received note's. */
+    /** The mint whose changed signing key the user should look at: one the last refresh found, one known to, or a received note's. */
     val keyChangedMint: String?
-        get() = keyChangedHost ?: received.firstOrNull { it.state == ReceivedState.KeyChanged }?.host
+        get() = keyChangedHost ?: keyChangedHosts.firstOrNull() ?: received.firstOrNull { it.state == ReceivedState.KeyChanged }?.host
+
+    /** What of the balance is on mints whose signing key doesn't match: in it, but it can't be spent until the key matches again. */
+    val keyChangedMsat: Long
+        get() = mints.filter { it.host in keyChangedHosts }.sumOf { it.balanceMsat }
 
     /**
      * What Home warns about, the most important first: the notes, then what keeps money from coming in, then the reminders. Home shows the

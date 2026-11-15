@@ -180,7 +180,8 @@ internal class Payer(private val wallet: Wallet) {
             }
         val accountId = wallet.activeId()
         val payeeHost = Lnurl.host(url)?.lowercase()
-        val holdsNotes = payeeHost != null && outstanding(accountId).any { it.host == payeeHost }
+        // Within a mint whose signing key doesn't match nothing moves: the payment goes over Lightning from another, if any.
+        val holdsNotes = payeeHost != null && payable(accountId).any { it.host == payeeHost }
         // Paid from another mint, it goes over Lightning: a transfer only moves a note within its mint.
         val transfer = holdsNotes && (from == null || from == payeeHost) && sharesMint(accountId, pay, payeeHost!!)
         // One of the account's own addresses.
@@ -191,7 +192,7 @@ internal class Payer(private val wallet: Wallet) {
             PayDestination.PayLink(url, pay.callback, pay.metadata, pay.minSendable, pay.maxSendable, pay.commentAllowed ?: 0, transfer)
         val identifier = pay.metadataEntries.firstOrNull { it.first == "text/identifier" || it.first == "text/email" }?.second
         val available = available(accountId, from ?: payeeHost.takeIf { transfer })
-        if (available == 0L) return PayPreview.Invalid(PayProblem.NoFunds)
+        if (available == 0L) return PayPreview.Invalid(nothingToPay(accountId, from ?: payeeHost.takeIf { transfer }))
         return PayPreview.Ready(
             destination,
             fixedAmountMsat = pay.minSendable.takeIf { it == pay.maxSendable },
@@ -209,7 +210,7 @@ internal class Payer(private val wallet: Wallet) {
         val amount = invoice.amountMsat ?: return PayPreview.Invalid(PayProblem.NoAmount)
         if (invoice.isExpired(wallet.now())) return PayPreview.Invalid(PayProblem.Expired)
         val available = available(wallet.activeId(), from)
-        if (available == 0L) return PayPreview.Invalid(PayProblem.NoFunds)
+        if (available == 0L) return PayPreview.Invalid(nothingToPay(wallet.activeId(), from))
         return PayPreview.Ready(PayDestination.Invoice(invoice), amount, amount, amount, 0, null, invoice.description, available, from)
     }
 
@@ -222,7 +223,7 @@ internal class Payer(private val wallet: Wallet) {
         // No plan anywhere: too much for every mint, or an amount the notes can't make exactly.
         val (host, notes) =
             candidates(accountId, preview).maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(accountId, h)) }
-                ?: return PayQuote.Invalid(PayProblem.NoFunds)
+                ?: return PayQuote.Invalid(nothingToPay(accountId, preview.from))
         val all = PayPlanner.max(notes, baseFee(accountId, host))
         return if (amountMsat > all) PayQuote.Invalid(PayProblem.TooMuch, all)
         else PayQuote.Unreachable(PayPlanner.maxWithChange(notes, baseFee(accountId, host)), all)
@@ -264,11 +265,12 @@ internal class Payer(private val wallet: Wallet) {
                     }
             }
         if (invoice?.isExpired(wallet.now()) == true) return PayResult.Failed(PayProblem.Expired)
-        // A mint that doesn't answer before anything is sent: the next one that can pay, if any, pays instead.
+        // A mint that doesn't answer, or turns out to present another signing key, before anything is sent: the next one that can pay, if
+        // any, pays instead.
         val silent = mutableSetOf<String>()
         while (true) {
             val result = payFrom(accountId, host, plan, amountMsat, invoice, transferTo, counterparty)
-            if (result !is PayResult.Failed || result.problem != PayProblem.MintNotAnswering) return result
+            if (result !is PayResult.Failed || result.problem !in GO_AROUND) return result
             silent += host
             choose(accountId, preview, amountMsat, skip = silent)?.let { (next, nextPlan) ->
                 host = next
@@ -423,7 +425,7 @@ internal class Payer(private val wallet: Wallet) {
         val order = wallet.payOrder(accountId)
         // A mint that didn't answer the last time is tried last: asking it first would wait for nothing.
         val silent = wallet.mintsNotAnswering.first()
-        return outstanding(accountId)
+        return payable(accountId)
             .groupBy { it.host }
             .filterKeys { (transferHost == null || it == transferHost) && (preview.from == null || it == preview.from) }
             .entries
@@ -431,19 +433,35 @@ internal class Payer(private val wallet: Wallet) {
             .map { it.key to it.value }
     }
 
-    /** The most one payment can be from each mint's notes, by host; mints without notes that can pay aren't in it. */
+    /**
+     * The most one payment can be from each mint's notes, by host; mints without notes that can pay aren't in it, nor those whose signing
+     * key doesn't match ([Wallet.mintsWithChangedKey]).
+     */
     suspend fun availableByMint(): Map<String, Long> {
         val accountId = wallet.activeId()
-        return outstanding(accountId).groupBy { it.host }.mapValues { (host, notes) -> PayPlanner.max(notes, baseFee(accountId, host)) }
+        return payable(accountId).groupBy { it.host }.mapValues { (host, notes) -> PayPlanner.max(notes, baseFee(accountId, host)) }
     }
 
     private suspend fun available(accountId: String, onlyHost: String?): Long =
-        outstanding(accountId)
+        payable(accountId)
             .groupBy { it.host }
             .filterKeys { onlyHost == null || it == onlyHost }
             .maxOfOrNull { (host, notes) -> PayPlanner.max(notes, baseFee(accountId, host)) } ?: 0
 
     private suspend fun baseFee(accountId: String, host: String): Long = wallet.mintOf(accountId, host)?.feeBaseMsat ?: 0
+
+    /** What can pay now: [outstanding], but not on a mint whose signing key doesn't match: nothing is sent there. */
+    private suspend fun payable(accountId: String): List<Note> {
+        val changed = wallet.mintsWithChangedKey.first()
+        return outstanding(accountId).filter { it.host !in changed }
+    }
+
+    /** Why nothing can pay (from [onlyHost], if given): money there only on a mint whose signing key doesn't match, or none at all. */
+    private suspend fun nothingToPay(accountId: String, onlyHost: String?): PayProblem {
+        val changed = wallet.mintsWithChangedKey.first()
+        val held = outstanding(accountId).any { it.host in changed && (onlyHost == null || it.host == onlyHost) }
+        return if (held) PayProblem.KeyChanged else PayProblem.NoFunds
+    }
 
     /** What can pay: notes on the wallet's own keys, so every spend is a `ck1`. A note held as a link is claimed onto them first. */
     private suspend fun outstanding(accountId: String): List<Note> =
@@ -467,6 +485,8 @@ internal class Payer(private val wallet: Wallet) {
         }
 
     companion object {
+        /** Why a mint didn't pay with nothing sent, so another that can pays instead (see [attempt]). */
+        private val GO_AROUND = setOf(PayProblem.MintNotAnswering, PayProblem.KeyChanged)
 
         /** A mint's refusal as one line of plain text of at most [max] characters: a mint can write anything. */
         internal fun mintMessage(reason: String?, max: Int): String? =

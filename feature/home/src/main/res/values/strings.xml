@@ -12,6 +12,7 @@
     <string name="home_mint_is_home">Home mint</string>
     <!-- Under the home mint's row below the balance: it didn't answer the last time the wallet asked it. -->
     <string name="home_mint_is_home_not_answering">Home mint · not answering</string>
+    <string name="home_mint_is_home_key_changed">Home mint · signing key doesn\'t match</string>
     <!-- A card on the home screen: a mint the account uses didn't answer. %1$s: the mint. -->
     <string name="home_mint_silent_title_home">Your home mint, %1$s, isn\'t answering</string>
     <!-- Where the brand doesn't name mints (mints.visible=false). -->
@@ -112,6 +113,8 @@
     <!-- A card on the home screen: a mint the account uses (not the home mint) didn't answer. %1$s: the mint. -->
     <!-- Under a mint's row below the balance: it didn't answer the last time the wallet asked it. -->
     <string name="home_mint_not_answering">Not answering</string>
+    <!-- Under a mint's name on Home: its signing key doesn't match the pinned one, so its money can't be spent for now -->
+    <string name="home_mint_key_changed">Signing key doesn\'t match</string>
     <string name="home_mint_silent_title">%1$s isn\'t answering</string>
     <!-- Under the title: what that stops. A mint that isn't the home mint only holds money. -->
     <string name="home_mint_silent_body">Until it answers, you can\'t spend the money there. Your wallet keeps asking.</string>
@@ -238,6 +241,10 @@
     <string name="home_shared_total">%1$s shared, not claimed yet</string>
     <!-- The same while the balance is hidden: no amount. -->
     <string name="home_shared_title">Shared, not claimed yet</string>
+    <!-- Under the balance: what of it is on mints whose signing key doesn't match (%1$s); counted, but it can't be spent for now -->
+    <string name="home_key_changed_part">%1$s of it can\'t be spent right now</string>
+    <!-- As home_key_changed_part, while the balance is hidden -->
+    <string name="home_key_changed_part_title">Some of it can\'t be spent right now</string>
     <!-- Unfolds the accounts of the wallets not in use, in the account switcher. %1$d: how many such wallets. -->
     <plurals name="accounts_other_wallets">
         <item quantity="one">%1$d other wallet</item>

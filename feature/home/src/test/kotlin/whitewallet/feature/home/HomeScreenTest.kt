@@ -1102,6 +1102,38 @@ class HomeScreenTest {
         compose.onNodeWithText("b.example").assert(offers(listOf(text(R.string.home_mint_details))))
     }
 
+    @Test
+    fun moneyOnAMintWhoseKeyChangedIsSaidUnderTheTotalOnItsRowAndInTheCard() {
+        var opened: String? = null
+        val state =
+            HomeState(
+                activeAccountId = "a",
+                balanceMsat = 2_298_000,
+                mints = listOf(mint("a.example", 2_000_000, home = true), mint("b.example", 298_000)),
+                keyChangedHosts = setOf("b.example"),
+            )
+        show(state, onOpenMint = { opened = it })
+        compose.onNodeWithText(text(R.string.home_key_changed_title, "b.example")).assertExists()
+        compose.onNodeWithText(text(R.string.home_mint_key_changed)).assertExists()
+        compose.onNodeWithText(text(R.string.home_key_changed_part, "₿298")).performClick()
+        assertEquals("b.example", opened)
+    }
+
+    @Test
+    fun withTheBalanceHiddenTheLineUnderItNamesNoAmount() {
+        val state =
+            HomeState(
+                activeAccountId = "a",
+                balanceMsat = 298_000,
+                balanceHidden = true,
+                mints = listOf(mint("a.example", 298_000, home = true)),
+                keyChangedHosts = setOf("a.example"),
+            )
+        show(state)
+        compose.onNodeWithText(text(R.string.home_key_changed_part_title)).assertExists()
+        compose.onNodeWithText(text(R.string.home_key_changed_part, "₿298")).assertDoesNotExist()
+    }
+
     private fun offers(labels: List<String>) =
         SemanticsMatcher("offers $labels") { node ->
             node.config.getOrElseNullable(SemanticsActions.CustomActions) { null }?.map { it.label } == labels
