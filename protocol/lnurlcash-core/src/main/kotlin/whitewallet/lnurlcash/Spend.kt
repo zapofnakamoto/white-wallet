@@ -150,7 +150,11 @@ internal object ScriptPath {
         return control.size > 33 || control.copyOfRange(1, 33).byteVector32() != BearerNote.NUMS
     }
 
-    /** Every consensus flag LUD-25 names for a spend. */
+    /**
+     * Every consensus flag LUD-25 names for a spend, and what it refuses on top ("Output keys and spends"): a leaf version other than
+     * `0xc0`, an `OP_SUCCESSx`, a signature checked against a key that is neither empty nor 32 bytes. Consensus accepts each
+     * unconditionally, room left for soft forks.
+     */
     private const val FLAGS =
         ScriptFlags.SCRIPT_VERIFY_P2SH or
             ScriptFlags.SCRIPT_VERIFY_WITNESS or
@@ -158,7 +162,10 @@ internal object ScriptPath {
             ScriptFlags.SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY or
             ScriptFlags.SCRIPT_VERIFY_CHECKSEQUENCEVERIFY or
             ScriptFlags.SCRIPT_VERIFY_DERSIG or
-            ScriptFlags.SCRIPT_VERIFY_NULLDUMMY
+            ScriptFlags.SCRIPT_VERIFY_NULLDUMMY or
+            ScriptFlags.SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION or
+            ScriptFlags.SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS or
+            ScriptFlags.SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE
 
     @OptIn(RevealsNoteSecret::class)
     fun verify(cw1: Cw1, q: ByteVector32, domain: String): Boolean {

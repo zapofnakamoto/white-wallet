@@ -143,6 +143,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   so checking an address could call it yours, and a proxy's error page as "refused", which handed the address's share
   to the next one although the registration may have gone through. Only the mint's own answer counts now; anything
   else is settled by asking the mint about the address.
+- Claim offered a script note as spendable whose script consensus leaves open to any reading (a leaf version other than
+  `0xc0`, an `OP_SUCCESS` opcode, a signature checked against a key of an unknown type), which LUD-25 has a mint refuse.
+  Such a note now shows as not spendable. A note already kept stays kept, and its mint decides when it is claimed.
 
 ## [0.9.0]
 

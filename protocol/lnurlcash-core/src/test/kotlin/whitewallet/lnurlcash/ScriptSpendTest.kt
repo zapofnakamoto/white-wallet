@@ -23,6 +23,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import whitewallet.testkit.Vectors
+import whitewallet.testkit.obj
+import whitewallet.testkit.objects
+import whitewallet.testkit.str
+import whitewallet.testkit.strOrNull
 
 /** What the wallet tells from a script-path spend on its own, without reading its script or asking the mint. */
 class ScriptSpendTest {
@@ -107,6 +112,36 @@ class ScriptSpendTest {
     }
 
     @Test
+    fun `a key that is neither empty nor 32 bytes is never signed for`() {
+        // BIP-342 counts any signature for such a key as valid, a soft-fork upgrade; LUD-25 has the wallet refuse it.
+        val note = ScriptNote(leaf(OP_PUSHDATA(key.publicKey().value), OP_CHECKSIG))
+        assertFalse(note.spendWith(listOf(ByteVector("01"))).verify(domain))
+    }
+
+    @Test
+    fun `an OP_SUCCESS leaf does not verify`() {
+        assertFalse(ScriptNote(ByteVector("50")).spendWith(listOf(ByteVector("01"))).verify(domain), "OP_SUCCESS80")
+    }
+
+    @Test
+    fun `a leaf of an unknown version does not verify`() {
+        assertFalse(ScriptNote(ByteVector("51"), leafVersion = 0xc2).spendWith(listOf(ByteVector("01"))).verify(domain))
+    }
+
+    @Test
+    fun `lnurlcash-conformance's script spends keep their verdicts`() {
+        val v = Vectors.conformance("spends")
+        for (leaf in v.obj("tree").objects("leaves")) {
+            val spend = assertIs<Spend.Script>(Spend.parse(leaf.str("cw1")))
+            assertEquals(leaf.str("verdict") == "accept", spend.verify(domain), "${leaf.str("verdict")}: ${leaf.strOrNull("reason")}")
+        }
+        val checksig = v.obj("checksig")
+        for (spend in checksig.objects("spends")) {
+            assertTrue(assertIs<Spend.Script>(Spend.parse(spend.str("cw1"))).verify(checksig.str("domain")), spend.str("cw1"))
+        }
+    }
+
+    @Test
     fun `a plain bearer note is still read as one, not as a script note`() {
         assertIs<Spend.Bearer>(Spend.parse(BearerNote.cw1(ByteVector32(ByteArray(32) { 9 })).encode()))
     }
@@ -124,9 +159,13 @@ class ScriptSpendTest {
     private fun csv(s: Long, k: PrivateKey) =
         leaf(OP_PUSHDATA(Script.encodeNumber(s)), OP_CHECKSEQUENCEVERIFY, OP_DROP, OP_PUSHDATA(k.xOnlyPublicKey()), OP_CHECKSIG)
 
-    /** A note of one or two leaves under [internal] (NUMS by default), and signed spends of its leaves. */
-    private class ScriptNote(vararg val leaves: ByteVector, val internal: XonlyPublicKey = XonlyPublicKey(BearerNote.NUMS)) {
-        private val hashes = leaves.map { BearerNote.tapleafHash(it) }
+    /** A note of one or two leaves of [leafVersion] under [internal] (NUMS by default), and spends of its leaves. */
+    private class ScriptNote(
+        vararg val leaves: ByteVector,
+        val internal: XonlyPublicKey = XonlyPublicKey(BearerNote.NUMS),
+        val leafVersion: Int = BearerNote.LEAF_VERSION,
+    ) {
+        private val hashes = leaves.map { BearerNote.tapleafHash(it, leafVersion) }
         private val output = internal.outputKey(if (hashes.size == 1) hashes[0] else branch(hashes[0], hashes[1]))
         val q: ByteVector32 = output.first.value
 
@@ -141,11 +180,20 @@ class ScriptSpendTest {
             val sig =
                 CanonicalSpend.transaction(domain, lockTime, sequence)
                     .signInputTaprootScriptPath(signer, 0, listOf(CanonicalSpend.spentOutput(q)), SigHash.SIGHASH_DEFAULT, hashes[leaf])
+            return spendWith(listOf(sig), leaf, lockTime, sequence)
+        }
+
+        /** A spend of leaf [leaf] whose witness is [witness], as given. */
+        fun spendWith(
+            witness: List<ByteVector>,
+            leaf: Int = 0,
+            lockTime: Long = 0,
+            sequence: Long = CanonicalSpend.DEFAULT_SEQUENCE - 1,
+        ): Spend.Script {
             val siblings = hashes.filterIndexed { i, _ -> i != leaf }.flatMap { it.toByteArray().toList() }.toByteArray()
             val control =
-                (byteArrayOf((BearerNote.LEAF_VERSION or if (output.second) 1 else 0).toByte()) + internal.value.toByteArray() + siblings)
-                    .byteVector()
-            val spend = assertIs<Spend.Script>(Spend.parse(Cw1(lockTime, sequence, leaves[leaf], control, listOf(sig)).encode()))
+                (byteArrayOf((leafVersion or if (output.second) 1 else 0).toByte()) + internal.value.toByteArray() + siblings).byteVector()
+            val spend = assertIs<Spend.Script>(Spend.parse(Cw1(lockTime, sequence, leaves[leaf], control, witness).encode()))
             assertEquals(q, spend.q)
             return spend
         }
