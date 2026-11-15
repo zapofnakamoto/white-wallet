@@ -438,6 +438,8 @@ private fun lockDuration(seconds: Long): String {
 private fun previewMessage(preview: ClaimPreview): String =
     when (preview) {
         is ClaimPreview.Invalid -> stringResource(R.string.claim_invalid, preview.reason)
+        is ClaimPreview.MintRefused ->
+            preview.reason?.let { stringResource(R.string.claim_mint_refused_reason, it) } ?: stringResource(R.string.claim_mint_refused)
         ClaimPreview.OfflineLink -> stringResource(R.string.claim_offline_link)
         ClaimPreview.AlreadySpent -> stringResource(R.string.claim_spent)
         ClaimPreview.AlreadyInWallet -> stringResource(R.string.claim_in_wallet)

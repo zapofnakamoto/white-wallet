@@ -174,6 +174,19 @@ class ClaimScreenTest {
     }
 
     @Test
+    fun aNoteItsMintRefusesIsNotCalledSpentAndShowsTheMintsAnswer() {
+        show(ClaimState(input = "lnurlw://mint.example/w?k1=00", preview = ClaimPreview.MintRefused("Note already spent.")))
+        compose.onNodeWithText(text(R.string.claim_mint_refused_reason, "Note already spent.")).assertExists()
+        compose.onNodeWithText(text(R.string.claim_spent)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNoteItsMintRefusesWithoutAReasonSaysSo() {
+        show(ClaimState(input = "lnurlw://mint.example/w?k1=00", preview = ClaimPreview.MintRefused(null)))
+        compose.onNodeWithText(text(R.string.claim_mint_refused)).assertExists()
+    }
+
+    @Test
     @Config(qualifiers = "de")
     fun germanIsComplete() {
         show(ClaimState(input = "x", preview = ClaimPreview.AlreadyInWallet))

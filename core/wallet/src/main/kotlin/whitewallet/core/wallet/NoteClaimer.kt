@@ -90,6 +90,12 @@ sealed interface ClaimPreview {
 
     data class Invalid(val reason: String) : ClaimPreview
 
+    /**
+     * Its mint refused to show the note, for [reason] in its own words if it gave one, not `already in use`: a spent or unknown note in the
+     * mint's words proves nothing, so the note isn't shown as spent.
+     */
+    data class MintRefused(val reason: String?) : ClaimPreview
+
     data object AlreadySpent : ClaimPreview
 
     data object AlreadyInWallet : ClaimPreview
@@ -142,8 +148,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
                 is KeyLookup.OtherService,
                 KeyLookup.NotANote -> return withdrawer.forNote(link, UnclaimedReason.NotANote, found, accountId)
                 // Spent only if burned; a spent or unknown note in the mint's own words proves nothing, so its words are shown.
-                is KeyLookup.Refused ->
-                    return if (found.burned) ClaimPreview.AlreadySpent else ClaimPreview.Invalid(found.reason ?: "refused")
+                is KeyLookup.Refused -> return if (found.burned) ClaimPreview.AlreadySpent else ClaimPreview.MintRefused(found.reason)
                 // As at a mint that shows no key: the account's own note is still taken back (and refused there), any other kept.
                 is KeyLookup.KeyChanged -> {
                     if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)

@@ -222,7 +222,7 @@ class MintWordingTest {
                 for (reason in WORDING + "Unknown note.") {
                     val (q, link) = link(mint)
                     mint.lookups[q] = error(reason)
-                    assertEquals(ClaimPreview.Invalid(reason), claimer.preview(link, accountId), reason)
+                    assertEquals(ClaimPreview.MintRefused(reason), claimer.preview(link, accountId), reason)
                 }
                 val (q, link) = link(mint)
                 mint.lookups[q] = error("already in use")

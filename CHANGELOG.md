@@ -137,8 +137,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   be spent before …" made a note spent, and a received note the mint refused in such words lost its link for good.
   Only a mint that says `already in use` when asked about the note now shows it spent: such words make the wallet ask,
   a received note keeps its link and is tried again (archived after a week, as for other refusals), a payment waits
-  for that answer before it counts as paid, and Claim shows the mint's own words for a note it doesn't know instead
-  of "This note has already been spent.".
+  for that answer before it counts as paid, and Claim says the mint doesn't accept the note right now, with the
+  mint's answer, instead of "This note has already been spent." or "Not a valid note".
 - Any page a Lightning address registration got back counted: a captive portal's or other web page as "registered",
   so checking an address could call it yours, and a proxy's error page as "refused", which handed the address's share
   to the next one although the registration may have gone through. Only the mint's own answer counts now; anything

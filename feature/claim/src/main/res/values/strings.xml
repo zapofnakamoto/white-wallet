@@ -13,6 +13,10 @@
     <string name="claim_check">Check note</string>
     <string name="claim_invalid">Not a valid note: %1$s</string>
     <string name="claim_spent">This note has already been spent.</string>
+    <!-- The note's mint refused to show it, in words that don't prove it spent (it may say "spent" or "unknown"). -->
+    <string name="claim_mint_refused">The mint doesn\'t accept this note right now.</string>
+    <!-- As claim_mint_refused, with the mint's own answer (%1$s), as it sent it, often in English. -->
+    <string name="claim_mint_refused_reason">The mint doesn\'t accept this note right now. Its answer: %1$s</string>
     <string name="claim_in_wallet">This note is already in your wallet.</string>
     <string name="claim_own_shared">You shared this note, and nobody has claimed it yet.</string>
     <string name="claim_own_offline">You shared this note. Its mint isn\'t answering right now, so it can\'t be taken back yet.</string>
