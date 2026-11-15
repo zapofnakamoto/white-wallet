@@ -28,6 +28,13 @@ import whitewallet.core.wallet.Wallet
  */
 data class SendMint(val host: String, val isHome: Boolean, val maxMsat: Long, val keyChanged: Boolean = false)
 
+/** The mints a payment or note can be made from, home first. */
+internal suspend fun Wallet.sendMints(): List<SendMint> {
+    val home = homeHost.first()
+    val changed = mintsWithChangedKey.first()
+    return sendableByMint().map { (host, max) -> SendMint(host, host == home, max, host in changed) }.sortedBy { !it.isHome }
+}
+
 /** What the regtest faucet's invoice asks for. */
 internal const val FAUCET_SATS = 1_000L
 
@@ -239,10 +246,7 @@ constructor(
     private suspend fun readLimits() {
         val balance = wallet.balanceMsat.first()
         val most = wallet.sendableNoteMsat()
-        val home = wallet.homeHost.first()
-        val changed = wallet.mintsWithChangedKey.first()
-        val mints =
-            wallet.sendableByMint().map { (host, max) -> SendMint(host, host == home, max, host in changed) }.sortedBy { !it.isHome }
+        val mints = wallet.sendMints()
         _state.update { it.copy(balanceMsat = balance, limitMsat = most.takeIf { m -> m < balance }, mints = mints) }
     }
 

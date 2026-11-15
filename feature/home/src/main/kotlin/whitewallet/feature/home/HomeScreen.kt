@@ -1051,10 +1051,6 @@ private fun lastAsked(atMillis: Long): String {
 /** How often [lastAsked] looks at the clock. */
 private const val ASKED_TICK_MILLIS = 20_000L
 
-/**
- * What of the balance is on which mint, a row each, leading to the mint's page; those of [silent] say they don't answer. The mints [more]
- * share a last row, with what they hold together, leading to the account's mints.
- */
 /** What a mint's row under the balance offers once opened, besides its page: paying from that mint, receiving on it. */
 class MintRowActions(val onSend: (String) -> Unit = {}, val onReceive: (String) -> Unit = {})
 

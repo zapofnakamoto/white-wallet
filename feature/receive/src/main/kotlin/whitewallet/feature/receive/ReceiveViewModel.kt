@@ -175,7 +175,8 @@ constructor(
                     u.problem,
                     u.invoice,
                     faucet = u.faucet.takeIf { canFaucet },
-                    noHome = noHome,
+                    // Receiving on a mint picked by hand needs no home.
+                    noHome = noHome.takeIf { u.on == null },
                     mintsVisible = mintsVisible,
                     on = u.on,
                 )

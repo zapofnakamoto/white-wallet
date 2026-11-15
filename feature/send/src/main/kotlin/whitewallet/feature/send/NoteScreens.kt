@@ -39,7 +39,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.WalletStatus
@@ -130,10 +129,7 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
 
     init {
         viewModelScope.launch {
-            val home = wallet.homeHost.first()
-            val changed = wallet.mintsWithChangedKey.first()
-            val mints =
-                wallet.sendableByMint().map { (host, max) -> SendMint(host, host == home, max, host in changed) }.sortedBy { !it.isHome }
+            val mints = wallet.sendMints()
             _state.update { it.copy(availableMsat = wallet.sendableNoteMsat(it.from), mints = mints) }
         }
         viewModelScope.launch {

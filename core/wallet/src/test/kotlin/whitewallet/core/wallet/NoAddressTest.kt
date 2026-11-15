@@ -108,6 +108,21 @@ class NoAddressTest {
     }
 
     @Test
+    fun `a mint removed after its key changed starts afresh when added again`() = withMint { mint, store, wallet ->
+        wallet.createAccount(mint.host, "Main")
+        val pinned = assertNotNull(store.mint(mint.host))
+        store.saveMint(pinned.copy(mintPubkey = "02" + "11".repeat(32)))
+        assertEquals(InvoiceRequest.KeyChanged, wallet.requestInvoice(8_000))
+        assertEquals(RemoveMintResult.Removed, wallet.removeMint(mint.host))
+        assertEquals(emptySet(), wallet.mintsWithChangedKey.first())
+
+        // Added again, it pins the key it presents now.
+        assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
+        wallet.checkMintKey(mint.host)
+        assertEquals(emptySet(), wallet.mintsWithChangedKey.first())
+    }
+
+    @Test
     fun `an unpaid invoice is dropped once it expired`() = withMint { mint, store, wallet ->
         wallet.createAccount(mint.host, "Main")
         val request = assertIs<InvoiceRequest.Ready>(wallet.requestInvoice(5_000))

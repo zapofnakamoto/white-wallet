@@ -191,21 +191,12 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
     }
 
     /**
-     * Whether [mint] now presents another signing key than the pinned one, or none, as [Onboarding.connectMint] takes it. One that can't be
-     * asked counts as unchanged there too; its invoice then fails on its own.
+     * Whether [mint] now presents another signing key than the pinned one. Asked anew for each invoice, not taken from an earlier look: the
+     * key can change at any time, and an invoice minted under another key is money the wallet won't spend. One that can't be asked counts
+     * as unchanged, as in [Onboarding.connectMint]; its invoice then fails on its own.
      */
-    private suspend fun keyChanged(mint: Mint): Boolean {
-        val pinned = mint.mintPubkey ?: return false
-        val discovery =
-            try {
-                wallet.client.withdrawDiscovery(mint.host)
-            } catch (e: IOException) {
-                return false
-            } catch (e: ProtocolViolation) {
-                return false
-            }
-        return (discovery.mintPubkey?.toHex() != pinned).also { wallet.sawKey(mint.walletId, mint.host, it) }
-    }
+    private suspend fun keyChanged(mint: Mint): Boolean =
+        mint.mintPubkey?.let { wallet.compareMintKey(mint.walletId, mint.host, it) } == true
 
     suspend fun status(id: String): InvoiceStatus {
         val mints = MintReconciler(wallet)

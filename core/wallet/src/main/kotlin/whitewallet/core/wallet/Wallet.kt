@@ -184,15 +184,23 @@ class Wallet(
         val walletId = walletOf(activeId())
         val pinned = store.mint(walletId, host)?.mintPubkey ?: return
         if (keyComparisons.value[walletId]?.containsKey(host) == true) return
+        compareMintKey(walletId, host, pinned)
+    }
+
+    /**
+     * Asks [host] for its signing key and compares it with [pinned], the one [walletId] pinned, as [Onboarding.connectMint] does: none
+     * counts as another. Kept for [mintsWithChangedKey]; null, and nothing kept, if the mint can't be asked.
+     */
+    internal suspend fun compareMintKey(walletId: String, host: String, pinned: String): Boolean? {
         val presented =
             try {
                 client.withdrawDiscovery(host).mintPubkey
             } catch (e: IOException) {
-                return
+                return null
             } catch (e: ProtocolViolation) {
-                return
+                return null
             }
-        sawKey(walletId, host, presented?.toHex() != pinned)
+        return (presented?.toHex() != pinned).also { sawKey(walletId, host, it) }
     }
 
     /**
@@ -895,6 +903,8 @@ class Wallet(
                 if (use != null) return@withLock RemoveMintResult.InUse(use)
                 store.mint(walletId, h)?.mintPubkey?.let { trust.forget(walletId, MintKey(h, it)) }
                 store.removeMint(walletId, h)
+                // Added again, it pins the key it presents then: what was compared with the old one says nothing.
+                keyComparisons.update { all -> all + (walletId to all[walletId].orEmpty() - h) }
                 // Nothing of any account is left there: the ones that had it as home have none now.
                 accounts.filter { it.homeHost == h }.forEach { store.saveAccount(it.copy(homeHost = null)) }
                 RemoveMintResult.Removed
