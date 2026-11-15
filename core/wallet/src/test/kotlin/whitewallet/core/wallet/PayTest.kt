@@ -63,7 +63,7 @@ class PayTest {
         val preview = ready(TestInvoices.invoice(21_000, "coffee"))
         assertEquals(21_000, preview.fixedAmountMsat)
         assertEquals("coffee", preview.description)
-        assertEquals(PayQuote.Ok(21_000, 0), wallet.quotePayment(preview, 21_000))
+        assertEquals(PayQuote.Ok(21_000, 0, mint.host), wallet.quotePayment(preview, 21_000))
 
         assertEquals(PayResult.Paid(21_000, 0), wallet.pay(preview, 21_000))
         assertEquals(0, balance())
@@ -77,7 +77,7 @@ class PayTest {
         withMint("--baseFeeMsat=1000") {
             fund(100)
             val preview = ready(TestInvoices.invoice(30_000))
-            assertEquals(PayQuote.Ok(30_000, 1_000), wallet.quotePayment(preview, 30_000))
+            assertEquals(PayQuote.Ok(30_000, 1_000, mint.host), wallet.quotePayment(preview, 30_000))
             assertEquals(PayResult.Paid(30_000, 1_000), wallet.pay(preview, 30_000))
             assertEquals(69_000, balance(), "100 - 30 - the 1 sat split fee")
             assertEquals(1_000, sent().single().feeMsat)

@@ -663,8 +663,14 @@ class Wallet(
         store.setActiveAccount(accountId)
     }
 
-    /** Reads what the user entered or scanned: an invoice, a Lightning address or a pay link (see [Payer]). */
-    suspend fun previewPayment(input: String): PayPreview = payer.preview(input)
+    /**
+     * Reads what the user entered or scanned: an invoice, a Lightning address or a pay link (see [Payer]). With [from], the payment is made
+     * from that mint's notes only; else the wallet chooses as [payOrder] says.
+     */
+    suspend fun previewPayment(input: String, from: String? = null): PayPreview = payer.preview(input, from)
+
+    /** The most one payment or note can be from each of the active account's mints, by host; mints it can't pay from aren't in it. */
+    suspend fun sendableByMint(): Map<String, Long> = payer.availableByMint()
 
     /** Whether [amountMsat] can be paid to [preview]'s destination right now, and the fee. */
     suspend fun quotePayment(preview: PayPreview.Ready, amountMsat: Long): PayQuote = payer.quote(preview, amountMsat)
@@ -720,14 +726,17 @@ class Wallet(
         return keysIfSeeded(accountId, address.host)?.share(address.share)?.cx1()
     }
 
-    /** The most one note can be sent as, or one payment be, from the active account's notes: all it has on one mint. */
-    suspend fun sendableNoteMsat(): Long = sender.availableMsat()
+    /** The most one note can be sent as, or one payment be, from the active account's notes: all it has on one mint ([from], if given). */
+    suspend fun sendableNoteMsat(from: String? = null): Long = sender.availableMsat(from)
 
-    /** What sending [amountMsat] as a note would cost, or why it can't be made. */
-    suspend fun quoteNote(amountMsat: Long): PayQuote = sender.quote(amountMsat)
+    /** What sending [amountMsat] as a note would cost, or why it can't be made; with [from], made from that mint's notes. */
+    suspend fun quoteNote(amountMsat: Long, from: String? = null): PayQuote = sender.quote(amountMsat, from)
 
-    /** Makes a note worth exactly [amountMsat] and hands it out as a link (out of the balance until taken back). */
-    suspend fun createNote(amountMsat: Long): CreateNoteResult = lock.withLock { sender.create(amountMsat) }
+    /**
+     * Makes a note worth exactly [amountMsat] and hands it out as a link (out of the balance until taken back). With [from], it is made from
+     * that mint's notes; else the wallet chooses as for a payment.
+     */
+    suspend fun createNote(amountMsat: Long, from: String? = null): CreateNoteResult = lock.withLock { sender.create(amountMsat, from) }
 
     /** A sent note of the active account, with its link while nobody has claimed it. */
     suspend fun sharedNote(id: String): SharedNote? = sender.sharedNote(id)
@@ -1250,10 +1259,10 @@ class Wallet(
                 .filter { (store.keyIndexOrNull(id, spendDomain(it), KeyCounter.Shares) ?: 0) > 0 }
 
     /**
-     * An invoice for [amountMsat] that mints a note to the active account on its home mint once paid (see [InvoiceReceiver]); the way to
-     * receive without a Lightning address. Follow it with [invoiceStatus].
+     * An invoice for [amountMsat] that mints a note to the active account once paid (see [InvoiceReceiver]): on [on], one of its mints, else
+     * on its home mint. The way to receive without a Lightning address. Follow it with [invoiceStatus].
      */
-    suspend fun requestInvoice(amountMsat: Long): InvoiceRequest = lock.withLock { invoices.request(amountMsat) }
+    suspend fun requestInvoice(amountMsat: Long, on: String? = null): InvoiceRequest = lock.withLock { invoices.request(amountMsat, on) }
 
     /** Looks up whether invoice [id] was paid; a paid one's note is in the wallet afterwards. */
     suspend fun invoiceStatus(id: String): InvoiceStatus = lock.withLock {

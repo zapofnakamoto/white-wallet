@@ -120,7 +120,7 @@ class SendScreenTest {
 
     @Test
     fun offlineNothingCanBePaid() {
-        val state = SendState(preview = payLink, amountText = "1", quote = PayQuote.Ok(1_000, 0), offline = true)
+        val state = SendState(preview = payLink, amountText = "1", quote = PayQuote.Ok(1_000, 0, "mint.example"), offline = true)
         compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
         compose.onNodeWithText(text(R.string.send_offline)).performScrollTo().assertExists()
         compose.onNodeWithText(text(R.string.send_pay_amount, "₿1")).performScrollTo().assertIsNotEnabled()

@@ -103,20 +103,21 @@ internal class NoteSender(private val wallet: Wallet) {
     private val payer = Payer(wallet)
     private val unknownNotes = UnknownNotes(wallet)
 
-    /** The most a single note can be made worth from one mint's notes. */
-    suspend fun availableMsat(): Long {
+    /** The most a single note can be made worth from one mint's notes; with [from], that mint's. */
+    suspend fun availableMsat(from: String? = null): Long {
         val accountId = wallet.activeId()
-        return candidates(accountId).maxOfOrNull { (host, notes) -> PayPlanner.max(notes, baseFee(accountId, host)) } ?: 0
+        return candidates(accountId, from).maxOfOrNull { (host, notes) -> PayPlanner.max(notes, baseFee(accountId, host)) } ?: 0
     }
 
-    suspend fun quote(amountMsat: Long): PayQuote {
+    /** What making a note of [amountMsat] costs; with [from], made from that mint's notes only. */
+    suspend fun quote(amountMsat: Long, from: String? = null): PayQuote {
         if (amountMsat <= 0) return PayQuote.Invalid(PayProblem.BelowMinimum, 1)
         val accountId = wallet.activeId()
-        val candidates = candidates(accountId)
+        val candidates = candidates(accountId, from)
         candidates
-            .firstNotNullOfOrNull { (host, notes) -> PayPlanner.plan(notes, amountMsat, baseFee(accountId, host)) }
-            ?.let {
-                return PayQuote.Ok(amountMsat, it.feeMsat.coerceAtLeast(0))
+            .firstNotNullOfOrNull { (host, notes) -> PayPlanner.plan(notes, amountMsat, baseFee(accountId, host))?.let { host to it } }
+            ?.let { (host, plan) ->
+                return PayQuote.Ok(amountMsat, plan.feeMsat.coerceAtLeast(0), host)
             }
         val (host, notes) =
             candidates.maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(accountId, h)) } ?: return PayQuote.Invalid(PayProblem.NoFunds)
@@ -125,15 +126,15 @@ internal class NoteSender(private val wallet: Wallet) {
         else PayQuote.Unreachable(PayPlanner.maxWithChange(notes, baseFee(accountId, host)), all)
     }
 
-    suspend fun create(amountMsat: Long): CreateNoteResult {
-        when (val q = quote(amountMsat)) {
+    suspend fun create(amountMsat: Long, from: String? = null): CreateNoteResult {
+        when (val q = quote(amountMsat, from)) {
             is PayQuote.Ok -> Unit
             is PayQuote.Unreachable -> return CreateNoteResult.Failed(PayProblem.NotExact)
             is PayQuote.Invalid -> return CreateNoteResult.Failed(q.problem)
         }
         val accountId = wallet.activeId()
         val (host, plan) =
-            candidates(accountId).firstNotNullOfOrNull { (host, notes) ->
+            candidates(accountId, from).firstNotNullOfOrNull { (host, notes) ->
                 PayPlanner.plan(notes, amountMsat, baseFee(accountId, host))?.let { host to it }
             } ?: return CreateNoteResult.Failed(PayProblem.TooMuch)
         val note =
@@ -347,12 +348,13 @@ internal class NoteSender(private val wallet: Wallet) {
         wallet.store.activities(accountId).first().firstOrNull { it.id == activityId(noteId) && it.kind == ActivityKind.SentNote }
 
     /** The mints to make the note on: the home mint first, then the others (or the other way round, see [Wallet.payOrder]). */
-    private suspend fun candidates(accountId: String): List<Pair<String, List<Note>>> {
+    private suspend fun candidates(accountId: String, from: String? = null): List<Pair<String, List<Note>>> {
         val order = wallet.payOrder(accountId)
         return wallet.store
             .notes(accountId)
             .first()
             .filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null && it.isPickable() }
+            .filter { from == null || it.host == from }
             .groupBy { it.host }
             .toList()
             .sortedBy { order(it.first) }

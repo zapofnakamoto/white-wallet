@@ -105,6 +105,8 @@ sealed interface PayPreview {
         val description: String?,
         /** The most this account can pay to this destination. */
         val availableMsat: Long,
+        /** The mint the user chose to pay from; null lets the wallet choose (see [Wallet.payOrder]). */
+        val from: String? = null,
     ) : PayPreview {
         val internal: Boolean
             get() = (destination as? PayDestination.PayLink)?.internalTransfer == true
@@ -114,8 +116,8 @@ sealed interface PayPreview {
 }
 
 sealed interface PayQuote {
-    /** Payable; the balance drops by the amount plus [feeMsat] (0 when merge refunds cover the split fee). */
-    data class Ok(val amountMsat: Long, val feeMsat: Long) : PayQuote
+    /** Payable from [host]'s notes; the balance drops by the amount plus [feeMsat] (0 when merge refunds cover the split fee). */
+    data class Ok(val amountMsat: Long, val feeMsat: Long, val host: String) : PayQuote
 
     /**
      * The notes can't make exactly this amount: one split needs change worth more than the base fee. Up to [maxWithChangeMsat], or exactly
@@ -152,10 +154,11 @@ internal class Payer(private val wallet: Wallet) {
     internal val log = ActivityLog(wallet)
     private val melter = Melter(wallet)
 
-    suspend fun preview(input: String): PayPreview {
+    /** Reads [input]; with [from], only that mint's notes pay it. */
+    suspend fun preview(input: String, from: String? = null): PayPreview {
         val text = input.trim().let(::unwrapBip21)
         Bolt11.decode(text)?.let {
-            return previewInvoice(it)
+            return previewInvoice(it, from)
         }
         val url = Lnurl.resolve(text) ?: return PayPreview.Invalid(PayProblem.NotRecognized)
         // A k1 is a withdraw link's (maybe a note's spend): never sent from here.
@@ -178,7 +181,8 @@ internal class Payer(private val wallet: Wallet) {
         val accountId = wallet.activeId()
         val payeeHost = Lnurl.host(url)?.lowercase()
         val holdsNotes = payeeHost != null && outstanding(accountId).any { it.host == payeeHost }
-        val transfer = holdsNotes && sharesMint(accountId, pay, payeeHost!!)
+        // Paid from another mint, it goes over Lightning: a transfer only moves a note within its mint.
+        val transfer = holdsNotes && (from == null || from == payeeHost) && sharesMint(accountId, pay, payeeHost!!)
         // One of the account's own addresses.
         if (wallet.store.addresses(accountId).first().any { Lnurl.lightningAddressUrl(it.address) == url }) {
             return PayPreview.Invalid(PayProblem.OwnAddress)
@@ -186,7 +190,7 @@ internal class Payer(private val wallet: Wallet) {
         val destination =
             PayDestination.PayLink(url, pay.callback, pay.metadata, pay.minSendable, pay.maxSendable, pay.commentAllowed ?: 0, transfer)
         val identifier = pay.metadataEntries.firstOrNull { it.first == "text/identifier" || it.first == "text/email" }?.second
-        val available = available(accountId, payeeHost.takeIf { transfer })
+        val available = available(accountId, from ?: payeeHost.takeIf { transfer })
         if (available == 0L) return PayPreview.Invalid(PayProblem.NoFunds)
         return PayPreview.Ready(
             destination,
@@ -197,15 +201,16 @@ internal class Payer(private val wallet: Wallet) {
             payee = lightningAddress(text) ?: identifier ?: payeeHost,
             description = pay.metadataEntries.firstOrNull { it.first == "text/plain" }?.second,
             availableMsat = available,
+            from = from,
         )
     }
 
-    private suspend fun previewInvoice(invoice: Bolt11Invoice): PayPreview {
+    private suspend fun previewInvoice(invoice: Bolt11Invoice, from: String?): PayPreview {
         val amount = invoice.amountMsat ?: return PayPreview.Invalid(PayProblem.NoAmount)
         if (invoice.isExpired(wallet.now())) return PayPreview.Invalid(PayProblem.Expired)
-        val available = available(wallet.activeId(), null)
+        val available = available(wallet.activeId(), from)
         if (available == 0L) return PayPreview.Invalid(PayProblem.NoFunds)
-        return PayPreview.Ready(PayDestination.Invoice(invoice), amount, amount, amount, 0, null, invoice.description, available)
+        return PayPreview.Ready(PayDestination.Invoice(invoice), amount, amount, amount, 0, null, invoice.description, available, from)
     }
 
     suspend fun quote(preview: PayPreview.Ready, amountMsat: Long): PayQuote {
@@ -213,7 +218,7 @@ internal class Payer(private val wallet: Wallet) {
         if (amountMsat > preview.maxMsat) return PayQuote.Invalid(PayProblem.AboveMaximum, preview.maxMsat)
         val accountId = wallet.activeId()
         val choice = choose(accountId, preview, amountMsat)
-        if (choice != null) return PayQuote.Ok(amountMsat, choice.second.feeMsat.coerceAtLeast(0))
+        if (choice != null) return PayQuote.Ok(amountMsat, choice.second.feeMsat.coerceAtLeast(0), choice.first)
         // No plan anywhere: too much for every mint, or an amount the notes can't make exactly.
         val (host, notes) =
             candidates(accountId, preview).maxByOrNull { (h, n) -> PayPlanner.max(n, baseFee(accountId, h)) }
@@ -420,10 +425,16 @@ internal class Payer(private val wallet: Wallet) {
         val silent = wallet.mintsNotAnswering.first()
         return outstanding(accountId)
             .groupBy { it.host }
-            .filterKeys { transferHost == null || it == transferHost }
+            .filterKeys { (transferHost == null || it == transferHost) && (preview.from == null || it == preview.from) }
             .entries
             .sortedWith(compareBy({ it.key in silent }, { order(it.key) }))
             .map { it.key to it.value }
+    }
+
+    /** The most one payment can be from each mint's notes, by host; mints without notes that can pay aren't in it. */
+    suspend fun availableByMint(): Map<String, Long> {
+        val accountId = wallet.activeId()
+        return outstanding(accountId).groupBy { it.host }.mapValues { (host, notes) -> PayPlanner.max(notes, baseFee(accountId, host)) }
     }
 
     private suspend fun available(accountId: String, onlyHost: String?): Long =

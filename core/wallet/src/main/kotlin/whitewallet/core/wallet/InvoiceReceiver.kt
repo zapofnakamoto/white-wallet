@@ -145,9 +145,10 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
     private val guard = IndexGuard(wallet)
 
     /** An invoice of the active account's home mint for [amountMsat]. */
-    suspend fun request(amountMsat: Long): InvoiceRequest {
+    /** An invoice of [on], one of the active account's mints, else of its home mint. */
+    suspend fun request(amountMsat: Long, on: String? = null): InvoiceRequest {
         val accountId = wallet.activeId()
-        val host = wallet.homeOf(accountId) ?: return InvoiceRequest.Unreachable
+        val host = on ?: wallet.homeOf(accountId) ?: return InvoiceRequest.Unreachable
         val pay =
             try {
                 wallet.client.servicePayRequest(host)

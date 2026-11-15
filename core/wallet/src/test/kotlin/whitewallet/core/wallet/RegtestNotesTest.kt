@@ -158,8 +158,8 @@ class RegtestNotesTest {
             val sendable = alice.wallet.sendableNoteMsat()
             assertTrue(sendable >= 4_998_000, "both notes merged, less at most the merge fee: $sendable")
             assertIs<PayQuote.Ok>(alice.wallet.quoteNote(sendable))
-            assertEquals(PayQuote.Ok(1_000_000, 1_000), alice.wallet.quoteNote(1_000_000))
-            assertEquals(PayQuote.Ok(2_999_000, 0), alice.wallet.quoteNote(2_999_000), "a whole note, as it is")
+            assertEquals(PayQuote.Ok(1_000_000, 1_000, HOST), alice.wallet.quoteNote(1_000_000))
+            assertEquals(PayQuote.Ok(2_999_000, 0, HOST), alice.wallet.quoteNote(2_999_000), "a whole note, as it is")
             assertIs<PayQuote.Invalid>(alice.wallet.quoteNote(5_000_000))
             assertEquals(CreateNoteResult.Failed(PayProblem.TooMuch), alice.wallet.createNote(5_000_000))
 

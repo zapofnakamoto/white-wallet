@@ -74,7 +74,7 @@ class SendNoteTest {
     fun `a note is split off, shared out of the balance, and claimed by someone else`() =
         withMint("--baseFeeMsat=1000", strategy = SingleNoteStrategy.ID) {
             fund(100)
-            assertEquals(PayQuote.Ok(30_000, 1_000), wallet.quoteNote(30_000))
+            assertEquals(PayQuote.Ok(30_000, 1_000, mint.host), wallet.quoteNote(30_000))
             val created = assertIs<CreateNoteResult.Created>(wallet.createNote(30_000))
             assertEquals(1_000, created.feeMsat)
             val note = created.note
