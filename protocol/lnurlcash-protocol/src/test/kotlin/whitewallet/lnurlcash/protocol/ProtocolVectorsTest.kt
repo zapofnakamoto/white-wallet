@@ -3,6 +3,7 @@
 package whitewallet.lnurlcash.protocol
 
 import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.bitcoin.PrivateKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -17,6 +18,7 @@ import kotlinx.serialization.json.long
 import kotlinx.serialization.json.longOrNull
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.BearerNote
+import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.testkit.Vectors
@@ -42,6 +44,15 @@ class ProtocolVectorsTest {
             val cp1Outputs = c.strOrNull("output") == "cp1" || c.strOrNull("change") == "cp1"
             val legacyOnly = !cp1Outputs && c.str("expect") == "ok" && type != MutationType.Melt
             if (legacyOnly) continue
+            // Their `c` is a placeholder that no cs1 decodes as (an hrp with no amount, a recovery id of 0xab), and a certificate owed
+            // that doesn't decode is as good as missing: unverifiable here, where the vectors say ok.
+            val expected =
+                if (c.str("name") in PLACEHOLDER_CERTIFICATE) {
+                    assertEquals("ok", c.str("expect"), c.str("name"))
+                    "unverifiable"
+                } else {
+                    c.str("expect")
+                }
             val result =
                 when {
                     c["transportError"]?.jsonPrimitive?.booleanOrNull == true -> HttpResult.TransportFailure("connection reset")
@@ -62,7 +73,7 @@ class ProtocolVectorsTest {
                             else -> "error"
                         }
                 }
-            assertEquals(c.str("expect"), actual, c.str("name"))
+            assertEquals(expected, actual, c.str("name"))
         }
     }
 
@@ -70,6 +81,59 @@ class ProtocolVectorsTest {
     fun `a bare OK for a cp1 rotate is unverifiable but landed`() {
         val outcome = MutationClassifier.classify(MutationType.Rotate, HttpResult.Response(200, """{"status":"OK"}"""))
         assertIs<MutationOutcome.Unverifiable>(outcome)
+    }
+
+    @Test
+    fun `an answer outside 2xx is ambiguous whatever its body says`() {
+        val c = certificate()
+        val answers =
+            listOf(
+                502 to """{"status":"ERROR","reason":"Bad Gateway"}""",
+                504 to """{"status":"ERROR","reason":"upstream request timeout"}""",
+                500 to """{"status":"OK"}""",
+                302 to """{"status":"OK","c":"$c"}""",
+                199 to """{"status":"OK","c":"$c"}""",
+            )
+        for ((status, body) in answers) {
+            for (type in MutationType.entries) {
+                val outcome = MutationClassifier.classify(type, HttpResult.Response(status, body))
+                assertEquals(MutationOutcome.Ambiguous("HTTP $status"), outcome, "$type $status $body")
+            }
+        }
+    }
+
+    @Test
+    fun `a status spelled otherwise than LUD-01 is ambiguous`() {
+        val c = certificate()
+        for (body in listOf("""{"status":"ok","c":"$c"}""", """{"status":"Ok","c":"$c"}""", """{"status":"Error","reason":"pending"}""")) {
+            for (type in MutationType.entries) {
+                assertIs<MutationOutcome.Ambiguous>(MutationClassifier.classify(type, HttpResult.Response(200, body)), "$type $body")
+            }
+        }
+    }
+
+    @Test
+    fun `a certificate owed that doesn't decode as a cs1 is no certificate`() {
+        val c = certificate()
+        fun classify(type: MutationType, body: String) = MutationClassifier.classify(type, HttpResult.Response(200, body))
+        assertIs<MutationOutcome.Confirmed>(classify(MutationType.Rotate, """{"status":"OK","c":"$c"}"""))
+        assertIs<MutationOutcome.Confirmed>(classify(MutationType.Split, """{"status":"OK","c":"$c","c2":"$c"}"""))
+        for (bad in listOf("not a certificate", "cs1x", "ab".repeat(65), c.dropLast(1) + if (c.last() == 'q') "p" else "q")) {
+            assertIs<MutationOutcome.Unverifiable>(classify(MutationType.Rotate, """{"status":"OK","c":"$bad"}"""), bad)
+            assertIs<MutationOutcome.Unverifiable>(classify(MutationType.Merge, """{"status":"OK","sig":"$bad"}"""), bad)
+            assertIs<MutationOutcome.Unverifiable>(classify(MutationType.Split, """{"status":"OK","c":"$bad","c2":"$c"}"""), bad)
+            assertIs<MutationOutcome.Unverifiable>(classify(MutationType.Split, """{"status":"OK","c":"$c","c2":"$bad"}"""), bad)
+            // Nothing is owed for a melt or a transfer: whatever comes along is not looked at.
+            assertIs<MutationOutcome.Confirmed>(classify(MutationType.Melt, """{"status":"OK","c":"$bad"}"""), bad)
+            assertIs<MutationOutcome.Confirmed>(classify(MutationType.Transfer, """{"status":"OK","c":"$bad"}"""), bad)
+        }
+    }
+
+    private fun certificate(): String = Certificates.sign("mint.example", 21_000, ByteVector32.One, PrivateKey(ByteVector32.One)).encode()
+
+    private companion object {
+        /** The cases of `responses.json` whose certificate is a placeholder no cs1 decodes as. */
+        val PLACEHOLDER_CERTIFICATE = setOf("cp1 output certified", "cp1 output certified under both names")
     }
 
     @Test

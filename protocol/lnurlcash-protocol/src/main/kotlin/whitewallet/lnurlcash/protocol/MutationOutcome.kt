@@ -3,6 +3,7 @@ package whitewallet.lnurlcash.protocol
 import kotlinx.serialization.json.JsonObject
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurl.string
+import whitewallet.lnurlcash.Cs1
 
 /** Why a service definitively refused a request. */
 public enum class RejectionKind {
@@ -66,7 +67,10 @@ public sealed interface MutationOutcome {
     /** Confirmed. For a melt this means "payment in flight", not "spent". */
     public data class Confirmed(val certificate: String?, val changeCertificate: String?, val raw: JsonObject) : MutationOutcome
 
-    /** Landed, but a certificate owed for a `cp1` output is missing. The outputs exist; keep their secrets. */
+    /**
+     * Landed, but a certificate owed for a `cp1` output is missing, or isn't a `cs1`. The outputs exist; keep their secrets. [certificate]
+     * and [changeCertificate] are as the mint sent them.
+     */
     public data class Unverifiable(val certificate: String?, val changeCertificate: String?, val raw: JsonObject) : MutationOutcome
 
     /**
@@ -90,31 +94,43 @@ public enum class MutationType {
 }
 
 public object MutationClassifier {
-    /** Classifies [result]. Every output this wallet names is a `cp1`, so rotate/split/merge owe certificates. */
+    /**
+     * Classifies [result]. Every output this wallet names is a `cp1`, so rotate/split/merge owe certificates.
+     *
+     * A mint answers every LNURL request with HTTP 200 (LUD-01), a refusal too: an answer outside 2xx comes from something in front of it
+     * (a proxy's 502 or 504 page), which says nothing about whether the mint processed the request, whatever its body. Only a `status`
+     * spelled `OK` or `ERROR` as LUD-01 has it is the mint's answer.
+     */
     public fun classify(type: MutationType, result: HttpResult): MutationOutcome {
         val response =
             when (result) {
                 is HttpResult.TransportFailure -> return MutationOutcome.Ambiguous(result.message)
-                is HttpResult.Response ->
+                is HttpResult.Response -> {
+                    if (result.status !in 200..299) return MutationOutcome.Ambiguous("HTTP ${result.status}")
                     LnurlResponse.parse(result.body) ?: return MutationOutcome.Ambiguous("unparseable response (HTTP ${result.status})")
+                }
             }
-        return when (response) {
-            is LnurlResponse.Error -> MutationOutcome.Rejected(RejectionKind.fromReason(response.reason), response.reason)
-            is LnurlResponse.Ok -> confirmed(type, response.raw)
+        val status = response.raw.string("status")
+        return when {
+            response is LnurlResponse.Error && status == "ERROR" ->
+                MutationOutcome.Rejected(RejectionKind.fromReason(response.reason), response.reason)
+            response is LnurlResponse.Ok && status == "OK" -> confirmed(type, response.raw)
             else -> MutationOutcome.Ambiguous("response confirms nothing (HTTP ${result.status})")
         }
     }
 
+    /** Landed. A certificate owed that doesn't decode as a `cs1` certifies nothing, as if it were missing. */
     private fun confirmed(type: MutationType, raw: JsonObject): MutationOutcome {
         val c = raw.string("c") ?: raw.string("sig")
         val c2 = raw.string("c2")
+        fun uncertified(certificate: String?) = certificate?.let(Cs1::decode) == null
         val missing =
             when (type) {
                 MutationType.Melt,
                 MutationType.Transfer -> false
-                MutationType.Split -> c == null || c2 == null
+                MutationType.Split -> uncertified(c) || uncertified(c2)
                 MutationType.Rotate,
-                MutationType.Merge -> c == null
+                MutationType.Merge -> uncertified(c)
             }
         return if (missing) MutationOutcome.Unverifiable(c, c2, raw) else MutationOutcome.Confirmed(c, c2, raw)
     }

@@ -130,6 +130,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A renew, combine, split or claim whose answer was lost, and whose resend the mint then refused (rate limited, busy,
   a proxy's error page), counted as refused: its notes stayed in the balance although the first request may have spent
   them. It now waits for an answer and is settled by looking the notes up, as when no answer comes at all.
+- An error page from something in front of a mint (a proxy's 502 or 504) after a renew, combine, split, claim or
+  payment counted as the mint's refusal, so a payment could show as failed while the mint was still paying it. Only
+  the mint's own answer counts now; anything else waits for an answer and is settled by looking the notes up.
 
 ## [0.9.0]
 
