@@ -21,3 +21,6 @@ __pycache__/
 # zsp's settings: SIGN_WITH is the publisher's key or bunker secret
 .env
 
+
+# Plans handed from one session to the next; not part of the repo.
+/docs/plans/
