@@ -9,13 +9,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -1014,6 +1019,7 @@ class HomeScreenTest {
         compose.onAllNodesWithText(text(R.string.home_tab_history)).assertCountEquals(2)
     }
 
+    @OptIn(ExperimentalTestApi::class)
     @Test
     fun aBalanceOnSeveralMintsIsShownPerMintAndEachLeadsToItsPage() {
         var opened: String? = null
@@ -1022,9 +1028,70 @@ class HomeScreenTest {
         compose.onNodeWithText("₿8,000").assertExists()
         compose.onNodeWithText("₿6,000").assertExists()
         compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
+        // A tap opens the row; its page is one of what it offers.
         compose.onNodeWithText("b.example").performClick()
+        assertEquals(null, opened)
+        compose
+            .onNodeWithText("b.example")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text(R.string.home_mint_opened)))
+        compose.onNodeWithText("b.example").performCustomAccessibilityActionWithLabel(text(R.string.home_mint_details))
         assertEquals("b.example", opened)
     }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun aMintsRowPaysFromItOrReceivesOnIt() {
+        val sent = mutableListOf<String>()
+        val received = mutableListOf<String>()
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                HomeState(
+                    activeAccountId = "a",
+                    balanceMsat = 8_000_000,
+                    mints = listOf(mint("a.example", 6_000_000, home = true), mint("b.example", 2_000_000)),
+                    receiveHosts = setOf("a.example", "b.example"),
+                ),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onOpenAddresses = {},
+                accountActions = AccountActions({}, {}, {}),
+                mintRow = MintRowActions(onSend = { sent += it }, onReceive = { received += it }),
+            )
+        }
+        compose.onNodeWithText("b.example").performClick()
+        // The row's Send, above Home's own.
+        compose.onAllNodesWithText(text(R.string.home_mint_send)).onFirst().performClick()
+        compose.onNodeWithText("a.example").performCustomAccessibilityActionWithLabel(text(R.string.home_mint_receive))
+        assertEquals(listOf("b.example"), sent)
+        assertEquals(listOf("a.example"), received)
+    }
+
+    @Test
+    fun aMintsRowOffersOnlyWhatCanBeDoneThere() {
+        show(
+            HomeState(
+                activeAccountId = "a",
+                balanceMsat = 2_000_000,
+                mints = listOf(mint("a.example", 0, home = true), mint("b.example", 2_000_000)),
+                // The brand doesn't let b.example hold money: nothing is received there.
+                receiveHosts = setOf("a.example"),
+            )
+        )
+        val send = text(R.string.home_mint_send)
+        val receive = text(R.string.home_mint_receive)
+        compose.onNodeWithText("a.example").assert(offers(listOf(receive, text(R.string.home_mint_details))))
+        compose.onNodeWithText("b.example").assert(offers(listOf(send, text(R.string.home_mint_details))))
+    }
+
+    private fun offers(labels: List<String>) =
+        SemanticsMatcher("offers $labels") { node ->
+            node.config.getOrElseNullable(SemanticsActions.CustomActions) { null }?.map { it.label } == labels
+        }
 
     @Test
     fun manyMintsShareALastRowThatLeadsToTheAccountsMints() {

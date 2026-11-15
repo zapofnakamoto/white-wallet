@@ -9,11 +9,13 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.PayDestination
 import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
@@ -167,5 +169,52 @@ class SendScreenTest {
     fun aNotesFormIsNotDrawnBeforeWhatCanBeSentIsRead() {
         compose.setContent { CreateNoteScreen(CreateNoteState(), onBack = {}, onAmountChange = {}, onCreate = {}) }
         compose.onNodeWithText(text(R.string.note_bearer_warning)).assertDoesNotExist()
+    }
+
+    private val mints = listOf(SendMint("home.example", isHome = true, maxMsat = 3_000_000), SendMint("other.example", false, 9_000_000))
+
+    @Test
+    fun openedForAMintItIsPaidFromThereAndAnotherCanBePicked() {
+        val picked = mutableListOf<String?>()
+        compose.setContent {
+            SendScreen(
+                SendState(from = "other.example", mints = mints),
+                onBack = {},
+                onDone = {},
+                actions = SendActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, onPayFrom = { picked += it }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.send_from_up_to, "other.example", "₿9,000")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performClick()
+        compose.onNodeWithText(text(R.string.send_from_detail_home, "₿3,000")).assertExists()
+        // Back to the wallet's choice.
+        compose.onNodeWithText(text(R.string.send_from_automatic)).performClick()
+        assertEquals(listOf(null), picked)
+    }
+
+    @Test
+    fun theReviewSaysWhichMintPaysAndOneWithTooLittleCannotBePicked() {
+        val picked = mutableListOf<String?>()
+        val state = SendState(preview = payLink, amountText = "5000", quote = PayQuote.Ok(5_000_000, 0, "other.example"), mints = mints)
+        compose.setContent {
+            SendScreen(
+                state,
+                onBack = {},
+                onDone = {},
+                actions = SendActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, onPayFrom = { picked += it }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.send_from, "other.example")).performScrollTo().assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.send_from_not_enough, "₿3,000")).assertIsNotEnabled()
+        compose.onNodeWithText("home.example").performClick()
+        assertEquals(emptyList<String?>(), picked)
+    }
+
+    @Test
+    fun withMoneyOnOneMintNothingIsSaidAboutMints() {
+        val state = SendState(preview = payLink, amountText = "1", quote = PayQuote.Ok(1_000, 0, "home.example"), mints = mints.take(1))
+        compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_from, "home.example")).assertDoesNotExist()
     }
 }

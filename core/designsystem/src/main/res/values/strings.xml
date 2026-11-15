@@ -78,4 +78,6 @@
     <string name="received_archive">Archive</string>
     <string name="received_archived_by_you">You archived it.</string>
     <string name="received_receive">Receive</string>
+    <!-- After "On mint.example.com" or "From mint.example.com": picks another mint -->
+    <string name="mint_choice_change">Change</string>
 </resources>

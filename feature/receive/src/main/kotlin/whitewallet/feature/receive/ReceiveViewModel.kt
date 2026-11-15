@@ -1,5 +1,6 @@
 package whitewallet.feature.receive
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,7 +33,7 @@ sealed interface InvoiceProblem {
     /** The phone is offline. */
     data object Offline : InvoiceProblem
 
-    /** The home mint, which makes the invoice, didn't answer. */
+    /** The mint that makes the invoice didn't answer. */
     data class MintNotAnswering(val host: String) : InvoiceProblem
 
     /** No answer over a network not known to reach the internet: that says nothing about the mint. */
@@ -41,8 +42,11 @@ sealed interface InvoiceProblem {
     data object Refused : InvoiceProblem
 }
 
-/** An invoice on screen and where it stands. */
-data class ShownInvoice(val request: InvoiceRequest.Ready, val status: InvoiceStatus = InvoiceStatus.Waiting)
+/** An invoice on screen, the mint it is on, and where it stands. */
+data class ShownInvoice(val request: InvoiceRequest.Ready, val status: InvoiceStatus = InvoiceStatus.Waiting, val host: String? = null)
+
+/** A mint the account can receive on: whether it is home, and the Lightning address it has there, if any. */
+data class ReceiveMint(val host: String, val isHome: Boolean, val address: String?)
 
 data class ReceiveState(
     /**
@@ -71,7 +75,20 @@ data class ReceiveState(
     val mintsVisible: Boolean = true,
     /** The phone is offline: no invoice can be made, and the amount form says so before the user tries. */
     val offline: Boolean = false,
+    /** The mint the user picked to receive on; null leaves it to the wallet (the address it offers first, else the home mint). */
+    val on: String? = null,
+    val homeHost: String? = null,
+    /** The mints the account can receive on, home first; one to pick from once there are several (and the brand names mints). */
+    val mints: List<ReceiveMint> = emptyList(),
 ) {
+    /** The mint what is shown receives on: the invoice's, the address's, else the one an invoice would be made on. */
+    val receivingHost: String?
+        get() = invoice?.host ?: addressHost.takeIf { invoice == null && !showAmountForm } ?: on ?: homeHost
+
+    /** Another mint can be picked: the brand names mints and the account has more than one to receive on. */
+    val canPickMint: Boolean
+        get() = mintsVisible && mints.size > 1
+
     /** The mint of the [address] shown. */
     val addressHost: String?
         get() = address?.substringAfterLast('@')
@@ -105,6 +122,8 @@ private data class ReceiveUi(
     val faucet: FaucetState = FaucetState(),
     /** The address the user switched to, if any. */
     val chosen: String? = null,
+    /** The mint the user picked (see [ReceiveState.on]). */
+    val on: String? = null,
 )
 
 /** The active account's registered addresses, the one Receive offers first leading; that one is null if none is offered first. */
@@ -115,18 +134,27 @@ private data class AddressChoice(val first: String?, val all: List<String>)
  * for an amount that mints to this account (see [Wallet.requestInvoice]).
  */
 @HiltViewModel
-class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, defaults: AppDefaults) :
-    ViewModel() {
+class ReceiveViewModel
+@Inject
+constructor(
+    private val wallet: Wallet,
+    private val faucet: RegtestFaucet,
+    private val defaults: AppDefaults,
+    savedState: SavedStateHandle,
+) : ViewModel() {
     private val timings = defaults.timings
     private val mintsVisible = defaults.showMints
     private val received = MutableStateFlow(0L)
-    private val ui = MutableStateFlow(ReceiveUi())
+    // Opened from a mint (Home's mint row, its page): received there.
+    private val ui = MutableStateFlow(ReceiveUi(on = savedState.get<String>("on")?.takeIf { it.isNotBlank() }))
     private var watch: Job? = null
 
     val state: StateFlow<ReceiveState> =
         combine(addressChoice(), received, ui, faucet.available, wallet.noHome) { choice, msat, u, canFaucet, noHome ->
                 ReceiveState(
-                    u.chosen?.takeIf { it in choice.all } ?: choice.first,
+                    u.chosen?.takeIf { it in choice.all }
+                        ?: u.on?.let { on -> choice.all.firstOrNull { it.substringAfterLast('@') == on } }
+                        ?: choice.first.takeIf { u.on == null },
                     choice.all.size,
                     receivedMsat = msat,
                     u.requestingAmount,
@@ -137,8 +165,10 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
                     faucet = u.faucet.takeIf { canFaucet },
                     noHome = noHome,
                     mintsVisible = mintsVisible,
+                    on = u.on,
                 )
             }
+            .combine(receiveMints()) { state, (home, mints) -> state.copy(homeHost = home, mints = mints) }
             .combine(wallet.mintsNotAnswering) { state, silent -> state.copy(addressMintNotAnswering = state.addressHost in silent) }
             .combine(wallet.offline) { state, offline -> state.copy(offline = offline) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState(loaded = false))
@@ -149,6 +179,21 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
             val registered = entries.map { it.address }.filter { it.feeInvoice == null }
             val first = primary?.takeIf { it.feeInvoice == null } ?: registered.firstOrNull { it.host == home }
             AddressChoice(first?.address, (listOfNotNull(first) + registered).distinct().map { it.address })
+        }
+
+    /**
+     * The home mint, and the mints the account can receive on: the wallet's mints it holds a key of (an invoice is minted to the account
+     * there), that the brand lets hold money; home first. Each with the address Receive shows there (the primary one first).
+     */
+    private fun receiveMints() =
+        combine(wallet.mints, addressChoice(), wallet.homeHost) { mints, choice, home ->
+            home to
+                mints
+                    .filter { it.pubkey != null && defaults.mintAllowed(it.host) }
+                    .map { mint ->
+                        ReceiveMint(mint.host, mint.host == home, choice.all.firstOrNull { it.substringAfterLast('@') == mint.host })
+                    }
+                    .sortedBy { !it.isHome }
         }
 
     init {
@@ -178,8 +223,17 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
             if (all.isEmpty()) return@launch
             val shown = state.value.address
             val next = if (shown == null || ui.value.requestingAmount) all.first() else all[(all.indexOf(shown) + 1) % all.size]
-            ui.update { it.copy(chosen = next, requestingAmount = false, problem = null) }
+            // Another mint's address: the screen is on that mint now.
+            ui.update {
+                it.copy(chosen = next, on = it.on?.let { _ -> next.substringAfterLast('@') }, requestingAmount = false, problem = null)
+            }
         }
+    }
+
+    /** Receives on [host] from now on (null: as the wallet chooses): its address if the account has one there, else an invoice. */
+    fun receiveOn(host: String?) {
+        watch?.cancel()
+        ui.update { it.copy(on = host, chosen = null, requestingAmount = false, problem = null, invoice = null) }
     }
 
     fun onAmountChange(value: String) = ui.update { it.copy(amountText = value.filter(Char::isDigit), problem = null) }
@@ -188,11 +242,13 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
         val amount = state.value.amountMsat ?: return
         if (ui.value.creating || state.value.offline) return
         ui.update { it.copy(creating = true, problem = null) }
+        val on = ui.value.on
         viewModelScope.launch {
+            val host = on ?: wallet.homeHost.first()
             val problem =
-                when (val result = wallet.requestInvoice(amount)) {
+                when (val result = wallet.requestInvoice(amount, on)) {
                     is InvoiceRequest.Ready -> {
-                        ui.update { it.copy(creating = false, invoice = ShownInvoice(result)) }
+                        ui.update { it.copy(creating = false, invoice = ShownInvoice(result, host = host)) }
                         watch(result.id)
                         return@launch
                     }
@@ -201,7 +257,7 @@ class ReceiveViewModel @Inject constructor(private val wallet: Wallet, private v
                         when (wallet.connection.value) {
                             Connection.Offline -> InvoiceProblem.Offline
                             Connection.Unverified -> InvoiceProblem.NoAnswer
-                            Connection.Online -> wallet.homeHost.first()?.let(InvoiceProblem::MintNotAnswering) ?: InvoiceProblem.NoAnswer
+                            Connection.Online -> host?.let(InvoiceProblem::MintNotAnswering) ?: InvoiceProblem.NoAnswer
                         }
                     InvoiceRequest.Refused -> InvoiceProblem.Refused
                 }

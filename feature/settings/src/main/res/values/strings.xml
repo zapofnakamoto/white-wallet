@@ -469,4 +469,7 @@
     <string name="account_remove_blocked_open">Something of this account isn\'t finished yet: a payment under way, or money that is still arriving. Try again once that is done.</string>
     <string name="account_remove_blocked_archived">Its archive still holds received links, and only this phone has them. Try them again or remove them there first; then the account can be removed.</string>
     <string name="account_remove_blocked_last">It is the only account of its wallet. To remove it, delete the wallet.</string>
+    <!-- On a mint's page: pay from it, receive on it -->
+    <string name="mint_send">Send</string>
+    <string name="mint_receive">Receive</string>
 </resources>

@@ -205,4 +205,9 @@
         <item quantity="one">%1$d weiterer Hinweis</item>
         <item quantity="other">%1$d weitere Hinweise</item>
     </plurals>
+    <string name="home_mint_send">Senden</string>
+    <string name="home_mint_receive">Empfangen</string>
+    <string name="home_mint_details">Details</string>
+    <string name="home_mint_open">Aktionen zeigen</string>
+    <string name="home_mint_opened">Aktionen sichtbar</string>
 </resources>

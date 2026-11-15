@@ -249,4 +249,11 @@
         <item quantity="one">%1$d more alert</item>
         <item quantity="other">%1$d more alerts</item>
     </plurals>
+    <!-- A mint's row under the balance, opened: pay from it, receive on it, its page -->
+    <string name="home_mint_send">Send</string>
+    <string name="home_mint_receive">Receive</string>
+    <string name="home_mint_details">Details</string>
+    <!-- For screen readers: what tapping a mint's row does, and how it is once opened -->
+    <string name="home_mint_open">show actions</string>
+    <string name="home_mint_opened">Actions shown</string>
 </resources>

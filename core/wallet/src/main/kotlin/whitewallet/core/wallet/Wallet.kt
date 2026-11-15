@@ -733,8 +733,8 @@ class Wallet(
     suspend fun quoteNote(amountMsat: Long, from: String? = null): PayQuote = sender.quote(amountMsat, from)
 
     /**
-     * Makes a note worth exactly [amountMsat] and hands it out as a link (out of the balance until taken back). With [from], it is made from
-     * that mint's notes; else the wallet chooses as for a payment.
+     * Makes a note worth exactly [amountMsat] and hands it out as a link (out of the balance until taken back). With [from], it is made
+     * from that mint's notes; else the wallet chooses as for a payment.
      */
     suspend fun createNote(amountMsat: Long, from: String? = null): CreateNoteResult = lock.withLock { sender.create(amountMsat, from) }
 
@@ -1259,8 +1259,8 @@ class Wallet(
                 .filter { (store.keyIndexOrNull(id, spendDomain(it), KeyCounter.Shares) ?: 0) > 0 }
 
     /**
-     * An invoice for [amountMsat] that mints a note to the active account once paid (see [InvoiceReceiver]): on [on], one of its mints, else
-     * on its home mint. The way to receive without a Lightning address. Follow it with [invoiceStatus].
+     * An invoice for [amountMsat] that mints a note to the active account once paid (see [InvoiceReceiver]): on [on], one of its mints,
+     * else on its home mint. The way to receive without a Lightning address. Follow it with [invoiceStatus].
      */
     suspend fun requestInvoice(amountMsat: Long, on: String? = null): InvoiceRequest = lock.withLock { invoices.request(amountMsat, on) }
 

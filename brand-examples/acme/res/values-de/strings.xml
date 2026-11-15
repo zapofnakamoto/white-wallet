@@ -289,4 +289,9 @@
     <string name="received_unreachable">Sein Anbieter hat nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</string>
     <string name="received_lightning_no_key">Sein Anbieter veröffentlicht keinen Signaturschlüssel, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_lightning_not_a_note">Sein Anbieter antwortet darauf nicht wie auf einen Geldschein, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
+    <string name="claim_mint_refused">Der Anbieter nimmt diesen Geldschein gerade nicht an.</string>
+    <string name="claim_mint_refused_reason">Der Anbieter nimmt diesen Geldschein gerade nicht an. Seine Antwort: %1$s</string>
+    <string name="receive_on_home">Bei %1$s, deinem Anbieter</string>
+    <string name="receive_on_home_detail">Dein Anbieter · %1$s</string>
+    <string name="send_from_detail_home">Dein Anbieter · bis zu %1$s</string>
 </resources>

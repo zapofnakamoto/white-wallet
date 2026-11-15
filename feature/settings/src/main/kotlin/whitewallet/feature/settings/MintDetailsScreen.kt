@@ -1,6 +1,8 @@
 package whitewallet.feature.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -77,6 +79,8 @@ data class MintDetailsState(
     val host: String? = null,
     /** The phone is offline: a mint that couldn't be asked isn't said not to answer. */
     val offline: Boolean = false,
+    /** The account can receive here: the brand lets the mint hold money, and its signing key is the one pinned. */
+    val canReceive: Boolean = false,
 )
 
 /**
@@ -136,12 +140,17 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
             val collects = wallet.collectAtHome.first()
             val moneyElsewhere = wallet.accountMints.first().any { !it.isHome && it.balanceMsat > 0 }
             val canChangeHome = canChangeHome(defaults, details)
+            val canReceive =
+                defaults.mintAllowed(details.host) &&
+                    details.mint?.mintPubkey != null &&
+                    details.reachability != MintDetails.Reachability.KeyChanged
             _state.update {
                 it.copy(
                     details = details,
                     loading = false,
                     mint = mint,
                     canChangeHome = canChangeHome,
+                    canReceive = canReceive,
                     collects = collects,
                     moneyElsewhere = moneyElsewhere,
                 )
@@ -182,6 +191,10 @@ fun MintDetailsRoute(
     onMoveMoney: (host: String) -> Unit = {},
     /** Opens moving all of the account's money on other mints to its home mint. */
     onMoveAllHere: () -> Unit = {},
+    /** Opens Send, paying from [host]. */
+    onSend: (host: String) -> Unit = {},
+    /** Opens Receive, on [host]. */
+    onReceive: (host: String) -> Unit = {},
     viewModel: MintDetailsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -196,6 +209,8 @@ fun MintDetailsRoute(
         onMoveMoney = onMoveMoney,
         onMoveAllHere = onMoveAllHere,
         onRemove = viewModel::remove,
+        onSend = onSend,
+        onReceive = onReceive,
     )
 }
 
@@ -213,6 +228,8 @@ fun MintDetailsScreen(
     onMoveMoney: (host: String) -> Unit = {},
     onMoveAllHere: () -> Unit = {},
     onRemove: () -> Unit = {},
+    onSend: (host: String) -> Unit = {},
+    onReceive: (host: String) -> Unit = {},
 ) {
     val details = state.details
     // Which mint it is (the account's home, read from the phone) isn't known yet (a moment): nothing, not a title that changes.
@@ -239,7 +256,7 @@ fun MintDetailsScreen(
             if (state.device) {
                 if (state.mint?.isHome == true) WalletListItem(headlineContent = { Text(stringResource(R.string.settings_home_mint)) })
             } else {
-                AccountSection(details, state, onChangeHome, onMoveMoney, onMoveAllHere)
+                AccountSection(details, state, onChangeHome, onMoveMoney, onMoveAllHere, onSend, onReceive)
             }
             details.mint?.let { mint ->
                 val base = mint.feeBaseMsat
@@ -292,7 +309,7 @@ fun MintDetailsScreen(
     }
 }
 
-/** What the active account has and can do on this mint: change or make home, its money there, moving it. */
+/** What the active account has and can do on this mint: change or make home, its money there, sending and receiving it, moving it. */
 @Composable
 private fun AccountSection(
     details: MintDetails,
@@ -300,6 +317,8 @@ private fun AccountSection(
     onChangeHome: (host: String?) -> Unit,
     onMoveMoney: (host: String) -> Unit,
     onMoveAllHere: () -> Unit,
+    onSend: (host: String) -> Unit,
+    onReceive: (host: String) -> Unit,
 ) {
     if (details.isHome) {
         WalletListItem(
@@ -341,6 +360,23 @@ private fun AccountSection(
                     }
                 },
     )
+    // Paying from this mint, or receiving on it, rather than where the wallet would. Not while it presents another key: nothing goes out
+    // then.
+    val canSend = details.balanceMsat > 0 && details.reachability != MintDetails.Reachability.KeyChanged
+    if (canSend || state.canReceive) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (canSend) {
+                WalletButton(kind = ButtonKind.Secondary, onClick = { onSend(details.host) }, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.mint_send))
+                }
+            }
+            if (state.canReceive) {
+                WalletButton(kind = ButtonKind.Secondary, onClick = { onReceive(details.host) }, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.mint_receive))
+                }
+            }
+        }
+    }
     if (details.isHome && state.moneyElsewhere) {
         WalletButton(
             kind = ButtonKind.Secondary,

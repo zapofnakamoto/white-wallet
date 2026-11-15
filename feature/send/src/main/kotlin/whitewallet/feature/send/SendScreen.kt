@@ -17,7 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboard
@@ -34,6 +37,9 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.core.designsystem.MintChoiceLine
+import whitewallet.core.designsystem.MintChoiceSheet
+import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessScreen
@@ -58,7 +64,13 @@ import whitewallet.core.wallet.PayResult
  * [onClaim].
  */
 @Composable
-fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, onClaim: (String) -> Unit = {}, viewModel: SendViewModel = hiltViewModel()) {
+fun SendRoute(
+    onDone: () -> Unit,
+    /** Opens making a note link: from the mint given, else as the wallet chooses. */
+    onCreateNote: (from: String?) -> Unit,
+    onClaim: (String) -> Unit = {},
+    viewModel: SendViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.claim) {
         state.claim?.let {
@@ -89,9 +101,10 @@ fun SendRoute(onDone: () -> Unit, onCreateNote: () -> Unit, onClaim: (String) ->
                 onCommentChange = viewModel::onCommentChange,
                 onPay = viewModel::pay,
                 onEdit = viewModel::edit,
-                onCreateNote,
+                onCreateNote = { onCreateNote(state.from) },
                 onFaucet = viewModel::invoiceFromFaucet,
                 onSendMore = viewModel::sendMore,
+                onPayFrom = viewModel::payFrom,
             ),
     )
 }
@@ -111,6 +124,8 @@ class SendActions(
     val onFaucet: () -> Unit = {},
     /** From the success screen back to an empty form, for another payment. */
     val onSendMore: () -> Unit = {},
+    /** Pays from the mint picked; null leaves it to the wallet. */
+    val onPayFrom: (String?) -> Unit = {},
 )
 
 @Composable
@@ -143,11 +158,19 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
             val preview = state.preview
             val result = state.result
             if (preview != null) WalletStatusScope(sendStatus(state)) { BrandDecoration(Anchor.SendHeader) }
+            var picking by rememberSaveable { mutableStateOf(false) }
+            val onPickMint = { picking = true }.takeIf { state.canPickMint }
             when {
                 result != null && preview != null -> ResultContent(result, preview, state.mintsVisible, onDone, actions.onEdit)
-                preview != null -> ReviewContent(state, preview, actions)
+                preview != null -> ReviewContent(state, preview, actions, onPickMint)
                 state.scanning -> ScanContent(actions)
-                else -> InputContent(state, actions)
+                else -> InputContent(state, actions, onPickMint)
+            }
+            if (picking && state.canPickMint) {
+                SendFromSheet(state.mints, state.from, state.amountMsat.takeIf { preview != null }, onDismiss = { picking = false }) {
+                    picking = false
+                    actions.onPayFrom(it)
+                }
             }
         }
     }
@@ -170,6 +193,30 @@ private fun sendStatus(state: SendState): WalletStatus {
     }
 }
 
+/** Picks the mint to send [amountMsat] (when known) from among [mints], or leaves it to the wallet; [from] is the one picked. */
+@Composable
+internal fun SendFromSheet(mints: List<SendMint>, from: String?, amountMsat: Long?, onDismiss: () -> Unit, onSelect: (String?) -> Unit) {
+    MintChoiceSheet(
+        title = stringResource(R.string.send_from_title),
+        options = mints.map { MintOption(it.host, mintDetail(it, amountMsat), enabled = amountMsat == null || it.maxMsat >= amountMsat) },
+        selected = from,
+        onSelect = onSelect,
+        onDismiss = onDismiss,
+        automatic = stringResource(R.string.send_from_automatic) to stringResource(R.string.send_from_automatic_detail),
+    )
+}
+
+/** What [mint] can pay: the most, home said first; not enough for [amountMsat], when given and more than that. */
+@Composable
+internal fun mintDetail(mint: SendMint, amountMsat: Long?): String {
+    val most = formatAmount(mint.maxMsat)
+    return when {
+        amountMsat != null && mint.maxMsat < amountMsat -> stringResource(R.string.send_from_not_enough, most)
+        mint.isHome -> stringResource(R.string.send_from_detail_home, most)
+        else -> stringResource(R.string.send_from_detail, most)
+    }
+}
+
 internal fun problemKind(problem: PayProblem): ProblemKind =
     when (problem) {
         PayProblem.NoFunds,
@@ -180,16 +227,22 @@ internal fun problemKind(problem: PayProblem): ProblemKind =
     }
 
 @Composable
-private fun InputContent(state: SendState, actions: SendActions) {
+private fun InputContent(state: SendState, actions: SendActions, onPickMint: (() -> Unit)?) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
-    state.limitMsat?.let {
-        Text(
-            stringResource(R.string.send_limit_one_payment, formatAmount(it), formatAmount(state.balanceMsat)),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    // Opened for a mint: paid from there, up to what it holds. Otherwise the wallet picks once it knows the payment.
+    val from = state.from?.takeIf { state.mintsVisible }
+    if (from != null) {
+        val most = state.mints.firstOrNull { it.host == from }?.maxMsat ?: 0
+        MintChoiceLine(stringResource(R.string.send_from_up_to, from, formatAmount(most)), onPickMint)
+    } else
+        state.limitMsat?.let {
+            Text(
+                stringResource(R.string.send_limit_one_payment, formatAmount(it), formatAmount(state.balanceMsat)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     WalletTextField(
         value = state.input,
         onValueChange = actions.onInputChange,
@@ -272,7 +325,7 @@ private fun ScanContent(actions: SendActions) {
 }
 
 @Composable
-private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: SendActions) {
+private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: SendActions, onPickMint: (() -> Unit)?) {
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
@@ -332,6 +385,11 @@ private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: 
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+    // Which mint pays, once known (picked, or chosen by the wallet for this amount), where there is another to pick.
+    state.payingHost
+        ?.takeIf { state.mintsVisible && (state.canPickMint || state.from != null) }
+        ?.let { MintChoiceLine(stringResource(R.string.send_from, it), onPickMint.takeIf { !state.paying && !state.checking }) }
+    state.shownProblem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
     QuoteText(state.quote)
     if (state.offline) Text(stringResource(R.string.send_offline), textAlign = TextAlign.Center)
     val amount = state.amountMsat

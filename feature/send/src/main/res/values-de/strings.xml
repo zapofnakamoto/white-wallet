@@ -10,6 +10,7 @@
     <string name="send_problem_invoice_used">Diese Rechnung wurde schon verwendet. Frag nach einer neuen.</string>
     <!-- %1$s: the mint's own words, in whatever language it writes. -->
     <string name="send_problem_mint_message">Nachricht der Mint: „%1$s“</string>
+    <string name="send_from_detail_home">Haupt-Mint · bis zu %1$s</string>
     <string name="note_create_title">Als Schein senden</string>
     <string name="note_create_body">Erstelle einen Schein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
     <string name="note_available">Du kannst einen Schein über bis zu %1$s erstellen.</string>
@@ -101,4 +102,11 @@
     <string name="send_faucet_failed">Der Regtest-Faucet hat keine Rechnung erstellt: %1$s. Läuft dev/regtest und ist es verbunden?</string>
     <string name="scan_title">Scannen</string>
     <string name="scan_hint">Richte die Kamera auf einen QR-Code, um zu bezahlen oder einzulösen.</string>
+    <string name="send_from">Von %1$s</string>
+    <string name="send_from_up_to">Von %1$s · bis zu %2$s</string>
+    <string name="send_from_title">Senden von</string>
+    <string name="send_from_automatic">Automatisch</string>
+    <string name="send_from_automatic_detail">Wie in den Einstellungen festgelegt</string>
+    <string name="send_from_detail">Bis zu %1$s</string>
+    <string name="send_from_not_enough">Bis zu %1$s, zu wenig dafür</string>
 </resources>

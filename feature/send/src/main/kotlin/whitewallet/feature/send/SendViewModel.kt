@@ -22,6 +22,9 @@ import whitewallet.core.wallet.PayResult
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
 
+/** A mint a payment can be made from: whether it is home, and the most one payment from it can be. */
+data class SendMint(val host: String, val isHome: Boolean, val maxMsat: Long)
+
 /** What the regtest faucet's invoice asks for. */
 internal const val FAUCET_SATS = 1_000L
 
@@ -53,7 +56,19 @@ data class SendState(
     val mintsVisible: Boolean = true,
     /** The phone is offline: nothing can be paid, and the screen says so before the user tries. */
     val offline: Boolean = false,
+    /** The mint the user picked to pay from; null leaves it to the wallet (see the payment order in Settings). */
+    val from: String? = null,
+    /** The mints the account can pay from, home first. */
+    val mints: List<SendMint> = emptyList(),
 ) {
+    /** Another mint can be picked: the brand names mints and the account can pay from more than one. */
+    val canPickMint: Boolean
+        get() = mintsVisible && mints.size > 1
+
+    /** The mint the payment is made from: the one picked, else the one the quote says the wallet chose. */
+    val payingHost: String?
+        get() = from ?: (quote as? PayQuote.Ok)?.host
+
     /** The amount to pay in msat, or null while none is entered. */
     val amountMsat: Long?
         get() = preview?.fixedAmountMsat ?: amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
@@ -75,16 +90,15 @@ constructor(
     defaults: AppDefaults,
     savedState: SavedStateHandle,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(SendState(loaded = false, mintsVisible = defaults.showMints))
+    // Opened from a mint (Home's mint row, its page): paid from there.
+    private val opened = savedState.get<String>("from")?.takeIf { it.isNotBlank() }
+    private val _state = MutableStateFlow(SendState(loaded = false, mintsVisible = defaults.showMints, from = opened))
     val state: StateFlow<SendState> = _state
     private var quoteJob: Job? = null
 
     init {
         viewModelScope.launch {
-            // Said before anything is entered: a payment is made from one mint's money, so the balance may not be payable at once.
-            val balance = wallet.balanceMsat.first()
-            val most = wallet.sendableNoteMsat()
-            _state.update { it.copy(balanceMsat = balance, limitMsat = most.takeIf { m -> m < balance }) }
+            readLimits()
             faucet.available.collect { available ->
                 _state.update { it.copy(faucet = if (available) it.faucet ?: FaucetState() else null, loaded = true) }
             }
@@ -112,14 +126,16 @@ constructor(
     }
 
     /**
-     * Developer: has the regtest faucet make an invoice for [FAUCET_SATS] that this account's mint can pay, and checks it as if it was
-     * pasted, so the rest is the usual flow.
+     * Developer: has the regtest faucet make an invoice for [FAUCET_SATS] that the paying mint can pay, and checks it as if it was pasted,
+     * so the rest is the usual flow.
      */
     fun invoiceFromFaucet() {
         if (_state.value.faucet?.busy != false) return
         _state.update { it.copy(faucet = FaucetState(busy = true)) }
         viewModelScope.launch {
-            val invoice = runCatching { faucet.invoice(FAUCET_SATS, wallet.homeHost.first() ?: error("no account")) }
+            // For the mint that pays it: the one picked, else home (a node can't pay its own invoice).
+            val payer = _state.value.from ?: wallet.homeHost.first()
+            val invoice = runCatching { faucet.invoice(FAUCET_SATS, payer ?: error("no account")) }
             _state.update {
                 it.copy(faucet = FaucetState(error = invoice.exceptionOrNull()?.let { e -> e.message ?: e.javaClass.simpleName }))
             }
@@ -138,8 +154,9 @@ constructor(
                 return
             }
         _state.update { it.copy(checking = true, problem = null) }
+        val from = _state.value.from
         viewModelScope.launch {
-            when (val preview = wallet.previewPayment(input)) {
+            when (val preview = wallet.previewPayment(input, from)) {
                 is PayPreview.Ready -> {
                     _state.update {
                         it.copy(checking = false, preview = preview, amountText = "", comment = "", quote = null, result = null)
@@ -150,6 +167,34 @@ constructor(
                     if (preview.problem == PayProblem.WithdrawLink)
                         _state.update { it.copy(checking = false, input = "", claim = input.trim()) }
                     else _state.update { it.copy(checking = false, problem = preview.problem) }
+            }
+        }
+    }
+
+    /**
+     * Pays from [host] from now on (null: as the wallet chooses). On the review, the input is read again for that mint (what can be paid,
+     * whether it goes within the mint), keeping the amount and comment.
+     */
+    fun payFrom(host: String?) {
+        val s = _state.value
+        if (host == s.from || s.paying || s.checking) return
+        quoteJob?.cancel()
+        _state.update { it.copy(from = host, quote = null, problem = null) }
+        if (s.preview == null) return
+        _state.update { it.copy(checking = true) }
+        viewModelScope.launch {
+            when (val preview = wallet.previewPayment(s.input, host)) {
+                is PayPreview.Ready -> {
+                    _state.update {
+                        it.copy(checking = false, preview = preview, comment = it.comment.take(preview.commentMaxLength), result = null)
+                    }
+                    requote(immediately = true)
+                }
+                // The mint picked can't pay it after all: back to what was there, saying why.
+                is PayPreview.Invalid -> {
+                    _state.update { it.copy(checking = false, from = s.from, problem = preview.problem) }
+                    requote(immediately = true)
+                }
             }
         }
     }
@@ -170,7 +215,30 @@ constructor(
     /** Leaves the success screen for an empty form, to pay someone else. */
     fun sendMore() {
         quoteJob?.cancel()
-        _state.update { SendState(faucet = it.faucet?.copy(error = null)) }
+        // The next payment is the wallet's choice again, unless this screen was opened for a mint.
+        _state.update {
+            SendState(
+                faucet = it.faucet?.copy(error = null),
+                mintsVisible = it.mintsVisible,
+                balanceMsat = it.balanceMsat,
+                limitMsat = it.limitMsat,
+                mints = it.mints,
+                from = opened,
+            )
+        }
+        viewModelScope.launch { readLimits() }
+    }
+
+    /**
+     * What can be paid, said before anything is entered: a payment is made from one mint's money, so the balance may not be payable at
+     * once. And what each mint can pay, to pick one.
+     */
+    private suspend fun readLimits() {
+        val balance = wallet.balanceMsat.first()
+        val most = wallet.sendableNoteMsat()
+        val home = wallet.homeHost.first()
+        val mints = wallet.sendableByMint().map { (host, max) -> SendMint(host, host == home, max) }.sortedBy { !it.isHome }
+        _state.update { it.copy(balanceMsat = balance, limitMsat = most.takeIf { m -> m < balance }, mints = mints) }
     }
 
     /** Back from the review to the input. */

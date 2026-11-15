@@ -4,6 +4,12 @@ import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -46,6 +54,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
@@ -128,6 +137,10 @@ fun HomeRoute(
     onMoveFunds: () -> Unit,
     /** Null until sending exists; the Send button shows disabled. */
     onSend: (() -> Unit)? = null,
+    /** Opens Send, paying from the mint given (a mint's row under the balance). */
+    onSendFrom: (String) -> Unit = {},
+    /** Opens Receive, on the mint given. */
+    onReceiveOn: (String) -> Unit = {},
     /** Opens a sent note (its QR code while nobody has claimed it). */
     onOpenNote: (String) -> Unit = {},
     /** Opens a mint's details (from the changed-signing-key warning). */
@@ -175,6 +188,7 @@ fun HomeRoute(
         onOpenMint,
         notesTab,
         menu,
+        mintRow = MintRowActions(onSendFrom, onReceiveOn),
         onNoticeShown = viewModel::noticeShown,
         onRecheckUnknown = viewModel::recheckUnknown,
         onUnknownCheckShown = viewModel::unknownCheckShown,
@@ -232,6 +246,7 @@ fun HomeScreen(
     onOpenMint: (String) -> Unit = {},
     notesTab: NotesTabSlot? = null,
     menu: List<HomeMenuItem> = emptyList(),
+    mintRow: MintRowActions = MintRowActions(),
     onNoticeShown: () -> Unit = {},
     onRecheckUnknown: () -> Unit = {},
     onUnknownCheckShown: () -> Unit = {},
@@ -366,6 +381,7 @@ fun HomeScreen(
                                 onOpenAddresses,
                                 onToggleBalance,
                                 onOpenMint,
+                                mintRow,
                                 onRecheckUnknown,
                                 onRefresh,
                                 received,
@@ -568,6 +584,7 @@ private fun WalletTab(
     onOpenAddresses: () -> Unit,
     onToggleBalance: () -> Unit,
     onOpenMint: (String) -> Unit,
+    mintRow: MintRowActions,
     onRecheckUnknown: () -> Unit,
     onRefresh: () -> Unit,
     received: ReceivedNoteActions,
@@ -667,7 +684,7 @@ private fun WalletTab(
                 )
             }
             if (state.mintRows.isNotEmpty()) {
-                BalanceByMint(state.mintRows, state.moreMints, state.mintsNotAnswering.map { it.host }.toSet(), onOpenMint, onOpenMints)
+                BalanceByMint(state, onOpenMint, mintRow, onOpenMints)
             }
             // Handed out as links and not claimed yet: out of the balance, and the user's until someone claims them.
             if (state.sharedMsat > 0) {
@@ -1038,38 +1055,42 @@ private const val ASKED_TICK_MILLIS = 20_000L
  * What of the balance is on which mint, a row each, leading to the mint's page; those of [silent] say they don't answer. The mints [more]
  * share a last row, with what they hold together, leading to the account's mints.
  */
+/** What a mint's row under the balance offers once opened, besides its page: paying from that mint, receiving on it. */
+class MintRowActions(val onSend: (String) -> Unit = {}, val onReceive: (String) -> Unit = {})
+
+/**
+ * The balance per mint ([HomeState.mintRows]), then the rest as one row. Tapping a mint's row opens it in place: Send, Receive and Details
+ * come in over its name while the amount stays where it is; tapping it again, or another row, closes it.
+ */
 @Composable
-private fun BalanceByMint(
-    mints: List<AccountMint>,
-    more: List<AccountMint>,
-    silent: Set<String>,
-    onOpenMint: (String) -> Unit,
-    onOpenMints: () -> Unit,
-) {
+private fun BalanceByMint(state: HomeState, onOpenMint: (String) -> Unit, actions: MintRowActions, onOpenMints: () -> Unit) {
+    val silent = state.mintsNotAnswering.map { it.host }.toSet()
+    var open by rememberSaveable { mutableStateOf<String?>(null) }
     WalletCard(modifier = Modifier.fillMaxWidth()) {
-        mints.forEach { mint ->
-            val answering = mint.host !in silent
-            val note =
-                when {
-                    !answering && mint.isHome -> R.string.home_mint_is_home_not_answering
-                    !answering -> R.string.home_mint_not_answering
-                    mint.isHome -> R.string.home_mint_is_home
-                    else -> null
-                }
-            WalletListItem(
-                headlineContent = { Text(mint.host) },
-                supportingContent = note?.let { { Text(stringResource(it)) } },
-                // Money that can't be spent for now: quieter than the rest.
-                trailingContent = {
-                    Text(
-                        formatAmount(mint.balanceMsat),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (answering) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        state.mintRows.forEach { mint ->
+            MintRow(
+                mint,
+                answering = mint.host !in silent,
+                open = open == mint.host,
+                onToggle = { open = mint.host.takeIf { open != it } },
+                // Leaving for one of them closes it: back on Home, the row is as it was.
+                onSend = {
+                        open = null
+                        actions.onSend(mint.host)
+                    }
+                        .takeIf { mint.balanceMsat > 0 },
+                onReceive = {
+                        open = null
+                        actions.onReceive(mint.host)
+                    }
+                        .takeIf { mint.host in state.receiveHosts },
+                onDetails = {
+                    open = null
+                    onOpenMint(mint.host)
                 },
-                modifier = Modifier.clickable { onOpenMint(mint.host) },
             )
         }
+        val more = state.moreMints
         if (more.isNotEmpty()) {
             WalletListItem(
                 headlineContent = { Text(pluralStringResource(R.plurals.home_more_mints, more.size, more.size)) },
@@ -1077,6 +1098,82 @@ private fun BalanceByMint(
                 modifier = Modifier.clickable(onClick = onOpenMints),
             )
         }
+    }
+}
+
+/** One mint's row: its name, and what it holds; opened ([open]), its actions over the name. [onSend] and [onReceive] null: not offered. */
+@Composable
+private fun MintRow(
+    mint: AccountMint,
+    answering: Boolean,
+    open: Boolean,
+    onToggle: () -> Unit,
+    onSend: (() -> Unit)?,
+    onReceive: (() -> Unit)?,
+    onDetails: () -> Unit,
+) {
+    val note =
+        when {
+            !answering && mint.isHome -> R.string.home_mint_is_home_not_answering
+            !answering -> R.string.home_mint_not_answering
+            mint.isHome -> R.string.home_mint_is_home
+            else -> null
+        }
+    val nameAlpha by animateFloatAsState(if (open) 0f else 1f, label = "mint name")
+    val send = stringResource(R.string.home_mint_send)
+    val receive = stringResource(R.string.home_mint_receive)
+    val details = stringResource(R.string.home_mint_details)
+    val opened = stringResource(R.string.home_mint_opened)
+    val openLabel = stringResource(R.string.home_mint_open)
+    Box {
+        WalletListItem(
+            headlineContent = { Text(mint.host, Modifier.alpha(nameAlpha)) },
+            supportingContent = note?.let { { Text(stringResource(it), Modifier.alpha(nameAlpha)) } },
+            // Money that can't be spent for now: quieter than the rest.
+            trailingContent = {
+                Text(
+                    formatAmount(mint.balanceMsat),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (answering) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            modifier =
+                Modifier.clickable(onClickLabel = openLabel, onClick = onToggle).semantics {
+                    if (open) stateDescription = opened
+                    // A screen reader reaches each without opening the row first.
+                    customActions =
+                        listOfNotNull(
+                            onSend?.let { CustomAccessibilityAction(send) { it().let { true } } },
+                            onReceive?.let { CustomAccessibilityAction(receive) { it().let { true } } },
+                            CustomAccessibilityAction(details) { onDetails().let { true } },
+                        )
+                },
+        )
+        AnimatedVisibility(
+            open,
+            Modifier.align(Alignment.CenterStart).padding(start = 8.dp),
+            enter = slideInHorizontally { -it } + fadeIn(),
+            exit = slideOutHorizontally { -it } + fadeOut(),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                onSend?.let { MintRowAction(DesignR.drawable.ic_activity_sent, send, it) }
+                onReceive?.let { MintRowAction(DesignR.drawable.ic_activity_received, receive, it) }
+                MintRowAction(DesignR.drawable.ic_info, details, onDetails)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MintRowAction(@DrawableRes icon: Int, label: String, onClick: () -> Unit) {
+    Column(
+        Modifier.clickable(role = Role.Button, onClick = onClick).padding(horizontal = 6.dp, vertical = 2.dp).widthIn(min = 52.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
+            Icon(painterResource(icon), contentDescription = null, Modifier.padding(8.dp).size(20.dp))
+        }
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1)
     }
 }
 

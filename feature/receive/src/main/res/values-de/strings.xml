@@ -11,6 +11,8 @@
     <string name="receive_address_mint_silent_unnamed">Deine Mint antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
     <string name="receive_invoice_mint_silent">%1$s antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>
     <string name="receive_invoice_mint_silent_unnamed">Deine Mint antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>
+    <string name="receive_on_home">Bei %1$s, deiner Haupt-Mint</string>
+    <string name="receive_on_home_detail">Haupt-Mint · %1$s</string>
 
     <string name="receive_title">Empfangen</string>
     <string name="receive_copy">Kopieren</string>
@@ -39,4 +41,7 @@
     <string name="receive_faucet_invoice">Entwickler: diese Rechnung von Regtest bezahlen</string>
     <!-- %1$s: der Fehler des Faucets oder der Verbindung, wie er kam -->
     <string name="receive_faucet_failed">Der Regtest-Faucet hat nicht gezahlt: %1$s. Läuft dev/regtest und ist es verbunden?</string>
+    <string name="receive_on">Bei %1$s</string>
+    <string name="receive_on_title">Empfangen bei</string>
+    <string name="receive_on_invoice">Mit einer Rechnung über einen Betrag</string>
 </resources>

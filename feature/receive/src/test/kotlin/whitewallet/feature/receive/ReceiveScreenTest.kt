@@ -16,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.InvoiceRequest
 import whitewallet.core.wallet.InvoiceStatus
 import whitewallet.core.wallet.NoHome
@@ -147,5 +148,81 @@ class ReceiveScreenTest {
     fun untilTheAddressesAreReadNothingIsDrawnNotTheAmountFormFirst() {
         compose.setContent { ReceiveScreen(ReceiveState(loaded = false), onBack = {}, onClaim = {}) }
         compose.onNodeWithText(text(R.string.receive_claim)).assertDoesNotExist()
+    }
+
+    private val twoMints =
+        listOf(ReceiveMint("home.example", isHome = true, address = "alice@home.example"), ReceiveMint("other.example", false, null))
+
+    @Test
+    fun withSeveralMintsItSaysWhichOneAndAnotherCanBePicked() {
+        val picked = mutableListOf<String>()
+        compose.setContent {
+            ReceiveScreen(
+                ReceiveState("alice@home.example", homeHost = "home.example", mints = twoMints),
+                onBack = {},
+                onClaim = {},
+                InvoiceActions(onReceiveOn = { picked += it }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.receive_on_home, "home.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.receive_on_title)).assertExists()
+        // What each mint receives with: the address there, else an invoice.
+        compose.onNodeWithText(text(R.string.receive_on_home_detail, "alice@home.example")).assertExists()
+        compose.onNodeWithText(text(R.string.receive_on_invoice)).assertExists()
+        compose.onNodeWithText("other.example").performClick()
+        assertEquals(listOf("other.example"), picked)
+    }
+
+    @Test
+    fun aMintPickedWithoutAnAddressThereIsReceivedOnByInvoice() {
+        compose.setContent {
+            ReceiveScreen(
+                ReceiveState(address = null, on = "other.example", homeHost = "home.example", mints = twoMints),
+                onBack = {},
+                onClaim = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.receive_on, "other.example")).assertExists()
+        compose.onNodeWithText(text(R.string.receive_invoice_create)).assertExists()
+    }
+
+    @Test
+    fun withOneMintNothingIsSaidAboutMints() {
+        compose.setContent {
+            ReceiveScreen(
+                ReceiveState("alice@home.example", homeHost = "home.example", mints = twoMints.take(1)),
+                onBack = {},
+                onClaim = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.receive_on_home, "home.example")).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).assertDoesNotExist()
+    }
+
+    @Test
+    fun whereTheBrandHidesMintsNoneIsNamed() {
+        compose.setContent {
+            ReceiveScreen(
+                ReceiveState("alice@home.example", homeHost = "home.example", mints = twoMints, mintsVisible = false),
+                onBack = {},
+                onClaim = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.receive_on_home, "home.example")).assertDoesNotExist()
+    }
+
+    @Test
+    fun anInvoiceSaysItsMintAndIsNotMovedToAnother() {
+        val request = InvoiceRequest.Ready("id", "lnbcrt1", 2_000_000, 1_999_000, Long.MAX_VALUE)
+        compose.setContent {
+            ReceiveScreen(
+                ReceiveState(invoice = ShownInvoice(request, host = "other.example"), homeHost = "home.example", mints = twoMints),
+                onBack = {},
+                onClaim = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.receive_on, "other.example")).performScrollTo().assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).assertDoesNotExist()
     }
 }

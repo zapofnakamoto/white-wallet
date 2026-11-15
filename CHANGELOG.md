@@ -26,6 +26,20 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- Sending and receiving on a mint of your choice. With money on more than one mint, tapping a mint's row under the
+  balance opens it in place: Send, Receive and Details come in over its name, the amount stays where it is. A mint's
+  page has Send and Receive too. Receive says which mint it receives on ("On mint.example.com, your home mint ·
+  Change"), and Send which mint pays ("From mint.example.com · Change"), once there is another to pick; a mint without
+  enough for the payment can't be picked. The choice holds for that one payment: left alone, the wallet still receives
+  on the home mint and pays as set in Settings. Creating a note works the same way. Nothing of it shows where the
+  brand hides mints.
+- For developers and brands: `Wallet.previewPayment`, `quoteNote`, `createNote` and `sendableNoteMsat` take the mint
+  to pay from, `requestInvoice` the mint to receive on, and `Wallet.sendableByMint` says what each mint can pay;
+  `PayQuote.Ok` names the mint that pays (`host`). The shared `MintChoiceLine` and `MintChoiceSheet` (designsystem),
+  and new strings: `mint_choice_change`, `receive_on*`, `send_from*`, `home_mint_send`, `home_mint_receive`,
+  `home_mint_details`, `home_mint_open`, `home_mint_opened`, `mint_send`, `mint_receive`. New brand terms (see
+  docs/WHITE_LABEL.md): `receive_on_home`, `receive_on_home_detail`, `send_from_detail_home`; the guide now also lists
+  `claim_mint_refused` and `claim_mint_refused_reason`.
 - A screen with nothing to show says why and offers the way forward, the same on every screen: History and Notes
   lead to Receive; Settings → Mints and Account → Mints to adding a mint; Lightning addresses to getting the first
   one, or without a home mint to adding or choosing one, as Receive does. "Change home mint" and "Move money" with no

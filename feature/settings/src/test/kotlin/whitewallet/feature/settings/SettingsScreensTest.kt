@@ -59,6 +59,44 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun aMintsPageSendsFromItAndReceivesOnIt() {
+        val sent = mutableListOf<String>()
+        val received = mutableListOf<String>()
+        compose.setContent {
+            MintDetailsScreen(
+                MintDetailsState(details(MintDetails.Reachability.Reachable), loading = false, canReceive = true),
+                onBack = {},
+                onRefresh = {},
+                onSend = { sent += it },
+                onReceive = { received += it },
+            )
+        }
+        compose.onNodeWithText(text(R.string.mint_send)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.mint_receive)).performScrollTo().performClick()
+        assertEquals(listOf("mint.example"), sent)
+        assertEquals(listOf("mint.example"), received)
+    }
+
+    @Test
+    fun aMintWithNoMoneyOfTheAccountsWhereItCannotReceiveOffersNeither() {
+        compose.setContent {
+            MintDetailsScreen(
+                MintDetailsState(details(MintDetails.Reachability.Reachable).copy(balanceMsat = 0, noteCount = 0), loading = false),
+                {},
+                {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.mint_send)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mint_receive)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aMintThatPresentsAnotherKeyIsNotPaidFrom() {
+        compose.setContent { MintDetailsScreen(MintDetailsState(details(MintDetails.Reachability.KeyChanged), loading = false), {}, {}) }
+        compose.onNodeWithText(text(R.string.mint_send)).assertDoesNotExist()
+    }
+
+    @Test
     fun theKeyPageHasATabPerAddressNamedWhenThePhoneKnowsIt() {
         val index = IndexActions({}, {}, {}, {}, {}, {}, {}, {})
         val state =

@@ -289,4 +289,9 @@
     <string name="received_unreachable">Its provider didn\'t answer, so your wallet stopped trying.</string>
     <string name="received_lightning_no_key">Its provider publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its provider doesn\'t answer for it as a banknote, so it can only be received over Lightning, for a fee.</string>
+    <string name="claim_mint_refused">The provider doesn\'t accept this banknote right now.</string>
+    <string name="claim_mint_refused_reason">The provider doesn\'t accept this banknote right now. Its answer: %1$s</string>
+    <string name="receive_on_home">On %1$s, your provider</string>
+    <string name="receive_on_home_detail">Your provider · %1$s</string>
+    <string name="send_from_detail_home">Your provider · up to %1$s</string>
 </resources>

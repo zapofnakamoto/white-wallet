@@ -220,12 +220,23 @@ internal object Routes {
 
     const val HOME = "home"
     const val RECEIVE = "receive"
+    /** Receive on the mint given ([receiveOn]); without one, as the wallet chooses. */
+    const val RECEIVE_ON = "receive?on={on}"
+
+    fun receiveOn(host: String) = "receive?on=${Uri.encode(host)}"
+
     const val SEND = "send"
-    const val SEND_WITH = "send?input={input}"
+    /** Send with the input given ([send]), or from the mint given ([sendFrom]). */
+    const val SEND_WITH = "send?input={input}&from={from}"
 
     fun send(input: String) = "send?input=${Uri.encode(input)}"
 
-    const val CREATE_NOTE = "send/note"
+    fun sendFrom(host: String) = "send?from=${Uri.encode(host)}"
+
+    const val CREATE_NOTE = "send/note?from={from}"
+
+    fun createNote(from: String?) = if (from == null) "send/note" else "send/note?from=${Uri.encode(from)}"
+
     const val SCAN = "scan"
     const val NOTE = "note/{id}"
 
@@ -394,6 +405,8 @@ private fun WalletApp(
             HomeRoute(
                 appName,
                 onSend = { nav.navigate(Routes.SEND) },
+                onSendFrom = { host -> nav.navigate(Routes.sendFrom(host)) },
+                onReceiveOn = { host -> nav.navigate(Routes.receiveOn(host)) },
                 onScan = { nav.navigate(Routes.SCAN) },
                 onOpenNote = { id -> nav.navigate(Routes.note(id)) },
                 onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
@@ -457,25 +470,50 @@ private fun WalletApp(
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
-                    }
+                    },
+                    navArgument("from") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
                 ),
         ) {
             SendRoute(
                 onDone = { nav.popBackStack() },
-                onCreateNote = { nav.navigate(Routes.CREATE_NOTE) },
+                onCreateNote = { from -> nav.navigate(Routes.createNote(from)) },
                 onClaim = openClaim,
             )
         }
         composable(Routes.SCAN) {
             ScanRoute(onBack = { nav.popBackStack() }, onScanned = openLink)
         }
-        composable(Routes.CREATE_NOTE) {
+        composable(
+            Routes.CREATE_NOTE,
+            arguments =
+                listOf(
+                    navArgument("from") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) {
             CreateNoteRoute(onBack = { nav.popBackStack() }, onCreated = { id -> nav.navigate(Routes.note(id)) { popUpTo(Routes.HOME) } })
         }
         composable(Routes.NOTE, arguments = listOf(navArgument("id") { type = NavType.StringType })) {
             SharedNoteRoute(onBack = { nav.popBackStack() })
         }
-        composable(Routes.RECEIVE) {
+        composable(
+            Routes.RECEIVE_ON,
+            arguments =
+                listOf(
+                    navArgument("on") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) {
             ReceiveRoute(
                 onBack = { nav.popBackStack() },
                 onClaim = { nav.navigate(Routes.CLAIM) { popUpTo(Routes.HOME) } },
@@ -571,6 +609,8 @@ private fun WalletApp(
             MintDetailsRoute(
                 onBack = { nav.popBackStack() },
                 onChangeHome = { host -> nav.navigate(Routes.changeMint(host)) },
+                onSend = { host -> nav.navigate(Routes.sendFrom(host)) },
+                onReceive = { host -> nav.navigate(Routes.receiveOn(host)) },
                 onMoveMoney = { host -> nav.navigate(Routes.moveMoney(host)) },
                 onMoveAllHere = { nav.navigate(Routes.MOVE_HOME) },
             )

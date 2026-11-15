@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,6 +39,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.WalletStatus
@@ -47,6 +49,7 @@ import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.core.designsystem.MintChoiceLine
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.PrintPage
 import whitewallet.core.designsystem.QrCode
@@ -92,7 +95,21 @@ data class CreateNoteState(
     val createdId: String? = null,
     /** The phone is offline: a note is made at its mint, so none can be now. */
     val offline: Boolean = false,
+    /** The mint the user picked to make it from; null leaves it to the wallet. */
+    val from: String? = null,
+    /** The mints it can be made from, home first. */
+    val mints: List<SendMint> = emptyList(),
+    /** The brand names mints (brand `mints.visible`). */
+    val mintsVisible: Boolean = true,
 ) {
+    /** Another mint can be picked: the brand names mints and the account can pay from more than one. */
+    val canPickMint: Boolean
+        get() = mintsVisible && mints.size > 1
+
+    /** The mint the note is made from: the one picked, else the one the quote says the wallet chose. */
+    val payingHost: String?
+        get() = from ?: (quote as? PayQuote.Ok)?.host
+
     val amountMsat: Long?
         get() = amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
 
@@ -101,13 +118,22 @@ data class CreateNoteState(
 }
 
 @HiltViewModel
-class CreateNoteViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
-    private val _state = MutableStateFlow(CreateNoteState())
+class CreateNoteViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) :
+    ViewModel() {
+    // Opened from Send for a mint: made from there.
+    private val _state =
+        MutableStateFlow(
+            CreateNoteState(from = savedState.get<String>("from")?.takeIf { it.isNotBlank() }, mintsVisible = defaults.showMints)
+        )
     val state: StateFlow<CreateNoteState> = _state
     private var quoteJob: Job? = null
 
     init {
-        viewModelScope.launch { _state.update { it.copy(availableMsat = wallet.sendableNoteMsat()) } }
+        viewModelScope.launch {
+            val home = wallet.homeHost.first()
+            val mints = wallet.sendableByMint().map { (host, max) -> SendMint(host, host == home, max) }.sortedBy { !it.isHome }
+            _state.update { it.copy(availableMsat = wallet.sendableNoteMsat(it.from), mints = mints) }
+        }
         viewModelScope.launch {
             // Back online, a failure to connect from while offline is no news.
             wallet.followOffline { offline, back ->
@@ -118,6 +144,21 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet) : View
 
     fun onAmountChange(value: String) {
         _state.update { it.copy(amountText = value.filter(Char::isDigit).take(12), problem = null, pending = false) }
+        requote()
+    }
+
+    /** Makes it from [host] from now on (null: as the wallet chooses). */
+    fun makeFrom(host: String?) {
+        if (_state.value.creating) return
+        _state.update { s ->
+            // What one note can be: from that mint, or from whichever holds the most.
+            val most = if (host == null) s.mints.maxOfOrNull { it.maxMsat } else s.mints.firstOrNull { it.host == host }?.maxMsat
+            s.copy(from = host, availableMsat = most ?: 0)
+        }
+        requote()
+    }
+
+    private fun requote() {
         quoteJob?.cancel()
         val amount = _state.value.amountMsat
         if (amount == null) {
@@ -127,7 +168,7 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet) : View
         _state.update { it.copy(quoting = true) }
         quoteJob = viewModelScope.launch {
             delay(QUOTE_DEBOUNCE_MILLIS)
-            val quote = wallet.quoteNote(amount)
+            val quote = wallet.quoteNote(amount, _state.value.from)
             _state.update { it.copy(quote = quote, quoting = false) }
         }
     }
@@ -138,7 +179,7 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet) : View
         if (!s.canCreate) return
         _state.update { it.copy(creating = true, problem = null, pending = false) }
         viewModelScope.launch {
-            when (val result = wallet.createNote(amount)) {
+            when (val result = wallet.createNote(amount, s.from)) {
                 is CreateNoteResult.Created -> _state.update { it.copy(creating = false, createdId = result.note.id) }
                 CreateNoteResult.Pending -> _state.update { it.copy(creating = false, pending = true) }
                 is CreateNoteResult.Failed -> _state.update { it.copy(creating = false, problem = result.problem) }
@@ -156,11 +197,17 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet) : View
 fun CreateNoteRoute(onBack: () -> Unit, onCreated: (String) -> Unit, viewModel: CreateNoteViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.createdId) { state.createdId?.let(onCreated) }
-    CreateNoteScreen(state, onBack, viewModel::onAmountChange, viewModel::create)
+    CreateNoteScreen(state, onBack, viewModel::onAmountChange, viewModel::create, viewModel::makeFrom)
 }
 
 @Composable
-fun CreateNoteScreen(state: CreateNoteState, onBack: () -> Unit, onAmountChange: (String) -> Unit, onCreate: () -> Unit) {
+fun CreateNoteScreen(
+    state: CreateNoteState,
+    onBack: () -> Unit,
+    onAmountChange: (String) -> Unit,
+    onCreate: () -> Unit,
+    onMakeFrom: (String?) -> Unit = {},
+) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_create_title), onBack.takeIf { !state.creating }) }) { padding ->
         // What can be sent is read first (a moment), so it doesn't come in under the field afterwards.
         if (!pageLoaded(state.availableMsat != null, Modifier.padding(padding))) return@Scaffold
@@ -176,6 +223,22 @@ fun CreateNoteScreen(state: CreateNoteState, onBack: () -> Unit, onAmountChange:
                 supportingText = state.availableMsat?.let { { Text(stringResource(R.string.note_available, formatAmount(it))) } },
                 modifier = Modifier.fillMaxWidth(),
             )
+            // Which mint it is made from, once known, where there is another to pick.
+            var picking by rememberSaveable { mutableStateOf(false) }
+            state.payingHost
+                ?.takeIf { state.mintsVisible && (state.canPickMint || state.from != null) }
+                ?.let {
+                    MintChoiceLine(
+                        stringResource(R.string.send_from, it),
+                        { picking = true }.takeIf { state.canPickMint && !state.creating },
+                    )
+                }
+            if (picking && state.canPickMint) {
+                SendFromSheet(state.mints, state.from, state.amountMsat, onDismiss = { picking = false }) {
+                    picking = false
+                    onMakeFrom(it)
+                }
+            }
             when (val quote = state.quote) {
                 is PayQuote.Ok ->
                     Text(

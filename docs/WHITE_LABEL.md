@@ -203,6 +203,8 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `claim_check` | Check note |
 | `claim_invalid` | Not a valid note: %1$s |
 | `claim_spent` | This note has already been spent. |
+| `claim_mint_refused` | The mint doesn't accept this note right now. |
+| `claim_mint_refused_reason` | The mint doesn't accept this note right now. Its answer: %1$s |
 | `claim_in_wallet` | This note is already in your wallet. |
 | `claim_own_shared` | You shared this note, and nobody has claimed it yet. |
 | `claim_own_offline` | You shared this note. Its mint isn't answering right now, so it can't be taken back yet. |
@@ -256,6 +258,8 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `receive_claim` | Claim a note instead |
 | `receive_address_mint_silent_unnamed` | Your mint isn't answering, so payments to this address can't arrive right now. |
 | `receive_invoice_mint_silent_unnamed` | Your mint isn't answering, so no invoice can be created right now. Try again later. |
+| `receive_on_home` | On %1$s, your home mint |
+| `receive_on_home_detail` | Home mint · %1$s |
 | `send_create_note` | Create a note |
 | `send_problem_refused` | The mint refused this payment. |
 | `send_problem_mint_silent_unnamed` | Your mint isn't answering. Nothing was paid. Try again later. |
@@ -263,6 +267,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `send_problem_own_mint_invoice` | This invoice is from your own mint, which can't pay itself over Lightning. Ask for a Lightning address instead. |
 | `send_problem_invoice_used` | This invoice was already used. Ask for a new one. |
 | `send_problem_mint_message` | Message from the mint: “%1$s” |
+| `send_from_detail_home` | Home mint · up to %1$s |
 | `note_create_title` | Send as a note |
 | `note_create_body` | Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet. |
 | `note_available` | You can make a note of up to %1$s. |

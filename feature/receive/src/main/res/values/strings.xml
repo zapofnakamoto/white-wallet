@@ -16,6 +16,10 @@
     <string name="receive_address_mint_silent_unnamed">Your mint isn\'t answering, so payments to this address can\'t arrive right now.</string>
     <!-- The home mint makes the invoice, and didn't answer. %1$s: the mint. -->
     <string name="receive_invoice_mint_silent_unnamed">Your mint isn\'t answering, so no invoice can be created right now. Try again later.</string>
+    <!-- Receive picks this mint (%1$s), the home mint: see receive_on. -->
+    <string name="receive_on_home">On %1$s, your home mint</string>
+    <!-- The home mint in the Receive on list. %1$s: the address, or receive_on_invoice. -->
+    <string name="receive_on_home_detail">Home mint · %1$s</string>
 
     <string name="receive_address_mint_silent">%1$s isn\'t answering, so payments to this address can\'t arrive right now.</string>
     <string name="receive_invoice_mint_silent">%1$s isn\'t answering, so no invoice can be created right now. Try again later.</string>
@@ -46,4 +50,9 @@
     <string name="receive_faucet_invoice">Developer: pay this invoice from regtest</string>
     <!-- %1$s: the faucet's or the connection's error, as it came -->
     <string name="receive_faucet_failed">The regtest faucet didn\'t pay: %1$s. Is dev/regtest up and connected?</string>
+    <!-- Which mint the money is received on, with a way to pick another (%1$s: the mint) -->
+    <string name="receive_on">On %1$s</string>
+    <string name="receive_on_title">Receive on</string>
+    <!-- A mint in that list where the account has no Lightning address -->
+    <string name="receive_on_invoice">With an invoice for an amount</string>
 </resources>

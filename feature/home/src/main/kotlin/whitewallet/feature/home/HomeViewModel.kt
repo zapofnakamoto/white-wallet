@@ -90,6 +90,8 @@ data class HomeState(
     val sharedMsat: Long = 0,
     /** The active account's home mint, whatever it holds, then its other mints that hold money of the balance, the largest first. */
     val mints: List<AccountMint> = emptyList(),
+    /** The account's mints it can receive on (the brand lets them hold money): a mint's row offers Receive. */
+    val receiveHosts: Set<String> = emptySet(),
 ) {
     /**
      * The balance per mint, shown under it once some of it is outside the home mint (or, without a home mint, on more than one): a payment
@@ -302,6 +304,7 @@ class HomeViewModel(
                 status.update {
                     it.copy(
                         unknownNotes = mints.filter { m -> m.unknownCount > 0 },
+                        receiveHosts = mints.map { m -> m.host }.filter(defaults::mintAllowed).toSet(),
                         mints =
                             mints
                                 .filter { m -> m.isHome || m.balanceMsat > 0 }

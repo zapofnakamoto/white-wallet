@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
@@ -41,6 +42,9 @@ import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.MintChoiceLine
+import whitewallet.core.designsystem.MintChoiceSheet
+import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.ScreenColumn
@@ -77,6 +81,7 @@ fun ReceiveRoute(
             onNewInvoice = viewModel::newInvoice,
             onReceiveMore = viewModel::receiveMore,
             onFaucet = viewModel::payFromFaucet,
+            onReceiveOn = viewModel::receiveOn,
         ),
         onNoHome,
     )
@@ -94,6 +99,8 @@ class InvoiceActions(
     val onReceiveMore: () -> Unit = {},
     /** Developer: have the regtest faucet pay what is shown. */
     val onFaucet: () -> Unit = {},
+    /** Receives on the mint picked. */
+    val onReceiveOn: (String) -> Unit = {},
 )
 
 @Composable
@@ -125,11 +132,26 @@ fun ReceiveScreen(
             ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
                 val shown = state.invoice
                 WalletStatusScope(receiveStatus(state)) { BrandDecoration(Anchor.ReceiveHeader) }
+                var picking by rememberSaveable { mutableStateOf(false) }
+                // Which mint it is received on, once there is more than one it could be: changed until an invoice is made for it.
+                val mintLine: @Composable () -> Unit = { MintLine(state, onChange = { picking = true }.takeIf { shown == null }) }
                 when {
                     state.noHome != null -> NoHomeContent(state.noHome, onNoHome)
-                    shown != null -> InvoiceContent(shown, onBack, invoice.onNewInvoice)
-                    state.showAmountForm -> AmountForm(state, invoice)
-                    state.address != null -> AddressContent(state, others = state.addressCount > 1, invoice)
+                    shown != null -> InvoiceContent(shown, onBack, invoice.onNewInvoice, mintLine)
+                    state.showAmountForm -> AmountForm(state, invoice, mintLine)
+                    state.address != null -> AddressContent(state, others = state.addressCount > 1, invoice, mintLine)
+                }
+                if (picking && state.canPickMint) {
+                    MintChoiceSheet(
+                        title = stringResource(R.string.receive_on_title),
+                        options = state.mints.map { MintOption(it.host, mintDetail(it)) },
+                        selected = state.receivingHost,
+                        onSelect = { host ->
+                            picking = false
+                            host?.let(invoice.onReceiveOn)
+                        },
+                        onDismiss = { picking = false },
+                    )
                 }
                 if (shown == null) WalletButton(kind = ButtonKind.Text, onClick = onClaim) { Text(stringResource(R.string.receive_claim)) }
                 val payable = shown?.status == InvoiceStatus.Waiting || (shown == null && !state.showAmountForm && state.address != null)
@@ -137,6 +159,24 @@ fun ReceiveScreen(
             }
         }
     }
+}
+
+/** "On mint.example.com · Change": shown where mints are named and there is a mint to pick, or one was picked. */
+@Composable
+private fun MintLine(state: ReceiveState, onChange: (() -> Unit)?) {
+    val host = state.receivingHost ?: return
+    if (!state.mintsVisible || !(state.canPickMint || state.on != null)) return
+    MintChoiceLine(
+        if (host == state.homeHost) stringResource(R.string.receive_on_home, host) else stringResource(R.string.receive_on, host),
+        onChange.takeIf { state.canPickMint },
+    )
+}
+
+/** What [mint] has to receive with: its address there, else an invoice; home said first. */
+@Composable
+private fun mintDetail(mint: ReceiveMint): String {
+    val how = mint.address ?: stringResource(R.string.receive_on_invoice)
+    return if (mint.isHome) stringResource(R.string.receive_on_home_detail, how) else how
 }
 
 /** Without a home mint nothing can be received: what is missing, and the way to it. */
@@ -181,7 +221,7 @@ private fun FaucetButton(faucet: FaucetState, invoice: Boolean, onPay: () -> Uni
 }
 
 @Composable
-private fun AddressContent(state: ReceiveState, others: Boolean, actions: InvoiceActions) {
+private fun AddressContent(state: ReceiveState, others: Boolean, actions: InvoiceActions, mintLine: @Composable () -> Unit) {
     val address = state.address ?: return
     QrCode("lightning:${address.uppercase()}")
     Text(address, style = MaterialTheme.typography.titleMedium)
@@ -197,6 +237,7 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
     } else {
         Text(stringResource(R.string.receive_hint), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
     }
+    mintLine()
     CopyShare(address, stringResource(R.string.receive_copied))
     WalletButton(kind = ButtonKind.Text, onClick = actions.onRequestAmount) { Text(stringResource(R.string.receive_request_amount)) }
     if (others)
@@ -204,8 +245,9 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
 }
 
 @Composable
-private fun AmountForm(state: ReceiveState, actions: InvoiceActions) {
+private fun AmountForm(state: ReceiveState, actions: InvoiceActions, mintLine: @Composable () -> Unit) {
     Text(stringResource(R.string.receive_invoice_intro), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
+    mintLine()
     WalletTextField(
         value = state.amountText,
         onValueChange = actions.onAmountChange,
@@ -246,7 +288,7 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions) {
 }
 
 @Composable
-private fun InvoiceContent(shown: ShownInvoice, onDone: () -> Unit, onNewInvoice: () -> Unit) {
+private fun InvoiceContent(shown: ShownInvoice, onDone: () -> Unit, onNewInvoice: () -> Unit, mintLine: @Composable () -> Unit) {
     val request = shown.request
     when (val status = shown.status) {
         // Shown by SuccessScreen instead.
@@ -274,6 +316,7 @@ private fun InvoiceContent(shown: ShownInvoice, onDone: () -> Unit, onNewInvoice
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            mintLine()
             CopyShare(request.invoice, stringResource(R.string.receive_invoice_copied))
             WalletButton(kind = ButtonKind.Text, onClick = onNewInvoice) { Text(stringResource(R.string.receive_invoice_other_amount)) }
         }
