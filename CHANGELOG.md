@@ -107,6 +107,15 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- A restore from the recovery phrase could miss whole accounts. It stops at the first account that never received
+  money, yet the wallet let an account be added after an empty one; and it judged that one mint at a time, so an
+  account used on another mint alone stopped it too. An account is now added only once the one before it has received
+  money (BIP-44's rule; Settings → Wallets says which account to use first), a wallet that already has such an empty
+  account says which accounts a restore misses until it receives money, and adding a mint or "Scan for notes" looks
+  through the wallet's other mints again for the accounts it finds. For developers: the rule follows
+  `scan.stop.after.unused.accounts`; new `CreateAccountResult.UseFirst`, `Wallet.accountToUseFirst`,
+  `AccountSummary.used` and the strings `wallet_add_account_use_first`, `wallet_account_hides_later` and
+  `account_name_use_first`.
 - The app could close while adding a mint (or on any other lookup after a dropped connection, with another mint's
   connection still open): the retry closed the open connections on the screen's own thread, which Android forbids.
 - A home mint removed under Settings → Mints came back at once, no longer home and no longer trusted, with whatever

@@ -920,9 +920,10 @@ class Wallet(
     /**
      * Connects to a mint the user names (pinning its key; with [expectedKey], only that one, as [previewMint] showed it), so it can be
      * trusted before any note from it arrives, and finds what every account of the active wallet already holds there, as a restore does;
-     * accounts the phone didn't have are created. [onProgress] follows that scan. A wallet created on this phone and still in its setup has
-     * nothing there yet, so its scan counts as done. A scan that stops is [ConnectResult.Failed]: the mint stays with what was found and
-     * says its scan isn't finished ([unscannedMints]), until [scan] gets through. Runs to its end if the screen that asked is left.
+     * accounts the phone didn't have are created, and looked for on the wallet's other mints too, with the accounts after them
+     * ([Restore.scanMints]). [onProgress] follows the scan of this mint. A wallet created on this phone and still in its setup has nothing
+     * there yet, so its scan counts as done. A scan that stops is [ConnectResult.Failed]: the mint stays with what was found and says its
+     * scan isn't finished ([unscannedMints]), until [scan] gets through. Runs to its end if the screen that asked is left.
      */
     suspend fun addMint(host: String, expectedKey: String? = null, onProgress: (ScanProgress) -> Unit = {}): ConnectResult =
         withContext(NonCancellable) {
@@ -938,7 +939,8 @@ class Wallet(
                     restorer.markScanned(walletId, h)
                     return@withLock connected
                 }
-                val failed = restorer.scanAddedMint(walletId, h, onProgress)
+                // The other mints are looked at again for the accounts found here; how that goes shows on each of them, not here.
+                val failed = restorer.scanMints(walletId, listOf(h)) { host, progress -> if (host == h) onProgress(progress) }[h]
                 if (failed == null) connected else ConnectResult.Failed(failed)
             }
         }
@@ -952,9 +954,9 @@ class Wallet(
 
     /**
      * Looks through the active wallet's keys at each of its mints, as a restore does: every account from its first key, and further
-     * accounts until one was never used. Only lookups are sent, so it can be repeated at any time; what it finds is added. [onProgress]
-     * follows it mint by mint. A mint that doesn't answer is passed over and named in the result; the others are still scanned. Runs to its
-     * end if the screen that asked is left.
+     * accounts until one was never used, on any of them ([Restore.scanMints]). Only lookups are sent, so it can be repeated at any time;
+     * what it finds is added. [onProgress] follows it mint by mint. A mint that doesn't answer is passed over and named in the result; the
+     * others are still scanned. Runs to its end if the screen that asked is left.
      */
     suspend fun scan(onProgress: (host: String, ScanProgress) -> Unit = { _, _ -> }): ScanResult =
         withContext(NonCancellable) {
@@ -968,7 +970,8 @@ class Wallet(
                 val before = held()
                 // Those never finished first: they are what the user is waiting for.
                 val mints = store.mints(walletId).first().sortedBy { it.scan == MintScan.Finished }
-                val stopped = mints.map { it.host }.filter { h -> restorer.scanAddedMint(walletId, h) { onProgress(h, it) } != null }
+                val failed = restorer.scanMints(walletId, mints.map { it.host }, onProgress)
+                val stopped = mints.map { it.host }.filter { it in failed }
                 ScanResult(foundMsat = held() - before, stoppedAt = stopped)
             }
         }

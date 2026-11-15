@@ -82,34 +82,70 @@ internal class Restore(private val wallet: Wallet) {
                 }
             }
         }
-        h?.let { scanMint(accountId, it) }
-            ?.let {
-                return failed(it)
-            }
+        (h?.let { scanMint(accountId, it) } as? WalletScan.Failed)?.let {
+            return failed(it.failure)
+        }
         wallet.store.setActiveAccount(accountId)
         val notes = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
         return RestoreResult.Restored(accountId, notes.size, notes.sumOf { it.amountMsat })
     }
 
     /**
-     * Finds what the wallet [walletId], which exists already, holds on its mint at [host]: what a restore does on its mint, here for one
-     * the wallet adds later, or to look again. Null once every account was looked through; otherwise why the scan stopped. What it found
-     * until then stays, and the mint says its scan isn't finished ([Mint.scan]).
+     * Finds what the wallet [walletId], which exists already, holds on each of [hosts], its mints, in turn: what a restore does on its
+     * mint, here for one the wallet adds later, or to look again. A scan stops at the first accounts a mint shows unused, but one used only
+     * on another mint is unused there: so once the wallet has an account where a mint's scan stopped, that mint is looked through again
+     * from there, its other mints too, until none is behind. Such a mint counts as unfinished until that look is through ([Mint.scan]); one
+     * whose own scan never came to its end isn't looked at in part, as its scan covers it. The mints whose scan stopped, with why; what a
+     * scan found until then stays. [onProgress] follows each look, by mint.
      */
-    suspend fun scanAddedMint(walletId: String, host: String, onProgress: (ScanProgress) -> Unit = {}): OnboardResult? =
-        scanMint(walletId, host, onProgress)?.let {
-            if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason)
+    suspend fun scanMints(
+        walletId: String,
+        hosts: List<String>,
+        onProgress: (host: String, ScanProgress) -> Unit = { _, _ -> },
+    ): Map<String, OnboardResult> {
+        val highest = suspend { wallet.store.accounts.first().filter { it.account.walletId == walletId }.maxOf { it.account.index } }
+        val before = highest()
+        // Where each mint's scan stopped: the first index whose accounts it found unused, or the first it didn't look at.
+        val stops = mutableMapOf<String, Long>()
+        val failed = mutableMapOf<String, OnboardResult>()
+        val record = { host: String, scan: WalletScan ->
+            when (scan) {
+                is WalletScan.Done -> stops[host] = scan.stoppedAt
+                is WalletScan.Failed ->
+                    failed[host] =
+                        scan.failure.let { if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason) }
+            }
         }
+        for (h in hosts) record(h, scanMint(walletId, h) { onProgress(h, it) })
+        while (true) {
+            val top = highest()
+            // A mint scanned to its end before this call looked through every account the wallet had then.
+            val behind =
+                wallet.store.mints(walletId).first().mapNotNull { mint ->
+                    val stop = stops[mint.host] ?: (before + 1).takeIf { mint.scan == MintScan.Finished } ?: return@mapNotNull null
+                    (mint.host to stop).takeIf { mint.host !in failed && stop <= top }
+                }
+            if (behind.isEmpty()) return failed
+            for ((h, from) in behind) record(h, scanMint(walletId, h, from, again = true) { onProgress(h, it) })
+        }
+    }
 
     /**
      * [scanWallet], with when it began and when it came to its end kept on the mint. Looking again through a mint whose scan was finished
-     * leaves it finished if this one stops: nothing is missing that the earlier one didn't find.
+     * leaves it finished if this one stops: nothing is missing that the earlier one didn't find. Unless it is looked through [again] for
+     * accounts it didn't see (from [from]): then it is unfinished until that look is through.
      */
-    private suspend fun scanMint(walletId: String, host: String, onProgress: (ScanProgress) -> Unit = {}): Failure? {
-        mark(walletId, host) { if (it.scan == MintScan.Finished) it else it.copy(scanStartedAtMillis = wallet.now()) }
-        val failed = scanWallet(walletId, host, onProgress)
-        if (failed == null) mark(walletId, host) { it.copy(scanFinishedAtMillis = wallet.now()) }
-        return failed
+    private suspend fun scanMint(
+        walletId: String,
+        host: String,
+        from: Long = 0,
+        again: Boolean = false,
+        onProgress: (ScanProgress) -> Unit = {},
+    ): WalletScan {
+        mark(walletId, host) { if (it.scan == MintScan.Finished && !again) it else it.copy(scanStartedAtMillis = wallet.now()) }
+        val scan = scanWallet(walletId, host, from, onProgress)
+        if (scan is WalletScan.Done) mark(walletId, host) { it.copy(scanFinishedAtMillis = wallet.now()) }
+        return scan
     }
 
     /** The wallet's keys can hold nothing at [host] that this phone doesn't know: its scan counts as done. */
@@ -148,19 +184,19 @@ internal class Restore(private val wallet: Wallet) {
     }
 
     /**
-     * Finds what every account of the wallet [walletId] holds on [host]: each account it has, then further ones up to a gap of ones never
-     * used (BIP-44). An account the wallet has counts as used, and created ones before a used one stay, to keep its index. A created one's
-     * home is [host], where it was found. Null once every account was looked through; otherwise why the scan stopped, and the created
-     * accounts that hold nothing are gone again.
+     * Finds what every account of the wallet [walletId] from [from] on holds on [host]: each account it has, then further ones up to a gap
+     * of ones never used (BIP-44). An account the wallet has counts as used, and created ones before a used one stay, to keep its index. A
+     * created one's home is [host], where it was found. Once every account was looked through, where the scan stopped; otherwise why it
+     * stopped, and the created accounts that hold nothing are gone again.
      */
-    private suspend fun scanWallet(walletId: String, host: String, onProgress: (ScanProgress) -> Unit = {}): Failure? {
+    private suspend fun scanWallet(walletId: String, host: String, from: Long = 0, onProgress: (ScanProgress) -> Unit = {}): WalletScan {
         val accounts = wallet.store.accounts.first().map { it.account }.filter { it.walletId == walletId }
         val byIndex = accounts.associateBy { it.index }
         val progress = mutableListOf<ScanProgress.AccountScan>()
         val last = accounts.maxOf { it.index }
         val creatable = minOf(wallet.maxAccounts, wallet.settings.scanMaxAccountsChecked).toLong()
         val unused = mutableListOf<String>()
-        var index = 0L
+        var index = from
         while (index <= last || (index < creatable && unused.size < wallet.settings.scanStopAfterUnusedAccounts)) {
             val had = byIndex[index]
             val account =
@@ -187,16 +223,23 @@ internal class Restore(private val wallet: Wallet) {
                 is Scan.Failed -> {
                     val created = if (had == null) unused + account.id else unused
                     created.filter { wallet.store.notes(it).first().isEmpty() }.forEach { wallet.store.deleteAccount(it) }
-                    return found.failure
+                    return WalletScan.Failed(found.failure)
                 }
                 is Scan.Done -> if (found.used || had != null) unused.clear() else unused += account.id
             }
         }
         unused.forEach { wallet.store.deleteAccount(it) }
-        return null
+        return WalletScan.Done(stoppedAt = index - unused.size)
     }
 
     private data class Failure(val reason: String, val refused: Boolean)
+
+    private sealed interface WalletScan {
+        /** Every account was looked through; [stoppedAt]: the first index of the unused ones that ended it, or the first not looked at. */
+        data class Done(val stoppedAt: Long) : WalletScan
+
+        data class Failed(val failure: Failure) : WalletScan
+    }
 
     private sealed interface Scan {
         /** [used]: some key of the account was ever used. */
