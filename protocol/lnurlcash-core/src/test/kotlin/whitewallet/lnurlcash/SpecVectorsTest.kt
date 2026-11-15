@@ -208,6 +208,17 @@ class SpecVectorsTest {
     }
 
     @Test
+    fun `bolt11 amounts round-trip up to the largest msat`() {
+        // Long.MAX_VALUE / 10 + 1 is 922337203685477581: the smallest msat whose pico-BTC amount overflows a Long.
+        for (msat in listOf(Long.MAX_VALUE, Long.MAX_VALUE / 10 + 1, 922_337_203_685_477_581L, Long.MAX_VALUE - 1)) {
+            assertEquals(msat, Bolt11Amount.decode(Bolt11Amount.encode(msat)), "$msat")
+        }
+        assertEquals("${Long.MAX_VALUE}0p", Bolt11Amount.encode(Long.MAX_VALUE))
+        assertEquals(null, Bolt11Amount.decode("${Long.MAX_VALUE}1p"), "not a whole msat")
+        assertEquals(null, Bolt11Amount.decode("${Long.MAX_VALUE}00p"), "more than a Long")
+    }
+
+    @Test
     fun `unknown script spends are identified but not treated as bearer notes`() {
         val preimage = ByteVector32(lud25.obj("bearer_note").str("preimage"))
         val cw1 = BearerNote.cw1(preimage)
