@@ -138,18 +138,26 @@ public class LnurlcashClient(
     private suspend fun registration(form: FormRequest): RegistrationOutcome =
         registration(Request.Builder().url(form.url).method(form.method, formBody(form.fields)).build())
 
-    /** Registration changes always go out on a fresh connection and are never retried. */
+    /**
+     * Registration changes always go out on a fresh connection and are never retried. Only the mint's own answer decides, a 2xx `OK` or
+     * `ERROR` as LUD-01 spells it; anything else (a captive portal's page, a proxy's 502, an empty 204) says nothing about whether the mint
+     * took the change.
+     */
     internal suspend fun registration(request: Request): RegistrationOutcome {
-        return when (val result = execute(request, freshConnectionHttp)) {
-            is HttpResult.TransportFailure -> RegistrationOutcome.Ambiguous(result.message)
-            is HttpResult.Response ->
-                when (val r = LnurlResponse.parse(result.body)) {
-                    is LnurlResponse.Error -> RegistrationOutcome.Rejected(RegistrationRejection.fromReason(r.reason), r.reason)
-                    is LnurlResponse.Ok -> r.raw.string("pr")?.let { RegistrationOutcome.AwaitingFee(it) } ?: RegistrationOutcome.Registered
-                    else ->
-                        if (result.status in 200..299) RegistrationOutcome.Registered
-                        else RegistrationOutcome.Rejected(RegistrationRejection.Other, "HTTP ${result.status}")
-                }
+        val result =
+            when (val sent = execute(request, freshConnectionHttp)) {
+                is HttpResult.TransportFailure -> return RegistrationOutcome.Ambiguous(sent.message)
+                is HttpResult.Response -> sent
+            }
+        if (result.status !in 200..299) return RegistrationOutcome.Ambiguous("HTTP ${result.status}")
+        val r = LnurlResponse.parse(result.body)
+        val status = r?.raw?.string("status")
+        return when {
+            r is LnurlResponse.Error && status == "ERROR" ->
+                RegistrationOutcome.Rejected(RegistrationRejection.fromReason(r.reason), r.reason)
+            r is LnurlResponse.Ok && status == "OK" ->
+                r.raw.string("pr")?.let { RegistrationOutcome.AwaitingFee(it) } ?: RegistrationOutcome.Registered
+            else -> RegistrationOutcome.Ambiguous("response confirms nothing (HTTP ${result.status})")
         }
     }
 
@@ -188,6 +196,7 @@ public sealed interface RegistrationOutcome {
     /** Refused, e.g. because the username is taken. */
     public data class Rejected(val kind: RegistrationRejection, val reason: String?) : RegistrationOutcome
 
+    /** No answer from the mint itself: not known whether it took the change. Ask it (a lookup or a proof) before acting. */
     public data class Ambiguous(val cause: String) : RegistrationOutcome
 }
 

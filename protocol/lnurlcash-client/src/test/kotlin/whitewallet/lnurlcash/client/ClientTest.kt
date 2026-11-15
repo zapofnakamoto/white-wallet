@@ -321,4 +321,38 @@ class ClientTest {
                 assertEquals("sig=03", delete.body?.utf8())
             }
         }
+
+    @Test
+    fun `a registration answered with anything but a mint's OK or ERROR is ambiguous`() =
+        runBlocking<Unit> {
+            val answers =
+                listOf(
+                    200 to "<html><body>Welcome to the hotel wifi</body></html>",
+                    200 to
+                        """{"tag":"payRequest","callback":"https://mint.example/cb","minSendable":1000,"maxSendable":2000,"metadata":"[]"}""",
+                    200 to """{"status":"ok"}""",
+                    200 to """{"status":"Error","reason":"already registered"}""",
+                    204 to "",
+                    404 to """{"status":"ERROR","reason":"unknown user"}""",
+                    502 to """{"status":"ERROR","reason":"already registered"}""",
+                    500 to """{"status":"OK"}""",
+                )
+            for ((code, body) in answers) {
+                MockWebServer().use { server ->
+                    repeat(3) { server.enqueue(MockResponse(code = code, body = body)) }
+                    server.start()
+                    val host = "${server.hostName}:${server.port}"
+                    val client = LnurlcashClient()
+                    for (outcome in
+                        listOf(
+                            client.register(host, "alice", "cx1abc", "00"),
+                            client.updateRegistration(host, "alice", "cx1new", "01", "02"),
+                            client.unregister(host, "alice", "03"),
+                        )) {
+                        assertIs<RegistrationOutcome.Ambiguous>(outcome, "$code $body")
+                    }
+                    assertEquals(3, server.requestCount, "never retried")
+                }
+            }
+        }
 }

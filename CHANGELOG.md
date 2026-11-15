@@ -139,6 +139,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   a received note keeps its link and is tried again (archived after a week, as for other refusals), a payment waits
   for that answer before it counts as paid, and Claim shows the mint's own words for a note it doesn't know instead
   of "This note has already been spent.".
+- Any page a Lightning address registration got back counted: a captive portal's or other web page as "registered",
+  so checking an address could call it yours, and a proxy's error page as "refused", which handed the address's share
+  to the next one although the registration may have gone through. Only the mint's own answer counts now; anything
+  else is settled by asking the mint about the address.
 
 ## [0.9.0]
 
