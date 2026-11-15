@@ -90,23 +90,44 @@ public class LnurlcashClient(
     public suspend fun withdrawLink(url: String): LnurlResponse =
         read(Request.Builder().url(url).get().tag(SpendGuard.Mutation::class.java, SpendGuard.Mutation).build())
 
-    /** A read-only [request] (see [readOnce]), its answer parsed as an LNURL response. */
-    private suspend fun read(request: Request): LnurlResponse =
+    /**
+     * A read-only GET of a mint's own document (a note lookup, its discovery, its pay request). As for a mutation, only the mint's own
+     * answer counts: a 2xx, with a `status` spelled `OK` or `ERROR` as LUD-01 has it. Anything else (a proxy's 502, a page that only looks
+     * like an answer) is a [ProtocolViolation], never a refusal: a lookup answered `already in use` is the only proof a note was burned.
+     */
+    private suspend fun mintGet(url: String): LnurlResponse = read(Request.Builder().url(url).get().build(), mint = true)
+
+    /**
+     * A read-only [request] (see [readOnce]), its answer parsed as an LNURL response. Another service's refusal is read whatever its HTTP
+     * status, so its reason can be shown; a [mint]'s only as [mintGet] says.
+     */
+    private suspend fun read(request: Request, mint: Boolean = false): LnurlResponse =
         when (val result = readOnce(request)) {
             is HttpResult.TransportFailure -> throw IOException(result.message)
-            is HttpResult.Response ->
-                LnurlResponse.parse(result.body) ?: throw ProtocolViolation("not an LNURL response (HTTP ${result.status})")
+            is HttpResult.Response -> {
+                if (!mint)
+                    return LnurlResponse.parse(result.body) ?: throw ProtocolViolation("not an LNURL response (HTTP ${result.status})")
+                if (result.status !in 200..299) throw ProtocolViolation("not the mint's answer (HTTP ${result.status})")
+                val response = LnurlResponse.parse(result.body) ?: throw ProtocolViolation("not an LNURL response (HTTP ${result.status})")
+                val status = response.raw.string("status")
+                val spelled = (response is LnurlResponse.Error && status == "ERROR") || (response is LnurlResponse.Ok && status == "OK")
+                if ((response is LnurlResponse.Error || response is LnurlResponse.Ok) && !spelled) {
+                    throw ProtocolViolation("not the mint's answer (status \"$status\")")
+                }
+                response
+            }
         }
 
     /** The service's minting payRequest for its own identity (`_@host`). */
-    public suspend fun servicePayRequest(host: String): MintingPayRequest = MintingPayRequest.from(get(Requests.servicePayUrl(host)))
+    public suspend fun servicePayRequest(host: String): MintingPayRequest = MintingPayRequest.from(mintGet(Requests.servicePayUrl(host)))
 
     /** The service's withdraw discovery document, which carries `mintPubkey` on the reference mints. */
     public suspend fun withdrawDiscovery(host: String): WithdrawDiscovery =
-        WithdrawDiscovery.from(get(Requests.serviceWithdrawDiscoveryUrl(host)))
+        WithdrawDiscovery.from(mintGet(Requests.serviceWithdrawDiscoveryUrl(host)))
 
     /** Looks a note up by its output key without disclosing the spend. Throws NoteLookupError if unknown or spent. */
-    public suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo = NoteInfo.from(get(Requests.lookup(withdrawUrl, q)), null)
+    public suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo =
+        NoteInfo.from(mintGet(Requests.lookup(withdrawUrl, q)), null)
 
     /**
      * Sends a mutation URL built by [Requests] and classifies the outcome. The only request that carries a spend. Replayed when its answer

@@ -152,6 +152,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A payment answered "busy, try again now" (HTTP 503 with `Retry-After: 0`) was sent to the mint a second time by the
   HTTP library on its own, so an invoice could be paid twice. Every request now reaches a mint at most once; such an
   answer waits and is settled by looking the note up.
+- Looking a note up read an error page from something in front of a mint (a proxy's 502) as the mint's answer, so a
+  page saying `already in use` could mark a note spent or a payment paid. A mint's lookups, discovery and pay request
+  now count only its own answer; anything else is no answer, asked again later.
 
 ## [0.9.0]
 

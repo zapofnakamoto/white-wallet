@@ -19,10 +19,13 @@ import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.SocketEffect
 import okhttp3.OkHttpClient
+import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
+import whitewallet.lnurlcash.protocol.NoteLookupError
+import whitewallet.lnurlcash.protocol.ProtocolViolation
 
 class ClientTest {
     @Test
@@ -173,6 +176,45 @@ class ClientTest {
                 val outcome = LnurlcashClient(resending).mutate(MutationType.Melt, server.url("/w/cb?k1=a&pr=lnbc1").toString())
                 assertIs<MutationOutcome.Ambiguous>(outcome)
                 assertEquals(1, server.requestCount)
+            }
+        }
+
+    @Test
+    fun `a lookup reads only the mint's own 2xx OK or ERROR`() =
+        runBlocking<Unit> {
+            val notTheMint =
+                listOf(
+                    502 to """{"status":"ERROR","reason":"already in use"}""",
+                    404 to """{"status":"ERROR","reason":"Unknown note."}""",
+                    500 to """{"tag":"withdrawRequest","callback":"https://mint.example/w","maxWithdrawable":1000}""",
+                    200 to """{"status":"error","reason":"already in use"}""",
+                    200 to """{"status":"Error","reason":"already in use"}""",
+                )
+            for ((code, body) in notTheMint) {
+                MockWebServer().use { server ->
+                    server.enqueue(MockResponse(code = code, body = body))
+                    server.start()
+                    assertFailsWith<ProtocolViolation>("$code $body") {
+                        LnurlcashClient().lookup(server.url("/w").toString(), ByteVector32.One)
+                    }
+                }
+            }
+            MockWebServer().use { server ->
+                server.enqueue(MockResponse(body = """{"status":"ERROR","reason":"already in use"}"""))
+                server.start()
+                val burned = assertFailsWith<NoteLookupError> { LnurlcashClient().lookup(server.url("/w").toString(), ByteVector32.One) }
+                assertTrue(burned.burned)
+            }
+        }
+
+    @Test
+    fun `another service's refusal is read whatever its HTTP status, so its reason can be shown`() =
+        runBlocking<Unit> {
+            MockWebServer().use { server ->
+                server.enqueue(MockResponse(code = 404, body = """{"status":"ERROR","reason":"no such user"}"""))
+                server.start()
+                val refused = assertIs<LnurlResponse.Error>(LnurlcashClient().get(server.url("/.well-known/lnurlp/bob").toString()))
+                assertEquals("no such user", refused.reason)
             }
         }
 
