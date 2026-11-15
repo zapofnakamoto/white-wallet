@@ -352,7 +352,7 @@ internal class NoteSender(private val wallet: Wallet) {
         return wallet.store
             .notes(accountId)
             .first()
-            .filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null }
+            .filter { it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null && it.isPickable() }
             .groupBy { it.host }
             .toList()
             .sortedBy { order(it.first) }

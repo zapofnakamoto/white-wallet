@@ -155,6 +155,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Looking a note up read an error page from something in front of a mint (a proxy's 502) as the mint's answer, so a
   page saying `already in use` could mark a note spent or a payment paid. A mint's lookups, discovery and pay request
   now count only its own answer; anything else is no answer, asked again later.
+- A note worth 0, which can stand for something other than money (a ticket, say), showed as "already spent" in Claim,
+  and a kept one was never claimed and was archived after a week. It is now a note like any other: Claim offers it,
+  and a kept one is claimed. Payments and note maintenance never use one up.
 
 ## [0.9.0]
 

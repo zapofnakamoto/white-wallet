@@ -90,8 +90,6 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         val pinned = known?.mintPubkey
         // Before its worth: a mint whose key doesn't match never ends the note by saying it is worth nothing.
         if (pinned != null && pinned != answer.mintPubkey?.toHex()) return keyChanged(note)
-        // Worth nothing, it says, but only `already in use` shows a note burned: tried again like any other refusal.
-        if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Other, null)
         // As Claim offers: the wallet keeps no notes at a mint without a signing key.
         val key = answer.mintPubkey ?: return lightningOnly(note, UnclaimedReason.NoSigningKey)
         // A mint met here for the first time is connected before the claim, with the key it just presented: the claim's new key is then

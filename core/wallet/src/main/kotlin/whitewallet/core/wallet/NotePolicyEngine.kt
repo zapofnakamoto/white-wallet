@@ -397,7 +397,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
 
     private suspend fun outstanding(accountId: String): List<Note> =
         wallet.store.notes(accountId).first().filter {
-            it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.purpose != null && it.index != null
+            it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.purpose != null && it.index != null && it.isPickable()
         }
 
     private fun Note.forStrategy() = StrategyNote(id, amountMsat, isAddressNote, updatedAtMillis)

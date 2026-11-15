@@ -1653,6 +1653,12 @@ sealed interface NoteCheck {
 data class NotesCheck(val checked: Int, val gone: Int, val unreachable: List<String>, val unknown: Int = 0)
 
 /** Notes a lookup can confirm and a rotate can renew: outstanding, at a key derived from the seed. */
+/**
+ * Whether a payment, a move or note maintenance may take this note as an input. A note worth 0 is kept, shown and claimed like any other,
+ * but it adds nothing to pay with, and it may stand for something other than its value (a token) that spending it would burn.
+ */
+internal fun Note.isPickable(): Boolean = amountMsat > 0
+
 internal fun Note.isRecheckable(): Boolean = state == NoteState.Outstanding && kind == NoteKind.KeyPath && purpose != null && index != null
 
 /** Set aside because its mint says it doesn't know it ([NoteState.Unknown]); a recheck may bring it back. */

@@ -160,7 +160,6 @@ internal class NoteClaimer(private val wallet: Wallet) {
             if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
             return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
         }
-        if (info.maxWithdrawableMsat <= 0) return ClaimPreview.AlreadySpent
         if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
         val own = wallet.homeOf(accountId)
         // The wallet keeps no notes at a mint without a signing key: only Lightning brings one in.

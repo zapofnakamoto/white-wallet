@@ -437,7 +437,7 @@ internal class Payer(private val wallet: Wallet) {
     /** What can pay: notes on the wallet's own keys, so every spend is a `ck1`. A note held as a link is claimed onto them first. */
     private suspend fun outstanding(accountId: String): List<Note> =
         wallet.store.notes(accountId).first().filter {
-            it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null
+            it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.index != null && it.isPickable()
         }
 
     private fun refused(reason: String?): PayResult.Failed =
