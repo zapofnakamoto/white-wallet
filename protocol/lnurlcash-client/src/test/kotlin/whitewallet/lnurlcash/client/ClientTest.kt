@@ -112,6 +112,71 @@ class ClientTest {
         }
 
     @Test
+    fun `a melt answered 503 with Retry-After 0 reaches the mint once and is ambiguous`() =
+        runBlocking<Unit> {
+            MockWebServer().use { server ->
+                server.enqueue(MockResponse.Builder().code(503).addHeader("Retry-After", "0").build())
+                server.enqueue(MockResponse(body = """{"status":"OK"}"""))
+                server.start()
+                val outcome = LnurlcashClient().mutate(MutationType.Melt, server.url("/w/cb?k1=a&pr=lnbc1").toString())
+                assertEquals(MutationOutcome.Ambiguous("HTTP 503"), outcome)
+                assertEquals(1, server.requestCount)
+            }
+        }
+
+    @Test
+    fun `a melt answered with a redirect or a challenge reaches the mint once and is ambiguous, whatever the client`() =
+        runBlocking<Unit> {
+            // A client of the caller's that follows redirects and answers challenges: the guards hold all the same.
+            val following =
+                OkHttpClient.Builder()
+                    .retryOnConnectionFailure(false)
+                    .authenticator { _, response -> response.request.newBuilder().header("Authorization", "Basic YTpi").build() }
+                    .proxyAuthenticator { _, response -> response.request.newBuilder().header("Proxy-Authorization", "Basic YTpi").build() }
+                    .build()
+            for (http in listOf(LnurlcashClient.defaultHttpClient(), following)) {
+                for (answer in listOf(302, 307, 401, 407)) {
+                    MockWebServer().use { server ->
+                        server.start()
+                        server.enqueue(
+                            MockResponse.Builder()
+                                .code(answer)
+                                .addHeader("Location", server.url("/w/cb2?k1=a&pr=lnbc1"))
+                                .addHeader("WWW-Authenticate", "Basic realm=\"mint\"")
+                                .addHeader("Proxy-Authenticate", "Basic realm=\"mint\"")
+                                .build()
+                        )
+                        server.enqueue(MockResponse(body = """{"status":"OK"}"""))
+                        val outcome = LnurlcashClient(http).mutate(MutationType.Melt, server.url("/w/cb?k1=a&pr=lnbc1").toString())
+                        assertIs<MutationOutcome.Ambiguous>(outcome, "$answer")
+                        assertEquals(1, server.requestCount, "$answer")
+                    }
+                }
+            }
+        }
+
+    @Test
+    fun `an interceptor that resends never sends a mutation twice`() =
+        runBlocking<Unit> {
+            val resending =
+                LnurlcashClient.defaultHttpClient()
+                    .newBuilder()
+                    .addInterceptor { chain ->
+                        chain.proceed(chain.request()).close()
+                        chain.proceed(chain.request())
+                    }
+                    .build()
+            MockWebServer().use { server ->
+                server.enqueue(MockResponse(body = """{"status":"ERROR","reason":"rate limited"}"""))
+                server.enqueue(MockResponse(body = """{"status":"OK"}"""))
+                server.start()
+                val outcome = LnurlcashClient(resending).mutate(MutationType.Melt, server.url("/w/cb?k1=a&pr=lnbc1").toString())
+                assertIs<MutationOutcome.Ambiguous>(outcome)
+                assertEquals(1, server.requestCount)
+            }
+        }
+
+    @Test
     fun `a replay refused after an unanswered attempt stays ambiguous`() =
         runBlocking<Unit> {
             val refusals =

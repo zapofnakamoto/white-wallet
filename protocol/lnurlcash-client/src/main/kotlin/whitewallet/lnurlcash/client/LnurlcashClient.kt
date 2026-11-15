@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.Authenticator
 import okhttp3.ConnectionPool
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -40,6 +41,11 @@ import whitewallet.lnurlcash.protocol.WithdrawDiscovery
  * ones, which idled as long (a scan leaves several); mutations and registrations always go out on a fresh connection, never an idle pooled
  * one.
  *
+ * OkHttp resends on its own in its follow-up logic, and each path is closed for any client passed in: a connection failure or a 408
+ * (`retryOnConnectionFailure` must be off), redirects (never followed: a redirect comes back as it is), 401 and 407 (no challenge is
+ * answered), a 503 with `Retry-After: 0` ([NoImmediateRetryAfter] drops the header), and a 421 or anything else ([SentOnce] fails a second
+ * send of the same request before it is written).
+ *
  * A note's spend (`k1`) leaves only with [mutate] (and [withdrawLink], for a link the user agreed to show its own service): whoever gets it
  * can claim the note, so a note is checked by its key ([lookup]). [SpendGuard], the last step before the wire, refuses any other request
  * carrying a spend, also one an interceptor of [http] rewrote.
@@ -54,7 +60,17 @@ public class LnurlcashClient(
         require(mutationReplays >= 0)
     }
 
-    private val http: OkHttpClient = http.newBuilder().addNetworkInterceptor(SpendGuard).build()
+    private val http: OkHttpClient =
+        http
+            .newBuilder()
+            .followRedirects(false)
+            .followSslRedirects(false)
+            .authenticator(Authenticator.NONE)
+            .proxyAuthenticator(Authenticator.NONE)
+            .addNetworkInterceptor(NoImmediateRetryAfter)
+            .addNetworkInterceptor(SentOnce)
+            .addNetworkInterceptor(SpendGuard)
+            .build()
 
     /** Same settings and interceptors, but keeps no idle connections, so every request opens a fresh one. */
     private val freshConnectionHttp: OkHttpClient = this.http.newBuilder().connectionPool(ConnectionPool(0, 1, TimeUnit.SECONDS)).build()
@@ -167,7 +183,8 @@ public class LnurlcashClient(
     private suspend fun execute(request: Request, client: OkHttpClient = http): HttpResult =
         withContext(io) {
             try {
-                client.newCall(request).execute().use { response -> HttpResult.Response(response.code, response.body.string()) }
+                val attempt = request.newBuilder().tag(SentOnce.Attempt::class.java, SentOnce.Attempt()).build()
+                client.newCall(attempt).execute().use { response -> HttpResult.Response(response.code, response.body.string()) }
             } catch (e: IOException) {
                 HttpResult.TransportFailure(e.message ?: e.javaClass.simpleName)
             }
@@ -178,6 +195,9 @@ public class LnurlcashClient(
             OkHttpClient.Builder()
                 .retryOnConnectionFailure(false)
                 .followRedirects(false)
+                .followSslRedirects(false)
+                .authenticator(Authenticator.NONE)
+                .proxyAuthenticator(Authenticator.NONE)
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build()

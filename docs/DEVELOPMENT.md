@@ -192,7 +192,7 @@ Output keys for the wallet's own purposes (0 wallet, 1 change) come from `IndexG
 
 ## Money-safety rules in the code
 
-- `LnurlcashClient` refuses an `OkHttpClient` with `retryOnConnectionFailure` enabled.
+- `LnurlcashClient` refuses an `OkHttpClient` with `retryOnConnectionFailure` enabled, and closes OkHttp's other resend paths on any client it is given: redirects are never followed, no 401/407 challenge is answered, `Retry-After` is dropped from a 503 (`NoImmediateRetryAfter`), and `SentOnce` fails a second send of the same request (a 421 on a coalesced HTTP/2 connection, an interceptor that resends) before it is written. A deliberate replay is a new attempt. Covered by `ClientTest`.
 - Servers close idle keep-alive connections (the reference mint after ~5 s). Read-only requests (`LnurlcashClient.get`: lookups, discovery) are retried once on a connection failure; mutations and registrations always use a fresh connection, never an idle pooled one. Covered by `ClientTest` and the opt-in `RegtestIdleTest`.
 - A mutation is written to the journal (`JournalStatus.Prepared`) before its request is sent. Unknown outcomes are settled by `Reconciler` using lookups by `p`, which never disclose a spend.
 - Only a lookup by `p` answered `already in use` (`NoteLookupError.burned`) marks a note spent, settles a melt as paid or ends a received note. A mint's reasons are matched exactly (`RejectionKind.fromReason`), and lnurl-mint's words for a spent or unknown note (`RejectionKind.Spent`, `NoteUnknown`) only ever lead to such a lookup (`UnknownNotes.sortOut`). A scan counts a key used on a note or `already in use`, unused on `Unknown note.`, and stops at anything else to ask again later. Tests: `RejectionKindTest`, `MintWordingTest`.
