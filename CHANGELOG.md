@@ -148,7 +148,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   Such a note now shows as not spendable. A note already kept stays kept, and its mint decides when it is claimed.
 - A link or address whose host only started like the device's own address (`127.example.com`, `0127.0.0.1`) was
   fetched over cleartext http. Only a real loopback address (`localhost`, `127.x.x.x` written plainly, `[::1]`,
-  `0.0.0.0`) or a `.onion` host may use http now.
+  `0.0.0.0`) or a `.onion` host may use http now, `lnurlw://[::1]:<port>` links included, which got https before.
 - A payment answered "busy, try again now" (HTTP 503 with `Retry-After: 0`) was sent to the mint a second time by the
   HTTP library on its own, so an invoice could be paid twice. Every request now reaches a mint at most once; such an
   answer waits and is settled by looking the note up.

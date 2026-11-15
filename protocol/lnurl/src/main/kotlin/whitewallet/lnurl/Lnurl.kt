@@ -88,8 +88,11 @@ public object Lnurl {
         }
     }
 
-    private fun schemeFor(hostWithPort: String): String =
-        if (isOnionOrLoopback(hostWithPort.substringBefore(':').lowercase())) "http" else "https"
+    private fun schemeFor(hostWithPort: String): String {
+        // An IPv6 host is bracketed and holds colons itself: its port comes after the closing bracket.
+        val host = if (hostWithPort.startsWith('[')) hostWithPort.substringBefore(']') + "]" else hostWithPort.substringBefore(':')
+        return if (isOnionOrLoopback(host.lowercase())) "http" else "https"
+    }
 
     /** `.onion`, or loopback: `localhost`, a canonical IPv4 address in 127.0.0.0/8, `[::1]` or `0.0.0.0` (url-admission.json). */
     private fun isOnionOrLoopback(host: String): Boolean =

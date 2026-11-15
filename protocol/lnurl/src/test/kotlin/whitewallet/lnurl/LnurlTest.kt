@@ -64,9 +64,11 @@ class LnurlTest {
         for (host in listOf("localhost", "127.0.0.1", "127.255.255.255", "127.10.0.250", "0.0.0.0", "[::1]", "mint.onion")) {
             assertEquals("http://$host:8000/w", Lnurl.resolve("http://$host:8000/w"), host)
         }
-        for (host in listOf("localhost", "127.0.0.1", "127.10.0.250", "0.0.0.0", "mint.onion")) {
+        for (host in listOf("localhost", "127.0.0.1", "127.10.0.250", "0.0.0.0", "[::1]", "mint.onion")) {
             assertEquals("http://$host/w", Lnurl.resolve("lnurlw://$host/w"), host)
+            assertEquals("http://$host:8000/w", Lnurl.resolve("lnurlw://$host:8000/w"), host)
         }
+        assertEquals("https://[2001:db8::1]:8000/w", Lnurl.resolve("lnurlw://[2001:db8::1]:8000/w"))
     }
 
     @Test
