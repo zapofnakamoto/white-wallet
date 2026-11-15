@@ -468,6 +468,30 @@ class HomeScreenTest {
     }
 
     @Test
+    fun severalOtherMintsThatDoNotAnswerShareOneCardWithOneCheckAgain() {
+        var refreshed = 0
+        show(
+            HomeState(
+                activeAccountId = "a",
+                balanceMsat = 8_000,
+                mints =
+                    listOf(
+                        mint("home.example", 5_000, home = true),
+                        mint("b.example", 2_000, answering = false),
+                        mint("c.example", 1_000, answering = false),
+                    ),
+            ),
+            onRefresh = { refreshed++ },
+        )
+        compose.onNodeWithText(plural(R.plurals.home_mints_silent_title, 2, 2)).assertExists()
+        compose.onNodeWithText(text(R.string.home_mints_silent_body)).assertExists()
+        compose.onAllNodesWithText(text(R.string.home_mint_silent_title, "b.example")).assertCountEquals(0)
+        compose.onAllNodesWithText(text(R.string.home_mint_not_answering)).assertCountEquals(2)
+        compose.onNodeWithText(text(R.string.home_mint_silent_action)).performClick()
+        assertEquals(1, refreshed)
+    }
+
+    @Test
     fun whereMintsDoNotShowTheCardDoesNotNameOne() {
         show(
             HomeState(

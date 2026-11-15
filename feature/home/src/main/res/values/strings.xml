@@ -17,6 +17,11 @@
     <string name="home_mint_silent_title_home">Your home mint, %1$s, isn\'t answering</string>
     <!-- Where the brand doesn't name mints (mints.visible=false). -->
     <string name="home_mint_silent_title_unnamed">Your mint isn\'t answering</string>
+    <!-- A card on the home screen: several mints the account uses, none the home mint, didn't answer. %1$d: how many (always 2 or more). -->
+    <plurals name="home_mints_silent_title">
+        <item quantity="one">%1$d mint isn\'t answering</item>
+        <item quantity="other">%1$d mints aren\'t answering</item>
+    </plurals>
     <!-- The mints without a row of their own under the balance, as one row. %1$d: how many. -->
     <plurals name="home_more_mints">
         <item quantity="one">%1$d more mint</item>
@@ -118,6 +123,8 @@
     <string name="home_mint_silent_title">%1$s isn\'t answering</string>
     <!-- Under the title: what that stops. A mint that isn't the home mint only holds money. -->
     <string name="home_mint_silent_body">Until it answers, you can\'t spend the money there. Your wallet keeps asking.</string>
+    <!-- Under home_mints_silent_title: what that stops. Their rows under the balance say which. -->
+    <string name="home_mints_silent_body">Until they answer, you can\'t spend the money there. Your wallet keeps asking.</string>
     <string name="home_mint_silent_body_home">Until it answers, you can\'t receive or spend money there. Your wallet keeps asking.</string>
     <string name="home_mint_silent_body_home_empty">Until it answers, you can\'t receive money there. Your wallet keeps asking.</string>
     <string name="home_mint_silent_action">Check again</string>

@@ -50,7 +50,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `Mints`, `AccountMints`, `Addresses`, `MoneyMove`; the default draws the body as before.
 - A mint that doesn't answer is told, before the user finds out by paying. Home shows a card naming it and what that
   stops (for the home mint: receiving and spending there; for another mint: spending the money there), with "Check
-  again"; its row under the balance says "Not answering". Receive says so under a Lightning address whose mint is
+  again"; its row under the balance says "Not answering". Several mints other than the home mint share one card ("3
+  mints aren't answering"), as one "Check again" asks them all. Receive says so under a Lightning address whose mint is
   silent, and when the home mint can't make an invoice. A refresh asks the mints the account holds money on that it
   had nothing else to ask, so it knows. When the phone is offline, Home, Receive and Send say that instead, and blame
   no mint.
@@ -60,6 +61,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - For brands: `ProblemKind.MintNotAnswering`, a mint the money is on (or that receives) doesn't answer while the phone
   is online, on Home, Receive and Send; `Offline` now only means the phone has no connection. New brand terms
   `home_mint_is_home_not_answering`, `home_mint_silent_title_home`, `home_mint_silent_title_unnamed`,
+  `home_mints_silent_title`,
   `receive_address_mint_silent_unnamed`, `receive_invoice_mint_silent_unnamed` and
   `send_problem_mint_silent_unnamed`. The app now declares `ACCESS_NETWORK_STATE` (WorkManager declared it already).
   For developers: `Wallet.mintsNotAnswering`, `AccountMint.answering`,

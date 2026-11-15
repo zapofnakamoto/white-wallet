@@ -152,6 +152,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `home_mint_is_home_key_changed` | Home mint · signing key doesn't match |
 | `home_mint_silent_title_home` | Your home mint, %1$s, isn't answering |
 | `home_mint_silent_title_unnamed` | Your mint isn't answering |
+| `home_mints_silent_title` | %1$d mint isn't answering / %1$d mints aren't answering (plural) |
 | `home_more_mints` | %1$d more mint / %1$d more mints (plural) |
 | `receive_no_mint` | This wallet has no mint yet. Add one to receive. |
 | `receive_no_mint_action` | Add mint |

@@ -624,6 +624,13 @@ private fun WalletTab(
                         )
                     is HomeAlert.MintNotAnswering ->
                         MintNotAnswering(alert.mint, state.mintsVisible, checking = state.refreshing, onCheck = onRefresh)
+                    is HomeAlert.MintsNotAnswering ->
+                        NotAnsweringCard(
+                            pluralStringResource(R.plurals.home_mints_silent_title, alert.mints.size, alert.mints.size),
+                            stringResource(R.string.home_mints_silent_body),
+                            checking = state.refreshing,
+                            onCheck = onRefresh,
+                        )
                     is HomeAlert.AddressInactive -> AddressInactive(alert.address, onOpenAddresses)
                     HomeAlert.AddMint -> AddMintPrompt(onAddMint)
                     HomeAlert.Backup -> BackupPrompt(onBackup, onDismissBackup)
@@ -1225,27 +1232,31 @@ private fun ReceivedCard(state: HomeState, actions: ReceivedNoteActions) {
  * too), that the wallet keeps asking, and offer to check now. Nothing is lost by waiting, so nothing more is urged.
  */
 @Composable
-private fun MintNotAnswering(mint: AccountMint, mintsVisible: Boolean, checking: Boolean, onCheck: () -> Unit) {
+private fun MintNotAnswering(mint: AccountMint, mintsVisible: Boolean, checking: Boolean, onCheck: () -> Unit) =
+    NotAnsweringCard(
+        when {
+            !mintsVisible -> stringResource(R.string.home_mint_silent_title_unnamed)
+            mint.isHome -> stringResource(R.string.home_mint_silent_title_home, mint.host)
+            else -> stringResource(R.string.home_mint_silent_title, mint.host)
+        },
+        stringResource(
+            when {
+                !mint.isHome -> R.string.home_mint_silent_body
+                mint.balanceMsat > 0 -> R.string.home_mint_silent_body_home
+                else -> R.string.home_mint_silent_body_home_empty
+            }
+        ),
+        checking,
+        onCheck,
+    )
+
+/** The card for one mint or several that don't answer: [title], what that stops ([body]), and one "Check again" that asks them all. */
+@Composable
+private fun NotAnsweringCard(title: String, body: String, checking: Boolean, onCheck: () -> Unit) {
     WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                when {
-                    !mintsVisible -> stringResource(R.string.home_mint_silent_title_unnamed)
-                    mint.isHome -> stringResource(R.string.home_mint_silent_title_home, mint.host)
-                    else -> stringResource(R.string.home_mint_silent_title, mint.host)
-                },
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                stringResource(
-                    when {
-                        !mint.isHome -> R.string.home_mint_silent_body
-                        mint.balanceMsat > 0 -> R.string.home_mint_silent_body_home
-                        else -> R.string.home_mint_silent_body_home_empty
-                    }
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(body, style = MaterialTheme.typography.bodyMedium)
             WalletButton(kind = ButtonKind.Secondary, onClick = onCheck, enabled = !checking) {
                 Text(stringResource(R.string.home_mint_silent_action))
             }

@@ -264,6 +264,10 @@
     <string name="home_mint_is_home_key_changed">Anbieter · Signaturschlüssel passt nicht</string>
     <string name="home_mint_silent_title_home">Dein Anbieter, %1$s, antwortet nicht</string>
     <string name="home_mint_silent_title_unnamed">Dein Anbieter antwortet nicht</string>
+    <plurals name="home_mints_silent_title">
+        <item quantity="one">%1$d Anbieter antwortet nicht</item>
+        <item quantity="other">%1$d Anbieter antworten nicht</item>
+    </plurals>
     <string name="receive_address_mint_silent_unnamed">Dein Anbieter antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
     <string name="receive_invoice_mint_silent_unnamed">Dein Anbieter antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>
     <string name="send_problem_mint_silent_unnamed">Dein Anbieter antwortet nicht. Es wurde nichts bezahlt. Versuche es später erneut.</string>

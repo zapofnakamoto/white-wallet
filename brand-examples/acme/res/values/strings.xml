@@ -264,6 +264,10 @@
     <string name="home_mint_is_home_key_changed">Provider · signing key doesn\'t match</string>
     <string name="home_mint_silent_title_home">Your provider, %1$s, isn\'t answering</string>
     <string name="home_mint_silent_title_unnamed">Your provider isn\'t answering</string>
+    <plurals name="home_mints_silent_title">
+        <item quantity="one">%1$d provider isn\'t answering</item>
+        <item quantity="other">%1$d providers aren\'t answering</item>
+    </plurals>
     <string name="receive_address_mint_silent_unnamed">Your provider isn\'t answering, so payments to this address can\'t arrive right now.</string>
     <string name="receive_invoice_mint_silent_unnamed">Your provider isn\'t answering, so no invoice can be created right now. Try again later.</string>
     <string name="send_problem_mint_silent_unnamed">Your provider isn\'t answering. Nothing was paid. Try again later.</string>

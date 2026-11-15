@@ -12,7 +12,12 @@
     <string name="home_mint_silent_title_home">Deine Haupt-Mint, %1$s, antwortet nicht</string>
     <string name="home_mint_silent_title">%1$s antwortet nicht</string>
     <string name="home_mint_silent_title_unnamed">Deine Mint antwortet nicht</string>
+    <plurals name="home_mints_silent_title">
+        <item quantity="one">%1$d Mint antwortet nicht</item>
+        <item quantity="other">%1$d Mints antworten nicht</item>
+    </plurals>
     <string name="home_mint_silent_body">Bis eine Antwort kommt, kannst du das Geld dort nicht ausgeben. Deine Wallet fragt weiter nach.</string>
+    <string name="home_mints_silent_body">Bis sie antworten, kannst du das Geld dort nicht ausgeben. Deine Wallet fragt weiter nach.</string>
     <string name="home_mint_silent_body_home">Bis eine Antwort kommt, kannst du dort weder empfangen noch Geld ausgeben. Deine Wallet fragt weiter nach.</string>
     <string name="home_mint_silent_body_home_empty">Bis eine Antwort kommt, kannst du dort nichts empfangen. Deine Wallet fragt weiter nach.</string>
     <string name="home_mint_silent_action">Erneut prüfen</string>

@@ -149,8 +149,17 @@ data class HomeState(
         get() = buildList {
             keyChangedMint?.let { add(HomeAlert.KeyChanged(it)) }
             unknownNotes.forEach { add(HomeAlert.UnknownNotes(it)) }
-            // Where the brand hides mints, one card says it: they can't be told apart.
-            mintsNotAnswering.let { if (mintsVisible) it else it.take(1) }.forEach { add(HomeAlert.MintNotAnswering(it)) }
+            // Where the brand hides mints, one card says it: they can't be told apart. Otherwise the home mint has its own, as it also
+            // stops money coming in; several others are one situation, with one "Check again" that asks them all.
+            val (home, others) = mintsNotAnswering.partition { it.isHome }
+            when {
+                !mintsVisible -> mintsNotAnswering.take(1).forEach { add(HomeAlert.MintNotAnswering(it)) }
+                else -> {
+                    home.forEach { add(HomeAlert.MintNotAnswering(it)) }
+                    if (others.size > 1) add(HomeAlert.MintsNotAnswering(others))
+                    else others.forEach { add(HomeAlert.MintNotAnswering(it)) }
+                }
+            }
             inactiveAddress?.let { add(HomeAlert.AddressInactive(it)) }
             if (showAddMintPrompt) add(HomeAlert.AddMint)
             if (showBackupPrompt) add(HomeAlert.Backup)
@@ -181,6 +190,9 @@ sealed interface HomeAlert {
 
     /** [mint] didn't answer: until it does, money there can't be spent (and, the home mint, none comes in). */
     data class MintNotAnswering(val mint: AccountMint) : HomeAlert
+
+    /** Several [mints], none the home mint, didn't answer: until they do, the money there can't be spent. */
+    data class MintsNotAnswering(val mints: List<AccountMint>) : HomeAlert
 
     data class AddressInactive(val address: String) : HomeAlert
 

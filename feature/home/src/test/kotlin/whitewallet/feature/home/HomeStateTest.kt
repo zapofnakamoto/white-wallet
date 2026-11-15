@@ -87,6 +87,16 @@ class HomeStateTest {
     }
 
     @Test
+    fun `several mints that don't answer, besides the home mint, share one card`() {
+        val home = mint("a.example", 6_000, home = true, answering = false)
+        val others = listOf(mint("b.example", 2_000, answering = false), mint("c.example", 1_000, answering = false))
+        val state = HomeState(activeAccountId = "a", mints = listOf(home) + others + mint("d.example", 500))
+        assertEquals(listOf(HomeAlert.MintNotAnswering(home), HomeAlert.MintsNotAnswering(others)), state.alerts)
+        assertEquals(listOf(HomeAlert.MintsNotAnswering(others)), state.copy(mints = others).alerts)
+        assertEquals(listOf(HomeAlert.MintNotAnswering(home)), state.copy(mintsVisible = false).alerts)
+    }
+
+    @Test
     fun `the balance is told per mint only once it is on several, and where mints and the balance show`() {
         val two = listOf(mint("a.example", 6_000, home = true), mint("b.example", 2_000))
         assertEquals(two, HomeState(mints = two).balanceByMint)
