@@ -14,11 +14,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.extension.ExtendWith
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.core.wallet.Regtest.HOST3
 
 /** Removing mints and accounts on the real reference mints (dev/regtest, LNURLCASH_REGTEST=1), also while the wallet is busy. */
+@ExtendWith(ThirdMintLock::class)
 class RegtestRemoveWhileBusyTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 
