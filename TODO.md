@@ -1,5 +1,28 @@
 # To do
 
+## First
+
+Asked what to do next, take these first, in this order. Left open by the protocol hotfixes of 2026-11-15 (the note
+on them: `docs/plans/2026-11-15-protocol-hotfixes-result.md`, untracked). Each fails safe today: no note is dropped
+or marked spent on a guess.
+
+1. **Address-proof refusals are matched by substring.** `RegistrationRejection.fromReason` (`LnurlcashClient.kt`)
+   lowercases a mint's reason and looks for words in it (`"signature" in r`, `"cx1 already used" in r`, …), as
+   `RejectionKind.fromReason` did before it was made exact. `AddressCheck.proveOwner` reads `Cx1AlreadyUsed` as "the
+   address is ours". Match exactly: the spec's reasons and lnurl-mint's own sentences (read them from its source).
+2. **`already in use` at a combine or renew can't tell a burned input.** Since LUD-25 at 92e430f a mutation refuses a
+   burned input with `already in use`, the same reason as a `p1`/`p2` already used, which `NoteMutator` retries at
+   the next index. Look the inputs up by `p` before retrying: a burned one is spent, not retried.
+3. **A received note refused `already in use` waits a week.** `ReceivedNotes` looks a refused claim's note up only
+   when the mint words it spent or unknown (`UnknownNotes.GONE`); refused `already in use`, it is retried for a week
+   and archived instead of shown gone. Look it up there too.
+4. **The Keys screen's scan doesn't stop on a refused key.** `KeyInspector` (Developer options → Keys) counts a
+   `KeyProbe.Refused` key (`pending`, a spent note in a mint's own words, any other refusal) toward the gap, against
+   LUD-26 "Recovery": any error but a note or `already in use` is asked again, never counted unused. It only advances
+   the counter less. `IndexDiscovery` and `AddressScanner` stop there as they should.
+
+## Later
+
 Ideas and follow-ups noted for later. Not a plan: each item still needs its own design.
 
 1. **Deleting a wallet loses its received links.** Settings → Wallets → Delete wallet removes every account of the
