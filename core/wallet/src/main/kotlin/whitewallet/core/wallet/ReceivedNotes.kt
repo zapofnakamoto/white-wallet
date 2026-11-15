@@ -81,7 +81,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     // As Claim offers: only Lightning brings it in, once the user agrees (asked by key again on each refresh meanwhile).
                     is KeyLookup.OtherService,
                     KeyLookup.NotANote -> return lightningOnly(note, UnclaimedReason.NotANote)
-                    is KeyLookup.Refused -> return refused(note, spend, found.kind, found.reason)
+                    is KeyLookup.Refused ->
+                        return if (found.burned) gone(note, found.kind, found.reason) else refused(note, spend, found.kind, found.reason)
                     is KeyLookup.KeyChanged -> return keyChanged(note)
                     KeyLookup.Unreachable -> return waiting(note)
                 }
@@ -89,7 +90,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         val pinned = known?.mintPubkey
         // Before its worth: a mint whose key doesn't match never ends the note by saying it is worth nothing.
         if (pinned != null && pinned != answer.mintPubkey?.toHex()) return keyChanged(note)
-        if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Spent, null)
+        // Worth nothing, it says, but only `already in use` shows a note burned: tried again like any other refusal.
+        if (answer.maxWithdrawableMsat <= 0) return refused(note, spend, RejectionKind.Other, null)
         // As Claim offers: the wallet keeps no notes at a mint without a signing key.
         val key = answer.mintPubkey ?: return lightningOnly(note, UnclaimedReason.NoSigningKey)
         // A mint met here for the first time is connected before the claim, with the key it just presented: the claim's new key is then
@@ -145,7 +147,10 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 )
                 ClaimResult.Pending
             }
-            is MutationResult.Refused -> refused(note, spend, result.kind, result.reason)
+            // Refused as spent or unknown, in the mint's own words: gone only if a lookup by its key shows it burned.
+            is MutationResult.Refused ->
+                if (result.kind in UnknownNotes.GONE && shownBurned(note)) gone(note, result.kind, result.reason)
+                else refused(note, spend, result.kind, result.reason)
             is MutationResult.Unreachable if result.keyChanged -> keyChanged(note)
             is MutationResult.Unreachable -> waiting(note)
         }
@@ -255,44 +260,64 @@ internal class ReceivedNotes(private val wallet: Wallet) {
             JournalStatus.Rejected,
             null -> {
                 if (note.state == ReceivedState.Melting) return meltFailed(note)
-                val live =
+                val burned =
                     try {
-                        isLive(note)
+                        isBurned(note)
                     } catch (e: IOException) {
                         return
                     } catch (e: MintKeyChangedException) {
                         keyChanged(note.copy(journalId = null))
                         return
                     }
-                if (live) update(note.copy(state = ReceivedState.Waiting, journalId = null))
-                else update(note.copy(state = ReceivedState.Gone, k1 = null))
+                if (burned) update(note.copy(state = ReceivedState.Gone, k1 = null))
+                else update(note.copy(state = ReceivedState.Waiting, journalId = null))
             }
             else -> Unit
         }
     }
 
     /**
-     * Whether its mint still holds [note], asked by its key alone. Throws [IOException] when it can't tell, and [MintKeyChangedException]
-     * when a mint whose key the account pinned presents another or none: its answer can't end the note.
+     * Whether its mint burned [note], asked by its key alone: only an answer of `already in use` shows that. A note, or a refusal that says
+     * spent or unknown in the mint's own words, doesn't. Throws [IOException] when it can't tell, and [MintKeyChangedException] when a mint
+     * whose key the account pinned presents another or none: its answer can't end the note.
      */
-    private suspend fun isLive(note: ReceivedNote): Boolean =
+    private suspend fun isBurned(note: ReceivedNote): Boolean =
         try {
             val q = ByteVector32(note.id)
             val pinned = wallet.mintOf(note.accountId, note.host)?.takeIf { it.mintPubkey != null }
-            val info = if (pinned != null) Pinning.lookup(wallet, pinned, q) else wallet.client.lookup(note.withdrawUrl, q)
-            info.maxWithdrawableMsat > 0
+            if (pinned != null) Pinning.lookup(wallet, pinned, q) else wallet.client.lookup(note.withdrawUrl, q)
+            false
         } catch (e: NoteLookupError) {
-            if (e.kind in UnknownNotes.GONE) false else throw IOException(e.reason)
+            when {
+                e.burned -> true
+                e.kind in UnknownNotes.GONE -> false
+                else -> throw IOException(e.reason)
+            }
         } catch (e: ProtocolViolation) {
             throw IOException(e.message)
         }
 
-    /** A refusal: gone if the mint doesn't hold the note; locked if its spend claims a time (the mint's clock decides); else waiting. */
-    private suspend fun refused(note: ReceivedNote, spend: Spend, kind: RejectionKind, reason: String?): ClaimResult {
-        if (kind in UnknownNotes.GONE) {
-            update(note.copy(state = ReceivedState.Gone, k1 = null))
-            return ClaimResult.Failed(kind, reason)
+    /** [isBurned], or false when the mint can't tell. */
+    private suspend fun shownBurned(note: ReceivedNote): Boolean =
+        try {
+            isBurned(note)
+        } catch (e: IOException) {
+            false
+        } catch (e: MintKeyChangedException) {
+            false
         }
+
+    /** Burned by its mint: nothing left to claim, and its spend is worth nothing. */
+    private suspend fun gone(note: ReceivedNote, kind: RejectionKind, reason: String?): ClaimResult {
+        update(note.copy(state = ReceivedState.Gone, k1 = null))
+        return ClaimResult.Failed(kind, reason)
+    }
+
+    /**
+     * A refusal of a note its mint didn't show burned: locked if its spend claims a time (the mint's clock decides); else waiting, as for a
+     * refusal that says spent or unknown in the mint's own words, which proves nothing: its spend is the only copy.
+     */
+    private suspend fun refused(note: ReceivedNote, spend: Spend, kind: RejectionKind, reason: String?): ClaimResult {
         val script = spend as? Spend.Script
         if (script?.lockedUntilSeconds != null || script?.lockedForSeconds != null) {
             return ClaimResult.Kept(update(note.copy(state = ReceivedState.Locked, failingSinceMillis = null)))
@@ -359,8 +384,11 @@ internal sealed interface KeyLookup {
     /** No answer for a note: a service that answers only the link itself, or a host's passing trouble (a proxy's error page). */
     data object NotANote : KeyLookup
 
-    /** The mint's error for the note: spent, unknown, or refused. */
-    data class Refused(val kind: RejectionKind, val reason: String?) : KeyLookup
+    /**
+     * The mint's error for the note: [burned] (`already in use`, the only answer that shows it), spent or unknown in the mint's own words
+     * (which prove nothing), or refused for another reason.
+     */
+    data class Refused(val kind: RejectionKind, val reason: String?, val burned: Boolean = false) : KeyLookup
 
     /**
      * From a mint whose key the account's wallet pinned, an answer for the note worth [amountMsat] with a `mintPubkey` that isn't a key: no
@@ -400,7 +428,7 @@ internal sealed interface KeyLookup {
             return try {
                 Note(NoteInfo.from(answer, null))
             } catch (e: NoteLookupError) {
-                Refused(e.kind, e.reason)
+                Refused(e.kind, e.reason, e.burned)
             } catch (e: InvalidMintPubkey) {
                 if (pinned) KeyChanged((answer as LnurlResponse.WithdrawRequest).maxWithdrawable) else NotANote
             } catch (e: ProtocolViolation) {

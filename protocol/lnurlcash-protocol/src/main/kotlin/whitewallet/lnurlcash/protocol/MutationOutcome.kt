@@ -10,10 +10,14 @@ public enum class RejectionKind {
     /** The note has another operation in flight (a melt). Retry later; never treat as spent. */
     Pending,
 
-    /** The service is authoritative that the note is burned. */
+    /**
+     * lnurl-mint's wording for a spend it refused: `Note already spent.`, or `Invalid or already spent k1.`, which 0.13.1 says for a burned
+     * note, an unknown one and a bad signature alike. A hint, never proof: only a lookup by `p` answered `already in use` shows a note
+     * burned ([NoteLookupError.burned]).
+     */
     Spent,
 
-    /** The service does not recognise the note. */
+    /** lnurl-mint's wording for a note it doesn't know (`Unknown note.`, `k1 not found`). A hint, never proof the note is gone. */
     NoteUnknown,
 
     /**
@@ -33,21 +37,26 @@ public enum class RejectionKind {
     Other;
 
     public companion object {
-        public fun fromReason(reason: String?): RejectionKind {
-            val r = reason?.trim()?.lowercase() ?: return Other
-            return when {
-                r == "pending" -> Pending
-                "already in use" in r -> AlreadyInUse
-                "rate limited" in r -> RateLimited
-                "insufficient value" in r -> InsufficientValue
-                "too many k1" in r -> TooManyK1
-                "issued itself" in r -> OwnInvoice
-                "earlier melt" in r -> InvoiceUsed
-                "spent" in r -> Spent
-                "unknown" in r || "not found" in r -> NoteUnknown
+        /**
+         * The kind [reason] names, matched exactly (trimmed, case-sensitive): the spec's reasons and lnurl-mint's sentences. Never by a
+         * word in it: a mint may word any refusal freely, a timelock not reached ("cannot be spent before …") or its own trouble ("unknown
+         * error"), which says nothing about the note.
+         */
+        public fun fromReason(reason: String?): RejectionKind =
+            when (reason?.trim()) {
+                "already in use" -> AlreadyInUse
+                "pending" -> Pending
+                "rate limited" -> RateLimited
+                "insufficient value" -> InsufficientValue
+                "too many k1" -> TooManyK1
+                "Note already spent.",
+                "Invalid or already spent k1." -> Spent
+                "Unknown note.",
+                "k1 not found" -> NoteUnknown
+                "Cannot melt into an invoice this mint issued itself." -> OwnInvoice
+                "Invoice already used by an earlier melt - use a fresh one." -> InvoiceUsed
                 else -> Other
             }
-        }
     }
 }
 

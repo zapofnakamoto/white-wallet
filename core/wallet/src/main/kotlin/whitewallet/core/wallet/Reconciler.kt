@@ -11,13 +11,13 @@ import whitewallet.core.model.OperationType
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
-import whitewallet.lnurlcash.protocol.RejectionKind
 
 /**
  * Settles mutations whose outcome is unknown by looking up their outputs and inputs by `p`, which never discloses a spend. An output of
  * ours that exists means the mutation landed; inputs that are all still outstanding mean it did not. A mutation with no output left to look
  * up (they were on the older keys, which version 9 of the database dropped): only this wallet can spend its own inputs, so inputs that are
- * all gone mean it landed. A received note's input can be spent by whoever made its link: gone, with our output missing, it never landed.
+ * all burned (`already in use`) mean it landed. A received note's input can be spent by whoever made its link: gone, with our output
+ * missing, it never landed.
  */
 internal class Reconciler(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
@@ -41,7 +41,7 @@ internal class Reconciler(private val wallet: Wallet) {
             var landed = false
             for (output in entry.outputs) {
                 val q = ByteVector32(output.q)
-                val info = lookup(entry.withdrawUrl, q) ?: continue
+                val info = lookup(entry.withdrawUrl, q).info ?: continue
                 landed = true
                 val cert = info.certificate?.takeIf { certifies(it, entry.host, q, wallet.pinnedKey(output.accountId, entry.host)) }
                 if (wallet.store.note(output.q) == null) {
@@ -65,7 +65,8 @@ internal class Reconciler(private val wallet: Wallet) {
                 }
             }
             if (!landed) {
-                val live = entry.inputIds.map { lookup(entry.withdrawUrl, ByteVector32(it)) != null }
+                val inputs = entry.inputIds.map { lookup(entry.withdrawUrl, ByteVector32(it)) }
+                val live = inputs.map { it.info != null }
                 if (live.all { it }) {
                     // It never landed: the inputs are spendable again.
                     for (id in entry.inputIds) {
@@ -82,7 +83,8 @@ internal class Reconciler(private val wallet: Wallet) {
                 // output missing means someone else claimed it first. It never landed.
                 if (live.none { it } && entry.inputIds.any { wallet.store.receivedNote(it) != null })
                     return finish(entry, JournalStatus.Rejected)
-                landed = live.none { it } && entry.outputs.isEmpty()
+                // Burned, not merely gone in the mint's own words, which prove nothing.
+                landed = inputs.all { it.burned } && entry.outputs.isEmpty()
             }
             if (landed) {
                 for (id in entry.inputIds) wallet.store.note(id)?.let {
@@ -106,14 +108,17 @@ internal class Reconciler(private val wallet: Wallet) {
         return status
     }
 
-    /** The note's info, or null if the mint says it is unknown or spent. Other refusals are rethrown as IOException. */
-    private suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo? =
+    /** What the mint says of a note: its [info], or none if it doesn't hold it, [burned] if it said `already in use`. */
+    private class Lookup(val info: NoteInfo?, val burned: Boolean = false)
+
+    /** The note's info, or none if the mint says it is burned, unknown or spent. Other refusals are rethrown as IOException. */
+    private suspend fun lookup(withdrawUrl: String, q: ByteVector32): Lookup =
         try {
-            wallet.client.lookup(withdrawUrl, q)
+            Lookup(wallet.client.lookup(withdrawUrl, q))
         } catch (e: NoteLookupError) {
-            when (e.kind) {
-                RejectionKind.Spent,
-                RejectionKind.NoteUnknown -> null
+            when {
+                e.burned -> Lookup(null, burned = true)
+                e.kind in UnknownNotes.GONE -> Lookup(null)
                 else -> throw IOException(e.reason)
             }
         }

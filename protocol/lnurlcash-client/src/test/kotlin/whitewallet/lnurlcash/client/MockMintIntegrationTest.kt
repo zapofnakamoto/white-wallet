@@ -60,7 +60,7 @@ class MockMintIntegrationTest {
                 assertTrue(Certificates.verify(cert, spendDomain(mint.host), q1, assertNotNull(info.mintPubkey)))
 
                 val spent = assertFailsWith<NoteLookupError> { client.lookup(pay.withdrawUrl, q0) }
-                assertEquals(RejectionKind.Spent, spent.kind, spent.reason)
+                assertTrue(spent.burned, spent.reason)
                 assertEquals(21_000, client.lookup(pay.withdrawUrl, q1).maxWithdrawableMsat)
 
                 // Naming an output that is already outstanding is refused, and nothing is burned.
@@ -107,7 +107,7 @@ class MockMintIntegrationTest {
                 assertIs<MutationOutcome.Ambiguous>(noReplay)
                 // The rotate landed even though the answer was lost: the input is burned.
                 val gone = assertFailsWith<NoteLookupError> { LnurlcashClient().lookup(withdrawUrl, spend.q) }
-                assertEquals(RejectionKind.Spent, gone.kind)
+                assertTrue(gone.burned, gone.reason)
                 assertEquals(21_000, LnurlcashClient().lookup(withdrawUrl, account.walletKey(1).xOnlyPublicKey().value).maxWithdrawableMsat)
 
                 // With the default single replay, the same lost answer resolves into the original success.

@@ -141,12 +141,9 @@ internal class NoteClaimer(private val wallet: Wallet) {
                 // Another kind of service, or maybe one that shows what it pays only when asked with the link itself.
                 is KeyLookup.OtherService,
                 KeyLookup.NotANote -> return withdrawer.forNote(link, UnclaimedReason.NotANote, found, accountId)
+                // Spent only if burned; a spent or unknown note in the mint's own words proves nothing, so its words are shown.
                 is KeyLookup.Refused ->
-                    return when (found.kind) {
-                        RejectionKind.Spent,
-                        RejectionKind.NoteUnknown -> ClaimPreview.AlreadySpent
-                        else -> ClaimPreview.Invalid(found.reason ?: "refused")
-                    }
+                    return if (found.burned) ClaimPreview.AlreadySpent else ClaimPreview.Invalid(found.reason ?: "refused")
                 // As at a mint that shows no key: the account's own note is still taken back (and refused there), any other kept.
                 is KeyLookup.KeyChanged -> {
                     if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
@@ -221,7 +218,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
             try {
                 wallet.client.lookup(link.withdrawUrl, script.q).maxWithdrawableMsat
             } catch (e: NoteLookupError) {
-                if (e.kind == RejectionKind.Spent || e.kind == RejectionKind.NoteUnknown) return ClaimPreview.AlreadySpent
+                if (e.burned) return ClaimPreview.AlreadySpent
                 null
             } catch (e: ProtocolViolation) {
                 null

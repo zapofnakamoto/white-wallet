@@ -15,7 +15,6 @@ import whitewallet.lnurlcash.protocol.MutationType
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
-import whitewallet.lnurlcash.protocol.RejectionKind
 import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 
@@ -91,7 +90,7 @@ internal class Melter(private val wallet: Wallet) {
                 // Asked by the note's key alone: the spend goes out only with the melt.
                 Pinning.lookup(wallet, mint, ByteVector32(note.id))
             } catch (e: NoteLookupError) {
-                if (e.kind in UnknownNotes.GONE && unknownNotes.sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
+                if (UnknownNotes.mayBeGone(e) && unknownNotes.sortOut(listOf(note)).isNotEmpty()) return MeltOutcome.NoteGone
                 return MeltOutcome.Unreachable
             } catch (e: MintKeyChangedException) {
                 // Nothing is paid through a mint with another signing key than the pinned one, or none (or one that isn't a key).
@@ -184,8 +183,9 @@ internal suspend fun <T : Any> waitForPayment(wallet: Wallet, check: suspend (fi
 }
 
 /**
- * Settles a melt by looking its input up by `p`: burned means paid; outstanding again means the payment failed (or, when the request's
- * answer was lost, that it never arrived); `pending` means it is still in flight.
+ * Settles a melt by looking its input up by `p`: burned (`already in use`) means paid; outstanding again means the payment failed (or, when
+ * the request's answer was lost, that it never arrived); `pending` means it is still in flight. Any other answer, a spent or unknown note
+ * in the mint's own words too, leaves it open.
  */
 internal class MeltReconciler(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
@@ -199,10 +199,7 @@ internal class MeltReconciler(private val wallet: Wallet) {
                 wallet.client.lookup(entry.withdrawUrl, q)
                 true
             } catch (e: NoteLookupError) {
-                when (e.kind) {
-                    RejectionKind.Spent -> false
-                    else -> return JournalStatus.Unknown
-                }
+                if (e.burned) false else return JournalStatus.Unknown
             } catch (e: IOException) {
                 return JournalStatus.Unknown
             } catch (e: ProtocolViolation) {

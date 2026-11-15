@@ -90,7 +90,7 @@ internal class NoteMutator(private val wallet: Wallet) {
         }
             .getOrElse {
                 // The mint won't say what the note is worth: it may not know it. That is about the notes, not the mint.
-                if (it is NoteLookupError && it.kind in UnknownNotes.GONE) return refused(inputs, it.kind, it.reason)
+                if (it is NoteLookupError && UnknownNotes.mayBeGone(it)) return refused(inputs, it.kind, it.reason)
                 return MutationResult.Unreachable(it.message, keyChanged = it is MintKeyChangedException)
             }
         val result =

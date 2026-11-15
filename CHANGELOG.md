@@ -133,6 +133,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - An error page from something in front of a mint (a proxy's 502 or 504) after a renew, combine, split, claim or
   payment counted as the mint's refusal, so a payment could show as failed while the mint was still paying it. Only
   the mint's own answer counts now; anything else waits for an answer and is settled by looking the notes up.
+- The wallet read "spent" or "unknown" anywhere in a mint's refusal as a fact: "locktime not reached: the note cannot
+  be spent before …" made a note spent, and a received note the mint refused in such words lost its link for good.
+  Only a mint that says `already in use` when asked about the note now shows it spent: such words make the wallet ask,
+  a received note keeps its link and is tried again (archived after a week, as for other refusals), a payment waits
+  for that answer before it counts as paid, and Claim shows the mint's own words for a note it doesn't know instead
+  of "This note has already been spent.".
 
 ## [0.9.0]
 

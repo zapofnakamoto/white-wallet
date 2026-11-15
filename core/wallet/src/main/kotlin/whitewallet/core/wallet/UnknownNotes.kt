@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
+import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.RejectionKind
 
 /**
@@ -16,8 +17,8 @@ internal class UnknownNotes(private val wallet: Wallet) {
 
     /**
      * After the mint refused to spend [notes] (all on one mint) as unknown or spent: looks each up by `p`, which never discloses a spend.
-     * One the mint doesn't know is set aside as unknown, one it burned is spent. Returns their ids; empty when every note is still there
-     * (the refusal had another reason) or the mint didn't answer.
+     * One the mint doesn't know is set aside as unknown, one it burned (the lookup says `already in use`) is spent. Returns their ids;
+     * empty when every note is still there (the refusal had another reason), the mint didn't answer, or answered in other words.
      */
     suspend fun sortOut(notes: List<Note>): List<String> {
         val mint = notes.firstOrNull()?.let { wallet.mintOf(it.accountId, it.host) } ?: return emptyList()
@@ -68,7 +69,13 @@ internal class UnknownNotes(private val wallet: Wallet) {
         else wallet.settings.unknownNoteCheckIntervalAfterGracePeriodMillis
 
     companion object {
-        /** The refusals that may mean the mint doesn't know a note (a merge with an unknown input is refused as spent). */
+        /**
+         * The refusals that may mean the mint doesn't hold a note (a merge with an unknown input is refused as spent): one mint's wording,
+         * which a lookup by `p` settles ([sortOut]), never proof.
+         */
         val GONE = setOf(RejectionKind.NoteUnknown, RejectionKind.Spent)
+
+        /** A lookup's refusal that may mean the mint doesn't hold the note: burned (proof), or in words that [sortOut] settles. */
+        fun mayBeGone(e: NoteLookupError): Boolean = e.burned || e.kind in GONE
     }
 }

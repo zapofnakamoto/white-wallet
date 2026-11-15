@@ -286,17 +286,20 @@ internal class NoteSender(private val wallet: Wallet) {
         Unreadable,
     }
 
-    /** Looks [note] up by `p`, never with its spend: burned means spent (recorded as such); there confirms it. */
+    /**
+     * Looks [note] up by `p`, never with its spend: burned (`already in use`) means spent (recorded as such); there confirms it. A spent
+     * note in the mint's own words proves nothing: unreadable, like any other refusal.
+     */
     private suspend fun check(note: Note): Check {
         val mint = wallet.mintOf(note.accountId, note.host) ?: return Check.Unreadable
         try {
             wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id))
             return confirmed(note)
         } catch (e: NoteLookupError) {
-            when (e.kind) {
-                RejectionKind.Spent -> Unit
-                RejectionKind.Pending -> return confirmed(note)
-                RejectionKind.NoteUnknown -> {
+            when {
+                e.burned -> Unit
+                e.kind == RejectionKind.Pending -> return confirmed(note)
+                e.kind == RejectionKind.NoteUnknown -> {
                     answered(note)
                     return Check.UnknownToMint
                 }

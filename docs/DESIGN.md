@@ -156,7 +156,10 @@ says where each is enforced.
    `Unknown note.` about a note the wallet holds. When a mint refuses to spend notes as unknown or spent (a merge with
    an unknown input is refused as spent), each input is looked up by `p` (`UnknownNotes`): an unknown one becomes
    `Unknown` (out of the balance, never spent, kept with its certificate), a burned one `Spent`, and the rest are spent
-   without them. Refreshes ask again, at most once per interval: a short one during the note's grace period, from when it
+   without them. Only a lookup answered `already in use` shows a note burned (LUD-25): a mint's own words for a
+   refusal (lnurl-mint's `Note already spent.`, `Invalid or already spent k1.`, `Unknown note.`), matched exactly, are
+   hints that lead to such a lookup, never to a note marked spent or a spend thrown away. Refreshes ask again, at most
+   once per interval: a short one during the note's grace period, from when it
    was set aside (`unknown.note.grace.period.millis` in `wallet.properties`, by default a day), and a longer one after it
    (`unknown.note.check.interval.in.grace.period.millis` and `unknown.note.check.interval.after.grace.period.millis`, by
    default 5 minutes and a day); a note the mint knows again is `Outstanding` again.

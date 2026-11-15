@@ -40,9 +40,16 @@ public data class NoteInfo(
     }
 }
 
-/** The service answered a note lookup with `{"status":"ERROR"}`: the note is unknown, spent, pending or rate limited. */
+/** The service answered a note lookup with `{"status":"ERROR"}`: the note is burned, unknown, pending or rate limited. */
 public class NoteLookupError(public val reason: String?) : Exception(reason ?: "note lookup refused") {
-    /** A lookup names one key, which the mint would answer with the note if it were outstanding: `already in use` there means burned. */
+    /** What [reason] says. [RejectionKind.Spent] and [RejectionKind.NoteUnknown] are one mint's wording: hints, never proof. */
     public val kind: RejectionKind
-        get() = RejectionKind.fromReason(reason).let { if (it == RejectionKind.AlreadyInUse) RejectionKind.Spent else it }
+        get() = RejectionKind.fromReason(reason)
+
+    /**
+     * The mint answered `already in use`: a lookup names one key, which the mint would answer with the note if it were outstanding, so the
+     * note is burned (LUD-25). The only answer that shows a note burned.
+     */
+    public val burned: Boolean
+        get() = kind == RejectionKind.AlreadyInUse
 }

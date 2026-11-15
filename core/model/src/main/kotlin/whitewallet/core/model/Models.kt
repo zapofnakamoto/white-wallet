@@ -161,7 +161,7 @@ enum class ReceivedState {
     /** Renewed to one of the wallet's own keys. */
     Claimed,
 
-    /** Spent by someone else before it was claimed, or unknown to its mint. */
+    /** Spent by someone else before it was claimed: a lookup by its key answered `already in use`, the only answer that shows it. */
     Gone,
 
     /**
@@ -229,8 +229,8 @@ data class ReceivedNote(
     val receivedAtMillis: Long,
     val updatedAtMillis: Long,
     /**
-     * When its claim first failed (refused for another reason than spent, unknown or locked; its mint unreachable; or an answer that isn't
-     * one for a note): it is archived a week later. Cleared when its mint answers otherwise.
+     * When its claim first failed (refused for any reason but a burned note or a lock, spent or unknown in its mint's own words too; its
+     * mint unreachable; or an answer that isn't one for a note): it is archived a week later. Cleared when its mint answers otherwise.
      */
     val failingSinceMillis: Long? = null,
     /**

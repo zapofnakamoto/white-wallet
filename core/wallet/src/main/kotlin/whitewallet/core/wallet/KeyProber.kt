@@ -25,8 +25,8 @@ sealed interface KeyProbe {
     val checkedAtMillis: Long
 
     /**
-     * The mint doesn't know a note at this key. It may still hold the key for a note an unpaid invoice would make, which it never shows:
-     * only a refused output (`already in use`) tells.
+     * The mint doesn't know a note at this key (lnurl-mint's `Unknown note.`). It may still hold the key for a note an unpaid invoice would
+     * make, which it never shows: only a refused output (`already in use`) tells.
      */
     data class Unused(override val checkedAtMillis: Long) : KeyProbe
 
@@ -34,9 +34,13 @@ sealed interface KeyProbe {
     data class Outstanding(val amountMsat: Long, val certified: Boolean, val imported: Boolean, override val checkedAtMillis: Long) :
         KeyProbe
 
+    /** A burned note: the mint answered `already in use`, the only answer that shows it (LUD-25). */
     data class Spent(override val checkedAtMillis: Long) : KeyProbe
 
-    /** Refused for another reason: [pending] (a note being paid out, so the key is used) or an unexpected error. */
+    /**
+     * Refused for another reason: [pending] (a note being paid out, so the key is used), a spent note in a mint's own words, which proves
+     * nothing, or an unexpected error. Neither used nor unused: a scan stops here and asks again later (LUD-26 "Recovery").
+     */
     data class Refused(val reason: String?, override val checkedAtMillis: Long) : KeyProbe {
         val pending: Boolean
             get() = RejectionKind.fromReason(reason) == RejectionKind.Pending
@@ -116,8 +120,8 @@ internal class KeyProber(private val wallet: Wallet) {
                 if (existing == null) ensureCounterPast(id)
                 KeyProbe.Outstanding(info.maxWithdrawableMsat, certificate != null, imported = existing == null, now)
             } catch (e: NoteLookupError) {
-                when (e.kind) {
-                    RejectionKind.Spent -> {
+                when {
+                    e.burned -> {
                         wallet.store
                             .note(noteId)
                             ?.takeIf { it.host == id.host && (it.state == NoteState.Outstanding || it.state == NoteState.Unknown) }
@@ -127,7 +131,7 @@ internal class KeyProber(private val wallet: Wallet) {
                         ensureCounterPast(id)
                         KeyProbe.Spent(now)
                     }
-                    RejectionKind.NoteUnknown -> {
+                    e.kind == RejectionKind.NoteUnknown -> {
                         // A note the wallet holds that the mint doesn't know: out of the balance, kept until it knows it again. Mints on
                         // one domain share their keys, so the note may be another mint's, which this answer says nothing about.
                         wallet.store
@@ -138,7 +142,8 @@ internal class KeyProber(private val wallet: Wallet) {
                             }
                         KeyProbe.Unused(now)
                     }
-                    RejectionKind.RateLimited -> KeyProbe.Failed(e.reason ?: "rate limited", now)
+                    e.kind == RejectionKind.RateLimited -> KeyProbe.Failed(e.reason ?: "rate limited", now)
+                    // A spent note in the mint's own words ("Note already spent.") among them: no proof the key was ever used.
                     else -> KeyProbe.Refused(e.reason, now)
                 }
             } catch (e: IOException) {
