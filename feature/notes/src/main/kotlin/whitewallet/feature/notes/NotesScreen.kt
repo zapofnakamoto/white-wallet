@@ -95,6 +95,8 @@ class NotesActions(
     val combine: () -> Unit = {},
     val openMove: () -> Unit = {},
     val recheckSelected: () -> Unit = {},
+    val archive: (String) -> Unit = {},
+    val archiveSelected: () -> Unit = {},
     val moveAnyway: (host: String) -> Unit = {},
     val splitAmount: (String) -> Unit = {},
     val split: () -> Unit = {},
@@ -137,6 +139,8 @@ fun rememberNotesActions(
             combine = viewModel::combine,
             openMove = viewModel::openMove,
             recheckSelected = viewModel::recheckSelected,
+            archive = viewModel::archive,
+            archiveSelected = viewModel::archiveSelected,
             moveAnyway = viewModel::moveAnyway,
             splitAmount = viewModel::onSplitAmount,
             split = viewModel::split,
@@ -255,7 +259,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
                         )
                     }
                 }
-                if (state.archivedCount > 0) item(key = "archived") { ArchivedRow(state.archivedCount, actions.openArchive) }
+                if (state.archivedCount > 0) item(key = "archived") { ArchivedRow(state, actions.openArchive) }
                 if (state.shared.isNotEmpty()) {
                     item { SharedHeader() }
                     items(state.shared, key = { "shared:${it.id}" }) { note -> SharedRow(note, state.showMints, actions.openShared) }
@@ -400,9 +404,11 @@ internal fun TrustedIcon() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
-    val selectable = NotesViewModel.selectable(note)
+    val pickable = NotesViewModel.pickable(note)
     val status = noteStatus(note)
     val selected = (note.id in state.selected).takeIf { state.selecting }
+    // A note its mint doesn't know is drawn as out of the balance, unless it is being picked for the archive.
+    val enabled = NotesViewModel.selectable(note) || (state.selecting && pickable)
     WalletNoteFace(
         size = NoteFaceSize.Row,
         note.amountMsat,
@@ -413,12 +419,12 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
         mint = note.host.takeIf { state.showMints },
         trusted = state.mints.any { it.host == note.host && it.trusted },
         selected = selected,
-        enabled = selectable && !state.busy,
+        enabled = enabled && !state.busy,
         modifier =
             Modifier.combinedClickable(
-                    enabled = !state.busy && (selectable || !state.selecting),
+                    enabled = !state.busy && (pickable || !state.selecting),
                     onClick = { actions.tap(note) },
-                    onLongClick = { if (selectable && state.canSelect) actions.longPress(note) },
+                    onLongClick = { if (pickable && state.canSelect) actions.longPress(note) },
                 )
                 .semantics {
                     if (selected != null) {
@@ -475,13 +481,23 @@ private fun ReceivedHeader() {
     )
 }
 
-/** Opens the archive: received notes the wallet no longer tries. Only there when it holds any. */
+/**
+ * Opens the archive: received links the wallet no longer tries, and notes their mint doesn't know that the user archived. Only there when
+ * it holds any.
+ */
 @Composable
-private fun ArchivedRow(count: Int, onOpen: () -> Unit) {
+private fun ArchivedRow(state: NotesState, onOpen: () -> Unit) {
     HorizontalDivider()
     WalletListItem(
-        headlineContent = { Text(pluralStringResource(R.plurals.notes_archived, count, count)) },
-        supportingContent = { Text(stringResource(R.string.notes_archived_hint)) },
+        headlineContent = { Text(stringResource(R.string.archive_title)) },
+        supportingContent = {
+            Column {
+                val links = state.archivedLinks
+                val notes = state.archivedNotes
+                if (links > 0) Text(pluralStringResource(R.plurals.notes_archived_links, links, links))
+                if (notes > 0) Text(pluralStringResource(R.plurals.notes_archived_notes, notes, notes))
+            }
+        },
         modifier = Modifier.clickable(onClickLabel = stringResource(R.string.notes_archived_open), onClick = onOpen),
     )
 }
@@ -529,11 +545,17 @@ private fun SelectionBar(state: NotesState, actions: NotesActions, modifier: Mod
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 val offered = state.noteActions
-                if (NoteAction.Combine in offered)
+                // Notes their mint doesn't know: only archived, or asked about.
+                val unknown = state.selectingUnknown
+                if (unknown)
+                    WalletButton(kind = ButtonKind.Text, onClick = actions.archiveSelected, enabled = state.canAct) {
+                        Text(stringResource(R.string.notes_archive))
+                    }
+                if (NoteAction.Combine in offered && !unknown)
                     WalletButton(kind = ButtonKind.Text, onClick = actions.combine, enabled = state.canCombine) {
                         Text(stringResource(R.string.notes_combine))
                     }
-                if (NoteAction.Move in offered)
+                if (NoteAction.Move in offered && !unknown)
                     WalletButton(kind = ButtonKind.Text, onClick = actions.openMove, enabled = state.canAct) {
                         Text(stringResource(R.string.notes_move))
                     }
@@ -577,6 +599,7 @@ private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String =
             stringResource(R.string.notes_split_done, formatAmount(outcome.firstMsat), formatAmount(outcome.secondMsat))
         is NotesOutcome.Moved -> stringResource(R.string.notes_moved, formatAmount(outcome.arrivedMsat), outcome.host)
         is NotesOutcome.Renewed -> stringResource(R.string.notes_renewed, formatAmount(outcome.amountMsat))
+        is NotesOutcome.Archived -> pluralStringResource(R.plurals.notes_archived_done, outcome.notes, outcome.notes)
         is NotesOutcome.Checked ->
             buildList {
                     if (outcome.gone > 0) add(pluralStringResource(R.plurals.notes_checked_gone, outcome.gone, outcome.gone))

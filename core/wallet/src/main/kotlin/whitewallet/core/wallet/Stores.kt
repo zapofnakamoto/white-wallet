@@ -90,6 +90,9 @@ interface WalletStore {
 
     suspend fun upsertNotes(notes: List<Note>)
 
+    /** Forgets the note [id] (see [Wallet.removeArchivedNote]); its key's counter and checks stay. */
+    suspend fun deleteNote(id: String)
+
     /**
      * Returns the next unused index of the account's LUD-26 [counter] on [domain] (a mint's spend domain: mints sharing a hostname share
      * keys) and durably advances it, atomically.

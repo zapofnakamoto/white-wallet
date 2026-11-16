@@ -59,6 +59,19 @@
     <!-- A note its mint says it doesn't know (the mint lost its records, or misbehaves). -->
     <string name="notes_state_unknown">Unknown to the mint</string>
     <string name="notes_state_unknown_detail">The mint says it doesn\'t know this note, so it isn\'t in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it\'s back in your balance.</string>
+    <!-- The archive of notes their mint doesn't know: what it holds, archiving, and removing one for good. -->
+    <plurals name="notes_archived_notes">
+        <item quantity="one">%d note its mint doesn\'t know</item>
+        <item quantity="other">%d notes their mint doesn\'t know</item>
+    </plurals>
+    <plurals name="notes_archived_done">
+        <item quantity="one">Moved %d note to the archive.</item>
+        <item quantity="other">Moved %d notes to the archive.</item>
+    </plurals>
+    <string name="archive_notes_title">Notes</string>
+    <string name="archive_notes_hint">Their mint doesn\'t know these notes. Your wallet still asks about them now and then; once the mint knows one again, it\'s back in your balance.</string>
+    <string name="archive_note_remove_title">Remove this note for good?</string>
+    <string name="archive_note_remove_body">Its mint doesn\'t know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase.</string>
 
     <string name="notes_waiting_total">%1$s shared, not claimed yet</string>
     <string name="notes_sort_largest">Largest first</string>
@@ -68,11 +81,14 @@
     <string name="notes_move_anyway">Move anyway</string>
     <string name="notes_shared_title">Shared, not claimed yet</string>
     <string name="notes_shared_hint">Tap one to show its QR code again or take it back.</string>
-    <plurals name="notes_archived">
-        <item quantity="one">%d archived link</item>
-        <item quantity="other">%d archived links</item>
+    <!-- Under "Archive" in the notes view: what it holds. -->
+    <plurals name="notes_archived_links">
+        <item quantity="one">%d link your wallet no longer tries to claim</item>
+        <item quantity="other">%d links your wallet no longer tries to claim</item>
     </plurals>
-    <string name="notes_archived_hint">Received, but your wallet no longer tries to claim them.</string>
+    <!-- Puts a note its mint doesn't know into the archive (its details, or a selection of such notes). -->
+    <string name="notes_archive">Archive</string>
+    <string name="notes_archive_hint">Archive it to stop the warning about it. Your wallet still asks about it now and then; once it\'s known again, it\'s back in your balance.</string>
     <string name="notes_archived_open">Open the archive</string>
     <string name="archive_title">Archive</string>
     <string name="archive_hint">Your wallet no longer tries these links. Try one again, or remove it for good. Until it is claimed, your recovery phrase doesn\'t cover it.</string>
@@ -85,6 +101,12 @@
     <string name="archive_remove_keep">Keep it</string>
     <string name="archive_retry_claimed">Claimed %1$s.</string>
     <string name="archive_retry_kept">Tried again. It\'s back among the received links, where you can see how it stands.</string>
+    <!-- The archive's two parts, titled only when both hold something. -->
+    <string name="archive_links_title">Links</string>
+    <!-- After Recheck on an archived note. %1$s: what it is worth. -->
+    <string name="archive_note_back">Known again: %1$s is back in your balance.</string>
+    <string name="archive_note_still">Still unknown. Your wallet keeps asking now and then.</string>
+    <string name="archive_note_no_answer">No answer. Your wallet asks again later.</string>
     <string name="notes_sheet_where">On %1$s · %2$s</string>
     <string name="notes_share">Share as QR</string>
     <string name="notes_recheck">Recheck</string>

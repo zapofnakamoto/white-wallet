@@ -106,7 +106,8 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             }
             val enabled = NotesViewModel.selectable(note) && !state.busy
             val offered = state.noteActions
-            if (offered.any { !it.bulk } || NoteAction.Recheck in offered) {
+            val archivable = NotesViewModel.archivable(note)
+            if (offered.any { !it.bulk } || NoteAction.Recheck in offered || archivable) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (NoteAction.Share in offered)
                         WalletButton(kind = ButtonKind.Tonal, onClick = { actions.share(note.id) }, enabled = enabled) {
@@ -128,6 +129,11 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                         WalletButton(kind = ButtonKind.Secondary, onClick = { actions.renew(note.id) }, enabled = enabled) {
                             Text(stringResource(R.string.notes_renew))
                         }
+                    // Whatever the brand's actions: the only way to quiet Home's warning about it.
+                    if (archivable)
+                        WalletButton(kind = ButtonKind.Secondary, onClick = { actions.archive(note.id) }, enabled = !state.busy) {
+                            Text(stringResource(R.string.notes_archive))
+                        }
                 }
             }
             if (state.failuresOffered) SimulatedFailureChips(state.simulatedFailure, actions.simulateFailure)
@@ -139,6 +145,13 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             if (NoteAction.Share in offered && NoteAction.Split in offered) {
                 Text(
                     stringResource(R.string.notes_share_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (archivable) {
+                Text(
+                    stringResource(R.string.notes_archive_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

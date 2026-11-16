@@ -89,6 +89,18 @@
     </plurals>
     <string name="notes_state_unknown">Unknown to the provider</string>
     <string name="notes_state_unknown_detail">The provider says it doesn\'t know this banknote, so it isn\'t in your balance. Your wallet keeps it and asks the provider again by itself; once the provider knows it again, it\'s back in your balance.</string>
+    <plurals name="notes_archived_notes">
+        <item quantity="one">%d banknote its provider doesn\'t know</item>
+        <item quantity="other">%d banknotes their provider doesn\'t know</item>
+    </plurals>
+    <plurals name="notes_archived_done">
+        <item quantity="one">Moved %d banknote to the archive.</item>
+        <item quantity="other">Moved %d banknotes to the archive.</item>
+    </plurals>
+    <string name="archive_notes_title">Banknotes</string>
+    <string name="archive_notes_hint">Their provider doesn\'t know these banknotes. Your wallet still asks about them now and then; once the provider knows one again, it\'s back in your balance.</string>
+    <string name="archive_note_remove_title">Remove this banknote for good?</string>
+    <string name="archive_note_remove_body">Its provider doesn\'t know it now. If the provider ever knows it again, “Scan for banknotes” finds it with your recovery phrase.</string>
     <plurals name="home_unknown_title">
         <item quantity="one">%2$s doesn\'t know %1$d of your banknotes</item>
         <item quantity="other">%2$s doesn\'t know %1$d of your banknotes</item>
@@ -106,6 +118,7 @@
         <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, they\'re back.</item>
     </plurals>
     <string name="home_unknown_help">There\'s nothing you need to do. If it stays this way, ask the provider.</string>
+    <string name="home_unknown_help_late">If the provider still doesn\'t know them, ask it, or archive them in your banknotes.</string>
     <plurals name="home_unknown_show">
         <item quantity="one">Show banknote</item>
         <item quantity="other">Show banknotes</item>

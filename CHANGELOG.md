@@ -40,6 +40,20 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `home_mint_details`, `home_mint_open`, `home_mint_opened`, `mint_send`, `mint_receive`. New brand terms (see
   docs/WHITE_LABEL.md): `receive_on_home`, `receive_on_home_detail`, `send_from_detail_home`; the guide now also lists
   `claim_mint_refused` and `claim_mint_refused_reason`.
+- Notes a mint doesn't know can be archived, so Home's warning about them ends. Before, it stayed for as long as the
+  mint didn't know them, which for a mint that lost its records is forever. "Archive" is on such a note's details,
+  and on a selection of such notes in Notes (they are selected apart from the others: archived or rechecked only).
+  An archived note stays out of the balance and is still asked about on refresh, once a day; one the mint knows
+  again is back in the balance, out of the archive. Notes → Archive lists them under the received links, each to be
+  rechecked now or removed for good. Removing one is safe: its key comes from the recovery phrase, so "Scan for
+  notes" finds it should the mint ever know it again; a mint whose notes are all removed can be removed then. After
+  a day, Home's card says they can be archived. The database update (version 10) adds when a note was archived.
+- For developers and brands: `Wallet.archiveUnknownNotes`, `Wallet.removeArchivedNote`, `Note.archivedAtMillis` and
+  `Note.isArchived`, `AccountMint.unknownGraceEndsAtMillis`, `WalletStore.deleteNote`. New strings
+  `notes_archived_links` (instead of `notes_archived` and `notes_archived_hint`), `notes_archive`,
+  `notes_archive_hint`, `archive_links_title`, `archive_note_back`, `archive_note_still`, `archive_note_no_answer`.
+  New brand terms (see docs/WHITE_LABEL.md): `notes_archived_notes`, `notes_archived_done`, `archive_notes_title`,
+  `archive_notes_hint`, `archive_note_remove_title`, `archive_note_remove_body`, `home_unknown_help_late`.
 - A screen with nothing to show says why and offers the way forward, the same on every screen: History and Notes
   lead to Receive; Settings → Mints and Account → Mints to adding a mint; Lightning addresses to getting the first
   one, or without a home mint to adding or choosing one, as Receive does. "Change home mint" and "Move money" with no

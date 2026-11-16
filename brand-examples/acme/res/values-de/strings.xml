@@ -89,6 +89,18 @@
     </plurals>
     <string name="notes_state_unknown">Dem Anbieter unbekannt</string>
     <string name="notes_state_unknown_detail">Der Anbieter sagt, er kennt diesen Geldschein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <plurals name="notes_archived_notes">
+        <item quantity="one">%d Geldschein, den sein Anbieter nicht kennt</item>
+        <item quantity="other">%d Geldscheine, die ihr Anbieter nicht kennt</item>
+    </plurals>
+    <plurals name="notes_archived_done">
+        <item quantity="one">%d Geldschein ins Archiv verschoben.</item>
+        <item quantity="other">%d Geldscheine ins Archiv verschoben.</item>
+    </plurals>
+    <string name="archive_notes_title">Geldscheine</string>
+    <string name="archive_notes_hint">Ihr Anbieter kennt diese Geldscheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <string name="archive_note_remove_title">Diesen Geldschein endgültig entfernen?</string>
+    <string name="archive_note_remove_body">Sein Anbieter kennt ihn gerade nicht. Kennt er ihn je wieder, findet ihn „Nach Geldscheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
     <plurals name="home_unknown_title">
         <item quantity="one">%2$s kennt %1$d deiner Geldscheine nicht</item>
         <item quantity="other">%2$s kennt %1$d deiner Geldscheine nicht</item>
@@ -106,6 +118,7 @@
         <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, sind sie zurück.</item>
     </plurals>
     <string name="home_unknown_help">Du musst nichts tun. Bleibt es dabei, frag den Anbieter.</string>
+    <string name="home_unknown_help_late">Kennt der Anbieter sie weiterhin nicht, frag ihn, oder archiviere sie bei deinen Geldscheinen.</string>
     <plurals name="home_unknown_show">
         <item quantity="one">Geldschein anzeigen</item>
         <item quantity="other">Geldscheine anzeigen</item>

@@ -131,4 +131,65 @@ class RegtestUnknownNoteTest {
             assertEquals(NoteState.Outstanding, alice.state(note))
             assertEquals(NoteState.Unknown, alice.state(unknown))
         }
+
+    @Test
+    fun `an archived note no longer warns, isn't asked about from Home, and is back in the balance once the mint knows it`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(1000)
+            val note = alice.notes().single()
+            // As if the mint had said it doesn't know it: set aside, and archived by the user.
+            alice.store.upsertNotes(listOf(note.copy(state = NoteState.Unknown)))
+            assertEquals(1, alice.wallet.archiveUnknownNotes(setOf(note.id)))
+            assertTrue(alice.store.note(note.id)!!.isArchived)
+            assertEquals(0, alice.wallet.accountMints.first().single { it.isHome }.unknownCount, "Home no longer warns of it")
+            assertEquals(NotesCheck(0, 0, emptyList()), alice.wallet.recheckUnknownNotes(), "Home's Check again leaves it to the archive")
+            assertEquals(NoteState.Unknown, alice.state(note))
+            // The mint recovered its records: the refresh still asks about it.
+            alice.wallet.refresh()
+            val back = alice.store.note(note.id)!!
+            assertEquals(NoteState.Outstanding, back.state)
+            assertEquals(null, back.archivedAtMillis, "out of the archive")
+            assertEquals(999_000, alice.balance())
+        }
+
+    @Test
+    fun `only a note the mint doesn't know is archived`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(1000)
+            val held = alice.notes().single()
+            assertEquals(0, alice.wallet.archiveUnknownNotes(setOf(held.id)))
+            assertEquals(null, alice.store.note(held.id)!!.archivedAtMillis)
+            assertEquals(999_000, alice.balance())
+        }
+
+    @Test
+    fun `an archived note removed for good no longer holds its mint`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            val unknown = alice.unknownNote(5000)
+            assertEquals(NoteCheck.Unknown, alice.wallet.recheckNote(unknown.id))
+            assertEquals(false, alice.wallet.removeArchivedNote(unknown.id), "only an archived note is removed")
+            alice.wallet.archiveUnknownNotes(setOf(unknown.id))
+            assertEquals(RemoveMintResult.InUse(MintUse.Notes), alice.wallet.removeMint(Regtest.HOST), "an archived note holds its mint")
+            assertTrue(alice.wallet.removeArchivedNote(unknown.id))
+            assertEquals(null, alice.store.note(unknown.id))
+            // Its address is all that holds the mint now.
+            assertEquals(RemoveMintResult.InUse(MintUse.Address), alice.wallet.removeMint(Regtest.HOST))
+        }
+
+    @Test
+    fun `a note set aside again starts out of the archive`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            // Archived once, while the mint didn't know it; held again since, as if it had known it for a while.
+            val unknown = alice.unknownNote(5000).copy(archivedAtMillis = 1)
+            alice.store.upsertNotes(listOf(unknown))
+            assertEquals(NoteCheck.Unknown, alice.wallet.recheckNote(unknown.id))
+            val setAside = alice.store.note(unknown.id)!!
+            assertEquals(NoteState.Unknown, setAside.state)
+            assertEquals(false, setAside.isArchived)
+            assertEquals(1, alice.wallet.accountMints.first().single { it.isHome }.unknownCount, "Home warns of it again")
+        }
 }

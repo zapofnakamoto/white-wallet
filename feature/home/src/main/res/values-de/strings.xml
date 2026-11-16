@@ -90,6 +90,7 @@
         <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, sind sie zurück.</item>
     </plurals>
     <string name="home_unknown_help">Du musst nichts tun. Bleibt es dabei, frag den Betreiber der Mint.</string>
+    <string name="home_unknown_help_late">Kennt die Mint sie weiterhin nicht, frag ihren Betreiber, oder archiviere sie bei deinen Scheinen.</string>
     <plurals name="home_unknown_show">
         <item quantity="one">Schein anzeigen</item>
         <item quantity="other">Scheine anzeigen</item>

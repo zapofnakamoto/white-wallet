@@ -502,6 +502,34 @@ class MigrationTest {
         }
 
     @Test
+    fun `a wallet of version 9 keeps its notes, none of them archived, and can archive one its mint doesn't know`() =
+        runBlocking<Unit> {
+            val q = "u".repeat(64)
+            oldDatabase("v9.db", 9) {
+                execSQL("INSERT INTO wallets VALUES ('w1', NULL, 1, NULL, NULL)")
+                execSQL("INSERT INTO accounts VALUES ('a0', 'Main', 1, 'w1', 0, 'one.example')")
+                execSQL("INSERT INTO notes VALUES ('$q', 'a0', 'one.example', 'KeyPath', 0, 3, 2000, NULL, 'Unknown', 5, NULL, NULL)")
+            }
+            val db =
+                Room.databaseBuilder(context, WalletDatabase::class.java, "v9.db")
+                    .addMigrations(*WalletDatabase.MIGRATIONS)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val store = RoomWalletStore(db)
+                val note = assertNotNull(store.note(q))
+                assertEquals(NoteState.Unknown, note.state)
+                assertNull(note.archivedAtMillis)
+                store.upsertNotes(listOf(note.copy(archivedAtMillis = 7)))
+                assertEquals(true, store.note(q)?.isArchived)
+                store.deleteNote(q)
+                assertNull(store.note(q))
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
     fun `collecting and its fee cap set under v0_3_0 stay each account's`() =
         runBlocking<Unit> {
             val file = File(context.filesDir, "collect.preferences_pb").apply { delete() }

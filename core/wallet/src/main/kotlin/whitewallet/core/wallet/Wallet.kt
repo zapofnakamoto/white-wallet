@@ -891,8 +891,10 @@ class Wallet(
             trusted,
             answeredAt ->
             val live = notes.filter { it.state == NoteState.Outstanding }
-            val unknown = notes.filter { it.state == NoteState.Unknown }
-            (listOfNotNull(home) + live.map { it.host } + unknown.map { it.host } + addresses.map { it.host })
+            val setAside = notes.filter { it.state == NoteState.Unknown }
+            // Archived ones keep their mint listed (they hold it, see removeMint), without a warning.
+            val unknown = setAside.filter { !it.isArchived }
+            (listOfNotNull(home) + live.map { it.host } + setAside.map { it.host } + addresses.map { it.host })
                 .distinct()
                 .map { host ->
                     AccountMint(
@@ -906,6 +908,12 @@ class Wallet(
                         unknownMsat = unknown.filter { it.host == host }.sumOf { it.amountMsat },
                         unknownAskedAtMillis =
                             unknown.filter { it.host == host }.maxOfOrNull { maxOf(it.updatedAtMillis, answeredAt[it.id] ?: 0) } ?: 0,
+                        // Set aside when last changed: answers that it still doesn't know it change nothing.
+                        unknownGraceEndsAtMillis =
+                            unknown
+                                .filter { it.host == host }
+                                .minOfOrNull { it.updatedAtMillis }
+                                ?.plus(settings.unknownNoteGracePeriodMillis) ?: 0,
                     )
                 }
                 .sortedWith(compareBy({ !it.isHome }, { it.host }))
@@ -1199,11 +1207,12 @@ class Wallet(
     }
 
     /**
-     * Asks the mints again, now, about the active account's notes they said they don't know ([NoteState.Unknown]); one they know again is
-     * back in the balance. [NotesCheck.checked] counts those, [NotesCheck.unknown] those still unknown.
+     * Asks the mints again, now, about the active account's notes they said they don't know ([NoteState.Unknown]), but not the archived
+     * ones, which only the archive asks about; one they know again is back in the balance. [NotesCheck.checked] counts those,
+     * [NotesCheck.unknown] those still unknown.
      */
     suspend fun recheckUnknownNotes(): NotesCheck = lock.withLock {
-        val notes = store.notes(activeId()).first().filter { it.isUnknown() }
+        val notes = store.notes(activeId()).first().filter { it.isUnknown() && !it.isArchived }
         if (notes.isEmpty()) return@withLock NotesCheck(0, 0, emptyList())
         working(WalletTask.CheckingNotes(0, notes.size)) {
                 var back = 0
@@ -1230,6 +1239,36 @@ class Wallet(
                 NotesCheck(back, 0, unreachable, still)
             }
             .also { if (it.checked > 0) applyPolicies(activeId()) }
+    }
+
+    /**
+     * Archives the active account's notes [ids] that their mint doesn't know ([NoteState.Unknown]): Home no longer warns of them, and only
+     * the archive shows them. They stay out of the balance and are still asked about on refresh; one the mint knows again is back in the
+     * balance, out of the archive. Returns how many were archived.
+     */
+    suspend fun archiveUnknownNotes(ids: Set<String>): Int = lock.withLock {
+        val now = now()
+        // When it was set aside (updatedAtMillis) stays: it times the asking.
+        val archived =
+            store
+                .notes(activeId())
+                .first()
+                .filter { it.id in ids && it.isUnknown() && !it.isArchived }
+                .map { it.copy(archivedAtMillis = now) }
+        store.upsertNotes(archived)
+        archived.size
+    }
+
+    /**
+     * Forgets an archived note of the active account for good ([Note.isArchived]): it no longer holds its mint, which can be removed then.
+     * Its key comes from the recovery phrase, so if the mint ever knows it again, a scan finds it. False if it isn't archived.
+     */
+    suspend fun removeArchivedNote(id: String): Boolean = lock.withLock {
+        val note = store.note(id)?.takeIf { it.accountId == activeId() && it.isArchived } ?: return@withLock false
+        store.deleteNote(note.id)
+        unknownCheckedAt.remove(note.id)
+        unknownAnsweredAt.update { it - note.id }
+        true
     }
 
     /**

@@ -685,7 +685,7 @@ class HomeScreenTest {
         compose.onNodeWithText("3 Scheine erneuert").assertExists()
     }
 
-    private fun unknown(askedAtMillis: Long = 0) =
+    private fun unknown(askedAtMillis: Long = 0, graceEndsAtMillis: Long = System.currentTimeMillis() + 60 * 60_000) =
         AccountMint(
             "mint.example",
             true,
@@ -696,6 +696,7 @@ class HomeScreenTest {
             unknownCount = 2,
             unknownMsat = 5_000,
             unknownAskedAtMillis = askedAtMillis,
+            unknownGraceEndsAtMillis = graceEndsAtMillis,
         )
 
     @Test
@@ -754,6 +755,34 @@ class HomeScreenTest {
         }
         compose.onNodeWithText(plural(R.plurals.home_unknown_show, 2)).performClick()
         compose.onNodeWithText("the notes").assertExists()
+    }
+
+    @Test
+    fun pastTheGracePeriodTheUnknownNotesCardSaysTheyCanBeArchived() {
+        compose.setContent {
+            HomeScreen(
+                "Wallet",
+                HomeState(unknownNotes = listOf(unknown(graceEndsAtMillis = System.currentTimeMillis() - 1))),
+                onSend = {},
+                onReceive = {},
+                onRefresh = {},
+                onSettings = {},
+                onBackup = {},
+                onDismissBackup = {},
+                onOpenAddresses = {},
+                accountActions = AccountActions({}, {}, {}),
+                notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, actions = {}, content = { Text("the notes") }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.home_unknown_help_late)).assertExists()
+        compose.onNodeWithText(text(R.string.home_unknown_help)).assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutANotesViewTheUnknownNotesCardNeverMentionsTheArchive() {
+        show(HomeState(unknownNotes = listOf(unknown(graceEndsAtMillis = System.currentTimeMillis() - 1))))
+        compose.onNodeWithText(text(R.string.home_unknown_help)).assertExists()
+        compose.onNodeWithText(text(R.string.home_unknown_help_late)).assertDoesNotExist()
     }
 
     @Test

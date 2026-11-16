@@ -53,6 +53,18 @@
     <string name="notes_problem_key_changed">Der Signaturschlüssel der Mint passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint einen neuen Schlüssel annimmst. Deine Scheine dort sind unverändert.</string>
     <string name="notes_state_unknown">Der Mint unbekannt</string>
     <string name="notes_state_unknown_detail">Die Mint sagt, sie kennt diesen Schein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <plurals name="notes_archived_notes">
+        <item quantity="one">%d Schein, den seine Mint nicht kennt</item>
+        <item quantity="other">%d Scheine, die ihre Mint nicht kennt</item>
+    </plurals>
+    <plurals name="notes_archived_done">
+        <item quantity="one">%d Schein ins Archiv verschoben.</item>
+        <item quantity="other">%d Scheine ins Archiv verschoben.</item>
+    </plurals>
+    <string name="archive_notes_title">Scheine</string>
+    <string name="archive_notes_hint">Ihre Mint kennt diese Scheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <string name="archive_note_remove_title">Diesen Schein endgültig entfernen?</string>
+    <string name="archive_note_remove_body">Seine Mint kennt ihn gerade nicht. Kennt sie ihn je wieder, findet ihn „Nach Scheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
 
     <string name="notes_waiting_total">%1$s verschickt, noch nicht eingelöst</string>
     <string name="notes_sort_largest">Größte zuerst</string>
@@ -62,11 +74,12 @@
     <string name="notes_move_anyway">Trotzdem verschieben</string>
     <string name="notes_shared_title">Verschickt, noch nicht eingelöst</string>
     <string name="notes_shared_hint">Tippe auf einen, um seinen QR-Code erneut zu zeigen oder ihn zurückzuholen.</string>
-    <plurals name="notes_archived">
-        <item quantity="one">%d archivierter Link</item>
-        <item quantity="other">%d archivierte Links</item>
+    <plurals name="notes_archived_links">
+        <item quantity="one">%d Link, den deine Wallet nicht mehr einzulösen versucht</item>
+        <item quantity="other">%d Links, die deine Wallet nicht mehr einzulösen versucht</item>
     </plurals>
-    <string name="notes_archived_hint">Erhalten, aber deine Wallet versucht nicht mehr, sie einzulösen.</string>
+    <string name="notes_archive">Archivieren</string>
+    <string name="notes_archive_hint">Archiviere ihn, damit die Warnung zu ihm verschwindet. Deine Wallet fragt weiter ab und zu nach ihm; sobald er wieder bekannt ist, ist er zurück in deinem Guthaben.</string>
     <string name="notes_archived_open">Archiv öffnen</string>
     <string name="archive_title">Archiv</string>
     <string name="archive_hint">Deine Wallet versucht diese Links nicht mehr. Versuche einen erneut oder entferne ihn endgültig. Bis er eingelöst ist, deckt ihn deine Wiederherstellungsphrase nicht ab.</string>
@@ -79,6 +92,10 @@
     <string name="archive_remove_keep">Behalten</string>
     <string name="archive_retry_claimed">%1$s eingelöst.</string>
     <string name="archive_retry_kept">Erneut versucht. Er ist wieder bei den erhaltenen Links, dort siehst du, wie es um ihn steht.</string>
+    <string name="archive_links_title">Links</string>
+    <string name="archive_note_back">Wieder bekannt: %1$s sind zurück in deinem Guthaben.</string>
+    <string name="archive_note_still">Weiterhin unbekannt. Deine Wallet fragt weiter ab und zu.</string>
+    <string name="archive_note_no_answer">Keine Antwort. Deine Wallet fragt später wieder.</string>
     <string name="notes_sheet_where">Bei %1$s · %2$s</string>
     <string name="notes_share">Als QR teilen</string>
     <string name="notes_recheck">Prüfen</string>

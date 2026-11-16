@@ -73,6 +73,8 @@ internal interface WalletDao {
 
     @Upsert suspend fun upsertNotes(notes: List<NoteEntity>)
 
+    @Query("DELETE FROM notes WHERE id = :id") suspend fun deleteNote(id: String)
+
     @Query("SELECT * FROM addresses WHERE accountId = :accountId AND isPrimary = 1")
     fun primaryAddress(accountId: String): Flow<AddressEntity?>
 
@@ -160,7 +162,7 @@ internal interface WalletDao {
             KeyCounterEntity::class,
             ShareScanEntity::class,
         ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 internal abstract class WalletDatabase : RoomDatabase() {
@@ -168,7 +170,8 @@ internal abstract class WalletDatabase : RoomDatabase() {
 
     companion object {
         /** Every schema change from v0.3.0 (version 2) on; installed wallets keep their data. Schemas: core/data/schemas. */
-        val MIGRATIONS = arrayOf(Migration2To3, Migration3To4, Migration4To5, Migration5To6, Migration6To7, Migration7To8, Migration8To9)
+        val MIGRATIONS =
+            arrayOf(Migration2To3, Migration3To4, Migration4To5, Migration5To6, Migration6To7, Migration7To8, Migration8To9, Migration9To10)
     }
 }
 
@@ -657,5 +660,12 @@ internal object Migration8To9 : Migration(8, 9) {
         db.execSQL("DROP TABLE $table")
         db.execSQL("ALTER TABLE ${table}_new RENAME TO $table")
         indices.forEach(db::execSQL)
+    }
+}
+
+/** A note its mint doesn't know can be archived by the user: Home no longer warns of it. */
+internal object Migration9To10 : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE notes ADD COLUMN `archivedAtMillis` INTEGER")
     }
 }

@@ -106,11 +106,19 @@ data class AccountMint(
     /** The account's Lightning addresses there. */
     val addresses: Int,
     val trusted: Boolean,
-    /** Notes there the mint says it doesn't know ([whitewallet.core.model.NoteState.Unknown]), and what they were worth. */
+    /**
+     * Notes there the mint says it doesn't know ([whitewallet.core.model.NoteState.Unknown]), and what they were worth; not those the user
+     * archived ([whitewallet.core.model.Note.isArchived]).
+     */
     val unknownCount: Int = 0,
     val unknownMsat: Long = 0,
     /** When the mint last said so about one of them (0: none are unknown). */
     val unknownAskedAtMillis: Long = 0,
+    /**
+     * When the grace period of the first of them to be set aside ends ([WalletSettings.unknownNoteGracePeriodMillis]): from then on the
+     * wallet only asks once a day, and the user may want to archive them (0: none are unknown).
+     */
+    val unknownGraceEndsAtMillis: Long = 0,
     /** It answered the last time the wallet asked it, or wasn't asked yet ([Wallet.mintsNotAnswering]). */
     val answering: Boolean = true,
 )

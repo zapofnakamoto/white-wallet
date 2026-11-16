@@ -100,6 +100,8 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
 
     override suspend fun upsertNotes(notes: List<Note>) = dao.upsertNotes(notes.map(NoteEntity::from))
 
+    override suspend fun deleteNote(id: String) = dao.deleteNote(id)
+
     override suspend fun reserveKeyIndex(accountId: String, domain: String, counter: KeyCounter): Long = db.withTransaction {
         val next = dao.keyCounter(accountId, domain, counter.name) ?: 0
         dao.saveKeyCounter(KeyCounterEntity(accountId, domain, counter.name, next + 1))

@@ -1,11 +1,14 @@
 package whitewallet.feature.notes
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -17,6 +20,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -36,6 +41,7 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
@@ -44,17 +50,29 @@ import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
+import whitewallet.core.model.Note
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ClaimResult
+import whitewallet.core.wallet.NoteCheck
 import whitewallet.core.wallet.Wallet
 
-/** What trying an archived note again came to, told once. */
+/** What trying an archived link again, or asking about an archived note, came to, told once. */
 sealed interface RetryOutcome {
     data class Claimed(val amountMsat: Long) : RetryOutcome
 
     /** Back among the received notes: kept, refused for now, being claimed, or found spent. */
     data object Back : RetryOutcome
+
+    /** The mint knows the archived note again: it is back in the balance. */
+    data class NoteBack(val amountMsat: Long) : RetryOutcome
+
+    /** The mint still doesn't know it (or burned it meanwhile, which it is now). */
+    data object NoteStill : RetryOutcome
+
+    data object NoteNoAnswer : RetryOutcome
+
+    data class NoteKeyChanged(val host: String) : RetryOutcome
 }
 
 data class ArchiveState(
@@ -62,21 +80,37 @@ data class ArchiveState(
     val loaded: Boolean = true,
     /** The active account's archived received notes, newest first. */
     val notes: List<ReceivedNote> = emptyList(),
+    /** The active account's notes archived while their mint doesn't know them ([Note.isArchived]), newest first. */
+    val unknownNotes: List<Note> = emptyList(),
     val showMints: Boolean = true,
-    /** The note waiting for the user to confirm removing it for good. */
+    /** The received note waiting for the user to confirm removing it for good. */
     val removing: String? = null,
-    /** A note being tried again. */
+    /** The archived note waiting for the user to confirm removing it for good. */
+    val removingNote: String? = null,
+    /** A received note being tried again, or an archived note being asked about. */
     val retrying: String? = null,
     val outcome: RetryOutcome? = null,
-)
+) {
+    val isEmpty: Boolean
+        get() = notes.isEmpty() && unknownNotes.isEmpty()
+}
 
-/** The archive: received notes the wallet no longer tries; each can be tried again or removed for good. */
+/**
+ * The archive: received notes the wallet no longer tries, each to be tried again or removed for good; and notes their mint doesn't know
+ * that the user archived, each to be asked about now or removed for good.
+ */
 @HiltViewModel
 class ArchiveViewModel @Inject constructor(private val wallet: Wallet, defaults: AppDefaults) : ViewModel() {
     private val ui = MutableStateFlow(ArchiveState(showMints = defaults.showMints))
 
     val state: StateFlow<ArchiveState> =
-        combine(wallet.receivedNotes, ui) { received, u -> u.copy(loaded = true, notes = ReceivedNote.archived(received)) }
+        combine(wallet.receivedNotes, wallet.notes, ui) { received, notes, u ->
+                u.copy(
+                    loaded = true,
+                    notes = ReceivedNote.archived(received),
+                    unknownNotes = notes.filter { it.isArchived }.sortedByDescending { it.archivedAtMillis },
+                )
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ArchiveState(loaded = false))
 
     fun retry(id: String) {
@@ -109,6 +143,36 @@ class ArchiveViewModel @Inject constructor(private val wallet: Wallet, defaults:
         viewModelScope.launch { wallet.removeReceivedNote(id) }
     }
 
+    /** Asks the mint about the archived note [id] now; one it knows again is back in the balance. */
+    fun recheck(id: String) {
+        if (ui.value.retrying != null) return
+        ui.update { it.copy(retrying = id, outcome = null) }
+        viewModelScope.launch {
+            val outcome =
+                when (val check = wallet.recheckNote(id)) {
+                    is NoteCheck.Ok -> RetryOutcome.NoteBack(check.amountMsat)
+                    NoteCheck.Unknown,
+                    NoteCheck.Spent -> RetryOutcome.NoteStill
+                    is NoteCheck.KeyChanged -> RetryOutcome.NoteKeyChanged(check.host)
+                    // Gone meanwhile (removed, or back): nothing to tell.
+                    NoteCheck.NotFound -> null
+                    else -> RetryOutcome.NoteNoAnswer
+                }
+            ui.update { it.copy(retrying = null, outcome = outcome) }
+        }
+    }
+
+    /** Asks before removing the archived note [id] for good. */
+    fun askRemoveNote(id: String) = ui.update { it.copy(removingNote = id) }
+
+    fun cancelRemoveNote() = ui.update { it.copy(removingNote = null) }
+
+    fun removeNote() {
+        val id = ui.value.removingNote ?: return
+        ui.update { it.copy(removingNote = null) }
+        viewModelScope.launch { wallet.removeArchivedNote(id) }
+    }
+
     fun outcomeShown() = ui.update { it.copy(outcome = null) }
 }
 
@@ -117,7 +181,17 @@ fun ArchiveRoute(onBack: () -> Unit, viewModel: ArchiveViewModel = hiltViewModel
     val state by viewModel.state.collectAsStateWithLifecycle()
     ArchiveScreen(
         state,
-        ArchiveActions(viewModel::retry, viewModel::askRemove, viewModel::cancelRemove, viewModel::remove, viewModel::outcomeShown),
+        ArchiveActions(
+            viewModel::retry,
+            viewModel::askRemove,
+            viewModel::cancelRemove,
+            viewModel::remove,
+            viewModel::outcomeShown,
+            viewModel::recheck,
+            viewModel::askRemoveNote,
+            viewModel::cancelRemoveNote,
+            viewModel::removeNote,
+        ),
         onBack,
     )
 }
@@ -129,6 +203,10 @@ class ArchiveActions(
     val cancelRemove: () -> Unit = {},
     val remove: () -> Unit = {},
     val outcomeShown: () -> Unit = {},
+    val recheck: (String) -> Unit = {},
+    val askRemoveNote: (String) -> Unit = {},
+    val cancelRemoveNote: () -> Unit = {},
+    val removeNote: () -> Unit = {},
 )
 
 @Composable
@@ -139,6 +217,10 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
             when (outcome) {
                 is RetryOutcome.Claimed -> stringResource(R.string.archive_retry_claimed, formatAmount(outcome.amountMsat))
                 RetryOutcome.Back -> stringResource(R.string.archive_retry_kept)
+                is RetryOutcome.NoteBack -> stringResource(R.string.archive_note_back, formatAmount(outcome.amountMsat))
+                RetryOutcome.NoteStill -> stringResource(R.string.archive_note_still)
+                RetryOutcome.NoteNoAnswer -> stringResource(R.string.archive_note_no_answer)
+                is RetryOutcome.NoteKeyChanged -> stringResource(R.string.notes_key_changed, outcome.host)
             }
         LaunchedEffect(outcome) {
             snackbars.showSnackbar(message, duration = SnackbarDuration.Long)
@@ -148,40 +230,43 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.archive_title), onBack) }, snackbarHost = { WalletSnackbarHost(snackbars) }) {
         padding ->
         if (!pageLoaded(state.loaded)) return@Scaffold
-        BrandBody(Page.Archive, if (state.notes.isEmpty()) WalletStatus.Empty else WalletStatus.Idle) {
+        BrandBody(Page.Archive, if (state.isEmpty) WalletStatus.Empty else WalletStatus.Idle) {
+            // Each part is titled only when both hold something.
+            val titled = state.notes.isNotEmpty() && state.unknownNotes.isNotEmpty()
             LazyColumn(Modifier.padding(padding).fillMaxSize()) {
-                item {
-                    if (state.notes.isEmpty()) EmptyState(stringResource(R.string.archive_empty))
-                    else
-                        WalletListItem(
-                            headlineContent = { Text(stringResource(R.string.archive_hint), style = MaterialTheme.typography.bodyMedium) }
+                if (state.isEmpty) item { EmptyState(stringResource(R.string.archive_empty)) }
+                if (state.notes.isNotEmpty()) {
+                    item { PartHeader(R.string.archive_links_title.takeIf { titled }, R.string.archive_hint, divider = false) }
+                    items(state.notes, key = { it.id }) { note ->
+                        ReceivedNoteRow(
+                            note,
+                            state.showMints,
+                            amountHidden = false,
+                            trailing = {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    WalletButton(
+                                        kind = ButtonKind.Text,
+                                        enabled = state.retrying == null,
+                                        busy = state.retrying == note.id,
+                                        onClick = { actions.retry(note.id) },
+                                    ) {
+                                        Text(stringResource(R.string.archive_retry))
+                                    }
+                                    WalletButton(
+                                        kind = ButtonKind.Text,
+                                        enabled = state.retrying == null,
+                                        onClick = { actions.askRemove(note.id) },
+                                    ) {
+                                        Text(stringResource(R.string.archive_remove))
+                                    }
+                                }
+                            },
                         )
+                    }
                 }
-                items(state.notes, key = { it.id }) { note ->
-                    ReceivedNoteRow(
-                        note,
-                        state.showMints,
-                        amountHidden = false,
-                        trailing = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                WalletButton(
-                                    kind = ButtonKind.Text,
-                                    enabled = state.retrying == null,
-                                    busy = state.retrying == note.id,
-                                    onClick = { actions.retry(note.id) },
-                                ) {
-                                    Text(stringResource(R.string.archive_retry))
-                                }
-                                WalletButton(
-                                    kind = ButtonKind.Text,
-                                    enabled = state.retrying == null,
-                                    onClick = { actions.askRemove(note.id) },
-                                ) {
-                                    Text(stringResource(R.string.archive_remove))
-                                }
-                            }
-                        },
-                    )
+                if (state.unknownNotes.isNotEmpty()) {
+                    item { PartHeader(R.string.archive_notes_title.takeIf { titled }, R.string.archive_notes_hint, divider = titled) }
+                    items(state.unknownNotes, key = { "note:${it.id}" }) { note -> ArchivedNoteRow(note, state, actions) }
                 }
             }
         }
@@ -199,4 +284,62 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
             },
         )
     }
+    if (state.removingNote != null) {
+        WalletDialog(
+            onDismissRequest = actions.cancelRemoveNote,
+            title = { Text(stringResource(R.string.archive_note_remove_title)) },
+            text = { Text(stringResource(R.string.archive_note_remove_body)) },
+            confirmButton = {
+                WalletButton(kind = ButtonKind.Text, onClick = actions.removeNote) { Text(stringResource(R.string.archive_remove_confirm)) }
+            },
+            dismissButton = {
+                WalletButton(kind = ButtonKind.Text, onClick = actions.cancelRemoveNote) {
+                    Text(stringResource(R.string.archive_remove_keep))
+                }
+            },
+        )
+    }
+}
+
+/** A part of the archive: its [title] (null when it is the only part) and what it holds. */
+@Composable
+private fun PartHeader(@StringRes title: Int?, @StringRes hint: Int, divider: Boolean) {
+    if (divider) HorizontalDivider()
+    WalletListItem(
+        headlineContent = {
+            if (title != null)
+                Text(stringResource(title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
+            else Text(stringResource(hint), style = MaterialTheme.typography.bodyMedium)
+        },
+        supportingContent = title?.let { { Text(stringResource(hint)) } },
+    )
+}
+
+/** An archived note its mint doesn't know: what it was worth, where, and asking about it now or removing it for good. */
+@Composable
+private fun ArchivedNoteRow(note: Note, state: ArchiveState, actions: ArchiveActions) {
+    WalletListItem(
+        headlineContent = { Text(formatAmount(note.amountMsat)) },
+        supportingContent = {
+            Column {
+                Text(stringResource(R.string.notes_state_unknown))
+                if (state.showMints) Text(stringResource(DesignR.string.received_on, note.host), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        trailingContent = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                WalletButton(
+                    kind = ButtonKind.Text,
+                    enabled = state.retrying == null,
+                    busy = state.retrying == note.id,
+                    onClick = { actions.recheck(note.id) },
+                ) {
+                    Text(stringResource(R.string.notes_recheck))
+                }
+                WalletButton(kind = ButtonKind.Text, enabled = state.retrying == null, onClick = { actions.askRemoveNote(note.id) }) {
+                    Text(stringResource(R.string.archive_remove))
+                }
+            }
+        },
+    )
 }

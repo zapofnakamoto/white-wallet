@@ -1009,8 +1009,9 @@ private fun KeyChanged(host: String, onDetails: () -> Unit) {
 
 /**
  * A mint says it doesn't know some of the account's notes: they're out of the balance, so say why, that the wallet keeps them and asks
- * again (and when it last did), and that there is nothing to do but wait or ask the mint's operator. The amount stays hidden with the
- * balance. Asking now is offered, not urged; [onShowNotes] leads to the notes themselves, where the app has a notes view.
+ * again (and when it last did), and that there is nothing to do but wait or ask the mint's operator; past the grace period
+ * ([AccountMint.unknownGraceEndsAtMillis]), that they can be archived too. The amount stays hidden with the balance. Asking now is offered,
+ * not urged; [onShowNotes] leads to the notes themselves, where the app has a notes view (and so an archive).
  */
 @Composable
 private fun UnknownNotesCard(
@@ -1022,6 +1023,8 @@ private fun UnknownNotesCard(
     onShowNotes: (() -> Unit)?,
 ) {
     val n = mint.unknownCount
+    val now = rememberNow()
+    val late = onShowNotes != null && mint.unknownGraceEndsAtMillis in 1..now
     WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -1034,8 +1037,11 @@ private fun UnknownNotesCard(
                 else pluralStringResource(R.plurals.home_unknown_body, n, formatAmount(mint.unknownMsat)),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Text(stringResource(R.string.home_unknown_help), style = MaterialTheme.typography.bodyMedium)
-            if (mint.unknownAskedAtMillis > 0) Text(lastAsked(mint.unknownAskedAtMillis), style = MaterialTheme.typography.bodySmall)
+            Text(
+                stringResource(if (late) R.string.home_unknown_help_late else R.string.home_unknown_help),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (mint.unknownAskedAtMillis > 0) Text(lastAsked(mint.unknownAskedAtMillis, now), style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 WalletButton(kind = ButtonKind.Secondary, onClick = onRecheck, enabled = !checking) {
                     Text(stringResource(R.string.home_unknown_action))
@@ -1048,25 +1054,30 @@ private fun UnknownNotesCard(
     }
 }
 
-/** "Last asked: 5 minutes ago", in the phone's words for the time, kept current while it shows. */
+/** The time now, kept current while it shows. */
 @Composable
-private fun lastAsked(atMillis: Long): String {
+private fun rememberNow(): Long {
     val now by
-        produceState(System.currentTimeMillis(), atMillis) {
+        produceState(System.currentTimeMillis()) {
             while (true) {
                 value = System.currentTimeMillis()
                 delay(ASKED_TICK_MILLIS)
             }
         }
-    return if (now - atMillis < DateUtils.MINUTE_IN_MILLIS) stringResource(R.string.home_unknown_asked_now)
+    return now
+}
+
+/** "Last asked: 5 minutes ago", in the phone's words for the time, at [now]. */
+@Composable
+private fun lastAsked(atMillis: Long, now: Long): String =
+    if (now - atMillis < DateUtils.MINUTE_IN_MILLIS) stringResource(R.string.home_unknown_asked_now)
     else
         stringResource(
             R.string.home_unknown_asked,
             DateUtils.getRelativeTimeSpanString(atMillis, now, DateUtils.MINUTE_IN_MILLIS).toString(),
         )
-}
 
-/** How often [lastAsked] looks at the clock. */
+/** How often [rememberNow] looks at the clock. */
 private const val ASKED_TICK_MILLIS = 20_000L
 
 /** What a mint's row under the balance offers once opened, besides its page: paying from that mint, receiving on it. */

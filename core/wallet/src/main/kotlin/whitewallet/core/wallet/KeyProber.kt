@@ -139,7 +139,10 @@ internal class KeyProber(private val wallet: Wallet) {
                             .note(noteId)
                             ?.takeIf { it.host == id.host && it.state == NoteState.Outstanding }
                             ?.let {
-                                wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Unknown, updatedAtMillis = now)))
+                                // Set aside anew: not in the archive, whatever an earlier time there left.
+                                wallet.store.upsertNotes(
+                                    listOf(it.copy(state = NoteState.Unknown, updatedAtMillis = now, archivedAtMillis = null))
+                                )
                             }
                         KeyProbe.Unused(now)
                     }

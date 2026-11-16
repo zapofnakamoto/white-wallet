@@ -72,7 +72,9 @@ data class NotesState(
     /** Notes received as links, not claimed yet or no longer claimable: not in the balance. */
     val received: List<ReceivedNote> = emptyList(),
     /** How many received notes are archived: no longer tried, only listed in the archive. */
-    val archivedCount: Int = 0,
+    val archivedLinks: Int = 0,
+    /** How many notes the user archived while their mint doesn't know them ([Note.isArchived]): only listed in the archive. */
+    val archivedNotes: Int = 0,
     val sort: NoteSort = NoteSort.Largest,
     /** Selection mode: tapping a note selects it instead of opening it. */
     val selecting: Boolean = false,
@@ -123,15 +125,23 @@ data class NotesState(
     val selectedMsat: Long
         get() = all.filter { it.id in selected }.sumOf { it.amountMsat }
 
+    /** What the archive holds. */
+    val archivedCount: Int
+        get() = archivedLinks + archivedNotes
+
+    /** The selection is of notes their mint doesn't know: they can be archived, or asked about, nothing else. */
+    val selectingUnknown: Boolean
+        get() = selected.isNotEmpty() && all.filter { it.id in selected }.all(NotesViewModel::archivable)
+
     val canCombine: Boolean
-        get() = !busy && selected.size >= 2
+        get() = !busy && selected.size >= 2 && !selectingUnknown
 
     val canAct: Boolean
         get() = !busy && selected.isNotEmpty()
 
-    /** Selecting several notes only makes sense with an action that works on several. */
+    /** Selecting several notes only makes sense with an action that works on several, or with notes to archive. */
     val canSelect: Boolean
-        get() = noteActions.any { it.bulk }
+        get() = noteActions.any { it.bulk } || all.any(NotesViewModel::archivable)
 
     /** A header per mint, unless mints aren't named and there is only one. */
     val groupHeaders: Boolean
@@ -171,6 +181,9 @@ sealed interface NotesOutcome {
     data class Moved(val arrivedMsat: Long, val host: String) : NotesOutcome
 
     data class Renewed(val amountMsat: Long) : NotesOutcome
+
+    /** [notes] their mint doesn't know went to the archive. */
+    data class Archived(val notes: Int) : NotesOutcome
 
     /**
      * Asked the mints about notes: [ok] still there, [gone] spent elsewhere, [unknown] set aside as their mint doesn't know them, no answer
@@ -244,7 +257,7 @@ constructor(
                     it.state == NoteState.Outstanding ||
                         it.state == NoteState.Paying ||
                         it.state == NoteState.Ambiguous ||
-                        it.state == NoteState.Unknown
+                        (it.state == NoteState.Unknown && !it.isArchived)
                 }
                 val mints =
                     live
@@ -261,15 +274,16 @@ constructor(
                                 trusted = host in c.trusted,
                             )
                         }
-                val selectable = live.filter(::selectable).map { it.id }.toSet()
+                val pickable = live.filter(::pickable).map { it.id }.toSet()
                 u.copy(
                     loaded = true,
                     mints = mints,
                     shared = sharedNotes(notes, c.sort),
                     received = ReceivedNote.shown(received),
-                    archivedCount = ReceivedNote.archived(received).size,
+                    archivedLinks = ReceivedNote.archived(received).size,
+                    archivedNotes = notes.count { it.isArchived },
                     sort = c.sort,
-                    selected = u.selected intersect selectable,
+                    selected = u.selected intersect pickable,
                     open = u.open?.takeIf { id -> live.any { it.id == id } },
                     noteStrategy = c.strategy,
                     strategies = wallet.noteStrategies,
@@ -327,13 +341,21 @@ constructor(
 
     fun sharedShown() = ui.update { it.copy(sharedId = null) }
 
-    /** Notes are combined or moved one mint at a time: picking a note on another mint starts a new selection. */
+    /**
+     * Notes are combined or moved one mint at a time, and those their mint doesn't know only archived: picking a note on another mint, or
+     * of the other kind, starts a new selection.
+     */
     private fun toggle(note: Note) {
-        if (!selectable(note)) return
+        if (!pickable(note)) return
         val notes = state.value.mints.flatMap { it.notes }
         ui.update { s ->
-            val sameMint = s.selected.filter { id -> notes.firstOrNull { it.id == id }?.host == note.host }.toSet()
-            s.copy(selected = if (note.id in sameMint) sameMint - note.id else sameMint + note.id, outcome = null)
+            val alike =
+                s.selected
+                    .filter { id ->
+                        notes.firstOrNull { it.id == id }?.let { it.host == note.host && archivable(it) == archivable(note) } == true
+                    }
+                    .toSet()
+            s.copy(selected = if (note.id in alike) alike - note.id else alike + note.id, outcome = null)
         }
     }
 
@@ -386,6 +408,29 @@ constructor(
             }
         }
         return NotesOutcome.Checked(ok, gone, unreachable.distinct(), unknown)
+    }
+
+    /** Archives one note its mint doesn't know, from its details. */
+    fun archive(id: String) = archiveAll(setOf(id))
+
+    fun archiveSelected() = archiveAll(state.value.selected)
+
+    /**
+     * Moves [ids] (notes their mint doesn't know) to the archive: Home no longer warns of them. Offered whatever the brand's note actions,
+     * as the only way to quiet that warning.
+     */
+    private fun archiveAll(ids: Set<String>) {
+        if (ids.isEmpty() || ui.value.busy || ui.value.refreshing) return
+        ui.update { it.copy(busy = true, dialog = null, outcome = null) }
+        viewModelScope.launch {
+            val archived =
+                try {
+                    wallet.archiveUnknownNotes(ids)
+                } finally {
+                    ui.update { it.copy(busy = false) }
+                }
+            ui.update { it.copy(outcome = NotesOutcome.Archived(archived), open = null, selected = emptySet(), selecting = false) }
+        }
     }
 
     /** Renews a note: a fresh key, so any copy of the old one (a QR code shown by mistake) is worthless. */
@@ -558,6 +603,13 @@ constructor(
 
         /** Notes that can be combined, split, moved, rechecked, renewed or shared. */
         fun selectable(note: Note) = note.state == NoteState.Outstanding && note.kind == NoteKind.KeyPath && note.index != null
+
+        /** A note its mint doesn't know, not archived yet: it can be archived (and rechecked). */
+        fun archivable(note: Note) =
+            note.state == NoteState.Unknown && !note.isArchived && note.kind == NoteKind.KeyPath && note.index != null
+
+        /** Notes that can be selected: [selectable] ones, or [archivable] ones (never both at once, see [toggle]). */
+        fun pickable(note: Note) = selectable(note) || archivable(note)
 
         /**
          * Notes that can be rechecked: those, a confirming one, whose change a recheck settles, and an unknown one, which a recheck brings

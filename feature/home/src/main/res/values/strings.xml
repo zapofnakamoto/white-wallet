@@ -98,6 +98,8 @@
     </plurals>
     <!-- Under the card's text: the user has nothing to do, and who to turn to. -->
     <string name="home_unknown_help">There\'s nothing you need to do. If it stays this way, ask the mint\'s operator.</string>
+    <!-- The same once the mint hasn't known them for a while (a day), where the app has a notes view to archive them from. -->
+    <string name="home_unknown_help_late">If the mint still doesn\'t know them, ask its operator, or archive them in your notes.</string>
     <!-- Opens the notes view, where the notes the mint doesn't know are marked. The count is how many those are. -->
     <plurals name="home_unknown_show">
         <item quantity="one">Show note</item>

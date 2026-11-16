@@ -121,6 +121,7 @@ internal data class NoteEntity(
     val updatedAtMillis: Long,
     val checkedAtMillis: Long? = null,
     val share: Long? = null,
+    val archivedAtMillis: Long? = null,
 ) {
     fun toModel() =
         Note(
@@ -136,6 +137,7 @@ internal data class NoteEntity(
             updatedAtMillis,
             checkedAtMillis,
             share,
+            archivedAtMillis,
         )
 
     companion object {
@@ -153,6 +155,7 @@ internal data class NoteEntity(
                 n.updatedAtMillis,
                 n.checkedAtMillis,
                 n.share,
+                n.archivedAtMillis,
             )
     }
 }

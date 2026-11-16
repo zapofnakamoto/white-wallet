@@ -126,7 +126,16 @@ data class Note(
     val checkedAtMillis: Long? = null,
     /** The share a chain-2 note is on (LUD-26 `S/a'/2/n'`). */
     val share: Long? = null,
-)
+    /**
+     * When the user archived it while its mint doesn't know it ([NoteState.Unknown]): only the archive shows it then ([isArchived]). Set
+     * aside again later, it starts out of the archive.
+     */
+    val archivedAtMillis: Long? = null,
+) {
+    /** Archived by the user: its mint doesn't know it, and it is still asked about, but Home no longer warns of it. */
+    val isArchived: Boolean
+        get() = state == NoteState.Unknown && archivedAtMillis != null
+}
 
 /** Where a [ReceivedNote] stands. Only [Claimed] puts its money in the balance, as one of the wallet's own notes. */
 enum class ReceivedState {

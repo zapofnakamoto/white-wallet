@@ -177,6 +177,10 @@ class InMemoryWalletStore : WalletStore {
         noteMap.value = noteMap.value + notes.associateBy { it.id }
     }
 
+    override suspend fun deleteNote(id: String) {
+        noteMap.value = noteMap.value - id
+    }
+
     override suspend fun reserveKeyIndex(accountId: String, domain: String, counter: KeyCounter): Long {
         requireAccount(accountId)
         val key = Triple(accountId, domain, counter)

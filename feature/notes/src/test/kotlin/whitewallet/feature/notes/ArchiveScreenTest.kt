@@ -13,6 +13,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.model.Note
+import whitewallet.core.model.NoteKind
+import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.UnclaimedReason
@@ -101,5 +104,71 @@ class ArchiveScreenTest {
 
     private companion object {
         const val DAY = 24 * 60 * 60_000L
+    }
+
+    private fun unknown(id: Char) =
+        Note(
+            id.toString().repeat(64),
+            "a",
+            "mint.example",
+            NoteKind.KeyPath,
+            0,
+            7,
+            5_000_000,
+            null,
+            NoteState.Unknown,
+            1,
+            archivedAtMillis = 2,
+        )
+
+    @Test
+    fun archivedNotesSayTheirMintDoesNotKnowThemAndCanBeRechecked() {
+        var rechecked: String? = null
+        val note = unknown('u')
+        compose.setContent {
+            ArchiveScreen(ArchiveState(unknownNotes = listOf(note)), ArchiveActions(recheck = { rechecked = it }), onBack = {})
+        }
+        compose.onNodeWithText(text(R.string.archive_notes_hint)).assertExists()
+        compose.onNodeWithText(text(R.string.archive_hint)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.archive_notes_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.notes_state_unknown)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_recheck)).performClick()
+        assertEquals(note.id, rechecked)
+    }
+
+    @Test
+    fun withLinksAndNotesEachPartHasItsTitle() {
+        compose.setContent {
+            ArchiveScreen(
+                ArchiveState(notes = listOf(archived('a', UnclaimedReason.ByUser, null)), unknownNotes = listOf(unknown('u'))),
+                ArchiveActions(),
+                onBack = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.archive_links_title)).assertExists()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.archive_notes_title)))
+        compose.onNodeWithText(text(R.string.archive_notes_title)).assertExists()
+    }
+
+    @Test
+    fun removingAnArchivedNoteIsAskedFirstAndSaysAScanFindsIt() {
+        var removed = false
+        val note = unknown('u')
+        compose.setContent {
+            ArchiveScreen(
+                ArchiveState(unknownNotes = listOf(note), removingNote = note.id),
+                ArchiveActions(removeNote = { removed = true }),
+                onBack = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.archive_note_remove_body)).assertExists()
+        compose.onNodeWithText(text(R.string.archive_remove_confirm)).performClick()
+        assertTrue(removed)
+    }
+
+    @Test
+    fun anArchivedNoteBackInTheBalanceIsTold() {
+        compose.setContent { ArchiveScreen(ArchiveState(outcome = RetryOutcome.NoteBack(5_000_000)), ArchiveActions(), onBack = {}) }
+        compose.onNodeWithText(text(R.string.archive_note_back, "₿5,000")).assertExists()
     }
 }

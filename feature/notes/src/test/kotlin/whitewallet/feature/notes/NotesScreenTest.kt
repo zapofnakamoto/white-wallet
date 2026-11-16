@@ -480,15 +480,75 @@ class NotesScreenTest {
     }
 
     @Test
-    fun archivedLinksAreOneRowThatOpensTheArchiveAndOnlyWhenThereAreAny() {
+    fun theArchiveIsOneRowThatOpensItAndOnlyWhenItHoldsAny() {
         var opened = false
-        var count by mutableStateOf(0)
-        compose.setContent { NotesContent(state({ it.copy(archivedCount = count) }), NotesActions(openArchive = { opened = true })) }
-        compose.onNodeWithText("archived link", substring = true).assertDoesNotExist()
-        count = 2
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("2 archived links"))
-        compose.onNodeWithText("2 archived links").performClick()
+        var links by mutableStateOf(0)
+        var notes by mutableStateOf(0)
+        compose.setContent {
+            NotesContent(state({ it.copy(archivedLinks = links, archivedNotes = notes) }), NotesActions(openArchive = { opened = true }))
+        }
+        compose.onNodeWithText(text(R.string.archive_title)).assertDoesNotExist()
+        links = 2
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.archive_title)))
+        compose.onNodeWithText(plural(R.plurals.notes_archived_links, 2, 2)).assertExists()
+        compose.onNodeWithText(plural(R.plurals.notes_archived_notes, 1, 1)).assertDoesNotExist()
+        notes = 1
+        compose.onNodeWithText(plural(R.plurals.notes_archived_notes, 1, 1)).assertExists()
+        compose.onNodeWithText(text(R.string.archive_title)).performClick()
         assertTrue(opened)
+    }
+
+    private val unknown = listOf(note("u1", "home.example", 5_000, NoteState.Unknown), note("u2", "home.example", 1_000, NoteState.Unknown))
+
+    private fun withUnknown(s: NotesState) = s.copy(mints = listOf(MintNotes("home.example", true, home + unknown)))
+
+    @Test
+    fun selectedNotesTheirMintDoesNotKnowCanOnlyBeArchivedOrRechecked() {
+        var archived = 0
+        compose.setContent {
+            NotesContent(
+                state(::withUnknown, { it.copy(selecting = true, selected = setOf("u1", "u2")) }),
+                NotesActions(archiveSelected = { archived++ }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.notes_combine)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.notes_move)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.notes_recheck)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_archive)).performClick()
+        assertEquals(1, archived)
+    }
+
+    @Test
+    fun selectedNotesInTheBalanceAreNotOfferedTheArchive() {
+        compose.setContent { NotesContent(state(::withUnknown, { it.copy(selecting = true, selected = setOf("h1")) }), NotesActions()) }
+        compose.onNodeWithText(text(R.string.notes_combine)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_archive)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNoteItsMintDoesNotKnowCanBeArchivedFromItsDetailsWhateverTheBrandOffers() {
+        var archived: String? = null
+        compose.setContent {
+            NotesContent(
+                state(::withUnknown, { it.copy(open = "u1", noteActions = emptySet()) }),
+                NotesActions(archive = { archived = it }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.notes_archive_hint)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_archive)).performClick()
+        assertEquals("u1", archived)
+    }
+
+    @Test
+    fun aNoteInTheBalanceIsNotOfferedTheArchive() {
+        compose.setContent { NotesContent(state({ it.copy(open = "h1") }), NotesActions()) }
+        compose.onNodeWithText(text(R.string.notes_archive)).assertDoesNotExist()
+    }
+
+    @Test
+    fun archivingSaysWhereTheNotesWent() {
+        compose.setContent { NotesContent(state({ it.copy(outcome = NotesOutcome.Archived(2)) }), NotesActions()) }
+        compose.onNodeWithText(plural(R.plurals.notes_archived_done, 2, 2)).assertExists()
     }
 
     @Test
