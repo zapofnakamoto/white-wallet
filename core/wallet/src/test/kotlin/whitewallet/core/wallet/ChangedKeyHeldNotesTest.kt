@@ -23,9 +23,11 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.LookupMint.Companion.error
 import whitewallet.core.wallet.LookupMint.Companion.note
+import whitewallet.lnurlcash.Certificates
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.spendDomain
 
 /**
@@ -168,6 +170,33 @@ class ChangedKeyHeldNotesTest {
                 assertEquals(asked, mint.lookupsAsked.get(), "no key was looked up")
                 assertEquals(0, mint.callbacks)
                 assertEquals(NoteState.Outstanding, wallet.store.note(held)?.state)
+            }
+        }
+
+    @Test
+    fun `a link on a mint whose signing key changed is worth what its certificate proves, as offline, and the mint isn't asked`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, held) = walletHolding(mint)
+                // The key the wallet knows, which the mint no longer presents.
+                val known = PrivateKey(ByteArray(32) { 3 })
+                val walletId = wallet.walletOf(assertNotNull(wallet.store.note(held)).accountId)
+                val pinned = assertNotNull(wallet.store.mint(walletId, mint.host))
+                wallet.store.saveMint(pinned.copy(mintPubkey = known.publicKey().toHex()))
+                val spend = Spend.keyPath(PrivateKey(ByteArray(32).also(SecureRandom()::nextBytes)), spendDomain(mint.host))
+                mint.lookups[spend.q.toHex()] = note(7_000)
+                val asked = mint.lookupsAsked.get()
+                fun certifiedMsat(certificate: String?): Long? = runBlocking {
+                    val preview = wallet.previewClaim(NoteLink(mint.withdrawUrl, spend, 9_000, certificate).encode())
+                    assertIs<ClaimPreview.KeyChanged>(preview).certifiedMsat
+                }
+                val signed = Certificates.sign(spendDomain(mint.host), 5_000, spend.q, known)
+                assertEquals(5_000, certifiedMsat(signed.encode()), "what the certificate says, not the link nor the mint")
+                assertNull(
+                    certifiedMsat(Certificates.sign(spendDomain(mint.host), 5_000, spend.q, PrivateKey(ByteArray(32) { 4 })).encode())
+                )
+                assertNull(certifiedMsat(null), "only what the link declares")
+                assertEquals(asked, mint.lookupsAsked.get(), "no key was looked up")
             }
         }
 

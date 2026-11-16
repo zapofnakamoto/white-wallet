@@ -46,10 +46,10 @@ sealed interface ClaimPreview {
 
     /**
      * Its mint ([host]) presents another signing key than the one pinned for it, so the spend isn't sent there. Kept, it is claimed once
-     * the user accepts the new key (the mint's details). [amountMsat] is what the mint says now; null when it wasn't asked, as its key
-     * didn't match before.
+     * the key matches again or the user accepts the new one (the mint's details). What it is worth is known as [Offline]: [certifiedMsat]
+     * when the link's certificate verifies against the pinned key, else only what the link declares; never what that mint says.
      */
-    data class KeyChanged(override val link: NoteLink, val host: String, val amountMsat: Long?) : Keepable
+    data class KeyChanged(override val link: NoteLink, val host: String, val certifiedMsat: Long?) : Keepable
 
     /** A script note whose spend doesn't satisfy its script, or claims a time no mint honours (a block height). */
     data object NotSpendable : ClaimPreview
@@ -148,9 +148,9 @@ internal class NoteClaimer(private val wallet: Wallet) {
                 // Spent only if burned; a spent or unknown note in the mint's own words proves nothing, so its words are shown.
                 is KeyLookup.Refused -> return if (found.burned) ClaimPreview.AlreadySpent else ClaimPreview.MintRefused(found.reason)
                 // As at a mint that shows no key: the account's own note is still taken back (and refused there), any other kept.
-                is KeyLookup.KeyChanged -> {
+                KeyLookup.KeyChanged -> {
                     if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
-                    return ClaimPreview.KeyChanged(link, link.host, found.amountMsat)
+                    return ClaimPreview.KeyChanged(link, link.host, certifiedOffline(link, accountId))
                 }
                 KeyLookup.Unreachable -> {
                     if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = false)
@@ -161,7 +161,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
         // A mint whose key doesn't match isn't believed either when it says the note is worth nothing.
         if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey?.toHex()) {
             if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
-            return ClaimPreview.KeyChanged(link, link.host, info.maxWithdrawableMsat)
+            return ClaimPreview.KeyChanged(link, link.host, certifiedOffline(link, accountId))
         }
         if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
         val own = wallet.homeOf(accountId)
@@ -211,7 +211,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
             is ClaimPreview.Offline -> ClaimResult.Kept(received.keep(preview.link, accountId, preview.certifiedMsat))
             is ClaimPreview.Locked -> ClaimResult.Kept(received.keep(preview.link, accountId, preview.amountMsat, ReceivedState.Locked))
             is ClaimPreview.KeyChanged ->
-                ClaimResult.Kept(received.keep(preview.link, accountId, preview.amountMsat, ReceivedState.KeyChanged))
+                ClaimResult.Kept(received.keep(preview.link, accountId, preview.certifiedMsat, ReceivedState.KeyChanged))
         }
 
     /**

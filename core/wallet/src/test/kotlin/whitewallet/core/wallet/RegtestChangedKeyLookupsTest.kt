@@ -96,9 +96,9 @@ class RegtestChangedKeyLookupsTest {
             val bob = Phone()
             bob.holding(1000)
             val pinned = bob.pinAnotherKey()
-            // Not asked: what it is worth is only what the link says.
+            // Not asked; and the link's certificate is signed with the key the mint presents, not the one this wallet knows.
             val preview = assertIs<ClaimPreview.KeyChanged>(bob.wallet.previewClaim(link))
-            assertNull(preview.amountMsat)
+            assertNull(preview.certifiedMsat)
             val kept = bob.wallet.keepClaim(preview).note
             assertIs<ReclaimResult.Reclaimed>(alice.wallet.reclaimNote(held.id))
 

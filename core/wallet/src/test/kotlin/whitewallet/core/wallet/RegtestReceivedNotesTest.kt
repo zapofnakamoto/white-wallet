@@ -268,7 +268,7 @@ class RegtestReceivedNotesTest {
 
             val preview = assertIs<ClaimPreview.KeyChanged>(bob.wallet.previewClaim(link))
             assertEquals(HOST, preview.host)
-            assertEquals(1_000_000, preview.amountMsat)
+            assertEquals(1_000_000, preview.certifiedMsat, "the link's certificate, under the key the wallet knows")
             assertEquals(ReceivedState.KeyChanged, bob.wallet.keepClaim(preview).note.state)
             assertEquals(1_000_000, bob.wallet.incomingMsat.first())
 

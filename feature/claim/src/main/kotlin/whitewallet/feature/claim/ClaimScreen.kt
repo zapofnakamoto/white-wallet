@@ -397,13 +397,14 @@ private fun KeepCard(preview: ClaimPreview.Keepable, offline: Boolean) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val amount =
                 when (preview) {
+                    // Its mint isn't asked, as offline: what the link's certificate proves, else what the link says.
                     is ClaimPreview.Offline ->
                         preview.certifiedMsat?.let { formatAmount(it) }
                             ?: preview.declaredMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
-                    is ClaimPreview.Locked ->
-                        preview.amountMsat?.let { formatAmount(it) }
-                            ?: preview.link.declaredAmountMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
                     is ClaimPreview.KeyChanged ->
+                        preview.certifiedMsat?.let { formatAmount(it) }
+                            ?: preview.link.declaredAmountMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
+                    is ClaimPreview.Locked ->
                         preview.amountMsat?.let { formatAmount(it) }
                             ?: preview.link.declaredAmountMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
                 }

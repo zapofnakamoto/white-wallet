@@ -83,7 +83,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     KeyLookup.NotANote -> return lightningOnly(note, UnclaimedReason.NotANote)
                     is KeyLookup.Refused ->
                         return if (found.burned) gone(note, found.kind, found.reason) else refused(note, spend, found.kind, found.reason)
-                    is KeyLookup.KeyChanged -> return keyChanged(note)
+                    KeyLookup.KeyChanged -> return keyChanged(note)
                     KeyLookup.Unreachable -> return waiting(note)
                 }
         val known = wallet.mintOf(note.accountId, note.host)
@@ -394,11 +394,10 @@ internal sealed interface KeyLookup {
     data class Refused(val kind: RejectionKind, val reason: String?, val burned: Boolean = false) : KeyLookup
 
     /**
-     * A mint whose key the account's wallet pinned doesn't match it: not asked ([amountMsat] null), or it answered for the note worth
-     * [amountMsat] with a `mintPubkey` that isn't a key, which is none (see [Pinning.invalidKey]). From any other host, that answer is
-     * [NotANote].
+     * A mint whose key the account's wallet pinned doesn't match it: not asked, or it answered for the note with a `mintPubkey` that isn't
+     * a key, which is none (see [Pinning.invalidKey]). From any other host, that answer is [NotANote].
      */
-    data class KeyChanged(val amountMsat: Long?) : KeyLookup
+    data object KeyChanged : KeyLookup
 
     /**
      * No answer at all; or, from a mint whose key the account's wallet pinned, none as for a note. Such a mint is never shown the link nor
@@ -412,7 +411,7 @@ internal sealed interface KeyLookup {
         suspend fun of(wallet: Wallet, accountId: String, host: String, withdrawUrl: String, q: ByteVector32): KeyLookup {
             val mint = wallet.mintOf(accountId, host)?.takeIf { it.mintPubkey != null }
             // Most answers carry no key: a mint whose key doesn't match isn't asked (see [KeyCheckedMint]).
-            if (mint != null && KeyCheckedMint.of(wallet, mint) == null) return KeyChanged(null)
+            if (mint != null && KeyCheckedMint.of(wallet, mint) == null) return KeyChanged
             val pinned = mint != null
             val found = ask(wallet, withdrawUrl, q, pinned)
             return if (pinned && (found is OtherService || found == NotANote)) Unreachable else found
@@ -438,7 +437,7 @@ internal sealed interface KeyLookup {
             } catch (e: NoteLookupError) {
                 Refused(e.kind, e.reason, e.burned)
             } catch (e: InvalidMintPubkey) {
-                if (pinned) KeyChanged((answer as LnurlResponse.WithdrawRequest).maxWithdrawable) else NotANote
+                if (pinned) KeyChanged else NotANote
             } catch (e: ProtocolViolation) {
                 NotANote
             }
