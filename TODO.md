@@ -206,3 +206,39 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     doesn't cover.
       - `accounts.max=1` brands: the user sees the master phrase, the single account is child 0. Check Zap's
     onboarding and backup first.
+26. **A mint impersonator passes the key check.** A mutation sends the note's `k1` in the clear, and the only check
+    before it is that the answer's `mintPubkey` equals the pinned one (`Pinning.check`): a string anyone can copy from
+    the real mint. Someone who takes over the domain (DNS, server, a proxy in front of it) can pass lookups through to
+    the real mint, Cs1s included, then spend a mutation's `k1` there with their own outputs and answer "confirmed".
+    The one thing they can't make is a Cs1 for the wallet's new outputs, and today one that fails against the pinned
+    key is dropped without a word (`NoteMutator`: the note lands without a certificate), as is one that is missing
+    (`MutationOutcome.Unverifiable`). The wallet keeps sending there. Decided in an interview on 2026-11-16:
+      - All key trust goes behind one exchangeable strategy (the `mintPubkey` comparison, Cs1 checks, the blocked state
+    and what clears it), so a way the spec adds later replaces it. Wallet code only, bound in `WalletModule`, not a
+    brand hook; one strategy for every mint. Pure checks the spec defines (recovering a Cs1's key) in the protocol
+    modules, state in `core/wallet`.
+      - The first strategy reacts to mutation answers only: a Cs1 for our outputs that fails against the pinned key, or
+    one that is missing, blocks the mint. Lookups prove nothing either way (they can be passed through).
+      - Blocked means no `k1` goes there and nothing new comes in (no invoices, no claims into it).
+      - One state with two causes for the user: "the mint's key doesn't match", the wording of today's changed-key
+    state. Only a cause from `mintPubkey` clears on a matching `mintPubkey`; the Cs1 cause clears when the user
+    accepts on mint details, which keeps the pinned key (a new key is still pinned only through `acceptMintKey`).
+      - The notes the bad answer made count as held there, as `heldWhereKeyChanged` shows today.
+    Open: which branch it goes on. Limit: the `k1` of the spend that trips it is already gone; only the spec can
+    close that (below). Related: 27.
+27. **A canary note per mint.** The smallest note on its own derivation path, rotated now and then only for its Cs1:
+    it would catch a mint that signs with another key than it advertises, and a domain whose owner can't reach the
+    real mint, before a real note's answer does, and it gives a blocked mint (26) a mutation to clear itself with. It
+    doesn't catch an impersonator who passes rotations through and steals only real spends, since the canary's
+    amount and timing give it away. Costs a fee per rotation, a new purpose that restore and scan must walk (with gap
+    rules), and a pattern the mint can link to one wallet. Could be a second key-trust strategy. Raised 2026-11-16.
+28. **What LUD-25 could do about impersonators.** Proposals to bring to lnurl/luds#301, strongest first:
+      - Authorize a mutation by a signature over its outputs (or the melt's invoice) with the note's key, instead of
+    sending `k1`: someone in between can then only pass it on or drop it, never spend it elsewhere. Note links stay
+    LNURL-withdraw with a bearer `k1` for wallets that don't know LNURLcash; only the owner's own mutations change.
+      - A signed key rotation: the new `mintPubkey` signed by the old key (and the old by the new), so a wallet re-pins
+    without asking the user and tells a real rotation from a server that is wrong for a moment.
+      - A key proof on request: the mint signs a nonce the wallet sends with its `mintPubkey` (as LUD-13 signs). It
+    catches the canary's cases (27) without a note or a fee, but not someone who passes the request through.
+      - Make a Cs1 a MUST in every mutation answer with a `cp1` output, so a missing one is a violation, not
+    "unverifiable but landed".
