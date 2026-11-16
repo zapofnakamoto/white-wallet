@@ -8,6 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import whitewallet.core.model.Note
@@ -79,8 +80,10 @@ class SameDomainKeysTest {
             val spend = wallet.keys(wallet.activeId(), HOST).spend(here, spendDomain(HOST))
             val elsewhere = testKeys(words, HOST).pubkey(KeySet.Wallet, 0)
             assertIs<MutationOutcome.Confirmed>(client.mutate(MutationType.Rotate, Requests.rotate(info.callback, spend.k1, elsewhere)))
+            // lnurl-mint 0.13.1 tells a burned note by `already in use` (0.12.2 said `Note already spent.`).
             val gone = assertFailsWith<NoteLookupError> { client.lookup(mint.withdrawUrl, q) }
-            assertEquals(RejectionKind.Spent, gone.kind, gone.reason)
+            assertEquals(RejectionKind.AlreadyInUse, gone.kind, gone.reason)
+            assertTrue(gone.burned)
             assertEquals(1_998_000, client.lookup(client.servicePayRequest(HOST2).withdrawUrl, q).maxWithdrawableMsat)
         }
 }
