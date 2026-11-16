@@ -282,8 +282,8 @@ class Wallet(
     /**
      * The active wallet's mints whose signing key didn't match the pinned one the last time the wallet compared them, by host; saved, so
      * known from the first screen after a restart. Until it matches again, or the user accepts the new key, nothing is sent there and
-     * nothing is received there, and money there isn't counted as spendable. Each refresh compares the mints of the balance once per app
-     * session ([askOthers]).
+     * nothing is received there, and money there isn't counted as spendable. A refresh compares the mints it asks once per app session, and
+     * those whose key didn't match on each refresh ([refresh]).
      */
     val mintsWithChangedKey: Flow<Set<String>> =
         activeWallet
@@ -1059,16 +1059,21 @@ class Wallet(
                         onProgress(host, progress)
                     }
                 val found = held() - before
-                // Then the notes it holds, which another phone with the phrase may have spent: the balance is right afterwards.
+                // Then the notes it holds, which another phone with the phrase may have spent: the balance is right afterwards. A note in
+                // use is told without the mint's key, so the key is compared first: a mint whose key doesn't match changes nothing held.
                 val unchecked =
                     mints
-                        .map { it.host }
-                        .filter { it !in failed }
-                        .filterNot { host ->
-                            restorer.recheckHeld(walletId, host, run) { checked, total ->
-                                onProgress(host, ScanProgress(shown[host]?.accounts.orEmpty(), checked, total))
-                            }
+                        .filter { it.host !in failed }
+                        .filterNot { mint ->
+                            val host = mint.host
+                            val pinned = mint.mintPubkey
+                            pinned != null &&
+                                compareMintKey(walletId, host, pinned) == false &&
+                                restorer.recheckHeld(walletId, host, run) { checked, total ->
+                                    onProgress(host, ScanProgress(shown[host]?.accounts.orEmpty(), checked, total))
+                                }
                         }
+                        .map { it.host }
                 ScanResult(foundMsat = found, stoppedAt = mints.map { it.host }.filter { it in failed || it in unchecked })
             }
         }
@@ -1163,6 +1168,9 @@ class Wallet(
         // A recheck only asks: whatever failure a developer armed, it goes unanswered.
         if (SimulatedFailure.takeAny()) return NoteCheck.Unreachable
         if (note.isConfirming()) return settle(note)
+        // A note in use is told without the mint's key: one whose key doesn't match isn't asked, or anyone could take notes out.
+        checkMintKey(note.host)
+        if (note.host in trust.changedKeys(walletOf(note.accountId)).first()) return NoteCheck.KeyChanged(note.host)
         val probe =
             try {
                 inspector.recheck(KeySet.of(note).key(note.accountId, note.host, note.index!!))
@@ -1345,7 +1353,7 @@ class Wallet(
         val changed = trust.changedKeys(walletId).first()
         var result = RefreshResult(0, 0)
         for (ask in asks) {
-            for (address in ask.addresses.filter { it.host in hosts }) {
+            for (address in ask.addresses.filter { it.host in hosts && it.host !in changed }) {
                 addressCheck.check(address.username, address.host, ask.accountId).let { status ->
                     if (status !is AddressStatus.CheckFailed) setAddressStatus(ask.accountId, address.address, status)
                 }

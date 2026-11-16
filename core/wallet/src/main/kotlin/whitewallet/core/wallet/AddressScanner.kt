@@ -27,16 +27,26 @@ internal class AddressScanner(private val wallet: Wallet) {
 
     private suspend fun scan(accountId: String, host: String, set: KeySet.Share, run: LookupRun): RefreshResult {
         val mint = wallet.mintOf(accountId, host) ?: return RefreshResult(0, 0)
-        val payments = mutableListOf<Pair<Long, KeyProbe.Outstanding>>()
+        var count = 0
+        var sumMsat = 0L
         val scanned =
             discovery.discover(accountId, host, set, run = run, from = wallet.store.indexOf(accountId, host, set)) { index, probe ->
-                if (probe is KeyProbe.Outstanding && probe.imported) payments += index to probe
+                if (probe is KeyProbe.Outstanding && probe.imported) {
+                    // Each address key is paid once, so its note's Q identifies the payment. Its row goes in with the note: a refresh
+                    // stopped later would find the note held and never write it.
+                    val q = wallet.keys(accountId, host).pubkey(set, index).toHex()
+                    log.record(
+                        id = "recv:$q",
+                        accountId,
+                        kind = ActivityKind.Received,
+                        probe.amountMsat,
+                        mint.host,
+                        certified = probe.certified,
+                    )
+                    count++
+                    sumMsat += probe.amountMsat
+                }
             }
-        for ((index, probe) in payments) {
-            // Each address key is paid once, so its note's Q identifies the payment.
-            val q = wallet.keys(accountId, host).pubkey(set, index).toHex()
-            log.record(id = "recv:$q", accountId, kind = ActivityKind.Received, probe.amountMsat, mint.host, certified = probe.certified)
-        }
-        return RefreshResult(payments.size, payments.sumOf { it.second.amountMsat }, if (scanned.keyChanged) setOf(host) else emptySet())
+        return RefreshResult(count, sumMsat, if (scanned.keyChanged) setOf(host) else emptySet())
     }
 }

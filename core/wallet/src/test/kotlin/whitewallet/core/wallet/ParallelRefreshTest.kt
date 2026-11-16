@@ -9,13 +9,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.LookupMint.Companion.note
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -164,6 +167,56 @@ class ParallelRefreshTest {
                     assertEquals(setOf(changed.host), phone.wallet.mintsWithChangedKey.first())
                     assertFalse(changed.host in phone.wallet.mintsNotAnswering.first())
                 }
+            }
+        }
+
+    @Test
+    fun `a mint whose signing key changed gets no address check`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val requests = Requests()
+                val phone = phone(mint, requests)
+                phone.store.saveAddress(phone.accountId, RegisteredAddress("alice", mint.host, clock, share = 0))
+                val pinned = assertNotNull(phone.store.mint(mint.host))
+                phone.store.saveMint(pinned.copy(mintPubkey = "02" + "11".repeat(32)))
+                requests.byHost.clear()
+
+                assertEquals(setOf(mint.host), phone.wallet.refresh().keyChanged)
+                assertEquals(
+                    emptyList(),
+                    requests.byHost[mint.host].orEmpty().filter { it.startsWith("/.well-known/lnurlp/") },
+                    "no proof of the address goes to it",
+                )
+            }
+        }
+
+    @Test
+    fun `a payment found before a refresh is cancelled keeps its row in History`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val requests = Requests()
+                val phone = phone(mint, requests)
+                phone.shares(mint.host)
+                val paid = phone.key(mint.host, KeySet.Share(0), 0)
+                mint.lookups[paid] = note(4_000)
+                // The first lookup past the first several at once: the payment is in by then.
+                val later = Cp1.encode(phone.wallet.keys(phone.accountId, mint.host).pubkey(KeySet.Share(0), 8))
+                val held = CountDownLatch(1)
+                val release = CountDownLatch(1)
+                requests.onLookup = { _, p ->
+                    if (p == later) {
+                        held.countDown()
+                        release.await(5, TimeUnit.SECONDS)
+                    }
+                }
+                val refresh = launch(Dispatchers.Default) { phone.wallet.refresh() }
+                assertTrue(held.await(5, TimeUnit.SECONDS), "the refresh got past the payment")
+                refresh.cancel()
+                release.countDown()
+                refresh.join()
+
+                assertEquals(NoteState.Outstanding, phone.store.note(paid)?.state, "the payment came in")
+                assertNotNull(phone.store.activity("recv:$paid"), "and History shows it")
             }
         }
 

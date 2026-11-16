@@ -136,6 +136,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- Checking notes (one note, or all of them in the notes view) asked a mint whose signing key no longer matches about
+  them, and its answer that a note was already in use took the note out of the balance: that answer carries no key, so
+  whoever answered in the mint's place could do so. The key is now compared first, and such a mint's notes stay as
+  they are, as on "Scan for notes", which looks up the notes it holds only on mints whose key matches. A refresh no
+  longer checks the Lightning addresses on such a mint either.
 - "Scan for notes" stopped with an error when a mint whose signing key changed answered with a note: the scan threw
   instead of going on with the other mints. That mint is now listed as one the scan didn't get through, as one that
   doesn't answer is.

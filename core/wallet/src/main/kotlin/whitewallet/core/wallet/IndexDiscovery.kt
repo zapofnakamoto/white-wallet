@@ -74,7 +74,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         gap: Int = wallet.settings.scanStopAfterUnusedKeys,
         run: LookupRun = LookupRun(wallet.settings.scanLookupsAtOnce),
         from: Long? = null,
-        onProbe: (index: Long, KeyProbe) -> Unit = { _, _ -> },
+        onProbe: suspend (index: Long, KeyProbe) -> Unit = { _, _ -> },
     ): DiscoveryResult {
         val current = wallet.store.indexOf(accountId, host, set)
         val mint = wallet.mintOf(accountId, host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
