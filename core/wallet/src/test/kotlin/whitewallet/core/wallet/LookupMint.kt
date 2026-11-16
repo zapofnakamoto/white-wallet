@@ -7,11 +7,14 @@ import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
 import whitewallet.lnurlcash.Cp1
 
-/** A fake mint that answers each lookup by `p` from [lookups] ("Unknown note." otherwise), and every mutation with [callback]. */
-internal class LookupMint : AutoCloseable {
+/**
+ * A fake mint that answers each lookup by `p` from [lookups] ("Unknown note." otherwise), and every mutation with [callback]. Reached as
+ * [hostName]: `127.0.0.1` puts it on another domain than one reached as `localhost`, with its own keys and counters.
+ */
+internal class LookupMint(private val hostName: String = "localhost") : AutoCloseable {
     private val server = MockWebServer()
     val host
-        get() = "localhost:${server.port}"
+        get() = "$hostName:${server.port}"
 
     val withdrawUrl
         get() = "http://$host/w"

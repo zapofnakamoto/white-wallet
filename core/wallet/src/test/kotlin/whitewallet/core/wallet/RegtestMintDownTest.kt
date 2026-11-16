@@ -1,5 +1,6 @@
 package whitewallet.core.wallet
 
+import java.util.Collections
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -19,7 +20,7 @@ class RegtestMintDownTest {
     /** The mints whose requests are dropped before they go out, by host. */
     private val down = mutableSetOf<String>()
     /** Every mint a request went to (or was meant to), in order. */
-    private val asked = mutableListOf<String>()
+    private val asked: MutableList<String> = Collections.synchronizedList(mutableListOf())
     private val connection = MutableStateFlow(Connection.Online)
     private val client = Regtest.client { chain ->
         val url = chain.request().url

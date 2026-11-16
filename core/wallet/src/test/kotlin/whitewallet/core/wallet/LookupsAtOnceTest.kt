@@ -38,6 +38,8 @@ class LookupsAtOnceTest {
             val url = chain.request().url
             val p = url.queryParameter("p") ?: return@Interceptor chain.proceed(chain.request())
             val host = "${url.host}:${url.port}"
+            // Sent once the key had failed: lookups sent together with it don't count.
+            val afterFailure = failures.get() >= 2
             // Slow enough that lookups sent together are on their way together.
             Thread.sleep(20)
             if (host to p == failing && failures.get() < 2) {
@@ -47,7 +49,7 @@ class LookupsAtOnceTest {
             val now = inFlight.computeIfAbsent(host) { AtomicInteger() }.incrementAndGet()
             try {
                 most.merge(host, now, ::maxOf)
-                if (failures.get() >= 2) mostAfterFailure.merge(host, now, ::maxOf)
+                if (afterFailure) mostAfterFailure.merge(host, now, ::maxOf)
                 Thread.sleep(20)
                 chain.proceed(chain.request())
             } finally {

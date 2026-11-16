@@ -11,6 +11,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -1283,60 +1286,104 @@ class Wallet(
         reconciler.reconcileAll(ids)
         received.retryAll(ids)
         val active = store.currentAccountId()
-        var result = RefreshResult(0, 0)
-        val run = LookupRun(settings.scanLookupsAtOnce)
-        for (summary in store.accounts.first().filter { it.account.id in ids }) {
-            val id = summary.account.id
+        val accounts = store.accounts.first().map { it.account.id }.filter { it in ids }
+        // In turn, before the lanes: these rewrite account and address rows.
+        for (id in accounts) {
             unknownNotes.recheckDue(id)
             // First: a held address that was paid may be the account's primary one now.
             store.addresses(id).first().filter { it.feeInvoice != null }.forEach { onboarding.settleHeld(id, it) }
-            val addresses = store.addresses(id).first()
-            for (address in addresses.filter { it.feeInvoice == null }) {
-                addressCheck.check(address.username, address.host, id).let { status ->
-                    if (status !is AddressStatus.CheckFailed) setAddressStatus(id, address.address, status)
-                }
-            }
+        }
+        val asks = accounts.map { id ->
+            val addresses = store.addresses(id).first().filter { it.feeInvoice == null }
             // Every address is paid at its own mint (same recovery phrase, that mint's own keys), and a restored account's at the home
             // mint, or a mint it added, before the phone knows their names.
-            val hosts = addresses.map { it.host } + listOfNotNull(homeOf(id)) + hostsPaidAt(id)
-            for (host in hosts.distinct()) {
-                val scanned = scanner.scanAll(id, host, run)
-                result += if (id == active) scanned else scanned.keyChangedOnly()
-            }
+            MintAsks(id, addresses, (addresses.map { it.host } + listOfNotNull(homeOf(id)) + hostsPaidAt(id)).distinct())
+        }
+        val pinged = active?.let { mintsToAsk(it) }.orEmpty()
+        val run = LookupRun(settings.scanLookupsAtOnce)
+        // One lane per mint domain, all at once: mints on one domain share their keys and counters.
+        val lanes = (asks.flatMap { it.hosts } + pinged).distinct().groupBy(::spendDomain).values
+        val result = coroutineScope {
+            lanes.map { hosts -> async { lane(walletOf(ids.first()), hosts, asks, active, pinged, run, start) } }.awaitAll()
+        }
+            .fold(RefreshResult(0, 0), RefreshResult::plus)
+        for (id in accounts) {
             sender.reconcile(id)
             // Note policies move money: only ever the active account's.
             if (id == active) applyPolicies(id)
         }
-        active?.let { askOthers(it, since = start) }
         return result
     }
 
+    /** What a refresh asks for [accountId]: its [addresses] checked, and payments looked for on each of [hosts]. */
+    private class MintAsks(val accountId: String, val addresses: List<RegisteredAddress>, val hosts: List<String>)
+
     /**
-     * Asks the mints [accountId] holds money on (and its home mint) that nothing has asked since [since] whether they are there, so the
-     * wallet knows of one that doesn't answer before the user finds out by paying ([mintsNotAnswering]). The same answer carries the mint's
-     * signing key: each is compared with the pinned one once per app session ([mintsWithChangedKey]), asked for that if need be.
+     * One mint domain's part of a refresh, beside the others: its mints' signing keys compared first (once per app session), then each
+     * account in turn, then the [pinged] mints nothing heard from since [since] asked whether they are there. A mint whose key doesn't
+     * match gets none of the accounts' keys, and is named ([RefreshResult.keyChanged]). What goes wrong here stays here.
      */
-    private suspend fun askOthers(accountId: String, since: Long) {
-        // Without a network known to reach the internet, no answer would say anything: asking would only wait.
-        if (!silenceCounts()) return
-        val walletId = walletOf(accountId)
-        val held = store.notes(accountId).first().filter { it.state == NoteState.Outstanding }.map { it.host }
-        for (host in (listOfNotNull(homeOf(accountId)) + held).distinct()) {
-            val pinned = store.mint(walletId, host)?.mintPubkey?.takeIf { (walletId to host) !in keysCompared.value }
-            if (pinned == null && (mintAnswers.value[host]?.atMillis ?: -1) >= since) continue
-            val answered =
-                try {
-                    val presented = client.withdrawDiscovery(host).mintPubkey
-                    pinned?.let { sawKey(walletId, host, presented?.toHex() != it) }
-                    true
-                } catch (e: IOException) {
-                    false
-                } catch (e: ProtocolViolation) {
-                    // A server that answers, but not as a mint: one behind a proxy that is down answers like that.
-                    false
-                }
-            heardFrom(host, answered)
+    private suspend fun lane(
+        walletId: String,
+        hosts: List<String>,
+        asks: List<MintAsks>,
+        active: String?,
+        pinged: List<String>,
+        run: LookupRun,
+        since: Long,
+    ): RefreshResult {
+        // Without a network known to reach the internet, no answer would say anything: asking would only wait. A mint whose key didn't
+        // match is asked on each refresh, as it gets nothing else: once its key matches again, it is used again.
+        val before = trust.changedKeys(walletId).first()
+        if (silenceCounts()) {
+            hosts.filter { (walletId to it) !in keysCompared.value || it in before }.forEach { askMint(walletId, it, compare = true) }
         }
+        val changed = trust.changedKeys(walletId).first()
+        var result = RefreshResult(0, 0)
+        for (ask in asks) {
+            for (address in ask.addresses.filter { it.host in hosts }) {
+                addressCheck.check(address.username, address.host, ask.accountId).let { status ->
+                    if (status !is AddressStatus.CheckFailed) setAddressStatus(ask.accountId, address.address, status)
+                }
+            }
+            for (host in ask.hosts.filter { it in hosts }) {
+                val scanned = if (host in changed) RefreshResult(0, 0, setOf(host)) else scanner.scanAll(ask.accountId, host, run)
+                result += if (ask.accountId == active) scanned else scanned.keyChangedOnly()
+            }
+        }
+        if (silenceCounts()) {
+            pinged
+                .filter { it in hosts && (mintAnswers.value[it]?.atMillis ?: -1) < since }
+                .forEach { askMint(walletId, it, compare = false) }
+        }
+        return result
+    }
+
+    /** The mints [accountId] holds money on, and its home mint: a refresh asks each whether it is there ([mintsNotAnswering]). */
+    private suspend fun mintsToAsk(accountId: String): List<String> {
+        val held = store.notes(accountId).first().filter { it.state == NoteState.Outstanding }.map { it.host }
+        return (listOfNotNull(homeOf(accountId)) + held).distinct()
+    }
+
+    /**
+     * Asks [host] whether it is there, so the wallet knows of one that doesn't answer before the user finds out by paying
+     * ([mintsNotAnswering]). The answer carries the mint's signing key: with [compare], compared with the one [walletId] pinned
+     * ([mintsWithChangedKey]).
+     */
+    private suspend fun askMint(walletId: String, host: String, compare: Boolean) {
+        val pinned = store.mint(walletId, host)?.mintPubkey?.takeIf { compare }
+        val answered =
+            try {
+                val presented = client.withdrawDiscovery(host).mintPubkey
+                pinned?.let { sawKey(walletId, host, presented?.toHex() != it) }
+                true
+            } catch (e: IOException) {
+                false
+            } catch (e: ProtocolViolation) {
+                // A server that answers, but not as a mint: one behind a proxy that is down answers like that.
+                false
+            }
+        heardFrom(host, answered)
     }
 
     /** The mints where [accountId] has handed out shares or holds a note paid to an address, whether or not it knows the address. */

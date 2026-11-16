@@ -123,7 +123,7 @@ class NoAddressTest {
     }
 
     @Test
-    fun `a refresh compares a mint's key once per session, and the outcome is known from the start after a restart`() =
+    fun `a refresh compares a matching mint's key once per session and a changed one's each time, and the outcome is known after a restart`() =
         runBlocking<Unit> {
             FakeMint(0) { clock }
                 .use { mint ->
@@ -137,18 +137,24 @@ class NoAddressTest {
                     wallet.refresh()
                     assertEquals(setOf(mint.host), wallet.mintsWithChangedKey.first())
 
-                    // Matching again isn't noticed in the same session: each mint is compared once.
+                    // A mint whose key didn't match is compared on each refresh, as it gets nothing else: matching again is noticed.
                     store.saveMint(pinned)
                     wallet.refresh()
-                    assertEquals(setOf(mint.host), wallet.mintsWithChangedKey.first())
-
-                    // After a restart it is known before anything asks, and the next refresh compares again.
+                    assertEquals(emptySet(), wallet.mintsWithChangedKey.first())
+                    // One that matches is compared once per session: a change after that waits for the next one.
                     store.saveMint(pinned.copy(mintPubkey = "02" + "11".repeat(32)))
+                    wallet.refresh()
+                    assertEquals(emptySet(), wallet.mintsWithChangedKey.first())
+
+                    // After a restart the next refresh compares again; what it found is known from the start after the next restart.
                     val restarted = Wallet(store, seeds, LnurlcashClient(), trust = trust, now = { clock })
-                    assertEquals(setOf(mint.host), restarted.mintsWithChangedKey.first())
-                    store.saveMint(pinned)
                     restarted.refresh()
-                    assertEquals(emptySet(), restarted.mintsWithChangedKey.first())
+                    assertEquals(setOf(mint.host), restarted.mintsWithChangedKey.first())
+                    val again = Wallet(store, seeds, LnurlcashClient(), trust = trust, now = { clock })
+                    assertEquals(setOf(mint.host), again.mintsWithChangedKey.first())
+                    store.saveMint(pinned)
+                    again.refresh()
+                    assertEquals(emptySet(), again.mintsWithChangedKey.first())
                 }
         }
 
