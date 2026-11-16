@@ -196,10 +196,12 @@ internal class MeltReconciler(private val wallet: Wallet) {
         val q = ByteVector32(entry.inputIds.single())
         val outstanding =
             try {
-                wallet.client.lookup(entry.withdrawUrl, q)
+                Pinning.settling(wallet, entry.accountId, entry.host, entry.withdrawUrl, q)
                 true
             } catch (e: NoteLookupError) {
                 if (e.burned) false else return JournalStatus.Unknown
+            } catch (e: MintKeyChangedException) {
+                return JournalStatus.Unknown
             } catch (e: IOException) {
                 return JournalStatus.Unknown
             } catch (e: ProtocolViolation) {

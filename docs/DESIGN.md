@@ -180,7 +180,8 @@ A note of the wallet's own (`NoteState`). Only `Outstanding` counts in the balan
 | `Spent` | Burned at the mint. | Never: final. |
 
 A mint whose signing key doesn't match leaves its notes' states as they are (still in the balance); every action on
-them is refused, and refreshes skip that mint, until the user accepts the new key.
+them is refused, an operation waiting for an answer there stays waiting, and refreshes only ask that mint for its key,
+until the key matches again or the user accepts the new one.
 
 A note someone hands over (`ReceivedState`). It is kept with its spend and isn't in the balance until `Claimed`.
 
@@ -208,8 +209,9 @@ answers applied in key order, so it finds and stops at the same keys as one at a
 among several is asked one at a time for the rest of that run (`LookupRun`). A refresh asks its mints at the same time,
 one lane per mint domain (mints on one domain share their keys and counters): each lane compares its mints' signing
 keys first (a matching one once per app session, a changed one on every refresh), then goes through the accounts that
-use that mint in turn. A mint whose key doesn't match gets none of the wallet's keys. A lane's failure stays in the
-lane. What rewrites account and address rows (settling held addresses, rechecking unknown notes) runs before the lanes,
+use that mint in turn. The key is compared before the lookups because a lookup for an unused key, the answer to most of
+them, carries no key. A mint whose key doesn't match gets none of the wallet's keys. A mint that doesn't answer ends
+only its own lane; a lane that fails otherwise lets the others finish before the refresh fails. What rewrites account and address rows (settling held addresses, rechecking unknown notes) runs before the lanes,
 what moves money (shared notes, note policies) after them. A refresh asks only the mints the accounts use now: home
 mints, the mints of their addresses and handed-out shares, and the ones they hold money on.
 
@@ -226,7 +228,9 @@ notes the wallet holds) or a restore brings in what it made.
 - Seeds and spend secrets are never logged.
 - No analytics, no telemetry. Network traffic goes only to the mints and payment destinations the user chooses.
 - A mint's signing key is pinned on first contact; if it changes, every operation with that mint stops until the user,
-  shown both keys and warned, accepts the new one on the mint's details page (a trusted mint stays trusted).
+  shown both keys and warned, accepts the new one on the mint's details page (a trusted mint stays trusted). This
+  catches a mint that changed its key, or a server in its place with a key of its own; it doesn't stop someone in the
+  mint's place who presents the mint's key, which anyone can read from it.
 - Screens with the recovery phrase or a note link block screenshots (`FLAG_SECURE`). Copied secrets are marked
   sensitive and cleared from the clipboard after a while (brand `security.clipboard.clearAfter`, by default 60
   seconds).

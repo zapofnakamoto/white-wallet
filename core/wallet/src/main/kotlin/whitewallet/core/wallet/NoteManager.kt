@@ -408,7 +408,7 @@ internal class MintReconciler(private val wallet: Wallet) {
         val output = entry.outputs.single()
         val q = ByteVector32(output.q)
         try {
-            val info = wallet.client.lookup(entry.withdrawUrl, q)
+            val info = Pinning.settling(wallet, output.accountId, entry.host, entry.withdrawUrl, q)
             val cert = info.certificate?.takeIf { certifies(it, entry.host, q, wallet.pinnedKey(output.accountId, entry.host)) }
             if (wallet.store.note(output.q) == null) {
                 wallet.store.upsertNotes(
@@ -450,6 +450,8 @@ internal class MintReconciler(private val wallet: Wallet) {
             return finish(entry, JournalStatus.Confirmed)
         } catch (e: NoteLookupError) {
             if (e.kind != RejectionKind.NoteUnknown) return JournalStatus.Unknown
+        } catch (e: MintKeyChangedException) {
+            return JournalStatus.Unknown
         } catch (e: IOException) {
             return JournalStatus.Unknown
         } catch (e: ProtocolViolation) {

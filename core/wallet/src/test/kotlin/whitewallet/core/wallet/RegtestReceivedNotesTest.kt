@@ -162,7 +162,7 @@ class RegtestReceivedNotesTest {
         }
 
     @Test
-    fun `a claim settled while its mint presents another key keeps no certificate made with that key`() =
+    fun `a claim whose answer was lost waits while its mint presents another key, and keeps no certificate made with that key`() =
         runBlocking<Unit> {
             val link = aNote()
             var loseNext = false
@@ -192,10 +192,18 @@ class RegtestReceivedNotesTest {
             connection.offline = false
             otherKey = true
             runCatching { bob.wallet.refresh() }
+            val waiting = bob.wallet.receivedNotes.first().single()
+            assertEquals(ReceivedState.Claiming, waiting.state, "an answer with another key settles nothing")
+            assertNotNull(waiting.k1, "its spend is kept")
+            assertNull(bob.store.notes(bob.wallet.activeId()).first().firstOrNull { it.amountMsat == 1_000_000L })
+
+            // The key matches again: the claim landed, with a certificate checked against the pinned key, the mint's own.
+            otherKey = false
+            bob.wallet.refresh()
             assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state)
             val note = bob.store.notes(bob.wallet.activeId()).first().single { it.state == NoteState.Outstanding }
             assertEquals(1_000_000, note.amountMsat)
-            assertNull(note.certificate, "certified by a key this wallet never accepted for the mint")
+            assertNotNull(note.certificate)
         }
 
     @Test
@@ -331,7 +339,8 @@ class RegtestReceivedNotesTest {
                 connection.worthless = true
                 runCatching { bob.wallet.refresh() }
                 val kept = bob.wallet.receivedNotes.first().single()
-                assertEquals(ReceivedState.KeyChanged, kept.state, "keyless=$keyless")
+                // The claim's outcome is open, and an answer from such a mint settles nothing: it waits for one.
+                assertEquals(ReceivedState.Claiming, kept.state, "keyless=$keyless")
                 assertNotNull(kept.k1, "its spend is kept: keyless=$keyless")
 
                 connection.changed = false

@@ -5,6 +5,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -144,6 +145,31 @@ class ParallelRefreshTest {
                     down.close()
                     assertEquals(RefreshResult(1, 4_000), phone.wallet.refresh())
                     assertEquals(4_000, phone.wallet.balanceMsat.first())
+                }
+            }
+        }
+
+    @Test
+    fun `a lane that fails lets the others finish, then the refresh fails`() =
+        runBlocking<Unit> {
+            LookupMint().use { up ->
+                LookupMint("127.0.0.1").use { broken ->
+                    val requests = Requests()
+                    val phone = phone(up, requests, broken)
+                    phone.shares(up.host)
+                    phone.shares(broken.host)
+                    up.lookups[phone.key(up.host, KeySet.Share(0), 2)] = note(4_000)
+                    val failed = CountDownLatch(1)
+                    requests.onLookup = { host, _ ->
+                        // The other lane's lookups wait until this one has failed: a scope that cancels on failure would drop them.
+                        if (host == up.host) failed.await(5, TimeUnit.SECONDS)
+                        if (host == broken.host) {
+                            failed.countDown()
+                            throw IllegalStateException("not a failure any lane expects")
+                        }
+                    }
+                    assertFailsWith<IllegalStateException> { phone.wallet.refresh() }
+                    assertEquals(4_000, phone.wallet.balanceMsat.first(), "the other lane's payment came in")
                 }
             }
         }

@@ -45,4 +45,20 @@ internal object Pinning {
         check(wallet, mint, info.mintPubkey)
         return info
     }
+
+    /**
+     * Looks [q] up at [withdrawUrl] to settle an open operation of [accountId] on [host]: an answer that carries a key is [check]ed against
+     * the one the account's wallet pinned there, if it pinned one, so a mint whose key doesn't match settles nothing.
+     */
+    suspend fun settling(wallet: Wallet, accountId: String, host: String, withdrawUrl: String, q: ByteVector32): NoteInfo {
+        val mint = wallet.mintOf(accountId, host)?.takeIf { it.mintPubkey != null } ?: return wallet.client.lookup(withdrawUrl, q)
+        val info =
+            try {
+                wallet.client.lookup(withdrawUrl, q)
+            } catch (e: InvalidMintPubkey) {
+                invalidKey(mint, e)
+            }
+        check(wallet, mint, info.mintPubkey)
+        return info
+    }
 }

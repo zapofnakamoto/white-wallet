@@ -24,9 +24,13 @@ internal class Reconciler(private val wallet: Wallet) {
     private val melts = MeltReconciler(wallet)
     private val mints = MintReconciler(wallet)
 
-    /** Settles the open operations of the accounts [accountIds]: those of the active wallet. */
+    /**
+     * Settles the open operations of the accounts [accountIds]: those of the active wallet. One on a mint whose signing key doesn't match
+     * stays open, waiting for an answer, until the key matches again or the user accepts the new one: most answers here carry no key.
+     */
     suspend fun reconcileAll(accountIds: Set<String>) {
         for (entry in wallet.store.journal(setOf(JournalStatus.Prepared, JournalStatus.Unknown)).filter { it.accountId in accountIds }) {
+            if (!wallet.keyMatches(wallet.walletOf(entry.accountId), entry.host)) continue
             when (entry.type) {
                 OperationType.Melt -> melts.reconcile(entry)
                 OperationType.Mint -> mints.reconcile(entry)
@@ -41,7 +45,7 @@ internal class Reconciler(private val wallet: Wallet) {
             var landed = false
             for (output in entry.outputs) {
                 val q = ByteVector32(output.q)
-                val info = lookup(entry.withdrawUrl, q).info ?: continue
+                val info = lookup(entry, q).info ?: continue
                 landed = true
                 val cert = info.certificate?.takeIf { certifies(it, entry.host, q, wallet.pinnedKey(output.accountId, entry.host)) }
                 if (wallet.store.note(output.q) == null) {
@@ -65,7 +69,7 @@ internal class Reconciler(private val wallet: Wallet) {
                 }
             }
             if (!landed) {
-                val inputs = entry.inputIds.map { lookup(entry.withdrawUrl, ByteVector32(it)) }
+                val inputs = entry.inputIds.map { lookup(entry, ByteVector32(it)) }
                 val live = inputs.map { it.info != null }
                 if (live.all { it }) {
                     // It never landed: the inputs are spendable again.
@@ -96,6 +100,8 @@ internal class Reconciler(private val wallet: Wallet) {
             // Still unknown; try again on the next refresh.
         } catch (e: ProtocolViolation) {
             // Same.
+        } catch (e: MintKeyChangedException) {
+            // An answer from a mint whose key doesn't match settles nothing: open until it matches, or the user accepts the new key.
         }
         if (entry.status == JournalStatus.Prepared)
             wallet.store.putJournal(entry.copy(status = JournalStatus.Unknown, updatedAtMillis = wallet.now()))
@@ -111,10 +117,13 @@ internal class Reconciler(private val wallet: Wallet) {
     /** What the mint says of a note: its [info], or none if it doesn't hold it, [burned] if it said `already in use`. */
     private class Lookup(val info: NoteInfo?, val burned: Boolean = false)
 
-    /** The note's info, or none if the mint says it is burned, unknown or spent. Other refusals are rethrown as IOException. */
-    private suspend fun lookup(withdrawUrl: String, q: ByteVector32): Lookup =
+    /**
+     * The note's info, or none if the mint says it is burned, unknown or spent. Other refusals are rethrown as IOException; an answer with
+     * another key than the pinned one as [MintKeyChangedException].
+     */
+    private suspend fun lookup(entry: JournalEntry, q: ByteVector32): Lookup =
         try {
-            Lookup(wallet.client.lookup(withdrawUrl, q))
+            Lookup(Pinning.settling(wallet, entry.accountId, entry.host, entry.withdrawUrl, q))
         } catch (e: NoteLookupError) {
             when {
                 e.burned -> Lookup(null, burned = true)

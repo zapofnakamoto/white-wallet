@@ -5,6 +5,7 @@ package whitewallet.core.wallet
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -261,6 +262,30 @@ class RegtestRecoveryTest {
             assertEquals(0, alice.wallet.unresolvedOperations())
             val renewed = alice.notes().single()
             assertTrue(renewed.id != old.id, "the note lives at the new key")
+            assertEquals(1_999_000, alice.balance())
+        }
+
+    @Test
+    fun `a rotation whose answer is lost waits while the mint's signing key doesn't match, and is settled once it matches`() =
+        runBlocking<Unit> {
+            val outage = Outage()
+            val alice = Regtest.phone(client = outage.client)
+            alice.fund(2000)
+            val old = alice.notes().single()
+            assertEquals(RotateResult.Pending, outage.during { alice.wallet.rotateNote(old.id) })
+            // The wallet pinned another key than the one the mint presents, as after the mint's key changed.
+            val pinned = assertNotNull(alice.store.mint(HOST))
+            alice.store.saveMint(pinned.copy(mintPubkey = "02" + "11".repeat(32)))
+
+            alice.wallet.refresh()
+            assertEquals(1, alice.wallet.unresolvedOperations(), "still waiting for an answer")
+            assertEquals(NoteState.Ambiguous, alice.store.note(old.id)?.state)
+            assertEquals(setOf(HOST), alice.wallet.mintsWithChangedKey.first())
+
+            alice.store.saveMint(pinned)
+            alice.wallet.refresh()
+            assertEquals(0, alice.wallet.unresolvedOperations())
+            assertTrue(alice.notes().single().id != old.id, "the note lives at the new key")
             assertEquals(1_999_000, alice.balance())
         }
 

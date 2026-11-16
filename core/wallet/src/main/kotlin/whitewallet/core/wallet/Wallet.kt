@@ -12,8 +12,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,6 +30,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -194,6 +194,17 @@ class Wallet(
     }
 
     /**
+     * Whether [host]'s signing key matches the one [walletId] pinned: an answer that carries no key, such as a note in use, is only taken
+     * from a mint whose key matches. Asked (one request) unless it matched earlier this app session; without an answer, as last compared.
+     */
+    internal suspend fun keyMatches(walletId: String, host: String): Boolean {
+        val pinned = store.mint(walletId, host)?.mintPubkey ?: return true
+        val changed = host in trust.changedKeys(walletId).first()
+        if (!changed && (walletId to host) in keysCompared.value) return true
+        return compareMintKey(walletId, host, pinned)?.not() ?: !changed
+    }
+
+    /**
      * Asks [host] for its signing key and compares it with [pinned], the one [walletId] pinned, as [Onboarding.connectMint] does: none
      * counts as another. Kept for [mintsWithChangedKey]; null, and nothing kept, if the mint can't be asked.
      */
@@ -281,9 +292,9 @@ class Wallet(
 
     /**
      * The active wallet's mints whose signing key didn't match the pinned one the last time the wallet compared them, by host; saved, so
-     * known from the first screen after a restart. Until it matches again, or the user accepts the new key, nothing is sent there and
-     * nothing is received there, and money there isn't counted as spendable. A refresh compares the mints it asks once per app session, and
-     * those whose key didn't match on each refresh ([refresh]).
+     * known from the first screen after a restart. Until it matches again, or the user accepts the new key, nothing is sent there, nothing
+     * is received there and nothing open there is settled, and money there isn't counted as spendable. A refresh compares the mints it asks
+     * once per app session, and those whose key didn't match on each refresh ([refresh]).
      */
     val mintsWithChangedKey: Flow<Set<String>> =
         activeWallet
@@ -1167,10 +1178,9 @@ class Wallet(
         if (mintOf(note.accountId, note.host) == null) return NoteCheck.Unreachable
         // A recheck only asks: whatever failure a developer armed, it goes unanswered.
         if (SimulatedFailure.takeAny()) return NoteCheck.Unreachable
+        // A note in use is told without the mint's key, and so is the outcome of a change: a mint whose key doesn't match isn't asked.
+        if (!keyMatches(walletOf(note.accountId), note.host)) return NoteCheck.KeyChanged(note.host)
         if (note.isConfirming()) return settle(note)
-        // A note in use is told without the mint's key: one whose key doesn't match isn't asked, or anyone could take notes out.
-        checkMintKey(note.host)
-        if (note.host in trust.changedKeys(walletOf(note.accountId)).first()) return NoteCheck.KeyChanged(note.host)
         val probe =
             try {
                 inspector.recheck(KeySet.of(note).key(note.accountId, note.host, note.index!!))
@@ -1270,8 +1280,9 @@ class Wallet(
      * alone: it catches up once it is active.
      *
      * The mints are asked at once, one lane per mint domain: a lane compares its mints' signing keys, then goes through the accounts that
-     * use them in turn. A mint whose key doesn't match gets none of the wallet's keys, only asked for its key again on the next refresh; a
-     * mint that doesn't answer ends its own lane alone.
+     * use them in turn. A lookup for an unused key, the answer to most of them, carries no key, so the key is compared before any lookup:
+     * once per app session, and on each refresh for a mint whose key doesn't match, which gets none of the wallet's keys. A mint that
+     * doesn't answer ends its own lane alone, and a lane that fails lets the others finish before the refresh does.
      */
     suspend fun refresh(): RefreshResult = lock.withLock { refreshUnderLock() }
 
@@ -1315,8 +1326,11 @@ class Wallet(
         val run = LookupRun(settings.scanLookupsAtOnce)
         // One lane per mint domain, all at once: mints on one domain share their keys and counters.
         val lanes = (asks.flatMap { it.hosts } + pinged).distinct().groupBy(::spendDomain).values
-        val result = coroutineScope {
-            lanes.map { hosts -> async { lane(walletOf(ids.first()), hosts, asks, active, pinged, run, start) } }.awaitAll()
+        val result = supervisorScope {
+            val asked = lanes.map { hosts -> async { lane(walletOf(ids.first()), hosts, asks, active, pinged, run, start) } }
+            // What one lane found is kept even when another fails; the failure is the refresh's once all are through.
+            asked.joinAll()
+            asked.map { it.await() }
         }
             .fold(RefreshResult(0, 0), RefreshResult::plus)
         for (id in accounts) {
@@ -1333,7 +1347,7 @@ class Wallet(
     /**
      * One mint domain's part of a refresh, beside the others: its mints' signing keys compared first (once per app session), then each
      * account in turn, then the [pinged] mints nothing heard from since [since] asked whether they are there. A mint whose key doesn't
-     * match gets none of the accounts' keys, and is named ([RefreshResult.keyChanged]). What goes wrong here stays here.
+     * match gets none of the accounts' keys, and is named ([RefreshResult.keyChanged]). A mint that doesn't answer ends only this lane.
      */
     private suspend fun lane(
         walletId: String,
@@ -1350,9 +1364,10 @@ class Wallet(
         if (silenceCounts()) {
             hosts.filter { (walletId to it) !in keysCompared.value || it in before }.forEach { askMint(walletId, it, compare = true) }
         }
-        val changed = trust.changedKeys(walletId).first()
         var result = RefreshResult(0, 0)
         for (ask in asks) {
+            // Read for each account: a note found with another key ends that mint's part of the refresh for the accounts after it too.
+            val changed = trust.changedKeys(walletId).first()
             for (address in ask.addresses.filter { it.host in hosts && it.host !in changed }) {
                 addressCheck.check(address.username, address.host, ask.accountId).let { status ->
                     if (status !is AddressStatus.CheckFailed) setAddressStatus(ask.accountId, address.address, status)
