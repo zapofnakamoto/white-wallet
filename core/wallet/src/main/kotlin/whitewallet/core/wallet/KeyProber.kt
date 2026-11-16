@@ -1,7 +1,6 @@
 package whitewallet.core.wallet
 
 import java.io.IOException
-import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -52,18 +51,20 @@ sealed interface KeyProbe {
 
 /**
  * Looks up one derived key and brings the wallet in line with the answer: an outstanding note the wallet does not know is imported, and a
- * note the wallet holds follows the mint's state (outstanding, spent, or unknown when the mint doesn't know it).
+ * note the wallet holds follows the mint's state (outstanding, spent, or unknown when the mint doesn't know it). Only at a
+ * [KeyCheckedMint]: most of these answers carry no key.
  */
 internal class KeyProber(private val wallet: Wallet) {
-    suspend fun probe(id: KeyId, mint: Mint): KeyProbe = apply(id, mint, lookup(id, mint))
+    suspend fun probe(id: KeyId, mint: KeyCheckedMint): KeyProbe = apply(id, mint, lookup(id, mint))
 
     /**
      * Only the mint's answer for [id]'s key, nothing changed in the wallet yet: a scan sends several of these at once and [apply]s the
      * answers in key order. A failure is kept as the answer, for [apply] to judge.
      */
-    suspend fun lookup(id: KeyId, mint: Mint): Result<NoteInfo> {
+    suspend fun lookup(id: KeyId, mint: KeyCheckedMint): Result<NoteInfo> {
         val q = wallet.keys(id.accountId, id.host).pubkey(id)
         return try {
+            // key-checked: a KeyCheckedMint.
             Result.success(wallet.client.lookup(mint.withdrawUrl, q))
         } catch (e: NoteLookupError) {
             Result.failure(e)
@@ -75,7 +76,7 @@ internal class KeyProber(private val wallet: Wallet) {
     }
 
     /** Brings the wallet in line with the mint's [answer] for [id] (see the class). */
-    suspend fun apply(id: KeyId, mint: Mint, answer: Result<NoteInfo>): KeyProbe {
+    suspend fun apply(id: KeyId, mint: KeyCheckedMint, answer: Result<NoteInfo>): KeyProbe {
         // A refusal is an answer; no connection, or an answer that isn't a mint's (a proxy in front of one that is down), isn't.
         wallet.heardFrom(
             id.host,
@@ -87,8 +88,8 @@ internal class KeyProber(private val wallet: Wallet) {
         val result =
             try {
                 // A key that isn't one is none: a changed key at a pinned mint, which ends the scan like any other.
-                val info = answer.getOrElse { if (it is InvalidMintPubkey) Pinning.invalidKey(mint, it) else throw it }
-                val pinned = Pinning.check(wallet, mint, info.mintPubkey)
+                val info = answer.getOrElse { if (it is InvalidMintPubkey) Pinning.invalidKey(mint.mint, it) else throw it }
+                val pinned = Pinning.check(wallet, mint.mint, info.mintPubkey)
                 val certificate =
                     info.certificate?.takeIf { certifies(it, id.host, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }
                 val existing = wallet.store.note(noteId)

@@ -283,7 +283,12 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         try {
             val q = ByteVector32(note.id)
             val pinned = wallet.mintOf(note.accountId, note.host)?.takeIf { it.mintPubkey != null }
-            if (pinned != null) Pinning.lookup(wallet, pinned, q) else wallet.client.lookup(note.withdrawUrl, q)
+            if (pinned != null) {
+                Pinning.lookup(wallet, KeyCheckedMint.of(wallet, pinned) ?: throw MintKeyChangedException(note.host), q)
+            } else {
+                // key-checked: no key is pinned for this host, so there is none to compare.
+                wallet.client.lookup(note.withdrawUrl, q)
+            }
             false
         } catch (e: NoteLookupError) {
             when {
@@ -389,10 +394,11 @@ internal sealed interface KeyLookup {
     data class Refused(val kind: RejectionKind, val reason: String?, val burned: Boolean = false) : KeyLookup
 
     /**
-     * From a mint whose key the account's wallet pinned, an answer for the note worth [amountMsat] with a `mintPubkey` that isn't a key: no
-     * key, which doesn't match the pinned one (see [Pinning.invalidKey]). From any other host, that answer is [NotANote].
+     * A mint whose key the account's wallet pinned doesn't match it: not asked ([amountMsat] null), or it answered for the note worth
+     * [amountMsat] with a `mintPubkey` that isn't a key, which is none (see [Pinning.invalidKey]). From any other host, that answer is
+     * [NotANote].
      */
-    data class KeyChanged(val amountMsat: Long) : KeyLookup
+    data class KeyChanged(val amountMsat: Long?) : KeyLookup
 
     /**
      * No answer at all; or, from a mint whose key the account's wallet pinned, none as for a note. Such a mint is never shown the link nor
@@ -404,7 +410,10 @@ internal sealed interface KeyLookup {
     companion object {
         /** Asks [withdrawUrl], the link's host [host], about the note [q] for [accountId]. */
         suspend fun of(wallet: Wallet, accountId: String, host: String, withdrawUrl: String, q: ByteVector32): KeyLookup {
-            val pinned = wallet.mintOf(accountId, host)?.mintPubkey != null
+            val mint = wallet.mintOf(accountId, host)?.takeIf { it.mintPubkey != null }
+            // Most answers carry no key: a mint whose key doesn't match isn't asked (see [KeyCheckedMint]).
+            if (mint != null && KeyCheckedMint.of(wallet, mint) == null) return KeyChanged(null)
+            val pinned = mint != null
             val found = ask(wallet, withdrawUrl, q, pinned)
             return if (pinned && (found is OtherService || found == NotANote)) Unreachable else found
         }
@@ -412,6 +421,7 @@ internal sealed interface KeyLookup {
         private suspend fun ask(wallet: Wallet, withdrawUrl: String, q: ByteVector32, pinned: Boolean): KeyLookup {
             val answer =
                 try {
+                    // key-checked: by [of], before asking.
                     wallet.client.get(Requests.lookup(withdrawUrl, q))
                 } catch (e: IOException) {
                     return Unreachable

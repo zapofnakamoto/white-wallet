@@ -1,6 +1,7 @@
 package whitewallet.core.wallet
 
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -21,6 +22,8 @@ internal class LookupMint(private val hostName: String = "localhost") : AutoClos
 
     /** Answers by note key (hex). */
     val lookups = ConcurrentHashMap<String, String>()
+    /** Lookups by `p` it answered so far. */
+    val lookupsAsked = AtomicInteger()
     @Volatile var callback = error("pending")
     /** Runs as a mutation arrives, before its answer goes out. */
     @Volatile var onCallback: () -> Unit = {}
@@ -41,6 +44,7 @@ internal class LookupMint(private val hostName: String = "localhost") : AutoClos
                         "/.well-known/lnurlw/mint" -> MockResponse(body = withdrawRequest(base, 0, 1000))
                         "/w" -> {
                             val q = url.queryParameter("p")?.let { Cp1.decode(it)?.toHex() }
+                            if (q != null) lookupsAsked.incrementAndGet()
                             val answer = q?.let { lookups[it] } ?: error("Unknown note.")
                             MockResponse(body = answer.replace(BASE, base))
                         }

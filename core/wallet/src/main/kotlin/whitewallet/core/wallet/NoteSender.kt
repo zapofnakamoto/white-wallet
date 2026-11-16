@@ -295,9 +295,11 @@ internal class NoteSender(private val wallet: Wallet) {
      * note in the mint's own words proves nothing: unreadable, like any other refusal.
      */
     private suspend fun check(note: Note): Check {
-        val mint = wallet.mintOf(note.accountId, note.host) ?: return Check.Unreadable
+        val known = wallet.mintOf(note.accountId, note.host) ?: return Check.Unreadable
+        // A mint whose key doesn't match can't tell: its answers about a link carry no key.
+        val mint = KeyCheckedMint.of(wallet, known) ?: return Check.Unreadable
         try {
-            wallet.client.lookup(mint.withdrawUrl, ByteVector32(note.id))
+            Pinning.lookup(wallet, mint, ByteVector32(note.id))
             return confirmed(note)
         } catch (e: NoteLookupError) {
             when {
@@ -312,6 +314,8 @@ internal class NoteSender(private val wallet: Wallet) {
         } catch (e: IOException) {
             return Check.Offline
         } catch (e: ProtocolViolation) {
+            return Check.Unreadable
+        } catch (e: MintKeyChangedException) {
             return Check.Unreadable
         }
         wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Spent, updatedAtMillis = wallet.now())))

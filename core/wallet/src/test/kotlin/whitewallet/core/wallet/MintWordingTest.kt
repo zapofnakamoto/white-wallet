@@ -42,16 +42,17 @@ class MintWordingTest {
                 val id = KeySet.Wallet.key(accountId, mint.host, 900)
                 val q = held(wallet, id, NoteState.Outstanding)
                 val prober = KeyProber(wallet)
+                val checked = assertNotNull(KeyCheckedMint.of(wallet, wallet.mintOf(accountId, mint.host)!!))
                 for (reason in WORDING + OTHERS) {
                     mint.lookups[q] = error(reason)
-                    assertIs<KeyProbe.Refused>(prober.probe(id, wallet.mintOf(accountId, mint.host)!!), reason)
+                    assertIs<KeyProbe.Refused>(prober.probe(id, checked), reason)
                     assertEquals(NoteState.Outstanding, wallet.store.note(q)?.state, reason)
                 }
                 mint.lookups[q] = error("Unknown note.")
-                assertIs<KeyProbe.Unused>(prober.probe(id, wallet.mintOf(accountId, mint.host)!!))
+                assertIs<KeyProbe.Unused>(prober.probe(id, checked))
                 assertEquals(NoteState.Unknown, wallet.store.note(q)?.state, "set aside, never dropped")
                 mint.lookups[q] = error("already in use")
-                assertIs<KeyProbe.Spent>(prober.probe(id, wallet.mintOf(accountId, mint.host)!!))
+                assertIs<KeyProbe.Spent>(prober.probe(id, checked))
                 assertEquals(NoteState.Spent, wallet.store.note(q)?.state)
             }
         }

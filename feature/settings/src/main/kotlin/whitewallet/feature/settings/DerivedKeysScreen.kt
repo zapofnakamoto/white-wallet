@@ -41,8 +41,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -106,6 +108,8 @@ data class DerivedKeysState(
     val tabsLoaded: Boolean = true,
     /** The index and the keys are those of [host] and [set]: false while they are read; then neither is drawn. */
     val loaded: Boolean = true,
+    /** [host]'s signing key doesn't match the pinned one: nothing is looked up there, so what would ask it is off. */
+    val keyChanged: Boolean = false,
 ) {
     /** The tabs: the account's LUD-26 chains and shares. */
     val sets: List<KeySet>
@@ -168,6 +172,9 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
                 .debounce(SYNC_DEBOUNCE_MILLIS)
                 .collect { reload() }
         }
+        // The mint's key is compared once it is picked, so the page says up front when it doesn't match; read with the keys (reload).
+        viewModelScope.launch { _state.map { it.host }.distinctUntilChanged().filterNotNull().collectLatest(wallet::checkMintKey) }
+        viewModelScope.launch { wallet.mintsWithChangedKey.drop(1).collect { reload() } }
     }
 
     fun selectHost(host: String) = update {
@@ -185,23 +192,23 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
         if (gap == null) _state.update { it.copy(gapInput = digits) } else update { copy(gapInput = digits, gapLimit = gap) }
     }
 
-    /** From the index until gap unused keys follow the last used one. */
+    /** From the index until gap unused keys follow the last used one. A mint whose key doesn't match says so above instead. */
     fun scanAhead() = action { s ->
         val result = wallet.scanKeysAhead(s.host!!, s.set, s.gapLimit)
-        _state.update { it.copy(indexMessage = IndexMessage.Scanned(result)) }
+        _state.update { it.copy(indexMessage = IndexMessage.Scanned(result).takeUnless { result.keyChanged }) }
     }
 
     /** From 0 until gap unused keys follow the last used one (at least index + gap). */
     fun recheckAll() = action { s ->
         val result = wallet.recheckAllKeys(s.host!!, s.set, s.gapLimit)
-        _state.update { it.copy(indexMessage = IndexMessage.Scanned(result)) }
+        _state.update { it.copy(indexMessage = IndexMessage.Scanned(result).takeUnless { result.keyChanged }) }
     }
 
     fun recheck(index: Long) = action { s -> wallet.recheckKey(s.host!!, s.set, index) }
 
     fun findIndex() = action { s ->
         val result = wallet.findKeyIndex(s.host!!, s.set, s.gapLimit)
-        _state.update { it.copy(indexMessage = IndexMessage.Found(result)) }
+        _state.update { it.copy(indexMessage = IndexMessage.Found(result).takeUnless { result.keyChanged }) }
     }
 
     fun openSetIndex() = _state.update { it.copy(setIndexInput = it.index.toString()) }
@@ -279,10 +286,20 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
         val shares = wallet.addressShares(host)
         val health = wallet.keyIndexHealth(host, s.set)
         val keys = wallet.derivedKeys(host, s.set, s.gapLimit)
+        val keyChanged = host in wallet.mintsWithChangedKey.first()
         _state.update {
             // Another mint or tab was picked meanwhile: what was read is not what it shows; its own reload follows.
             if (it.host != host || it.set != s.set) it
-            else it.copy(indexes = indexes, shares = shares, keys = keys, health = health, tabsLoaded = true, loaded = true)
+            else
+                it.copy(
+                    indexes = indexes,
+                    shares = shares,
+                    keys = keys,
+                    health = health,
+                    keyChanged = keyChanged,
+                    tabsLoaded = true,
+                    loaded = true,
+                )
         }
     }
 
@@ -382,6 +399,7 @@ fun DerivedKeysScreen(
                     key,
                     expanded = state.expanded == key.id.index,
                     busy = state.busy,
+                    keyChanged = state.keyChanged,
                     onToggle = { onToggle(key.id.index) },
                     onRecheck = { onRecheck(key.id.index) },
                     onRotate = { rotate.onAsk(key.id.index) },
@@ -416,24 +434,33 @@ private fun IndexCard(state: DerivedKeysState, onRotateAll: () -> Unit, index: I
                 )
             }
             state.health?.let { HealthText(it) }
+            if (state.keyChanged) {
+                Text(
+                    stringResource(R.string.mint_key_changed, state.host.orEmpty()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             state.indexMessage?.let { IndexMessageText(it) }
             state.lastRotate?.let { RotateOutcomeText(it) }
             val enabled = !state.busy && state.host != null
+            // What would ask the mint: nothing is asked of one whose key doesn't match.
+            val asks = enabled && !state.keyChanged
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WalletButton(kind = ButtonKind.Secondary, onClick = index.onScanAhead, enabled = enabled) {
+                WalletButton(kind = ButtonKind.Secondary, onClick = index.onScanAhead, enabled = asks) {
                     Text(stringResource(R.string.keys_scan_ahead, n))
                 }
-                WalletButton(kind = ButtonKind.Secondary, onClick = index.onRecheckAll, enabled = enabled) {
+                WalletButton(kind = ButtonKind.Secondary, onClick = index.onRecheckAll, enabled = asks) {
                     Text(stringResource(R.string.keys_recheck_all))
                 }
-                WalletButton(kind = ButtonKind.Secondary, onClick = index.onFind, enabled = enabled) {
+                WalletButton(kind = ButtonKind.Secondary, onClick = index.onFind, enabled = asks) {
                     Text(stringResource(R.string.keys_find_index))
                 }
                 WalletButton(kind = ButtonKind.Secondary, onClick = index.onOpenSet, enabled = enabled) {
                     Text(stringResource(R.string.keys_set_index))
                 }
                 if (state.rotatable.isNotEmpty()) {
-                    WalletButton(kind = ButtonKind.Secondary, onClick = onRotateAll, enabled = enabled) {
+                    WalletButton(kind = ButtonKind.Secondary, onClick = onRotateAll, enabled = asks) {
                         Text(stringResource(R.string.keys_renew_all, state.rotatable.size))
                     }
                 }
@@ -587,6 +614,7 @@ private fun KeyRow(
     key: DerivedKey,
     expanded: Boolean,
     busy: Boolean,
+    keyChanged: Boolean,
     onToggle: () -> Unit,
     onRecheck: () -> Unit,
     onRotate: () -> Unit,
@@ -612,9 +640,10 @@ private fun KeyRow(
             Text(key.cp1, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
             if (key.failure == null || key.probe != null) Text(lookupText(key.probe), style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WalletButton(kind = ButtonKind.Text, onClick = onRecheck, enabled = !busy) { Text(stringResource(R.string.keys_recheck)) }
+                val asks = !busy && !keyChanged
+                WalletButton(kind = ButtonKind.Text, onClick = onRecheck, enabled = asks) { Text(stringResource(R.string.keys_recheck)) }
                 if (key.noteState == NoteState.Outstanding) {
-                    WalletButton(kind = ButtonKind.Text, onClick = onRotate, enabled = !busy) { Text(stringResource(R.string.keys_renew)) }
+                    WalletButton(kind = ButtonKind.Text, onClick = onRotate, enabled = asks) { Text(stringResource(R.string.keys_renew)) }
                 }
                 WalletButton(
                     kind = ButtonKind.Text,

@@ -21,7 +21,8 @@ internal class UnknownNotes(private val wallet: Wallet) {
      * empty when every note is still there (the refusal had another reason), the mint didn't answer, or answered in other words.
      */
     suspend fun sortOut(notes: List<Note>): List<String> {
-        val mint = notes.firstOrNull()?.let { wallet.mintOf(it.accountId, it.host) } ?: return emptyList()
+        val known = notes.firstOrNull()?.let { wallet.mintOf(it.accountId, it.host) } ?: return emptyList()
+        val mint = KeyCheckedMint.of(wallet, known) ?: return emptyList()
         return notes
             .filter { note ->
                 if (note.purpose == null) return@filter false
@@ -55,11 +56,13 @@ internal class UnknownNotes(private val wallet: Wallet) {
             }
         for (note in due) {
             wallet.unknownCheckedAt[note.id] = now
+            // Nothing is asked of a mint whose key doesn't match; the user decides first.
+            val mint = KeyCheckedMint.of(wallet, wallet.mintOf(accountId, note.host)!!) ?: continue
             try {
-                val probe = prober.probe(KeySet.of(note).key(accountId, note.host, note.index!!), wallet.mintOf(accountId, note.host)!!)
+                val probe = prober.probe(KeySet.of(note).key(accountId, note.host, note.index!!), mint)
                 if (probe is KeyProbe.Unused) wallet.unknownAnsweredAt.update { it + (note.id to now) }
             } catch (e: MintKeyChangedException) {
-                // Nothing is asked of a mint with another key; the user decides first.
+                // Its key changed with this answer: the same.
             }
         }
     }

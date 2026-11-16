@@ -181,7 +181,9 @@ A note of the wallet's own (`NoteState`). Only `Outstanding` counts in the balan
 
 A mint whose signing key doesn't match leaves its notes' states as they are (still in the balance); every action on
 them is refused, an operation waiting for an answer there stays waiting, and refreshes only ask that mint for its key,
-until the key matches again or the user accepts the new one.
+until the key matches again or the user accepts the new one. No note is looked up there, on any page: most answers to a
+lookup carry no key (a note in use, one the mint doesn't know), so a note is only looked up at a mint whose key was
+compared first (`KeyCheckedMint`; `dev/check-lookups.sh` finds a lookup that skips it).
 
 A note someone hands over (`ReceivedState`). It is kept with its spend and isn't in the balance until `Claimed`.
 
@@ -189,7 +191,7 @@ A note someone hands over (`ReceivedState`). It is kept with its spend and isn't
 |---|---|---|
 | `Waiting` | Its mint couldn't be reached. | Tried again on every refresh; `Archived` once the give-up time (brand `notes.received.giveUpAfter`, by default 7 days) has passed without success. |
 | `Locked` | Its spend claims a time its mint hasn't reached yet. | Tried again once the lock may have passed. |
-| `KeyChanged` | Its mint's signing key doesn't match the pinned one; the spend isn't sent. | The user accepts the new key; until then it is looked up by its key alone on every refresh. |
+| `KeyChanged` | Its mint's signing key doesn't match the pinned one; the spend isn't sent. | The key matches again, or the user accepts the new one; until then every refresh asks its mint for its key, not about the note. |
 | `LightningOnly` | Its mint has no signing key, or the link isn't a note its host answers for: it can only come in over Lightning into a mint of the account, for a fee. | The user agrees to the fee (`Melting`). Not tried by itself. |
 | `Claiming` | A claim was sent; its outcome is unknown. | Settled with the mint's answer to the claim, or, when there was none, by asking the mint: `Claimed` if our new note is there, back to `Waiting` if the received note is still there, `Gone` if neither, `KeyChanged` if the key doesn't match. Stays while the mint can't be asked. |
 | `Melting` | Coming in over Lightning: its spend went to its service with an invoice of the wallet. | The wallet's invoice is paid (`Claimed`) or expires unpaid (back to `LightningOnly`). |

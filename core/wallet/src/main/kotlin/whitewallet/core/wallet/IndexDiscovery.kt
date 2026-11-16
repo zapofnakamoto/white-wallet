@@ -5,7 +5,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
-import whitewallet.core.model.Mint
 import whitewallet.core.model.OutputRef
 import whitewallet.lnurlcash.spendDomain
 
@@ -77,7 +76,9 @@ internal class IndexDiscovery(private val wallet: Wallet) {
         onProbe: suspend (index: Long, KeyProbe) -> Unit = { _, _ -> },
     ): DiscoveryResult {
         val current = wallet.store.indexOf(accountId, host, set)
-        val mint = wallet.mintOf(accountId, host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
+        val known = wallet.mintOf(accountId, host) ?: return DiscoveryResult(current, 0, 0, "unknown host $host")
+        val mint =
+            KeyCheckedMint.of(wallet, known) ?: return DiscoveryResult(current, 0, 0, MINT_KEY_CHANGED, refused = true, keyChanged = true)
         var lastUsed = from?.let { it - 1 } ?: highestKnownUsed(accountId, host, set)
         var index = lastUsed + 1
         // Stopped early: what it found until then stays found, so the next look goes on past it. The index never goes back.
@@ -144,7 +145,7 @@ internal class IndexDiscovery(private val wallet: Wallet) {
      * and applies each answer ([KeyProber.apply]): one burned elsewhere is spent, one the mint doesn't know is set aside. A refusal is that
      * note's alone. False if the mint stopped answering or presented another signing key; the rest weren't looked up.
      */
-    suspend fun recheck(ids: List<KeyId>, mint: Mint, run: LookupRun, onProbe: (KeyProbe) -> Unit = {}): Boolean {
+    suspend fun recheck(ids: List<KeyId>, mint: KeyCheckedMint, run: LookupRun, onProbe: (KeyProbe) -> Unit = {}): Boolean {
         var next = 0
         while (next < ids.size) {
             val atOnce = run.atOnce(mint.host)

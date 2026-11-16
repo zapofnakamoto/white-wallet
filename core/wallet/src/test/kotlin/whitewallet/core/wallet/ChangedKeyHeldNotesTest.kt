@@ -2,10 +2,13 @@
 
 package whitewallet.core.wallet
 
+import fr.acinq.bitcoin.PrivateKey
+import java.security.SecureRandom
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -16,10 +19,14 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.OutputRef
+import whitewallet.core.model.ReceivedNote
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.LookupMint.Companion.error
 import whitewallet.core.wallet.LookupMint.Companion.note
 import whitewallet.lnurlcash.RevealsNoteSecret
+import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
+import whitewallet.lnurlcash.spendDomain
 
 /**
  * A mint whose signing key doesn't match the pinned one never changes what the wallet holds there: an answer that a note is already in use
@@ -98,6 +105,112 @@ class ChangedKeyHeldNotesTest {
                 assertEquals(NoteState.Ambiguous, wallet.store.note(input)?.state)
             }
         }
+
+    @Test
+    fun `the developer key page looks nothing up on a mint whose signing key changed`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, held) = walletHolding(mint)
+                val asked = mint.lookupsAsked.get()
+                assertNull(wallet.recheckKey(mint.host, KeySet.Wallet, 0))
+                assertTrue(wallet.scanKeysAhead(mint.host, KeySet.Wallet).keyChanged)
+                assertTrue(wallet.recheckAllKeys(mint.host, KeySet.Wallet).keyChanged)
+                assertTrue(wallet.findKeyIndex(mint.host, KeySet.Wallet).keyChanged)
+                assertEquals(asked, mint.lookupsAsked.get(), "no key was looked up")
+                assertEquals(NoteState.Outstanding, wallet.store.note(held)?.state)
+            }
+        }
+
+    @Test
+    fun `a refresh leaves a note set aside as unknown on a mint whose signing key changed as it is`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, held) = walletHolding(mint, NoteState.Unknown)
+                wallet.refresh()
+                assertEquals(NoteState.Unknown, wallet.store.note(held)?.state)
+            }
+        }
+
+    @Test
+    fun `a refresh leaves a link sent on a mint whose signing key changed open`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, sent) = walletHolding(mint, NoteState.Shared)
+                wallet.refresh()
+                assertEquals(NoteState.Shared, wallet.store.note(sent)?.state)
+                wallet.checkSharedNote(sent)
+                assertEquals(NoteState.Shared, wallet.store.note(sent)?.state)
+            }
+        }
+
+    @Test
+    fun `a refresh keeps the spend of a received note whose claim was refused on a mint whose signing key changed`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, held) = walletHolding(mint)
+                val accountId = assertNotNull(wallet.store.note(held)).accountId
+                val received = claimingReceived(wallet, accountId, mint)
+                mint.lookups[received.id] = error("already in use")
+                wallet.refresh()
+                val after = assertNotNull(wallet.store.receivedNote(received.id))
+                assertEquals(ReceivedState.KeyChanged, after.state)
+                assertNotNull(after.k1, "its spend is kept")
+            }
+        }
+
+    @Test
+    fun `renewing a note on a mint whose signing key changed sends nothing and leaves it as it is`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, held) = walletHolding(mint)
+                val asked = mint.lookupsAsked.get()
+                wallet.rotateNote(held)
+                assertEquals(asked, mint.lookupsAsked.get(), "no key was looked up")
+                assertEquals(0, mint.callbacks)
+                assertEquals(NoteState.Outstanding, wallet.store.note(held)?.state)
+            }
+        }
+
+    /** Someone else's note on [mint], received by [accountId], whose claim was sent and refused. */
+    private suspend fun claimingReceived(wallet: Wallet, accountId: String, mint: LookupMint): ReceivedNote {
+        val spend = Spend.keyPath(PrivateKey(ByteArray(32).also(SecureRandom()::nextBytes)), spendDomain(mint.host))
+        val claim =
+            JournalEntry(
+                "claim",
+                accountId,
+                OperationType.Rotate,
+                mint.host,
+                mint.withdrawUrl,
+                listOf(spend.q.toHex()),
+                emptyList(),
+                emptyList(),
+                "",
+                JournalStatus.Rejected,
+                null,
+                clock,
+                clock,
+            )
+        wallet.store.putJournal(claim)
+        val note =
+            ReceivedNote(
+                spend.q.toHex(),
+                accountId,
+                mint.host,
+                mint.withdrawUrl,
+                spend.k1,
+                certificate = null,
+                declaredMsat = null,
+                amountMsat = null,
+                lockedUntilMillis = null,
+                lockedForSeconds = null,
+                state = ReceivedState.Claiming,
+                journalId = claim.id,
+                receivedAtMillis = clock,
+                updatedAtMillis = clock,
+            )
+        wallet.store.putReceivedNote(note)
+        return note
+    }
 
     /** A rotation of [input] whose answer never came: its journal entry's id, and its output's key. */
     private suspend fun openChange(wallet: Wallet, mint: LookupMint, input: String): Pair<String, String> {

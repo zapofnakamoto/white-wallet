@@ -1,7 +1,6 @@
 package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.PublicKey
-import java.io.IOException
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
@@ -11,8 +10,6 @@ import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLink
-import whitewallet.lnurlcash.protocol.NoteLookupError
-import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
 import whitewallet.lnurlcash.spendDomain
 
@@ -49,9 +46,10 @@ sealed interface ClaimPreview {
 
     /**
      * Its mint ([host]) presents another signing key than the one pinned for it, so the spend isn't sent there. Kept, it is claimed once
-     * the user accepts the new key (the mint's details). [amountMsat] is what the mint says now.
+     * the user accepts the new key (the mint's details). [amountMsat] is what the mint says now; null when it wasn't asked, as its key
+     * didn't match before.
      */
-    data class KeyChanged(override val link: NoteLink, val host: String, val amountMsat: Long) : Keepable
+    data class KeyChanged(override val link: NoteLink, val host: String, val amountMsat: Long?) : Keepable
 
     /** A script note whose spend doesn't satisfy its script, or claims a time no mint honours (a block height). */
     data object NotSpendable : ClaimPreview
@@ -137,7 +135,7 @@ internal class NoteClaimer(private val wallet: Wallet) {
         val shared = mine?.takeIf { it.accountId == accountId && it.state.isShared }
         if (wallet.store.receivedNote(spend.q.toHex())?.state == ReceivedState.Claimed) return ClaimPreview.AlreadyInWallet
         // A lock by date still ahead: no use asking with the spend, the mint refuses it until then.
-        if (script?.lockedUntilSeconds?.let { it * 1000 > wallet.now() } == true) return locked(link, script)
+        if (script?.lockedUntilSeconds?.let { it * 1000 > wallet.now() } == true) return locked(link, script, accountId)
         // Asked by the note's key alone: the spend goes out only with the claim, to a mint with the pinned key. A wait
         // after crediting is the mint's to judge then; its refusal keeps the note as locked.
         val found = KeyLookup.of(wallet, accountId, link.host, link.withdrawUrl, spend.q)
@@ -216,18 +214,16 @@ internal class NoteClaimer(private val wallet: Wallet) {
                 ClaimResult.Kept(received.keep(preview.link, accountId, preview.amountMsat, ReceivedState.KeyChanged))
         }
 
-    /** A locked note: what it is worth is asked by its key alone, which the mint answers whatever the lock. */
-    private suspend fun locked(link: NoteLink, script: Spend.Script): ClaimPreview {
+    /**
+     * A locked note: what it is worth is asked by its key alone, which the mint answers whatever the lock; not at all at a mint whose key
+     * doesn't match.
+     */
+    private suspend fun locked(link: NoteLink, script: Spend.Script, accountId: String): ClaimPreview {
         val amount =
-            try {
-                wallet.client.lookup(link.withdrawUrl, script.q).maxWithdrawableMsat
-            } catch (e: NoteLookupError) {
-                if (e.burned) return ClaimPreview.AlreadySpent
-                null
-            } catch (e: ProtocolViolation) {
-                null
-            } catch (e: IOException) {
-                null
+            when (val found = KeyLookup.of(wallet, accountId, link.host, link.withdrawUrl, script.q)) {
+                is KeyLookup.Note -> found.info.maxWithdrawableMsat
+                is KeyLookup.Refused -> if (found.burned) return ClaimPreview.AlreadySpent else null
+                else -> null
             }
         return ClaimPreview.Locked(link, script.lockedUntilSeconds?.let { it * 1000 }, script.lockedForSeconds, amount)
     }

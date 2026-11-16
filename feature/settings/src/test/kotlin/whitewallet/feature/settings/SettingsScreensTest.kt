@@ -116,6 +116,19 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun theKeyPageAsksNothingOfAMintWhoseSigningKeyDoesNotMatch() {
+        val index = IndexActions({}, {}, {}, {}, {}, {}, {}, {})
+        val state = DerivedKeysState(hosts = listOf("mint.example"), host = "mint.example", keyChanged = true)
+        compose.setContent { DerivedKeysScreen(state, {}, {}, {}, {}, {}, index, RotateActions({}, {}, {}, {})) }
+        compose.onNodeWithText(text(R.string.mint_key_changed, "mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.keys_scan_ahead, 0)).assertIsNotEnabled()
+        compose.onNodeWithText(text(R.string.keys_recheck_all)).assertIsNotEnabled()
+        compose.onNodeWithText(text(R.string.keys_find_index)).assertIsNotEnabled()
+        // Setting the index by hand asks nothing.
+        compose.onNodeWithText(text(R.string.keys_set_index)).assertIsEnabled()
+    }
+
+    @Test
     fun aChangedSigningKeyIsAWarning() {
         compose.setContent {
             MintDetailsScreen(

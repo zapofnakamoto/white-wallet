@@ -78,7 +78,8 @@ internal class NoteMutator(private val wallet: Wallet) {
         outputs: List<OutputSpec>,
         splitMsat: Long? = null,
     ): MutationResult {
-        val mint = wallet.mintOf(fromId, host) ?: return MutationResult.Unreachable("unknown host $host")
+        val known = wallet.mintOf(fromId, host) ?: return MutationResult.Unreachable("unknown host $host")
+        val mint = KeyCheckedMint.of(wallet, known) ?: return MutationResult.Unreachable(MINT_KEY_CHANGED, keyChanged = true)
         val domain = spendDomain(host)
         val keys = wallet.keys(fromId, host)
         val spends = inputs.map { note -> keys.spend(note, domain) }

@@ -83,7 +83,9 @@ internal class Melter(private val wallet: Wallet) {
         beforeSend: suspend (journalId: String) -> Unit,
         request: (NoteInfo, String) -> String,
     ): MeltOutcome {
-        val mint = wallet.mintOf(accountId, host) ?: return MeltOutcome.Unreachable
+        val known = wallet.mintOf(accountId, host) ?: return MeltOutcome.Unreachable
+        // Nothing is paid through a mint with another signing key than the pinned one, or none (or one that isn't a key).
+        val mint = KeyCheckedMint.of(wallet, known) ?: return MeltOutcome.KeyChanged
         val spend = wallet.keys(accountId, host).spend(note, spendDomain(host))
         val info =
             try {

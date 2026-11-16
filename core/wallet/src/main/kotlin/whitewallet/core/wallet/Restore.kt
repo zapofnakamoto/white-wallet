@@ -161,7 +161,8 @@ internal class Restore(private val wallet: Wallet) {
         run: LookupRun,
         onChecked: (checked: Int, total: Int) -> Unit = { _, _ -> },
     ): Boolean {
-        val mint = wallet.store.mint(walletId, host) ?: return true
+        val known = wallet.store.mint(walletId, host) ?: return true
+        val mint = KeyCheckedMint.of(wallet, known) ?: return false
         val accounts = wallet.store.accounts.first().map { it.account }.filter { it.walletId == walletId }
         val ids = accounts.flatMap { account ->
             wallet.store

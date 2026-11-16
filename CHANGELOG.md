@@ -137,6 +137,16 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- Other paths still asked a mint whose signing key no longer matches about notes, and took its answers, most of which
+  carry no key: a refresh turned a note set aside as unknown into a spent one, and closed a sent link as claimed;
+  a kept link went to "spent" and lost its spend; renewing a note there looked it up first, and took it out of the
+  balance when the answer called it used; the keys page (developer options) did the same. A note is now
+  only looked up at a mint whose key was compared first, on every path: such a mint's notes, links and kept links
+  stay as they are until the key matches again or the new key is accepted. A kept link there shows the amount the link
+  states, as the mint isn't asked; the keys page says the key doesn't match and turns off what would ask the mint.
+- For developers: `dev/check-lookups.sh` (in `just check` and CI) fails on a note lookup that skips the key check;
+  `KeyCheckedMint` is what `KeyProber`, `IndexDiscovery` and `Pinning.lookup` take. `KeyScanResult.keyChanged`,
+  `Wallet.recheckKey` returns null when the key doesn't match, `ClaimPreview.KeyChanged.amountMsat` is nullable.
 - Checking notes (one note, or all of them in the notes view) asked a mint whose signing key no longer matches about
   them, and its answer that a note was already in use took the note out of the balance: that answer carries no key, so
   a server with another key in the mint's place could do so. The key is now compared first, and such a mint's notes stay as

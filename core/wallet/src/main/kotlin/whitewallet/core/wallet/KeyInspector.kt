@@ -64,7 +64,7 @@ sealed interface KeyStatus {
 
 /**
  * One scan over keys [from] until [until] (exclusive; where it actually ended, since a scan runs on past every used key it finds);
- * [indexAfter] is the tab's index once it finished.
+ * [indexAfter] is the tab's index once it finished. [keyChanged]: the mint's signing key doesn't match, so it stopped there.
  */
 data class KeyScanResult(
     val from: Long,
@@ -74,6 +74,7 @@ data class KeyScanResult(
     val imported: Int,
     val stoppedEarly: String?,
     val indexAfter: Long,
+    val keyChanged: Boolean = false,
 )
 
 sealed interface SetIndexResult {
@@ -150,30 +151,31 @@ internal class KeyInspector(private val wallet: Wallet) {
      * the index past it. Stops early if the mint stops answering or after [WalletSettings.keyScreenMaxKeysScanned] keys.
      */
     private suspend fun scan(accountId: String, host: String, set: KeySet, from: Long, until: Long, gap: Int): KeyScanResult {
-        val mint =
-            wallet.mintOf(accountId, host)
-                ?: return KeyScanResult(
-                    from,
-                    until,
-                    checked = 0,
-                    outstanding = 0,
-                    imported = 0,
-                    stoppedEarly = "unknown host",
-                    indexAfter = index(accountId, host, set),
-                )
+        suspend fun none(reason: String, keyChanged: Boolean) =
+            KeyScanResult(from, until, checked = 0, outstanding = 0, imported = 0, reason, index(accountId, host, set), keyChanged)
+        val known = wallet.mintOf(accountId, host) ?: return none("unknown host", false)
+        val mint = KeyCheckedMint.of(wallet, known) ?: return none(MINT_KEY_CHANGED, true)
         var end = until
         var checked = 0
         var outstanding = 0
         var imported = 0
         var lastUsed = -1L
         var stopped: String? = null
+        var keyChanged = false
         var index = from
         while (index < end) {
             if (checked == wallet.settings.keyScreenMaxKeysScanned) {
                 stopped = "stopped after $checked keys"
                 break
             }
-            val probe = prober.probe(set.key(accountId, host, index), mint)
+            val probe =
+                try {
+                    prober.probe(set.key(accountId, host, index), mint)
+                } catch (e: MintKeyChangedException) {
+                    keyChanged = true
+                    stopped = MINT_KEY_CHANGED
+                    break
+                }
             checked++
             when (probe) {
                 is KeyProbe.Outstanding -> {
@@ -200,11 +202,14 @@ internal class KeyInspector(private val wallet: Wallet) {
             imported,
             stoppedEarly = stopped,
             indexAfter = index(accountId, host, set),
+            keyChanged,
         )
     }
 
+    /** Looks [id] up; [MintKeyChangedException] if its mint's signing key doesn't match, and nothing is asked. */
     suspend fun recheck(id: KeyId): KeyProbe {
-        val mint = checkNotNull(wallet.mintOf(id.accountId, id.host)) { "unknown host ${id.host}" }
+        val known = checkNotNull(wallet.mintOf(id.accountId, id.host)) { "unknown host ${id.host}" }
+        val mint = KeyCheckedMint.of(wallet, known) ?: throw MintKeyChangedException(id.host)
         return prober.probe(id, mint).also {
             if (it is KeyProbe.Outstanding || it is KeyProbe.Spent) advanceIndex(id.accountId, id.host, id.set, id.index)
         }

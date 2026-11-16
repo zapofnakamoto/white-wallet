@@ -997,9 +997,11 @@ class Wallet(
                 .filter { it.account.walletId == mint.walletId }
                 .flatMap { store.notes(it.account.id).first() }
                 .filter { it.host == mint.host && it.kind == NoteKind.KeyPath && it.state != NoteState.Spent }
+        // Just accepted, so its key matches: no request.
+        val checked = KeyCheckedMint.of(this, mint.copy(mintPubkey = key.toHex())) ?: return
         val updated = held.mapNotNull { note ->
             val q = ByteVector32(note.id)
-            val info = runCatching { client.lookup(mint.withdrawUrl, q) }.getOrNull() ?: return@mapNotNull null
+            val info = runCatching { Pinning.lookup(this, checked, q) }.getOrNull() ?: return@mapNotNull null
             val certificate = info.certificate?.takeIf { certifies(it, mint.host, q, key) && it.amountMsat == info.maxWithdrawableMsat }
             note.copy(certificate = certificate?.encode(), updatedAtMillis = now())
         }
@@ -1570,8 +1572,13 @@ class Wallet(
         inspector.scanAhead(activeId(), host, set, gap)
     }
 
-    suspend fun recheckKey(host: String, set: KeySet, index: Long): KeyProbe = lock.withLock {
-        inspector.recheck(set.key(activeId(), host, index))
+    /** Looks one key up; null if [host]'s signing key doesn't match, and nothing is asked. */
+    suspend fun recheckKey(host: String, set: KeySet, index: Long): KeyProbe? = lock.withLock {
+        try {
+            inspector.recheck(set.key(activeId(), host, index))
+        } catch (e: MintKeyChangedException) {
+            null
+        }
     }
 
     /** Finds the right index for [set] on [host] (lookups past the highest used key, gap limit 20) and sets it. */

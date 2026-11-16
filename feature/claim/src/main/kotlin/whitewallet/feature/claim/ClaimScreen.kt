@@ -403,7 +403,9 @@ private fun KeepCard(preview: ClaimPreview.Keepable, offline: Boolean) {
                     is ClaimPreview.Locked ->
                         preview.amountMsat?.let { formatAmount(it) }
                             ?: preview.link.declaredAmountMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
-                    is ClaimPreview.KeyChanged -> formatAmount(preview.amountMsat)
+                    is ClaimPreview.KeyChanged ->
+                        preview.amountMsat?.let { formatAmount(it) }
+                            ?: preview.link.declaredAmountMsat?.let { stringResource(R.string.claim_amount_declared, formatAmount(it)) }
                 }
             amount?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
             Text(
