@@ -233,9 +233,11 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     amount and timing give it away. Costs a fee per rotation, a new purpose that restore and scan must walk (with gap
     rules), and a pattern the mint can link to one wallet. Could be a second key-trust strategy. Raised 2026-11-16.
 28. **What LUD-25 could do about impersonators.** Proposals to bring to lnurl/luds#301, strongest first:
-      - Authorize a mutation by a signature over its outputs (or the melt's invoice) with the note's key, instead of
-    sending `k1`: someone in between can then only pass it on or drop it, never spend it elsewhere. Note links stay
-    LNURL-withdraw with a bearer `k1` for wallets that don't know LNURLcash; only the owner's own mutations change.
+      - Let a `ck1` commit to its mutation. Today it signs the canonical spend transaction, which binds the domain and
+    `Q` but has one empty output (`CanonicalSpend`): the outputs, amount and invoice go unsigned next to it, so someone
+    at the same domain spends it into their own. With the mutation in the transaction's outputs (`OP_1 <P1>` with its
+    amount, the change, a melt's payment hash), they can only pass it on or drop it. Note links keep an open `ck1`, so
+    a claim through an impersonator can still be stolen; bearer (preimage) notes can't commit at all.
       - A signed key rotation: the new `mintPubkey` signed by the old key (and the old by the new), so a wallet re-pins
     without asking the user and tells a real rotation from a server that is wrong for a moment.
       - A key proof on request: the mint signs a nonce the wallet sends with its `mintPubkey` (as LUD-13 signs). It
