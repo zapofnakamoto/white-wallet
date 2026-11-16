@@ -96,7 +96,8 @@ internal class Restore(private val wallet: Wallet) {
      * on another mint is unused there: so once the wallet has an account where a mint's scan stopped, that mint is looked through again
      * from there, its other mints too, until none is behind. Such a mint counts as unfinished until that look is through ([Mint.scan]); one
      * whose own scan never came to its end isn't looked at in part, as its scan covers it. The mints whose scan stopped, with why; what a
-     * scan found until then stays. [onProgress] follows each look, by mint.
+     * scan found until then stays. [run] holds for the whole scan: a mint that got one lookup at a time keeps getting them so. [onProgress]
+     * follows each look, by mint.
      */
     suspend fun scanMints(
         walletId: String,

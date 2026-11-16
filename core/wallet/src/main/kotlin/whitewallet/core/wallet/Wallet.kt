@@ -1260,6 +1260,10 @@ class Wallet(
      * Settles unknown outcomes, then checks the address of every account of the active wallet and scans for new notes. As
      * [WalletTask.Updating], unless no mint has anything to tell (no address, nothing open, no handed-out note). Another wallet is left
      * alone: it catches up once it is active.
+     *
+     * The mints are asked at once, one lane per mint domain: a lane compares its mints' signing keys, then goes through the accounts that
+     * use them in turn. A mint whose key doesn't match gets none of the wallet's keys, only asked for its key again on the next refresh; a
+     * mint that doesn't answer ends its own lane alone.
      */
     suspend fun refresh(): RefreshResult = lock.withLock { refreshUnderLock() }
 

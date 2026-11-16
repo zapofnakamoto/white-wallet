@@ -88,6 +88,19 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- A refresh is faster. It asks its mints at the same time, one lane per mint domain, and each mint for several keys
+  of an address at once (`scan.lookups.at.once`, 8), as a restore does; a 3-account wallet on the regtest stack
+  refreshes in about half the time. A mint that doesn't answer, refuses or changed its signing key holds up only its own
+  lane. A mint that fails one lookup among several is asked one at a time for the rest of that refresh, scan or restore,
+  on every chain and account; the next one tries several at once again. A refresh still asks only the mints the
+  accounts use now: their home mints, the mints of their addresses and the ones they hold money on.
+- A mint whose signing key doesn't match is no longer asked for any of the wallet's keys on a refresh, only for its
+  signing key, on every refresh: once it matches again, the mint is used again without a restart. A mint whose key
+  matches is still compared once per app session.
+- "Scan for notes" also looks up the notes the wallet already holds on each mint, after looking for new ones: a note
+  another phone with the same recovery phrase spent leaves the balance. The scan page counts them on the mint
+  ("Checking note 3 of 10…"). For brands: the new brand term `scan_mint_checking_notes`. The recovery phrase is meant
+  for one phone at a time: a refresh never looks for notes another phone made; a scan or a restore finds them.
 - One way to say a mint is down, on every screen: it "isn't answering", or "No answer from" it, in place of
   "can't be reached", "couldn't reach" and "not reachable". Home no longer shows "Could not refresh:" with the
   network's own error text: it says the phone is offline, or that the update didn't go through, with "Try again".
@@ -123,6 +136,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- "Scan for notes" stopped with an error when a mint whose signing key changed answered with a note: the scan threw
+  instead of going on with the other mints. That mint is now listed as one the scan didn't get through, as one that
+  doesn't answer is.
 - Receive made invoices on a mint whose signing key no longer matched the one the wallet knows, so a payment became
   money the wallet wouldn't spend there. Receive now asks each mint for its key as it opens and says so before the user
   tries, with the way to the mint's details, where the new key can be accepted; Send and Receive lists show such a mint

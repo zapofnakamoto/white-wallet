@@ -203,6 +203,21 @@ and at least every 15 minutes), the wallet reconciles the journal, scans the add
 limit: `scan.stop.after.unused.*` in `wallet.properties`, by default 20), settles shared notes and payments, and
 applies the note policies. A restore is the LUD-26 recovery scan over all three purposes.
 
+Refresh and restore look keys up with one walker (`IndexDiscovery.discover`): `scan.lookups.at.once` lookups at a time,
+answers applied in key order, so it finds and stops at the same keys as one at a time. A mint that fails one lookup
+among several is asked one at a time for the rest of that run (`LookupRun`). A refresh asks its mints at the same time,
+one lane per mint domain (mints on one domain share their keys and counters): each lane compares its mints' signing
+keys first (a matching one once per app session, a changed one on every refresh), then goes through the accounts that
+use that mint in turn. A mint whose key doesn't match gets none of the wallet's keys. A lane's failure stays in the
+lane. What rewrites account and address rows (settling held addresses, rechecking unknown notes) runs before the lanes,
+what moves money (shared notes, note policies) after them. A refresh asks only the mints the accounts use now: home
+mints, the mints of their addresses and handed-out shares, and the ones they hold money on.
+
+A recovery phrase is used on one phone at a time: it is the backup to restore from, not a way to keep two phones in
+step. A refresh never looks for notes made elsewhere. A second phone with the phrase fails safe: a key it used is
+refused and passed over, a note it spent is refused and set right, and "Scan for notes" (which also looks up the
+notes the wallet holds) or a restore brings in what it made.
+
 ## Security and privacy
 
 - The recovery phrases are encrypted with an Android Keystore key; the database is SQLCipher with a random

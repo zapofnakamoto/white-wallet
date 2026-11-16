@@ -61,6 +61,12 @@ internal class IndexDiscovery(private val wallet: Wallet) {
     suspend fun highestKnownUsed(accountId: String, host: String, set: KeySet): Long =
         wallet.store.notes(accountId).first().filter { it.host == host && set.holds(it, host) }.maxOfOrNull { it.index ?: -1 } ?: -1
 
+    /**
+     * Scans [set] of [accountId] on [host] from [from] (by default past the highest key the wallet holds a note at there), [gap] unused
+     * keys in a row ending it. [run] says how many lookups go out at once, and learns of a mint that gets one at a time. When the scan
+     * stops early, the index is set past what it found until then, so the next one goes on from there; it is marked verified only when the
+     * scan came to its end. A mint whose signing key changed ends it with [DiscoveryResult.keyChanged], not an exception.
+     */
     suspend fun discover(
         accountId: String,
         host: String,
