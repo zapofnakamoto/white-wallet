@@ -1,5 +1,7 @@
 package whitewallet.core.wallet
 
+import fr.acinq.bitcoin.Crypto
+import fr.acinq.secp256k1.Hex
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -15,6 +17,7 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.lnurl.Bolt11
+import whitewallet.lnurlcash.client.LnurlcashClient
 
 /** Paying invoices and pay links from the wallet's notes, on the real mint and real (regtest) Lightning. */
 class RegtestPayTest {
@@ -121,8 +124,14 @@ class RegtestPayTest {
             val melt = alice.store.journal(setOf(JournalStatus.Unknown)).single { it.type == OperationType.Melt }
             val verify = assertNotNull(melt.verifyUrl, "lnurl-mint 0.13.1 hands out a verify link with every melt")
             assertTrue(verify.startsWith("http://${Regtest.HOST}/") && "/verify/" in verify, verify)
+            val client = LnurlcashClient()
+            assertEquals(false, client.verify(verify).settled)
 
             hold.settle()
+            val answer = client.verify(verify)
+            assertTrue(answer.settled)
+            val preimage = assertNotNull(answer.preimage, "a settled verify answer carries the preimage")
+            assertEquals(Bolt11.decode(hold.invoice)?.paymentHashHex, Hex.encode(Crypto.sha256(preimage)))
             alice.refreshUntil { alice.sent().single().status != ActivityStatus.Pending }
             assertEquals(ActivityStatus.Done, alice.sent().single().status)
             assertEquals(NoteState.Spent, alice.store.allNotes().single().state)
