@@ -292,7 +292,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
             false
         } catch (e: NoteLookupError) {
             when {
-                e.burned -> true
+                e.burned || e.burnedOrPending -> true
                 e.kind in UnknownNotes.GONE -> false
                 else -> throw IOException(e.reason)
             }
@@ -388,8 +388,8 @@ internal sealed interface KeyLookup {
     data object NotANote : KeyLookup
 
     /**
-     * The mint's error for the note: [burned] (`already in use`, the only answer that shows it), spent or unknown in the mint's own words
-     * (which prove nothing), or refused for another reason.
+     * The mint's error for the note: [burned] (`already in use` or answered 0, the only answers that show it), spent or unknown in the
+     * mint's own words (which prove nothing), or refused for another reason.
      */
     data class Refused(val kind: RejectionKind, val reason: String?, val burned: Boolean = false) : KeyLookup
 
@@ -435,7 +435,7 @@ internal sealed interface KeyLookup {
             return try {
                 Note(NoteInfo.from(answer, null))
             } catch (e: NoteLookupError) {
-                Refused(e.kind, e.reason, e.burned)
+                Refused(e.kind, e.reason, burned = e.burned || e.burnedOrPending)
             } catch (e: InvalidMintPubkey) {
                 if (pinned) KeyChanged else NotANote
             } catch (e: ProtocolViolation) {

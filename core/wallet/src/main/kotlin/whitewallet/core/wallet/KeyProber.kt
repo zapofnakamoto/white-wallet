@@ -33,7 +33,9 @@ sealed interface KeyProbe {
     data class Outstanding(val amountMsat: Long, val certified: Boolean, val imported: Boolean, override val checkedAtMillis: Long) :
         KeyProbe
 
-    /** A burned note: the mint answered `already in use`, the only answer that shows it (LUD-25). */
+    /**
+     * A burned note: the mint answered `already in use` (LUD-25), or 0 (burned, or pending while a melt settles: a used key either way).
+     */
     data class Spent(override val checkedAtMillis: Long) : KeyProbe
 
     /**
@@ -122,7 +124,8 @@ internal class KeyProber(private val wallet: Wallet) {
                 KeyProbe.Outstanding(info.maxWithdrawableMsat, certificate != null, imported = existing == null, now)
             } catch (e: NoteLookupError) {
                 when {
-                    e.burned -> {
+                    // Answered 0: burned, or still being paid. A note of ours being paid (Paying) is left to its melt.
+                    e.burned || e.burnedOrPending -> {
                         wallet.store
                             .note(noteId)
                             ?.takeIf { it.host == id.host && (it.state == NoteState.Outstanding || it.state == NoteState.Unknown) }

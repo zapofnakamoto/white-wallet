@@ -7,9 +7,11 @@ import fr.acinq.bitcoin.PrivateKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -165,6 +167,12 @@ class ProtocolVectorsTest {
         val v = Vectors.conformance("withdraw-info")
         val queried = "a".repeat(64)
         for (c in v.objects("accepted")) {
+            // The draft after the pinned one answers a burned or pending note with 0 (see protocol/SPEC.md): never a note worth 0.
+            if (c.str("name") == "zero value note") {
+                val e = assertFailsWith<NoteLookupError> { NoteInfo.from(LnurlResponse.parse(c.obj("body")), queried) }
+                assertTrue(e.burnedOrPending)
+                continue
+            }
             val info = NoteInfo.from(LnurlResponse.parse(c.obj("body")), queried)
             assertEquals(c.obj("body").getValue("maxWithdrawable").jsonPrimitive.long, info.maxWithdrawableMsat)
         }
@@ -185,6 +193,35 @@ class ProtocolVectorsTest {
             NoteInfo.from(LnurlResponse.parse(JsonObject(mapOf("status" to JsonPrimitive("ERROR")))), queried)
         }
     }
+
+    @Test
+    fun `a zero value answer is burned or pending, at k1 and at p`() {
+        val k1 = "a".repeat(64)
+        val atK1 = zero(""""k1":"$k1",""")
+        assertTrue(assertFailsWith<NoteLookupError> { NoteInfo.from(atK1, k1) }.burnedOrPending)
+        val e = assertFailsWith<NoteLookupError> { NoteInfo.from(zero(""), null) }
+        assertTrue(e.burnedOrPending)
+        assertFalse(e.burned)
+        assertNull(e.reason)
+    }
+
+    @Test
+    fun `a zero value answer with a certificate is still burned or pending`() {
+        val e = assertFailsWith<NoteLookupError> { NoteInfo.from(zero(""""c":"${certificate()}","""), null) }
+        assertTrue(e.burnedOrPending)
+    }
+
+    @Test
+    fun `a zero value answer echoing another k1 is a protocol violation`() {
+        assertFailsWith<ProtocolViolation> { NoteInfo.from(zero(""""k1":"${"b".repeat(64)}","""), "a".repeat(64)) }
+    }
+
+    /** A lookup's answer worth 0, with [extra] fields (each ending in a comma). */
+    private fun zero(extra: String): LnurlResponse =
+        LnurlResponse.parse(
+            """{"tag":"withdrawRequest","callback":"https://mint.example/w/cb",$extra"minWithdrawable":0,"maxWithdrawable":0,""" +
+                """"mintPubkey":"034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"}"""
+        )!!
 
     @Test
     fun `mutation urls`() {

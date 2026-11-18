@@ -126,7 +126,8 @@ internal class Reconciler(private val wallet: Wallet) {
             Lookup(Pinning.settling(wallet, entry.accountId, entry.host, entry.withdrawUrl, q))
         } catch (e: NoteLookupError) {
             when {
-                e.burned -> Lookup(null, burned = true)
+                // Answered 0: an input of a rotate, split or merge is never being paid out (a melt holds its note as Paying).
+                e.burned || e.burnedOrPending -> Lookup(null, burned = true)
                 e.kind in UnknownNotes.GONE -> Lookup(null)
                 else -> throw IOException(e.reason)
             }

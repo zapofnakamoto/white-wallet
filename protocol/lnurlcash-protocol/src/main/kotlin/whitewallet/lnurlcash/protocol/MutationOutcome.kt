@@ -7,7 +7,10 @@ import whitewallet.lnurlcash.Cs1
 
 /** Why a service definitively refused a request. */
 public enum class RejectionKind {
-    /** The note has another operation in flight (a melt). Retry later; never treat as spent. */
+    /**
+     * The note has another operation in flight (a melt). Retry later; never treat as spent. The draft after the pinned one answers a lookup
+     * of such a note with 0 instead ([NoteLookupError.burnedOrPending]).
+     */
     Pending,
 
     /**

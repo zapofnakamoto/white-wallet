@@ -303,7 +303,7 @@ internal class NoteSender(private val wallet: Wallet) {
             return confirmed(note)
         } catch (e: NoteLookupError) {
             when {
-                e.burned -> Unit
+                e.burned || e.burnedOrPending -> Unit
                 e.kind == RejectionKind.Pending -> return confirmed(note)
                 e.kind == RejectionKind.NoteUnknown -> {
                     answered(note)

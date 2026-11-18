@@ -78,7 +78,10 @@ internal class UnknownNotes(private val wallet: Wallet) {
          */
         val GONE = setOf(RejectionKind.NoteUnknown, RejectionKind.Spent)
 
-        /** A lookup's refusal that may mean the mint doesn't hold the note: burned (proof), or in words that [sortOut] settles. */
-        fun mayBeGone(e: NoteLookupError): Boolean = e.burned || e.kind in GONE
+        /**
+         * A lookup's refusal that may mean the mint doesn't hold the note: burned or answered 0 (proof), or in words that [sortOut]
+         * settles.
+         */
+        fun mayBeGone(e: NoteLookupError): Boolean = e.burned || e.burnedOrPending || e.kind in GONE
     }
 }

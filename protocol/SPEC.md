@@ -31,7 +31,7 @@ The `Regtest*Test` classes in `core/wallet` run against **`lnurlcash/lnurl-mint`
 | `part2.json` | `lnurlcash-core` | Derivation, domain-bound `ck1`, certificates, address proofs, encodings |
 | `bech32.json`, `input-resolution.json` | `lnurl`, `lnurlcash-protocol` | `note` cases checked for accept/reject only (they predate `ck1` k1s) |
 | `responses.json` | `lnurlcash-protocol` | Cases modelling a legacy hash output with a bare OK are skipped, because this wallet always names `cp1` outputs |
-| `pay-request.json`, `withdraw-info.json` | `lnurlcash-protocol` | |
+| `pay-request.json`, `withdraw-info.json` | `lnurlcash-protocol` | `zero value note` is read as burned or pending (see below) |
 | mock mint (`mock-mint/`) | `lnurlcash-client` integration tests | Runs once `dev/conformance.sh` has prepared the suite in `.conformance/` |
 | `signature.json`, `cash-derivation.json`, `callbacks.json`, `note-url.json` | not used | Describe the superseded pre-taproot draft (certificates over `sha256(k1)`, hardened per-note secrets, `h`/`h2` parameter names). The mock mint still accepts `h`/`h2` as aliases; this wallet sends `p1`/`p2` as the PR specifies. |
 
@@ -57,6 +57,7 @@ The `Regtest*Test` classes in `core/wallet` run against **`lnurlcash/lnurl-mint`
 | A `cp1` output confirmed without its certificate landed (unverifiable, not failed) | `ProtocolVectorsTest.a bare OK for a cp1 rotate is unverifiable but landed` |
 | No transport retries; a byte-identical rotate/split/merge replay returns the original success; a melt is never replayed | `ClientTest`, `MockMintIntegrationTest.a dropped connection...` |
 | `already in use` for an outstanding `p1` | `MockMintIntegrationTest.credit, look up, and rotate...` |
+| A lookup answering `maxWithdrawable` 0 is a burned or pending note, never a note worth 0 (forward compatible with the PR head `fd80cdd`, which answers both so) | `ProtocolVectorsTest.a zero value answer is burned or pending, at k1 and at p` |
 
 ## Known deviations between implementations
 
