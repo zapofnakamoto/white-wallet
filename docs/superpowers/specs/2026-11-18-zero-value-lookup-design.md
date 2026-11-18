@@ -19,6 +19,10 @@ We stay on the pinned spec (`92e430f`, lnurl-mint 0.13.1) and make this one chan
 - The old answers (`ERROR already in use`, `ERROR pending`) keep working unchanged, so 0.13.1 behaves as today.
 - If a melt's success answer has a `verify` URL, the wallet stores it and uses it to settle the melt once the lookup says 0/0.
 
+## Notes worth 0 end (decided by the user, 2026-11-18)
+
+Since `cdc60ad`, the wallet treats a note worth 0 (a token) as a note like any other (`ZeroNotesTest`, `docs/DEVELOPMENT.md` "A note worth 0"). Under the new draft, an outstanding note worth 0 gets the same lookup answer as a burned or pending one, so the wallet can't tell them apart. We follow the draft: a lookup answering 0/0 means "not outstanding", and support for notes worth 0 ends. Claim of such a note says it is already spent, a kept one is gone, and a held one is marked spent on refresh. No installed wallet holds one: lnurl-mint 0.13.1 never makes a note worth 0. `Note.isPickable` keeps leaving notes worth 0 out, which stays harmless. The user may also raise on PR #301 that the draft should say a note is never worth 0. That is not part of this branch.
+
 ## Non-goals
 
 - The rest of `fd80cdd`: 69-byte `cs1` with time `t`, required `mintPubkey`, A-label domain, `unknown note` as a fixed reason, melt replay, and moving notes via `mint@`. **A mint at `fd80cdd` still won't work with the wallet after this change**, because its certificates won't parse. That comes with the release that re-pins the spec.
@@ -50,7 +54,7 @@ For a pending melt that sees 0/0 (decided by the user, 2026-11-18): **also parse
 
 ### Protocol (`protocol/lnurlcash-protocol`)
 
-- `NoteInfo.from`: after the `k1` echo check, `maxWithdrawable == 0` throws `NoteLookupError` with `burnedOrPending = true` (`min > max` is already refused in `Responses.kt`). Any certificate on such an answer is ignored. The `mintPubkey` check still runs first, as for any answer, so pinning is unchanged.
+- `NoteInfo.from`: after the `k1` echo check, `maxWithdrawable == 0` throws `NoteLookupError` with `burnedOrPending = true` (`min > max` is already refused in `Responses.kt`). Any certificate on such an answer is ignored. Like an `ERROR` answer today (`already in use` carries no key), it is thrown before `Pinning` compares the mint's key, so it gets the same trust as `already in use`. The mint itself was key-checked before it was asked (`KeyCheckedMint`).
 - `NoteLookupError.burned` stays "the mint answered `already in use`". The doc comments on `burned`, `RejectionKind`, and `KeyProbe` gain the 0/0 meaning.
 - `MutationOutcome.Confirmed` / `Unverifiable` for a melt or transfer exposes `verify` (from `raw`), when there is one.
 - A small LUD-21 verify parser: `settled` (boolean), optional `preimage` (hex 32 bytes). `ERROR` keeps its reason. Anything else is a `ProtocolViolation`.
