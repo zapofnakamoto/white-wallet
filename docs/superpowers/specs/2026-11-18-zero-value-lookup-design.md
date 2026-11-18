@@ -67,7 +67,7 @@ For a pending melt that sees 0/0 (decided by the user, 2026-11-18): **also parse
 ### Melt and transfer (`Melter.kt`)
 
 - When the outcome is `Confirmed`/`Unverifiable`, store `verifyUrl` alongside `IN_FLIGHT`.
-- Accept a `verify` URL only if it's `https://` on the mint's own host (or `http://` on an onion host, as for spends). Otherwise drop it and log. (My call: the wallet never follows a mint's URL to another host.)
+- Accept a `verify` URL only on the mint's own origin (`SecretGate.sameOrigin` with the withdraw URL, as for spends). Otherwise drop it and log. (My call: the wallet never follows a mint's URL to another host.)
 
 ### `MeltReconciler`
 
@@ -101,7 +101,7 @@ The lookup stays first and authoritative. Order:
 ## Tests
 
 - Protocol: the vectors above.
-- Wallet, with a fake mint that answers 0/0: every site in the table, especially (a) a melt with 0/0 and no `verify` stays waiting through `final`, (b) 0/0 + `settled: true` → paid, note `Spent`, (c) 0/0, then the value comes back → failed, note `Outstanding`, (d) a scan over a 0/0 key with no journal → used and `Spent`, the scan goes on, (e) a bad preimage → waiting, (f) a `verify` URL on another host is dropped.
+- Wallet, with a fake mint that answers 0/0: every site in the table, especially (a) a melt with 0/0 and no `verify` stays waiting through `final`, (b) 0/0 + `settled: true` → paid, note `Spent`, (c) 0/0, then the value comes back → failed, note `Outstanding`, (d) a scan over a 0/0 key with no journal → used and `Spent`, the scan goes on, (e) a bad preimage → waiting, (f) a `verify` URL on another origin is dropped.
 - Migration test 10 → 11.
 - Regtest (0.13.1): a melt stores the mint's `verify` URL, and `RegtestE2ETest`'s melt settles as before. Run once with the stack down too (`requireStack()`).
 - `just check` before each commit.
