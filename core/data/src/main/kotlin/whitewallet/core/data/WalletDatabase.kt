@@ -162,7 +162,7 @@ internal interface WalletDao {
             KeyCounterEntity::class,
             ShareScanEntity::class,
         ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 internal abstract class WalletDatabase : RoomDatabase() {
@@ -171,7 +171,17 @@ internal abstract class WalletDatabase : RoomDatabase() {
     companion object {
         /** Every schema change from v0.3.0 (version 2) on; installed wallets keep their data. Schemas: core/data/schemas. */
         val MIGRATIONS =
-            arrayOf(Migration2To3, Migration3To4, Migration4To5, Migration5To6, Migration6To7, Migration7To8, Migration8To9, Migration9To10)
+            arrayOf(
+                Migration2To3,
+                Migration3To4,
+                Migration4To5,
+                Migration5To6,
+                Migration6To7,
+                Migration7To8,
+                Migration8To9,
+                Migration9To10,
+                Migration10To11,
+            )
     }
 }
 
@@ -667,5 +677,12 @@ internal object Migration8To9 : Migration(8, 9) {
 internal object Migration9To10 : Migration(9, 10) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE notes ADD COLUMN `archivedAtMillis` INTEGER")
+    }
+}
+
+/** A melt keeps its LUD-21 `verify` URL, to settle it when a lookup can't (a note answered 0). */
+internal object Migration10To11 : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE journal ADD COLUMN `verifyUrl` TEXT")
     }
 }

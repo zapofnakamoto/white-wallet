@@ -377,13 +377,15 @@ data class JournalEntry(
     val detail: String?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /** A melt's LUD-21 `verify` URL, on its mint's origin, to settle it when a lookup can't (a note answered 0). Carries no spend. */
+    val verifyUrl: String? = null,
 ) {
     /** Debug text without the spends. */
     @OptIn(RevealsNoteSecret::class)
     override fun toString(): String =
         "JournalEntry(id=$id, accountId=$accountId, type=$type, host=$host, withdrawUrl=$withdrawUrl, inputIds=$inputIds, " +
             "inputK1s=${inputK1s.map(Redaction::mask)}, outputs=$outputs, requestUrl=${Redaction.url(requestUrl)}, status=$status, " +
-            "detail=$detail, createdAtMillis=$createdAtMillis, updatedAtMillis=$updatedAtMillis)"
+            "detail=$detail, createdAtMillis=$createdAtMillis, updatedAtMillis=$updatedAtMillis, verifyUrl=$verifyUrl)"
 }
 
 /** What an [Activity] row stands for. */

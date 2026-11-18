@@ -108,6 +108,31 @@ class RoomWalletStoreTest {
         }
 
     @Test
+    fun `a melt keeps its verify url`() =
+        runBlocking<Unit> {
+            account("acc")
+            val melt =
+                JournalEntry(
+                    "j3",
+                    "acc",
+                    OperationType.Melt,
+                    "mint.example",
+                    "https://mint.example/w",
+                    listOf(q1),
+                    listOf("k1a"),
+                    emptyList(),
+                    "https://mint.example/w/cb?k1=x&pr=lnbc1",
+                    JournalStatus.Unknown,
+                    "in flight",
+                    1,
+                    2,
+                    verifyUrl = "https://mint.example/verify/ab",
+                )
+            store.putJournal(melt)
+            assertEquals(listOf(melt), store.journal(setOf(JournalStatus.Unknown)))
+        }
+
+    @Test
     fun `notes keep their state, and only outstanding ones count in the balance`() =
         runBlocking<Unit> {
             account("acc")

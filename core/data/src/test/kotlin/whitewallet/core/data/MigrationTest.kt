@@ -530,6 +530,33 @@ class MigrationTest {
         }
 
     @Test
+    fun `a wallet of version 10 keeps its journal, and an open melt has no verify url`() =
+        runBlocking<Unit> {
+            val q = "u".repeat(64)
+            oldDatabase("v10.db", 10) {
+                execSQL("INSERT INTO wallets VALUES ('w1', NULL, 1, NULL, NULL)")
+                execSQL("INSERT INTO accounts VALUES ('a0', 'Main', 1, 'w1', 0, 'one.example')")
+                execSQL(
+                    "INSERT INTO journal VALUES ('j1', 'a0', 'Melt', 'one.example', 'https://one.example/w', '$q', 'ck1x', '', " +
+                        "'https://one.example/w/cb?k1=ck1x&pr=lnbc1', 'Unknown', 'in flight', 5, 6)"
+                )
+            }
+            val db =
+                Room.databaseBuilder(context, WalletDatabase::class.java, "v10.db")
+                    .addMigrations(*WalletDatabase.MIGRATIONS)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val melt = RoomWalletStore(db).journal(setOf(JournalStatus.Unknown)).single()
+                assertEquals(listOf(q), melt.inputIds)
+                assertEquals("in flight", melt.detail)
+                assertNull(melt.verifyUrl)
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
     fun `collecting and its fee cap set under v0_3_0 stay each account's`() =
         runBlocking<Unit> {
             val file = File(context.filesDir, "collect.preferences_pb").apply { delete() }

@@ -338,6 +338,7 @@ internal data class JournalEntity(
     val detail: String?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    val verifyUrl: String?,
 ) {
     fun toModel() =
         JournalEntry(
@@ -354,6 +355,7 @@ internal data class JournalEntity(
             detail,
             createdAtMillis,
             updatedAtMillis,
+            verifyUrl,
         )
 
     companion object {
@@ -376,6 +378,7 @@ internal data class JournalEntity(
                 e.detail,
                 e.createdAtMillis,
                 e.updatedAtMillis,
+                e.verifyUrl,
             )
 
         private fun String.split(): List<String> = if (isEmpty()) emptyList() else split(',')
