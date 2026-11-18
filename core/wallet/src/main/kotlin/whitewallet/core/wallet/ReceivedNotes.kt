@@ -413,11 +413,13 @@ internal sealed interface KeyLookup {
             // Most answers carry no key: a mint whose key doesn't match isn't asked (see [KeyCheckedMint]).
             if (mint != null && KeyCheckedMint.of(wallet, mint) == null) return KeyChanged
             val pinned = mint != null
-            val found = ask(wallet, withdrawUrl, q, pinned)
+            val found = ask(wallet, withdrawUrl, q, mint?.mintPubkey)
             return if (pinned && (found is OtherService || found == NotANote)) Unreachable else found
         }
 
-        private suspend fun ask(wallet: Wallet, withdrawUrl: String, q: ByteVector32, pinned: Boolean): KeyLookup {
+        /** [pinnedKey]: the key the account's wallet pinned for the mint, if any. */
+        private suspend fun ask(wallet: Wallet, withdrawUrl: String, q: ByteVector32, pinnedKey: String?): KeyLookup {
+            val pinned = pinnedKey != null
             val answer =
                 try {
                     // key-checked: by [of], before asking.
@@ -435,6 +437,8 @@ internal sealed interface KeyLookup {
             return try {
                 Note(NoteInfo.from(answer, null))
             } catch (e: NoteLookupError) {
+                // Answered 0: it ends a note only from a mint whose key matches.
+                if (e.burnedOrPending && pinned && e.mintPubkey?.toHex() != pinnedKey) return KeyChanged
                 Refused(e.kind, e.reason, burned = e.burned || e.burnedOrPending)
             } catch (e: InvalidMintPubkey) {
                 if (pinned) KeyChanged else NotANote

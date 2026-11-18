@@ -3,13 +3,16 @@ package whitewallet.core.wallet
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.OperationType
 import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.lnurl.Bolt11
 
@@ -105,6 +108,24 @@ class RegtestPayTest {
             assertEquals(ActivityStatus.Done, alice.sent().single().status)
             assertEquals(NoteState.Spent, alice.store.allNotes().single().state)
             assertEquals(0, alice.balance())
+        }
+
+    @Test
+    fun `a payment in flight keeps the mint's verify link and settles as before`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.wallet.payWaitMillis = 3_000
+            alice.fund(2000)
+            val hold = Regtest.holdInvoice(1999)
+            assertEquals(PayResult.Pending(1_999_000), alice.wallet.pay(alice.ready(hold.invoice), 1_999_000))
+            val melt = alice.store.journal(setOf(JournalStatus.Unknown)).single { it.type == OperationType.Melt }
+            val verify = assertNotNull(melt.verifyUrl, "lnurl-mint 0.13.1 hands out a verify link with every melt")
+            assertTrue(verify.startsWith("http://${Regtest.HOST}/") && "/verify/" in verify, verify)
+
+            hold.settle()
+            alice.refreshUntil { alice.sent().single().status != ActivityStatus.Pending }
+            assertEquals(ActivityStatus.Done, alice.sent().single().status)
+            assertEquals(NoteState.Spent, alice.store.allNotes().single().state)
         }
 
     @Test

@@ -54,7 +54,7 @@ For a pending melt that sees 0/0 (decided by the user, 2026-11-18): **also parse
 
 ### Protocol (`protocol/lnurlcash-protocol`)
 
-- `NoteInfo.from`: after the `k1` echo check, `maxWithdrawable == 0` throws `NoteLookupError` with `burnedOrPending = true` (`min > max` is already refused in `Responses.kt`). Any certificate on such an answer is ignored. Like an `ERROR` answer today (`already in use` carries no key), it is thrown before `Pinning` compares the mint's key, so it gets the same trust as `already in use`. The mint itself was key-checked before it was asked (`KeyCheckedMint`).
+- `NoteInfo.from`: after the `k1` echo check, `maxWithdrawable == 0` throws `NoteLookupError` with `burnedOrPending = true` (`min > max` is already refused in `Responses.kt`). Any certificate on such an answer is ignored. Unlike an `ERROR` answer, it carries the mint's key (`NoteLookupError.mintPubkey`), and it counts only from a mint whose key matches the pinned one: `Pinning.lookup`, `KeyProber.apply` and `KeyLookup.ask` compare it before anything ends a note. (Corrected during implementation: thrown before that comparison, a mint whose key no longer matches could end a received note; `RegtestReceivedNotesTest` caught it.)
 - `NoteLookupError.burned` stays "the mint answered `already in use`". The doc comments on `burned`, `RejectionKind`, and `KeyProbe` gain the 0/0 meaning.
 - `MutationOutcome.Confirmed` / `Unverifiable` for a melt or transfer exposes `verify` (from `raw`), when there is one.
 - A small LUD-21 verify parser: `settled` (boolean), optional `preimage` (hex 32 bytes). `ERROR` keeps its reason. Anything else is a `ProtocolViolation`.

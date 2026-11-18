@@ -77,6 +77,22 @@ class ZeroValueLookupTest {
         }
 
     @Test
+    fun `a mint whose key doesn't match, answering 0, never ends a note`() =
+        runBlocking<Unit> {
+            for (presented in listOf(""","mintPubkey":"$OTHER_KEY"""", "")) {
+                LookupMint().use { mint ->
+                    val (wallet, accountId) = wallet(mint)
+                    val q = held(wallet, KeyId(accountId, mint.host, KeySet.Wallet, 900), 5_000)
+                    mint.lookups[q] =
+                        """{"tag":"withdrawRequest","callback":"${LookupMint.BASE}/w/cb","minWithdrawable":0,"maxWithdrawable":0$presented}"""
+                    wallet.scan()
+                    assertEquals(NoteState.Outstanding, wallet.store.note(q)?.state, "presented: $presented")
+                    assertEquals(5_000, wallet.balanceMsat.first())
+                }
+            }
+        }
+
+    @Test
     fun `a scan over a key answered 0 counts it used and goes on`() =
         runBlocking<Unit> {
             LookupMint().use { mint ->
@@ -277,6 +293,9 @@ class ZeroValueLookupTest {
 
     private companion object {
         val PREIMAGE = "11".repeat(32)
+
+        /** A signing key other than the one [LookupMint] presents. */
+        const val OTHER_KEY = "039c85f0d580ac228b1a3f7dbd8e17bf7a5ea4ad6f2e077f5b333ec9a79ca2232e"
         val PAYMENT_HASH: String = Hex.encode(Crypto.sha256(Hex.decode(PREIMAGE)))
     }
 }

@@ -30,12 +30,12 @@ public data class NoteInfo(
             if (queriedK1 != null && !queriedK1.equals(w.k1, ignoreCase = true)) {
                 throw ProtocolViolation("the server echoed a different k1 than the one queried")
             }
-            // The draft after the pinned one answers a burned or pending note with 0, so no note is ever worth 0.
-            if (w.maxWithdrawable == 0L) throw NoteLookupError(null, burnedOrPending = true)
             val mintPubkey =
                 w.raw.string("mintPubkey")?.let {
                     parseMintPubkey(it) ?: throw InvalidMintPubkey()
                 }
+            // The draft after the pinned one answers a burned or pending note with 0, so no note is ever worth 0.
+            if (w.maxWithdrawable == 0L) throw NoteLookupError(null, burnedOrPending = true, mintPubkey = mintPubkey)
             val certificate = (w.raw.string("c") ?: w.raw.string("sig"))?.let(Cs1::decode)
             return NoteInfo(w.callback, w.maxWithdrawable, mintPubkey, certificate)
         }
@@ -53,6 +53,11 @@ public class NoteLookupError(
      * the pinned one answers both. The mint doesn't say which; the wallet does, by its own open melts. Never [burned].
      */
     public val burnedOrPending: Boolean = false,
+    /**
+     * The key the mint presented with an answer worth 0: like any answer that names a note, it counts only from a mint whose key matches
+     * the pinned one. Null for an error, which carries none.
+     */
+    public val mintPubkey: PublicKey? = null,
 ) : Exception(reason ?: if (burnedOrPending) "note answered as worth 0" else "note lookup refused") {
     /** What [reason] says. [RejectionKind.Spent] and [RejectionKind.NoteUnknown] are one mint's wording: hints, never proof. */
     public val kind: RejectionKind

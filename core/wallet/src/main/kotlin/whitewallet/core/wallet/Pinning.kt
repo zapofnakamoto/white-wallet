@@ -5,6 +5,7 @@ import fr.acinq.bitcoin.PublicKey
 import whitewallet.core.model.Mint
 import whitewallet.lnurlcash.protocol.InvalidMintPubkey
 import whitewallet.lnurlcash.protocol.NoteInfo
+import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 
 /** Thrown when a mint presents a different `mintPubkey` than the one pinned on first contact. */
@@ -60,6 +61,10 @@ internal object Pinning {
                 wallet.client.lookup(mint.withdrawUrl, q)
             } catch (e: InvalidMintPubkey) {
                 invalidKey(mint.mint, e)
+            } catch (e: NoteLookupError) {
+                // Answered 0: it ends a note only from a mint whose key matches.
+                if (e.burnedOrPending) check(wallet, mint.mint, e.mintPubkey)
+                throw e
             }
         check(wallet, mint.mint, info.mintPubkey)
         return info

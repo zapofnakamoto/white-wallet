@@ -90,7 +90,12 @@ internal class KeyProber(private val wallet: Wallet) {
         val result =
             try {
                 // A key that isn't one is none: a changed key at a pinned mint, which ends the scan like any other.
-                val info = answer.getOrElse { if (it is InvalidMintPubkey) Pinning.invalidKey(mint.mint, it) else throw it }
+                val info = answer.getOrElse {
+                    if (it is InvalidMintPubkey) Pinning.invalidKey(mint.mint, it)
+                    // Answered 0: it ends a note only from a mint whose key matches.
+                    if (it is NoteLookupError && it.burnedOrPending) Pinning.check(wallet, mint.mint, it.mintPubkey)
+                    throw it
+                }
                 val pinned = Pinning.check(wallet, mint.mint, info.mintPubkey)
                 val certificate =
                     info.certificate?.takeIf { certifies(it, id.host, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }
