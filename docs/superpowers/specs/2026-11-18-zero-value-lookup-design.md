@@ -106,11 +106,11 @@ The lookup stays first and authoritative. Order:
 
 - Exact names (`burnedOrPending`, `verifyUrl`, the verify parser's type). Avoid "confirmed" wording for open operations.
 - Whether the `KeyProber` "open melt" branch returns `KeyProbe.Spent` or a new probe; the behaviour above is fixed.
-- Check that a later scan rechecks a note it once recorded as `Spent` from a 0/0 answer. Restoring a phrase whose last melt is still in flight makes that note look spent. Under the pin, `pending` stopped the scan instead. Report what the code does; don't change scan rules in this branch without asking.
 
-## Known limitation (until the spec re-pin)
+## Accepted limitations (decided by the user, 2026-11-18)
 
-If a melt's answer was lost (no `verifyUrl`) and the mint answers 0/0, the melt stays "waiting for an answer" until the payment fails (the value comes back). If it was paid, it stays waiting indefinitely. The note is out of the balance, which is correct. The re-pin brings melt replay (same `Q` + `pr` → the original answer, with `verify`), which closes this. Under 0.13.1 this can't happen: a paid melt answers `already in use`.
+- **Lost melt answer.** If a melt's answer was lost (no `verifyUrl`) and the mint answers 0/0, the melt stays "waiting for an answer". The note is out of the balance, which is correct. Every refresh keeps looking the note up, as it does for any open melt today. That is what keeps this safe: if the payment fails, the value comes back and the note is restored. If it was paid, the melt stays waiting until the re-pin brings melt replay (same `Q` + `pr` → the original answer, with `verify`). Under 0.13.1 this can't happen: a paid melt answers `already in use`.
+- **Restore during a melt.** A scan counts a 0/0 key as spent, even when it is our own melt still being paid (the journal is gone after a restore). Under the pin, `pending` paused the scan instead. Expected and temporary: don't restore a wallet while one of its melts is pending. No scan rule changes for this.
 
 ## Zap downstream
 
