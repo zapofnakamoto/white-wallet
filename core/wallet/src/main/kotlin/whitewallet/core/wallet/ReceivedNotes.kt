@@ -82,7 +82,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     is KeyLookup.OtherService,
                     KeyLookup.NotANote -> return lightningOnly(note, UnclaimedReason.NotANote)
                     is KeyLookup.Refused ->
-                        return if (found.burned) gone(note, found.kind, found.reason) else refused(note, spend, found.kind, found.reason)
+                        return if (found.burned) gone(note, found.kind, found.reason, keepSpend = found.burnedOrPending)
+                        else refused(note, spend, found.kind, found.reason)
                     KeyLookup.KeyChanged -> return keyChanged(note)
                     KeyLookup.Unreachable -> return waiting(note)
                 }
@@ -146,9 +147,11 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 ClaimResult.Pending
             }
             // Refused as spent or unknown, in the mint's own words: gone only if a lookup by its key shows it burned.
-            is MutationResult.Refused ->
-                if (result.kind in UnknownNotes.GONE && shownBurned(note)) gone(note, result.kind, result.reason)
+            is MutationResult.Refused -> {
+                val burned = if (result.kind in UnknownNotes.GONE) shownBurned(note) else null
+                if (burned != null) gone(note, result.kind, result.reason, keepSpend = burned == Burned.AnsweredZero)
                 else refused(note, spend, result.kind, result.reason)
+            }
             is MutationResult.Unreachable if result.keyChanged -> keyChanged(note)
             is MutationResult.Unreachable -> waiting(note)
         }
@@ -192,12 +195,14 @@ internal class ReceivedNotes(private val wallet: Wallet) {
     }
 
     /**
-     * On every refresh: settles claims whose outcome was unknown, then claims every kept note whose mint may take it now (a lock by date
-     * once the date has passed; a wait after crediting is only known to the mint, so it is asked; a changed key is asked about again, and
-     * once the user accepted it the note is claimed). Only the notes of the accounts [accountIds]: those of the active wallet.
+     * On every refresh: settles claims whose outcome was unknown, asks again about notes their mint answered 0 for (see [recheck]), then
+     * claims every kept note whose mint may take it now (a lock by date once the date has passed; a wait after crediting is only known to
+     * the mint, so it is asked; a changed key is asked about again, and once the user accepted it the note is claimed). Only the notes of
+     * the accounts [accountIds]: those of the active wallet.
      */
     suspend fun retryAll(accountIds: Set<String>) {
         for (note in wallet.store.receivedNotes(SETTLED).filter { it.accountId in accountIds }) settle(note)
+        for (note in wallet.store.receivedNotes(setOf(ReceivedState.Gone)).filter { it.accountId in accountIds }) recheck(note)
         for (note in wallet.store.receivedNotes(RETRIED).filter { it.accountId in accountIds }) {
             if (note.state == ReceivedState.Locked && (note.lockedUntilMillis ?: 0) > wallet.now()) continue
             claim(note)
@@ -229,8 +234,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
     }
 
     /**
-     * Forgets a note for good: one spent by someone else (nothing left to lose), or an archived one, whose spend is gone with it: the
-     * recovery phrase can't bring it back.
+     * Forgets a note for good: one spent by someone else (nothing left to lose, unless its maker's payment of it fails), or an archived
+     * one, whose spend is gone with it: the recovery phrase can't bring it back.
      */
     suspend fun remove(id: String) {
         val note = wallet.store.receivedNote(id) ?: return
@@ -267,7 +272,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                         keyChanged(note.copy(journalId = null))
                         return
                     }
-                if (burned) update(note.copy(state = ReceivedState.Gone, k1 = null))
+                if (burned != null) ended(note, keepSpend = burned == Burned.AnsweredZero)
                 else update(note.copy(state = ReceivedState.Waiting, journalId = null))
             }
             else -> Unit
@@ -275,11 +280,11 @@ internal class ReceivedNotes(private val wallet: Wallet) {
     }
 
     /**
-     * Whether its mint burned [note], asked by its key alone: only an answer of `already in use` shows that. A note, or a refusal that says
-     * spent or unknown in the mint's own words, doesn't. Throws [IOException] when it can't tell, and [MintKeyChangedException] when a mint
-     * whose key the account pinned presents another or none: its answer can't end the note.
+     * Whether its mint burned [note], asked by its key alone, and how; null if not. Only an answer of `already in use`, or of 0, shows
+     * that. A note, or a refusal that says spent or unknown in the mint's own words, doesn't. Throws [IOException] when it can't tell, and
+     * [MintKeyChangedException] when a mint whose key the account pinned presents another or none: its answer can't end the note.
      */
-    private suspend fun isBurned(note: ReceivedNote): Boolean =
+    private suspend fun isBurned(note: ReceivedNote): Burned? =
         try {
             val q = ByteVector32(note.id)
             val pinned = wallet.mintOf(note.accountId, note.host)?.takeIf { it.mintPubkey != null }
@@ -289,31 +294,65 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 // key-checked: no key is pinned for this host, so there is none to compare.
                 wallet.client.lookup(note.withdrawUrl, q)
             }
-            false
+            null
         } catch (e: NoteLookupError) {
             when {
-                e.burned || e.burnedOrPending -> true
-                e.kind in UnknownNotes.GONE -> false
+                e.burnedOrPending -> Burned.AnsweredZero
+                e.burned -> Burned.InUse
+                e.kind in UnknownNotes.GONE -> null
                 else -> throw IOException(e.reason)
             }
         } catch (e: ProtocolViolation) {
             throw IOException(e.message)
         }
 
-    /** [isBurned], or false when the mint can't tell. */
-    private suspend fun shownBurned(note: ReceivedNote): Boolean =
+    /** [isBurned], or null when the mint can't tell. */
+    private suspend fun shownBurned(note: ReceivedNote): Burned? =
         try {
             isBurned(note)
         } catch (e: IOException) {
-            false
+            null
         } catch (e: MintKeyChangedException) {
-            false
+            null
         }
 
-    /** Burned by its mint: nothing left to claim, and its spend is worth nothing. */
-    private suspend fun gone(note: ReceivedNote, kind: RejectionKind, reason: String?): ClaimResult {
-        update(note.copy(state = ReceivedState.Gone, k1 = null))
+    /** Burned by its mint (see [ended]). */
+    private suspend fun gone(note: ReceivedNote, kind: RejectionKind, reason: String?, keepSpend: Boolean): ClaimResult {
+        ended(note, keepSpend)
         return ClaimResult.Failed(kind, reason)
+    }
+
+    /**
+     * Burned by its mint: nothing left to claim. Its spend is worth nothing once the mint said `already in use`; one it answered 0 for
+     * (spent, or its maker's payment of it still in flight) is kept, and the note asked about again for a week (see [recheck]).
+     */
+    private suspend fun ended(note: ReceivedNote, keepSpend: Boolean): ReceivedNote =
+        update(
+            if (keepSpend) note.copy(state = ReceivedState.Gone, failingSinceMillis = wallet.now(), unclaimedReason = null)
+            else note.copy(state = ReceivedState.Gone, k1 = null, failingSinceMillis = null)
+        )
+
+    /**
+     * A note its mint answered 0 for, asked by its key again on each refresh: claimed if its maker's payment failed and it came back, gone
+     * for good once its mint says `already in use`, and archived with its spend a week ([Wallet.receivedGiveUpMillis]) after the first 0.
+     */
+    private suspend fun recheck(note: ReceivedNote) {
+        @OptIn(RevealsNoteSecret::class) val spend = note.k1?.let(Spend::parse) ?: return
+        when (val found = KeyLookup.of(wallet, note.accountId, note.host, note.withdrawUrl, spend.q)) {
+            is KeyLookup.Note -> {
+                claim(update(note.copy(state = ReceivedState.Waiting, failingSinceMillis = null)), found.info)
+                return
+            }
+            is KeyLookup.Refused if found.burned && !found.burnedOrPending -> {
+                ended(note, keepSpend = false)
+                return
+            }
+            else -> Unit
+        }
+        val since = note.failingSinceMillis ?: return
+        if (wallet.now() - since >= wallet.receivedGiveUpMillis) {
+            update(note.copy(state = ReceivedState.Archived, unclaimedReason = UnclaimedReason.Spent))
+        }
     }
 
     /**
@@ -367,6 +406,12 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         /** Sent, at its mint or over Lightning, and settled by a refresh with its journal entry. */
         val SETTLED = setOf(ReceivedState.Claiming, ReceivedState.Melting)
     }
+
+    /** How its mint showed a note burned: `already in use`, or answered 0 (spent, or its maker's payment of it still in flight). */
+    private enum class Burned {
+        InUse,
+        AnsweredZero,
+    }
 }
 
 /**
@@ -388,10 +433,12 @@ internal sealed interface KeyLookup {
     data object NotANote : KeyLookup
 
     /**
-     * The mint's error for the note: [burned] (`already in use` or answered 0, the only answers that show it), spent or unknown in the
-     * mint's own words (which prove nothing), or refused for another reason.
+     * The mint's error for the note: [burned] (`already in use` or answered 0, the only answers that show it; [burnedOrPending] if answered
+     * 0, which may also be its maker's payment of it still in flight), spent or unknown in the mint's own words (which prove nothing), or
+     * refused for another reason.
      */
-    data class Refused(val kind: RejectionKind, val reason: String?, val burned: Boolean = false) : KeyLookup
+    data class Refused(val kind: RejectionKind, val reason: String?, val burned: Boolean = false, val burnedOrPending: Boolean = false) :
+        KeyLookup
 
     /**
      * A mint whose key the account's wallet pinned doesn't match it: not asked, or it answered for the note with a `mintPubkey` that isn't
@@ -439,7 +486,7 @@ internal sealed interface KeyLookup {
             } catch (e: NoteLookupError) {
                 // Answered 0: it ends a note only from a mint whose key matches.
                 if (e.burnedOrPending && pinned && e.mintPubkey?.toHex() != pinnedKey) return KeyChanged
-                Refused(e.kind, e.reason, burned = e.burned || e.burnedOrPending)
+                Refused(e.kind, e.reason, burned = e.burned || e.burnedOrPending, burnedOrPending = e.burnedOrPending)
             } catch (e: InvalidMintPubkey) {
                 if (pinned) KeyChanged else NotANote
             } catch (e: ProtocolViolation) {

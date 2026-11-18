@@ -44,6 +44,7 @@ private fun archived(note: ReceivedNote): String {
     val (plain, hours, days) =
         when (note.unclaimedReason) {
             UnclaimedReason.ByUser -> return stringResource(R.string.received_archived_by_you)
+            UnclaimedReason.Spent -> return stringResource(R.string.received_gone)
             UnclaimedReason.Unreachable ->
                 Triple(R.string.received_unreachable, R.plurals.received_unreachable_hours, R.plurals.received_unreachable_days)
             // Never archived for a missing signing key or an answer not for a note: such a note is only received over Lightning.

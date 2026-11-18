@@ -187,7 +187,7 @@ enum class ReceivedState {
 
 /**
  * Why a received note isn't claimed at its mint. [ReceivedState.LightningOnly] and [ReceivedState.Melting]: [NoSigningKey] or [NotANote].
- * [ReceivedState.Archived]: [Refused] or [Unreachable] for a week, or [ByUser].
+ * [ReceivedState.Archived]: [Refused], [Unreachable] or [Spent] for a week, or [ByUser].
  */
 enum class UnclaimedReason {
     /** Its mint refused it for another reason than spent, unknown or locked: archived after a week of that. */
@@ -207,6 +207,12 @@ enum class UnclaimedReason {
 
     /** The user put it aside. */
     ByUser,
+
+    /**
+     * Its mint answered 0 for it (spent, or its maker's payment of it still in flight) for a week: archived with its spend, which claims it
+     * if that payment fails and the note comes back.
+     */
+    Spent,
 }
 
 /**
@@ -221,7 +227,10 @@ data class ReceivedNote(
     /** The mint host exactly as in the link (port included). */
     val host: String,
     val withdrawUrl: String,
-    /** The spend; cleared once it is worth nothing ([ReceivedState.Claimed], [ReceivedState.Gone]). */
+    /**
+     * The spend; cleared once it is worth nothing ([ReceivedState.Claimed], or [ReceivedState.Gone] as `already in use`). Kept for a note
+     * its mint answered 0 for: its maker's payment of it may still fail.
+     */
     @property:RevealsNoteSecret val k1: String?,
     val certificate: String?,
     /** What the link says it is worth; display only. */

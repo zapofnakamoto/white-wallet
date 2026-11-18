@@ -92,7 +92,7 @@ The lookup stays first and authoritative. Order:
 | `KeyProber` (refresh, scan, `UnknownNotes.sortOut`) | Open melt/transfer journal for this `Q` → leave the note as it is (`Paying`) and count the key as used, so a scan goes on past it. Otherwise → `KeyProbe.Spent`, the same as `burned` (note → `Spent`, counter past). |
 | `Reconciler` (rotate/split/merge inputs) | burned |
 | `NoteSender` (a note we gave away) | the same as `burned`: the recipient has it |
-| `ReceivedNotes`, `NoteClaimer` | the same as `burned`: gone / `AlreadySpent` |
+| `ReceivedNotes`, `NoteClaimer` | gone / `AlreadySpent`, but a received note keeps its `k1`: the 0 may be its maker's melt, which can still fail. Each refresh looks it up again by key; if its value comes back it is claimed. A week after the first 0 it moves to the archive (reason `Spent`, shown with the gone text), where Try again and Remove work as for any archived note. `already in use` still clears the `k1` at once. (Decided by the user, 2026-11-19.) |
 | `Melter` pre-lookup | goes to `UnknownNotes.mayBeGone` → `sortOut`, like `burned` |
 | `LinkWithdrawer` (LNURLcash link) | the same as `burned` (plain LUD-03 links are unaffected: no `NoteInfo`) |
 

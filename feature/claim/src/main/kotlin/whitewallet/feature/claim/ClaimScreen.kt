@@ -367,7 +367,8 @@ private fun meltReason(reason: UnclaimedReason?, host: String): String =
         UnclaimedReason.NotANote,
         UnclaimedReason.Refused,
         UnclaimedReason.Unreachable,
-        UnclaimedReason.ByUser -> stringResource(R.string.claim_melt_not_a_note, host)
+        UnclaimedReason.ByUser,
+        UnclaimedReason.Spent -> stringResource(R.string.claim_melt_not_a_note, host)
     }
 
 /** The user's own note, handed out and not claimed yet. */

@@ -21,6 +21,7 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.wallet.LookupMint.Companion.error
 import whitewallet.core.wallet.LookupMint.Companion.note
 import whitewallet.lnurlcash.RevealsNoteSecret
@@ -36,6 +37,7 @@ import whitewallet.lnurlcash.spendDomain
  */
 class ZeroValueLookupTest {
     private val clock = 1_800_000_000_000L
+    private var now = clock
 
     @Test
     fun `Claim says a note answered 0 is already spent`() =
@@ -50,7 +52,7 @@ class ZeroValueLookupTest {
         }
 
     @Test
-    fun `a kept note answered 0 is gone and nothing is sent`() =
+    fun `a kept note answered 0 is gone, keeps its spend, and nothing is sent`() =
         runBlocking<Unit> {
             LookupMint().use { mint ->
                 val (wallet, accountId) = wallet(mint)
@@ -59,7 +61,97 @@ class ZeroValueLookupTest {
                 mint.callback = """{"status":"OK"}"""
                 ReceivedNotes(wallet).claim(received)
                 assertEquals(0, mint.callbacks, "no claim went out")
+                val gone = wallet.store.receivedNote(received.id)
+                assertEquals(ReceivedState.Gone, gone?.state)
+                @OptIn(RevealsNoteSecret::class) assertEquals(received.k1, gone?.k1, "its maker's payment may still fail")
+                assertEquals(clock, gone?.failingSinceMillis)
+            }
+        }
+
+    @Test
+    fun `a kept note answered already in use is gone for good`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val received = received(wallet, accountId, mint)
+                mint.lookups[received.id] = error("already in use")
+                ReceivedNotes(wallet).claim(received)
+                val gone = wallet.store.receivedNote(received.id)
+                assertEquals(ReceivedState.Gone, gone?.state)
+                @OptIn(RevealsNoteSecret::class) assertNull(gone?.k1)
+            }
+        }
+
+    @Test
+    fun `a gone note whose value comes back is claimed on a refresh`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val received = received(wallet, accountId, mint)
+                mint.lookups[received.id] = note(0)
+                ReceivedNotes(wallet).claim(received)
+                mint.lookups[received.id] = note(5_000)
+                mint.callback = """{"status":"OK"}"""
+                now += DAY
+                ReceivedNotes(wallet).retryAll(setOf(accountId))
+                assertEquals(1, mint.callbacks, "claimed once its maker's payment failed")
+                assertTrue(wallet.store.receivedNote(received.id)?.state != ReceivedState.Gone)
+            }
+        }
+
+    @Test
+    fun `a gone note still answered 0 after the give-up time is archived with its spend`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val received = received(wallet, accountId, mint)
+                mint.lookups[received.id] = note(0)
+                ReceivedNotes(wallet).claim(received)
+                now += 6 * DAY
+                ReceivedNotes(wallet).retryAll(setOf(accountId))
+                assertEquals(ReceivedState.Gone, wallet.store.receivedNote(received.id)?.state, "still within the week")
+                now += DAY
+                ReceivedNotes(wallet).retryAll(setOf(accountId))
+                val archived = wallet.store.receivedNote(received.id)
+                assertEquals(ReceivedState.Archived, archived?.state)
+                assertEquals(UnclaimedReason.Spent, archived?.unclaimedReason)
+                @OptIn(RevealsNoteSecret::class) assertEquals(received.k1, archived?.k1)
+                assertEquals(0, mint.callbacks, "nothing went out")
+            }
+        }
+
+    @Test
+    fun `a gone note whose mint can't be reached stays gone`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val received = received(wallet, accountId, mint)
+                mint.lookups[received.id] = note(0)
+                ReceivedNotes(wallet).claim(received)
+                mint.lookups.remove(received.id)
+                mint.close()
+                now += DAY
+                ReceivedNotes(wallet).retryAll(setOf(accountId))
                 assertEquals(ReceivedState.Gone, wallet.store.receivedNote(received.id)?.state)
+            }
+        }
+
+    @Test
+    fun `an archived spent note tried again and still answered 0 is gone for another week`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val received = received(wallet, accountId, mint)
+                mint.lookups[received.id] = note(0)
+                ReceivedNotes(wallet).claim(received)
+                now += 7 * DAY
+                ReceivedNotes(wallet).retryAll(setOf(accountId))
+                now += DAY
+                ReceivedNotes(wallet).retry(received.id)
+                val gone = wallet.store.receivedNote(received.id)
+                assertEquals(ReceivedState.Gone, gone?.state)
+                assertEquals(now, gone?.failingSinceMillis)
+                assertNull(gone?.unclaimedReason)
             }
         }
 
@@ -229,7 +321,7 @@ class ZeroValueLookupTest {
     private fun settled(preimage: String) = """{"status":"OK","settled":true,"preimage":"$preimage","pr":"lnbcrt1"}"""
 
     private suspend fun wallet(mint: LookupMint): Pair<Wallet, String> {
-        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), now = { clock })
+        val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), now = { now })
         val accountId = assertIs<CreateAccountResult.Created>(wallet.createAccount(mint.host, "Main")).accountId
         return wallet to accountId
     }
@@ -292,6 +384,7 @@ class ZeroValueLookupTest {
     }
 
     private companion object {
+        const val DAY = 24 * 60 * 60_000L
         val PREIMAGE = "11".repeat(32)
 
         /** A signing key other than the one [LookupMint] presents. */
