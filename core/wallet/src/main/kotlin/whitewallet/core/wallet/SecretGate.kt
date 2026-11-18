@@ -50,7 +50,8 @@ internal class SecretGate(private val wallet: Wallet) {
         return Released.Sent(wallet.client.mutate(MutationType.Melt, requestUrl))
     }
 
-    private companion object {
+    companion object {
+        /** Same scheme, host and port. */
         fun sameOrigin(a: String, b: String): Boolean {
             val (x, y) =
                 runCatching { URI(a) to URI(b) }

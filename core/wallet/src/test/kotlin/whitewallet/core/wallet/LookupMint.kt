@@ -28,6 +28,10 @@ internal class LookupMint(private val hostName: String = "localhost") : AutoClos
     /** Runs as a mutation arrives, before its answer goes out. */
     @Volatile var onCallback: () -> Unit = {}
     @Volatile var callbacks = 0
+    /** The answer at `/verify/…` (LUD-21), or none (404). */
+    @Volatile var verify: String? = null
+    /** `verify` asks it answered so far. */
+    val verifyAsked = AtomicInteger()
 
     init {
         server.dispatcher =
@@ -53,7 +57,13 @@ internal class LookupMint(private val hostName: String = "localhost") : AutoClos
                             onCallback()
                             MockResponse(body = callback)
                         }
-                        else -> MockResponse(code = 404)
+                        else ->
+                            if (url.encodedPath.startsWith("/verify/")) {
+                                verifyAsked.incrementAndGet()
+                                verify?.let { MockResponse(body = it) } ?: MockResponse(code = 404)
+                            } else {
+                                MockResponse(code = 404)
+                            }
                     }
                 }
             }

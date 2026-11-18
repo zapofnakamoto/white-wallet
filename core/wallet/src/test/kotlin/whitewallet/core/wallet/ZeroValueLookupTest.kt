@@ -2,11 +2,14 @@
 
 package whitewallet.core.wallet
 
+import fr.acinq.bitcoin.Crypto
 import fr.acinq.bitcoin.PrivateKey
+import fr.acinq.secp256k1.Hex
 import java.security.SecureRandom
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -18,11 +21,13 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.wallet.LookupMint.Companion.error
 import whitewallet.core.wallet.LookupMint.Companion.note
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.NoteLink
+import whitewallet.lnurlcash.protocol.Requests
 import whitewallet.lnurlcash.spendDomain
 
 /**
@@ -115,6 +120,98 @@ class ZeroValueLookupTest {
             }
         }
 
+    @Test
+    fun `a melt answered 0 0 stays waiting through the final check`() =
+        melt(lookup = note(0), verifyUrl = null) { wallet, mint, entry, q ->
+            assertEquals(JournalStatus.Unknown, MeltReconciler(wallet).reconcile(entry, final = true))
+            assertEquals(NoteState.Paying, wallet.store.note(q)?.state)
+            assertEquals(0, mint.verifyAsked.get())
+        }
+
+    @Test
+    fun `a melt answered 0 0 is paid once verify says settled`() =
+        melt(lookup = note(0), verify = settled(PREIMAGE)) { wallet, _, entry, q ->
+            assertEquals(JournalStatus.Confirmed, MeltReconciler(wallet).reconcile(entry))
+            assertEquals(NoteState.Spent, wallet.store.note(q)?.state)
+        }
+
+    @Test
+    fun `a melt whose verify says not settled stays waiting`() =
+        melt(lookup = note(0), verify = """{"status":"OK","settled":false,"preimage":null}""") { wallet, mint, entry, q ->
+            assertEquals(JournalStatus.Unknown, MeltReconciler(wallet).reconcile(entry, final = true))
+            assertEquals(NoteState.Paying, wallet.store.note(q)?.state)
+            assertEquals(1, mint.verifyAsked.get())
+        }
+
+    @Test
+    fun `a melt whose verify says not found stays waiting`() =
+        melt(lookup = note(0), verify = error("Not found")) { wallet, _, entry, q ->
+            assertEquals(JournalStatus.Unknown, MeltReconciler(wallet).reconcile(entry, final = true))
+            assertEquals(NoteState.Paying, wallet.store.note(q)?.state)
+        }
+
+    @Test
+    fun `a settled verify whose preimage doesn't match the invoice stays waiting`() =
+        melt(lookup = note(0), verify = settled("22".repeat(32))) { wallet, _, entry, q ->
+            assertEquals(JournalStatus.Unknown, MeltReconciler(wallet).reconcile(entry, final = true))
+            assertEquals(NoteState.Paying, wallet.store.note(q)?.state)
+        }
+
+    @Test
+    fun `a melt whose note comes back is failed and the note restored`() =
+        melt(lookup = note(5_000), verify = settled(PREIMAGE)) { wallet, mint, entry, q ->
+            assertEquals(JournalStatus.Rejected, MeltReconciler(wallet).reconcile(entry))
+            assertEquals(NoteState.Outstanding, wallet.store.note(q)?.state)
+            assertEquals(0, mint.verifyAsked.get())
+        }
+
+    @Test
+    fun `verify is asked only after a 0 0 lookup`() =
+        melt(lookup = error("already in use"), verify = settled(PREIMAGE)) { wallet, mint, entry, q ->
+            assertEquals(JournalStatus.Confirmed, MeltReconciler(wallet).reconcile(entry))
+            assertEquals(NoteState.Spent, wallet.store.note(q)?.state)
+            assertEquals(0, mint.verifyAsked.get())
+        }
+
+    @Test
+    fun `a verify url on another host is not kept`() {
+        val withdrawUrl = "https://mint.example/w"
+        assertNull(keptVerifyUrl("https://evil.example/verify/x", withdrawUrl))
+        assertEquals("https://mint.example/verify/x", keptVerifyUrl("https://mint.example/verify/x", withdrawUrl))
+        assertNull(keptVerifyUrl("http://mint.example/verify/x", withdrawUrl), "another scheme is another origin")
+        assertNull(keptVerifyUrl(null, withdrawUrl))
+    }
+
+    /**
+     * A melt of a held note into an invoice whose preimage is [PREIMAGE], the mint's answer accepted (in flight); its note looked up as
+     * [lookup], `verify` answering [verify] at [verifyUrl] (the mint's own by default).
+     */
+    private fun melt(
+        lookup: String,
+        verify: String? = null,
+        verifyUrl: ((LookupMint) -> String?)? = { "http://${it.host}/verify/${PAYMENT_HASH}" },
+        check: suspend (Wallet, LookupMint, JournalEntry, String) -> Unit,
+    ) =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val q = held(wallet, KeyId(accountId, mint.host, KeySet.Wallet, 0), 5_000, NoteState.Paying)
+                mint.lookups[q] = lookup
+                mint.verify = verify
+                val invoice = TestInvoices.invoice(5_000, paymentHashHex = PAYMENT_HASH)
+                val entry =
+                    openMelt(accountId, mint, q)
+                        .copy(
+                            requestUrl = Requests.melt("${mint.withdrawUrl}/cb", "ck1x", invoice),
+                            verifyUrl = verifyUrl?.invoke(mint),
+                        )
+                wallet.store.putJournal(entry)
+                check(wallet, mint, entry, q)
+            }
+        }
+
+    private fun settled(preimage: String) = """{"status":"OK","settled":true,"preimage":"$preimage","pr":"lnbcrt1"}"""
+
     private suspend fun wallet(mint: LookupMint): Pair<Wallet, String> {
         val wallet = Wallet(InMemoryWalletStore(), InMemorySeedStore(), LnurlcashClient(), now = { clock })
         val accountId = assertIs<CreateAccountResult.Created>(wallet.createAccount(mint.host, "Main")).accountId
@@ -176,5 +273,10 @@ class ZeroValueLookupTest {
             )
         wallet.store.putReceivedNote(note)
         return note
+    }
+
+    private companion object {
+        val PREIMAGE = "11".repeat(32)
+        val PAYMENT_HASH: String = Hex.encode(Crypto.sha256(Hex.decode(PREIMAGE)))
     }
 }

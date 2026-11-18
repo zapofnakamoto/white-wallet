@@ -25,6 +25,7 @@ import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.Registration
 import whitewallet.lnurlcash.protocol.Requests
+import whitewallet.lnurlcash.protocol.VerifyAnswer
 import whitewallet.lnurlcash.protocol.WithdrawDiscovery
 
 /**
@@ -128,6 +129,9 @@ public class LnurlcashClient(
     /** Looks a note up by its output key without disclosing the spend. Throws NoteLookupError if unknown or spent. */
     public suspend fun lookup(withdrawUrl: String, q: ByteVector32): NoteInfo =
         NoteInfo.from(mintGet(Requests.lookup(withdrawUrl, q)), null)
+
+    /** Asks a melt's LUD-21 `verify` [url] whether its payment settled. Throws NoteLookupError for the mint's error. Carries no spend. */
+    public suspend fun verify(url: String): VerifyAnswer = VerifyAnswer.from(mintGet(url))
 
     /**
      * Sends a mutation URL built by [Requests] and classifies the outcome. The only request that carries a spend. Replayed when its answer

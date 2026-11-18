@@ -1,14 +1,19 @@
 package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.bitcoin.Crypto
+import fr.acinq.secp256k1.Hex
 import java.io.IOException
 import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.OperationType
+import whitewallet.lnurl.Bolt11
+import whitewallet.lnurl.Lnurl
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.protocol.MutationOutcome
 import whitewallet.lnurlcash.protocol.MutationType
@@ -16,6 +21,7 @@ import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.Requests
+import whitewallet.lnurlcash.protocol.verifyUrl
 import whitewallet.lnurlcash.spendDomain
 
 internal sealed interface MeltOutcome {
@@ -139,7 +145,12 @@ internal class Melter(private val wallet: Wallet) {
             when (outcome) {
                 is MutationOutcome.Confirmed,
                 is MutationOutcome.Unverifiable ->
-                    entry.copy(status = JournalStatus.Unknown, detail = MeltReconciler.IN_FLIGHT, updatedAtMillis = wallet.now())
+                    entry.copy(
+                        status = JournalStatus.Unknown,
+                        detail = MeltReconciler.IN_FLIGHT,
+                        updatedAtMillis = wallet.now(),
+                        verifyUrl = keptVerifyUrl(outcome.verifyUrl(), mint.withdrawUrl),
+                    )
                 is MutationOutcome.Rejected -> {
                     wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Outstanding, updatedAtMillis = wallet.now())))
                     wallet.store.putJournal(
@@ -186,8 +197,10 @@ internal suspend fun <T : Any> waitForPayment(wallet: Wallet, check: suspend (fi
 
 /**
  * Settles a melt by looking its input up by `p`: burned (`already in use`) means paid; outstanding again means the payment failed (or, when
- * the request's answer was lost, that it never arrived); `pending` means it is still in flight. Any other answer, a spent or unknown note
- * in the mint's own words too, leaves it open.
+ * the request's answer was lost, that it never arrived); `pending` means it is still in flight. Answered 0 (burned or pending, as the draft
+ * after the pinned one answers both), it is paid once its `verify` URL says settled, with a preimage of the invoice if it names one; never
+ * failed, which only the note's value coming back shows. Any other answer, a spent or unknown note in the mint's own words too, leaves it
+ * open.
  */
 internal class MeltReconciler(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
@@ -201,6 +214,7 @@ internal class MeltReconciler(private val wallet: Wallet) {
                 Pinning.settling(wallet, entry.accountId, entry.host, entry.withdrawUrl, q)
                 true
             } catch (e: NoteLookupError) {
+                if (e.burnedOrPending) return settleByVerify(entry)
                 if (e.burned) false else return JournalStatus.Unknown
             } catch (e: MintKeyChangedException) {
                 return JournalStatus.Unknown
@@ -224,6 +238,33 @@ internal class MeltReconciler(private val wallet: Wallet) {
         return JournalStatus.Unknown
     }
 
+    /**
+     * A melt whose note answered 0: paid if its `verify` URL says settled. A preimage that isn't the invoice's says nothing; neither does
+     * any other answer, nor none. Asked only after the lookup, at a mint whose key was checked for it.
+     */
+    private suspend fun settleByVerify(entry: JournalEntry): JournalStatus {
+        val url = entry.verifyUrl ?: return JournalStatus.Unknown
+        val answer =
+            try {
+                // key-checked: asked only after Pinning.settling answered for this mint.
+                wallet.client.verify(url)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                return JournalStatus.Unknown
+            }
+        if (!answer.settled) return JournalStatus.Unknown
+        // A transfer has no invoice: the mint's word is all there is, as for `already in use`. Only the invoice is read; the spend stays.
+        @OptIn(RevealsNoteSecret::class)
+        val invoice = Lnurl.queryParams(entry.requestUrl).firstOrNull { it.first == "pr" }?.second?.let(Bolt11::decode)
+        val preimage = answer.preimage
+        if (preimage != null && invoice != null && Hex.encode(Crypto.sha256(preimage)) != invoice.paymentHashHex) {
+            return JournalStatus.Unknown
+        }
+        val note = wallet.store.note(entry.inputIds.single())
+        note?.let { wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = wallet.now()))) }
+        return finish(entry, JournalStatus.Confirmed)
+    }
+
     private suspend fun finish(entry: JournalEntry, status: JournalStatus): JournalStatus {
         wallet.store.putJournal(entry.copy(status = status, updatedAtMillis = wallet.now()))
         log.settle(entry.id, status)
@@ -235,3 +276,6 @@ internal class MeltReconciler(private val wallet: Wallet) {
         const val IN_FLIGHT = "in flight"
     }
 }
+
+/** A melt's `verify` URL, kept only on its mint's own origin ([withdrawUrl]'s), as a spend goes only there. */
+internal fun keptVerifyUrl(verify: String?, withdrawUrl: String): String? = verify?.takeIf { SecretGate.sameOrigin(it, withdrawUrl) }

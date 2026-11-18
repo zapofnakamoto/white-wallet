@@ -14,6 +14,7 @@ object TestInvoices {
         descriptionHashHex: String? = null,
         timestampSeconds: Long = System.currentTimeMillis() / 1000,
         expirySeconds: Long? = null,
+        paymentHashHex: String = "07".repeat(32),
     ): String {
         val words = mutableListOf<Byte>()
         words += (0 until 7).map { ((timestampSeconds shr (5 * (6 - it))) and 31).toByte() }
@@ -23,7 +24,7 @@ object TestInvoices {
             words += (data.size % 32).toByte()
             words += data
         }
-        tag(1, Bech32.eight2five(ByteArray(32) { 7 }).toList())
+        tag(1, Bech32.eight2five(Hex.decode(paymentHashHex)).toList())
         description?.let { tag(13, Bech32.eight2five(it.encodeToByteArray()).toList()) }
         descriptionHashHex?.let { tag(23, Bech32.eight2five(Hex.decode(it)).toList()) }
         expirySeconds?.let { e ->
