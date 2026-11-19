@@ -22,7 +22,7 @@ The `Regtest*Test` classes in `core/wallet` run against **`lnurlcash/lnurl-mint`
 - auto-mint discovery
 - claiming a bearer note (hex preimage `k1`)
 - split, merge and move with the mint's fees
-- a melt keeps the mint's LUD-21 `verify` link, which answers not settled while the payment is held and settled with the invoice's preimage once paid (`RegtestPayTest`); settling a melt through it when a lookup answers 0 is unit-tested (`ZeroValueLookupTest`), as 0.13.1 never answers 0
+- a melt keeps the mint's LUD-21 `verify` link, which answers not settled while the payment is held and settled once paid, with the invoice's preimage when the mint's node gives it (0.13.1 leaves it out for some melts; settled alone counts as paid) (`RegtestPayTest`); settling a melt through it when a lookup answers 0 is unit-tested (`ZeroValueLookupTest`), as 0.13.1 never answers 0
 - merge refunds: merging 3 notes (999 + 999 + 1,999 sats, each after the 1-sat mint fee) yielded 3,999 sats, so the mint refunded (n−1) × base fee as LUD-25 "Mint fees" specifies (`RegtestPolicyTest`)
 
 ## Which conformance files are used
