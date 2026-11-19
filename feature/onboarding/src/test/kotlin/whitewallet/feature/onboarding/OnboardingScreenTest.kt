@@ -1,5 +1,7 @@
 package whitewallet.feature.onboarding
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -11,6 +13,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.core.designsystem.R as DesignR
 
 /** The address step of a wallet's setup, and the address screens of Settings. */
 @RunWith(RobolectricTestRunner::class)
@@ -126,5 +134,54 @@ class OnboardingScreenTest {
         compose.onNodeWithText(text(R.string.onboarding_add_elsewhere_title)).assertExists()
         compose.onNodeWithText(text(R.string.onboarding_address_preview, "alice@other.example")).assertExists()
         compose.onNodeWithText(text(R.string.onboarding_mint)).performScrollTo().assertExists()
+    }
+
+    /** The anchors the screen asks the brand for, with their status. */
+    private val decorated = mutableListOf<Pair<Anchor, WalletStatus>>()
+
+    private fun showClaimed(state: OnboardingState, onContinue: () -> Unit = {}) = compose.setContent {
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    decorated += anchor to context.status
+                }
+            }
+        CompositionLocalProvider(LocalBrandDesign provides design) {
+            OnboardingScreen(
+                state,
+                onBack = {},
+                onUsernameChange = {},
+                mint = MintActions({}, {}),
+                onSuggestion = {},
+                onStart = {},
+                onContinue = onContinue,
+            )
+        }
+    }
+
+    private fun aCheckedAddressEndsOnTheSuccessScreen(mode: OnboardingMode) {
+        var continued = false
+        showClaimed(setup().copy(mode = mode, claimed = Claimed("alice@mint.example", confirmed = true)), { continued = true })
+        assertEquals(listOf(Anchor.AddressAdded to WalletStatus.Done(0)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.claimed_title)).assertExists()
+        compose.onNodeWithText("alice@mint.example").assertExists()
+        compose.onNodeWithText(text(R.string.claimed_body)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.copy)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.share)).assertExists()
+        compose.onNodeWithText(text(R.string.claimed_continue)).performClick()
+        assertTrue(continued)
+    }
+
+    @Test fun aCheckedAddressInTheSetupEndsOnTheSuccessScreen() = aCheckedAddressEndsOnTheSuccessScreen(OnboardingMode.Setup)
+
+    @Test fun aCheckedAddressFromSettingsEndsOnTheSuccessScreen() = aCheckedAddressEndsOnTheSuccessScreen(OnboardingMode.AddAddress)
+
+    @Test
+    fun anAddressThatCouldNotBeCheckedKeepsItsWarning() {
+        showClaimed(setup().copy(mode = OnboardingMode.AddAddress, claimed = Claimed("alice@mint.example", confirmed = false)))
+        compose.onNodeWithText(text(R.string.claimed_title_unconfirmed)).assertExists()
+        compose.onNodeWithText(text(R.string.claimed_body_unconfirmed)).assertExists()
+        assertTrue(decorated.none { it.first == Anchor.AddressAdded })
     }
 }

@@ -50,12 +50,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.walletColors
+import whitewallet.core.designsystem.CopyShare
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletSuggestionChip
@@ -144,6 +149,7 @@ fun OnboardingScreen(
             }
         )
     Scaffold(topBar = { WalletTopBar(title, (onBack ?: askAbandon).takeIf { claimed == null }) }) { padding ->
+        if (claimed?.confirmed == true) return@Scaffold AddressAddedContent(claimed.address, onContinue, Modifier.padding(padding))
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             if (claimed != null) {
                 ClaimedContent(claimed, onContinue)
@@ -385,41 +391,40 @@ private fun AvailabilityText(availability: Availability) {
 }
 
 /** Success: the address is claimed (and, when [Claimed.confirmed], verified to point at this wallet). */
+/** The address is ready and reaches this wallet: the success screen, with the address to copy or share. */
+@Composable
+private fun AddressAddedContent(address: String, onContinue: () -> Unit, modifier: Modifier) {
+    SuccessScreen(
+        anchor = Anchor.AddressAdded,
+        status = WalletStatus.Done(0),
+        title = stringResource(R.string.claimed_title),
+        done = SuccessAction(stringResource(R.string.claimed_continue), onContinue),
+        modifier = modifier,
+        lines = listOf(stringResource(R.string.claimed_body)),
+    ) {
+        Text(address, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+        CopyShare(address, stringResource(R.string.claimed_copied))
+    }
+}
+
+/** The address is registered, but the app couldn't check that payments reach this wallet: not a success, a warning. */
 @Composable
 private fun ClaimedContent(claimed: Claimed, onContinue: () -> Unit) {
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
-    var copied by remember { mutableStateOf(false) }
     Icon(
         painterResource(DesignR.drawable.ic_check_circle),
         contentDescription = null,
-        tint = if (claimed.confirmed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+        tint = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier.size(72.dp),
     )
-    Text(
-        stringResource(if (claimed.confirmed) R.string.claimed_title else R.string.claimed_title_unconfirmed),
-        style = MaterialTheme.typography.headlineSmall,
-        textAlign = TextAlign.Center,
-    )
+    Text(stringResource(R.string.claimed_title_unconfirmed), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
     Text(
         claimed.address,
         style = MaterialTheme.typography.titleLarge,
         color = MaterialTheme.colorScheme.primary,
         textAlign = TextAlign.Center,
     )
-    Text(
-        stringResource(if (claimed.confirmed) R.string.claimed_body else R.string.claimed_body_unconfirmed),
-        textAlign = TextAlign.Center,
-    )
-    WalletButton(
-        kind = ButtonKind.Secondary,
-        onClick = {
-            scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("address", claimed.address))) }
-            copied = true
-        },
-    ) {
-        Text(stringResource(if (copied) R.string.claimed_copied else R.string.claimed_copy))
-    }
+    Text(stringResource(R.string.claimed_body_unconfirmed), textAlign = TextAlign.Center)
+    CopyShare(claimed.address, stringResource(R.string.claimed_copied))
     PrimaryButton(stringResource(R.string.claimed_continue), onContinue)
 }
 

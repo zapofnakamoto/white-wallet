@@ -56,7 +56,6 @@
     <string name="claimed_title">Deine Adresse ist bereit</string>
     <string name="claimed_title_unconfirmed">Deine Adresse ist registriert</string>
     <string name="claimed_body">Zahlungen an diese Adresse kommen in dieser Wallet an. Teile sie mit allen, die dir etwas zahlen wollen.</string>
-    <string name="claimed_copy">Adresse kopieren</string>
     <string name="claimed_copied">Kopiert</string>
     <string name="claimed_continue">Weiter</string>
     <string name="onboarding_mint_custom">Andere …</string>

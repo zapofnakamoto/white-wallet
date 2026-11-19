@@ -65,7 +65,6 @@
     <string name="claimed_title">Your address is ready</string>
     <string name="claimed_title_unconfirmed">Your address is registered</string>
     <string name="claimed_body">Payments to this address arrive in this wallet. Share it with anyone who wants to pay you.</string>
-    <string name="claimed_copy">Copy address</string>
     <string name="claimed_copied">Copied</string>
     <string name="claimed_continue">Continue</string>
     <string name="onboarding_mint_custom">Custom…</string>
