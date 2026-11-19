@@ -18,9 +18,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletTopBar
@@ -47,6 +51,20 @@ fun ScanRoute(start: Boolean, onBack: () -> Unit, viewModel: ScanViewModel = hil
 fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.scan_notes_title), onBack) }) { padding ->
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
+        val result = state.result
+        // A scan that got through is over: leaving is the way on, scanning again the exception.
+        if (!state.scanning && result != null && result.stoppedAt.isEmpty()) {
+            return@Scaffold SuccessScreen(
+                anchor = Anchor.ScanDone,
+                status = WalletStatus.Done(result.foundMsat),
+                title = stringResource(R.string.scan_finished_title),
+                done = SuccessAction(stringResource(R.string.scan_done), onBack),
+                modifier = Modifier.padding(padding),
+                more = SuccessAction(stringResource(R.string.scan_again), onScan),
+                amountMsat = result.foundMsat.takeIf { it > 0 },
+                lines = listOfNotNull(stringResource(R.string.scan_result_none).takeIf { result.foundMsat == 0L }),
+            )
+        }
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.scan_body), textAlign = TextAlign.Center)
             Column(Modifier.fillMaxWidth()) {
@@ -68,15 +86,9 @@ fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
                 WalletLinearProgress(Modifier.fillMaxWidth())
                 ScanAccounts(state.progress, empty = R.string.scan_account_nothing_new)
             } else {
-                val result = state.result
-                result?.let { ScanOutcome(it) }
+                result?.let { StoppedOutcome(it) }
                 when {
                     result == null -> PrimaryButton(stringResource(R.string.scan_action), onScan, enabled = state.mints.isNotEmpty())
-                    // A scan that got through is over: leaving is the way on, scanning again the exception.
-                    result.stoppedAt.isEmpty() -> {
-                        PrimaryButton(stringResource(R.string.scan_done), onBack)
-                        WalletButton(kind = ButtonKind.Text, onClick = onScan) { Text(stringResource(R.string.scan_again)) }
-                    }
                     else -> {
                         PrimaryButton(stringResource(R.string.scan_again), onScan)
                         WalletButton(kind = ButtonKind.Text, onClick = onBack) { Text(stringResource(R.string.add_mint_later)) }
@@ -109,18 +121,15 @@ private fun scanStatus(mint: MintInfo): String {
     }
 }
 
+/** A scan that stopped at a mint: what it found until then, and that it stopped. */
 @Composable
-private fun ScanOutcome(result: ScanResult) {
+private fun StoppedOutcome(result: ScanResult) {
     if (result.foundMsat > 0) {
         Text(
             stringResource(R.string.add_mint_found_total, formatAmount(result.foundMsat)),
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
         )
-    } else if (result.stoppedAt.isEmpty()) {
-        Text(stringResource(R.string.scan_result_none), textAlign = TextAlign.Center)
     }
-    if (result.stoppedAt.isNotEmpty()) {
-        Text(stringResource(R.string.scan_result_stopped), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-    }
+    Text(stringResource(R.string.scan_result_stopped), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
 }

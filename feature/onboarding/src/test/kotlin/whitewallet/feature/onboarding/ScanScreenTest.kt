@@ -1,15 +1,23 @@
 package whitewallet.feature.onboarding
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.MintScan
 import whitewallet.core.wallet.MintInfo
@@ -84,25 +92,44 @@ class ScanScreenTest {
     @Config(qualifiers = "de")
     fun whileItLooksUpTheNotesItHoldsTheMintCountsThemInGerman() = whileItLooksUpTheNotesItHoldsTheMintCountsThem()
 
+    /** The anchors the screen asks the brand for, with their status. */
+    private val decorated = mutableListOf<Pair<Anchor, WalletStatus>>()
+
+    private fun showDecorated(state: ScanState, onBack: () -> Unit = {}, onScan: () -> Unit = {}) = compose.setContent {
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    decorated += anchor to context.status
+                }
+            }
+        CompositionLocalProvider(LocalBrandDesign provides design) { ScanScreen(state, onBack, onScan) }
+    }
+
     @Test
-    fun whatWasFoundShowsAndDoneLeaves() {
+    fun whatWasFoundEndsOnTheSuccessScreenAndDoneLeaves() {
         var left = 0
         var scans = 0
-        show(ScanState(mints, result = ScanResult(foundMsat = 5_000_000, stoppedAt = emptyList())), { left++ }, { scans++ })
+        showDecorated(ScanState(mints, result = ScanResult(foundMsat = 5_000_000, stoppedAt = emptyList())), { left++ }, { scans++ })
+        assertEquals(listOf(Anchor.ScanDone to WalletStatus.Done(5_000_000)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.scan_finished_title)).assertExists()
+        compose.onNodeWithText("₿5,000").assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.scan_done)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.scan_done)).performClick()
         assertEquals(1, left)
-        compose.onNodeWithText(text(R.string.scan_again)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.scan_again)).performClick()
         assertEquals(1, scans)
     }
 
     private fun nothingNewSaysSoAndDoneLeaves() {
         var left = 0
-        show(ScanState(mints, result = ScanResult(foundMsat = 0, stoppedAt = emptyList())), { left++ })
+        showDecorated(ScanState(mints, result = ScanResult(foundMsat = 0, stoppedAt = emptyList())), { left++ })
+        assertEquals(listOf(Anchor.ScanDone to WalletStatus.Done(0)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.scan_finished_title)).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertExists()
         compose.onNodeWithText(text(R.string.scan_again)).assertExists()
-        compose.onNodeWithText(text(R.string.scan_done)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.scan_done)).performClick()
         assertEquals(1, left)
     }
 
@@ -114,7 +141,8 @@ class ScanScreenTest {
     fun aMintThatDidNotAnswerSaysToTryAgainOrLater() {
         var left = 0
         var scans = 0
-        show(ScanState(mints, result = ScanResult(foundMsat = 0, stoppedAt = listOf("down.example"))), { left++ }, { scans++ })
+        showDecorated(ScanState(mints, result = ScanResult(foundMsat = 0, stoppedAt = listOf("down.example"))), { left++ }, { scans++ })
+        assertTrue(decorated.none { it.first == Anchor.ScanDone })
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.scan_done)).assertDoesNotExist()
@@ -122,6 +150,14 @@ class ScanScreenTest {
         assertEquals(1, scans)
         compose.onNodeWithText(text(R.string.add_mint_later)).performScrollTo().performClick()
         assertEquals(1, left)
+    }
+
+    @Test
+    fun aScanThatStoppedStillSaysWhatItFound() {
+        showDecorated(ScanState(mints, result = ScanResult(foundMsat = 5_000_000, stoppedAt = listOf("down.example"))))
+        compose.onNodeWithText(text(R.string.add_mint_found_total, "₿5,000")).assertExists()
+        compose.onNodeWithText(text(R.string.scan_result_stopped)).assertExists()
+        assertTrue(decorated.none { it.first == Anchor.ScanDone })
     }
 
     @Test

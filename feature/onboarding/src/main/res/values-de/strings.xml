@@ -174,4 +174,5 @@
     </plurals>
     <string name="mint_added_title">Mint hinzugefügt</string>
     <string name="success_done">Fertig</string>
+    <string name="scan_finished_title">Suche abgeschlossen</string>
 </resources>
