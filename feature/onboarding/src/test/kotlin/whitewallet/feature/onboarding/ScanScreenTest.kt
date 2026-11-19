@@ -109,17 +109,16 @@ class ScanScreenTest {
     @Test
     fun whatWasFoundEndsOnTheSuccessScreenAndDoneLeaves() {
         var left = 0
-        var scans = 0
-        showDecorated(ScanState(mints, result = ScanResult(foundMsat = 5_000_000, stoppedAt = emptyList())), { left++ }, { scans++ })
+        showDecorated(ScanState(mints, result = ScanResult(foundMsat = 5_000_000, stoppedAt = emptyList())), { left++ })
         assertEquals(listOf(Anchor.ScanDone to WalletStatus.Done(5_000_000)), decorated.distinct())
         compose.onNodeWithText(text(R.string.scan_finished_title)).assertExists()
-        compose.onNodeWithText("₿5,000").assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_found_total, "₿5,000")).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.scan_done)).performClick()
+        // A scan that got through would find the same again: leaving is the only way on.
+        compose.onNodeWithText(text(R.string.scan_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.success_done)).performClick()
         assertEquals(1, left)
-        compose.onNodeWithText(text(R.string.scan_again)).performClick()
-        assertEquals(1, scans)
     }
 
     private fun nothingNewSaysSoAndDoneLeaves() {
@@ -128,8 +127,7 @@ class ScanScreenTest {
         assertEquals(listOf(Anchor.ScanDone to WalletStatus.Done(0)), decorated.distinct())
         compose.onNodeWithText(text(R.string.scan_finished_title)).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertExists()
-        compose.onNodeWithText(text(R.string.scan_again)).assertExists()
-        compose.onNodeWithText(text(R.string.scan_done)).performClick()
+        compose.onNodeWithText(text(R.string.success_done)).performClick()
         assertEquals(1, left)
     }
 
@@ -145,7 +143,7 @@ class ScanScreenTest {
         assertTrue(decorated.none { it.first == Anchor.ScanDone })
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.scan_done)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.success_done)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.scan_again)).performScrollTo().performClick()
         assertEquals(1, scans)
         compose.onNodeWithText(text(R.string.add_mint_later)).performScrollTo().performClick()

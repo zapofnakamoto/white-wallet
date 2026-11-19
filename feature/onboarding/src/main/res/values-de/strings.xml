@@ -56,7 +56,6 @@
 
     <string name="claimed_title">Deine Adresse ist bereit</string>
     <string name="claimed_title_unconfirmed">Deine Adresse ist registriert</string>
-    <string name="claimed_body">Zahlungen an diese Adresse kommen in dieser Wallet an. Teile sie mit allen, die dir etwas zahlen wollen.</string>
     <string name="claimed_copied">Kopiert</string>
     <string name="claimed_continue">Weiter</string>
     <string name="onboarding_mint_custom">Andere …</string>
@@ -143,7 +142,6 @@
     <string name="scan_mint_finished_at">Zuletzt durchsucht: %1$s</string>
     <string name="scan_action">Suchen</string>
     <string name="scan_again">Noch einmal suchen</string>
-    <string name="scan_done">Fertig</string>
     <string name="scan_result_none">Nichts Neues gefunden.</string>
     <string name="scan_result_stopped">Die Suche kam nicht überall durch. Versuch es noch einmal; was gefunden wurde, bleibt.</string>
     <string name="setup_abandon_title">Einrichtung dieser Wallet abbrechen?</string>

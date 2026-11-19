@@ -211,7 +211,7 @@ class WelcomeScreenTest {
     fun anAccountThatHeldMoneySaysHowMuch() {
         showCreated(CreateState(created = true, accountId = "a", createdName = "Travel", foundMsat = 21_000_000))
         assertEquals(listOf(Anchor.AccountCreated to WalletStatus.Done(21_000_000)), decorated.distinct())
-        compose.onNodeWithText("₿21,000").assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_found_total, "₿21,000")).assertExists()
     }
 
     @Test

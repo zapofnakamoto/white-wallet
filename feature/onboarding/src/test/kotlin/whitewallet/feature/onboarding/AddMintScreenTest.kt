@@ -145,8 +145,9 @@ class AddMintScreenTest {
         )
         assertEquals(listOf(Anchor.MintAdded to WalletStatus.Done(3_000_000)), decorated.distinct())
         compose.onNodeWithText(text(R.string.mint_added_title)).assertExists()
-        compose.onNodeWithText("₿3,000").assertExists()
-        compose.onNodeWithText(plural(R.plurals.add_mint_found_accounts, 2, 2)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_found_total, "₿3,000")).assertExists()
+        compose.onNodeWithText(plural(R.plurals.add_mint_found_accounts, 2, 2)).assertDoesNotExist()
+        compose.onNodeWithText("Main").assertExists()
         compose.onNodeWithText("Account 2").assertExists()
         compose.onNodeWithText(text(R.string.success_done)).performClick()
         assertTrue(done)
@@ -179,16 +180,33 @@ class AddMintScreenTest {
     }
 
     @Test
-    fun aWalletMadeHereIsNotScannedAndSaysTheMintIsAdded() {
+    fun oneAccountWithMoneyIsNamedOnce() {
+        showDecorated(
+            pick.copy(
+                step = AddMintStep.Result,
+                preview = preview,
+                progress = ScanProgress(emptyList()),
+                found = listOf(FoundAccount("Main", 2_000_000)),
+            )
+        )
+        compose.onNodeWithText(text(R.string.add_mint_found_total, "₿2,000")).assertExists()
+        compose.onNodeWithText("Main").assertExists()
+        compose.onNodeWithText("₿2,000").assertDoesNotExist()
+    }
+
+    @Test
+    fun aWalletMadeHereIsNotScannedAndTheTitleSaysItAll() {
         showDecorated(pick.copy(step = AddMintStep.Result, preview = preview, progress = null))
-        compose.onNodeWithText(text(R.string.add_mint_added_body)).assertExists()
+        compose.onNodeWithText(text(R.string.mint_added_title)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_added_body)).assertDoesNotExist()
         assertEquals(listOf(Anchor.MintAdded to WalletStatus.Done(0)), decorated.distinct())
     }
 
     @Test
-    fun nothingFoundSaysSo() {
+    fun nothingFoundSaysSoAsTheScanDoes() {
         showDecorated(pick.copy(step = AddMintStep.Result, preview = preview, progress = ScanProgress(emptyList())))
-        compose.onNodeWithText(text(R.string.add_mint_found_none)).assertExists()
+        compose.onNodeWithText(text(R.string.scan_result_none)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_found_none)).assertDoesNotExist()
         assertEquals(listOf(Anchor.MintAdded to WalletStatus.Done(0)), decorated.distinct())
     }
 

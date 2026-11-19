@@ -160,22 +160,26 @@ class OnboardingScreenTest {
         }
     }
 
-    private fun aCheckedAddressEndsOnTheSuccessScreen(mode: OnboardingMode) {
+    private fun aCheckedAddressEndsOnTheSuccessScreen(mode: OnboardingMode, button: Int) {
         var continued = false
         showClaimed(setup().copy(mode = mode, claimed = Claimed("alice@mint.example", confirmed = true)), { continued = true })
         assertEquals(listOf(Anchor.AddressAdded to WalletStatus.Done(0)), decorated.distinct())
         compose.onNodeWithText(text(R.string.claimed_title)).assertExists()
         compose.onNodeWithText("alice@mint.example").assertExists()
-        compose.onNodeWithText(text(R.string.claimed_body)).assertExists()
         compose.onNodeWithText(text(DesignR.string.copy)).assertExists()
         compose.onNodeWithText(text(DesignR.string.share)).assertExists()
-        compose.onNodeWithText(text(R.string.claimed_continue)).performClick()
+        compose.onNodeWithText(text(button)).performClick()
         assertTrue(continued)
     }
 
-    @Test fun aCheckedAddressInTheSetupEndsOnTheSuccessScreen() = aCheckedAddressEndsOnTheSuccessScreen(OnboardingMode.Setup)
+    // The setup goes on to its next step; from Settings the address is the end.
+    @Test
+    fun aCheckedAddressInTheSetupEndsOnTheSuccessScreen() =
+        aCheckedAddressEndsOnTheSuccessScreen(OnboardingMode.Setup, R.string.claimed_continue)
 
-    @Test fun aCheckedAddressFromSettingsEndsOnTheSuccessScreen() = aCheckedAddressEndsOnTheSuccessScreen(OnboardingMode.AddAddress)
+    @Test
+    fun aCheckedAddressFromSettingsEndsOnTheSuccessScreen() =
+        aCheckedAddressEndsOnTheSuccessScreen(OnboardingMode.AddAddress, R.string.success_done)
 
     @Test
     fun anAddressThatCouldNotBeCheckedKeepsItsWarning() {

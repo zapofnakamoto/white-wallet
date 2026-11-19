@@ -273,16 +273,18 @@ private fun MintAddedContent(state: AddMintState, actions: AddMintActions, modif
         title = stringResource(R.string.mint_added_title),
         done = SuccessAction(stringResource(R.string.success_done), actions.onDone),
         modifier = modifier,
-        amountMsat = state.foundMsat.takeIf { it > 0 },
+        // The title says the mint is added; below only what the phrase held there: how much and where, or that it held nothing.
         lines =
-            listOf(
-                when {
-                    state.progress == null -> stringResource(R.string.add_mint_added_body)
-                    state.found.isEmpty() -> stringResource(R.string.add_mint_found_none)
-                    else -> pluralStringResource(R.plurals.add_mint_found_accounts, state.found.size, state.found.size)
-                }
-            ),
-        content = { FoundAccountRows(state.found) },
+            when {
+                state.progress == null -> emptyList()
+                state.found.isEmpty() -> listOf(stringResource(R.string.scan_result_none))
+                else ->
+                    listOfNotNull(
+                        stringResource(R.string.add_mint_found_total, formatAmount(state.foundMsat)),
+                        state.found.singleOrNull()?.name,
+                    )
+            },
+        content = { if (state.found.size > 1) FoundAccountRows(state.found) },
     )
 }
 

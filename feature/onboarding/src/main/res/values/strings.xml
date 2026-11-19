@@ -65,7 +65,6 @@
 
     <string name="claimed_title">Your address is ready</string>
     <string name="claimed_title_unconfirmed">Your address is registered</string>
-    <string name="claimed_body">Payments to this address arrive in this wallet. Share it with anyone who wants to pay you.</string>
     <string name="claimed_copied">Copied</string>
     <string name="claimed_continue">Continue</string>
     <string name="onboarding_mint_custom">Custom…</string>
@@ -149,7 +148,6 @@
     <string name="scan_mint_finished_at">Last scanned: %1$s</string>
     <string name="scan_action">Scan</string>
     <string name="scan_again">Scan again</string>
-    <string name="scan_done">Done</string>
     <string name="scan_result_none">Nothing new found.</string>
     <string name="scan_result_stopped">The scan didn\'t get through everywhere. Try again; what was found stays.</string>
     <string name="setup_abandon_title">Stop setting up this wallet?</string>

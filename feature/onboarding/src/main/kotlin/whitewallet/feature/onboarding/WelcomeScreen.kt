@@ -225,8 +225,11 @@ fun AccountNameScreen(
                 title = stringResource(R.string.account_created_title),
                 done = SuccessAction(stringResource(R.string.account_created_open)) { onOpen(created) },
                 modifier = Modifier.padding(padding),
-                amountMsat = state.foundMsat.takeIf { it > 0 },
-                lines = listOfNotNull(state.createdName),
+                lines =
+                    listOfNotNull(
+                        state.createdName,
+                        state.foundMsat.takeIf { it > 0 }?.let { stringResource(R.string.add_mint_found_total, formatAmount(it)) },
+                    ),
             )
         }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
