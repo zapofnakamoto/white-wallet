@@ -2,6 +2,7 @@ package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.bitcoin.PublicKey
+import java.io.IOException
 import whitewallet.core.model.Mint
 import whitewallet.lnurlcash.protocol.InvalidMintPubkey
 import whitewallet.lnurlcash.protocol.NoteInfo
@@ -53,6 +54,14 @@ internal object Pinning {
      */
     fun invalidKey(mint: Mint, e: InvalidMintPubkey): Nothing = throw if (mint.mintPubkey != null) MintKeyChangedException(mint.host) else e
 
+    /**
+     * An answer of 0 from a mint with no key pinned: it ends a note only if it presents a key, as every answer for a note must; one without
+     * is no answer ([IOException]). An `already in use` carries no key, and is trusted as before.
+     */
+    fun keyed(e: NoteLookupError) {
+        if (e.burnedOrPending && e.mintPubkey == null) throw IOException("answered 0 without a mintPubkey")
+    }
+
     /** Looks [q] up at [mint] by its key alone, and [check]s the key the answer presents: one that isn't a key is none ([invalidKey]). */
     suspend fun lookup(wallet: Wallet, mint: KeyCheckedMint, q: ByteVector32): NoteInfo {
         val info =
@@ -77,8 +86,15 @@ internal object Pinning {
      */
     suspend fun settling(wallet: Wallet, accountId: String, host: String, withdrawUrl: String, q: ByteVector32): NoteInfo {
         val mint = wallet.mintOf(accountId, host)?.takeIf { it.mintPubkey != null }
-        // key-checked: no key is pinned for this host, so there is none to compare.
-        if (mint == null) return wallet.client.lookup(withdrawUrl, q)
+        if (mint == null) {
+            return try {
+                // key-checked: no key is pinned for this host, so there is none to compare.
+                wallet.client.lookup(withdrawUrl, q)
+            } catch (e: NoteLookupError) {
+                keyed(e)
+                throw e
+            }
+        }
         val checked = KeyCheckedMint.of(wallet, mint.copy(withdrawUrl = withdrawUrl)) ?: throw MintKeyChangedException(host)
         return lookup(wallet, checked, q)
     }

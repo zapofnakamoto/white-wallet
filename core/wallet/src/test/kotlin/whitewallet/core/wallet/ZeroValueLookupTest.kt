@@ -5,9 +5,11 @@ package whitewallet.core.wallet
 import fr.acinq.bitcoin.Crypto
 import fr.acinq.bitcoin.PrivateKey
 import fr.acinq.secp256k1.Hex
+import java.io.IOException
 import java.security.SecureRandom
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -79,6 +81,63 @@ class ZeroValueLookupTest {
                 val gone = wallet.store.receivedNote(received.id)
                 assertEquals(ReceivedState.Gone, gone?.state)
                 @OptIn(RevealsNoteSecret::class) assertNull(gone?.k1)
+            }
+        }
+
+    @Test
+    fun `a mint with no pinned key answering 0 without its key never ends a received note`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                LookupMint("127.0.0.1").use { other ->
+                    val (wallet, accountId) = wallet(mint)
+                    val received = received(wallet, accountId, other)
+                    other.lookups[received.id] = KEYLESS_ZERO
+                    ReceivedNotes(wallet).claim(received)
+                    assertEquals(ReceivedState.Waiting, wallet.store.receivedNote(received.id)?.state)
+                    assertEquals(0, other.callbacks, "no claim went out")
+                }
+            }
+        }
+
+    @Test
+    fun `a mint with no pinned key answering 0 with its key ends a received note`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                LookupMint("127.0.0.1").use { other ->
+                    val (wallet, accountId) = wallet(mint)
+                    val received = received(wallet, accountId, other)
+                    other.lookups[received.id] = note(0)
+                    ReceivedNotes(wallet).claim(received)
+                    assertEquals(ReceivedState.Gone, wallet.store.receivedNote(received.id)?.state)
+                }
+            }
+        }
+
+    @Test
+    fun `a claim whose outcome is lost, at a mint with no pinned key answering 0 without its key, stays claiming`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                LookupMint("127.0.0.1").use { other ->
+                    val (wallet, accountId) = wallet(mint)
+                    val received = received(wallet, accountId, other).copy(state = ReceivedState.Claiming)
+                    wallet.store.putReceivedNote(received)
+                    other.lookups[received.id] = KEYLESS_ZERO
+                    ReceivedNotes(wallet).retryAll(setOf(accountId))
+                    assertEquals(ReceivedState.Claiming, wallet.store.receivedNote(received.id)?.state)
+                }
+            }
+        }
+
+    @Test
+    fun `an open operation at a mint with no pinned key can't settle on 0 without its key`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                LookupMint("127.0.0.1").use { other ->
+                    val (wallet, accountId) = wallet(mint)
+                    val q = someoneElses(other).q
+                    other.lookups[q.toHex()] = KEYLESS_ZERO
+                    assertFailsWith<IOException> { Pinning.settling(wallet, accountId, other.host, other.withdrawUrl, q) }
+                }
             }
         }
 
@@ -385,6 +444,10 @@ class ZeroValueLookupTest {
 
     private companion object {
         const val DAY = 24 * 60 * 60_000L
+
+        /** A lookup answering 0 that presents no key. */
+        const val KEYLESS_ZERO =
+            """{"tag":"withdrawRequest","callback":"${LookupMint.BASE}/w/cb","minWithdrawable":0,"maxWithdrawable":0}"""
         val PREIMAGE = "11".repeat(32)
 
         /** A signing key other than the one [LookupMint] presents. */

@@ -296,6 +296,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
             }
             null
         } catch (e: NoteLookupError) {
+            Pinning.keyed(e)
             when {
                 e.burnedOrPending -> Burned.AnsweredZero
                 e.burned -> Burned.InUse
@@ -484,8 +485,9 @@ internal sealed interface KeyLookup {
             return try {
                 Note(NoteInfo.from(answer, null))
             } catch (e: NoteLookupError) {
-                // Answered 0: it ends a note only from a mint whose key matches.
+                // Answered 0: it ends a note only from a mint whose key matches, or, with none pinned, one that presents a key.
                 if (e.burnedOrPending && pinned && e.mintPubkey?.toHex() != pinnedKey) return KeyChanged
+                if (e.burnedOrPending && e.mintPubkey == null) return Unreachable
                 Refused(e.kind, e.reason, burned = e.burned || e.burnedOrPending, burnedOrPending = e.burnedOrPending)
             } catch (e: InvalidMintPubkey) {
                 if (pinned) KeyChanged else NotANote
