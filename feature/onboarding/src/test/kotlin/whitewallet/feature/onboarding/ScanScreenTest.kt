@@ -109,16 +109,17 @@ class ScanScreenTest {
     @Test
     fun whatWasFoundEndsOnTheSuccessScreenAndDoneLeaves() {
         var left = 0
-        showDecorated(ScanState(mints, result = ScanResult(foundMsat = 5_000_000, stoppedAt = emptyList())), { left++ })
+        var scans = 0
+        showDecorated(ScanState(mints, result = ScanResult(foundMsat = 5_000_000, stoppedAt = emptyList())), { left++ }, { scans++ })
         assertEquals(listOf(Anchor.ScanDone to WalletStatus.Done(5_000_000)), decorated.distinct())
         compose.onNodeWithText(text(R.string.scan_finished_title)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_found_total, "₿5,000")).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertDoesNotExist()
-        // A scan that got through would find the same again: leaving is the only way on.
-        compose.onNodeWithText(text(R.string.scan_again)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.success_done)).performClick()
         assertEquals(1, left)
+        compose.onNodeWithText(text(R.string.scan_again)).performClick()
+        assertEquals(1, scans)
     }
 
     private fun nothingNewSaysSoAndDoneLeaves() {

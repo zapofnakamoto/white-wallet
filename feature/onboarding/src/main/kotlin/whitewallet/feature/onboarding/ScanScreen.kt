@@ -52,7 +52,7 @@ fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.scan_notes_title), onBack) }) { padding ->
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         val result = state.result
-        // A scan that got through is over: leaving is the way on (again would find the same).
+        // A scan that got through is over: leaving is the way on, scanning again the exception.
         if (!state.scanning && result != null && result.stoppedAt.isEmpty()) {
             return@Scaffold SuccessScreen(
                 anchor = Anchor.ScanDone,
@@ -60,6 +60,7 @@ fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
                 title = stringResource(R.string.scan_finished_title),
                 done = SuccessAction(stringResource(R.string.success_done), onBack),
                 modifier = Modifier.padding(padding),
+                more = SuccessAction(stringResource(R.string.scan_again), onScan),
                 lines =
                     listOf(
                         if (result.foundMsat > 0) stringResource(R.string.add_mint_found_total, formatAmount(result.foundMsat))
