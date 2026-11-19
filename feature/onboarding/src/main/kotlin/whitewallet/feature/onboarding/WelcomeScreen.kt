@@ -37,12 +37,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.BrandTitle
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
@@ -66,6 +69,10 @@ data class CreateState(
     val scanFailed: String? = null,
     /** Adding an account: the name of the account to receive money into first ([CreateAccountResult.UseFirst]). It wasn't added. */
     val useFirst: String? = null,
+    /** Adding an account: its name, once [created]. */
+    val createdName: String? = null,
+    /** Adding an account: what it already held at the wallet's mints, once [created]. */
+    val foundMsat: Long = 0,
 )
 
 /**
@@ -85,16 +92,24 @@ class CreateViewModel @Inject constructor(private val wallet: Wallet) : ViewMode
         return wallet.accounts.first().filter { it.account.walletId == active.walletId }.map { it.account.name }
     }
 
-    fun createAccount(name: String) = create {
-        wallet.createAccount(name.trim()) { progress -> _state.update { it.copy(scan = progress.accounts.firstOrNull()) } }
-    }
+    fun createAccount(name: String) =
+        create(account = name.trim()) {
+            wallet.createAccount(name.trim()) { progress -> _state.update { it.copy(scan = progress.accounts.firstOrNull()) } }
+        }
 
-    private fun create(block: suspend () -> CreateAccountResult) {
+    /** [account]: the name of an account being added, which ends on its success screen with what it already held. */
+    private fun create(account: String? = null, block: suspend () -> CreateAccountResult) {
         if (_state.value.busy || _state.value.created) return
         _state.update { it.copy(busy = true, limit = null, scan = null, scanFailed = null) }
         viewModelScope.launch {
             when (val result = block()) {
-                is CreateAccountResult.Created -> _state.update { it.copy(busy = false, created = true, accountId = result.accountId) }
+                is CreateAccountResult.Created -> {
+                    // The new account is the active one now: its balance is what the scan found.
+                    val found = if (account != null) wallet.balanceMsat.first() else 0
+                    _state.update {
+                        it.copy(busy = false, created = true, accountId = result.accountId, createdName = account, foundMsat = found)
+                    }
+                }
                 is CreateAccountResult.AccountLimitReached -> _state.update { it.copy(busy = false, limit = result.limit) }
                 is CreateAccountResult.ScanFailed -> _state.update { it.copy(busy = false, scan = null, scanFailed = result.host) }
                 is CreateAccountResult.UseFirst -> _state.update { it.copy(busy = false, useFirst = result.first.account.name) }
@@ -177,7 +192,6 @@ fun WelcomeScreen(
 @Composable
 fun AccountNameRoute(onBack: () -> Unit, onCreated: (accountId: String) -> Unit, viewModel: CreateViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(state.accountId) { state.accountId?.let(onCreated) }
     val resources = LocalResources.current
     // "Account 2" in a wallet of one account; a number already taken as a name is passed over.
     val suggested by
@@ -188,13 +202,33 @@ fun AccountNameRoute(onBack: () -> Unit, onCreated: (accountId: String) -> Unit,
                     .map { resources.getString(R.string.new_account_default_name, it) }
                     .first { it !in taken }
         }
-    suggested?.let { AccountNameScreen(state, it, onBack, viewModel::createAccount) }
+    suggested?.let { AccountNameScreen(state, it, onBack, viewModel::createAccount, onOpen = onCreated) }
 }
 
 @Composable
-fun AccountNameScreen(state: CreateState, defaultName: String, onBack: () -> Unit, onCreate: (String) -> Unit) {
+fun AccountNameScreen(
+    state: CreateState,
+    defaultName: String,
+    onBack: () -> Unit,
+    onCreate: (String) -> Unit,
+    onOpen: (String) -> Unit = {},
+) {
     var name by rememberSaveable { mutableStateOf(defaultName) }
-    Scaffold(topBar = { WalletTopBar(stringResource(R.string.onboarding_new_account_title), onBack.takeIf { !state.busy }) }) { padding ->
+    val created = state.accountId.takeIf { state.created }
+    Scaffold(
+        topBar = { WalletTopBar(stringResource(R.string.onboarding_new_account_title), onBack.takeIf { !state.busy && created == null }) }
+    ) { padding ->
+        if (created != null) {
+            return@Scaffold SuccessScreen(
+                anchor = Anchor.AccountCreated,
+                status = WalletStatus.Done(state.foundMsat),
+                title = stringResource(R.string.account_created_title),
+                done = SuccessAction(stringResource(R.string.account_created_open)) { onOpen(created) },
+                modifier = Modifier.padding(padding),
+                amountMsat = state.foundMsat.takeIf { it > 0 },
+                lines = listOfNotNull(state.createdName),
+            )
+        }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.account_name_body), textAlign = TextAlign.Center)
             WalletTextField(

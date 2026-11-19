@@ -174,4 +174,6 @@
     <string name="mint_added_title">Mint hinzugefügt</string>
     <string name="success_done">Fertig</string>
     <string name="scan_finished_title">Suche abgeschlossen</string>
+    <string name="account_created_title">Konto erstellt</string>
+    <string name="account_created_open">Konto öffnen</string>
 </resources>

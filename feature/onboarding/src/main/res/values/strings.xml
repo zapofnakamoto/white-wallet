@@ -180,4 +180,6 @@
     <string name="mint_added_title">Mint added</string>
     <string name="success_done">Done</string>
     <string name="scan_finished_title">Scan finished</string>
+    <string name="account_created_title">Account created</string>
+    <string name="account_created_open">Open account</string>
 </resources>

@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import whitewallet.brand.ReleaseStage
+import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
@@ -176,6 +177,41 @@ class WelcomeScreenTest {
         compose.setContent { AccountNameScreen(CreateState(useFirst = "Savings"), "Travel", onBack = {}, onCreate = {}) }
         compose.onNodeWithText(text(R.string.account_name_use_first, "Savings")).assertExists()
         compose.onNodeWithText(text(R.string.onboarding_create_account)).assertIsNotEnabled()
+    }
+
+    /** The anchors the screen asks the brand for, with their status. */
+    private val decorated = mutableListOf<Pair<Anchor, WalletStatus>>()
+
+    private fun showCreated(state: CreateState, onOpen: (String) -> Unit = {}) = compose.setContent {
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    decorated += anchor to context.status
+                }
+            }
+        CompositionLocalProvider(LocalBrandDesign provides design) {
+            AccountNameScreen(state, "Savings", onBack = {}, onCreate = {}, onOpen = onOpen)
+        }
+    }
+
+    @Test
+    fun aNewAccountEndsOnTheSuccessScreen() {
+        var opened: String? = null
+        showCreated(CreateState(created = true, accountId = "a", createdName = "Travel"), { opened = it })
+        assertEquals(listOf(Anchor.AccountCreated to WalletStatus.Done(0)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.account_created_title)).assertExists()
+        compose.onNodeWithText("Travel").assertExists()
+        compose.onNodeWithText(text(R.string.account_name_body)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.account_created_open)).performClick()
+        assertEquals("a", opened)
+    }
+
+    @Test
+    fun anAccountThatHeldMoneySaysHowMuch() {
+        showCreated(CreateState(created = true, accountId = "a", createdName = "Travel", foundMsat = 21_000_000))
+        assertEquals(listOf(Anchor.AccountCreated to WalletStatus.Done(21_000_000)), decorated.distinct())
+        compose.onNodeWithText("₿21,000").assertExists()
     }
 
     @Test
