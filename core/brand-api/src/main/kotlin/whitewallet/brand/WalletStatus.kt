@@ -31,6 +31,9 @@ sealed interface WalletStatus {
     /** A payment went out (or a note was handed out, or claimed by its recipient). */
     data class Sent(val amountMsat: Long) : WalletStatus
 
+    /** Something the user did just worked (a mint, an address or an account added, a scan finished); [amountMsat] is what it found, 0 if nothing. */
+    data class Done(val amountMsat: Long) : WalletStatus
+
     /** The wallet works on [task] for a while; the screen shows that rather than figures about to change. */
     data class Working(val task: WalletTask) : WalletStatus
 

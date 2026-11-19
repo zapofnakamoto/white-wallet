@@ -50,6 +50,30 @@ value class Anchor(val id: String) {
          */
         val SendSuccess = Anchor("send.success")
 
+        /**
+         * The picture on the screen that says a mint was added, outside a wallet's setup (status [whitewallet.brand.WalletStatus.Done],
+         * with what the wallet's phrase held there). Default: a check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val MintAdded = Anchor("mint.added")
+
+        /**
+         * The picture on the screen that says a Lightning address is ready, once the app checked that it reaches this wallet (status
+         * [whitewallet.brand.WalletStatus.Done], 0). Default: a check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val AddressAdded = Anchor("address.added")
+
+        /**
+         * The picture on the screen that says an account was added (status [whitewallet.brand.WalletStatus.Done], with what it already
+         * held). Default: a check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val AccountCreated = Anchor("account.created")
+
+        /**
+         * The picture on the screen that says a scan for notes got through (status [whitewallet.brand.WalletStatus.Done], with what it
+         * found). Default: a check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val ScanDone = Anchor("scan.done")
+
         /** Above the result of claiming a note. Default: nothing. */
         val ClaimResult = Anchor("claim.result")
 

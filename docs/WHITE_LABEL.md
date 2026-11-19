@@ -467,6 +467,10 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   | `ReceiveSuccess` | the screen after a payment arrived (status `PaymentReceived`) | a check mark that draws itself |
   | `SendHeader` | above a payment's review, its progress and a result that isn't a success | nothing |
   | `SendSuccess` | the screen after a payment went out (status `Sent`) | a check mark that draws itself |
+  | `MintAdded` | the screen after a mint was added outside a wallet's setup (status `Done`, with what the phrase held there) | a check mark that draws itself |
+  | `AddressAdded` | the screen after a Lightning address is ready and checked (status `Done`, 0); one the app couldn't check keeps its warning screen | a check mark that draws itself |
+  | `AccountCreated` | the screen after an account was added (status `Done`, with what it already held) | a check mark that draws itself |
+  | `ScanDone` | the screen after a scan for notes got through (status `Done`, with what it found) | a check mark that draws itself |
   | `ClaimResult` | above a claimed note's result | nothing |
   | `NoteShared` | above a handed-out note's amount (status `WaitingForRecipient`, `Sent` once spent, `Idle` once taken back) | nothing |
   | `NotesHeader` | above the notes view's total (status `Empty` without notes, `WaitingForRecipient` while handed-out notes wait, else `Idle`) | nothing |
@@ -495,7 +499,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
 
 - **Status and events:** `context.status` (also `LocalWalletStatus`) is what the screen is about: `None`, `Idle`
   (money, nothing happening), `Empty`, `AwaitingPayment`, `WaitingForRecipient` (a handed-out note nobody has
-  claimed yet), `PaymentReceived`, `Sending`, `Sent`, `Working` (with a `WalletTask`: `Updating`, asking the mints
+  claimed yet), `PaymentReceived`, `Sending`, `Sent`, `Done` (something the user did just worked: a mint, an
+  address or an account added, a scan finished; with what it found, 0 if nothing), `Working` (with a `WalletTask`: `Updating`, asking the mints
   what changed; `CheckingNotes`, with how many are checked of how many; `Maintaining`, with its `MaintenanceStep`,
   `Combining`, `Splitting`, `Renewing` or `MovingHome`, and the note strategy's id when the step is the strategy's),
   `Problem` (`NotEnoughFunds`, `Offline`, `MintNotAnswering`, `Other`; give a `when` over the kind an `else`).
