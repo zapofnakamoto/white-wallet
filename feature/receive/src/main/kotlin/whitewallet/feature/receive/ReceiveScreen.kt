@@ -1,7 +1,5 @@
 package whitewallet.feature.receive
 
-import android.content.ClipData
-import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,15 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,7 +28,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
@@ -43,6 +35,7 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
+import whitewallet.core.designsystem.CopyShare
 import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.MintChoiceLine
 import whitewallet.core.designsystem.MintChoiceSheet
@@ -50,6 +43,7 @@ import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCircularProgress
@@ -128,10 +122,8 @@ fun ReceiveScreen(
                 status = WalletStatus.PaymentReceived(arrived),
                 title = stringResource(R.string.receive_success_title),
                 amountMsat = arrived,
-                doneLabel = stringResource(R.string.receive_done),
-                onDone = onBack,
-                moreLabel = stringResource(R.string.receive_more),
-                onMore = invoice.onReceiveMore,
+                done = SuccessAction(stringResource(R.string.receive_done), onBack),
+                more = SuccessAction(stringResource(R.string.receive_more), invoice.onReceiveMore),
                 modifier = Modifier.padding(padding),
             )
             return@Scaffold
@@ -376,33 +368,4 @@ private fun InvoiceContent(shown: ShownInvoice, onDone: () -> Unit, onNewInvoice
             WalletButton(kind = ButtonKind.Text, onClick = onNewInvoice) { Text(stringResource(R.string.receive_invoice_other_amount)) }
         }
     }
-}
-
-@Composable
-private fun CopyShare(text: String, copiedMessage: String) {
-    val clipboard = LocalClipboard.current
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var copied by remember(text) { mutableStateOf(false) }
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        WalletButton(
-            kind = ButtonKind.Secondary,
-            onClick = {
-                scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("lightning", text))) }
-                copied = true
-            },
-        ) {
-            Text(stringResource(R.string.receive_copy))
-        }
-        WalletButton(
-            kind = ButtonKind.Secondary,
-            onClick = {
-                val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-                context.startActivity(Intent.createChooser(send, null))
-            },
-        ) {
-            Text(stringResource(R.string.receive_share))
-        }
-    }
-    if (copied) Text(copiedMessage, style = MaterialTheme.typography.bodySmall)
 }

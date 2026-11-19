@@ -61,7 +61,7 @@ class ReceiveScreenTest {
         compose.onNodeWithText(text(R.string.receive_success_title)).assertExists()
         compose.onNodeWithText("₿21").assertExists()
         compose.onNodeWithText("alice@mint.example").assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.receive_more)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.receive_more)).performClick()
         assertTrue(more)
     }
 

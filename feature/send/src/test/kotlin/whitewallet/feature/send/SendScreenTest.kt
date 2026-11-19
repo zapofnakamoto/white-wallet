@@ -75,7 +75,7 @@ class SendScreenTest {
         compose.onNodeWithText(text(R.string.send_paid_title)).assertExists()
         compose.onNodeWithText("₿1,000").assertExists()
         compose.onNodeWithText(text(R.string.send_fee, "₿1")).assertExists()
-        compose.onNodeWithText(text(R.string.send_more)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.send_more)).performClick()
         assertTrue(more)
     }
 

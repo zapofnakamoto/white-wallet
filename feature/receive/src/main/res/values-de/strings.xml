@@ -18,8 +18,6 @@
     <string name="receive_invoice_key_changed_unnamed">Der Signaturschlüssel deiner Mint passt nicht zu dem, den deine Wallet kennt, darum lässt sich gerade keine Rechnung erstellen.</string>
 
     <string name="receive_title">Empfangen</string>
-    <string name="receive_copy">Kopieren</string>
-    <string name="receive_share">Teilen</string>
     <string name="receive_copied">Adresse kopiert</string>
     <string name="receive_request_amount">Einen bestimmten Betrag anfordern</string>
     <string name="receive_other_address">Andere Adresse zeigen</string>

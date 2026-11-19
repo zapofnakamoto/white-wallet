@@ -69,4 +69,6 @@
     <string name="received_lightning_not_a_note">Seine Mint antwortet darauf nicht wie auf einen Schein, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_receive">Empfangen</string>
     <string name="mint_choice_change">Ändern</string>
+    <string name="copy">Kopieren</string>
+    <string name="share">Teilen</string>
 </resources>

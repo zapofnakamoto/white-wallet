@@ -29,8 +29,6 @@
     <string name="receive_address_mint_silent">%1$s isn\'t answering, so payments to this address can\'t arrive right now.</string>
     <string name="receive_invoice_mint_silent">%1$s isn\'t answering, so no invoice can be created right now. Try again later.</string>
     <string name="receive_title">Receive</string>
-    <string name="receive_copy">Copy</string>
-    <string name="receive_share">Share</string>
     <string name="receive_copied">Address copied</string>
     <string name="receive_request_amount">Request a specific amount</string>
     <string name="receive_other_address">Show another address</string>

@@ -42,6 +42,7 @@ import whitewallet.core.designsystem.MintChoiceSheet
 import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
@@ -145,13 +146,11 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
                 anchor = Anchor.SendSuccess,
                 status = WalletStatus.Sent(paid.amountMsat),
                 title = stringResource(R.string.send_paid_title),
-                paid.amountMsat,
-                doneLabel = stringResource(R.string.send_done),
-                onDone,
-                moreLabel = stringResource(R.string.send_more),
-                onMore = actions.onSendMore,
+                done = SuccessAction(stringResource(R.string.send_done), onDone),
+                more = SuccessAction(stringResource(R.string.send_more), actions.onSendMore),
+                amountMsat = paid.amountMsat,
                 modifier = Modifier.padding(padding),
-                details =
+                lines =
                     listOfNotNull(
                         to?.let { stringResource(R.string.send_success_to, it) },
                         paid.feeMsat.takeIf { it > 0 }?.let { stringResource(R.string.send_fee, formatAmount(it)) },
