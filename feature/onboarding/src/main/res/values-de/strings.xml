@@ -172,4 +172,6 @@
         <item quantity="one">Diese Wallet hat %1$d Konto, so viele, wie diese App erlaubt.</item>
         <item quantity="other">Diese Wallet hat %1$d Konten, so viele, wie diese App erlaubt.</item>
     </plurals>
+    <string name="mint_added_title">Mint hinzugefügt</string>
+    <string name="success_done">Fertig</string>
 </resources>

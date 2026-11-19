@@ -1,16 +1,26 @@
 package whitewallet.feature.onboarding
 
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.wallet.MintPreview
 import whitewallet.core.wallet.ScanProgress
 
@@ -107,10 +117,24 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(R.string.add_mint_account_looking)).assertExists()
     }
 
+    /** The anchors the screen asks the brand for, with their status. */
+    private val decorated = mutableListOf<Pair<Anchor, WalletStatus>>()
+
+    private fun showDecorated(state: AddMintState, actions: AddMintActions = AddMintActions()) = compose.setContent {
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    decorated += anchor to context.status
+                }
+            }
+        CompositionLocalProvider(LocalBrandDesign provides design) { AddMintScreen(state, actions) }
+    }
+
     @Test
-    fun theResultListsTheAccountsWithMoney() {
+    fun aMintAddedOutsideTheSetupEndsOnTheSuccessScreen() {
         var done = false
-        show(
+        showDecorated(
             pick.copy(
                 step = AddMintStep.Result,
                 preview = preview,
@@ -119,22 +143,53 @@ class AddMintScreenTest {
             ),
             AddMintActions(onDone = { done = true }),
         )
+        assertEquals(listOf(Anchor.MintAdded to WalletStatus.Done(3_000_000)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.mint_added_title)).assertExists()
+        compose.onNodeWithText("₿3,000").assertExists()
         compose.onNodeWithText(plural(R.plurals.add_mint_found_accounts, 2, 2)).assertExists()
         compose.onNodeWithText("Account 2").assertExists()
-        compose.onNodeWithText(text(R.string.add_mint_ok)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.success_done)).performClick()
         assertTrue(done)
     }
 
     @Test
+    fun backOnTheSuccessScreenIsDone() {
+        var done = false
+        var back = false
+        lateinit var dispatcher: OnBackPressedDispatcher
+        compose.setContent {
+            dispatcher = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            AddMintScreen(
+                pick.copy(step = AddMintStep.Result, preview = preview, progress = ScanProgress(emptyList())),
+                AddMintActions(onBack = { back = true }, onDone = { done = true }),
+            )
+        }
+        compose.runOnUiThread { dispatcher.onBackPressed() }
+        compose.waitForIdle()
+        assertTrue(done)
+        assertFalse(back)
+    }
+
+    @Test
+    fun theSetupsResultIsNotASuccessScreen() {
+        showDecorated(pick.copy(setup = true, step = AddMintStep.Result, preview = preview, progress = ScanProgress(emptyList())))
+        compose.onNodeWithText(text(R.string.add_mint_found_none)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_ok)).assertExists()
+        assertTrue(decorated.none { it.first == Anchor.MintAdded })
+    }
+
+    @Test
     fun aWalletMadeHereIsNotScannedAndSaysTheMintIsAdded() {
-        show(pick.copy(step = AddMintStep.Result, preview = preview, progress = null))
+        showDecorated(pick.copy(step = AddMintStep.Result, preview = preview, progress = null))
         compose.onNodeWithText(text(R.string.add_mint_added_body)).assertExists()
+        assertEquals(listOf(Anchor.MintAdded to WalletStatus.Done(0)), decorated.distinct())
     }
 
     @Test
     fun nothingFoundSaysSo() {
-        show(pick.copy(step = AddMintStep.Result, preview = preview, progress = ScanProgress(emptyList())))
+        showDecorated(pick.copy(step = AddMintStep.Result, preview = preview, progress = ScanProgress(emptyList())))
         compose.onNodeWithText(text(R.string.add_mint_found_none)).assertExists()
+        assertEquals(listOf(Anchor.MintAdded to WalletStatus.Done(0)), decorated.distinct())
     }
 
     @Test

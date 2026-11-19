@@ -25,9 +25,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.text.NumberFormat
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletLinearProgress
@@ -86,9 +90,12 @@ fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
             }
         )
     val back = actions.onBack.takeIf { state.step == AddMintStep.Pick || state.step == AddMintStep.Info }
-    Scaffold(topBar = { WalletTopBar(title, back) }) { padding ->
+    // Outside a setup, a mint added ends on the success screen; the setup goes on to its address instead.
+    val success = state.step == AddMintStep.Result && state.failed == null && !state.setup
+    Scaffold(topBar = { WalletTopBar(if (success) stringResource(R.string.add_mint_title) else title, back) }) { padding ->
         // Before the mints to pick from are known (a moment): only the title, so the page doesn't show one thing and then another.
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
+        if (success) return@Scaffold MintAddedContent(state, actions, Modifier.padding(padding))
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             when (state.step) {
                 AddMintStep.Pick -> PickContent(state, actions)
@@ -223,12 +230,7 @@ private fun ResultContent(state: AddMintState, actions: AddMintActions) {
                 textAlign = TextAlign.Center,
             )
             Text(pluralStringResource(R.plurals.add_mint_found_accounts, state.found.size, state.found.size), textAlign = TextAlign.Center)
-            state.found.forEach { account ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(account.name)
-                    Text(formatAmount(account.amountMsat), color = MaterialTheme.colorScheme.primary)
-                }
-            }
+            FoundAccountRows(state.found)
         }
     }
     when {
@@ -260,4 +262,37 @@ private fun AbandonDialog(actions: AddMintActions) {
             WalletButton(kind = ButtonKind.Text, onClick = actions.onKeep) { Text(stringResource(R.string.setup_abandon_keep)) }
         },
     )
+}
+
+/** The mint is added (outside a setup): what the wallet's phrase held there, on the success screen. */
+@Composable
+private fun MintAddedContent(state: AddMintState, actions: AddMintActions, modifier: Modifier) {
+    SuccessScreen(
+        anchor = Anchor.MintAdded,
+        status = WalletStatus.Done(state.foundMsat),
+        title = stringResource(R.string.mint_added_title),
+        done = SuccessAction(stringResource(R.string.success_done), actions.onDone),
+        modifier = modifier,
+        amountMsat = state.foundMsat.takeIf { it > 0 },
+        lines =
+            listOf(
+                when {
+                    state.progress == null -> stringResource(R.string.add_mint_added_body)
+                    state.found.isEmpty() -> stringResource(R.string.add_mint_found_none)
+                    else -> pluralStringResource(R.plurals.add_mint_found_accounts, state.found.size, state.found.size)
+                }
+            ),
+        content = { FoundAccountRows(state.found) },
+    )
+}
+
+/** Each account the wallet's phrase held money for at the mint, with how much. */
+@Composable
+private fun FoundAccountRows(found: List<FoundAccount>) {
+    found.forEach { account ->
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(account.name)
+            Text(formatAmount(account.amountMsat), color = MaterialTheme.colorScheme.primary)
+        }
+    }
 }

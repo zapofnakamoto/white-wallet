@@ -178,4 +178,6 @@
         <item quantity="one">This wallet holds %1$d account, the most this app allows.</item>
         <item quantity="other">This wallet holds %1$d accounts, the most this app allows.</item>
     </plurals>
+    <string name="mint_added_title">Mint added</string>
+    <string name="success_done">Done</string>
 </resources>
