@@ -21,6 +21,7 @@
     <string name="onboarding_tagline">Bearer notes on Lightning. Ready in one tap.</string>
     <string name="add_mint_setup_title">Choose your mint</string>
     <string name="add_mint_title">Add a mint</string>
+    <string name="mint_added_title">Mint added</string>
     <string name="add_mint_setup_body">The mint holds your money and makes the invoices you get paid with. Pick one; you can add more later.</string>
     <string name="add_mint_body">Pick a mint. If your recovery phrase holds money there, it is found.</string>
     <string name="add_mint_error_not_allowed">This app doesn\'t work with that mint. Pick another one.</string>
@@ -177,7 +178,6 @@
         <item quantity="one">This wallet holds %1$d account, the most this app allows.</item>
         <item quantity="other">This wallet holds %1$d accounts, the most this app allows.</item>
     </plurals>
-    <string name="mint_added_title">Mint added</string>
     <string name="success_done">Done</string>
     <string name="scan_finished_title">Scan finished</string>
     <string name="account_created_title">Account created</string>

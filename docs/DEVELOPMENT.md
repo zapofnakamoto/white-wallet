@@ -121,6 +121,18 @@ All user-facing text must work in any language:
 
 English is the source; **German** (`values-de`) is complete in every module and proves the rules above (plurals, word order, `1.049 ₿` with the sign after the number). Lint fails on a missing translation, so a new string needs its German too. Debug builds include the pseudo-locales **en-XA** (long, accented text) and **ar-XB** (right to left); pick one per app under Android's App languages, or `adb shell cmd locale set-app-locales <package> --locales ar-XB` (and `--locales ""` to go back). ar-XB also flips the digits inside placeholders; real right-to-left languages don't. Screen titles and settings section headers are headings for screen readers.
 
+## Success screens
+
+Whatever the user did that worked ends on `SuccessScreen` (core/designsystem), the same on every screen: the brand's
+picture at an anchor of its own, a heading, the amount if there is one, `lines`, extra `content` if needed, and
+`SuccessAction`s at the bottom (back does what the main one does). A failure is not a success: it keeps its own screen.
+Adding one:
+- an anchor in `Anchor.kt` with its KDoc (screen, status, default), and its row in docs/WHITE_LABEL.md;
+- the status `WalletStatus.Done(found)`, or the money statuses for a payment;
+- strings in `values` and `values-de` (in the *Brand terms* block if they name the mint or a note);
+- a screen test that asks for the anchor with its status (see `AddMintScreenTest`);
+- a line for it in Zap of Nakamoto's `ZapDesign.Decoration`.
+
 ## Links from outside the app
 
 `lightning:`, `lnurlw://` and `lnurlp://` links, text shared to the app (`ACTION_SEND`) and NFC tags with such a URI all reach `MainActivity` (`singleTop`). `IncomingLink.classify` decides offline what the text is for: a note link opens Claim, an invoice, Lightning address, pay link, `bitcoin:` URI with `lightning=` or other LNURL opens Send, each with the text checked right away. Nothing is claimed or paid until the user confirms there. A link waits until the wallet is set up (Home on the back stack) and behind the app lock. Claim can also scan a QR code (`core/scanner`).

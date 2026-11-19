@@ -233,6 +233,7 @@
     <string name="mints_add">Add a provider</string>
     <string name="add_mint_setup_title">Your provider</string>
     <string name="add_mint_title">Add a provider</string>
+    <string name="mint_added_title">Provider added</string>
     <string name="add_mint_setup_body">The provider holds your money and makes the invoices you get paid with.</string>
     <string name="add_mint_body">Pick a provider. If your recovery phrase holds money there, it is found.</string>
     <string name="add_mint_error_not_allowed">This app doesn\'t work with that provider. Pick another one.</string>

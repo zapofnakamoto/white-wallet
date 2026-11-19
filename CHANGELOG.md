@@ -5,6 +5,28 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+### Added
+
+- Adding a mint (outside a wallet's setup), a Lightning address or an account, and a scan for notes that got through,
+  now end on a success screen like sending and receiving do: the brand's picture, a heading, what was found and one
+  button on, kept at the bottom of the screen. A new address shows Copy and Share under it; one the app couldn't check
+  still says so on its own screen. A new account shows what it already held, and opens from there.
+- For brands: the status `WalletStatus.Done` (with what was found) and the anchors `MintAdded`, `AddressAdded`,
+  `AccountCreated` and `ScanDone`, each a check mark that draws itself by default (docs/WHITE_LABEL.md). The brand term
+  `mint_added_title` ("Mint added").
+- For developers: `SuccessScreen` takes its buttons as `SuccessAction`, an optional amount, `lines` and extra
+  `content`, and keeps its buttons at the bottom; back does what its main button does. `CopyShare` is in the design
+  system. docs/DEVELOPMENT.md, "Success screens", says how to add one.
+
+### Changed
+
+- The success screens of sending and receiving keep their buttons at the bottom of the screen, also with large text.
+
+### Removed
+
+- For developers and brands: the strings `receive_copy`, `receive_share` (now `copy`, `share` in the design system)
+  and `claimed_copy`.
+
 ## [0.10.0]
 
 ### Removed

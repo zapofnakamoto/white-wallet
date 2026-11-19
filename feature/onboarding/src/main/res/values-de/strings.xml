@@ -16,6 +16,7 @@
     <string name="onboarding_tagline">Inhaberscheine auf Lightning. Mit einem Tipp startklar.</string>
     <string name="add_mint_setup_title">Wähle deine Mint</string>
     <string name="add_mint_title">Mint hinzufügen</string>
+    <string name="mint_added_title">Mint hinzugefügt</string>
     <string name="add_mint_setup_body">Die Mint verwahrt dein Geld und erstellt die Rechnungen, mit denen du bezahlt wirst. Wähle eine; weitere kannst du später hinzufügen.</string>
     <string name="add_mint_body">Wähle eine Mint. Hält deine Wiederherstellungsphrase dort Geld, wird es gefunden.</string>
     <string name="add_mint_error_not_allowed">Diese App arbeitet nicht mit dieser Mint. Wähle eine andere.</string>
@@ -171,7 +172,6 @@
         <item quantity="one">Diese Wallet hat %1$d Konto, so viele, wie diese App erlaubt.</item>
         <item quantity="other">Diese Wallet hat %1$d Konten, so viele, wie diese App erlaubt.</item>
     </plurals>
-    <string name="mint_added_title">Mint hinzugefügt</string>
     <string name="success_done">Fertig</string>
     <string name="scan_finished_title">Suche abgeschlossen</string>
     <string name="account_created_title">Konto erstellt</string>

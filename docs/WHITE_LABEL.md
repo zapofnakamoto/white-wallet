@@ -151,6 +151,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `mints_add` | Add a mint |
 | `add_mint_setup_title` | Choose your mint |
 | `add_mint_title` | Add a mint |
+| `mint_added_title` | Mint added |
 | `home_add_mint_title` | Add a mint |
 | `home_add_mint_body` | This wallet has no mint yet, so nothing can be received. Adding the mint you use finds the money your recovery phrase holds there. |
 | `home_add_mint_action` | Add mint |

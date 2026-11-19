@@ -233,6 +233,7 @@
     <string name="mints_add">Anbieter hinzufügen</string>
     <string name="add_mint_setup_title">Dein Anbieter</string>
     <string name="add_mint_title">Anbieter hinzufügen</string>
+    <string name="mint_added_title">Anbieter hinzugefügt</string>
     <string name="add_mint_setup_body">Der Anbieter verwahrt dein Geld und erstellt die Rechnungen, mit denen du bezahlt wirst.</string>
     <string name="add_mint_body">Wähle einen Anbieter. Hält deine Wiederherstellungsphrase dort Geld, wird es gefunden.</string>
     <string name="add_mint_error_not_allowed">Diese App arbeitet nicht mit diesem Anbieter. Wähle einen anderen.</string>
