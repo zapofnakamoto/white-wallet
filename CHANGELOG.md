@@ -5,6 +5,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ## [Unreleased]
 
+## [0.10.0]
+
 ### Removed
 
 - The older draft of LUD-25/26, `2f17578` (lnurl-mint 0.12), and with it the key derivation of before 0.8.0. A mint
