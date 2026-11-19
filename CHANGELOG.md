@@ -247,9 +247,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Looking a note up read an error page from something in front of a mint (a proxy's 502) as the mint's answer, so a
   page saying `already in use` could mark a note spent or a payment paid. A mint's lookups, discovery and pay request
   now count only its own answer; anything else is no answer, asked again later.
-- A note worth 0, which can stand for something other than money (a ticket, say), showed as "already spent" in Claim,
-  and a kept one was never claimed and was archived after a week. It is now a note like any other: Claim offers it,
-  and a kept one is claimed. Payments and note maintenance never use one up.
+- A mint on the next LUD-25 draft answers a lookup of a spent note, or one being paid out, with a value of 0. Read as
+  a note, a payment the mint had made looked failed and its note came back into the balance. A lookup answering 0
+  now means spent or being paid, and only from a mint whose signing key matches: a payment waiting for an answer
+  settles through the mint's `verify` link (LUD-21), which the wallet keeps with it, and a received link answered 0
+  shows as gone but keeps its spend, is claimed should its value come back, and goes to the archive after a week.
+  Notes worth 0 aren't supported, as before: they can't be told from spent ones, and no mint makes them today. The
+  database update (version 11) adds the `verify` link. Mints on lnurl-mint 0.13.1 answer as before.
 
 ## [0.9.0]
 
