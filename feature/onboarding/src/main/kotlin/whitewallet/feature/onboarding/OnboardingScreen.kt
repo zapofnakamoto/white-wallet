@@ -395,7 +395,10 @@ private fun AvailabilityText(availability: Availability) {
 }
 
 /** Success: the address is claimed (and, when [Claimed.confirmed], verified to point at this wallet). */
-/** The address is ready and reaches this wallet: the success screen, the address and a way to copy or share it, nothing more. */
+/**
+ * The address is ready and reaches this wallet: the success screen, the address to copy or share, and that it receives while the phone is
+ * off.
+ */
 @Composable
 private fun AddressAddedContent(address: String, button: String, onContinue: () -> Unit, modifier: Modifier) {
     SuccessScreen(
@@ -407,6 +410,12 @@ private fun AddressAddedContent(address: String, button: String, onContinue: () 
     ) {
         Text(address, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
         CopyShare(address, stringResource(R.string.claimed_copied))
+        Text(
+            stringResource(R.string.claimed_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

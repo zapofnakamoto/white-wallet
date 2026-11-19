@@ -9,8 +9,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - Adding a mint (outside a wallet's setup), a Lightning address or an account, and a scan for notes that got through,
   now end on a success screen like sending and receiving do: the brand's picture, a heading, what was found (the same
-  words on every screen) and one button on, kept at the bottom of the screen. A new address shows only itself, with
-  Copy and Share; one the app couldn't check still says so on its own screen. A new account shows what it already
+  words on every screen) and one button on, kept at the bottom of the screen. A new address shows itself with Copy
+  and Share, and that it receives even while the phone is off (`claimed_body`, new words); one the app couldn't check
+  still says so on its own screen. A new account shows what it already
   held, and opens from there.
 - For brands: the status `WalletStatus.Done` (with what was found) and the anchors `MintAdded`, `AddressAdded`,
   `AccountCreated` and `ScanDone`, each a check mark that draws itself by default (docs/WHITE_LABEL.md). The brand term
@@ -26,7 +27,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Removed
 
 - For developers and brands: the strings `receive_copy`, `receive_share` (now `copy`, `share` in the design system),
-  `claimed_copy`, `claimed_body` and `scan_done`.
+  `claimed_copy` and `scan_done`.
 
 ## [0.10.0]
 

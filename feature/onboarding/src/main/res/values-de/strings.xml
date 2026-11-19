@@ -55,6 +55,7 @@
     <string name="onboarding_error_username">Dieser Name geht nicht: %1$s</string>
 
     <string name="claimed_title">Deine Adresse ist bereit</string>
+    <string name="claimed_body">Jeder kann dich darüber bezahlen, auch wenn dein Handy aus ist.</string>
     <string name="claimed_title_unconfirmed">Deine Adresse ist registriert</string>
     <string name="claimed_copied">Kopiert</string>
     <string name="claimed_continue">Weiter</string>

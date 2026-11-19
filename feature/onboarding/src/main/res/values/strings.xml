@@ -64,6 +64,7 @@
     <string name="onboarding_error_username">That name can\'t be used: %1$s</string>
 
     <string name="claimed_title">Your address is ready</string>
+    <string name="claimed_body">Anyone can pay you at it, even while your phone is off.</string>
     <string name="claimed_title_unconfirmed">Your address is registered</string>
     <string name="claimed_copied">Copied</string>
     <string name="claimed_continue">Continue</string>
