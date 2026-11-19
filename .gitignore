@@ -24,3 +24,4 @@ __pycache__/
 
 # Plans handed from one session to the next; not part of the repo.
 /docs/plans/
+/docs/superpowers/
