@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -45,6 +46,16 @@ class MintsScreenTest {
         assertEquals("other.example" to true, changed)
         switches[2].assertIsNotEnabled()
         compose.onNodeWithText(text(R.string.mints_no_key)).assertExists()
+    }
+
+    @Test
+    fun aMintWhoseKeyChangedSaysSoInPlaceOfItsKeyAndItsTrustWaits() {
+        var changed = false
+        show(MintsState(listOf(home), keyChanged = setOf("home.example"))) { _: MintInfo, _: Boolean -> changed = true }
+        compose.onNodeWithText(text(R.string.mint_key_changed_short)).assertExists()
+        compose.onNodeWithText(text(R.string.mints_key, "02ababab…abababab")).assertDoesNotExist()
+        compose.onNode(isToggleable()).assertIsNotEnabled().performClick()
+        assertFalse(changed)
     }
 
     @Test

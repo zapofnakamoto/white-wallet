@@ -26,7 +26,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.brand.WalletStatus
@@ -52,6 +52,11 @@ data class MintsState(
     val offered: List<String> = emptyList(),
     /** The brand lets users add a mint by typing it (`mints.custom`); without, only [offered] ones can be added. */
     val custom: Boolean = true,
+    /**
+     * Mints whose signing key was last seen not to match the pinned one ([Wallet.mintsWithChangedKey]): known from what the wallet saw, no
+     * mint is asked for the list.
+     */
+    val keyChanged: Set<String> = emptySet(),
     /** The mints were read: until then the page draws none, and no button under them. */
     val loaded: Boolean = true,
 ) {
@@ -68,15 +73,19 @@ data class MintsState(
 @HiltViewModel
 class MintsViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {
     val state: StateFlow<MintsState> =
-        wallet.mints
-            .map { mints ->
+        combine(wallet.mints, wallet.mintsWithChangedKey) { mints, keyChanged ->
                 val known = mints.map { it.host }
-                MintsState(mints, offered = defaults.mintSuggestions.filter { it !in known }, custom = defaults.customMints)
+                MintsState(
+                    mints,
+                    offered = defaults.mintSuggestions.filter { it !in known },
+                    custom = defaults.customMints,
+                    keyChanged = keyChanged,
+                )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MintsState(custom = defaults.customMints, loaded = false))
 
     fun setTrusted(mint: MintInfo, trusted: Boolean) {
-        if (mint.pubkey == null) return
+        if (mint.pubkey == null || mint.host in state.value.keyChanged) return
         viewModelScope.launch { wallet.setMintTrusted(mint.host, trusted) }
     }
 }
@@ -116,7 +125,7 @@ fun MintsScreen(
                         modifier = Modifier.padding(16.dp),
                     )
                 }
-                items(state.mints, key = { it.host }) { mint -> MintRow(mint, onOpen, onTrusted) }
+                items(state.mints, key = { it.host }) { mint -> MintRow(mint, mint.host in state.keyChanged, onOpen, onTrusted) }
                 if (state.canAdd)
                     item {
                         WalletButton(kind = ButtonKind.Secondary, onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
@@ -129,19 +138,22 @@ fun MintsScreen(
 }
 
 @Composable
-private fun MintRow(mint: MintInfo, onOpen: (String) -> Unit, onTrusted: (MintInfo, Boolean) -> Unit) {
+private fun MintRow(mint: MintInfo, keyChanged: Boolean, onOpen: (String) -> Unit, onTrusted: (MintInfo, Boolean) -> Unit) {
     val hint = MaterialTheme.typography.bodySmall
     WalletListItem(
         headlineContent = { HostText(mint.host) },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (mint.isHome) Text(stringResource(R.string.settings_home_mint), style = hint, color = MaterialTheme.colorScheme.primary)
-                Text(
-                    mint.pubkey?.let { stringResource(R.string.mints_key, it.take(8) + "…" + it.takeLast(8)) }
-                        ?: stringResource(R.string.mints_no_key),
-                    style = hint,
-                    fontFamily = FontFamily.Monospace,
-                )
+                // A key that doesn't match is what the user has to decide about, on the mint's page: said in place of the key.
+                if (keyChanged) Text(stringResource(R.string.mint_key_changed_short), style = hint, color = MaterialTheme.colorScheme.error)
+                else
+                    Text(
+                        mint.pubkey?.let { stringResource(R.string.mints_key, it.take(8) + "…" + it.takeLast(8)) }
+                            ?: stringResource(R.string.mints_no_key),
+                        style = hint,
+                        fontFamily = FontFamily.Monospace,
+                    )
                 mint.trustedByDefault?.let { default ->
                     Text(
                         stringResource(
@@ -161,7 +173,8 @@ private fun MintRow(mint: MintInfo, onOpen: (String) -> Unit, onTrusted: (MintIn
             WalletSwitch(
                 checked = mint.trusted,
                 onCheckedChange = { onTrusted(mint, it) },
-                enabled = mint.pubkey != null,
+                // Trust is in the remembered key: not to be changed while the mint presents another.
+                enabled = mint.pubkey != null && !keyChanged,
                 modifier = Modifier,
             )
         },
