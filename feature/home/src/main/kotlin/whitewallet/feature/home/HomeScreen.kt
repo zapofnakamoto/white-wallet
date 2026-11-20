@@ -88,12 +88,13 @@ import whitewallet.brand.ui.NavigationItem
 import whitewallet.brand.ui.Page
 import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
-import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.BrandTitle
+import whitewallet.core.designsystem.CountingAmountText
 import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.HostText
+import whitewallet.core.designsystem.LastFigure
 import whitewallet.core.designsystem.LoadingIndicator
 import whitewallet.core.designsystem.LoadingPhase
 import whitewallet.core.designsystem.PrimaryButton
@@ -348,6 +349,8 @@ fun HomeScreen(
     ) { padding ->
         val notes = notesTab?.takeIf { tab == HomeTab.Notes }
         val cover = figuresCover(state.loaded, state.task, state.refreshing)
+        // The balance last drawn for the account in use: coming back from under the cover, it counts on from there.
+        val lastBalance = remember(state.activeAccountId) { LastFigure() }
         val refresh = notes?.onRefresh ?: onRefresh
         val refreshLabel = stringResource(DesignR.string.refresh)
         PullToRefreshBox(
@@ -391,6 +394,7 @@ fun HomeScreen(
                                 onOpenMints,
                                 onAddMint,
                                 onScanMints,
+                                lastBalance,
                             )
                         HomeTab.Notes -> notesTab?.content?.invoke()
                         HomeTab.History ->
@@ -597,6 +601,8 @@ private fun WalletTab(
     onOpenMints: () -> Unit,
     onAddMint: () -> Unit,
     onScanMints: () -> Unit,
+    /** The balance last drawn, kept while the tab is covered or away. */
+    lastBalance: LastFigure,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(
@@ -679,7 +685,15 @@ private fun WalletTab(
                     )
                 }
             }
-            AmountText(state.balanceMsat, hidden = state.balanceHidden, onToggleHidden = onToggleBalance)
+            // Counts to a new balance after a refresh or a payment, also from the one shown before the wallet covered it to update;
+            // another account's is drawn at once.
+            CountingAmountText(
+                state.balanceMsat,
+                hidden = state.balanceHidden,
+                onToggleHidden = onToggleBalance,
+                of = state.activeAccountId,
+                last = lastBalance,
+            )
             // Received but not claimed yet: next to the balance, never in it.
             if (state.received.any { it.isPending }) {
                 Text(

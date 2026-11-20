@@ -2,6 +2,7 @@ package whitewallet.core.designsystem
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasContentDescription
@@ -34,6 +35,48 @@ class CountingAmountTest {
         compose.waitForIdle()
         compose.onNodeWithText("₿3").assertExists()
         compose.onNodeWithText("₿1").assertDoesNotExist()
+    }
+
+    @Test
+    fun anotherOwnersFigureIsThereAtOnce() {
+        var msat by mutableLongStateOf(1_000_000)
+        var of by mutableStateOf("a")
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CountingAmountText(msat, of = of) }
+        compose.runOnIdle {
+            msat = 3_000_000
+            of = "b"
+        }
+        // A frame or two: a count would be barely on its way.
+        repeat(2) {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+        }
+        assertEquals(
+            "₿3,000",
+            compose.onNode(hasContentDescription("", substring = true)).fetchSemanticsNode().config[SemanticsProperties.Text].single().text,
+        )
+    }
+
+    @Test
+    fun drawnAgainItCountsOnFromTheFigureSeenLast() {
+        val last = LastFigure()
+        var covered by mutableStateOf(false)
+        var msat by mutableLongStateOf(1_000_000)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { if (!covered) CountingAmountText(msat, last = last) }
+        compose.mainClock.advanceTimeByFrame()
+        // The new amount comes with the cover: the count never got on its way, so ₿1,000 is what was seen.
+        compose.runOnIdle {
+            msat = 3_000_000
+            covered = true
+        }
+        compose.mainClock.advanceTimeByFrame()
+        compose.runOnIdle { covered = false }
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("₿1,000").assertExists()
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithText("₿3,000").assertExists()
     }
 
     @Test

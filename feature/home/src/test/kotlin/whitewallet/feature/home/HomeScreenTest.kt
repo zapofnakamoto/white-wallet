@@ -878,6 +878,29 @@ class HomeScreenTest {
     }
 
     @Test
+    fun aBalanceShownBeforeTheLoadingScreenCountsOnToTheNewOne() {
+        compose.mainClock.autoAdvance = false
+        val set = showLive(HomeState(activeAccountId = "a", balanceMsat = 2_000_000))
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("₿2,000").assertExists()
+
+        // The refresh found a payment, and the note maintenance it starts covers the balance right after.
+        set(HomeState(activeAccountId = "a", balanceMsat = 7_000_000))
+        compose.mainClock.advanceTimeByFrame()
+        set(HomeState(activeAccountId = "a", balanceMsat = 7_000_000, task = WalletTask.Updating))
+        compose.mainClock.advanceTimeBy(SHOWN_AFTER + 100)
+        compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
+
+        // Back from under the loading screen, the balance counts on from the figure seen before.
+        set(HomeState(activeAccountId = "a", balanceMsat = 7_000_000))
+        compose.mainClock.advanceTimeBy(SHOWN_AT_LEAST)
+        compose.onNodeWithText(text(R.string.home_working_updating)).assertDoesNotExist()
+        compose.onNodeWithText("₿7,000").assertDoesNotExist()
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithText("₿7,000").assertExists()
+    }
+
+    @Test
     fun workThatTakesAWhileShowsTheLoadingScreenInsteadOfTheBalance() {
         compose.mainClock.autoAdvance = false
         val set = showLive(HomeState(activeAccountId = "a", balanceMsat = 845_000, task = WalletTask.Updating))
