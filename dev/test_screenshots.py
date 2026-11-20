@@ -31,10 +31,10 @@ class ReportTest(unittest.TestCase):
         (self.out / folder).mkdir(exist_ok=True)
         (self.out / folder / name).write_bytes(data)
 
-    def report(self) -> str:
+    def report(self, *args: str) -> str:
         out = io.StringIO()
         with redirect_stdout(out):
-            sc.main([str(self.out)])
+            sc.main([str(self.out), *args])
         return out.getvalue()
 
     def test_without_an_earlier_render_it_says_so(self):
@@ -79,6 +79,50 @@ class ReportTest(unittest.TestCase):
         self.assertIn("<h2>A</h2>", page)
         self.assertIn("acme", page)
         self.assertLess(page.index("A.dark.3000ms.png"), page.index("<h2>B</h2>"))
+
+
+class FileTest(unittest.TestCase):
+    """--render: a new render becomes current/, and the one before previous/, but only when it shows something else."""
+
+    def setUp(self):
+        root = Path(tempfile.mkdtemp())
+        self.render, self.out = root / "render", root / "check" / "acme"
+        self.render.mkdir()
+
+    def run_with(self, *args: str) -> str:
+        out = io.StringIO()
+        with redirect_stdout(out):
+            sc.main([str(self.out), "--render", str(self.render), *args])
+        return out.getvalue()
+
+    def draw(self, color: tuple[int, int, int, int]):
+        (self.render / "A.light.3000ms.png").write_bytes(image(2, 2, color))
+
+    def test_a_first_render_becomes_current(self):
+        self.draw((0, 0, 0, 255))
+        self.assertIn("no earlier render to compare with", self.run_with())
+        self.assertTrue((self.out / "current" / "A.light.3000ms.png").exists())
+
+    def test_a_changed_render_keeps_the_one_before(self):
+        self.draw((0, 0, 0, 255))
+        self.run_with()
+        self.draw((255, 255, 255, 255))
+        self.assertIn("1 changed", self.run_with())
+
+    def test_the_same_render_again_keeps_showing_what_changed_before(self):
+        self.draw((0, 0, 0, 255))
+        self.run_with()
+        self.draw((255, 255, 255, 255))
+        self.run_with()
+        # Nothing drawn differently (an up-to-date or cached render): the last change stays on the page.
+        self.assertIn("1 changed", self.run_with())
+
+    def test_an_earlier_render_from_elsewhere_is_the_one_before(self):
+        self.draw((0, 0, 0, 255))
+        before = Path(tempfile.mkdtemp())
+        (before / "A.light.3000ms.png").write_bytes(image(2, 2, (9, 9, 9, 255)))
+        self.assertIn("1 changed", self.run_with("--previous", str(before)))
+        self.assertTrue((self.out / "previous" / "A.light.3000ms.png").exists())
 
 
 if __name__ == "__main__":

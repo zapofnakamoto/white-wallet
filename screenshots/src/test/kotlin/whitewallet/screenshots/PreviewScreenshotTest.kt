@@ -22,7 +22,7 @@ class Shot(val preview: ComposablePreview<AndroidPreviewInfo>, val millis: Long)
 
 /**
  * Draws every selected preview (-Pscreenshots=check or full, see [Previews.selected]) in the brand's design, as its app would, into
- * build/screenshots/render/; :screenshots:renderScreenshots files it under build/screenshots/<set>/<brand>/current/.
+ * build/screenshots/render/; dev/screenshots.py files it under build/screenshots/<set>/<brand>/current/.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

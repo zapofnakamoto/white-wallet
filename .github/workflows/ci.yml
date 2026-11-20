@@ -91,19 +91,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: The render before
+        id: before
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: screenshots-before
           key: screenshots-${{ matrix.name }}-${{ github.event.pull_request.base.sha || github.event.before }}
+          # That push's run cancelled or failed: the newest render kept instead (the summary says which).
+          restore-keys: screenshots-${{ matrix.name }}-
 
       - name: Draw the previews
         run: ./gradlew :screenshots:renderScreenshots -Pscreenshots=check -PbrandDir=${{ matrix.brand }}
 
       - name: What changed
+        shell: bash
         run: |
-          rm -rf "$OUT/previous"
-          if [[ -d screenshots-before ]]; then cp -r screenshots-before "$OUT/previous"; fi
-          dev/screenshots.py "$OUT" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Compared with: ${{ steps.before.outputs.cache-matched-key || 'nothing' }}" >> "$GITHUB_STEP_SUMMARY"
+          dev/screenshots.py "$OUT" --render screenshots/build/screenshots/render --previous screenshots-before | tee -a "$GITHUB_STEP_SUMMARY"
           sed 's/^/- /' "$OUT/changed.txt" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep this render for the next push

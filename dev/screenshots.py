@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """What a change did to the screens: compares a brand's rendered previews with an earlier render.
 
-Standard library only (docs/DEVELOPMENT.md, "Screenshots"). The screenshots module saves images into <out>/current/
-(screenshots/build/screenshots/<set>/<brand>/) and, before it renders again, moves the last ones to <out>/previous/.
-This compares current/ with previous/ (in CI: the render of the push before, from the cache) and writes a picture of
-what differs for each changed image into <out>/diff/, the changed names into <out>/changed.txt and everything into
-<out>/index.html. A comparison never fails: it shows.
+Standard library only (docs/DEVELOPMENT.md, "Screenshots"). <out> is screenshots/build/screenshots/<set>/<brand>/.
+--render files a new render there: it becomes current/ and the last one previous/, unless it shows the same. Then this
+compares current/ with previous/ (or with --previous, in CI the render of the push before, from the cache) and writes
+a picture of what differs for each changed image into <out>/diff/, the changed names into <out>/changed.txt and
+everything into <out>/index.html. A comparison never fails: it shows.
 """
 
 from __future__ import annotations
@@ -107,6 +107,26 @@ def diff_png(before: bytes, after: bytes) -> bytes | None:
     return write_png(w2, h2, rows)
 
 
+def same_pixels(a: Path, b: Path) -> bool:
+    old, new = a.read_bytes(), b.read_bytes()
+    # The same pixels may be compressed differently on another machine: only the pixels count.
+    return old == new or read_png(old) == read_png(new)
+
+
+def file_render(render: Path, out: Path):
+    """The render becomes current/ and the last one previous/, unless it shows the same: an up-to-date or cached render
+    keeps the last change on the page."""
+    current = out / "current"
+    if current.is_dir():
+        drawn = {p.name: p for p in render.glob("*.png")}
+        kept = {p.name: p for p in current.glob("*.png")}
+        if drawn.keys() == kept.keys() and all(same_pixels(kept[n], drawn[n]) for n in drawn):
+            return
+        shutil.rmtree(out / "previous", ignore_errors=True)
+        current.rename(out / "previous")
+    shutil.copytree(render, current)
+
+
 def report(out: Path) -> str:
     current = out / "current"
     previous = out / "previous"
@@ -121,11 +141,9 @@ def report(out: Path) -> str:
         for name in now:
             if name not in before:
                 continue
-            old, new_ = before[name].read_bytes(), now[name].read_bytes()
-            # The same pixels may be compressed differently on another machine: only the pixels count.
-            if old != new_ and read_png(old) != read_png(new_):
+            if not same_pixels(before[name], now[name]):
                 changed.append(name)
-                picture = diff_png(old, new_)
+                picture = diff_png(before[name].read_bytes(), now[name].read_bytes())
                 if picture:
                     diff_dir.mkdir(exist_ok=True)
                     (diff_dir / name).write_bytes(picture)
@@ -176,7 +194,15 @@ def page(out: Path, now: dict, before: dict, changed: list, new: list, removed: 
 def main(argv: list[str]):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("out", type=Path, help="screenshots/build/screenshots/<set>/<brand>")
+    parser.add_argument("--render", type=Path, help="a new render (screenshots/build/screenshots/render) to file under <out> first")
+    parser.add_argument("--previous", type=Path, help="an earlier render to compare with (CI: from its cache), copied to <out>/previous")
     args = parser.parse_args(argv)
+    if args.render:
+        file_render(args.render, args.out)
+    if args.previous:
+        shutil.rmtree(args.out / "previous", ignore_errors=True)
+        if args.previous.is_dir():
+            shutil.copytree(args.previous, args.out / "previous")
     print(f"Screenshots, {args.out.name}: {report(args.out)}. file://{(args.out / 'index.html').resolve()}")
 
 

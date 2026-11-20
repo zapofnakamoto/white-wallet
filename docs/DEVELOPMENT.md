@@ -147,7 +147,8 @@ just screenshots brand-examples/acme     # the same in another brand directory
 ```
 
 It prints where its page is (`screenshots/build/screenshots/full/<brand>/index.html`): first what changed since the
-last run, before, after and a picture of what differs (in red), then every image by screen. Nothing is committed and
+render before, before, after and a picture of what differs (in red), then every image by screen. A run that draws the
+same keeps showing the last change. Nothing is committed and
 nothing fails on a change: the images are for looking at. `just check` draws a small set for `brand/` and every
 `brand-examples/*` (`check/<brand>/`), and fails only when a preview can't be drawn.
 
@@ -163,8 +164,9 @@ value made up for it (data only: every text comes from the screen's string resou
 
 **How they are drawn**: the `screenshots` module finds every preview of the screen modules (ComposablePreviewScanner)
 and draws each under Robolectric with Roborazzi, as the brand's app would: the brand's resources and the design its
-code module provides (`@Provides fun design(): BrandDesign`, read from that module, not through the app's Hilt graph:
-a design that needs something injected can't be drawn), and the app name, release stage and amount unit of
+code module provides (`@Provides fun design(): BrandDesign` or `@Binds`, looked for among that module's classes, not
+through the app's Hilt graph: a design that needs something injected can't be drawn; code without a design draws the
+default), and the app name, release stage and amount unit of
 `brand.properties`. Numbers follow the preview's language. The clock moves only to the moment drawn, so endless
 animations come out the same each time. Its tasks run only with `-Pscreenshots=check|full`; `./gradlew test`,
 `just test` and the builds never draw. The render lands in one folder, so the build cache keeps one per brand and set:
@@ -174,8 +176,9 @@ The same commit draws the same pixels on Fedora and on Ubuntu 24.04 with Temurin
 compression differs, so `dev/screenshots.py` compares pixels, never bytes.
 
 **CI** draws the small set for `brand` and `brand-examples/acme` and compares it with the render of the push before (a
-pull request: its base), kept in the Actions cache, so an old commit is never drawn again; without one (the first run,
-or the cache dropped it after 7 days unused) it says so. The job summary lists what changed; the artifacts
+pull request: its base), kept in the Actions cache, so an old commit is never drawn again. If that push's run was
+cancelled or failed, it compares with the newest render kept, and the summary says which; without any (the first run,
+or the cache dropped them after 7 days unused) it says so. The job summary lists what changed; the artifacts
 `screenshots-<brand>` (everything, with `index.html`) and `screenshots-changed-<brand>` stay for 7 days.
 
 ## Links from outside the app

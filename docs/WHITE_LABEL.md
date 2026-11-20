@@ -374,12 +374,12 @@ just screenshots path/to/your/brand      # from a White Wallet checkout
 
 It draws every preview of White Wallet's screens with your resources, your code's `BrandDesign` and your
 `brand.properties`, light and dark, with a large font and in German, and writes a page that shows them and, from the
-second run on, what changed since the last one (`screenshots/build/screenshots/full/<brand>/index.html`). Run it after
+second run on, what changed since the render before (`screenshots/build/screenshots/full/<brand>/index.html`). Run it after
 changing your design, and before and after updating White Wallet to see what the update does to your app. Success
 screens are drawn twice, 600 ms in and after 3 s, so a picture that moves shows in both. Your design must be provided
-as `@Provides fun design(): BrandDesign` without parameters (see "Custom code"). In your own CI, keep each render
-(`screenshots/build/screenshots/<set>/<brand>/current/`, e.g. in the Actions cache) and put it back as `previous/`
-before the next `dev/screenshots.py`, as White Wallet's `.github/workflows/ci.yml` does.
+as `@Provides fun design(): BrandDesign` without parameters, or with `@Binds` (see "Custom code"). In your own CI,
+keep each render (`screenshots/build/screenshots/<set>/<brand>/current/`, e.g. in the Actions cache) and pass it to the
+next run's `dev/screenshots.py --previous`, as White Wallet's `.github/workflows/ci.yml` does.
 
 Install it next to the original: a different `app.id` installs as a separate app with your name, icon and colors. To build another brand directory without touching `brand/`, pass `-PbrandDir=path`, e.g. `./gradlew :app:assembleDebug -PbrandDir=brand-examples/acme` (and `dev/check-brand.sh brand-examples/acme`). In Android Studio, the shared run configuration "Acme Cash" (`.run/`) installs and opens it (`:app:openDebug -PbrandDir=brand-examples/acme`); copy it for another brand.
 
