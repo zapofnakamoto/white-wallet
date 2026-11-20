@@ -130,6 +130,8 @@
     <string name="add_mint_try_again">Noch einmal versuchen</string>
     <string name="add_mint_ok">OK</string>
     <string name="add_mint_later">Später</string>
+    <string name="add_mint_key_accepted">%1$s nutzt jetzt den neuen Schlüssel.</string>
+    <string name="add_mint_cancel">Abbrechen</string>
     <string name="scan_body">Sucht nach allem, was zu deiner Wiederherstellungsphrase gehört, und fügt hinzu, was gefunden wird. Es wird nur nachgesehen, nichts wird bewegt.</string>
     <string name="scan_mint_scanning">Wird durchsucht…</string>
     <plurals name="scan_mint_checking_notes">

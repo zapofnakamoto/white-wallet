@@ -120,7 +120,7 @@ class SettingsScreensTest {
         val index = IndexActions({}, {}, {}, {}, {}, {}, {}, {})
         val state = DerivedKeysState(hosts = listOf("mint.example"), host = "mint.example", keyChanged = true)
         compose.setContent { DerivedKeysScreen(state, {}, {}, {}, {}, {}, index, RotateActions({}, {}, {}, {})) }
-        compose.onNodeWithText(text(R.string.mint_key_changed, "mint.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_key_changed, "mint.example")).assertExists()
         compose.onNodeWithText(text(R.string.keys_scan_ahead, 0)).assertIsNotEnabled()
         compose.onNodeWithText(text(R.string.keys_recheck_all)).assertIsNotEnabled()
         compose.onNodeWithText(text(R.string.keys_find_index)).assertIsNotEnabled()
@@ -146,10 +146,10 @@ class SettingsScreensTest {
         compose.setContent {
             MintDetailsScreen(MintDetailsState(details(MintDetails.Reachability.KeyChanged), loading = false), {}, {})
         }
-        compose.onNodeWithText(text(R.string.mint_key_changed, "mint.example")).assertExists()
-        compose.onNodeWithText(text(R.string.mint_key_remembered)).assertExists()
-        compose.onNodeWithText(text(R.string.mint_key_new)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.mint_key_accept)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.mint_key_changed, "mint.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_key_remembered)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_key_new)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.mint_key_accept)).assertDoesNotExist()
     }
 
     @Test
@@ -164,14 +164,14 @@ class SettingsScreensTest {
                 onAcceptKey = { accepted += it },
             )
         }
-        compose.onNodeWithText(text(R.string.mint_key_remembered)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_key_remembered)).assertExists()
         compose.onNodeWithText(presented.chunked(4).joinToString(" ")).assertExists()
-        compose.onNodeWithText(text(R.string.mint_key_accept)).performClick()
+        compose.onNodeWithText(text(DesignR.string.mint_key_accept)).performClick()
         compose.onNodeWithText("Only do this if you know why mint.example changed its key", substring = true).assertExists()
         compose.onNodeWithText(text(R.string.backup_cancel)).performClick()
         assertEquals(emptyList<String>(), accepted)
-        compose.onNodeWithText(text(R.string.mint_key_accept)).performClick()
-        compose.onNodeWithText(text(R.string.mint_key_accept_confirm)).performClick()
+        compose.onNodeWithText(text(DesignR.string.mint_key_accept)).performClick()
+        compose.onNodeWithText(text(DesignR.string.mint_key_accept_confirm)).performClick()
         assertEquals(listOf(presented), accepted)
     }
 

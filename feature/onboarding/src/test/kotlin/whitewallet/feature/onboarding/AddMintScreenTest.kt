@@ -21,6 +21,7 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.MintPreview
 import whitewallet.core.wallet.ScanProgress
 
@@ -212,11 +213,77 @@ class AddMintScreenTest {
 
     @Test
     fun aKeyThatChangedSinceItWasShownStopsTheAdd() {
-        show(pick.copy(step = AddMintStep.Result, preview = preview, failed = "changed", keyChanged = true))
+        var again = 0
+        var cancelled = 0
+        var back = 0
+        show(
+            pick.copy(step = AddMintStep.Result, preview = preview, failed = "changed", keyChanged = true),
+            AddMintActions(onTryAgain = { again++ }, onCancel = { cancelled++ }, onBack = { back++ }),
+        )
         compose.onNodeWithText(text(R.string.add_mint_failed_title)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_failed_key)).assertExists()
-        compose.onNodeWithText(text(R.string.add_mint_try_again)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_later)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_try_again)).performClick()
+        assertEquals(1, again)
+        compose.onNodeWithText(text(R.string.add_mint_cancel)).performClick()
+        assertEquals(1, cancelled)
+        compose.onNodeWithContentDescriptionBack().performClick()
+        assertEquals(1, back)
+    }
+
+    @Test
+    fun inTheSetupAFailedAddLeadsToAnotherMint() {
+        var picked = 0
+        show(
+            pick.copy(setup = true, step = AddMintStep.Result, preview = preview, failed = "timeout"),
+            AddMintActions(onDone = { picked++ }),
+        )
+        compose.onNodeWithText(text(R.string.add_mint_cancel)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_other)).performClick()
+        assertEquals(1, picked)
+    }
+
+    @Test
+    fun aMintTheWalletHasWithAnotherKeyShowsBothKeysAndAddsNothing() {
+        var accepted: String? = null
+        var back = 0
+        val remembered = "03" + "11".repeat(32)
+        show(
+            pick.copy(step = AddMintStep.Info, preview = preview.copy(knownKey = remembered)),
+            AddMintActions(onAcceptKey = { accepted = it }, onBack = { back++ }),
+        )
+        compose.onNodeWithText(text(DesignR.string.mint_key_changed, "mint.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_key_remembered)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_key_new)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_known)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_add)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_other)).performScrollTo().performClick()
+        assertEquals(1, back)
+        // Accepting asks first; cancelled, nothing is accepted.
+        compose.onNodeWithText(text(DesignR.string.mint_key_accept)).performScrollTo().performClick()
+        compose.onNodeWithText(text(DesignR.string.mint_key_cancel)).performClick()
+        assertEquals(null, accepted)
+        compose.onNodeWithText(text(DesignR.string.mint_key_accept)).performScrollTo().performClick()
+        compose.onNodeWithText(text(DesignR.string.mint_key_accept_confirm)).performClick()
+        assertEquals(preview.signingKey, accepted)
+    }
+
+    @Test
+    fun aMintTheWalletHasWithTheSameKeyIsAddedAgain() {
+        show(pick.copy(step = AddMintStep.Info, preview = preview.copy(knownKey = preview.signingKey)))
+        compose.onNodeWithText(text(R.string.add_mint_known)).performScrollTo().assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_key_accept)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_add)).performScrollTo().assertExists()
+    }
+
+    @Test
+    fun anAcceptedKeySaysSoAndIsNoSuccessScreen() {
+        var done = 0
+        showDecorated(pick.copy(step = AddMintStep.Result, preview = preview, keyAccepted = true), AddMintActions(onDone = { done++ }))
+        compose.onNodeWithText(text(R.string.add_mint_key_accepted, "mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.mint_added_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_ok)).performClick()
+        assertEquals(1, done)
     }
 
     @Test

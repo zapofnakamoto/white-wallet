@@ -54,6 +54,7 @@ import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.LoadingIndicator
 import whitewallet.core.designsystem.LoadingPhase
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletDialog
@@ -436,7 +437,7 @@ private fun IndexCard(state: DerivedKeysState, onRotateAll: () -> Unit, index: I
             state.health?.let { HealthText(it) }
             if (state.keyChanged) {
                 Text(
-                    stringResource(R.string.mint_key_changed, state.host.orEmpty()),
+                    stringResource(DesignR.string.mint_key_changed, state.host.orEmpty()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )

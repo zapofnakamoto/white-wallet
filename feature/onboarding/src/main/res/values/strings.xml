@@ -139,6 +139,8 @@
     <string name="add_mint_try_again">Try again</string>
     <string name="add_mint_ok">OK</string>
     <string name="add_mint_later">Later</string>
+    <string name="add_mint_key_accepted">%1$s now uses the new key.</string>
+    <string name="add_mint_cancel">Cancel</string>
     <string name="scan_body">Looks for everything your recovery phrase holds and adds what it finds. It only looks; nothing is moved.</string>
     <string name="scan_mint_scanning">Scanning…</string>
     <string name="scan_account_nothing_new">Nothing new</string>

@@ -80,6 +80,8 @@ data class AddMintState(
     val keyChanged: Boolean = false,
     /** It publishes no signing key: the wallet uses no such mint. */
     val withoutSigningKey: Boolean = false,
+    /** The user accepted the mint's new signing key here: the result says so, and nothing was scanned. */
+    val keyAccepted: Boolean = false,
     /** Asking whether to give the setup up (back on the first step). */
     val confirmAbandon: Boolean = false,
     val finish: AddMintFinish? = null,
@@ -97,6 +99,10 @@ data class AddMintState(
     val foundMsat: Long
         get() = found.sumOf { it.amountMsat }
 }
+
+/** The wallet has this mint, and it now presents another signing key (or none) than the pinned one: the user decides about it first. */
+val MintPreview.Ready.keyDiffers: Boolean
+    get() = knownKey != null && signingKey != knownKey
 
 @HiltViewModel
 class AddMintViewModel
@@ -159,20 +165,59 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
         if (!s.canNext) return
         if (!defaults.mintAllowed(s.host)) return _state.update { it.copy(error = AddMintError.NotAllowed) }
         _state.update { it.copy(busy = true, error = null) }
-        viewModelScope.launch {
-            when (val preview = wallet.previewMint(s.host)) {
-                is MintPreview.Ready -> _state.update { it.copy(busy = false, step = AddMintStep.Info, preview = preview) }
-                is MintPreview.Unreachable -> _state.update { it.copy(busy = false, error = AddMintError.Unreachable) }
-                is MintPreview.Invalid -> _state.update { it.copy(busy = false, error = AddMintError.Invalid(preview.reason)) }
-            }
+        viewModelScope.launch { preview(s.host) }
+    }
+
+    /** What [host] is now: its info, or back to the pick saying why not. */
+    private suspend fun preview(host: String) {
+        when (val preview = wallet.previewMint(host)) {
+            is MintPreview.Ready -> _state.update { it.copy(busy = false, step = AddMintStep.Info, preview = preview) }
+            is MintPreview.Unreachable ->
+                _state.update { it.copy(busy = false, step = AddMintStep.Pick, preview = null, error = AddMintError.Unreachable) }
+            is MintPreview.Invalid ->
+                _state.update {
+                    it.copy(busy = false, step = AddMintStep.Pick, preview = null, error = AddMintError.Invalid(preview.reason))
+                }
         }
+    }
+
+    /**
+     * Uses the mint shown with the new [key] it presents, as its page does ([Wallet.acceptMintKey]); nothing is scanned, the key was all
+     * there was to decide. If it presents yet another key by now, the info shows that one.
+     */
+    fun acceptKey(key: String) {
+        val preview = _state.value.preview ?: return
+        if (_state.value.busy) return
+        _state.update { it.copy(busy = true) }
+        viewModelScope.launch {
+            if (wallet.acceptMintKey(preview.host, key))
+                _state.update { it.copy(busy = false, step = AddMintStep.Result, failed = null, keyAccepted = true) }
+            else preview(preview.host)
+        }
+    }
+
+    /** After a failure: a mint whose key changed meanwhile is shown again as it is now; anything else is tried again. */
+    fun tryAgain() {
+        val s = _state.value
+        if (s.keyChanged) {
+            _state.update { it.copy(busy = true, keyChanged = false, failed = null) }
+            viewModelScope.launch { preview(s.preview?.host ?: s.host) }
+        } else add()
     }
 
     /** Adds the mint shown, with the key it showed, and finds what the wallet holds there. */
     fun add() {
         val preview = _state.value.preview ?: return
         _state.update {
-            it.copy(step = AddMintStep.Adding, progress = null, failed = null, kept = false, keyChanged = false, withoutSigningKey = false)
+            it.copy(
+                step = AddMintStep.Adding,
+                progress = null,
+                failed = null,
+                kept = false,
+                keyChanged = false,
+                withoutSigningKey = false,
+                keyAccepted = false,
+            )
         }
         viewModelScope.launch {
             val result = wallet.addMint(preview.host, preview.signingKey) { progress -> _state.update { it.copy(progress = progress) } }
@@ -211,7 +256,9 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
     fun done() {
         val s = _state.value
         if (s.failed != null && !s.kept)
-            return _state.update { it.copy(step = AddMintStep.Pick, preview = null, progress = null, found = emptyList()) }
+            return _state.update {
+                it.copy(step = AddMintStep.Pick, preview = null, progress = null, found = emptyList(), failed = null, keyChanged = false)
+            }
         viewModelScope.launch {
             if (!s.setup) return@launch _state.update { it.copy(finish = AddMintFinish.Done(null)) }
             val host = s.preview?.host ?: return@launch
@@ -221,6 +268,11 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
             wallet.setSetupStep(if (asks) SetupStep.Address else null)
             _state.update { it.copy(finish = if (asks) AddMintFinish.Address(host, backedUp) else AddMintFinish.Done(backedUp)) }
         }
+    }
+
+    /** Leaves a failed add outside a setup, where the user came from; in a setup, back to the pick (which can give the setup up). */
+    fun cancel() {
+        if (_state.value.setup) done() else _state.update { it.copy(finish = AddMintFinish.Done(null)) }
     }
 
     /** In a setup where the brand allows it: on without a mint; the main screen asks for one. */

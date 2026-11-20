@@ -39,9 +39,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
-import whitewallet.brand.ui.Tone
+import whitewallet.core.designsystem.KeyChangedCard
 import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletListItem
@@ -240,7 +239,13 @@ fun MintDetailsScreen(
         details ?: return@Scaffold
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             if (details.reachability == MintDetails.Reachability.KeyChanged) {
-                KeyChangedCard(details.host, details.mint?.mintPubkey, details.presentedKey, onAcceptKey.takeUnless { state.loading })
+                KeyChangedCard(
+                    details.host,
+                    details.mint?.mintPubkey,
+                    details.presentedKey,
+                    onAcceptKey.takeUnless { state.loading },
+                    Modifier.padding(16.dp),
+                )
             }
             WalletListItem(
                 headlineContent = { Text(stringResource(reachabilityText(details.reachability, state.offline))) },
@@ -435,65 +440,6 @@ private fun RemoveSection(mint: MintInfo, refused: MintUse?, removing: Boolean, 
                 WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }, enabled = !removing) {
                     Text(stringResource(R.string.backup_cancel))
                 }
-            },
-        )
-    }
-}
-
-/**
- * The warning for a signing key that doesn't match the pinned one: both keys, and (with [onAccept]) using the new one after a confirmation.
- * A mint that presents none ([presented] null) has nothing to accept: it is only used again once its key matches.
- */
-@Composable
-private fun KeyChangedCard(host: String, remembered: String?, presented: String?, onAccept: ((String) -> Unit)?) {
-    var confirming by remember { mutableStateOf(false) }
-    WalletCard(
-        tone = Tone.Warning,
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            val color = MaterialTheme.colorScheme.onErrorContainer
-            Text(stringResource(R.string.mint_key_changed, host), color = color)
-            for ((label, key) in listOf(R.string.mint_key_remembered to remembered, R.string.mint_key_new to presented)) {
-                if (key == null) continue
-                Text(
-                    stringResource(label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = color,
-                    modifier = Modifier.padding(top = 12.dp),
-                )
-                Text(
-                    key.chunked(4).joinToString(" "),
-                    fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = color,
-                )
-            }
-            if (presented != null && onAccept != null) {
-                WalletButton(onClick = { confirming = true }, modifier = Modifier.padding(top = 12.dp)) {
-                    Text(stringResource(R.string.mint_key_accept))
-                }
-            }
-        }
-    }
-    if (confirming && presented != null && onAccept != null) {
-        WalletDialog(
-            onDismissRequest = { confirming = false },
-            title = { Text(stringResource(R.string.mint_key_accept_title)) },
-            text = { Text(stringResource(R.string.mint_key_accept_body, host)) },
-            confirmButton = {
-                WalletButton(
-                    kind = ButtonKind.Text,
-                    onClick = {
-                        confirming = false
-                        onAccept(presented)
-                    },
-                ) {
-                    Text(stringResource(R.string.mint_key_accept_confirm))
-                }
-            },
-            dismissButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.backup_cancel)) }
             },
         )
     }

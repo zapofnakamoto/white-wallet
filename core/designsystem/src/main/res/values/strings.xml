@@ -30,6 +30,9 @@
     <string name="received_unreachable">Its mint didn\'t answer, so your wallet stopped trying.</string>
     <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
+    <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
+    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created there until it matches again, or you accept a new key. Payments to your addresses there wait until then. Your notes there are unchanged.</string>
+    <string name="mint_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost.</string>
 
     <string name="back">Back</string>
     <string name="loading">Loading</string>
@@ -82,4 +85,11 @@
     <string name="mint_choice_change">Change</string>
     <string name="copy">Copy</string>
     <string name="share">Share</string>
+    <!-- The rest of KeyChangedCard -->
+    <string name="mint_key_remembered">Remembered key</string>
+    <string name="mint_key_new">New key</string>
+    <string name="mint_key_accept">Use the new key</string>
+    <string name="mint_key_accept_title">Use the new key?</string>
+    <string name="mint_key_accept_confirm">Use it</string>
+    <string name="mint_key_cancel">Cancel</string>
 </resources>

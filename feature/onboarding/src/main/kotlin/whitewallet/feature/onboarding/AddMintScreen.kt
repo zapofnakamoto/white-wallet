@@ -28,6 +28,7 @@ import java.text.NumberFormat
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.KeyChangedCard
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
@@ -58,6 +59,9 @@ fun AddMintRoute(setup: Boolean, onFinish: (AddMintFinish) -> Unit, viewModel: A
             mint = MintActions(viewModel::onMintSelected, viewModel::onCustomHostChange),
             onNext = viewModel::next,
             onAdd = viewModel::add,
+            onAcceptKey = viewModel::acceptKey,
+            onTryAgain = viewModel::tryAgain,
+            onCancel = viewModel::cancel,
             onDone = viewModel::done,
             onSkip = viewModel::skip,
             onAbandon = viewModel::abandon,
@@ -71,6 +75,9 @@ class AddMintActions(
     val mint: MintActions = MintActions({}, {}),
     val onNext: () -> Unit = {},
     val onAdd: () -> Unit = {},
+    val onAcceptKey: (String) -> Unit = {},
+    val onTryAgain: () -> Unit = {},
+    val onCancel: () -> Unit = {},
     val onDone: () -> Unit = {},
     val onSkip: () -> Unit = {},
     val onAbandon: () -> Unit = {},
@@ -89,9 +96,11 @@ fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
                 else -> if (state.setup) R.string.add_mint_setup_title else R.string.add_mint_title
             }
         )
-    val back = actions.onBack.takeIf { state.step == AddMintStep.Pick || state.step == AddMintStep.Info }
+    // A failure that added nothing goes back to the pick from here too.
+    val failedOnly = state.step == AddMintStep.Result && state.failed != null && !state.kept
+    val back = actions.onBack.takeIf { state.step == AddMintStep.Pick || state.step == AddMintStep.Info || failedOnly }
     // Outside a setup, a mint added ends on the success screen; the setup goes on to its address instead.
-    val success = state.step == AddMintStep.Result && state.failed == null && !state.setup
+    val success = state.step == AddMintStep.Result && state.failed == null && !state.keyAccepted && !state.setup
     Scaffold(topBar = { WalletTopBar(if (success) stringResource(R.string.add_mint_title) else title, back) }) { padding ->
         // Before the mints to pick from are known (a moment): only the title, so the page doesn't show one thing and then another.
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
@@ -138,6 +147,11 @@ private fun PickContent(state: AddMintState, actions: AddMintActions) {
 private fun InfoContent(preview: MintPreview.Ready, state: AddMintState, actions: AddMintActions) {
     Text(preview.host, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
     preview.description?.let { Text(it, textAlign = TextAlign.Center) }
+    // The wallet has it with another key: that is all there is to decide here, and leaving decides nothing.
+    if (preview.keyDiffers) {
+        KeyChangedCard(preview.host, preview.knownKey, preview.signingKey, actions.onAcceptKey.takeUnless { state.busy })
+        return WalletButton(kind = ButtonKind.Text, onClick = actions.onBack) { Text(stringResource(R.string.add_mint_other)) }
+    }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         InfoRow(stringResource(R.string.add_mint_fees), fees(preview.feeBaseMsat, preview.feePpm))
         InfoRow(
@@ -210,6 +224,8 @@ internal fun ScanAccounts(progress: ScanProgress?, @StringRes empty: Int = R.str
 private fun ResultContent(state: AddMintState, actions: AddMintActions) {
     val failed = state.failed
     when {
+        state.keyAccepted ->
+            Text(stringResource(R.string.add_mint_key_accepted, state.preview?.host.orEmpty()), textAlign = TextAlign.Center)
         failed != null -> {
             Text(
                 when {
@@ -240,7 +256,13 @@ private fun ResultContent(state: AddMintState, actions: AddMintActions) {
             PrimaryButton(stringResource(R.string.add_mint_try_again), actions.onAdd)
             WalletButton(kind = ButtonKind.Text, onClick = actions.onDone) { Text(stringResource(R.string.add_mint_later)) }
         }
-        else -> PrimaryButton(stringResource(R.string.add_mint_try_again), actions.onDone)
+        // Nothing was added: again, or out of here (in a setup, to another mint; the pick can give the setup up).
+        else -> {
+            PrimaryButton(stringResource(R.string.add_mint_try_again), actions.onTryAgain)
+            if (state.setup)
+                WalletButton(kind = ButtonKind.Text, onClick = actions.onDone) { Text(stringResource(R.string.add_mint_other)) }
+            else WalletButton(kind = ButtonKind.Text, onClick = actions.onCancel) { Text(stringResource(R.string.add_mint_cancel)) }
+        }
     }
 }
 

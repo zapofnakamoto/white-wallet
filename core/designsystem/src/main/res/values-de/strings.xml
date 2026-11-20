@@ -29,6 +29,9 @@
     <!-- What's new in the release that dropped the older key derivation (LUD-26 draft 2f17578); shown once to users who updated. -->
     <string name="release_note_old_keys_title">Scheine von vor Version 0.8</string>
     <string name="release_note_old_keys_body">Diese Version findet keine Scheine und Lightning-Adressen mehr, die so angelegt wurden wie vor Version 0.8. Seitdem hat die App sie bei jedem Öffnen von selbst umgezogen. Fehlt Geld, öffne deine Wiederherstellungsphrase einmal in Version 0.9.0, die sie noch umzieht, und nutze dann hier „Nach Scheinen suchen“.</string>
+    <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
+    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin. Deine Scheine dort sind unverändert.</string>
+    <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
 
     <string name="received_title">Erhalten, noch nicht eingelöst</string>
     <string name="received_hint">Deine Wallet löst sie von selbst ein. Bis dahin sind sie nicht in deinem Guthaben, deine Wiederherstellungsphrase deckt sie nicht ab, und wer dir einen Link gegeben hat, kann ihn noch ausgeben.</string>
@@ -71,4 +74,11 @@
     <string name="mint_choice_change">Ändern</string>
     <string name="copy">Kopieren</string>
     <string name="share">Teilen</string>
+    <!-- The rest of KeyChangedCard -->
+    <string name="mint_key_remembered">Gemerkter Schlüssel</string>
+    <string name="mint_key_new">Neuer Schlüssel</string>
+    <string name="mint_key_accept">Neuen Schlüssel verwenden</string>
+    <string name="mint_key_accept_title">Neuen Schlüssel verwenden?</string>
+    <string name="mint_key_accept_confirm">Verwenden</string>
+    <string name="mint_key_cancel">Abbrechen</string>
 </resources>
