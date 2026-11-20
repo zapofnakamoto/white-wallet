@@ -168,7 +168,8 @@ code module provides (`@Provides fun design(): BrandDesign` or `@Binds`, looked 
 through the app's Hilt graph: a design that needs something injected can't be drawn; code without a design draws the
 default), and the app name, release stage and amount unit of
 `brand.properties`. Numbers follow the preview's language. The clock moves only to the moment drawn, so endless
-animations come out the same each time. Its tasks run only with `-Pscreenshots=check|full`; `./gradlew test`,
+animations come out the same each time; screens are drawn in inspection mode (`LocalInspectionMode`), where a design
+that moves at random takes a fixed seed. Its tasks run only with `-Pscreenshots=check|full`; `./gradlew test`,
 `just test` and the builds never draw. The render lands in one folder, so the build cache keeps one per brand and set:
 an unchanged `just check` spends about 6 seconds on both brands, a cold one about 2 minutes.
 

@@ -377,7 +377,9 @@ It draws every preview of White Wallet's screens with your resources, your code'
 second run on, what changed since the render before (`screenshots/build/screenshots/full/<brand>/index.html`). Run it after
 changing your design, and before and after updating White Wallet to see what the update does to your app. Success
 screens are drawn twice, 600 ms in and after 3 s, so a picture that moves shows in both. Your design must be provided
-as `@Provides fun design(): BrandDesign` without parameters, or with `@Binds` (see "Custom code"). In your own CI,
+as `@Provides fun design(): BrandDesign` without parameters, or with `@Binds` (see "Custom code"). Screens are drawn
+in inspection mode, as Android Studio's previews are: if your design moves at random (a blink at a random moment), take
+its `Random` from a fixed seed when `LocalInspectionMode.current` is true, or every run shows a change. In your own CI,
 keep each render (`screenshots/build/screenshots/<set>/<brand>/current/`, e.g. in the Actions cache) and pass it to the
 next run's `dev/screenshots.py --previous`, as White Wallet's `.github/workflows/ci.yml` does.
 
