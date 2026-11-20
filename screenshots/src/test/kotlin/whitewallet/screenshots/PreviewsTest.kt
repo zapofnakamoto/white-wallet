@@ -20,9 +20,55 @@ class PreviewsTest {
                 "AddressAddedPreview",
                 "ReceiveSuccessPreview",
                 "SendSuccessPreview",
+                // Settings
+                "SettingsPreview",
+                "WalletsPreview",
+                "WalletPagePreview",
+                "AccountSettingsPreview",
+                "AccountNotInUsePreview",
+                "MintsPreview",
+                "MintDetailsPreview",
+                "AccountMintsPreview",
+                "AddressesPreview",
+                "BackupPreview",
+                "NotesSettingsPreview",
+                "DeleteWalletPreview",
+                "DerivedKeysPreview",
+                "MoneyMovePreview",
+                "DisplaySettingsPreview",
+                "SecuritySettingsPreview",
+                "AboutPreview",
+                "DeveloperSettingsPreview",
+                "LocalRegtestPreview",
+                "RequestLogPreview",
+                // Everyday screens of the other modules
+                "WelcomePreview",
+                "OnboardingPreview",
+                "RestorePreview",
+                "AddMintPreview",
+                "ScanForNotesPreview",
+                "AccountNamePreview",
+                "HomePreview",
+                "MoveFundsPreview",
+                "NotesPreview",
+                "ArchivePreview",
+                "SendPreview",
+                "CreateNotePreview",
+                "SharedNotePreview",
+                "QrScanPreview",
+                "ReceivePreview",
+                "ClaimNotePreview",
             ),
             Previews.all.map { it.methodName }.toSet(),
         )
+    }
+
+    @Test
+    fun noTwoModulesNameAPreviewAlike() {
+        // Files are named by the preview function: two alike would draw over each other.
+        Previews.all
+            .groupBy { it.methodName }
+            .forEach { (name, previews) -> assertEquals(name, 1, previews.map { it.declaringClass }.distinct().size) }
     }
 
     @Test

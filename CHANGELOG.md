@@ -19,8 +19,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - For developers: `SuccessScreen` takes its buttons as `SuccessAction`, an optional amount, `lines` and extra
   `content`, and keeps its buttons at the bottom; back does what its main button does. `CopyShare` is in the design
   system. docs/DEVELOPMENT.md, "Success screens", says how to add one.
-- For brands and developers: screenshots. `just screenshots [brand dir]` draws previews of the shared screens (for now
-  the success screens and the empty state) in a brand's design, light and dark, with a large font and in German, and
+- For brands and developers: screenshots. `just screenshots [brand dir]` draws a preview of every shared screen in its
+  everyday state, and the success screens and the empty state in each of theirs, in a brand's design, light and dark, with a large font and in German, and
   shows what changed since the last run; `just check` and CI draw a small set for each sample brand and compare it
   with the push before (docs/DEVELOPMENT.md, "Screenshots"; docs/WHITE_LABEL.md §3). Nothing is committed.
 

@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import java.io.File
 import java.util.Locale
+import java.util.TimeZone
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -30,12 +31,18 @@ class PreviewScreenshotTest(private val shot: Shot) {
     @get:Rule val compose = createComposeRule()
 
     private val locale = Locale.getDefault()
+    private val timeZone = TimeZone.getDefault()
 
-    // Numbers and dates follow the phone's language, as they do in the app.
-    @After fun restoreLocale() = Locale.setDefault(locale)
+    // Numbers and dates follow the phone's language, as they do in the app; times are UTC, so every machine draws the same hour.
+    @After
+    fun restoreLocale() {
+        Locale.setDefault(locale)
+        TimeZone.setDefault(timeZone)
+    }
 
     @Test
     fun capture() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
         shot.preview.previewInfo.locale.ifEmpty { null }?.let { Locale.setDefault(Locale.forLanguageTag(it)) }
         RuntimeEnvironment.setQualifiers(qualifiers(shot.preview.previewInfo))
         RuntimeEnvironment.setFontScale(shot.preview.previewInfo.fontScale.takeIf { it > 0 } ?: 1f)

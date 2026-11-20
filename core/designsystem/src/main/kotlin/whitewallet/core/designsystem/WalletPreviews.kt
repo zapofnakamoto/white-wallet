@@ -18,3 +18,6 @@ annotation class WalletPreviews
 
 /** A preview of a moment that moves (a success screen): also drawn while its picture moves, not only once it is over. */
 @Retention(AnnotationRetention.RUNTIME) @Target(AnnotationTarget.FUNCTION) annotation class Moment
+
+/** The moment previews take for "when" (a note's age, a mint's last check): in a past year, so it shows as the same full date any day. */
+const val PREVIEW_MILLIS = 1_748_779_200_000L // 2025-06-01 12:00 UTC

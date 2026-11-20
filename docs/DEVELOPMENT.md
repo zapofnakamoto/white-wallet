@@ -152,10 +152,14 @@ same keeps showing the last change. Nothing is committed and
 nothing fails on a change: the images are for looking at. `just check` draws a small set for `brand/` and every
 `brand-examples/*` (`check/<brand>/`), and fails only when a preview can't be drawn.
 
-**Previews** are ordinary Compose `@Preview`s in `main`, next to the screen (`SuccessPreviews.kt`,
-`EmptyStatePreviews.kt`, …), private, and drawn by Android Studio too. A preview draws the real screen from a state
-value made up for it (data only: every text comes from the screen's string resources, the app's name from
-`LocalAppName`), so it needs no `Wallet`; the states sit beside it for reuse. Annotate it:
+**Previews** are ordinary Compose `@Preview`s in `main`, one file per module next to its screens
+(`SettingsPreviews.kt`, `SuccessPreviews.kt`, …), private, and drawn by Android Studio too. Every screen has one in its
+everyday state; success screens and the empty state have one per state. A new screen gets one, and its name in
+`PreviewsTest` (names are file names: no two alike). A preview draws the real screen from a state value made up for it
+(data only: every text comes from the screen's string resources, the app's name from `LocalAppName`, a time from
+`PREVIEW_MILLIS`, a past year's moment, so it shows the same on any day), so it needs no `Wallet`; the states sit beside
+it for reuse. A screen that shows the brand's own resources (the welcome screen's `ic_brand_logo`) has its preview in
+`screenshots/src/test` (`BrandPreviews.kt`), the only module that holds them. Annotate it:
 - `@WalletPreviews`: drawn light, dark, with a large font on a small phone, and in German;
 - `@Moment`: a success screen, drawn also 600 ms in, while its picture moves (a brand's celebration shows only then), not
   only after 3 s;
@@ -167,11 +171,11 @@ and draws each under Robolectric with Roborazzi, as the brand's app would: the b
 code module provides (`@Provides fun design(): BrandDesign` or `@Binds`, looked for among that module's classes, not
 through the app's Hilt graph: a design that needs something injected can't be drawn; code without a design draws the
 default), and the app name, release stage and amount unit of
-`brand.properties`. Numbers follow the preview's language. The clock moves only to the moment drawn, so endless
+`brand.properties`. Numbers follow the preview's language; times are drawn in UTC. The clock moves only to the moment drawn, so endless
 animations come out the same each time; screens are drawn in inspection mode (`LocalInspectionMode`), where a design
 that moves at random takes a fixed seed. Its tasks run only with `-Pscreenshots=check|full`; `./gradlew test`,
 `just test` and the builds never draw. The render lands in one folder, so the build cache keeps one per brand and set:
-an unchanged `just check` spends about 6 seconds on both brands, a cold one about 2 minutes.
+an unchanged `just check` spends about 6 seconds on both brands, a cold one about 3 minutes.
 
 The same commit draws the same pixels on Fedora and on Ubuntu 24.04 with Temurin 21 (CI's runner); only the PNG
 compression differs, so `dev/screenshots.py` compares pixels, never bytes.
