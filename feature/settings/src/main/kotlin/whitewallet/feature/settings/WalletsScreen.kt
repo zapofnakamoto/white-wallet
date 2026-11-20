@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -173,6 +175,7 @@ fun WalletsRoute(
                 onNavigate,
                 onAddAccount,
                 viewModel::renameWallet,
+                viewModel::use,
                 onAdd.takeIf { state.canAddWallet },
             )
         else -> WalletsScreen(state, onBack, onOpen, onAdd)
@@ -220,13 +223,14 @@ fun WalletRoute(
     // Deleted meanwhile: nothing to show.
     LaunchedEffect(state.loaded, group == null) { if (state.loaded && group == null) onBack() }
     if (!screenLoaded(state.loaded && active.loaded)) return
-    if (group != null) WalletScreen(group, state, active, onBack, onNavigate, onAddAccount, viewModel::renameWallet)
+    if (group != null) WalletScreen(group, state, active, onBack, onNavigate, onAddAccount, viewModel::renameWallet, viewModel::use)
 }
 
 /**
  * A wallet's page: its accounts, and, while it is the wallet in use, what belongs to the recovery phrase (its name, the phrase, its mints,
- * adding an account, deleting it). A wallet not in use only lists its accounts: only the active wallet is ever used. [onAddWallet]: it is
- * the only wallet, shown in place of the list, and another may be added.
+ * adding an account, deleting it). A wallet not in use only lists its accounts: only the active wallet is ever used. Each account not in
+ * use offers [onUse] on its row, a tap where its page would take two. [onAddWallet]: it is the only wallet, shown in place of the list, and
+ * another may be added.
  */
 @Composable
 fun WalletScreen(
@@ -237,6 +241,7 @@ fun WalletScreen(
     onNavigate: (SettingsDestination) -> Unit,
     onAddAccount: () -> Unit,
     onRename: (String) -> Unit,
+    onUse: (accountId: String) -> Unit,
     onAddWallet: (() -> Unit)? = null,
 ) {
     val inUse = group.wallet.id == state.activeWalletId
@@ -303,7 +308,12 @@ fun WalletScreen(
                         } else {
                             null
                         },
-                    trailingContent = { AmountAndChevron(summary.balanceMsat) },
+                    trailingContent = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (!current) UseButton(account.name) { onUse(account.id) }
+                            AmountAndChevron(summary.balanceMsat)
+                        }
+                    },
                     modifier = Modifier.clickable { onNavigate(SettingsDestination.Account(account.id)) },
                 )
             }
@@ -571,6 +581,15 @@ fun AccountNotInUseScreen(summary: AccountSummary, place: Int, onBack: () -> Uni
 @Composable
 private fun InUse() {
     Text(stringResource(R.string.wallet_in_use), color = MaterialTheme.colorScheme.primary)
+}
+
+/** Uses the account [name] at once; read out with its name, since every row not in use has one. */
+@Composable
+private fun UseButton(name: String, onClick: () -> Unit) {
+    val description = stringResource(R.string.wallet_account_use_named, name)
+    WalletButton(kind = ButtonKind.Text, onClick = onClick, modifier = Modifier.semantics { contentDescription = description }) {
+        Text(stringResource(R.string.wallet_account_use))
+    }
 }
 
 @Composable

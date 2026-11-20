@@ -438,6 +438,9 @@
         <item quantity="other">%1$d accounts</item>
     </plurals>
     <string name="wallet_in_use">In use</string>
+    <string name="wallet_account_use">Use</string>
+    <!-- Read out for the Use button on an account's row: %1$s is the account's name. -->
+    <string name="wallet_account_use_named">Use %1$s</string>
     <string name="wallets_add">Add wallet</string>
     <string name="wallets_add_hint">Its own recovery phrase and its own accounts</string>
     <string name="wallet_accounts">Accounts</string>

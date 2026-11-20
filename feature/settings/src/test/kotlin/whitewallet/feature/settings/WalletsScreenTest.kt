@@ -3,8 +3,11 @@ package whitewallet.feature.settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -74,7 +77,7 @@ class WalletsScreenTest {
     fun theWalletInUseShowsWhatBelongsToItsPhraseAndItsAccounts() {
         val opened = mutableListOf<SettingsDestination>()
         var adding = false
-        compose.setContent { WalletScreen(first, state, active, {}, { opened += it }, { adding = true }, {}) }
+        compose.setContent { WalletScreen(first, state, active, {}, { opened += it }, { adding = true }, {}, {}) }
         compose.onNodeWithText(text(R.string.settings_recovery_phrase)).performClick()
         compose.onNodeWithText(text(R.string.settings_mints)).performClick()
         compose.onNodeWithText(text(R.string.settings_scan_done)).assertExists()
@@ -108,7 +111,7 @@ class WalletsScreenTest {
         var error = Color.Unspecified
         compose.setContent {
             error = MaterialTheme.colorScheme.error
-            WalletScreen(group, screen, active, {}, {}, {}, {})
+            WalletScreen(group, screen, active, {}, {}, {}, {}, {})
         }
         compose.waitForIdle()
         return error
@@ -158,7 +161,7 @@ class WalletsScreenTest {
 
     @Test
     fun aWalletWhoseScanIsNotFinishedSaysSo() {
-        compose.setContent { WalletScreen(first, state, active.copy(unscannedCount = 1), {}, {}, {}, {}) }
+        compose.setContent { WalletScreen(first, state, active.copy(unscannedCount = 1), {}, {}, {}, {}, {}) }
         compose.onNodeWithText(text(R.string.settings_scan_unfinished)).assertExists()
         compose.onNodeWithText(text(R.string.settings_scan_done)).assertDoesNotExist()
     }
@@ -166,7 +169,7 @@ class WalletsScreenTest {
     @Test
     fun theOnlyWalletsPageAlsoAddsAWallet() {
         var added = false
-        compose.setContent { WalletScreen(first, state.copy(wallets = listOf(first)), active, {}, {}, {}, {}) { added = true } }
+        compose.setContent { WalletScreen(first, state.copy(wallets = listOf(first)), active, {}, {}, {}, {}, {}) { added = true } }
         compose.onNodeWithText(text(R.string.wallets_add_hint)).assertExists()
         compose.onNodeWithText(text(R.string.wallets_add)).performScrollTo().performClick()
         assertEquals(true, added)
@@ -174,14 +177,14 @@ class WalletsScreenTest {
 
     @Test
     fun aWalletsPageOpenedFromTheListAddsNoWallet() {
-        compose.setContent { WalletScreen(first, state, active, {}, {}, {}, {}) }
+        compose.setContent { WalletScreen(first, state, active, {}, {}, {}, {}, {}) }
         compose.onNodeWithText(text(R.string.wallets_add)).assertDoesNotExist()
     }
 
     @Test
     fun aWalletNotInUseOnlyListsItsAccounts() {
         val opened = mutableListOf<SettingsDestination>()
-        compose.setContent { WalletScreen(second, state, active, {}, { opened += it }, {}, {}) }
+        compose.setContent { WalletScreen(second, state, active, {}, { opened += it }, {}, {}, {}) }
         compose.onNodeWithText(text(R.string.wallet_not_in_use)).assertExists()
         compose.onNodeWithText(text(R.string.settings_recovery_phrase)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_mints)).assertDoesNotExist()
@@ -192,9 +195,21 @@ class WalletsScreenTest {
     }
 
     @Test
+    fun anAccountNotInUseIsUsedFromItsRowWithoutOpeningItsPage() {
+        val opened = mutableListOf<SettingsDestination>()
+        val used = mutableListOf<String>()
+        compose.setContent { WalletScreen(first, state, active, {}, { opened += it }, {}, {}, { used += it }) }
+        // Only Savings offers it: Main is in use.
+        compose.onAllNodesWithText(text(R.string.wallet_account_use)).assertCountEquals(1)
+        compose.onNodeWithContentDescription(text(R.string.wallet_account_use_named, "Savings")).performScrollTo().performClick()
+        assertEquals(listOf("b"), used)
+        assertEquals(emptyList<SettingsDestination>(), opened)
+    }
+
+    @Test
     fun aWalletIsRenamedAndAnEmptyNameGivesItsNumberBack() {
         val names = mutableListOf<String>()
-        compose.setContent { WalletScreen(second, state.copy(activeAccountId = "c"), active, {}, {}, {}, { names += it }) }
+        compose.setContent { WalletScreen(second, state.copy(activeAccountId = "c"), active, {}, {}, {}, { names += it }, {}) }
         compose.onNodeWithText(text(R.string.wallet_name)).performClick()
         compose.onNodeWithText(text(R.string.wallet_rename_title)).assertExists()
         compose.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextClearance()

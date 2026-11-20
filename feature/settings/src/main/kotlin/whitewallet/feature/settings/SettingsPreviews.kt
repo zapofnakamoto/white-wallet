@@ -176,7 +176,7 @@ private fun SettingsPreview() = SettingsScreen(settingsState, versionName = "1.0
 @WalletPreviews
 @Composable
 private fun WalletPagePreview() =
-    WalletScreen(previewWallet, walletsState, settingsState, onBack = {}, onNavigate = {}, onAddAccount = {}, onRename = {})
+    WalletScreen(previewWallet, walletsState, settingsState, onBack = {}, onNavigate = {}, onAddAccount = {}, onRename = {}, onUse = {})
 
 @WalletPreviews @Composable private fun AccountSettingsPreview() = AccountSettingsScreen(settingsState, onBack = {}, open = {})
 

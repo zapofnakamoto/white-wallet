@@ -425,6 +425,9 @@
         <item quantity="other">%1$d Konten</item>
     </plurals>
     <string name="wallet_in_use">In Verwendung</string>
+    <string name="wallet_account_use">Verwenden</string>
+    <!-- Read out for the Use button on an account's row: %1$s is the account's name. -->
+    <string name="wallet_account_use_named">%1$s verwenden</string>
     <string name="wallets_add">Wallet hinzufügen</string>
     <string name="wallets_add_hint">Eine eigene Wiederherstellungsphrase mit eigenen Konten</string>
     <string name="wallet_accounts">Konten</string>
