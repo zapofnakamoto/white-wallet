@@ -38,6 +38,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SuggestionChip
@@ -45,6 +46,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -502,7 +504,43 @@ object DefaultComponents : BrandComponents {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun topBar(params: TopBarParams, modifier: Modifier) {
-        TopAppBar(title = params.title, modifier = modifier, navigationIcon = params.navigationIcon, actions = params.actions)
+        // The title in the bar's own style, also where it is only measured.
+        val title = @Composable { ProvideTextStyle(MaterialTheme.typography.titleLarge) { params.title() } }
+        SubcomposeLayout { constraints ->
+            val below =
+                constraints.hasBoundedWidth &&
+                    run {
+                        val any = Constraints.Infinity
+                        fun probe(slot: TopBarSlot, content: @Composable () -> Unit) =
+                            subcompose(slot) { Box(Modifier.clearAndSetSemantics {}) { content() } }
+                        val beside =
+                            probe(TopBarSlot.Navigation, params.navigationIcon).maxOfOrNull { it.maxIntrinsicWidth(any) }.orZero() +
+                                probe(TopBarSlot.Actions) { Row { params.actions(this) } }
+                                    .maxOfOrNull { it.maxIntrinsicWidth(any) }
+                                    .orZero()
+                        val word = probe(TopBarSlot.Title, title).maxOfOrNull { it.minIntrinsicWidth(any) }.orZero()
+                        // Material's insets: 4 dp at each end, 16 dp before the title without a back button, 24 dp on its sides.
+                        constraints.maxWidth - beside - 32.dp.roundToPx() < word
+                    }
+            val bar =
+                subcompose(if (below) TopBarSlot.Below else TopBarSlot.Beside) {
+                        if (below) {
+                            Column(modifier.background(TopAppBarDefaults.topAppBarColors().containerColor)) {
+                                TopAppBar(title = {}, navigationIcon = params.navigationIcon, actions = params.actions)
+                                Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) { title() }
+                            }
+                        } else
+                            TopAppBar(
+                                title = params.title,
+                                modifier = modifier,
+                                navigationIcon = params.navigationIcon,
+                                actions = params.actions,
+                            )
+                    }
+                    .single()
+                    .measure(constraints)
+            layout(bar.width, bar.height) { bar.place(0, 0) }
+        }
     }
 
     @Composable
@@ -945,3 +983,14 @@ private enum class ListRowSlot {
     Beside,
     Below,
 }
+
+/** The parts of a [DefaultComponents.topBar] composed apart: measured to decide where the title goes, then the bar itself. */
+private enum class TopBarSlot {
+    Navigation,
+    Actions,
+    Title,
+    Beside,
+    Below,
+}
+
+private fun Int?.orZero() = this ?: 0
