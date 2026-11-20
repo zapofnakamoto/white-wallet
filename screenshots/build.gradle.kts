@@ -29,5 +29,7 @@ dependencies {
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.preview.scanner)
     testImplementation(libs.classgraph)
+    // Brand code modules as fixtures (BrandDesignsTest).
+    testImplementation(libs.dagger)
     debugImplementation(libs.compose.ui.test.manifest)
 }
