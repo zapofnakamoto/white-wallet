@@ -5,6 +5,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("whitewallet.brand")
 }
 
 // A release is what wallet.properties says, so one commit can't build two different apps.
@@ -212,7 +213,6 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
-    sourceSets.getByName("main").res.directories.add(brandDir.resolve("res").path)
 }
 
 // The launcher icon as PNGs too, drawn from the brand's adaptive icon: what an app store shows when it reads the APK and
@@ -233,9 +233,4 @@ tasks.register<Exec>("openDebug") {
     dependsOn("installDebug")
     executable(androidComponents.sdkComponents.adb.get().asFile)
     args("shell", "monkey", "-p", "${brand("app.id")}.debug", "-c", "android.intent.category.LAUNCHER", "1")
-}
-
-// The brand's own code, if its directory has a code/ module (included by settings.gradle.kts as :brand-code).
-rootProject.findProject(":brand-code")?.let { brandCode ->
-    dependencies { "implementation"(brandCode) }
 }

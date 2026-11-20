@@ -46,4 +46,5 @@ include(
     ":protocol:lnurlcash-protocol",
     ":protocol:lnurlcash-client",
     ":protocol:lnurlcash-testkit",
+    ":screenshots",
 )
