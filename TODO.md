@@ -77,14 +77,12 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
 6. **Small things from the walk through the wallet pages (2026-11-10).** An account's page shows no balance (the
    "not in use" page does). "Move funds" preselects a target only when there is just one (`MoveFundsViewModel`); with more, "Move" does nothing
    until one is picked.
-7. **A changed signing key on the Mints list.** A mint that signs with a new key isn't recognizable on Settings →
-   Mints: the row shows the pinned key and trust as before. The change only shows on the mint's page (its check
-   reports `KeyChanged`, with the warning card) or when an operation stops (`Pinning`). The list should flag such a
-   mint at a glance (and maybe Settings' Mints row too). Idea: a "Check all" button on the list that asks every mint
-   (does it answer, does it still sign with the pinned key; what the mint page's check does, for all of them) and
-   shows the result per row: reachable, unreachable, key changed (leading to the page with the warning). The user
-   decides when, so the app never asks every mint on its own. On top of that, rows can show what operations already
-   saw without asking anyone: a mint that stopped one with a different key (`Pinning`).
+7. **"Check all" on the Mints list.** Since 2026-11-20 a row says "Signing key doesn't match" for a mint the wallet
+   already saw presenting another key (`Wallet.mintsWithChangedKey`), without asking anyone. A mint nothing has asked
+   since its key changed still looks as before. Idea: a "Check all" button on the list that asks every mint (does it
+   answer, does it still sign with the pinned key; what the mint page's check does, for all of them) and shows the
+   result per row: reachable, unreachable, key changed. The user decides when, so the app never asks every mint on its
+   own. Maybe Settings' Mints row could flag a changed key too.
 8. **A changed signing key with `mints.visible=false`.** Without `mints.visible`, users never see mints, yet a mint that
    signs with a new key still names it and sends them to its details: the notes view's outcome (`notes_key_changed`,
    "The signing key of %1$s doesn't match … in its details") and the wallet tab's card
