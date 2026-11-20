@@ -140,7 +140,7 @@
     <string name="backup_verify_wrong">Das ist nicht Wort %1$d. Sieh auf deinem Papier nach und fang neu an.</string>
     <string name="backup_verify_skip">Überspringen, ich habe sie schon geprüft</string>
     <string name="backup_success_title">Sicherung abgeschlossen</string>
-    <string name="backup_success_body">Bewahre dein Papier sicher auf. Niemand, auch wir nicht, kann deine Wiederherstellungsphrase für dich wiederherstellen.</string>
+    <string name="backup_success_body">Bewahre dein Papier sicher auf. Niemand sonst hat eine Kopie deiner Wiederherstellungsphrase.</string>
     <string name="backup_done">Fertig</string>
 
     <string name="settings_backup_now">Sichere deine Wiederherstellungsphrase</string>
@@ -160,7 +160,7 @@
     <string name="delete_acknowledge">Mir ist klar, dass ich %1$s verliere</string>
     <string name="delete_continue">Weiter</string>
     <string name="delete_confirm_title">Diese Wallet löschen?</string>
-    <string name="delete_confirm_body">Das lässt sich nicht rückgängig machen. Ohne deine Wiederherstellungsphrase kann niemand diese Wallet wiederherstellen, auch wir nicht.</string>
+    <string name="delete_confirm_body">Das lässt sich nicht rückgängig machen. Ohne deine Wiederherstellungsphrase kann niemand diese Wallet wiederherstellen.</string>
     <string name="delete_confirm_action">Wallet löschen</string>
     <string name="delete_auth_title">Bestätige, dass du es bist</string>
     <string name="delete_auth_subtitle">Entsperren, um diese Wallet zu löschen</string>

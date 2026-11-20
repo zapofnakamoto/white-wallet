@@ -147,7 +147,7 @@
     <string name="backup_verify_wrong">That\'s not word %1$d. Check your paper and start again.</string>
     <string name="backup_verify_skip">Skip, I already checked it</string>
     <string name="backup_success_title">Backup complete</string>
-    <string name="backup_success_body">Store your paper somewhere safe. Nobody, including us, can recover your recovery phrase for you.</string>
+    <string name="backup_success_body">Store your paper somewhere safe. Nobody else has a copy of your recovery phrase.</string>
     <string name="backup_done">Done</string>
 
     <string name="settings_backup_now">Back up your recovery phrase</string>
@@ -167,7 +167,7 @@
     <string name="delete_acknowledge">I understand that I will lose %1$s</string>
     <string name="delete_continue">Continue</string>
     <string name="delete_confirm_title">Delete this wallet?</string>
-    <string name="delete_confirm_body">This can\'t be undone. Without your recovery phrase, nobody can restore this wallet, including us.</string>
+    <string name="delete_confirm_body">This can\'t be undone. Without your recovery phrase, nobody can restore this wallet.</string>
     <string name="delete_confirm_action">Delete wallet</string>
     <string name="delete_auth_title">Confirm it\'s you</string>
     <string name="delete_auth_subtitle">Unlock to delete this wallet</string>
