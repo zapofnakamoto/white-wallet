@@ -37,7 +37,7 @@ value class Anchor(val id: String) {
 
         /**
          * The picture on the screen that says a payment arrived (status [whitewallet.brand.WalletStatus.PaymentReceived], with the amount
-         * so far; it grows when more arrives). Default: a check mark that draws itself.
+         * so far and how many payments it is; both grow when more arrives). Default: a check mark that draws itself.
          */
         val ReceiveSuccess = Anchor("receive.success")
 

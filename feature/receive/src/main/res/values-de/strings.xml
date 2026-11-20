@@ -36,6 +36,11 @@
     <string name="receive_invoice_new">Neue Rechnung</string>
     <string name="receive_done">Fertig</string>
     <string name="receive_success_title">Zahlung erhalten</string>
+    <!-- Mehrere Zahlungen kamen an der Adresse an, während der Bildschirm offen war (%d: wie viele); der Betrag ist ihre Summe -->
+    <plurals name="receive_payments_received">
+        <item quantity="one">%d Zahlung erhalten</item>
+        <item quantity="other">%d Zahlungen erhalten</item>
+    </plurals>
     <string name="receive_more">Mehr empfangen</string>
     <!-- Entwicklermodus auf einer lokalen Regtest-Mint (Debug-Builds): der Faucet von dev/regtest zahlt an diese Wallet. %1$s: ein Betrag -->
     <string name="receive_faucet_address">Entwickler: %1$s von Regtest erhalten</string>

@@ -47,6 +47,11 @@
     <string name="receive_invoice_new">New invoice</string>
     <string name="receive_done">Done</string>
     <string name="receive_success_title">Payment received</string>
+    <!-- Several payments came to the address while the screen was open (%d: how many); the amount shown is their total -->
+    <plurals name="receive_payments_received">
+        <item quantity="one">%d payment received</item>
+        <item quantity="other">%d payments received</item>
+    </plurals>
     <string name="receive_more">Receive more</string>
     <!-- Developer mode on a local regtest mint (debug builds): dev/regtest's faucet pays this wallet. %1$s: an amount -->
     <string name="receive_faucet_address">Developer: get %1$s from regtest</string>

@@ -522,7 +522,7 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
 
 - **Status and events:** `context.status` (also `LocalWalletStatus`) is what the screen is about: `None`, `Idle`
   (money, nothing happening), `Empty`, `AwaitingPayment`, `WaitingForRecipient` (a handed-out note nobody has
-  claimed yet), `PaymentReceived`, `Sending`, `Sent`, `Done` (something the user did just worked: a mint, an
+  claimed yet), `PaymentReceived` (with the amount and how many payments it adds up, 1 unless several arrived at the address on screen), `Sending`, `Sent`, `Done` (something the user did just worked: a mint, an
   address or an account added, a scan finished; with what it found, 0 if nothing), `Working` (with a `WalletTask`: `Updating`, asking the mints
   what changed; `CheckingNotes`, with how many are checked of how many; `Maintaining`, with its `MaintenanceStep`,
   `Combining`, `Splitting`, `Renewing` or `MovingHome`, and the note strategy's id when the step is the strategy's),

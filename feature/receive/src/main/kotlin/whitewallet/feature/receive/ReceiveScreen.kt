@@ -21,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -117,10 +118,14 @@ fun ReceiveScreen(
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         val arrived = state.arrivedMsat
         if (arrived != null) {
+            val payments = state.arrivedPayments
             SuccessScreen(
                 anchor = Anchor.ReceiveSuccess,
-                status = WalletStatus.PaymentReceived(arrived),
-                title = stringResource(R.string.receive_success_title),
+                status = WalletStatus.PaymentReceived(arrived, payments),
+                // One payment keeps the plain title (a brand may word it); several are counted.
+                title =
+                    if (payments > 1) pluralStringResource(R.plurals.receive_payments_received, payments, payments)
+                    else stringResource(R.string.receive_success_title),
                 amountMsat = arrived,
                 done = SuccessAction(stringResource(R.string.receive_done), onBack),
                 more = SuccessAction(stringResource(R.string.receive_more), invoice.onReceiveMore),

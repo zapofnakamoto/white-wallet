@@ -22,8 +22,11 @@ sealed interface WalletStatus {
     /** The user handed out a note (its QR code or link) and waits for someone to claim it. */
     data object WaitingForRecipient : WalletStatus
 
-    /** A payment (or a claimed note) just arrived. */
-    data class PaymentReceived(val amountMsat: Long) : WalletStatus
+    /**
+     * A payment (or a claimed note) just arrived. When several arrive at one address while its screen is open, they stay one status:
+     * [amountMsat] is their total and [payments] how many there are (1 for a paid invoice or a claimed note).
+     */
+    data class PaymentReceived(val amountMsat: Long, val payments: Int = 1) : WalletStatus
 
     /** A payment is on its way out. */
     data object Sending : WalletStatus

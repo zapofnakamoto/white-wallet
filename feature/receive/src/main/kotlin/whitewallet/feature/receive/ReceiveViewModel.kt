@@ -22,6 +22,7 @@ import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.InvoiceRequest
 import whitewallet.core.wallet.InvoiceStatus
 import whitewallet.core.wallet.NoHome
+import whitewallet.core.wallet.RefreshResult
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
 import whitewallet.core.wallet.noHome
@@ -62,7 +63,9 @@ data class ReceiveState(
     val address: String? = null,
     /** How many Lightning addresses the account has to show; more than the one shown can be switched through. */
     val addressCount: Int = 0,
+    /** What came to the address while the screen is open: the total, and how many payments it adds up. */
     val receivedMsat: Long = 0,
+    val receivedPayments: Int = 0,
     /** The user asked for an invoice instead of the address. */
     val requestingAmount: Boolean = false,
     val amountText: String = "",
@@ -124,8 +127,19 @@ data class ReceiveState(
                 else -> null
             }
 
+    /** How many payments [arrivedMsat] is: a paid invoice is always one. */
+    val arrivedPayments: Int
+        get() = if (invoice == null) receivedPayments.coerceAtLeast(1) else 1
+
     val amountMsat: Long?
         get() = amountText.trim().toLongOrNull()?.takeIf { it > 0 }?.let { it * 1000 }
+}
+
+/** What arrived at the address while the screen is open: [msat] in all, from [payments] payments. */
+internal data class Arrivals(val payments: Int = 0, val msat: Long = 0) {
+    /** With what a refresh found (nothing, if it found no money). */
+    operator fun plus(result: RefreshResult) =
+        if (result.receivedMsat > 0) Arrivals(payments + result.newNotes.coerceAtLeast(1), msat + result.receivedMsat) else this
 }
 
 /** What the regtest faucet sends to the address. */
@@ -162,7 +176,7 @@ constructor(
 ) : ViewModel() {
     private val timings = defaults.timings
     private val mintsVisible = defaults.showMints
-    private val received = MutableStateFlow(0L)
+    private val received = MutableStateFlow(Arrivals())
     // Opened from a mint (Home's mint row, its page): received there.
     private val ui = MutableStateFlow(ReceiveUi(on = savedState.get<String>("on")?.takeIf { it.isNotBlank() }))
     private var watch: Job? = null
@@ -171,18 +185,19 @@ constructor(
     private val checking = MutableStateFlow<Set<String>?>(null)
 
     val state: StateFlow<ReceiveState> =
-        combine(addressChoice(), received, ui, faucet.available, wallet.noHome) { choice, msat, u, canFaucet, noHome ->
+        combine(addressChoice(), received, ui, faucet.available, wallet.noHome) { choice, arrivals, u, canFaucet, noHome ->
                 ReceiveState(
                     u.chosen?.takeIf { it in choice.all }
                         ?: u.on?.let { on -> choice.all.firstOrNull { it.substringAfterLast('@') == on } }
                         ?: choice.first.takeIf { u.on == null },
                     choice.all.size,
-                    receivedMsat = msat,
-                    u.requestingAmount,
-                    u.amountText,
-                    u.creating,
-                    u.problem,
-                    u.invoice,
+                    receivedMsat = arrivals.msat,
+                    receivedPayments = arrivals.payments,
+                    requestingAmount = u.requestingAmount,
+                    amountText = u.amountText,
+                    creating = u.creating,
+                    problem = u.problem,
+                    invoice = u.invoice,
                     faucet = u.faucet.takeIf { canFaucet },
                     // Receiving on a mint picked by hand needs no home.
                     noHome = noHome.takeIf { u.on == null },
@@ -254,7 +269,7 @@ constructor(
                 // Offline, there's nobody to ask: what arrived meanwhile is found once the phone is back.
                 if (wallet.offline.value) continue
                 val result = runCatching { wallet.refresh() }.getOrNull()
-                if (result != null && result.receivedMsat > 0) received.value += result.receivedMsat
+                if (result != null) received.update { it + result }
             }
         }
     }
@@ -313,7 +328,7 @@ constructor(
 
     /** Leaves the success screen: back to the address (or the amount form), counting from zero again. */
     fun receiveMore() {
-        received.value = 0
+        received.value = Arrivals()
         newInvoice()
     }
 
@@ -337,7 +352,7 @@ constructor(
             ui.update { it.copy(faucet = FaucetState(error = error?.let { e -> e.message ?: e.javaClass.simpleName })) }
             if (error == null && s.invoice == null) {
                 val result = runCatching { wallet.refresh() }.getOrNull()
-                if (result != null && result.receivedMsat > 0) received.value += result.receivedMsat
+                if (result != null) received.update { it + result }
             }
         }
     }

@@ -66,6 +66,32 @@ class ReceiveScreenTest {
     }
 
     @Test
+    fun severalPaymentsAreCountedInTheTitleAndTheAmountIsTheirTotal() {
+        var state by mutableStateOf(ReceiveState("alice@mint.example", receivedMsat = 1_000, receivedPayments = 1))
+        compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}) }
+        compose.onNodeWithText(text(R.string.receive_success_title)).assertExists()
+        compose.onNodeWithText("₿1").assertExists()
+        state = state.copy(receivedMsat = 3_000, receivedPayments = 2)
+        compose.waitForIdle()
+        compose.onNodeWithText(plural(R.plurals.receive_payments_received, 2)).assertExists()
+        compose.onNodeWithText(text(R.string.receive_success_title)).assertDoesNotExist()
+        compose.onNodeWithText("₿3").assertExists()
+        state = state.copy(receivedMsat = 6_000, receivedPayments = 3)
+        compose.waitForIdle()
+        compose.onNodeWithText(plural(R.plurals.receive_payments_received, 3)).assertExists()
+        compose.onNodeWithText("₿6").assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun severalPaymentsInGerman() {
+        compose.setContent {
+            ReceiveScreen(ReceiveState("alice@mint.example", receivedMsat = 3_000, receivedPayments = 2), onBack = {}, onClaim = {})
+        }
+        compose.onNodeWithText("2 Zahlungen erhalten").assertExists()
+    }
+
+    @Test
     @Config(qualifiers = "de")
     fun german() {
         compose.setContent { ReceiveScreen(ReceiveState("alice@mint.example", receivedMsat = 21_000), onBack = {}, onClaim = {}) }
