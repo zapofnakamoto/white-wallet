@@ -37,7 +37,8 @@ import whitewallet.brand.ui.walletSpacing
  * The whole screen after something worked, the same everywhere (money moved, a mint, an address or an account added, a scan finished): the
  * brand's picture at [anchor] (a check mark by default) with [status], the [title], the amount if there is one, [lines] (who, the fee, what
  * was found) and [content] for anything more. Below, always in reach however long the rest is, [done] and, smaller, [more]. Back does what
- * [done] does. The title is announced to screen readers and the phone gives a short buzz.
+ * [done] does. The title is announced to screen readers and the phone gives a short buzz. If [amountMsat] changes while the screen is up
+ * (more arrived), it counts to the new figure and the buzz comes again with the new [status].
  */
 @Composable
 fun SuccessScreen(
@@ -78,7 +79,7 @@ fun SuccessScreen(
                             liveRegion = LiveRegionMode.Polite
                         },
                 )
-                amountMsat?.let { AmountText(it) }
+                amountMsat?.let { CountingAmountText(it) }
                 lines.forEach {
                     Text(
                         it,

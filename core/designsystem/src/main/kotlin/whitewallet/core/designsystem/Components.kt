@@ -43,11 +43,17 @@ fun ChevronIcon() {
 
 /**
  * A large amount, such as the balance. With [onToggleHidden], tapping it hides or shows the figure (Design Guide: units and symbols); while
- * [hidden], only dots are shown and read out.
+ * [hidden], only dots are shown and read out. A screen reader says [spokenMsat] (by default what is shown), for an amount that moves.
  */
 @Composable
-fun AmountText(msat: Long, modifier: Modifier = Modifier, hidden: Boolean = false, onToggleHidden: (() -> Unit)? = null) {
-    val spoken = if (hidden) stringResource(R.string.amount_hidden_description) else spokenAmount(msat)
+fun AmountText(
+    msat: Long,
+    modifier: Modifier = Modifier,
+    hidden: Boolean = false,
+    onToggleHidden: (() -> Unit)? = null,
+    spokenMsat: Long = msat,
+) {
+    val spoken = if (hidden) stringResource(R.string.amount_hidden_description) else spokenAmount(spokenMsat)
     val toggleLabel = stringResource(if (hidden) R.string.amount_show else R.string.amount_hide)
     LocalBrandDesign.current.components.Amount(
         AmountParams(if (hidden) stringResource(R.string.amount_hidden) else formatAmount(msat)),
