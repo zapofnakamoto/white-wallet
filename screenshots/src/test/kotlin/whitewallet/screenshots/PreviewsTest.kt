@@ -44,9 +44,14 @@ class PreviewsTest {
     @Test
     fun aSuccessScreenIsAlsoCapturedWhileItMoves() {
         val scanDone = Previews.all.first { it.methodName == "ScanDoneFoundPreview" }
+        val mintAdded = Previews.all.first { it.methodName == "MintAddedFoundPreview" }
         val empty = Previews.all.first { it.methodName == "EmptyStatePreview" }
-        assertEquals(listOf(600L, 3_000L), Previews.frames(scanDone))
-        assertEquals(listOf(3_000L), Previews.frames(empty))
+        assertEquals(listOf(600L, 3_000L), Previews.frames(scanDone, "full"))
+        assertEquals(listOf(600L, 3_000L), Previews.frames(mintAdded, "full"))
+        assertEquals(listOf(3_000L), Previews.frames(empty, "full"))
+        // The small set: only the marked success screen also while it moves.
+        assertEquals(listOf(600L, 3_000L), Previews.frames(scanDone, "check"))
+        assertEquals(listOf(3_000L), Previews.frames(mintAdded, "check"))
     }
 
     @Test

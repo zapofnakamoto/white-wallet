@@ -26,8 +26,11 @@ object Previews {
     fun selected(preview: ComposablePreview<AndroidPreviewInfo>, set: String): Boolean =
         set == "full" || preview.previewInfo.name == "light" || preview.getAnnotation<CheckAll>() != null
 
-    fun frames(preview: ComposablePreview<AndroidPreviewInfo>): List<Long> =
-        if (preview.getAnnotation<Moment>() != null) listOf(MOVING_MILLIS, SETTLED_MILLIS) else listOf(SETTLED_MILLIS)
+    /** A [Moment] also while it moves; in the `check` set only a [Moment] that is also [CheckAll]. */
+    fun frames(preview: ComposablePreview<AndroidPreviewInfo>, set: String): List<Long> {
+        val moving = preview.getAnnotation<Moment>() != null && (set == "full" || preview.getAnnotation<CheckAll>() != null)
+        return if (moving) listOf(MOVING_MILLIS, SETTLED_MILLIS) else listOf(SETTLED_MILLIS)
+    }
 
     /** `ScanDoneFound.de.600ms.png`: the preview without its `Preview` suffix, the configuration and the moment. */
     fun fileName(preview: ComposablePreview<AndroidPreviewInfo>, millis: Long): String =

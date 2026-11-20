@@ -28,7 +28,6 @@ dependencies {
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.preview.scanner)
-    testImplementation(libs.hilt.android.testing)
-    kspTest(libs.hilt.compiler)
+    testImplementation(libs.classgraph)
     debugImplementation(libs.compose.ui.test.manifest)
 }

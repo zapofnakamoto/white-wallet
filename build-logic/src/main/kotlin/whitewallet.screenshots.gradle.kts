@@ -4,7 +4,6 @@
 plugins {
     id("whitewallet.android-library")
     id("whitewallet.android-compose")
-    id("whitewallet.hilt")
     id("whitewallet.brand")
 }
 
@@ -40,6 +39,7 @@ tasks.withType<Test>().configureEach {
     systemProperty("screenshots.set", screenshotSet ?: "check")
     systemProperty("screenshots.dir", current.get().asFile.path)
     systemProperty("roborazzi.test.record", "true")
+    systemProperty("screenshots.brandCode", rootProject.findProject(":brand-code") != null)
     // The images are this task's output: an unchanged module, brand and set is up to date.
     inputs.property("screenshotSet", screenshotSet ?: "")
     inputs.dir(brandDir()).withPropertyName("brandDir")
