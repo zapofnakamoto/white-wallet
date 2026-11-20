@@ -10,6 +10,7 @@ import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import whitewallet.brand.ReleaseStage
 import whitewallet.brand.WalletStatus
@@ -75,10 +76,13 @@ fun WithReleaseBadge(modifier: Modifier = Modifier, centered: Boolean = true, ti
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
         val gap = 4.dp.roundToPx()
         fun side(width: Int) = if (width > 0) width + gap else 0
+        // The room left beside [width]; unbounded stays unbounded (a layout asking how wide the title would like to be).
+        fun besides(width: Int) =
+            if (constraints.hasBoundedWidth) (constraints.maxWidth - side(width)).coerceAtLeast(0) else Constraints.Infinity
         val badge = badgeMeasurable.measure(loose)
         if (!centered) {
             // The badge beside the title; the label on a line of its own below them, with the whole width.
-            val text = titleMeasurable.measure(loose.copy(maxWidth = (constraints.maxWidth - side(badge.width)).coerceAtLeast(0)))
+            val text = titleMeasurable.measure(loose.copy(maxWidth = besides(badge.width)))
             val label = labelMeasurable.measure(loose)
             val line = maxOf(text.height, badge.height)
             return@Layout layout(maxOf(constraints.minWidth, text.width + side(badge.width), label.width), line + label.height) {
@@ -88,7 +92,7 @@ fun WithReleaseBadge(modifier: Modifier = Modifier, centered: Boolean = true, ti
             }
         }
         val text = titleMeasurable.measure(loose)
-        val label = labelMeasurable.measure(loose.copy(maxWidth = (constraints.maxWidth - side(badge.width)).coerceAtLeast(0)))
+        val label = labelMeasurable.measure(loose.copy(maxWidth = besides(badge.width)))
         // The badge and the label as one group: beside the title, with the same room on the other side so the title
         // stays in the middle, or centred below it.
         val group = side(badge.width) + side(label.width) - gap
