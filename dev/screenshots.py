@@ -82,12 +82,12 @@ def rgba(line: bytearray) -> bytes:
     return bytes(out)
 
 
-def write_png(width: int, height: int, rows: list[bytes]) -> bytes:
+def write_png(width: int, height: int, rows: list[bytes], level: int = 6) -> bytes:
     def chunk(kind: bytes, body: bytes) -> bytes:
         return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
 
     raw = b"".join(b"\x00" + row for row in rows)
-    return SIGNATURE + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw, 6)) + chunk(b"IEND", b"")
+    return SIGNATURE + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw, level)) + chunk(b"IEND", b"")
 
 
 def diff_png(before: bytes, after: bytes) -> bytes | None:
@@ -119,9 +119,13 @@ def report(out: Path) -> str:
         new = [n for n in now if n not in before]
         removed = [n for n in before if n not in now]
         for name in now:
-            if name in before and before[name].read_bytes() != now[name].read_bytes():
+            if name not in before:
+                continue
+            old, new_ = before[name].read_bytes(), now[name].read_bytes()
+            # The same pixels may be compressed differently on another machine: only the pixels count.
+            if old != new_ and read_png(old) != read_png(new_):
                 changed.append(name)
-                picture = diff_png(before[name].read_bytes(), now[name].read_bytes())
+                picture = diff_png(old, new_)
                 if picture:
                     diff_dir.mkdir(exist_ok=True)
                     (diff_dir / name).write_bytes(picture)

@@ -58,6 +58,14 @@ class ReportTest(unittest.TestCase):
         _, _, diff = sc.read_png((self.out / "diff" / "A.light.3000ms.png").read_bytes())
         self.assertEqual(bytes(sc.CHANGED), diff[0][:4])
 
+    def test_the_same_pixels_encoded_otherwise_are_unchanged(self):
+        # Fedora and Ubuntu render the same pixels but compress them differently.
+        rows = [bytes((x, 0, 0, 255)) * 3 for x in range(3)]
+        self.put("previous", "A.light.3000ms.png", sc.write_png(3, 3, rows))
+        self.put("current", "A.light.3000ms.png", sc.write_png(3, 3, rows, level=1))
+        self.assertNotEqual((self.out / "previous" / "A.light.3000ms.png").read_bytes(), (self.out / "current" / "A.light.3000ms.png").read_bytes())
+        self.assertIn("0 changed", self.report())
+
     def test_images_of_different_sizes_count_as_changed(self):
         self.put("previous", "A.light.3000ms.png", image(2, 2, (0, 0, 0, 255)))
         self.put("current", "A.light.3000ms.png", image(2, 3, (0, 0, 0, 255)))
