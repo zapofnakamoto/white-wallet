@@ -3,8 +3,8 @@ package whitewallet.brand
 /**
  * One entry of "What's new": shown once, after the update that brings it, and listed in About for good.
  *
- * An [important] note is about what lies ahead (an action the user has to take, a coming change), so it is shown on a fresh install too; an
- * ordinary one only tells an updated user what changed.
+ * An [important] note is about what lies ahead (an action the user has to take, a coming change), so it is shown to a new user too; an
+ * ordinary one only tells a user who already had a wallet what changed.
  */
 data class ReleaseNote(
     /** Stable and stored once seen: lowercase letters, digits and `-`, e.g. `faster-sync`. Never reuse one. */

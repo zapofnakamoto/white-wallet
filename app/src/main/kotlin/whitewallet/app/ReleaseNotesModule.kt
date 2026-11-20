@@ -1,19 +1,19 @@
 package whitewallet.app
 
-import android.content.Context
 import dagger.BindsOptionalOf
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import java.util.Optional
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.first
 import whitewallet.brand.ReleaseNote
 import whitewallet.brand.ReleaseNotes
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.ReleaseNoteTracker
+import whitewallet.core.wallet.Wallet
 
 /** The app's own release notes, newest first. A brand that binds [ReleaseNotes] shows its own instead. */
 object DefaultReleaseNotes : ReleaseNotes {
@@ -30,17 +30,7 @@ abstract class ReleaseNotesModule {
     companion object {
         @Provides
         @Singleton
-        fun releaseNoteTracker(
-            @ApplicationContext context: Context,
-            brand: Optional<ReleaseNotes>,
-            preferences: AppPreferences,
-        ): ReleaseNoteTracker {
-            val info = context.packageManager.getPackageInfo(context.packageName, 0)
-            return ReleaseNoteTracker(
-                brand.orElse(DefaultReleaseNotes).notes(),
-                preferences,
-                freshInstall = info.firstInstallTime == info.lastUpdateTime,
-            )
-        }
+        fun releaseNoteTracker(brand: Optional<ReleaseNotes>, preferences: AppPreferences, wallet: Wallet): ReleaseNoteTracker =
+            ReleaseNoteTracker(brand.orElse(DefaultReleaseNotes).notes(), preferences, hasWallet = { wallet.accounts.first().isNotEmpty() })
     }
 }

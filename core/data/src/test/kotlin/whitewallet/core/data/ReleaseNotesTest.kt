@@ -32,38 +32,47 @@ class ReleaseNotesTest {
     }
 
     @Test
-    fun `a fresh install sees only the important notes`() = runBlocking {
+    fun `without a wallet yet only the important notes are seen`() = runBlocking {
         assertNull(preferences.seenReleaseNotes.first())
-        assertEquals(listOf(important), ReleaseNoteTracker(notes, preferences, freshInstall = true).unseen())
+        assertEquals(listOf(important), ReleaseNoteTracker(notes, preferences, hasWallet = { false }).unseen())
         assertEquals(setOf("faster"), preferences.seenReleaseNotes.first())
     }
 
     @Test
-    fun `an update from a version without release notes sees every note`() = runBlocking {
-        assertEquals(notes, ReleaseNoteTracker(notes, preferences, freshInstall = false).unseen())
+    fun `a wallet from a version without release notes sees every note`() = runBlocking {
+        assertEquals(notes, ReleaseNoteTracker(notes, preferences, hasWallet = { true }).unseen())
         assertEquals(emptySet(), preferences.seenReleaseNotes.first())
     }
 
     @Test
+    fun `what counts as seen is settled at the first start, before onboarding makes a wallet`() = runBlocking {
+        var wallet = false
+        val tracker = ReleaseNoteTracker(notes, preferences, hasWallet = { wallet })
+        tracker.start()
+        wallet = true
+        assertEquals(listOf(important), tracker.unseen())
+    }
+
+    @Test
     fun `seen notes stay hidden and newer ones show`() = runBlocking {
-        val tracker = ReleaseNoteTracker(notes, preferences, freshInstall = false)
+        val tracker = ReleaseNoteTracker(notes, preferences, hasWallet = { true })
         tracker.markSeen(tracker.unseen())
         assertEquals(emptyList(), tracker.unseen())
 
         val newer = ReleaseNote("newer", 5, 6)
-        // The next update: a fresh install no longer, whatever the package says, since ids are stored already.
-        assertEquals(listOf(newer), ReleaseNoteTracker(listOf(newer) + notes, preferences, freshInstall = true).unseen())
+        // The next update: without a wallet or not, the ids are stored already.
+        assertEquals(listOf(newer), ReleaseNoteTracker(listOf(newer) + notes, preferences, hasWallet = { false }).unseen())
     }
 
     @Test
-    fun `a fresh install that saw nothing still sees the next update's notes`() = runBlocking {
-        ReleaseNoteTracker(emptyList(), preferences, freshInstall = true).unseen()
-        assertEquals(listOf(ordinary), ReleaseNoteTracker(listOf(ordinary), preferences, freshInstall = false).unseen())
+    fun `a new user who saw nothing still sees the next update's notes`() = runBlocking {
+        ReleaseNoteTracker(emptyList(), preferences, hasWallet = { false }).unseen()
+        assertEquals(listOf(ordinary), ReleaseNoteTracker(listOf(ordinary), preferences, hasWallet = { true }).unseen())
     }
 
     @Test
     fun `important notes come back until got it`() = runBlocking {
-        val tracker = ReleaseNoteTracker(notes, preferences, freshInstall = false)
+        val tracker = ReleaseNoteTracker(notes, preferences, hasWallet = { true })
         tracker.markDismissed(tracker.unseen())
         assertEquals(listOf(important), tracker.unseen())
         tracker.markDismissed(tracker.unseen())
@@ -74,7 +83,7 @@ class ReleaseNotesTest {
 
     @Test
     fun `marking seen keeps what was seen before`() = runBlocking {
-        val tracker = ReleaseNoteTracker(notes, preferences, freshInstall = false)
+        val tracker = ReleaseNoteTracker(notes, preferences, hasWallet = { true })
         tracker.markSeen(listOf(ordinary))
         tracker.markSeen(listOf(important))
         assertEquals(setOf("faster", "act-now"), preferences.seenReleaseNotes.first())
