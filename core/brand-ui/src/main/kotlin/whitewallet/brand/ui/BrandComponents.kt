@@ -60,13 +60,16 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import whitewallet.brand.ReleaseStage
@@ -563,15 +566,70 @@ object DefaultComponents : BrandComponents {
         )
     }
 
+    /**
+     * A Material list item, whose right-hand side ([ListRowParams.trailing]) goes below the text when beside it the text's longest word
+     * wouldn't fit (a large font, a long action): the text is then never split mid-word.
+     */
     @Composable
     fun listRow(params: ListRowParams, modifier: Modifier) {
+        val trailing = params.trailing
+        if (trailing == null) {
+            listItem(params, trailing = null, modifier)
+            return
+        }
+        // The caller's modifier (click, selection, actions) goes on the item itself, whose text it describes.
+        SubcomposeLayout { constraints ->
+            val below =
+                constraints.hasBoundedWidth &&
+                    run {
+                        val any = Constraints.Infinity
+                        // Only measured, never drawn: kept out of what a screen reader (or a test) finds.
+                        fun probe(slot: ListRowSlot, content: @Composable () -> Unit) =
+                            subcompose(slot) { Box(Modifier.clearAndSetSemantics {}) { content() } }
+                        val beside = probe(ListRowSlot.Trailing, trailing).maxOfOrNull { it.maxIntrinsicWidth(any) } ?: 0
+                        val leading = params.leading?.let { l -> probe(ListRowSlot.Leading, l).maxOfOrNull { it.maxIntrinsicWidth(any) } }
+                        val word =
+                            probe(ListRowSlot.Text) {
+                                    Column {
+                                        params.overline?.invoke()
+                                        params.headline()
+                                        params.supporting?.invoke()
+                                    }
+                                }
+                                .maxOfOrNull { it.minIntrinsicWidth(any) } ?: 0
+                        // Material's paddings: 16 dp at each end, and between the leading part, the text and the right-hand side.
+                        val gap = 16.dp.roundToPx()
+                        val room = constraints.maxWidth - 2 * gap - (leading?.let { it + gap } ?: 0) - beside - gap
+                        room < word
+                    }
+            val row =
+                subcompose(if (below) ListRowSlot.Below else ListRowSlot.Beside) {
+                        if (below) {
+                            val supporting =
+                                @Composable {
+                                    Column {
+                                        params.supporting?.invoke()
+                                        trailing()
+                                    }
+                                }
+                            listItem(ListRowParams(params.headline, params.overline, supporting, params.leading), trailing = null, modifier)
+                        } else listItem(params, trailing, modifier)
+                    }
+                    .single()
+                    .measure(constraints)
+            layout(row.width, row.height) { row.place(0, 0) }
+        }
+    }
+
+    @Composable
+    private fun listItem(params: ListRowParams, trailing: (@Composable () -> Unit)?, modifier: Modifier) {
         ListItem(
             headlineContent = params.headline,
             modifier = modifier,
             overlineContent = params.overline,
             supportingContent = params.supporting,
             leadingContent = params.leading,
-            trailingContent = params.trailing,
+            trailingContent = trailing,
         )
     }
 
@@ -877,4 +935,13 @@ object DefaultComponents : BrandComponents {
             }
         }
     }
+}
+
+/** The parts of a [DefaultComponents.listRow] composed apart: measured to decide where the right-hand side goes, then the row itself. */
+private enum class ListRowSlot {
+    Trailing,
+    Leading,
+    Text,
+    Beside,
+    Below,
 }

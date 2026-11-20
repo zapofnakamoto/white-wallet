@@ -30,6 +30,7 @@ import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTopBar
@@ -111,7 +112,7 @@ fun AccountMintsScreen(
                 items(mints, key = { it.host }) { mint ->
                     val hint = MaterialTheme.typography.bodySmall
                     WalletListItem(
-                        headlineContent = { Text(mint.host) },
+                        headlineContent = { HostText(mint.host) },
                         supportingContent = {
                             Column {
                                 if (mint.isHome)

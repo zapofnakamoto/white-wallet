@@ -452,6 +452,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   has the Material versions to fall back on. Screens only use these (`dev/check-design.sh` keeps it that way).
   A `Sheet` with `params.openFully` opens at its full height rather than at half the screen first (a note's
   details, where an action's outcome comes up at the bottom): honour it in a sheet of your own.
+  A `ListRow` of your own: when its right-hand side leaves the text no room for its longest word (a large font, a long
+  action), put it below the text, as `DefaultComponents.listRow` does, so no word is split.
 - **Notes:** a note is one object the brand designs once. `NoteFace(params, modifier)` draws it as a row of the notes
   list (`NoteFaceSize.Row`) and large (`NoteFaceSize.Large`) on its details, the claim preview and a handed-out note's
   page, where `params.qrCode` is the QR code: place and frame it, never alter or cover it. On a handed-out note's

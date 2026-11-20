@@ -93,6 +93,7 @@ import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.BrandTitle
 import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.LoadingIndicator
 import whitewallet.core.designsystem.LoadingPhase
 import whitewallet.core.designsystem.PrimaryButton
@@ -1156,7 +1157,7 @@ private fun MintRow(
     val openLabel = stringResource(R.string.home_mint_open)
     Box {
         WalletListItem(
-            headlineContent = { Text(mint.host, Modifier.alpha(nameAlpha)) },
+            headlineContent = { HostText(mint.host, Modifier.alpha(nameAlpha)) },
             supportingContent = note?.let { { Text(stringResource(it), Modifier.alpha(nameAlpha)) } },
             // Money that can't be spent for now: quieter than the rest.
             trailingContent = {

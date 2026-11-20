@@ -27,6 +27,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Changed
 
 - The success screens of sending and receiving keep their buttons at the bottom of the screen, also with large text.
+- With large text, a list row no longer splits its words: what stands on its right (an amount, a date, an action such
+  as "Change home mint") goes below the text when beside it the text wouldn't fit, and a mint's name wraps after a dot
+  ("mint." / "example") rather than inside it. For brands: a `ListRow` of their own should do the same
+  (docs/WHITE_LABEL.md, "Components").
 
 ### Removed
 

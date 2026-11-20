@@ -34,6 +34,7 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletListItem
@@ -131,7 +132,7 @@ fun MintsScreen(
 private fun MintRow(mint: MintInfo, onOpen: (String) -> Unit, onTrusted: (MintInfo, Boolean) -> Unit) {
     val hint = MaterialTheme.typography.bodySmall
     WalletListItem(
-        headlineContent = { Text(mint.host) },
+        headlineContent = { HostText(mint.host) },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (mint.isHome) Text(stringResource(R.string.settings_home_mint), style = hint, color = MaterialTheme.colorScheme.primary)
