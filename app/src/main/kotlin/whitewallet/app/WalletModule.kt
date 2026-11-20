@@ -12,7 +12,6 @@ import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.AmountUnit
@@ -80,6 +79,7 @@ object WalletModule {
         policies: NotePolicies,
         strategies: NoteStrategies,
         trust: MintTrustStore,
+        connection: ConnectionState,
     ): Wallet =
         Wallet(
             store,
@@ -101,7 +101,7 @@ object WalletModule {
                     BuildConfig.COLLECT_RETRY_MILLIS,
                 ),
             onWaitingForNetwork = { SyncWorker.scheduleOnce(context) },
-            connection = context.connection(),
+            connection = context.connection(connection),
             payWaitMillis = BuildConfig.SYNC_PAYMENT_WAIT_MILLIS,
             receivedGiveUpMillis = BuildConfig.RECEIVED_GIVE_UP_MILLIS,
         )
@@ -109,11 +109,11 @@ object WalletModule {
     /**
      * The phone's connection, kept up to date by the system's default network: the screens follow it as it changes. A network the system
      * blocks for this app (Data Saver, Doze, a background restriction) is offline for it: no request gets through, which says nothing about
-     * a mint. (The active network, read at the start, is null while blocked.)
+     * a mint. (The active network, read at the start, is null while blocked.) Kept in [state], which a developer's Offline overrides.
      */
-    private fun Context.connection(): StateFlow<Connection> {
-        val connectivity = getSystemService(ConnectivityManager::class.java) ?: return MutableStateFlow(Connection.Online)
-        val connection = MutableStateFlow(connectivity.activeNetwork?.let(connectivity::getNetworkCapabilities).connection())
+    private fun Context.connection(state: ConnectionState): StateFlow<Connection> {
+        val connectivity = getSystemService(ConnectivityManager::class.java) ?: return state.connection
+        state.system(connectivity.activeNetwork?.let(connectivity::getNetworkCapabilities).connection())
         connectivity.registerDefaultNetworkCallback(
             object : ConnectivityManager.NetworkCallback() {
                 /** The default network, and what is known of it. */
@@ -151,11 +151,11 @@ object WalletModule {
                 }
 
                 private fun update() {
-                    connection.value = if (blocked) Connection.Offline else capabilities.connection()
+                    state.system(if (blocked) Connection.Offline else capabilities.connection())
                 }
             }
         )
-        return connection
+        return state.connection
     }
 
     /** What the default network's capabilities (null without one) say: none that could reach the internet, one not found to, or one. */

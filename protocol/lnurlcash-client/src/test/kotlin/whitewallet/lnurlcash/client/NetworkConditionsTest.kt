@@ -55,6 +55,19 @@ class NetworkConditionsTest {
         }
 
     @Test
+    fun `offline drops every request without waiting`() =
+        runBlocking<Unit> {
+            MockWebServer().use { server ->
+                server.start()
+                val slept = mutableListOf<Long>()
+                val conditions = NetworkConditions(NetworkConditions.Profile.Offline, sleep = { slept += it })
+                repeat(3) { assertFailsWith<IOException> { client(conditions).get(server.url("/p").toString()) } }
+                assertEquals(0, server.requestCount, "nothing was sent")
+                assertEquals(emptyList(), slept)
+            }
+        }
+
+    @Test
     fun `normal changes nothing, and a profile set later applies to the next request`() =
         runBlocking<Unit> {
             MockWebServer().use { server ->

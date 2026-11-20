@@ -410,10 +410,12 @@
     <string name="developer_network_slow">Slow</string>
     <string name="developer_network_very_slow">Very slow</string>
     <string name="developer_network_flaky">Flaky</string>
+    <string name="developer_network_offline">Offline</string>
     <string name="developer_network_normal_hint">Requests go out as they are.</string>
     <string name="developer_network_slow_hint">Every request takes 0.2 seconds longer. Normal again when developer mode is off.</string>
     <string name="developer_network_very_slow_hint">Every request takes 6 seconds longer. Normal again when developer mode is off.</string>
     <string name="developer_network_flaky_hint">Requests take up to 4 seconds longer, and one in five never arrives. Normal again when developer mode is off.</string>
+    <string name="developer_network_offline_hint">No request goes out, and the app acts as if the phone were offline. Normal again when developer mode is off.</string>
     <string name="addresses_held">Waiting for payment</string>
     <string name="addresses_held_copy">Copy invoice</string>
     <string name="addresses_held_pay">Pay from balance</string>

@@ -400,10 +400,12 @@
     <string name="developer_network_slow">Langsam</string>
     <string name="developer_network_very_slow">Sehr langsam</string>
     <string name="developer_network_flaky">Wackelig</string>
+    <string name="developer_network_offline">Offline</string>
     <string name="developer_network_normal_hint">Anfragen gehen so raus, wie sie sind.</string>
     <string name="developer_network_slow_hint">Jede Anfrage dauert 0,2 Sekunden länger. Wieder normal, wenn der Entwicklermodus aus ist.</string>
     <string name="developer_network_very_slow_hint">Jede Anfrage dauert 6 Sekunden länger. Wieder normal, wenn der Entwicklermodus aus ist.</string>
     <string name="developer_network_flaky_hint">Anfragen dauern bis zu 4 Sekunden länger, und jede fünfte kommt nie an. Wieder normal, wenn der Entwicklermodus aus ist.</string>
+    <string name="developer_network_offline_hint">Keine Anfrage geht raus, und die App verhält sich, als wäre das Telefon offline. Wieder normal, wenn der Entwicklermodus aus ist.</string>
     <string name="addresses_held">Wartet auf Zahlung</string>
     <string name="addresses_held_copy">Rechnung kopieren</string>
     <string name="addresses_held_pay">Vom Guthaben bezahlen</string>

@@ -209,6 +209,7 @@ private fun networkName(profile: NetworkConditions.Profile): Int =
         NetworkConditions.Profile.Slow -> R.string.developer_network_slow
         NetworkConditions.Profile.VerySlow -> R.string.developer_network_very_slow
         NetworkConditions.Profile.Flaky -> R.string.developer_network_flaky
+        NetworkConditions.Profile.Offline -> R.string.developer_network_offline
     }
 
 private fun networkHint(profile: NetworkConditions.Profile): Int =
@@ -217,4 +218,5 @@ private fun networkHint(profile: NetworkConditions.Profile): Int =
         NetworkConditions.Profile.Slow -> R.string.developer_network_slow_hint
         NetworkConditions.Profile.VerySlow -> R.string.developer_network_very_slow_hint
         NetworkConditions.Profile.Flaky -> R.string.developer_network_flaky_hint
+        NetworkConditions.Profile.Offline -> R.string.developer_network_offline_hint
     }

@@ -30,6 +30,9 @@ public class NetworkConditions(
 
         /** Requests take 0.3 to 4 s longer, and one in five never reaches the mint. */
         Flaky(300L..4_000L, 20),
+
+        /** No request reaches the mint: the phone as without a connection (the app also says it is offline, [Profile] alone doesn't). */
+        Offline(0L..0L, 100),
     }
 
     private val known = CountDownLatch(if (initial == null) 1 else 0)
