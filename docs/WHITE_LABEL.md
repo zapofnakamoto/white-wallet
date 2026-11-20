@@ -121,7 +121,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `settings_strategy_single_hint` | Combine all notes into one per mint. Free. |
 | `mint_title` | Mint |
 | `about_body` | A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device. |
-| `mints_intro` | Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted. |
+| `mints_intro` | Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted until you accept its new key. |
 | `mints_empty` | This wallet has no mint yet, so nothing can be received. |
 | `settings_no_home` | This account has no home mint. Choose one of your mints to receive there. |
 | `settings_no_home_action` | Choose home mint |

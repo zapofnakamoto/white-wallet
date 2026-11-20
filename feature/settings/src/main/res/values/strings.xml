@@ -18,7 +18,7 @@
     <string name="settings_strategy_single_hint">Combine all notes into one per mint. Free.</string>
     <string name="mint_title">Mint</string>
     <string name="about_body">A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device.</string>
-    <string name="mints_intro">Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted.</string>
+    <string name="mints_intro">Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted until you accept its new key.</string>
     <string name="mints_empty">This wallet has no mint yet, so nothing can be received.</string>
     <!-- An account without a home mint, as on Receive (Lightning addresses, Account → Mints). -->
     <string name="settings_no_home">This account has no home mint. Choose one of your mints to receive there.</string>

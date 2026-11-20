@@ -13,7 +13,7 @@
     <string name="settings_strategy_single_hint">Alle Scheine zu einem pro Mint zusammenlegen. Kostenlos.</string>
     <string name="mint_title">Mint</string>
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einer Mint deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
-    <string name="mints_intro">Vertraue einer Mint anhand ihres Signaturschlüssels: Scheine von vertrauten Mints sind mit einem Haken markiert. Signiert eine Mint einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut.</string>
+    <string name="mints_intro">Vertraue einer Mint anhand ihres Signaturschlüssels: Scheine von vertrauten Mints sind mit einem Haken markiert. Signiert eine Mint einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut, bis du ihren neuen Schlüssel annimmst.</string>
     <string name="mints_empty">Diese Wallet hat noch keine Mint, also kann nichts empfangen werden.</string>
     <string name="settings_no_home">Dieses Konto hat keine Haupt-Mint. Wähle eine deiner Mints, um dort zu empfangen.</string>
     <string name="settings_no_home_action">Haupt-Mint wählen</string>
