@@ -139,8 +139,15 @@ check-lookups:
 check-resources:
     dev/check-resources.sh
 
+# Every preview in every configuration, drawn in a brand's design, and what changed since last time (see the index.html it prints)
+[group('checks')]
+screenshots brand=brand:
+    ./gradlew :screenshots:renderScreenshots -Pscreenshots=full -PbrandDir={{ brand }}
+    dev/screenshots.py screenshots/build/screenshots/full/"$(basename {{ brand }})"
+
 # Lint runs on its own: beside the release build, its Kotlin analysis of the app's tests sometimes crashes (a lint bug).
-# Everything CI checks: formatting, tests, both builds, lint, brand, design, flash, lookup and resource checks, scaffolder tests
+# Screenshots: a small set for every brand, failing only if a preview can't be drawn.
+# Everything CI checks: formatting, tests, both builds, lint, brand, design, flash, lookup and resource checks, scaffolder tests, screenshots
 [group('checks')]
 check: test
     ./gradlew spotlessCheck
@@ -153,6 +160,7 @@ check: test
     dev/check-resources.sh
     python3 -m unittest discover -s dev -p 'test_*.py'
     ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme
+    for b in brand brand-examples/*/; do b="${b%/}"; ./gradlew -q :screenshots:renderScreenshots -Pscreenshots=check -PbrandDir="$b"; dev/screenshots.py screenshots/build/screenshots/check/"$(basename "$b")"; done
 
 # Create a new brand (e.g. just new-brand --name "Acme Cash" --id com.acme.cash --mint mint.acme.com --primary "#0B6E4F")
 [group('brands')]
