@@ -71,9 +71,10 @@ adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb shell am instrument -w com.example.whitewallet.debug.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
-The brand scaffolder (`dev/new-brand.sh`, see docs/WHITE_LABEL.md) has Python tests: `python3 -m unittest discover -s dev -p 'test_*.py'`.
+The brand scaffolder (`dev/new-brand.sh`, see docs/WHITE_LABEL.md) and the screenshot report (`dev/screenshots.py`) have Python tests: `python3 -m unittest discover -s dev -p 'test_*.py'`.
 
-CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the regtest tests of `core/wallet` and `core/data` against the current stack (`regtest.sh up` on the runner), failing if any was skipped, with the wallet's coverage report and the stack's logs as artifacts; lint, the brand check (`dev/check-brand.sh`), the flash check (`dev/check-flash.sh`), the lookup check (`dev/check-lookups.sh`: a note looked up at a mint whose signing key wasn't checked first), the resource check (`dev/check-resources.sh`: a string or other resource name defined in two modules, of which only one reaches the app), builds both sample brands and generates and builds a brand with the scaffolder; on a `v*` tag it creates the GitHub release with that version's `CHANGELOG.md` section. It builds no release APK: brands sign and publish their own.
+CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the regtest tests of `core/wallet` and `core/data` against the current stack (`regtest.sh up` on the runner), failing if any was skipped, with the wallet's coverage report and the stack's logs as artifacts; lint, the brand check (`dev/check-brand.sh`), the flash check (`dev/check-flash.sh`), the lookup check (`dev/check-lookups.sh`: a note looked up at a mint whose signing key wasn't checked first), the resource check (`dev/check-resources.sh`: a string or other resource name defined in two modules, of which only one reaches the app), builds both sample brands, draws their screenshots (see "Screenshots") and generates and builds a brand with the
+scaffolder; on a `v*` tag it creates the GitHub release with that version's `CHANGELOG.md` section. It builds no release APK: brands sign and publish their own.
 
 ## Wallet settings
 
@@ -107,6 +108,7 @@ What defines the keys stays in the code: a key path's numbers decide where the m
 | `core/scanner` | Android | The QR scanner (CameraX + ZXing, no Play Services), shared by Send and Claim |
 | `feature/*` | Android | Onboarding, home, receive, claim, send and settings screens |
 | `app` | Android | Activity, navigation, DI, brand wiring, incoming links, background sync, app lock |
+| `screenshots` | Android | Draws the screen modules' previews in a brand's design (tests only, run when asked; see "Screenshots") |
 
 See `protocol/SPEC.md` for which spec revision the protocol modules target and how to move to a new one.
 
@@ -131,7 +133,50 @@ Adding one:
 - the status `WalletStatus.Done(found)`, or the money statuses for a payment;
 - strings in `values` and `values-de` (in the *Brand terms* block if they name the mint or a note);
 - a screen test that asks for the anchor with its status (see `AddMintScreenTest`);
+- a preview of each state it can be in, `@WalletPreviews @Moment` (see "Screenshots");
 - a line for it in Zap of Nakamoto's `ZapDesign.Decoration`.
+
+## Screenshots
+
+Every brand restyles every screen, so a change to a shared screen or component is seen in each brand's design, without
+walking flows on a phone:
+
+```sh
+just screenshots                         # every preview in every configuration, in brand/
+just screenshots brand-examples/acme     # the same in another brand directory
+```
+
+It prints where its page is (`screenshots/build/screenshots/full/<brand>/index.html`): first what changed since the
+last run, before, after and a picture of what differs (in red), then every image by screen. Nothing is committed and
+nothing fails on a change: the images are for looking at. `just check` draws a small set for `brand/` and every
+`brand-examples/*` (`check/<brand>/`), and fails only when a preview can't be drawn.
+
+**Previews** are ordinary Compose `@Preview`s in `main`, next to the screen (`SuccessPreviews.kt`,
+`EmptyStatePreviews.kt`, …), private, and drawn by Android Studio too. A preview draws the real screen from a state
+value made up for it (data only: every text comes from the screen's string resources, the app's name from
+`LocalAppName`), so it needs no `Wallet`; the states sit beside it for reuse. Annotate it:
+- `@WalletPreviews`: drawn light, dark, with a large font on a small phone, and in German;
+- `@Moment`: a success screen, drawn also 600 ms in, while its picture moves (a brand's celebration shows only then), not
+  only after 3 s;
+- `@CheckAll`: drawn in every configuration by `just check`, not only light. For the few that tend to break: ScanDone
+  with money found, the empty state with a way forward.
+
+**How they are drawn**: the `screenshots` module finds every preview of the screen modules (ComposablePreviewScanner)
+and draws each under Robolectric with Roborazzi, as the brand's app would: the brand's resources and the design its
+code module provides (`@Provides fun design(): BrandDesign`, read from that module, not through the app's Hilt graph:
+a design that needs something injected can't be drawn), and the app name, release stage and amount unit of
+`brand.properties`. Numbers follow the preview's language. The clock moves only to the moment drawn, so endless
+animations come out the same each time. Its tasks run only with `-Pscreenshots=check|full`; `./gradlew test`,
+`just test` and the builds never draw. The render lands in one folder, so the build cache keeps one per brand and set:
+an unchanged `just check` spends about 6 seconds on both brands, a cold one about 2 minutes.
+
+The same commit draws the same pixels on Fedora and on Ubuntu 24.04 with Temurin 21 (CI's runner); only the PNG
+compression differs, so `dev/screenshots.py` compares pixels, never bytes.
+
+**CI** draws the small set for `brand` and `brand-examples/acme` and compares it with the render of the push before (a
+pull request: its base), kept in the Actions cache, so an old commit is never drawn again; without one (the first run,
+or the cache dropped it after 7 days unused) it says so. The job summary lists what changed; the artifacts
+`screenshots-<brand>` (everything, with `index.html`) and `screenshots-changed-<brand>` stay for 7 days.
 
 ## Links from outside the app
 
