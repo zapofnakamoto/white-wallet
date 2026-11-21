@@ -7,10 +7,11 @@ import kotlin.test.assertEquals
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import whitewallet.core.model.Account
 import whitewallet.core.model.Note
@@ -28,30 +29,22 @@ class WalletsViewModelTest {
     private val store = InMemoryWalletStore()
     private val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient())
 
-    @BeforeTest fun setMain() = Dispatchers.setMain(Dispatchers.Default)
+    // The view model runs on the test's dispatcher: a test waits for a state as it comes, with no clock of its own.
+    @BeforeTest fun setMain() = Dispatchers.setMain(StandardTestDispatcher())
 
     @AfterTest fun resetMain() = Dispatchers.resetMain()
 
-    private suspend fun WalletsViewModel.await(settled: (WalletsState) -> Boolean): WalletsState {
-        repeat(100) {
-            state.value.takeIf(settled)?.let {
-                return it
-            }
-            delay(50)
-        }
-        error("never got there: ${state.value}")
-    }
+    private suspend fun WalletsViewModel.await(settled: (WalletsState) -> Boolean): WalletsState = state.first(settled)
 
     @Test
-    fun `the account to use first goes once it holds a note`() =
-        runBlocking<Unit> {
-            store.addAccount("a", "Main", null)
-            val screen = WalletsViewModel(wallet)
-            CoroutineScope(Dispatchers.Unconfined).launch { screen.state.collect {} }
-            val main = Account("a", "Main", 0, homeHost = "mint.example")
-            assertEquals(UnusedAccount(main, hidesLater = false), screen.await { it.loaded && it.useFirst != null }.useFirst)
+    fun `the account to use first goes once it holds a note`() = runTest {
+        store.addAccount("a", "Main", null)
+        val screen = WalletsViewModel(wallet)
+        CoroutineScope(Dispatchers.Unconfined).launch { screen.state.collect {} }
+        val main = Account("a", "Main", 0, homeHost = "mint.example")
+        assertEquals(UnusedAccount(main, hidesLater = false), screen.await { it.loaded && it.useFirst != null }.useFirst)
 
-            store.upsertNotes(listOf(Note("c".repeat(64), "a", "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, NoteState.Spent, 0)))
-            assertEquals(null, screen.await { it.useFirst == null }.useFirst)
-        }
+        store.upsertNotes(listOf(Note("c".repeat(64), "a", "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, NoteState.Spent, 0)))
+        assertEquals(null, screen.await { it.useFirst == null }.useFirst)
+    }
 }

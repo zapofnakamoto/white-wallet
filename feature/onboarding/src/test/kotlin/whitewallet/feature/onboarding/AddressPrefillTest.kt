@@ -11,11 +11,11 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
@@ -41,7 +41,8 @@ class AddressPrefillTest {
     private val wallet = Wallet(store, InMemorySeedStore(), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
     private val defaults = AppDefaults(listOf(host, other), allowMintChange = true)
 
-    @BeforeTest fun setMain() = Dispatchers.setMain(Dispatchers.Default)
+    // The view model runs on the test's dispatcher: a test waits for a state as it comes, with no clock of its own.
+    @BeforeTest fun setMain() = Dispatchers.setMain(StandardTestDispatcher())
 
     @AfterTest fun resetMain() = Dispatchers.resetMain()
 
@@ -51,44 +52,36 @@ class AddressPrefillTest {
         val seen = mutableListOf<OnboardingState>()
         val watching = CoroutineScope(Dispatchers.Unconfined).launch { screen.state.collect { if (it.ready) seen += it } }
         screen.init(mode, presetHost)
-        repeat(300) {
-            val now = screen.state.value
-            if (now.ready && !now.busy && now.availability != Availability.Checking && now.availability != Availability.Idle) {
-                watching.cancel()
-                return seen.toList()
-            }
-            delay(100)
-        }
-        error("the form never got ready: ${screen.state.value}")
+        screen.state.first { it.ready && !it.busy && it.availability != Availability.Checking && it.availability != Availability.Idle }
+        watching.cancel()
+        return seen.toList()
     }
 
     @Test
-    fun `the setup's form shows the name derived from the phrase from the start, locked until the mint was asked`() =
-        runBlocking<Unit> {
-            assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
-            val derived = assertNotNull(wallet.defaultUsername(host))
+    fun `the setup's form shows the name derived from the phrase from the start, locked until the mint was asked`() = runTest {
+        assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
+        val derived = assertNotNull(wallet.defaultUsername(host))
 
-            val seen = shown(OnboardingMode.Setup, host)
-            assertEquals(setOf(derived), seen.map { it.username }.toSet(), "no other name, not for a moment")
-            assertEquals(setOf(host), seen.map { it.host }.toSet(), "no other mint")
-            assertTrue(seen.first().busy, "locked while the mint is asked whether the name is the wallet's")
-            assertEquals(Availability.Checking, seen.first().availability)
-            // A mint that doesn't answer: the form unlocks all the same.
-            assertFalse(seen.last().busy)
-            assertEquals(Availability.Unknown, seen.last().availability)
-        }
+        val seen = shown(OnboardingMode.Setup, host)
+        assertEquals(setOf(derived), seen.map { it.username }.toSet(), "no other name, not for a moment")
+        assertEquals(setOf(host), seen.map { it.host }.toSet(), "no other mint")
+        assertTrue(seen.first().busy, "locked while the mint is asked whether the name is the wallet's")
+        assertEquals(Availability.Checking, seen.first().availability)
+        // A mint that doesn't answer: the form unlocks all the same.
+        assertFalse(seen.last().busy)
+        assertEquals(Availability.Unknown, seen.last().availability)
+    }
 
     @Test
-    fun `an address from settings starts with one suggested name on the home mint`() =
-        runBlocking<Unit> {
-            assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
-            store.saveAccount(store.accounts.first().single().account.copy(homeHost = other))
-            for (mode in listOf(OnboardingMode.AddAddress, OnboardingMode.ChangeAddress)) {
-                val seen = shown(mode)
-                assertEquals(1, seen.map { it.username }.toSet().size, "$mode: one name, set once")
-                assertTrue(seen.first().username.isNotBlank())
-                assertEquals(setOf(other), seen.map { it.host }.toSet(), "$mode: the home mint, not the brand's first")
-                assertFalse(seen.first().busy, "nothing comes back by itself here, so the field is free from the start")
-            }
+    fun `an address from settings starts with one suggested name on the home mint`() = runTest {
+        assertIs<CreateAccountResult.Created>(wallet.createWallet("Main"))
+        store.saveAccount(store.accounts.first().single().account.copy(homeHost = other))
+        for (mode in listOf(OnboardingMode.AddAddress, OnboardingMode.ChangeAddress)) {
+            val seen = shown(mode)
+            assertEquals(1, seen.map { it.username }.toSet().size, "$mode: one name, set once")
+            assertTrue(seen.first().username.isNotBlank())
+            assertEquals(setOf(other), seen.map { it.host }.toSet(), "$mode: the home mint, not the brand's first")
+            assertFalse(seen.first().busy, "nothing comes back by itself here, so the field is free from the start")
         }
+    }
 }

@@ -12,11 +12,11 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -80,7 +80,8 @@ class MoveFundsViewModelTest {
 
     private fun note(id: String, at: String, msat: Long) = Note(id, "a", at, NoteKind.KeyPath, 0, 0, msat, null, NoteState.Outstanding, 0)
 
-    @BeforeTest fun setMain() = Dispatchers.setMain(Dispatchers.Default)
+    // The view model runs on the test's dispatcher: a test waits for a state as it comes, with no clock of its own.
+    @BeforeTest fun setMain() = Dispatchers.setMain(StandardTestDispatcher())
 
     @AfterTest fun resetMain() = Dispatchers.resetMain()
 
@@ -95,93 +96,81 @@ class MoveFundsViewModelTest {
     }
 
     /** The screen's state once [settled] holds. */
-    private suspend fun MoveFundsViewModel.await(settled: (MoveFundsState) -> Boolean): MoveFundsState {
-        repeat(100) {
-            state.value.takeIf(settled)?.let {
-                return it
-            }
-            delay(50)
-        }
-        error("never got there: ${state.value}")
+    private suspend fun MoveFundsViewModel.await(settled: (MoveFundsState) -> Boolean): MoveFundsState = state.first(settled)
+
+    @Test
+    fun `every wallet has its number, oldest first, and its name if the user gave it one`() = runTest {
+        val screen = screen()
+        val state = screen.await { it.from != null }
+        assertEquals(mapOf("b" to 1, "a" to 2), state.walletNumbers)
+        assertEquals(emptyMap(), state.walletNames)
+        assertEquals("b", state.targetId, "the only other account is the target")
+
+        store.saveWallet(store.wallets.first().first { it.id == "b" }.copy(name = "Travel"))
+        assertEquals(mapOf("b" to "Travel"), screen.await { it.walletNames.isNotEmpty() }.walletNames)
     }
 
     @Test
-    fun `every wallet has its number, oldest first, and its name if the user gave it one`() =
-        runBlocking<Unit> {
-            val screen = screen()
-            val state = screen.await { it.from != null }
-            assertEquals(mapOf("b" to 1, "a" to 2), state.walletNumbers)
-            assertEquals(emptyMap(), state.walletNames)
-            assertEquals("b", state.targetId, "the only other account is the target")
+    fun `the mints a move would add follow the target and the amount`() = runTest {
+        val screen = screen()
+        assertEquals(listOf(host), screen.await { it.from != null && it.addsMints.isNotEmpty() }.addsMints)
 
-            store.saveWallet(store.wallets.first().first { it.id == "b" }.copy(name = "Travel"))
-            assertEquals(mapOf("b" to "Travel"), screen.await { it.walletNames.isNotEmpty() }.walletNames)
-        }
+        // More than the mint holds: nothing would move, so nothing would be added.
+        screen.onEverything(false)
+        screen.onAmount("5")
+        screen.await { it.amountMsat == 5_000L && it.addsMints.isEmpty() }
+        screen.onAmount("2")
+        assertEquals(listOf(host), screen.await { it.amountMsat == 2_000L && it.addsMints.isNotEmpty() }.addsMints)
 
-    @Test
-    fun `the mints a move would add follow the target and the amount`() =
-        runBlocking<Unit> {
-            val screen = screen()
-            assertEquals(listOf(host), screen.await { it.from != null && it.addsMints.isNotEmpty() }.addsMints)
-
-            // More than the mint holds: nothing would move, so nothing would be added.
-            screen.onEverything(false)
-            screen.onAmount("5")
-            screen.await { it.amountMsat == 5_000L && it.addsMints.isEmpty() }
-            screen.onAmount("2")
-            assertEquals(listOf(host), screen.await { it.amountMsat == 2_000L && it.addsMints.isNotEmpty() }.addsMints)
-
-            // An account of the wallet in use: its wallet has the mint.
-            store.saveAccount(Account("a2", "Spending", 2, walletId = "a", index = 1, homeHost = host))
-            screen.onTarget("a2")
-            screen.await { it.targetId == "a2" && it.addsMints.isEmpty() }
-        }
+        // An account of the wallet in use: its wallet has the mint.
+        store.saveAccount(Account("a2", "Spending", 2, walletId = "a", index = 1, homeHost = host))
+        screen.onTarget("a2")
+        screen.await { it.targetId == "a2" && it.addsMints.isEmpty() }
+    }
 
     @Test
-    fun `a move that can't be whole waits for the user, and nothing is sent until they say so`() =
-        runBlocking<Unit> {
-            val screen = screen()
-            store.upsertNotes(listOf(note("n2", silent, 9_000)))
-            screen.await { it.from?.balanceMsat == 12_000L }
+    fun `a move that can't be whole waits for the user, and nothing is sent until they say so`() = runTest {
+        val screen = screen()
+        store.upsertNotes(listOf(note("n2", silent, 9_000)))
+        screen.await { it.from?.balanceMsat == 12_000L }
 
-            screen.move()
-            val asked = screen.await { it.partial != null }
-            assertEquals(MoveCheck(3_000, listOf(MoveStayed(silent, 9_000, StayReason.Unreachable))), asked.partial)
-            assertFalse(asked.busy)
-            assertNull(asked.result)
+        screen.move()
+        val asked = screen.await { it.partial != null }
+        assertEquals(MoveCheck(3_000, listOf(MoveStayed(silent, 9_000, StayReason.Unreachable))), asked.partial)
+        assertFalse(asked.busy)
+        assertNull(asked.result)
 
-            screen.cancelPartial()
-            val cancelled = screen.await { it.partial == null }
-            assertNull(cancelled.result, "nothing was tried")
-            assertTrue(store.journal.isEmpty())
+        screen.cancelPartial()
+        val cancelled = screen.await { it.partial == null }
+        assertNull(cancelled.result, "nothing was tried")
+        assertTrue(store.journal.isEmpty())
 
-            screen.move()
-            screen.await { it.partial != null }
-            screen.confirmPartial()
-            val done = screen.await { it.result != null }
-            assertNull(done.partial)
-            assertFalse(done.busy)
-        }
+        screen.move()
+        screen.await { it.partial != null }
+        screen.confirmPartial()
+        val done = screen.await { it.result != null }
+        assertNull(done.partial)
+        assertFalse(done.busy)
+    }
 
     @Test
-    fun `a move of which nothing can be made is said as it is, without trying, and stays shown while it is tried again`() =
-        runBlocking<Unit> {
-            val screen = screen()
-            store.upsertNotes(listOf(note("n1", silent, 3_000)))
-            screen.await { it.from != null }
+    fun `a move of which nothing can be made is said as it is, without trying, and stays shown while it is tried again`() = runTest {
+        val screen = screen()
+        store.upsertNotes(listOf(note("n1", silent, 3_000)))
+        screen.await { it.from != null }
 
-            screen.move()
-            val stayed = listOf(MoveStayed(silent, 3_000, StayReason.Unreachable))
-            val failed = screen.await { it.result != null }
-            assertEquals(MoveResult.Failed(MoveFailure.Refused, stayed = stayed), failed.result)
-            assertNull(failed.partial)
-            assertTrue(store.journal.isEmpty())
+        screen.move()
+        val stayed = listOf(MoveStayed(silent, 3_000, StayReason.Unreachable))
+        val failed = screen.await { it.result != null }
+        assertEquals(MoveResult.Failed(MoveFailure.Refused, stayed = stayed), failed.result)
+        assertNull(failed.partial)
+        assertTrue(store.journal.isEmpty())
 
-            // Try again: the result is there while the mints are asked, until the next one is.
-            val asking = CountDownLatch(1).also { hold = it }
-            screen.move()
-            assertEquals(failed.result, screen.await { it.busy }.result)
-            asking.countDown()
-            assertEquals(failed.result, screen.await { !it.busy }.result)
-        }
+        // Try again: the result is there while the mints are asked, until the next one is.
+        val asking = CountDownLatch(1).also { hold = it }
+        screen.move()
+        assertEquals(failed.result, screen.await { it.busy }.result)
+        asking.countDown()
+        assertEquals(failed.result, screen.await { !it.busy }.result)
+    }
 }
