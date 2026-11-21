@@ -154,9 +154,14 @@ fun ReceivedNoteRow(
 }
 
 /**
- * Remove for one spent by someone else, Archive for one whose mint's key changed, Receive (and Archive) for one only Lightning can bring
- * in; nothing for one that only waits (the wallet claims it, or archives it after trying long enough).
+ * Remove for one spent by someone else, Archive for one whose mint's key changed or whose lock has passed (or has no date), Receive (and
+ * Archive) for one only Lightning can bring in; nothing for one that only waits (the wallet claims it, or archives it after trying long
+ * enough).
  */
+private fun archive(note: ReceivedNote, actions: ReceivedNoteActions): @Composable () -> Unit = {
+    WalletButton(kind = ButtonKind.Text, onClick = { actions.archive(note.id) }) { Text(stringResource(R.string.received_archive)) }
+}
+
 private fun receivedNoteAction(note: ReceivedNote, actions: ReceivedNoteActions): (@Composable () -> Unit)? =
     when (note.state) {
         ReceivedState.LightningOnly -> {
@@ -178,12 +183,8 @@ private fun receivedNoteAction(note: ReceivedNote, actions: ReceivedNoteActions)
                 }
             }
         }
-        ReceivedState.KeyChanged -> {
-            {
-                WalletButton(kind = ButtonKind.Text, onClick = { actions.archive(note.id) }) {
-                    Text(stringResource(R.string.received_archive))
-                }
-            }
-        }
+        // A locked one past its date that still isn't claimed: its mint keeps refusing it, and the wallet never gives it up by itself.
+        ReceivedState.Locked if note.lockedUntilMillis.let { it == null || it <= System.currentTimeMillis() } -> archive(note, actions)
+        ReceivedState.KeyChanged -> archive(note, actions)
         else -> null
     }

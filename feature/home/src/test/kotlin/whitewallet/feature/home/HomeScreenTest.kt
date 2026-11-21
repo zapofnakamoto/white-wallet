@@ -1339,6 +1339,22 @@ class HomeScreenTest {
     }
 
     @Test
+    fun aLockedNoteCanBeArchivedOnlyOnceItsLockHasPassed() {
+        var archived: String? = null
+        // Still locked (2100): it only waits. Past its lock (1970) and still not claimed: the mint keeps refusing it, the user may put it
+        // aside.
+        val waiting = received("r1", ReceivedState.Locked, lockedUntil = 4_102_444_800_000)
+        val stuck = received("r2", ReceivedState.Locked, lockedUntil = 1_000)
+        show(
+            HomeState(activeAccountId = "a", received = listOf(waiting, stuck)),
+            received = ReceivedNoteActions(archive = { archived = it }),
+        )
+        compose.onAllNodesWithText(text(DesignR.string.received_archive)).assertCountEquals(1)
+        compose.onNodeWithText(text(DesignR.string.received_archive)).performScrollTo().performClick()
+        assertEquals(stuck.id, archived)
+    }
+
+    @Test
     fun aHiddenBalanceHidesWhatIsIncomingToo() {
         show(HomeState(activeAccountId = "a", balanceHidden = true, received = listOf(received("r1", ReceivedState.Waiting))))
         compose.onNodeWithText("₿2,000", substring = true).assertDoesNotExist()
