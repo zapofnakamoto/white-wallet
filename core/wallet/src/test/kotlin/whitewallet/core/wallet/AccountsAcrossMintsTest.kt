@@ -110,8 +110,9 @@ abstract class AccountsAcrossMintsTest {
             lookups.clear()
             phone.wallet.addMint(b)
             val firstAccount = keysOf(words, a, account = 0)
+            val thirdAccount = keysOf(words, a, account = 2)
             assertTrue(lookups.none { (host, p) -> host == a && p in firstAccount }, "account 0 was looked through there already")
-            assertTrue(lookups.any { (host, p) -> host == a && p in keysOf(words, a, account = 2) })
+            assertTrue(lookups.any { (host, p) -> host == a && p in thirdAccount })
         }
 
     @Test

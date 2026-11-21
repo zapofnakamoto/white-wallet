@@ -53,7 +53,8 @@ class RequestLogTest {
     fun `transport failures are logged and still reported to the caller`() =
         runBlocking<Unit> {
             MockWebServer().use { server ->
-                server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())
+                // One for the replay too: with none left, the mock server would keep it waiting until the client's read timeout.
+                repeat(2) { server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build()) }
                 server.start()
                 val log = RequestLog()
                 val outcome = client(log).mutate(MutationType.Rotate, server.url("/w/cb?k1=$secret&p1=cp1x").toString())
