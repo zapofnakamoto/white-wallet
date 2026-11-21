@@ -492,6 +492,12 @@ class NotesScreenTest {
     }
 
     @Test
+    fun anEmptyNotesViewStaysEmptyOffline() {
+        // Its empty state draws the brand's mark already; offline holds nothing up here, so the header doesn't draw a second one.
+        assertEquals(WalletStatus.Empty, notesStatus(NotesState(loaded = true, offline = true)))
+    }
+
+    @Test
     fun aWaitingReceivedNoteOnASilentMintSaysSoAndOffersNoArchive() {
         compose.setContent {
             NotesContent(NotesState(loaded = true, notAnsweringHosts = setOf("mint.example"), received = listOf(waiting())), NotesActions())
