@@ -79,6 +79,8 @@ import whitewallet.feature.onboarding.OnboardingMode
 import whitewallet.feature.onboarding.OnboardingRoute
 import whitewallet.feature.onboarding.RestoreRoute
 import whitewallet.feature.onboarding.ScanRoute
+import whitewallet.feature.onboarding.WalletReadyRoute
+import whitewallet.feature.onboarding.WalletReadyState
 import whitewallet.feature.onboarding.WelcomeRoute
 import whitewallet.feature.receive.ReceiveRoute
 import whitewallet.feature.send.CreateNoteRoute
@@ -212,6 +214,11 @@ internal object Routes {
 
     fun setupAddress(host: String) = "setup/address?host=${Uri.encode(host)}"
 
+    /** Where a wallet's setup ends ([walletReady]): with the address it added, if it did. */
+    const val WALLET_READY = "setup/ready?address={address}"
+
+    fun walletReady(address: String?) = if (address == null) "setup/ready" else "setup/ready?address=${Uri.encode(address)}"
+
     const val ADD_MINT = "mint/add"
     /** Looking through the wallet's keys at its mints; [scanNotes] with start: it begins at once. */
     const val SCAN_NOTES = "mint/scan?start={start}"
@@ -317,10 +324,13 @@ private fun WalletApp(
     val nav = rememberNavController()
     // Each setup step replaces everything before it: back can't return to a step that is done.
     val replaceAll = { route: String -> nav.navigate(route) { popUpTo(0) { inclusive = true } } }
-    // Then the brand's welcome page, if it has one, before the wallet; a new wallet's backup first with backup.required=setup.
-    val finishSetup = { backedUp: Boolean ->
-        val next = brand.afterOnboarding?.let { Routes.brand(it.id) } ?: Routes.HOME
-        replaceAll(if (backupAtSetup && !backedUp) Routes.backupAtSetup(next) else next)
+    // A setup ends on the wallet's ready screen, with the address it added.
+    val finishSetup = { address: String? -> replaceAll(Routes.walletReady(address)) }
+    // Then the brand's page after a setup, if it has one for this wallet, before the wallet; a new wallet's backup first with
+    // backup.required=setup.
+    val openWallet = { ready: WalletReadyState ->
+        val next = brand.afterSetup(firstWallet = !ready.several)?.let { Routes.brand(it.id) } ?: Routes.HOME
+        replaceAll(if (backupAtSetup && !ready.backedUp) Routes.backupAtSetup(next) else next)
     }
     val leftSetup = { remains: Boolean -> replaceAll(if (remains) Routes.HOME else Routes.WELCOME) }
     // Claim and Send open over Home, whatever led there.
@@ -371,7 +381,7 @@ private fun WalletApp(
                 onFinish = { finish ->
                     when (finish) {
                         is AddMintFinish.Address -> replaceAll(Routes.setupAddress(finish.host))
-                        is AddMintFinish.Done -> finishSetup(finish.backedUp ?: true)
+                        is AddMintFinish.Done -> finishSetup(null)
                         is AddMintFinish.Abandoned -> leftSetup(finish.remains)
                     }
                 },
@@ -394,6 +404,19 @@ private fun WalletApp(
                 presetHost = entry.arguments?.getString("host"),
                 onAbandoned = leftSetup,
             )
+        }
+        composable(
+            Routes.WALLET_READY,
+            arguments =
+                listOf(
+                    navArgument("address") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
+        ) { entry ->
+            WalletReadyRoute(entry.arguments?.getString("address"), onOpen = openWallet)
         }
         composable(Routes.ADD_MINT) {
             AddMintRoute(setup = false, onFinish = { nav.popBackStack() })
@@ -744,7 +767,7 @@ private fun WalletApp(
             val screen = brand.byId.getValue(checkNotNull(entry.arguments?.getString("id")))
             screen.Content(
                 onBack = {
-                    if (screen.entry == BrandScreenEntry.AfterOnboarding) {
+                    if (screen.entry.afterSetup) {
                         nav.navigate(Routes.HOME) { popUpTo(0) { inclusive = true } }
                     } else {
                         nav.popBackStack()
@@ -755,22 +778,27 @@ private fun WalletApp(
     }
 }
 
-/** The brand's own pages, checked once: ids unique and usable in a route, at most one welcome page. */
-private class BrandScreens(screens: Set<BrandScreen>) {
+/** The brand's own pages, checked once: ids unique and usable in a route, at most one page after a setup. */
+internal class BrandScreens(screens: Set<BrandScreen>) {
     val byId: Map<String, BrandScreen> = screens.associateBy { it.id }
+
+    private val page: BrandScreen? = screens.firstOrNull { it.entry.afterSetup }
 
     init {
         screens.forEach { check(it.id.matches(Regex("[a-z0-9-]+"))) { "Brand screen id '${it.id}': use lowercase letters, digits and -" } }
         check(byId.size == screens.size) { "Two brand screens share an id: ${screens.map { it.id }}" }
-        check(screens.count { it.entry == BrandScreenEntry.AfterOnboarding } <= 1) {
-            "More than one brand screen is shown after onboarding"
-        }
+        check(screens.count { it.entry.afterSetup } <= 1) { "More than one brand screen is shown after a setup" }
     }
 
-    val afterOnboarding: BrandScreen? = screens.firstOrNull { it.entry == BrandScreenEntry.AfterOnboarding }
+    /** The page to show after a wallet's setup: [firstWallet] when it is the only wallet on the phone. */
+    fun afterSetup(firstWallet: Boolean): BrandScreen? = page?.takeIf { firstWallet || it.entry == BrandScreenEntry.AfterEverySetup }
 
     fun on(entry: BrandScreenEntry): List<BrandScreen> = byId.values.filter { it.entry == entry }.sortedBy { it.id }
 }
+
+/** Shown between a wallet's setup and the wallet. */
+private val BrandScreenEntry.afterSetup: Boolean
+    get() = this == BrandScreenEntry.AfterOnboarding || this == BrandScreenEntry.AfterEverySetup
 
 /** The Notes tab for Home: the notes view, its refresh (asking the mints about every note) and its settings button. */
 @Composable

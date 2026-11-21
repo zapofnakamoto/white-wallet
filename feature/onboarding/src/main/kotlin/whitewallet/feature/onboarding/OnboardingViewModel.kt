@@ -106,8 +106,11 @@ data class OnboardingState(
     val feePrompt: Long? = null,
     val held: HeldAddress? = null,
     val done: Boolean = false,
-    /** For [OnboardingMode.Setup]: the wallet's phrase is written down (a restore), so no backup comes next. */
-    val backedUp: Boolean = false,
+    /**
+     * For [OnboardingMode.Setup], once [done]: the address the setup ends with, checked to reach this wallet. The wallet's ready screen
+     * shows it, so the step shows no success of its own.
+     */
+    val readyAddress: String? = null,
     /** Set once the setup was given up: whether another account remains on this device. */
     val abandoned: Boolean? = null,
     /** The user may go on without an address: the setup's address step. */
@@ -197,7 +200,6 @@ constructor(
             when (mode) {
                 OnboardingMode.Setup -> {
                     val host = presetHost ?: wallet.homeHost.first().orEmpty()
-                    val backedUp = wallet.backupVerified.first()
                     // The name derived from the phrase first: a restore finds it again. It is known without asking the mint.
                     val name = wallet.defaultUsername(host) ?: UsernameSuggestions.random()
                     _state.update {
@@ -206,7 +208,6 @@ constructor(
                             host = host,
                             canChangeHost = false,
                             canSkipAddress = true,
-                            backedUp = backedUp,
                             username = name,
                         )
                     }
@@ -378,10 +379,7 @@ constructor(
         val now = wallet.checkHeldAddress(held.address)
         when {
             now == null -> _state.update { it.copy(busy = false, held = null, error = OnboardingError.HoldExpired()) }
-            now.feeInvoice == null ->
-                _state.update {
-                    it.copy(busy = false, held = null, claimed = Claimed(now.address, true), availability = Availability.Yours)
-                }
+            now.feeInvoice == null -> claimed(now.address, confirmed = true)
             else -> _state.update { it.copy(busy = false) }
         }
     }
@@ -391,7 +389,7 @@ constructor(
         viewModelScope.launch {
             while (true) {
                 delay(HELD_CHECK_MILLIS)
-                val held = _state.value.held ?: return@launch
+                val held = _state.value.held?.takeIf { !_state.value.done } ?: return@launch
                 if (!_state.value.busy) checkHeld(held)
             }
         }
@@ -427,10 +425,7 @@ constructor(
                 OnboardingMode.AddAddressElsewhere -> wallet.addAddress(s.username, addressLimit(), s.host)
             }
         when (result) {
-            is OnboardResult.Ready ->
-                _state.update {
-                    it.copy(busy = false, claimed = Claimed(result.address.address, result.confirmed), availability = Availability.Yours)
-                }
+            is OnboardResult.Ready -> claimed(result.address.address, result.confirmed)
             is OnboardResult.AwaitingFee -> {
                 val payable = wallet.previewPayment(result.address.feeInvoice.orEmpty()) is PayPreview.Ready
                 _state.update { it.copy(busy = false, held = HeldAddress(result.address, result.amountMsat, payable)) }
@@ -453,7 +448,21 @@ constructor(
         }
     }
 
-    /** Goes on: the setup is done (the wallet opens next), or back where the address was asked for. */
+    /**
+     * The address is the wallet's. In a setup a checked one ends the setup at once, on the wallet's ready screen ([OnboardingState.done]
+     * with [OnboardingState.readyAddress]): what the screen showed stays as it was until then. Anywhere else, and for one that couldn't be
+     * checked, the screen says so first.
+     */
+    private suspend fun claimed(address: String, confirmed: Boolean) {
+        if (_state.value.inSetup && confirmed) {
+            wallet.setSetupStep(null)
+            _state.update { it.copy(busy = true, done = true, readyAddress = address) }
+        } else {
+            _state.update { it.copy(busy = false, held = null, claimed = Claimed(address, confirmed), availability = Availability.Yours) }
+        }
+    }
+
+    /** Goes on: the setup is done (the wallet's ready screen next), or back where the address was asked for. */
     fun onContinue() {
         viewModelScope.launch {
             if (_state.value.inSetup) wallet.setSetupStep(null)

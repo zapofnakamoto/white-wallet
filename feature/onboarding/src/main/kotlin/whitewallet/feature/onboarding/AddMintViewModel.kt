@@ -45,11 +45,11 @@ data class FoundAccount(val name: String, val amountMsat: Long)
 
 /** Where the flow goes once it is over. */
 sealed interface AddMintFinish {
-    /** The wallet's setup goes on with an address on [host]. [backedUp]: its phrase is written down (a restore). */
-    data class Address(val host: String, val backedUp: Boolean) : AddMintFinish
+    /** The wallet's setup goes on with an address on [host]. */
+    data class Address(val host: String) : AddMintFinish
 
-    /** Done: the mint is added, or the setup goes on without one. [backedUp] as above; null outside a setup. */
-    data class Done(val backedUp: Boolean?) : AddMintFinish
+    /** Done: the mint is added, or the setup ends here (without an address step, or without a mint). */
+    data object Done : AddMintFinish
 
     /** The setup was given up; [remains]: another account is active now. */
     data class Abandoned(val remains: Boolean) : AddMintFinish
@@ -260,28 +260,26 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
                 it.copy(step = AddMintStep.Pick, preview = null, progress = null, found = emptyList(), failed = null, keyChanged = false)
             }
         viewModelScope.launch {
-            if (!s.setup) return@launch _state.update { it.copy(finish = AddMintFinish.Done(null)) }
+            if (!s.setup) return@launch _state.update { it.copy(finish = AddMintFinish.Done) }
             val host = s.preview?.host ?: return@launch
-            val backedUp = wallet.backupVerified.first()
             val first = wallet.activeAccount.first()?.account?.index == 0L
             val asks = defaults.address != AddressPolicy.None && first && wallet.addresses.first().none { it.address.host == host }
             wallet.setSetupStep(if (asks) SetupStep.Address else null)
-            _state.update { it.copy(finish = if (asks) AddMintFinish.Address(host, backedUp) else AddMintFinish.Done(backedUp)) }
+            _state.update { it.copy(finish = if (asks) AddMintFinish.Address(host) else AddMintFinish.Done) }
         }
     }
 
     /** Leaves a failed add outside a setup, where the user came from; in a setup, back to the pick (which can give the setup up). */
     fun cancel() {
-        if (_state.value.setup) done() else _state.update { it.copy(finish = AddMintFinish.Done(null)) }
+        if (_state.value.setup) done() else _state.update { it.copy(finish = AddMintFinish.Done) }
     }
 
     /** In a setup where the brand allows it: on without a mint; the main screen asks for one. */
     fun skip() {
         if (!_state.value.canSkip || _state.value.busy) return
         viewModelScope.launch {
-            val backedUp = wallet.backupVerified.first()
             wallet.setSetupStep(null)
-            _state.update { it.copy(finish = AddMintFinish.Done(backedUp)) }
+            _state.update { it.copy(finish = AddMintFinish.Done) }
         }
     }
 
@@ -293,7 +291,7 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
             s.step == AddMintStep.Info -> _state.update { it.copy(step = AddMintStep.Pick, preview = null) }
             s.step == AddMintStep.Result -> done()
             s.setup -> _state.update { it.copy(confirmAbandon = true) }
-            else -> _state.update { it.copy(finish = AddMintFinish.Done(null)) }
+            else -> _state.update { it.copy(finish = AddMintFinish.Done) }
         }
     }
 
@@ -308,7 +306,7 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
                     is AbandonResult.Abandoned -> AddMintFinish.Abandoned(result.remains)
                     AbandonResult.Refused -> {
                         wallet.setSetupStep(null)
-                        AddMintFinish.Done(backedUp = false)
+                        AddMintFinish.Done
                     }
                 }
             _state.update { it.copy(busy = false, finish = finish) }

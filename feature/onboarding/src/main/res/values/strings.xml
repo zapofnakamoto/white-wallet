@@ -183,4 +183,9 @@
     <string name="scan_finished_title">Scan finished</string>
     <string name="account_created_title">Account created</string>
     <string name="account_created_open">Open account</string>
+    <!-- Where a wallet's setup ends. -->
+    <string name="wallet_ready_title">Your wallet is ready</string>
+    <string name="wallet_ready_open">Open wallet</string>
+    <!-- On that screen when the phone holds other wallets too. %1$s: the wallet's name ("Wallet 2", or the user's). -->
+    <string name="wallet_ready_in_use">%1$s is now in use</string>
 </resources>

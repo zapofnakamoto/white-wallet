@@ -57,8 +57,8 @@ value class Anchor(val id: String) {
         val MintAdded = Anchor("mint.added")
 
         /**
-         * The picture on the screen that says a Lightning address is ready, once the app checked that it reaches this wallet (status
-         * [whitewallet.brand.WalletStatus.Done], 0). Default: a check mark that draws itself, as at [ReceiveSuccess].
+         * The picture on the screen that says a Lightning address is ready, outside a wallet's setup, once the app checked that it reaches
+         * this wallet (status [whitewallet.brand.WalletStatus.Done], 0). Default: a check mark that draws itself, as at [ReceiveSuccess].
          */
         val AddressAdded = Anchor("address.added")
 
@@ -67,6 +67,13 @@ value class Anchor(val id: String) {
          * held). Default: a check mark that draws itself, as at [ReceiveSuccess].
          */
         val AccountCreated = Anchor("account.created")
+
+        /**
+         * The picture on the screen that ends a wallet's setup, the first wallet's or an added one's, created or restored (status
+         * [whitewallet.brand.WalletStatus.Done], with what the wallet holds by then). It shows the address too where one was added in the
+         * setup, in place of [AddressAdded]'s screen. Default: a check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val WalletReady = Anchor("wallet.ready")
 
         /**
          * The picture on the screen that says a scan for notes got through (status [whitewallet.brand.WalletStatus.Done], with what it

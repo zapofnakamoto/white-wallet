@@ -424,8 +424,6 @@
 
     <!-- Settings → Wallets: every wallet (recovery phrase) on the phone, a wallet's page and an account's page. -->
     <string name="settings_wallets">Wallets</string>
-    <!-- A wallet the user hasn't named: its number among the wallets, oldest first. -->
-    <string name="wallet_numbered">Wallet %1$d</string>
     <!-- The wallet and the account in use. %1$s: the wallet's name, %2$s: the account's name. -->
     <string name="wallets_intro">Each wallet has its own recovery phrase and its own accounts. One account is in use at a time.</string>
     <plurals name="wallets_accounts">

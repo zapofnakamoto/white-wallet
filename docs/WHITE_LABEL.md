@@ -396,7 +396,7 @@ brand chooses every value, under names of its own.
 |---|---|---|
 | 1. Tokens | `res/` | colour roles, fonts, text sizes, corners, spacing |
 | 2. Theme | `code/`: `BrandDesign.Theme` | change any token, or add CompositionLocals of the brand's own |
-| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, short messages (`Snackbar`), toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the cover over a secret one (`QrCodeCover`), the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`) and the release stage's badge (`ReleaseBadge`) look |
+| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, short messages (`Snackbar`), toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the cover over a secret one (`QrCodeCover`), the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status, and the wallets, where the one in use carries `activeBadge` as the account in use does on its `AccountMark`), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`) and the release stage's badge (`ReleaseBadge`) look |
 | 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark), knowing the app's name and release stage |
 | 5. Status and events | `code/`: `WalletStatus`, `WalletEvent` | what a screen is about and what just happened, to show or react to |
 | 6. Screens | `code/`: `BrandScreen` | pages of the brand's own, reached from Settings, the wallet's menu or right after setup |
@@ -492,8 +492,9 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   | `SendHeader` | above a payment's review, its progress and a result that isn't a success | nothing |
   | `SendSuccess` | the screen after a payment went out (status `Sent`) | a check mark that draws itself |
   | `MintAdded` | the screen after a mint was added outside a wallet's setup (status `Done`, with what the phrase held there) | a check mark that draws itself |
-  | `AddressAdded` | the screen after a Lightning address is ready and checked (status `Done`, 0); one the app couldn't check keeps its warning screen | a check mark that draws itself |
+  | `AddressAdded` | the screen after a Lightning address is ready and checked, outside a wallet's setup (status `Done`, 0); one the app couldn't check keeps its warning screen | a check mark that draws itself |
   | `AccountCreated` | the screen after an account was added (status `Done`, with what it already held) | a check mark that draws itself |
+  | `WalletReady` | the screen that ends every wallet's setup, the first wallet's and an added one's, created or restored (status `Done`, with what the wallet holds by then). It shows the address the setup added, in place of `AddressAdded`'s screen, and names the wallet as the one in use when the phone holds others | a check mark that draws itself |
   | `ScanDone` | the screen after a scan for notes got through (status `Done`, with what it found) | a check mark that draws itself |
   | `ClaimResult` | above a claimed note's result | nothing |
   | `NoteShared` | above a handed-out note's amount (status `WaitingForRecipient`, `Sent` once spent, `Idle` once taken back) | nothing |
@@ -534,8 +535,9 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   composable, or register a `WalletEventListener` (called on the main thread). Both carry amounts and kinds only.
   Both may gain cases: give every `when` an `else`.
 - **Screens:** a `BrandScreen` has an `id` (lowercase letters, digits, `-`), a `title` string resource, an `entry`
-  (`Settings`: a row above About; `HomeMenu`: the wallet's top bar menu; `AfterOnboarding`: once, between setup and
-  the wallet, at most one) and its `Content(onBack)`, top bar included. It sees no wallet data.
+  (`Settings`: a row above About; `HomeMenu`: the wallet's top bar menu; `AfterOnboarding`: once, between the setup of
+  the phone's first wallet and the wallet; `AfterEverySetup`: the same after every wallet's setup, an added one's too;
+  at most one of the two) and its `Content(onBack)`, top bar included. It sees no wallet data.
 
 `brand-examples/acme` uses every level: its own palette mapped to roles, squarer corners, a primary button of its
 own, a status light above the balance and an "About Acme" page in Settings.

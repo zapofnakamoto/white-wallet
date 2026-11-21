@@ -30,8 +30,14 @@ enum class BrandScreenEntry {
     /** A row in Settings, above About. */
     Settings,
 
-    /** Shown once, right after setup, before the wallet. Leaving it opens the wallet. */
+    /**
+     * Shown once, right after the setup of the phone's first wallet (the only one on the phone by then), before the wallet. Leaving it
+     * opens the wallet. A brand has at most one page after a setup, this or [AfterEverySetup].
+     */
     AfterOnboarding,
+
+    /** Like [AfterOnboarding], after every wallet's setup: an added wallet's too. */
+    AfterEverySetup,
 
     /** An item in the wallet's top bar menu. */
     HomeMenu,

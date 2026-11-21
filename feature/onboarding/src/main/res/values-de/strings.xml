@@ -177,4 +177,7 @@
     <string name="scan_finished_title">Suche abgeschlossen</string>
     <string name="account_created_title">Konto erstellt</string>
     <string name="account_created_open">Konto öffnen</string>
+    <string name="wallet_ready_title">Deine Wallet ist bereit</string>
+    <string name="wallet_ready_open">Wallet öffnen</string>
+    <string name="wallet_ready_in_use">%1$s ist jetzt in Verwendung</string>
 </resources>

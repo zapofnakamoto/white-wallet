@@ -28,6 +28,7 @@ import whitewallet.core.designsystem.WalletListIcon
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.pageLoaded
+import whitewallet.core.designsystem.walletName
 import whitewallet.core.wallet.AddressStatus
 
 @Composable

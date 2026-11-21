@@ -1,6 +1,13 @@
 package whitewallet.feature.settings
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
@@ -22,6 +29,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.brand.ui.AccountMarkParams
+import whitewallet.brand.ui.BrandComponents
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.ListIconParams
+import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.WalletGroup
@@ -56,7 +69,7 @@ class WalletsScreenTest {
         val opened = mutableListOf<String>()
         var added = false
         compose.setContent { WalletsScreen(state, {}, { opened += it }, { added = true }) }
-        compose.onNodeWithText(text(R.string.wallet_numbered, 1)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.wallet_numbered, 1)).assertExists()
         compose.onNodeWithText("Family").assertExists()
         compose.onNodeWithText(plural(R.plurals.wallets_accounts, 2)).assertExists()
         compose.onNodeWithText(plural(R.plurals.wallets_accounts, 1)).assertExists()
@@ -65,6 +78,41 @@ class WalletsScreenTest {
         compose.onNodeWithText(text(R.string.wallets_add)).performScrollTo().performClick()
         assertEquals(listOf("c"), opened)
         assertEquals(true, added)
+    }
+
+    @Test
+    fun onlyTheWalletInUseIsMarkedAsTheAccountInUseIs() {
+        // A brand that draws its marks as words: what each row asked for is on the screen.
+        val design =
+            object : BrandDesign {
+                override val components =
+                    object : BrandComponents {
+                        @Composable
+                        override fun ListIcon(params: ListIconParams, modifier: Modifier) {
+                            Text(if (params.activeBadge != null) "wallet in use" else "icon")
+                        }
+
+                        @Composable
+                        override fun AccountMark(params: AccountMarkParams, modifier: Modifier) {
+                            Text(if (params.active) "account in use" else "account")
+                        }
+                    }
+            }
+        var page by mutableStateOf(false)
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design) {
+                if (page) WalletScreen(first, state, active, {}, {}, {}, {}, {}) else WalletsScreen(state, {}, {}, {})
+            }
+        }
+        // The first wallet holds the account in use; the second doesn't.
+        compose.onAllNodesWithText("wallet in use").assertCountEquals(1)
+        compose.onAllNodesWithText("icon").assertCountEquals(1)
+        compose.onAllNodesWithText(text(R.string.wallet_in_use)).assertCountEquals(1)
+        page = true
+        compose.onAllNodesWithText("account in use").assertCountEquals(1)
+        compose.onAllNodesWithText("account").assertCountEquals(1)
+        // No other row of the app is marked.
+        compose.onAllNodesWithText("wallet in use").assertCountEquals(0)
     }
 
     @Test

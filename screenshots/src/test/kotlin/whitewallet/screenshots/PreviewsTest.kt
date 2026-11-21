@@ -18,6 +18,9 @@ class PreviewsTest {
                 "AccountCreatedFoundPreview",
                 "AccountCreatedNonePreview",
                 "AddressAddedPreview",
+                "WalletReadyWithAddressPreview",
+                "WalletReadyAddedPreview",
+                "WalletReadyRestoredPreview",
                 "ReceiveSuccessPreview",
                 "SendSuccessPreview",
                 // Settings

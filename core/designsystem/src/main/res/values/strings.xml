@@ -57,6 +57,8 @@
     <string name="amount_hidden_description">Balance hidden</string>
     <string name="amount_hide">Hide balance</string>
     <string name="amount_show">Show balance</string>
+    <!-- A wallet the user hasn't named: its number among the wallets, oldest first. -->
+    <string name="wallet_numbered">Wallet %1$d</string>
     <!-- The release stage, shown at setup and in About while the app isn't finished (brand app.releaseStage). -->
     <string name="release_stage_alpha">Alpha</string>
     <string name="release_stage_beta">Beta</string>

@@ -51,6 +51,7 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.screenLoaded
 import whitewallet.core.designsystem.showsWorking
+import whitewallet.core.designsystem.walletName
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.WalletGroup
 import whitewallet.core.wallet.AccountRemoval
@@ -146,9 +147,6 @@ class WalletsViewModel @Inject constructor(private val wallet: Wallet) : ViewMod
     }
 }
 
-/** A wallet's name: the user's, or its number among the wallets. */
-@Composable internal fun walletName(name: String?, number: Int): String = name ?: stringResource(R.string.wallet_numbered, number)
-
 /** Settings → Wallets. With a single wallet its page shows at once, "Add wallet" on it: a list of one is a tap for nothing. */
 @Composable
 fun WalletsRoute(
@@ -189,13 +187,14 @@ fun WalletsScreen(state: WalletsState, onBack: () -> Unit, onOpen: (String) -> U
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.wallets_intro), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))
             state.wallets.forEach { group ->
+                val inUse = group.wallet.id == state.activeWalletId
                 WalletListItem(
-                    leadingContent = { WalletListIcon(DesignR.drawable.ic_wallet) },
+                    leadingContent = { WalletListIcon(DesignR.drawable.ic_wallet, active = inUse) },
                     headlineContent = { Text(walletName(group.wallet.name, group.number)) },
                     supportingContent = {
                         Column {
                             Text(pluralStringResource(R.plurals.wallets_accounts, group.accounts.size, group.accounts.size))
-                            if (group.wallet.id == state.activeWalletId) InUse()
+                            if (inUse) InUse()
                         }
                     },
                     trailingContent = { AmountAndChevron(group.balanceMsat) },

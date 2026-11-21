@@ -118,13 +118,10 @@ class RegtestAddressFeeFlowTest {
 
             // Paid from another wallet while the screen shows the invoice: it notices by itself.
             pay(assertNotNull(held.address.feeInvoice))
-            val claimed = assertNotNull(screen.state.await { it.claimed != null }.claimed)
-            assertEquals("$name@$host", claimed.address)
-            assertTrue(claimed.confirmed)
-            assertNull(screen.state.value.held)
-
-            screen.onContinue()
-            screen.state.await { it.done }
+            // The checked address ends the setup by itself, on the wallet's ready screen: the step shows no success of its own.
+            val done = screen.state.await { it.done }
+            assertEquals("$name@$host", done.readyAddress)
+            assertNull(done.claimed)
             assertNull(phone.wallet.setupStep.first(), "the setup is over")
             assertEquals("$name@$host", phone.wallet.primaryAddress.first()?.address)
             assertEquals(emptyList(), phone.held())
@@ -271,7 +268,7 @@ class RegtestAddressFeeFlowTest {
             paidFor.state.await { it.feePrompt != null }
             paidFor.acceptFee()
             pay(assertNotNull(paidFor.state.await { it.held != null }.held?.address?.feeInvoice))
-            paidFor.state.await { it.claimed != null }
+            paidFor.state.await { it.done }
             val words = assertNotNull(first.seeds.load(first.store.accounts.first().single().account.walletId))
 
             // Whatever the brand does about a fee: there is none for a name that is the wallet's already.
@@ -282,9 +279,10 @@ class RegtestAddressFeeFlowTest {
                 val screen = OnboardingViewModel(second.wallet, second.defaults, second.preferences)
                 screen.init(OnboardingMode.Setup, host)
 
-                val state =
-                    screen.state.await { it.claimed != null || it.done || it.feePrompt != null || it.held != null || it.error != null }
-                assertEquals("$name@$host", state.claimed?.address, "$choice: $state")
+                // Taken back, it ends the setup at once: the wallet's ready screen shows it.
+                val state = screen.state.await { it.done || it.feePrompt != null || it.held != null || it.error != null }
+                assertEquals("$name@$host", state.readyAddress, "$choice: $state")
+                assertNull(second.wallet.setupStep.first())
                 assertNull(state.feePrompt)
                 assertNull(state.held)
                 assertNull(state.feeToShow, "a name that is the wallet's already costs nothing again")

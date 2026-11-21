@@ -42,6 +42,14 @@ internal val previewWallet =
         accounts = listOf(AccountSummary(satoshi, 21_000_000, used = true), AccountSummary(hal, 5_000_000, used = true)),
     )
 
+/** A second wallet, not in use: the list shows which one is. */
+private val otherWallet =
+    WalletGroup(
+        WalletRecord("w2", name = null, createdAtMillis = PREVIEW_MILLIS),
+        number = 2,
+        accounts = listOf(AccountSummary(Account("a3", "Satoshi", PREVIEW_MILLIS, walletId = "w2", homeHost = HOME), 0)),
+    )
+
 /** An account with an address, a verified backup and two trusted mints. */
 internal val settingsState =
     SettingsState(
@@ -58,9 +66,9 @@ internal val settingsState =
 
 internal val walletsState =
     WalletsState(
-        wallets = listOf(previewWallet),
+        wallets = listOf(previewWallet, otherWallet),
         activeAccountId = satoshi.id,
-        places = mapOf(satoshi.id to 0, hal.id to 1),
+        places = mapOf(satoshi.id to 0, hal.id to 1, "a3" to 2),
         canAddWallet = true,
         canAddAccount = true,
     )

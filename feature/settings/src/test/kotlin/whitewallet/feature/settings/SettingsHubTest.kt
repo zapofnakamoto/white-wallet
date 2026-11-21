@@ -9,6 +9,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.core.designsystem.R as DesignR
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsHubTest {
@@ -31,7 +32,7 @@ class SettingsHubTest {
         // The account in use comes first and opens its own page; every wallet is one row below, naming the one in use.
         compose.onNodeWithText(address).assertExists()
         compose.onNodeWithText("Main").performClick()
-        compose.onNodeWithText(text(R.string.wallet_numbered, 1)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.wallet_numbered, 1)).assertExists()
         compose.onNodeWithText(text(R.string.settings_wallets)).performClick()
         assertEquals(listOf(SettingsDestination.Account("a"), SettingsDestination.Page(SettingsTarget.Wallets)), opened)
     }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -338,6 +339,8 @@ class ListIconParams(
     /** [Tone.Danger] and [Tone.Warning] for rows that need the user; [Tone.Neutral] otherwise. */
     val tone: Tone = Tone.Neutral,
     val size: ListIconSize = ListIconSize.Row,
+    /** The mark of the wallet in use, to draw on the icon as [AccountMarkParams.activeBadge] is on an account's; null on any other row. */
+    val activeBadge: Painter? = null,
 )
 
 class AccountMarkParams(
@@ -889,7 +892,7 @@ object DefaultComponents : BrandComponents {
         }
     }
 
-    /** The icon in the secondary text colour, or the tone's colour. */
+    /** The icon in the secondary text colour, or the tone's colour; a check badge on the wallet in use. */
     @Composable
     fun listIcon(params: ListIconParams, modifier: Modifier) {
         val tint =
@@ -904,7 +907,25 @@ object DefaultComponents : BrandComponents {
                 ListIconSize.Row -> 24.dp
                 ListIconSize.Inline -> 16.dp
             }
-        Icon(params.icon, contentDescription = null, modifier = modifier.size(size), tint = tint)
+        val badge = params.activeBadge ?: return Icon(params.icon, contentDescription = null, modifier = modifier.size(size), tint = tint)
+        Box(modifier.size(size)) {
+            Icon(params.icon, contentDescription = null, modifier = Modifier.size(size), tint = tint)
+            ActiveBadge(badge, size * 0.6f)
+        }
+    }
+
+    /** The check of the account or wallet in use, at the bottom end of its mark: half outside, clear of what the mark shows. */
+    @Composable
+    private fun BoxScope.ActiveBadge(badge: Painter, size: Dp) {
+        Box(
+            Modifier.align(Alignment.BottomEnd)
+                .offset(size * 0.3f, size * 0.3f)
+                .size(size)
+                .background(MaterialTheme.colorScheme.surface, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(badge, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(size * 0.85f))
+        }
     }
 
     /** The letter on a primary, tertiary or secondary container by [AccountMarkParams.index]; a check badge when active. */
@@ -927,24 +948,7 @@ object DefaultComponents : BrandComponents {
                     Icon(params.fallback, contentDescription = null, tint = content, modifier = Modifier.size(params.size * 0.6f))
                 }
             }
-            if (params.active) {
-                // Half outside the circle, clear of the letter.
-                val badge = params.size * 0.45f
-                Box(
-                    Modifier.align(Alignment.BottomEnd)
-                        .offset(badge * 0.3f, badge * 0.3f)
-                        .size(badge)
-                        .background(MaterialTheme.colorScheme.surface, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        params.activeBadge,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(badge * 0.85f),
-                    )
-                }
-            }
+            if (params.active) ActiveBadge(params.activeBadge, params.size * 0.45f)
         }
     }
 

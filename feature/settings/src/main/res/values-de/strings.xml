@@ -413,7 +413,6 @@
     <string name="delete_accounts">Alle seine Konten werden mit entfernt: %1$s.</string>
 
     <string name="settings_wallets">Wallets</string>
-    <string name="wallet_numbered">Wallet %1$d</string>
     <string name="wallets_intro">Jede Wallet hat ihre eigene Wiederherstellungsphrase und ihre eigenen Konten. Es ist immer ein Konto in Verwendung.</string>
     <plurals name="wallets_accounts">
         <item quantity="one">%1$d Konto</item>

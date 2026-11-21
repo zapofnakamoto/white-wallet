@@ -70,12 +70,12 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.screenLoaded
 
 /**
- * A Lightning address for the active account (see [OnboardingMode]): the setup's address step, or one from Settings. [onDone] goes on, with
- * whether the wallet's phrase is written down (a restore: no backup step); [onAbandoned] once the setup was given up.
+ * A Lightning address for the active account (see [OnboardingMode]): the setup's address step, or one from Settings. [onDone] goes on, in a
+ * setup with the checked address it ends with, if any ([OnboardingState.readyAddress]); [onAbandoned] once the setup was given up.
  */
 @Composable
 fun OnboardingRoute(
-    onDone: (backedUp: Boolean) -> Unit,
+    onDone: (address: String?) -> Unit,
     mode: OnboardingMode = OnboardingMode.Setup,
     onBack: (() -> Unit)? = null,
     /** For [OnboardingMode.Setup]: the mint of the address. */
@@ -85,7 +85,7 @@ fun OnboardingRoute(
 ) {
     LaunchedEffect(Unit) { viewModel.init(mode, presetHost) }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(state.done) { if (state.done) onDone(state.backedUp) }
+    LaunchedEffect(state.done) { if (state.done) onDone(state.readyAddress) }
     LaunchedEffect(state.abandoned) { state.abandoned?.let(onAbandoned) }
     OnboardingScreen(
         state,
@@ -150,9 +150,8 @@ fun OnboardingScreen(
         )
     Scaffold(topBar = { WalletTopBar(title, (onBack ?: askAbandon).takeIf { claimed == null }) }) { padding ->
         if (claimed?.confirmed == true) {
-            // The setup goes on after the address; from Settings, the address is the end.
-            val button = if (state.mode == OnboardingMode.Setup) R.string.claimed_continue else R.string.success_done
-            return@Scaffold AddressAddedContent(claimed.address, stringResource(button), onContinue, Modifier.padding(padding))
+            // From Settings the address is the end; a setup ends on the wallet's ready screen instead, which shows it.
+            return@Scaffold AddressAddedContent(claimed.address, onContinue, Modifier.padding(padding))
         }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             if (claimed != null) {
@@ -394,29 +393,31 @@ private fun AvailabilityText(availability: Availability) {
     Text(text, color = color)
 }
 
-/** Success: the address is claimed (and, when [Claimed.confirmed], verified to point at this wallet). */
-/**
- * The address is ready and reaches this wallet: the success screen, the address to copy or share, and that it receives while the phone is
- * off.
- */
+/** The address is ready and reaches this wallet: the success screen with what [AddressReady] says. */
 @Composable
-private fun AddressAddedContent(address: String, button: String, onContinue: () -> Unit, modifier: Modifier) {
+private fun AddressAddedContent(address: String, onContinue: () -> Unit, modifier: Modifier) {
     SuccessScreen(
         anchor = Anchor.AddressAdded,
         status = WalletStatus.Done(0),
         title = stringResource(R.string.claimed_title),
-        done = SuccessAction(button, onContinue),
+        done = SuccessAction(stringResource(R.string.success_done), onContinue),
         modifier = modifier,
     ) {
-        Text(address, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
-        CopyShare(address, stringResource(R.string.claimed_copied))
-        Text(
-            stringResource(R.string.claimed_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        AddressReady(address)
     }
+}
+
+/** An address that reaches this wallet, on a success screen: the address to copy or share, and that it receives while the phone is off. */
+@Composable
+internal fun AddressReady(address: String) {
+    Text(address, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+    CopyShare(address, stringResource(R.string.claimed_copied))
+    Text(
+        stringResource(R.string.claimed_body),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }
 
 /** The address is registered, but the app couldn't check that payments reach this wallet: not a success, a warning. */

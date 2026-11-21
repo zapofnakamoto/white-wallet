@@ -265,16 +265,24 @@ fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted
     )
 }
 
-/** A list row's leading mark ([whitewallet.brand.ui.BrandComponents.ListIcon]); decorative, the row says it in words. */
+/**
+ * A list row's leading mark ([whitewallet.brand.ui.BrandComponents.ListIcon]); decorative, the row says it in words. [active]: the wallet
+ * in use, marked as [WalletAccountMark] marks the account in use.
+ */
 @Composable
 fun WalletListIcon(
     @DrawableRes icon: Int,
     modifier: Modifier = Modifier,
     tone: Tone = Tone.Neutral,
     size: ListIconSize = ListIconSize.Row,
+    active: Boolean = false,
 ) {
-    LocalBrandDesign.current.components.ListIcon(ListIconParams(painterResource(icon), tone, size), modifier)
+    val badge = if (active) painterResource(R.drawable.ic_check_circle) else null
+    LocalBrandDesign.current.components.ListIcon(ListIconParams(painterResource(icon), tone, size, badge), modifier)
 }
+
+/** A wallet's name: the user's, or its number among the wallets. */
+@Composable fun walletName(name: String?, number: Int): String = name ?: stringResource(R.string.wallet_numbered, number)
 
 /** The release stage's badge ([whitewallet.brand.ui.BrandComponents.ReleaseBadge]); nothing for a stable release. */
 @Composable

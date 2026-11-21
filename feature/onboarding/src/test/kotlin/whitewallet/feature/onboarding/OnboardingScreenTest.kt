@@ -160,9 +160,12 @@ class OnboardingScreenTest {
         }
     }
 
-    private fun aCheckedAddressEndsOnTheSuccessScreen(mode: OnboardingMode, button: Int) {
+    // Only outside a setup: a setup ends on the wallet's ready screen, which shows the address (WalletReadyScreenTest).
+    @Test
+    fun aCheckedAddressFromSettingsEndsOnTheSuccessScreen() {
         var continued = false
-        showClaimed(setup().copy(mode = mode, claimed = Claimed("alice@mint.example", confirmed = true)), { continued = true })
+        val claimed = Claimed("alice@mint.example", confirmed = true)
+        showClaimed(setup().copy(mode = OnboardingMode.AddAddress, claimed = claimed), { continued = true })
         assertEquals(listOf(Anchor.AddressAdded to WalletStatus.Done(0)), decorated.distinct())
         compose.onNodeWithText(text(R.string.claimed_title)).assertExists()
         compose.onNodeWithText("alice@mint.example").assertExists()
@@ -170,18 +173,9 @@ class OnboardingScreenTest {
         compose.onNodeWithText(text(DesignR.string.share)).assertExists()
         // What people wouldn't guess: the address receives while the phone is off.
         compose.onNodeWithText(text(R.string.claimed_body)).assertExists()
-        compose.onNodeWithText(text(button)).performClick()
+        compose.onNodeWithText(text(R.string.success_done)).performClick()
         assertTrue(continued)
     }
-
-    // The setup goes on to its next step; from Settings the address is the end.
-    @Test
-    fun aCheckedAddressInTheSetupEndsOnTheSuccessScreen() =
-        aCheckedAddressEndsOnTheSuccessScreen(OnboardingMode.Setup, R.string.claimed_continue)
-
-    @Test
-    fun aCheckedAddressFromSettingsEndsOnTheSuccessScreen() =
-        aCheckedAddressEndsOnTheSuccessScreen(OnboardingMode.AddAddress, R.string.success_done)
 
     @Test
     fun anAddressThatCouldNotBeCheckedKeepsItsWarning() {

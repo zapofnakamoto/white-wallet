@@ -81,3 +81,19 @@ private fun AddressAddedPreview() =
         onStart = {},
         onContinue = {},
     )
+
+/** A wallet's setup ended: the first wallet with its address, an added one without, and a restore with what it found. */
+internal val walletReadyStates =
+    listOf(
+        WalletReadyState() to "satoshi@$MINT",
+        WalletReadyState(number = 2, several = true) to null,
+        WalletReadyState(foundMsat = 21_000_000, backedUp = true) to null,
+    )
+
+@Composable private fun WalletReady(state: Pair<WalletReadyState, String?>) = WalletReadyScreen(state.first, state.second, onOpen = {})
+
+@WalletPreviews @Moment @Composable private fun WalletReadyWithAddressPreview() = WalletReady(walletReadyStates[0])
+
+@WalletPreviews @Moment @Composable private fun WalletReadyAddedPreview() = WalletReady(walletReadyStates[1])
+
+@WalletPreviews @Moment @Composable private fun WalletReadyRestoredPreview() = WalletReady(walletReadyStates[2])

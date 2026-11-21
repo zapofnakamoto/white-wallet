@@ -19,6 +19,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - For developers: `SuccessScreen` takes its buttons as `SuccessAction`, an optional amount, `lines` and extra
   `content`, and keeps its buttons at the bottom; back does what its main button does. `CopyShare` is in the design
   system. docs/DEVELOPMENT.md, "Success screens", says how to add one.
+- A wallet's setup ends on a success screen too, "Your wallet is ready": the first wallet's and an added one's, created
+  or restored, whether or not it got a mint or an address. It shows the address the setup added (with Copy and Share,
+  in place of the address's own screen), what a restore found, and, when the phone holds other wallets, that this one
+  is in use now. Before, a setup without an address opened the main screen without a word.
+- Settings → Wallets marks the wallet in use with the check the account in use carries.
+- For brands: the anchor `WalletReady`; `ListIconParams.activeBadge` (the wallet in use; a `ListIcon` of their own
+  should draw it); `BrandScreenEntry.AfterEverySetup`, a page after every wallet's setup.
 - For developers: Developer options → Network → **Offline** (debug builds, developer mode on): no request goes out and
   every screen behaves as with the phone offline, while other apps keep the network.
 - For brands and developers: screenshots. `just screenshots [brand dir]` draws a preview of every shared screen in its
@@ -40,6 +47,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   offline like Home's.
 - For brands: the brand term `received_waiting_mint_unnamed` ("Claimed when its mint answers."); new words for
   `received_waiting`, `received_hint` and `claim_kept_hint`.
+- For brands: a page with `BrandScreenEntry.AfterOnboarding` shows after the setup of the phone's first wallet only,
+  no longer after every added wallet's (`AfterEverySetup` does that). `AddressAdded` is no longer asked for in a
+  setup: `WalletReady` is.
+- For developers: the string `wallet_numbered` and `walletName()` are in the design system; `OnboardingRoute.onDone`
+  gives the setup's address, and `AddMintFinish` no longer says whether the wallet is backed up (`WalletReadyState`
+  does).
 - The success screens of sending and receiving keep their buttons at the bottom of the screen, also with large text.
 - With large text, a list row no longer splits its words: what stands on its right (an amount, a date, an action such
   as "Change home mint") goes below the text when beside it the text wouldn't fit, and a mint's name wraps after a dot
