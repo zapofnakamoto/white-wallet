@@ -34,7 +34,7 @@
     <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
 
     <string name="received_title">Erhalten, noch nicht eingelöst</string>
-    <string name="received_hint">Nicht sicher, bis es eingelöst ist: Der Absender kann das Geld noch ausgeben, und wenn du dieses Telefon vorher verlierst, ist es weg. Deine Wallet löst es von selbst ein.</string>
+    <string name="received_hint">Noch nicht sicher: Bis zum Einlösen kann der Absender das Geld noch ausgeben, und verlierst du vorher dein Handy, ist es weg. Das Einlösen erledigt deine Wallet von selbst.</string>
     <string name="received_total">%1$s erhalten, noch nicht eingelöst</string>
     <string name="received_unconfirmed">%1$s, noch nicht geprüft</string>
     <string name="received_unknown_amount">Betrag noch nicht bekannt</string>

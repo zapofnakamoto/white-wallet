@@ -56,7 +56,7 @@
     <string name="claim_kept">Behalten. Deine Wallet löst ihn von selbst ein, sobald sie kann.</string>
     <string name="claim_kept_until">Behalten. Deine Wallet löst ihn nach %1$s ein.</string>
     <string name="claim_kept_locked">Behalten. Deine Wallet löst ihn ein, sobald er frei ist.</string>
-    <string name="claim_kept_hint">Nicht sicher, bis es eingelöst ist: Der Absender kann das Geld noch ausgeben, und wenn du dieses Telefon vorher verlierst, ist es weg.</string>
+    <string name="claim_kept_hint">Noch nicht sicher: Bis zum Einlösen kann der Absender das Geld noch ausgeben, und verlierst du vorher dein Handy, ist es weg.</string>
     <string name="claim_failed">Das Einlösen wurde abgelehnt: %1$s</string>
     <string name="claim_pending">Noch keine Antwort. Deine Wallet fragt beim nächsten Aktualisieren erneut.</string>
     <string name="claim_take_back">%1$s zurückholen</string>
