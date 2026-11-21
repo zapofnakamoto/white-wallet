@@ -461,22 +461,29 @@ internal sealed interface KeyLookup {
             // Most answers carry no key: a mint whose key doesn't match isn't asked (see [KeyCheckedMint]).
             if (mint != null && KeyCheckedMint.of(wallet, mint) == null) return KeyChanged
             val pinned = mint != null
-            val found = ask(wallet, withdrawUrl, q, mint?.mintPubkey)
+            val found = ask(wallet, host, withdrawUrl, q, mint?.mintPubkey)
             return if (pinned && (found is OtherService || found == NotANote)) Unreachable else found
         }
 
-        /** [pinnedKey]: the key the account's wallet pinned for the mint, if any. */
-        private suspend fun ask(wallet: Wallet, withdrawUrl: String, q: ByteVector32, pinnedKey: String?): KeyLookup {
+        /**
+         * [pinnedKey]: the key the account's wallet pinned for the mint, if any. Whether [host] answered is kept ([Wallet.heardFrom]): a
+         * received note waiting for a mint the account holds nothing on is told by it.
+         */
+        private suspend fun ask(wallet: Wallet, host: String, withdrawUrl: String, q: ByteVector32, pinnedKey: String?): KeyLookup {
             val pinned = pinnedKey != null
             val answer =
                 try {
                     // key-checked: by [of], before asking.
                     wallet.client.get(Requests.lookup(withdrawUrl, q))
                 } catch (e: IOException) {
+                    wallet.heardFrom(host, answered = false)
                     return Unreachable
                 } catch (e: ProtocolViolation) {
+                    // As [KeyProber]: an answer that isn't a mint's (a proxy in front of one that is down) isn't one.
+                    wallet.heardFrom(host, answered = false)
                     return NotANote
                 }
+            wallet.heardFrom(host)
             if (answer is LnurlResponse.WithdrawRequest) {
                 answer.k1?.let {
                     return OtherService(answer.callback, it, answer.minWithdrawable, answer.maxWithdrawable)

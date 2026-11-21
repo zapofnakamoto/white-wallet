@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
 
@@ -64,6 +65,22 @@ class RegtestMintDownTest {
             down.clear()
             alice.wallet.refresh()
             assertEquals(emptySet(), alice.silent(), "it answers again")
+        }
+
+    @Test
+    fun `a received note's mint that doesn't answer is known, also one the account holds nothing on, and answers again`() =
+        runBlocking<Unit> {
+            val bob = phone()
+            down += HOST2
+            val preview = assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(Regtest.note(1000, second = true)))
+            bob.wallet.keepClaim(preview)
+            assertEquals(ReceivedState.Waiting, bob.wallet.receivedNotes.first().single().state)
+            assertEquals(setOf(HOST2), bob.silent(), "its claim got no answer")
+
+            down.clear()
+            bob.wallet.refresh()
+            assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().single().state)
+            assertEquals(emptySet(), bob.silent(), "it answered the claim")
         }
 
     @Test
