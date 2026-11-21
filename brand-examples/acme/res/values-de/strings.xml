@@ -310,6 +310,7 @@
         <item quantity="other">Sein Anbieter hat %d Tage lang nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
     </plurals>
     <string name="received_unreachable">Sein Anbieter hat nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</string>
+    <string name="received_waiting_mint_unnamed">Wird eingelöst, sobald sein Anbieter antwortet.</string>
     <string name="received_lightning_no_key">Sein Anbieter veröffentlicht keinen Signaturschlüssel, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_lightning_not_a_note">Sein Anbieter antwortet darauf nicht wie auf einen Geldschein, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="claim_mint_refused">Der Anbieter nimmt diesen Geldschein gerade nicht an.</string>

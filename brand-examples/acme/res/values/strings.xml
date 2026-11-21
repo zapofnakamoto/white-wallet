@@ -310,6 +310,7 @@
         <item quantity="other">Its provider didn\'t answer for %d days, so your wallet stopped trying.</item>
     </plurals>
     <string name="received_unreachable">Its provider didn\'t answer, so your wallet stopped trying.</string>
+    <string name="received_waiting_mint_unnamed">Claimed when its provider answers.</string>
     <string name="received_lightning_no_key">Its provider publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its provider doesn\'t answer for it as a banknote, so it can only be received over Lightning, for a fee.</string>
     <string name="claim_mint_refused">The provider doesn\'t accept this banknote right now.</string>

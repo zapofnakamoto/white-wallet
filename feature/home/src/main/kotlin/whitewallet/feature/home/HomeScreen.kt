@@ -101,8 +101,6 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.designsystem.ReceivedNoteRow
-import whitewallet.core.designsystem.needsUser
-import whitewallet.core.designsystem.waitsFor
 import whitewallet.core.designsystem.ReleaseNotesSheet
 import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletActivityIcon
@@ -119,7 +117,9 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.WithReleaseBadge
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.loadingPhase
+import whitewallet.core.designsystem.needsUser
 import whitewallet.core.designsystem.recentTime
+import whitewallet.core.designsystem.waitsFor
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind

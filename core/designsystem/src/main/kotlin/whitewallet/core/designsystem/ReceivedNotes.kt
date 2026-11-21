@@ -154,8 +154,8 @@ fun ReceivedNoteRow(
 }
 
 /**
- * Remove for one spent by someone else, Archive for one whose mint's key changed, Receive (and Archive) for one only Lightning can bring in;
- * nothing for one that only waits (the wallet claims it, or archives it after trying long enough).
+ * Remove for one spent by someone else, Archive for one whose mint's key changed, Receive (and Archive) for one only Lightning can bring
+ * in; nothing for one that only waits (the wallet claims it, or archives it after trying long enough).
  */
 private fun receivedNoteAction(note: ReceivedNote, actions: ReceivedNoteActions): (@Composable () -> Unit)? =
     when (note.state) {

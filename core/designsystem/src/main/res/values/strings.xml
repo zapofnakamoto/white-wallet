@@ -28,6 +28,8 @@
         <item quantity="other">Its mint didn\'t answer for %d days, so your wallet stopped trying.</item>
     </plurals>
     <string name="received_unreachable">Its mint didn\'t answer, so your wallet stopped trying.</string>
+    <!-- A received note waits for its mint, which didn't answer the last time (mints not named). -->
+    <string name="received_waiting_mint_unnamed">Claimed when its mint answers.</string>
     <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
@@ -73,7 +75,6 @@
     <string name="received_waiting_offline">Claimed when you\'re back online.</string>
     <!-- A received note waits for its mint, which didn't answer the last time. %1$s: the mint. -->
     <string name="received_waiting_mint">Claimed when %1$s answers.</string>
-    <string name="received_waiting_mint_unnamed">Claimed when its mint answers.</string>
     <string name="received_waiting">Claimed on the next refresh.</string>
     <string name="received_locked_until">Locked until %1$s</string>
     <string name="received_locked">Locked for now. Tried again on every refresh.</string>

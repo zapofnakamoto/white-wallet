@@ -63,27 +63,25 @@ class HomeScreenTest {
         onRefresh: () -> Unit = {},
         withNotesTab: Boolean = false,
         received: ReceivedNoteActions = ReceivedNoteActions(),
-    ) =
-        compose.setContent {
-            HomeScreen(
-                "Wallet",
-                state,
-                onSend = {},
-                onReceive = {},
-                onRefresh = onRefresh,
-                onSettings = {},
-                onBackup = {},
-                onDismissBackup = {},
-                onOpenAddresses = {},
-                accountActions = AccountActions({}, {}, {}),
-                onToggleBalance = onToggle,
-                onOpenMint = onOpenMint,
-                received = received,
-                notesTab =
-                    if (withNotesTab) NotesTabSlot(refreshing = false, onRefresh = {}, actions = {}, content = { Text("the notes") })
-                    else null,
-            )
-        }
+    ) = compose.setContent {
+        HomeScreen(
+            "Wallet",
+            state,
+            onSend = {},
+            onReceive = {},
+            onRefresh = onRefresh,
+            onSettings = {},
+            onBackup = {},
+            onDismissBackup = {},
+            onOpenAddresses = {},
+            accountActions = AccountActions({}, {}, {}),
+            onToggleBalance = onToggle,
+            onOpenMint = onOpenMint,
+            received = received,
+            notesTab =
+                if (withNotesTab) NotesTabSlot(refreshing = false, onRefresh = {}, actions = {}, content = { Text("the notes") }) else null,
+        )
+    }
 
     @Test
     fun homeOffersToScanAnyQrCode() {

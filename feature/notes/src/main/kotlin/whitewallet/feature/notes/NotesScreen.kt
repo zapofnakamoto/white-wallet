@@ -64,7 +64,6 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.designsystem.ReceivedNoteRow
-import whitewallet.core.designsystem.waitsFor
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletListItem
@@ -76,6 +75,7 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.designsystem.showsWorking
+import whitewallet.core.designsystem.waitsFor
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.NoteAction

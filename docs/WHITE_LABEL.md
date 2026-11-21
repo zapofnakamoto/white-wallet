@@ -197,6 +197,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `received_unreachable` | Its mint didn't answer, so your wallet stopped trying. |
 | `received_unreachable_hours` | Its mint didn't answer for %d hour, so your wallet stopped trying. / Its mint didn't answer for %d hours, so your wallet stopped trying. (plural) |
 | `received_unreachable_days` | Its mint didn't answer for %d day, so your wallet stopped trying. / Its mint didn't answer for %d days, so your wallet stopped trying. (plural) |
+| `received_waiting_mint_unnamed` | Claimed when its mint answers. |
 | `received_lightning_no_key` | Its mint publishes no signing key, so it can only be received over Lightning, for a fee. |
 | `received_lightning_not_a_note` | Its mint doesn't answer for it as a note, so it can only be received over Lightning, for a fee. |
 
