@@ -28,6 +28,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- Receive finds a payment to the Lightning address it shows sooner: it looks there at once, then every 5 seconds, and
+  only at that address (its share, at its own mint) instead of refreshing the whole wallet every 15 seconds. For brands:
+  `sync.receive` now defaults to `5s`. For developers: `Wallet.lookForPayments(address)`.
 - A note received as a link and not claimed yet is calm while it only waits: Home says it in one line under the balance,
   which leads to the notes view, and its card holds only notes that need the user (a changed key, Lightning only, spent
   by someone else; every one where the brand has no Notes tab). Its row says what it waits for: "Claimed when you're back

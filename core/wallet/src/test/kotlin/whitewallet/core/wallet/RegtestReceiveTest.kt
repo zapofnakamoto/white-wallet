@@ -123,6 +123,29 @@ class RegtestReceiveTest {
         }
 
     @Test
+    fun `Receive finds a payment to the address it shows by looking at that address alone`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            Regtest.pay(alice.address, 1000)
+            var found = RefreshResult(0, 0)
+            repeat(20) {
+                if (found.receivedMsat > 0) return@repeat
+                found = alice.wallet.lookForPayments(alice.address)
+                if (found.receivedMsat == 0L) delay(500)
+            }
+            assertEquals(RefreshResult(1, 999_000), found)
+            assertEquals(999_000, alice.balance())
+            assertEquals(listOf(ActivityKind.Received to 999_000L), alice.wallet.activity.first().map { it.kind to it.amountMsat })
+            assertEquals(1, alice.wallet.keyIndex(HOST, KeySet.Share(0)))
+            // Looked at again, it is found once; and neither a look nor a refresh adds a row for it.
+            assertEquals(RefreshResult(0, 0), alice.wallet.lookForPayments(alice.address))
+            alice.wallet.refresh()
+            assertEquals(1, alice.wallet.activity.first().size)
+            // An address the account doesn't have asks nothing.
+            assertEquals(RefreshResult(0, 0), alice.wallet.lookForPayments("nobody@$HOST"))
+        }
+
+    @Test
     fun `unpaid invoices of an address take no keys, so the payment after them is found by a refresh`() =
         runBlocking<Unit> {
             val alice = Regtest.phone()

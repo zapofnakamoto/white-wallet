@@ -25,7 +25,8 @@ internal class AddressScanner(private val wallet: Wallet) {
         return sets.fold(RefreshResult(0, 0)) { total, set -> total + scan(accountId, host, set, run) }
     }
 
-    private suspend fun scan(accountId: String, host: String, set: KeySet.Share, run: LookupRun): RefreshResult {
+    /** One share's notes on [host], from where its last scan stopped. */
+    suspend fun scan(accountId: String, host: String, set: KeySet.Share, run: LookupRun): RefreshResult {
         val mint = wallet.mintOf(accountId, host) ?: return RefreshResult(0, 0)
         var count = 0
         var sumMsat = 0L

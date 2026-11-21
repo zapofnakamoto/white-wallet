@@ -142,7 +142,7 @@ android {
         buildConfigField("long", "READ_TIMEOUT_MILLIS", "${brand.brandDuration("network.timeout.read", "30s", "1s", "5m")}L")
         // WorkManager runs periodic work at most every 15 minutes.
         buildConfigField("long", "SYNC_BACKGROUND_MILLIS", "${brand.brandDuration("sync.background", "15m", "15m")}L")
-        buildConfigField("long", "SYNC_RECEIVE_MILLIS", "${brand.brandDuration("sync.receive", "15s", "1s", "5m")}L")
+        buildConfigField("long", "SYNC_RECEIVE_MILLIS", "${brand.brandDuration("sync.receive", "5s", "1s", "5m")}L")
         buildConfigField("long", "SYNC_INVOICE_MILLIS", "${brand.brandDuration("sync.invoice", "3s", "1s", "1m")}L")
         buildConfigField("long", "SYNC_SHARED_NOTE_MILLIS", "${brand.brandDuration("sync.sharedNote", "10s", "1s", "5m")}L")
         buildConfigField("long", "SYNC_PAYMENT_WAIT_MILLIS", "${brand.brandDuration("sync.paymentWait", "30s", "5s", "5m")}L")

@@ -1474,6 +1474,21 @@ class Wallet(
         invoices.status(id).also { if (it is InvoiceStatus.Paid) applyPolicies(activeId()) }
     }
 
+    /**
+     * Looks for payments to [address], one of the active account's: only its share is looked up, at its own mint, from where the last look
+     * stopped (see [AddressScanner]). What Receive asks while it shows the address; [refresh] does the rest. Nothing is asked of a mint
+     * whose signing key doesn't match ([RefreshResult.keyChanged]).
+     */
+    suspend fun lookForPayments(address: String): RefreshResult = lock.withLock {
+        val id = activeId()
+        val registered = store.addresses(id).first().firstOrNull { it.address == address && it.feeInvoice == null }
+        val host = registered?.host ?: return@withLock RefreshResult(0, 0)
+        val result = scanner.scan(id, host, KeySet.Share(registered.share), LookupRun(settings.scanLookupsAtOnce))
+        // As with a paid invoice: the note strategies see the money at once.
+        if (result.receivedMsat > 0) applyPolicies(id)
+        result
+    }
+
     suspend fun previewClaim(input: String): ClaimPreview = claimer.preview(input, activeId())
 
     /** Claims the note now. It is kept first, so if it can't be claimed now ([ClaimResult.Kept]), a refresh claims it later. */

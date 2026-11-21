@@ -177,8 +177,8 @@ enum class BackupRequired {
  * `security.clipboard.clearAfter`, `security.appLock.relockAfter`).
  */
 data class Timings(
-    /** Receive refreshes the wallet, for payments to the address. */
-    val receivePollMillis: Long = 15_000L,
+    /** Receive looks for payments to the address it shows ([Wallet.lookForPayments]). */
+    val receivePollMillis: Long = 5_000L,
     /** Receive asks whether its invoice was paid. */
     val invoicePollMillis: Long = 3_000L,
     /** A handed-out note's page asks whether it was claimed. */

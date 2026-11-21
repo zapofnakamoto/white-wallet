@@ -264,12 +264,11 @@ constructor(
             }
         }
         viewModelScope.launch {
+            // From the start, then again and again: a payment shows soon after it lands.
             while (isActive) {
-                delay(timings.receivePollMillis)
                 // Offline, there's nobody to ask: what arrived meanwhile is found once the phone is back.
-                if (wallet.offline.value) continue
-                val result = runCatching { wallet.refresh() }.getOrNull()
-                if (result != null) received.update { it + result }
+                if (!wallet.offline.value) lookForPayments()
+                delay(timings.receivePollMillis)
             }
         }
     }
@@ -350,11 +349,16 @@ constructor(
         viewModelScope.launch {
             val error = runCatching { faucet.pay(target, FAUCET_SATS) }.exceptionOrNull()
             ui.update { it.copy(faucet = FaucetState(error = error?.let { e -> e.message ?: e.javaClass.simpleName })) }
-            if (error == null && s.invoice == null) {
-                val result = runCatching { wallet.refresh() }.getOrNull()
-                if (result != null) received.update { it + result }
-            }
+            if (error == null && s.invoice == null) lookForPayments()
         }
+    }
+
+    /** Looks for payments to the address shown, if it is: only there, not a whole refresh (the invoice has its own watch). */
+    private suspend fun lookForPayments() {
+        val s = state.first { it.loaded }
+        val address = s.address?.takeIf { s.invoice == null && !s.showAmountForm } ?: return
+        val result = runCatching { wallet.lookForPayments(address) }.getOrNull()
+        if (result != null) received.update { it + result }
     }
 
     /** Asks the mint until the invoice is paid or expired, while the screen is open. */
