@@ -35,6 +35,9 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    // A test that hangs fails by its name, long before the run's own limit. The slowest take about a minute; a regtest key rotation waits
+    // up to two for its mint.
+    systemProperty("junit.jupiter.execution.timeout.default", "10 m")
     // The mock mint tests run against the conformance suite that dev/conformance.sh prepares in .conformance/; the
     // lockfile it installed from is an input, so they run again once it is there.
     val conformance = rootDir.resolve(".conformance")

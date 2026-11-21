@@ -2,7 +2,9 @@ package whitewallet.testkit
 
 import java.io.File
 import java.net.URI
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * The lnurlcash-conformance adversarial mock mint, run as a Node process.
@@ -27,6 +29,8 @@ public class MockMint private constructor(private val process: Process, public v
     }
 
     public companion object {
+        private const val START_SECONDS = 30L
+
         private val dir: File?
             get() =
                 System.getenv("LNURLCASH_CONFORMANCE")?.let(::File)?.takeIf {
@@ -44,7 +48,15 @@ public class MockMint private constructor(private val process: Process, public v
                     .redirectErrorStream(true)
                     .start()
             val reader = process.inputStream.bufferedReader()
-            val line = reader.readLine() ?: error("mock mint exited without announcing itself")
+            // A mock mint that never announces itself fails the test instead of holding it for good.
+            val announced = CompletableFuture.supplyAsync { reader.readLine() }
+            val line =
+                try {
+                    announced.get(START_SECONDS, TimeUnit.SECONDS)
+                } catch (e: TimeoutException) {
+                    process.destroyForcibly()
+                    error("mock mint did not announce itself within $START_SECONDS s")
+                } ?: error("mock mint exited without announcing itself")
             val url = Regex("listening on (\\S+)").find(line)?.groupValues?.get(1) ?: error("unexpected mock mint output: $line")
             Thread { reader.forEachLine {} }.apply { isDaemon = true }.start()
             return MockMint(process, url)
