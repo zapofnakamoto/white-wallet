@@ -1362,6 +1362,18 @@ class HomeScreenTest {
     }
 
     @Test
+    fun aHiddenBalanceStillSaysSomethingIsIncomingInOneLineWithANotesTab() {
+        show(
+            HomeState(activeAccountId = "a", balanceHidden = true, received = listOf(received("r1", ReceivedState.Waiting))),
+            withNotesTab = true,
+        )
+        compose.onNodeWithText("₿2,000", substring = true).assertDoesNotExist()
+        // The line under the balance, without its amount; no card repeats it.
+        compose.onAllNodesWithText(text(DesignR.string.received_title)).assertCountEquals(1)
+        compose.onNodeWithText(text(DesignR.string.received_waiting)).assertDoesNotExist()
+    }
+
+    @Test
     fun aNoteSomeoneElseSpentCanBeRemoved() {
         var dismissed: String? = null
         val gone = received("r1", ReceivedState.Gone)
