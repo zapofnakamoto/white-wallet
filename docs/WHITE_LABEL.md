@@ -182,7 +182,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `add_mint_adding_title` | Adding the mint |
 | `add_mint_adding_body` | Looking for what your recovery phrase holds on this mint, account by account. |
 | `add_mint_failed_key` | This mint now shows another signing key than a moment ago, so it wasn't added. Check that it is the mint you meant. |
-| `add_mint_added_body` | The mint is added. Your new wallet uses it from now on. |
+| `add_mint_added_body` | Your new wallet uses it from now on. |
 | `add_mint_found_none` | The mint is added. Nothing of your recovery phrase was found on it. |
 | `claim_melt_into_home` | Into %1$s, your home mint |
 | `claim_melt_pick` | Your account has no home mint. Which mint should receive it? |

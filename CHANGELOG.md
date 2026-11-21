@@ -53,6 +53,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - For developers: the string `wallet_numbered` and `walletName()` are in the design system; `OnboardingRoute.onDone`
   gives the setup's address, and `AddMintFinish` no longer says whether the wallet is backed up (`WalletReadyState`
   does).
+- In a wallet's setup, the page after its mint was added is titled "Mint added" and goes on with "Next", no longer
+  "Done" and "OK": more steps follow. For brands: new words for `add_mint_added_body` ("Your new wallet uses it from
+  now on."), which no longer repeats the title.
 - The success screens of sending and receiving keep their buttons at the bottom of the screen, also with large text.
 - With large text, a list row no longer splits its words: what stands on its right (an amount, a date, an action such
   as "Change home mint") goes below the text when beside it the text wouldn't fit, and a mint's name wraps after a dot

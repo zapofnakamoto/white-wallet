@@ -37,7 +37,7 @@
     <string name="add_mint_other">Pick another mint</string>
     <string name="add_mint_adding_body">Looking for what your recovery phrase holds on this mint, account by account.</string>
     <string name="add_mint_failed_key">This mint now shows another signing key than a moment ago, so it wasn\'t added. Check that it is the mint you meant.</string>
-    <string name="add_mint_added_body">The mint is added. Your new wallet uses it from now on.</string>
+    <string name="add_mint_added_body">Your new wallet uses it from now on.</string>
     <string name="add_mint_found_none">The mint is added. Nothing of your recovery phrase was found on it.</string>
     <string name="add_mint_adding_title">Adding the mint</string>
 

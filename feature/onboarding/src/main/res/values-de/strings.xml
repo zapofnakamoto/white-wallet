@@ -28,7 +28,7 @@
     <string name="add_mint_other">Andere Mint wählen</string>
     <string name="add_mint_adding_body">Es wird gesucht, was deine Wiederherstellungsphrase bei dieser Mint hält, Konto für Konto.</string>
     <string name="add_mint_failed_key">Diese Mint zeigt jetzt einen anderen Signaturschlüssel als eben, daher wurde sie nicht hinzugefügt. Prüfe, ob es die gemeinte Mint ist.</string>
-    <string name="add_mint_added_body">Die Mint ist hinzugefügt. Deine neue Wallet nutzt sie ab jetzt.</string>
+    <string name="add_mint_added_body">Deine neue Wallet nutzt sie ab jetzt.</string>
     <string name="add_mint_found_none">Die Mint ist hinzugefügt. Von deiner Wiederherstellungsphrase wurde dort nichts gefunden.</string>
     <string name="add_mint_adding_title">Mint wird hinzugefügt</string>
 

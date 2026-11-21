@@ -92,7 +92,13 @@ fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
         stringResource(
             when (state.step) {
                 AddMintStep.Adding -> R.string.add_mint_adding_title
-                AddMintStep.Result -> if (state.failed == null) R.string.add_mint_done_title else R.string.add_mint_failed_title
+                AddMintStep.Result ->
+                    when {
+                        state.failed != null -> R.string.add_mint_failed_title
+                        // A setup isn't done with its mint: the title says what is, and the button leads on.
+                        state.setup && !state.keyAccepted -> R.string.mint_added_title
+                        else -> R.string.add_mint_done_title
+                    }
                 else -> if (state.setup) R.string.add_mint_setup_title else R.string.add_mint_title
             }
         )
@@ -250,7 +256,7 @@ private fun ResultContent(state: AddMintState, actions: AddMintActions) {
         }
     }
     when {
-        failed == null -> PrimaryButton(stringResource(R.string.add_mint_ok), actions.onDone)
+        failed == null -> PrimaryButton(stringResource(if (state.setup) R.string.add_mint_next else R.string.add_mint_ok), actions.onDone)
         // The mint is added, only its scan stopped: again right here, or later from the main screen.
         state.kept -> {
             PrimaryButton(stringResource(R.string.add_mint_try_again), actions.onAdd)

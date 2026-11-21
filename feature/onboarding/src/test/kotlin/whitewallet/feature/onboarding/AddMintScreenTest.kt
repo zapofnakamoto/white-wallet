@@ -176,8 +176,20 @@ class AddMintScreenTest {
     fun theSetupsResultIsNotASuccessScreen() {
         showDecorated(pick.copy(setup = true, step = AddMintStep.Result, preview = preview, progress = ScanProgress(emptyList())))
         compose.onNodeWithText(text(R.string.add_mint_found_none)).assertExists()
-        compose.onNodeWithText(text(R.string.add_mint_ok)).assertExists()
         assertTrue(decorated.none { it.first == Anchor.MintAdded })
+    }
+
+    @Test
+    fun theSetupsResultSaysTheMintIsAddedAndLeadsOn() {
+        var next = 0
+        show(pick.copy(setup = true, step = AddMintStep.Result, preview = preview), AddMintActions(onDone = { next++ }))
+        // More steps follow: nothing says "Done", and the button is the one every step goes on with.
+        compose.onNodeWithText(text(R.string.mint_added_title)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_done_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_added_body)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_ok)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_next)).performClick()
+        assertEquals(1, next)
     }
 
     @Test
