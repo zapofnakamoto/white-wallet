@@ -29,7 +29,9 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`. Scopes
 (`feat(brand)!: …`) and explain them in the body.
 
 A change users or brands will notice also adds a line to `CHANGELOG.md` under `## [Unreleased]`. A release renames
-that section to the version and tags `v<version>`; CI turns the section into the GitHub release notes.
+that section to the version and tags `v<version>`; CI turns the section into the GitHub release notes. The tag's CI
+run also runs the device tests on an emulator, and creates no release if they fail: run `just test-device` before
+tagging.
 
 ## Project rules
 

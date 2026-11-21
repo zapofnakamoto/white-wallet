@@ -8,6 +8,8 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
+  # By hand (Actions > CI > Run workflow): the way to run the device tests without a tag.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -56,7 +58,7 @@ jobs:
         run: ./gradlew spotlessCheck
 
       - name: Unit and integration tests, lint, debug build
-        run: ./gradlew test :feature:settings:testDebugUnitTest :app:lintDebug :app:assembleDebug
+        run: ./gradlew test :app:lintDebug :app:assembleDebug
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
@@ -160,13 +162,19 @@ jobs:
       - name: Regtest tests, with coverage
         env:
           LNURLCASH_REGTEST: "1"
-        run: ./gradlew :core:wallet:test --tests '*Regtest*' :core:wallet:jacocoTestReport :core:data:testDebugUnitTest --tests '*Regtest*'
+        run: >
+          ./gradlew
+          :core:wallet:test --tests '*Regtest*' :core:wallet:jacocoTestReport
+          :core:data:testDebugUnitTest --tests '*Regtest*'
+          :feature:onboarding:testDebugUnitTest --tests '*Regtest*'
 
       - name: Every regtest test ran
         run: |
-          results=(core/wallet/build/test-results/test/TEST-*Regtest*.xml core/data/build/test-results/testDebugUnitTest/TEST-*Regtest*.xml)
-          [[ -e "${results[0]}" ]] || { echo "No regtest test results." >&2; exit 1; }
-          if grep -h '<skipped' "${results[@]}"; then echo "Regtest tests were skipped (above)." >&2; exit 1; fi
+          for dir in core/wallet/build/test-results/test core/data/build/test-results/testDebugUnitTest feature/onboarding/build/test-results/testDebugUnitTest; do
+            results=("$dir"/TEST-*Regtest*.xml)
+            [[ -e "${results[0]}" ]] || { echo "No regtest test results in $dir." >&2; exit 1; }
+            if grep -h '<skipped' "${results[@]}"; then echo "Regtest tests were skipped in $dir (above)." >&2; exit 1; fi
+          done
 
       - name: Stack logs
         if: failure()
@@ -180,6 +188,7 @@ jobs:
             core/wallet/build/reports/
             core/wallet/build/test-results/
             core/data/build/test-results/
+            feature/onboarding/build/test-results/
             regtest-logs.txt
 
   brands:
@@ -214,9 +223,50 @@ jobs:
           dev/new-brand.sh --name "CI Cash" --id org.ci.cash --mint mint.ci.example --primary "#6A1B9A"
           --logo brand/res/drawable/ic_launcher_foreground.xml --out build/ci-brand --no-mint-check
 
+  device:
+    # What only a device can check (docs/DEVELOPMENT.md, "instrumented tests"): the Keystore-encrypted seed, the SQLCipher database and
+    # the native secp256k1 the app ships, on an emulator. An emulator takes minutes to start and now and then doesn't, so not on every
+    # push: before a release, and when run by hand.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      # Without it the emulator runs unaccelerated, too slow to start in time.
+      - name: Let the runner use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Device tests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: default
+          disable-animations: true
+          # The emulator is thrown away, so the app's tests may uninstall the app afterwards (unlike `just test-device`).
+          script: ./gradlew :core:data:connectedDebugAndroidTest :app:connectedDebugAndroidTest
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: device-reports
+          retention-days: 7
+          path: |
+            **/build/reports/androidTests/
+            **/build/outputs/androidTest-results/
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [check, regtest, brands]
+    needs: [check, regtest, brands, device]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

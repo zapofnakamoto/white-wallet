@@ -104,6 +104,16 @@ coverage *gradle_args:
     LNURLCASH_REGTEST=1 just test jacocoTestReport {{ gradle_args }}
     @echo "core/wallet: file://{{ justfile_directory() }}/core/wallet/build/reports/jacoco/test/html/index.html"
 
+# The tests only a device can run (Keystore, SQLCipher, the native secp256k1), on the connected phone or emulator (keeps the wallet's data)
+[group('checks')]
+test-device brand=brand:
+    ./gradlew :core:data:connectedDebugAndroidTest
+    ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -PbrandDir={{ brand }}
+    {{ adb }} install -r app/build/outputs/apk/debug/app-debug.apk
+    {{ adb }} install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+    # am instrument exits 0 whatever the tests did: its last lines say "OK (n tests)" only when all passed.
+    {{ adb }} shell am instrument -w "$(just package {{ brand }}).test/androidx.test.runner.AndroidJUnitRunner" | tee /dev/stderr | grep -q '^OK ('
+
 # Formats every Kotlin source and build script (ktfmt, kotlinlang style, 140 wide)
 [group('checks')]
 format:

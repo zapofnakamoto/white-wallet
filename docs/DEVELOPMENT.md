@@ -9,7 +9,7 @@
 
 ## Shortcuts
 
-`just` lists the everyday tasks from the `justfile`: `just build`, `just install`, `just run` (install and open), `just logcat`, `just test`, `just test-regtest`, `just lint`, `just check` (everything CI checks), `just new-brand …`, `just regtest up|status|connect|…`, `just note 500`, `just pay <address> 1000`. Tasks that take a brand default to `brand/`: `just run brand-examples/acme`, or `BRAND=… just …`. With several devices connected, set `ANDROID_SERIAL` (see `just devices`). `just test` prepares the conformance suite in `.conformance/` first.
+`just` lists the everyday tasks from the `justfile`: `just build`, `just install`, `just run` (install and open), `just logcat`, `just test`, `just test-regtest`, `just test-device`, `just lint`, `just check` (everything CI checks), `just new-brand …`, `just regtest up|status|connect|…`, `just note 500`, `just pay <address> 1000`. Tasks that take a brand default to `brand/`: `just run brand-examples/acme`, or `BRAND=… just …`. With several devices connected, set `ANDROID_SERIAL` (see `just devices`). `just test` prepares the conformance suite in `.conformance/` first.
 
 To install on a phone without a cable (Android 11+), open Developer options → Wireless debugging → "Pair device with pairing code" on the phone and run `just pair`: it asks for the pairing address and code, then for the address under "IP address & Port" to connect to. Later sessions only need `just connect <ip:port>`. `just phone` then builds the latest debug build, installs it on the connected phone (never an emulator) and opens it. `just regtest connect` forwards the local regtest mints over wireless debugging as well, for as long as the phone stays connected.
 
@@ -62,18 +62,14 @@ The test classes of `core/wallet` run in up to four JVMs at once (`maxParallelFo
 What only a device can check runs as **instrumented tests**: the Keystore-encrypted seed, the SQLCipher database and its passphrase (`core/data/src/androidTest`), and the native secp256k1 the app ships (`app/src/androidTest`):
 
 ```sh
-./gradlew :core:data:connectedDebugAndroidTest
-# The app's tests: connectedDebugAndroidTest uninstalls the app afterwards (and with it your wallet), so on a
-# device you use, install and run them by hand:
-./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-adb shell am instrument -w com.example.whitewallet.debug.test/androidx.test.runner.AndroidJUnitRunner
+just test-device            # both, on the connected phone or emulator
 ```
+
+CI runs them on an emulator only for a version tag, before it creates the release, and when its workflow is run by hand: run them yourself after a change to the encrypted storage or the native library. `:app:connectedDebugAndroidTest` would uninstall the app afterwards (and with it your wallet), so `just test-device` installs the app and its tests over the installed ones and runs them with `adb shell am instrument`.
 
 The brand scaffolder (`dev/new-brand.sh`, see docs/WHITE_LABEL.md) and the screenshot report (`dev/screenshots.py`) have Python tests: `python3 -m unittest discover -s dev -p 'test_*.py'`.
 
-CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the regtest tests of `core/wallet` and `core/data` against the current stack (`regtest.sh up` on the runner), failing if any was skipped, with the wallet's coverage report and the stack's logs as artifacts; lint, the brand check (`dev/check-brand.sh`), the flash check (`dev/check-flash.sh`), the lookup check (`dev/check-lookups.sh`: a note looked up at a mint whose signing key wasn't checked first), the resource check (`dev/check-resources.sh`: a string or other resource name defined in two modules, of which only one reaches the app), builds both sample brands, draws their screenshots (see "Screenshots") and generates and builds a brand with the
+CI (`.github/workflows/ci.yml`) runs the unit, integration and screen tests; the regtest tests of `core/wallet`, `core/data` and `feature/onboarding` against the current stack (`regtest.sh up` on the runner), failing if any was skipped, with the wallet's coverage report and the stack's logs as artifacts; lint, the brand check (`dev/check-brand.sh`), the flash check (`dev/check-flash.sh`), the lookup check (`dev/check-lookups.sh`: a note looked up at a mint whose signing key wasn't checked first), the resource check (`dev/check-resources.sh`: a string or other resource name defined in two modules, of which only one reaches the app), builds both sample brands, draws their screenshots (see "Screenshots") and generates and builds a brand with the
 scaffolder; on a `v*` tag it creates the GitHub release with that version's `CHANGELOG.md` section. It builds no release APK: brands sign and publish their own.
 
 ## Wallet settings
