@@ -12,8 +12,6 @@
     <string name="send_problem_mint_silent_unnamed">Your mint isn\'t answering. Nothing was paid. Try again later.</string>
     <string name="send_problem_key_changed">The signing key of the mint doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the mint\'s details. Your notes there are unchanged.</string>
     <string name="send_problem_own_mint_invoice">This invoice is from your own mint, which can\'t pay itself over Lightning. Ask for a Lightning address instead.</string>
-    <!-- A mint's own address (mint@<domain>): paying it makes a note, it pays nobody. -->
-    <string name="send_problem_mint_address">That\'s a mint\'s own address. Nobody can be paid there.</string>
     <string name="send_problem_invoice_used">This invoice was already used. Ask for a new one.</string>
     <!-- %1$s: the mint's own words, in whatever language it writes. -->
     <string name="send_problem_mint_message">Message from the mint: “%1$s”</string>

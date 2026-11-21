@@ -280,7 +280,6 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `send_problem_mint_silent_unnamed` | Your mint isn't answering. Nothing was paid. Try again later. |
 | `send_problem_key_changed` | The signing key of the mint doesn't match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the mint's details. Your notes there are unchanged. |
 | `send_problem_own_mint_invoice` | This invoice is from your own mint, which can't pay itself over Lightning. Ask for a Lightning address instead. |
-| `send_problem_mint_address` | That's a mint's own address. Nobody can be paid there. |
 | `send_problem_invoice_used` | This invoice was already used. Ask for a new one. |
 | `send_problem_mint_message` | Message from the mint: “%1$s” |
 | `send_from_detail_home` | Home mint · up to %1$s |
