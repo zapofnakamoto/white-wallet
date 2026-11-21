@@ -96,6 +96,10 @@ data class NotesState(
     val noteActions: Set<NoteAction> = NoteAction.entries.toSet(),
     /** Whether mints are named (brand `mints.visible`); without, one mint's notes are a plain list. */
     val showMints: Boolean = true,
+    /** The phone is offline ([Wallet.offline]): the view says so, and a received note waits for it. */
+    val offline: Boolean = false,
+    /** Every mint that didn't answer the last time the wallet asked it: what a received note there waits for. */
+    val notAnsweringHosts: Set<String> = emptySet(),
     /** Debug builds in developer mode: a note's sheet offers making the next action fail ([SimulatedFailure]). */
     val failuresOffered: Boolean = false,
     /** How the next action fails, once; null: it runs as it is. */
@@ -251,8 +255,11 @@ constructor(
         val sort: NoteSort,
     )
 
+    /** Whether the phone is offline, and the mints that didn't answer: what a received note waits for. */
+    private val reach = combine(wallet.offline, wallet.mintsNotAnswering, ::Pair)
+
     val state: StateFlow<NotesState> =
-        combine(wallet.notes, wallet.receivedNotes, context, ui) { notes, received, c, u ->
+        combine(wallet.notes, wallet.receivedNotes, context, ui, reach) { notes, received, c, u, (offline, notAnswering) ->
                 val live = notes.filter {
                     it.state == NoteState.Outstanding ||
                         it.state == NoteState.Paying ||
@@ -280,6 +287,8 @@ constructor(
                     mints = mints,
                     shared = sharedNotes(notes, c.sort),
                     received = ReceivedNote.shown(received),
+                    offline = offline,
+                    notAnsweringHosts = notAnswering,
                     archivedLinks = ReceivedNote.archived(received).size,
                     archivedNotes = notes.count { it.isArchived },
                     sort = c.sort,

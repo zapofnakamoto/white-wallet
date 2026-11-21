@@ -49,6 +49,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
@@ -63,6 +64,7 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.designsystem.ReceivedNoteRow
+import whitewallet.core.designsystem.waitsFor
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletListItem
@@ -256,6 +258,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
                             state.showMints,
                             amountHidden = false,
                             actions.received,
+                            wait = note.waitsFor(state.offline, state.notAnsweringHosts),
                         )
                     }
                 }
@@ -311,6 +314,8 @@ private fun Summary(state: NotesState) {
 /** Empty without notes, waiting while handed-out notes are out, else idle. */
 internal fun notesStatus(state: NotesState): WalletStatus =
     when {
+        // As on Home: offline comes first, whatever the notes.
+        state.offline -> WalletStatus.Problem(ProblemKind.Offline)
         state.noteCount == 0 && state.shared.isEmpty() && state.received.none { it.isPending } -> WalletStatus.Empty
         state.sharedMsat > 0 -> WalletStatus.WaitingForRecipient
         else -> WalletStatus.Idle

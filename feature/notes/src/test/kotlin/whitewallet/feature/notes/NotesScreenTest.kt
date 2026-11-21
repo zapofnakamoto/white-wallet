@@ -31,6 +31,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandComponents
@@ -477,6 +478,27 @@ class NotesScreenTest {
         compose.onNodeWithText("Locked until ", substring = true).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_on, "mint.example")).assertExists()
         compose.onNodeWithText("No notes yet", substring = true).assertDoesNotExist()
+    }
+
+    private fun waiting() =
+        ReceivedNote("w".repeat(64), "a", "mint.example", "w", "k1", null, null, 4_000_000, null, null, ReceivedState.Waiting, null, 1, 1)
+
+    @Test
+    fun offlineTheNotesViewSaysSoInItsStatusAndRows() {
+        val state = NotesState(loaded = true, offline = true, received = listOf(waiting()))
+        assertEquals(WalletStatus.Problem(ProblemKind.Offline), notesStatus(state))
+        compose.setContent { NotesContent(state, NotesActions()) }
+        compose.onNodeWithText(text(DesignR.string.received_waiting_offline)).assertExists()
+    }
+
+    @Test
+    fun aWaitingReceivedNoteOnASilentMintSaysSoAndOffersNoArchive() {
+        compose.setContent {
+            NotesContent(NotesState(loaded = true, notAnsweringHosts = setOf("mint.example"), received = listOf(waiting())), NotesActions())
+        }
+        compose.onNodeWithText(text(DesignR.string.received_waiting_mint, "mint.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_hint)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_archive)).assertDoesNotExist()
     }
 
     @Test
