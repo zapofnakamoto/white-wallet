@@ -42,6 +42,7 @@ class AddMintScreenTest {
             maxSendableMsat = 1_000_000_000,
             addressFeeMsat = null,
             signingKey = "02aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
+            keyAnswered = true,
             knownKey = null,
         )
 

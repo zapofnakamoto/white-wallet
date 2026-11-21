@@ -7,10 +7,12 @@ import java.io.IOException
 import java.security.SecureRandom
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -126,6 +128,7 @@ abstract class AddMintTest {
             val id = assertIs<RestoreResult.Restored>(phone.restore(phrase(), host = null)).accountId
             val preview = assertIs<MintPreview.Ready>(phone.wallet.previewMint(other))
             assertNotNull(preview.signingKey)
+            assertTrue(preview.keyAnswered)
             assertNull(preview.knownKey)
             assertNull(phone.store.mint(other), "nothing saved, nothing pinned")
             assertNull(phone.store.homeOf(id))
@@ -136,6 +139,34 @@ abstract class AddMintTest {
             assertNull(phone.store.mint(other))
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other, expectedKey = preview.signingKey))
             assertEquals(preview.signingKey, assertIs<MintPreview.Ready>(phone.wallet.previewMint(other)).knownKey)
+        }
+
+    @Test
+    fun `a preview tells a mint that shows no signing key from one that can't be asked for it`() =
+        runBlocking<Unit> {
+            val discovery = Requests.serviceWithdrawDiscoveryUrl(other)
+            var answer: (Interceptor.Chain) -> Response = { Regtest.dropped() }
+            val phone =
+                Fresh(
+                    Interceptor { chain ->
+                        if (chain.request().url.toString() == discovery) answer(chain) else chain.proceed(chain.request())
+                    }
+                )
+            assertIs<RestoreResult.Restored>(phone.restore(phrase(), host = null))
+
+            val dropped = assertIs<MintPreview.Ready>(phone.wallet.previewMint(other))
+            assertNull(dropped.signingKey)
+            assertFalse(dropped.keyAnswered)
+
+            // A refusal is no answer about its key either.
+            answer = { Regtest.answer(it, """{"status":"ERROR","reason":"down"}""") }
+            assertFalse(assertIs<MintPreview.Ready>(phone.wallet.previewMint(other)).keyAnswered)
+
+            answer = { Regtest.withoutSigningKey(it.proceed(it.request())) }
+            val keyless = assertIs<MintPreview.Ready>(phone.wallet.previewMint(other))
+            assertNull(keyless.signingKey)
+            assertTrue(keyless.keyAnswered)
+            assertNull(phone.store.mint(other), "nothing saved")
         }
 
     @Test

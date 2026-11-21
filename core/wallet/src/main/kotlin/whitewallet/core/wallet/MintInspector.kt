@@ -44,7 +44,8 @@ sealed interface MintPreview {
     /**
      * It answers as a mint: its [description], fees ([feeBaseMsat] plus [feePpm] per million), what one payment to it may be, the fee for
      * an address ([addressFeeMsat], null for none), and the signing key it presents now ([signingKey]; [knownKey] if the wallet pinned one
-     * already).
+     * already). Without a [signingKey] it showed none, or ([keyAnswered] false) couldn't be asked for it: no answer says nothing about its
+     * key.
      */
     data class Ready(
         override val host: String,
@@ -55,6 +56,7 @@ sealed interface MintPreview {
         val maxSendableMsat: Long,
         val addressFeeMsat: Long?,
         val signingKey: String?,
+        val keyAnswered: Boolean,
         val knownKey: String?,
     ) : MintPreview
 
@@ -69,7 +71,8 @@ internal class MintInspector(private val wallet: Wallet) {
         val h = Onboarding.normalizeHost(host) ?: return MintPreview.Invalid(host, "not a valid host")
         return try {
             val pay = wallet.client.servicePayRequest(h)
-            val key = runCatching { wallet.client.withdrawDiscovery(h).mintPubkey?.toHex() }.getOrNull()
+            // Null if it can't be asked now.
+            val discovery = runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
             val walletId = wallet.store.currentAccountId()?.let { wallet.walletOf(it) }
             MintPreview.Ready(
                 host = h,
@@ -80,7 +83,8 @@ internal class MintInspector(private val wallet: Wallet) {
                 minSendableMsat = pay.pay.minSendable,
                 maxSendableMsat = pay.pay.maxSendable,
                 addressFeeMsat = pay.fee?.addressMsat?.takeIf { it > 0 },
-                signingKey = key,
+                signingKey = discovery?.mintPubkey?.toHex(),
+                keyAnswered = discovery != null,
                 knownKey = walletId?.let { wallet.store.mint(it, h)?.mintPubkey },
             )
         } catch (e: ProtocolViolation) {
