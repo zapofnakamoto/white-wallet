@@ -63,7 +63,7 @@
     <string name="claim_kept">Kept. Your wallet claims it on its own as soon as it can.</string>
     <string name="claim_kept_until">Kept. Your wallet claims it after %1$s.</string>
     <string name="claim_kept_locked">Kept. Your wallet claims it once it opens.</string>
-    <string name="claim_kept_hint">Not yours yet: the sender can still spend it, and your recovery phrase doesn\'t cover it.</string>
+    <string name="claim_kept_hint">Not safe until claimed: the sender can still spend the money, and if you lose this phone first, it\'s gone.</string>
     <string name="claim_failed">The claim was refused: %1$s</string>
     <string name="claim_pending">No answer yet. Your wallet asks again on the next refresh.</string>
     <string name="claim_take_back">Take back %1$s</string>

@@ -65,12 +65,16 @@
 
     <!-- Received as a link, not claimed yet (the notes view, and Home under the balance). -->
     <string name="received_title">Received, not claimed yet</string>
-    <string name="received_hint">Your wallet claims these on its own. Until then they aren\'t in your balance, your recovery phrase doesn\'t cover them, and whoever gave you a link can still spend it.</string>
+    <string name="received_hint">Not safe until claimed: the sender can still spend the money, and if you lose this phone first, it\'s gone. Your wallet claims it on its own.</string>
     <string name="received_total">%1$s received, not claimed yet</string>
     <string name="received_unconfirmed">%1$s, not checked yet</string>
     <string name="received_unknown_amount">Amount not known yet</string>
     <string name="received_on">On %1$s</string>
-    <string name="received_waiting">Not claimed yet. Tried again when online.</string>
+    <string name="received_waiting_offline">Claimed when you\'re back online.</string>
+    <!-- A received note waits for its mint, which didn't answer the last time. %1$s: the mint. -->
+    <string name="received_waiting_mint">Claimed when %1$s answers.</string>
+    <string name="received_waiting_mint_unnamed">Claimed when its mint answers.</string>
+    <string name="received_waiting">Claimed on the next refresh.</string>
     <string name="received_locked_until">Locked until %1$s</string>
     <string name="received_locked">Locked for now. Tried again on every refresh.</string>
     <string name="received_claiming">Being claimed. Checked again on the next refresh.</string>

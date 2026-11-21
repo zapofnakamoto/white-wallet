@@ -15,11 +15,48 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.UnclaimedReason
 
-/** Where a received note stands, in the user's language: why it isn't claimed yet, or why it can't be. */
+/** What a received note in [ReceivedState.Waiting] waits for: what its row says. */
+enum class ReceivedWait {
+    /** The phone: offline, nothing is asked. */
+    Offline,
+
+    /** Its mint, which didn't answer the last time. */
+    MintNotAnswering,
+
+    /** Nothing in the way: the next refresh claims it. */
+    NextRefresh,
+}
+
+/** What this note waits for: offline first (it says nothing about the mint), then its mint if it is among [notAnswering]. */
+fun ReceivedNote.waitsFor(offline: Boolean, notAnswering: Set<String>): ReceivedWait =
+    when {
+        offline -> ReceivedWait.Offline
+        host in notAnswering -> ReceivedWait.MintNotAnswering
+        else -> ReceivedWait.NextRefresh
+    }
+
+/**
+ * Whether the user should look at it: its mint's key changed, only Lightning brings it in, or someone else spent it. Every other pending
+ * note only waits, and the wallet claims it on its own.
+ */
+val ReceivedNote.needsUser: Boolean
+    get() = state == ReceivedState.KeyChanged || state == ReceivedState.LightningOnly || state == ReceivedState.Gone
+
+/**
+ * Where a received note stands, in the user's language: why it isn't claimed yet ([wait], naming its mint where [mintNamed]), or why it
+ * can't be.
+ */
 @Composable
-fun receivedNoteStatus(note: ReceivedNote): String =
+fun receivedNoteStatus(note: ReceivedNote, wait: ReceivedWait = ReceivedWait.NextRefresh, mintNamed: Boolean = true): String =
     when (note.state) {
-        ReceivedState.Waiting -> stringResource(R.string.received_waiting)
+        ReceivedState.Waiting ->
+            when (wait) {
+                ReceivedWait.Offline -> stringResource(R.string.received_waiting_offline)
+                ReceivedWait.MintNotAnswering ->
+                    if (mintNamed) stringResource(R.string.received_waiting_mint, note.host)
+                    else stringResource(R.string.received_waiting_mint_unnamed)
+                ReceivedWait.NextRefresh -> stringResource(R.string.received_waiting)
+            }
         ReceivedState.Locked ->
             note.lockedUntilMillis?.let { stringResource(R.string.received_locked_until, recentTime(it)) }
                 ?: stringResource(R.string.received_locked)
@@ -71,7 +108,7 @@ class ReceivedNoteActions(
     val receive: (String) -> Unit = {},
 )
 
-/** A received note in a list, with the action its state offers (see [ReceivedNoteActions]). */
+/** A received note in a list, with the action its state offers (see [ReceivedNoteActions]) and what it [wait]s for. */
 @Composable
 fun ReceivedNoteRow(
     note: ReceivedNote,
@@ -79,11 +116,12 @@ fun ReceivedNoteRow(
     amountHidden: Boolean,
     actions: ReceivedNoteActions,
     modifier: Modifier = Modifier,
-) = ReceivedNoteRow(note, showMint, amountHidden, modifier, trailing = receivedNoteAction(note, actions))
+    wait: ReceivedWait = ReceivedWait.NextRefresh,
+) = ReceivedNoteRow(note, showMint, amountHidden, modifier, wait = wait, trailing = receivedNoteAction(note, actions))
 
 /**
- * A received note in a list: what it is worth as far as known (not with [amountHidden]), on which mint ([showMint]), and where it stands,
- * with [trailing] actions of the caller's own (the archive's).
+ * A received note in a list: what it is worth as far as known (not with [amountHidden]), on which mint ([showMint]), and where it stands
+ * (what it [wait]s for), with [trailing] actions of the caller's own (the archive's).
  */
 @Composable
 fun ReceivedNoteRow(
@@ -91,9 +129,10 @@ fun ReceivedNoteRow(
     showMint: Boolean,
     amountHidden: Boolean,
     modifier: Modifier = Modifier,
+    wait: ReceivedWait = ReceivedWait.NextRefresh,
     trailing: (@Composable () -> Unit)?,
 ) {
-    val status = receivedNoteStatus(note)
+    val status = receivedNoteStatus(note, wait, mintNamed = showMint)
     val amount =
         when {
             amountHidden -> null
@@ -115,8 +154,8 @@ fun ReceivedNoteRow(
 }
 
 /**
- * Remove for one spent by someone else, Archive for one the wallet still tries, Receive (and Archive) for one only Lightning can bring in;
- * nothing while it is being claimed.
+ * Remove for one spent by someone else, Archive for one whose mint's key changed, Receive (and Archive) for one only Lightning can bring in;
+ * nothing for one that only waits (the wallet claims it, or archives it after trying long enough).
  */
 private fun receivedNoteAction(note: ReceivedNote, actions: ReceivedNoteActions): (@Composable () -> Unit)? =
     when (note.state) {
@@ -139,8 +178,6 @@ private fun receivedNoteAction(note: ReceivedNote, actions: ReceivedNoteActions)
                 }
             }
         }
-        ReceivedState.Waiting,
-        ReceivedState.Locked,
         ReceivedState.KeyChanged -> {
             {
                 WalletButton(kind = ButtonKind.Text, onClick = { actions.archive(note.id) }) {

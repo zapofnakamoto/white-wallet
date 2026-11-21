@@ -34,12 +34,16 @@
     <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
 
     <string name="received_title">Erhalten, noch nicht eingelöst</string>
-    <string name="received_hint">Deine Wallet löst sie von selbst ein. Bis dahin sind sie nicht in deinem Guthaben, deine Wiederherstellungsphrase deckt sie nicht ab, und wer dir einen Link gegeben hat, kann ihn noch ausgeben.</string>
+    <string name="received_hint">Nicht sicher, bis es eingelöst ist: Der Absender kann das Geld noch ausgeben, und wenn du dieses Telefon vorher verlierst, ist es weg. Deine Wallet löst es von selbst ein.</string>
     <string name="received_total">%1$s erhalten, noch nicht eingelöst</string>
     <string name="received_unconfirmed">%1$s, noch nicht geprüft</string>
     <string name="received_unknown_amount">Betrag noch nicht bekannt</string>
     <string name="received_on">Auf %1$s</string>
-    <string name="received_waiting">Noch nicht eingelöst. Wird erneut versucht, sobald du online bist.</string>
+    <string name="received_waiting_offline">Wird eingelöst, sobald du wieder online bist.</string>
+    <!-- A received note waits for its mint, which didn't answer the last time. %1$s: the mint. -->
+    <string name="received_waiting_mint">Wird eingelöst, sobald %1$s antwortet.</string>
+    <string name="received_waiting_mint_unnamed">Wird eingelöst, sobald seine Mint antwortet.</string>
+    <string name="received_waiting">Wird bei der nächsten Aktualisierung eingelöst.</string>
     <string name="received_locked_until">Gesperrt bis %1$s</string>
     <string name="received_locked">Vorerst gesperrt. Wird bei jedem Aktualisieren erneut versucht.</string>
     <string name="received_key_changed">Der Signaturschlüssel seiner Mint passt nicht zu dem, den deine Wallet kennt. Wird eingelöst, sobald er wieder passt oder du in den Details der Mint einen neuen annimmst.</string>
