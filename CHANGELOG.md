@@ -19,6 +19,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - For developers: `SuccessScreen` takes its buttons as `SuccessAction`, an optional amount, `lines` and extra
   `content`, and keeps its buttons at the bottom; back does what its main button does. `CopyShare` is in the design
   system. docs/DEVELOPMENT.md, "Success screens", says how to add one.
+- For developers: Developer options → Network → **Offline** (debug builds, developer mode on): no request goes out and
+  every screen behaves as with the phone offline, while other apps keep the network.
 - For brands and developers: screenshots. `just screenshots [brand dir]` draws a preview of every shared screen in its
   everyday state, and the success screens and the empty state in each of theirs, in a brand's design, light and dark, with a large font and in German, and
   shows what changed since the last run; `just check` and CI draw a small set for each sample brand and compare it
@@ -26,6 +28,15 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- A note received as a link and not claimed yet is calm while it only waits: Home says it in one line under the balance,
+  which leads to the notes view, and its card holds only notes that need the user (a changed key, Lightning only, spent
+  by someone else; every one where the brand has no Notes tab). Its row says what it waits for: "Claimed when you're back
+  online.", "Claimed when mint.example answers." or "Claimed on the next refresh.", and offers Archive only where waiting
+  won't help (a changed key, Lightning only, a lock that has passed). That it isn't safe until claimed is said once, where
+  the user keeps it (Claim) and at the head of the notes view's section, in one wording. The notes view's status is
+  offline like Home's.
+- For brands: the brand term `received_waiting_mint_unnamed` ("Claimed when its mint answers."); new words for
+  `received_waiting`, `received_hint` and `claim_kept_hint`.
 - The success screens of sending and receiving keep their buttons at the bottom of the screen, also with large text.
 - With large text, a list row no longer splits its words: what stands on its right (an amount, a date, an action such
   as "Change home mint") goes below the text when beside it the text wouldn't fit, and a mint's name wraps after a dot
