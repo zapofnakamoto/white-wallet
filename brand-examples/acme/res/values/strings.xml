@@ -277,7 +277,7 @@
     <string name="claim_melt_no_mint">Add a provider first, then open this link again.</string>
     <string name="claim_kept_for_lightning">Kept. Receive it over Lightning once you\'ve added a provider.</string>
     <string name="claim_melt_no_signing_key">%1$s publishes no signing key, so your wallet doesn\'t keep money there. It can be received over Lightning instead, for a fee.</string>
-    <string name="onboarding_error_mint_without_key">This provider publishes no signing key, so your wallet can\'t check that its banknotes are real or notice if it is swapped. Choose another provider.</string>
+    <string name="onboarding_error_mint_without_key">This provider isn\'t showing its signing key, so it can\'t be added. Without it your wallet can\'t check that its banknotes are real. It may be back in a moment; if not, pick another provider.</string>
     <string name="home_mint_is_home_not_answering">Provider · not answering</string>
     <string name="home_mint_is_home_key_changed">Provider · signing key doesn\'t match</string>
     <string name="home_mint_silent_title_home">Your provider, %1$s, isn\'t answering</string>

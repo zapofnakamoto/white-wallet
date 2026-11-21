@@ -189,7 +189,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `claim_melt_no_mint` | Add a mint first, then open this link again. |
 | `claim_kept_for_lightning` | Kept. Receive it over Lightning once you've added a mint. |
 | `claim_melt_no_signing_key` | %1$s publishes no signing key, so your wallet doesn't keep money there. It can be received over Lightning instead, for a fee. |
-| `onboarding_error_mint_without_key` | This mint publishes no signing key, so your wallet can't check that its notes are real or notice if it is swapped. Choose another mint. |
+| `onboarding_error_mint_without_key` | This mint isn't showing its signing key, so it can't be added. Without it your wallet can't check that its notes are real. It may be back in a moment; if not, pick another mint. |
 | `received_key_changed` | The signing key of its mint doesn't match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint's details. |
 | `received_refused` | Its mint kept refusing it, so your wallet stopped trying. |
 | `received_refused_hours` | Its mint kept refusing it for %d hour, so your wallet stopped trying. / Its mint kept refusing it for %d hours, so your wallet stopped trying. (plural) |

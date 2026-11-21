@@ -100,9 +100,12 @@ data class AddMintState(
         get() = found.sumOf { it.amountMsat }
 }
 
-/** The wallet has this mint, and it now presents another signing key (or none) than the pinned one: the user decides about it first. */
+/**
+ * The wallet has this mint, and it now presents another signing key (or none) than the pinned one: the user decides about it first. A mint
+ * that couldn't be asked for its key was compared with nothing.
+ */
 val MintPreview.Ready.keyDiffers: Boolean
-    get() = knownKey != null && signingKey != knownKey
+    get() = knownKey != null && keyAnswered && signingKey != knownKey
 
 @HiltViewModel
 class AddMintViewModel
@@ -194,6 +197,14 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
                 _state.update { it.copy(busy = false, step = AddMintStep.Result, failed = null, keyAccepted = true) }
             else preview(preview.host)
         }
+    }
+
+    /** Asks the mint shown again what it is: its signing key may be there by now. */
+    fun checkAgain() {
+        val preview = _state.value.preview ?: return
+        if (_state.value.busy) return
+        _state.update { it.copy(busy = true) }
+        viewModelScope.launch { preview(preview.host) }
     }
 
     /** After a failure: a mint whose key changed meanwhile is shown again as it is now; anything else is tried again. */

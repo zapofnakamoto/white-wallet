@@ -277,7 +277,7 @@
     <string name="claim_melt_no_mint">Füge zuerst einen Anbieter hinzu und öffne diesen Link dann noch einmal.</string>
     <string name="claim_kept_for_lightning">Behalten. Empfange es über Lightning, sobald du einen Anbieter hinzugefügt hast.</string>
     <string name="claim_melt_no_signing_key">%1$s veröffentlicht keinen Signaturschlüssel, deshalb bewahrt deine Wallet dort kein Geld auf. Es lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
-    <string name="onboarding_error_mint_without_key">Dieser Anbieter veröffentlicht keinen Signaturschlüssel, daher kann deine Wallet nicht prüfen, ob seine Geldscheine echt sind, oder bemerken, wenn er ausgetauscht wird. Wähle einen anderen Anbieter.</string>
+    <string name="onboarding_error_mint_without_key">Dieser Anbieter zeigt seinen Signaturschlüssel nicht, daher kann er nicht hinzugefügt werden. Ohne ihn kann deine Wallet nicht prüfen, ob seine Geldscheine echt sind. Vielleicht ist er gleich wieder da; wenn nicht, wähle einen anderen Anbieter.</string>
     <string name="home_mint_is_home_not_answering">Anbieter · antwortet nicht</string>
     <string name="home_mint_is_home_key_changed">Anbieter · Signaturschlüssel passt nicht</string>
     <string name="home_mint_silent_title_home">Dein Anbieter, %1$s, antwortet nicht</string>

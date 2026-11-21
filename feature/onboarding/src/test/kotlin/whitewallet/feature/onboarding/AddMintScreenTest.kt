@@ -4,6 +4,7 @@ import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -233,7 +234,9 @@ class AddMintScreenTest {
             pick.copy(step = AddMintStep.Result, preview = preview, failed = "changed", keyChanged = true),
             AddMintActions(onTryAgain = { again++ }, onCancel = { cancelled++ }, onBack = { back++ }),
         )
-        compose.onNodeWithText(text(R.string.add_mint_failed_title)).assertExists()
+        // Nothing was added, so nothing went wrong with a restore: the title stays the flow's own.
+        compose.onNodeWithText(text(R.string.add_mint_failed_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_title)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_failed_key)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_later)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.add_mint_try_again)).performClick()
@@ -307,10 +310,75 @@ class AddMintScreenTest {
             pick.copy(step = AddMintStep.Result, preview = preview, failed = "timeout", kept = true),
             AddMintActions(onAdd = { again++ }, onDone = { done++ }),
         )
+        compose.onNodeWithText(text(R.string.add_mint_failed_title)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_failed_body, "timeout")).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_try_again)).performClick()
         compose.onNodeWithText(text(R.string.add_mint_later)).performClick()
         assertEquals(1 to 1, again to done)
+    }
+
+    @Test
+    fun aMintThatShowsNoSigningKeyCantBeAddedAndIsCheckedAgain() {
+        var again = 0
+        var other = 0
+        show(
+            pick.copy(step = AddMintStep.Info, preview = preview.copy(signingKey = null)),
+            AddMintActions(onCheckAgain = { again++ }, onBack = { other++ }),
+        )
+        compose.onNodeWithText(text(R.string.add_mint_key_none)).assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_error_mint_without_key)).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_add)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.onboarding_mint_custody)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_check_again)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.add_mint_other)).performScrollTo().performClick()
+        assertEquals(1 to 1, again to other)
+    }
+
+    @Test
+    fun aMintThatCantBeAskedForItsKeyIsntAnswering() {
+        show(pick.copy(setup = true, step = AddMintStep.Info, preview = preview.copy(signingKey = null, keyAnswered = false)))
+        compose.onNodeWithText(text(R.string.add_mint_key_unanswered, "mint.example")).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.onboarding_error_mint_without_key)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_use)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_check_again)).performScrollTo().assertIsEnabled()
+    }
+
+    @Test
+    fun aHeldMintThatCantBeAskedForItsKeyIsNotAChangedKey() {
+        val held = preview.copy(knownKey = preview.signingKey, signingKey = null, keyAnswered = false)
+        show(pick.copy(step = AddMintStep.Info, preview = held))
+        compose.onNodeWithText(text(DesignR.string.mint_key_remembered)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.add_mint_key_unanswered, "mint.example")).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_add)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aHeldMintThatAnswersWithoutItsKeyStillShowsTheChangedKey() {
+        show(pick.copy(step = AddMintStep.Info, preview = preview.copy(knownKey = preview.signingKey, signingKey = null)))
+        compose.onNodeWithText(text(DesignR.string.mint_key_remembered)).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_check_again)).assertDoesNotExist()
+    }
+
+    @Test
+    fun whileAMintIsCheckedAgainThePageStaysAndNothingCanBeTapped() {
+        show(pick.copy(step = AddMintStep.Info, preview = preview.copy(signingKey = null), busy = true))
+        compose.onNodeWithText(text(R.string.onboarding_error_mint_without_key)).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_other)).performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun offlineAMintWithoutItsKeyCantBeCheckedAgain() {
+        show(pick.copy(step = AddMintStep.Info, preview = preview.copy(signingKey = null), offline = true))
+        compose.onNodeWithText(text(R.string.add_mint_offline)).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_check_again)).performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun aMintThatWasntAddedInASetupKeepsTheSetupsTitle() {
+        show(pick.copy(setup = true, step = AddMintStep.Result, preview = preview, failed = "x", withoutSigningKey = true))
+        compose.onNodeWithText(text(R.string.add_mint_setup_title)).assertExists()
+        compose.onNodeWithText(text(R.string.mint_added_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.onboarding_error_mint_without_key)).assertExists()
     }
 
     @Test

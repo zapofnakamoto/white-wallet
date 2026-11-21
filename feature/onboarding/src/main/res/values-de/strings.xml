@@ -5,7 +5,7 @@
     <string name="address_fee_notice">Diese Mint verlangt einmalig %1$s für eine Adresse.</string>
     <string name="address_held_body">Bezahle %1$s, um abzuschließen. Die Mint hält den Namen nur begrenzte Zeit; läuft die Rechnung ab, kannst du es erneut versuchen.</string>
     <string name="onboarding_error_fee">Diese Mint verlangt %1$s für eine Adresse, mehr als die %2$s, die diese App akzeptiert.</string>
-    <string name="onboarding_error_mint_without_key">Diese Mint veröffentlicht keinen Signaturschlüssel, daher kann deine Wallet nicht prüfen, ob ihre Scheine echt sind, oder bemerken, wenn sie ausgetauscht wird. Wähle eine andere Mint.</string>
+    <string name="onboarding_error_mint_without_key">Diese Mint zeigt ihren Signaturschlüssel nicht, daher kann sie nicht hinzugefügt werden. Ohne ihn kann deine Wallet nicht prüfen, ob ihre Scheine echt sind. Vielleicht ist er gleich wieder da; wenn nicht, wähle eine andere Mint.</string>
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Adresse der Mint</string>
     <string name="onboarding_mint_custody">Dein Guthaben verwahrt die Mint, die du wählst. Halte die Beträge klein.</string>
@@ -121,6 +121,8 @@
     <string name="add_mint_address_free">Kostenlos</string>
     <string name="add_mint_key">Signaturschlüssel</string>
     <string name="add_mint_key_none">Nicht angegeben</string>
+    <string name="add_mint_key_unanswered">%1$s antwortet nicht und lässt sich daher nicht hinzufügen. Versuche es später erneut.</string>
+    <string name="add_mint_check_again">Erneut prüfen</string>
     <string name="add_mint_account">Konto %1$d</string>
     <string name="add_mint_account_looking">Wird gesucht…</string>
     <string name="add_mint_account_empty">Nichts</string>

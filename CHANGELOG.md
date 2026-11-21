@@ -35,6 +35,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- A mint that shows no signing key is refused where it is shown, before anything is added: its page says that it can't
+  be added and why, that the key may be back in a moment, and offers "Check again" in place of "Add this mint". A mint
+  that couldn't be asked for its key says it "isn't answering" instead, and a mint the wallet holds isn't taken for one
+  whose key changed when it only couldn't be asked. A mint that wasn't added no longer ends under "Error while
+  restoring". For brands: `onboarding_error_mint_without_key` has new words (it no longer says the mint "publishes no
+  signing key", which the wallet can't know), and `add_mint_key_unanswered` and `add_mint_check_again` are new. For
+  developers: `MintPreview.Ready.keyAnswered`.
 - Receive finds a payment to the Lightning address it shows sooner: it looks there at once, then every 5 seconds, and
   only at that address (its share, at its own mint) instead of refreshing the whole wallet every 15 seconds. For brands:
   `sync.receive` now defaults to `5s`. For developers: `Wallet.lookForPayments(address)`.

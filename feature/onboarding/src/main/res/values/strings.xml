@@ -10,7 +10,7 @@
     <string name="address_fee_notice">This mint charges %1$s for an address, once.</string>
     <string name="address_held_body">Pay %1$s to finish. The mint holds the name for a limited time; if the invoice runs out, you can try again.</string>
     <string name="onboarding_error_fee">This mint asks %1$s for an address, more than the %2$s this app accepts.</string>
-    <string name="onboarding_error_mint_without_key">This mint publishes no signing key, so your wallet can\'t check that its notes are real or notice if it is swapped. Choose another mint.</string>
+    <string name="onboarding_error_mint_without_key">This mint isn\'t showing its signing key, so it can\'t be added. Without it your wallet can\'t check that its notes are real. It may be back in a moment; if not, pick another mint.</string>
     <string name="onboarding_mint">Mint</string>
     <string name="onboarding_mint_address">Mint address</string>
     <string name="onboarding_mint_custody">Your funds are held by the mint you choose. Keep amounts small.</string>
@@ -130,6 +130,10 @@
     <string name="add_mint_address_free">Free</string>
     <string name="add_mint_key">Signing key</string>
     <string name="add_mint_key_none">Not shown</string>
+    <!-- On what a mint is, in place of the add button: it answers, but couldn't be asked for its signing key. %1$s: the mint. -->
+    <string name="add_mint_key_unanswered">%1$s isn\'t answering, so it can\'t be added. Try again later.</string>
+    <!-- Asks a mint that showed no signing key again what it is -->
+    <string name="add_mint_check_again">Check again</string>
     <string name="add_mint_account">Account %1$d</string>
     <string name="add_mint_account_looking">Looking…</string>
     <string name="add_mint_account_empty">Nothing</string>

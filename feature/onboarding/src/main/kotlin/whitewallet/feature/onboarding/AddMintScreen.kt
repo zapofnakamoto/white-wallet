@@ -60,6 +60,7 @@ fun AddMintRoute(setup: Boolean, onFinish: (AddMintFinish) -> Unit, viewModel: A
             onNext = viewModel::next,
             onAdd = viewModel::add,
             onAcceptKey = viewModel::acceptKey,
+            onCheckAgain = viewModel::checkAgain,
             onTryAgain = viewModel::tryAgain,
             onCancel = viewModel::cancel,
             onDone = viewModel::done,
@@ -76,6 +77,7 @@ class AddMintActions(
     val onNext: () -> Unit = {},
     val onAdd: () -> Unit = {},
     val onAcceptKey: (String) -> Unit = {},
+    val onCheckAgain: () -> Unit = {},
     val onTryAgain: () -> Unit = {},
     val onCancel: () -> Unit = {},
     val onDone: () -> Unit = {},
@@ -94,7 +96,9 @@ fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
                 AddMintStep.Adding -> R.string.add_mint_adding_title
                 AddMintStep.Result ->
                     when {
-                        state.failed != null -> R.string.add_mint_failed_title
+                        // Only a scan that stopped is an error of the restore; a mint that wasn't added leaves the flow where it was.
+                        state.failed != null && state.kept -> R.string.add_mint_failed_title
+                        state.failed != null -> if (state.setup) R.string.add_mint_setup_title else R.string.add_mint_title
                         // A setup isn't done with its mint: the title says what is, and the button leads on.
                         state.setup && !state.keyAccepted -> R.string.mint_added_title
                         else -> R.string.add_mint_done_title
@@ -169,6 +173,19 @@ private fun InfoContent(preview: MintPreview.Ready, state: AddMintState, actions
             preview.addressFeeMsat?.let { formatAmount(it) } ?: stringResource(R.string.add_mint_address_free),
         )
         InfoRow(stringResource(R.string.add_mint_key), preview.signingKey?.let(::shortKey) ?: stringResource(R.string.add_mint_key_none))
+    }
+    // No mint is added without the signing key the user saw: it is asked again, in case the key is back.
+    if (preview.signingKey == null) {
+        Text(
+            if (preview.keyAnswered) stringResource(R.string.onboarding_error_mint_without_key)
+            else stringResource(R.string.add_mint_key_unanswered, preview.host),
+            textAlign = TextAlign.Center,
+        )
+        if (state.offline) Text(stringResource(R.string.add_mint_offline), textAlign = TextAlign.Center)
+        PrimaryButton(stringResource(R.string.add_mint_check_again), actions.onCheckAgain, enabled = !state.offline, busy = state.busy)
+        return WalletButton(kind = ButtonKind.Text, onClick = actions.onBack, enabled = !state.busy) {
+            Text(stringResource(R.string.add_mint_other))
+        }
     }
     if (preview.knownKey != null || preview.host in state.known) Hint(stringResource(R.string.add_mint_known))
     Hint(stringResource(R.string.onboarding_mint_custody))
