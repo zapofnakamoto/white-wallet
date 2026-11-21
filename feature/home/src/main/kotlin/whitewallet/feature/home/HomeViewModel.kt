@@ -86,6 +86,8 @@ data class HomeState(
     val unknownCheck: UnknownCheck? = null,
     /** Notes received as links and not claimed yet, or no longer claimable: kept apart from the balance. */
     val received: List<ReceivedNote> = emptyList(),
+    /** Every mint that didn't answer the last time the wallet asked it, held or not: what a received note there waits for. */
+    val notAnsweringHosts: Set<String> = emptySet(),
     /** What the notes handed out as links and not claimed yet are worth: out of [balanceMsat], and still the user's to take back. */
     val sharedMsat: Long = 0,
     /** The active account's home mint, whatever it holds, then its other mints that hold money of the balance, the largest first. */
@@ -343,6 +345,7 @@ class HomeViewModel(
             }
         }
         viewModelScope.launch { wallet.mintsWithChangedKey.collect { hosts -> status.update { it.copy(keyChangedHosts = hosts) } } }
+        viewModelScope.launch { wallet.mintsNotAnswering.collect { hosts -> status.update { it.copy(notAnsweringHosts = hosts) } } }
         viewModelScope.launch {
             wallet.notes.collect { notes ->
                 status.update { it.copy(sharedMsat = notes.filter { n -> n.state.isShared }.sumOf { n -> n.amountMsat }) }

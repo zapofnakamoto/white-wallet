@@ -56,7 +56,14 @@ import whitewallet.core.wallet.MaintenanceNotice
 class HomeScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    private fun show(state: HomeState, onOpenMint: (String) -> Unit = {}, onToggle: () -> Unit = {}, onRefresh: () -> Unit = {}) =
+    private fun show(
+        state: HomeState,
+        onOpenMint: (String) -> Unit = {},
+        onToggle: () -> Unit = {},
+        onRefresh: () -> Unit = {},
+        withNotesTab: Boolean = false,
+        received: ReceivedNoteActions = ReceivedNoteActions(),
+    ) =
         compose.setContent {
             HomeScreen(
                 "Wallet",
@@ -71,6 +78,10 @@ class HomeScreenTest {
                 accountActions = AccountActions({}, {}, {}),
                 onToggleBalance = onToggle,
                 onOpenMint = onOpenMint,
+                received = received,
+                notesTab =
+                    if (withNotesTab) NotesTabSlot(refreshing = false, onRefresh = {}, actions = {}, content = { Text("the notes") })
+                    else null,
             )
         }
 
@@ -1068,21 +1079,75 @@ class HomeScreenTest {
         )
 
     @Test
-    fun aNoteNotClaimedYetIsShownNextToTheBalanceNotInIt() {
+    fun aNoteNotClaimedYetIsOneLineNextToTheBalanceNotInIt() {
+        show(
+            HomeState(
+                activeAccountId = "a",
+                received = listOf(received("r1", ReceivedState.Waiting), received("r2", ReceivedState.Locked, null, 1_000_000)),
+            ),
+            withNotesTab = true,
+        )
+        compose.onNodeWithText("₿0").assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_total, "₿3,000")).assertExists()
+        // Only waiting: the notes view lists them, Home says nothing more.
+        compose.onNodeWithText(text(DesignR.string.received_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.received_waiting)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.received_hint)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
+    }
+
+    @Test
+    fun withANotesTabANoteThatNeedsYouStillGetsTheCard() {
+        show(HomeState(activeAccountId = "a", received = listOf(received("r1", ReceivedState.KeyChanged))), withNotesTab = true)
+        compose.onNodeWithText(text(DesignR.string.received_title)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_hint)).assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutANotesTabWaitingNotesStayOnHome() {
         show(
             HomeState(
                 activeAccountId = "a",
                 received = listOf(received("r1", ReceivedState.Waiting), received("r2", ReceivedState.Locked, null, 1_000_000)),
             )
         )
-        compose.onNodeWithText("₿0").assertExists()
-        compose.onNodeWithText(text(DesignR.string.received_total, "₿3,000")).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_title)).assertExists()
-        compose.onNodeWithText("Not claimed yet. Tried again when online.").assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_waiting)).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_unconfirmed, "₿1,000")).assertExists()
-        compose.onNodeWithText("Locked for now. Tried again on every refresh.").assertExists()
-        compose.onNodeWithText("Your wallet claims these on its own", substring = true).assertExists()
-        compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.received_locked)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_hint)).assertDoesNotExist()
+    }
+
+    @Test
+    fun offlineAWaitingNoteSaysItIsClaimedWhenBackOnline() {
+        show(HomeState(activeAccountId = "a", offline = true, received = listOf(received("r1", ReceivedState.Waiting))))
+        compose.onNodeWithText(text(DesignR.string.received_waiting_offline)).assertExists()
+        compose.onNodeWithText(text(R.string.home_offline)).assertExists()
+    }
+
+    @Test
+    fun aWaitingNoteOnASilentMintTheAccountHoldsNothingOnSaysSo() {
+        show(
+            HomeState(
+                activeAccountId = "a",
+                notAnsweringHosts = setOf("mint.example"),
+                received = listOf(received("r1", ReceivedState.Waiting)),
+            )
+        )
+        compose.onNodeWithText(text(DesignR.string.received_waiting_mint, "mint.example")).assertExists()
+    }
+
+    @Test
+    fun aSilentMintIsNotNamedWhereMintsAreHidden() {
+        show(
+            HomeState(
+                activeAccountId = "a",
+                mintsVisible = false,
+                notAnsweringHosts = setOf("mint.example"),
+                received = listOf(received("r1", ReceivedState.Waiting)),
+            )
+        )
+        compose.onNodeWithText(text(DesignR.string.received_waiting_mint_unnamed)).assertExists()
     }
 
     @Test
@@ -1279,7 +1344,7 @@ class HomeScreenTest {
     fun aHiddenBalanceHidesWhatIsIncomingToo() {
         show(HomeState(activeAccountId = "a", balanceHidden = true, received = listOf(received("r1", ReceivedState.Waiting))))
         compose.onNodeWithText("₿2,000", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Not claimed yet. Tried again when online.").assertExists()
+        compose.onNodeWithText(text(DesignR.string.received_waiting)).assertExists()
     }
 
     @Test
@@ -1319,30 +1384,18 @@ class HomeScreenTest {
     }
 
     @Test
-    fun aKeptNoteCanBeArchived() {
+    fun onlyANoteThatNeedsYouCanBeArchived() {
         var archived: String? = null
-        var removed: String? = null
         val waiting = received("r1", ReceivedState.Waiting)
-        compose.setContent {
-            HomeScreen(
-                "Wallet",
-                HomeState(activeAccountId = "a", received = listOf(waiting)),
-                onSend = {},
-                onReceive = {},
-                onRefresh = {},
-                onSettings = {},
-                onBackup = {},
-                onDismissBackup = {},
-                onOpenAddresses = {},
-                accountActions = AccountActions({}, {}, {}),
-                received = ReceivedNoteActions(remove = { removed = it }, archive = { archived = it }),
-            )
-        }
-        // One the wallet still tries is never removed straight away: it goes to the archive first.
-        compose.onNodeWithText(text(DesignR.string.received_dismiss)).assertDoesNotExist()
-        compose.onNodeWithText(text(DesignR.string.received_archive)).performClick()
-        assertEquals(waiting.id, archived)
-        assertEquals(null, removed)
+        val changed = received("r2", ReceivedState.KeyChanged)
+        show(
+            HomeState(activeAccountId = "a", received = listOf(waiting, changed)),
+            received = ReceivedNoteActions(archive = { archived = it }),
+        )
+        // The one that only waits offers nothing: the wallet claims it. The one whose mint's key changed can be put aside.
+        compose.onAllNodesWithText(text(DesignR.string.received_archive)).assertCountEquals(1)
+        compose.onNodeWithText(text(DesignR.string.received_archive)).performScrollTo().performClick()
+        assertEquals(changed.id, archived)
     }
 
     private companion object {

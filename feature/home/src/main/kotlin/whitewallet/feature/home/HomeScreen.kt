@@ -101,6 +101,8 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.designsystem.ReceivedNoteRow
+import whitewallet.core.designsystem.needsUser
+import whitewallet.core.designsystem.waitsFor
 import whitewallet.core.designsystem.ReleaseNotesSheet
 import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletActivityIcon
@@ -730,7 +732,7 @@ private fun WalletTab(
                     modifier = Modifier.clickable(onClick = onOpenShared),
                 )
             }
-            if (state.received.isNotEmpty()) ReceivedCard(state, received)
+            ReceivedCard(state, received, waitingElsewhere = onOpenIncoming != null)
             // Nothing in the wallet yet: say how money gets in. Not while the balance is hidden, which would give it away, nor without a
             // mint, whose card already says what to do.
             if (state.status == WalletStatus.Empty && !state.balanceHidden && !state.showAddMintPrompt) {
@@ -1222,11 +1224,13 @@ private fun MintRowAction(@DrawableRes icon: Int, label: String, onClick: () -> 
 }
 
 /**
- * Notes received as links, not claimed yet or no longer claimable: each with where it stands, and what that means. Amounts stay hidden with
- * the balance.
+ * Notes received as links that need the user (see [needsUser]), each with where it stands. One that only waits is told by the line under
+ * the balance, and listed where that line leads ([waitingElsewhere], the notes view), else here too. Amounts stay hidden with the balance.
  */
 @Composable
-private fun ReceivedCard(state: HomeState, actions: ReceivedNoteActions) {
+private fun ReceivedCard(state: HomeState, actions: ReceivedNoteActions, waitingElsewhere: Boolean) {
+    val shown = state.received.filter { it.needsUser || !waitingElsewhere }
+    if (shown.isEmpty()) return
     WalletCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 8.dp)) {
             Text(
@@ -1234,19 +1238,13 @@ private fun ReceivedCard(state: HomeState, actions: ReceivedNoteActions) {
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
-            state.received.forEach {
+            shown.forEach {
                 ReceivedNoteRow(
                     it,
                     showMint = state.mintsVisible,
                     amountHidden = state.balanceHidden,
                     actions,
-                )
-            }
-            if (state.received.any { it.isPending }) {
-                Text(
-                    stringResource(DesignR.string.received_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    wait = it.waitsFor(state.offline, state.notAnsweringHosts),
                 )
             }
         }
