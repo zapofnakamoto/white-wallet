@@ -538,6 +538,7 @@ internal fun problemText(problem: PayProblem, host: String? = null): String =
                 PayProblem.PayeeRefused -> R.string.send_problem_payee_refused
                 PayProblem.InvoiceMismatch -> R.string.send_problem_mismatch
                 PayProblem.OwnAddress -> R.string.send_problem_own_address
+                PayProblem.MintAddress -> R.string.send_problem_mint_address
                 PayProblem.NoFunds -> R.string.send_problem_no_funds
                 PayProblem.TooMuch -> R.string.send_problem_too_much
                 PayProblem.NotExact -> R.string.send_problem_not_exact

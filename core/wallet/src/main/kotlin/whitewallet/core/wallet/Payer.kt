@@ -13,6 +13,7 @@ import whitewallet.lnurl.Bolt11Invoice
 import whitewallet.lnurl.Lnurl
 import whitewallet.lnurl.LnurlResponse
 import whitewallet.lnurl.string
+import whitewallet.lnurlcash.protocol.MintingPayRequest
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 import whitewallet.lnurlcash.protocol.RejectionKind
 
@@ -65,6 +66,9 @@ enum class PayProblem {
 
     /** The account's own address. */
     OwnAddress,
+
+    /** A mint's own address (LUD-25's minting payRequest, `mint@<domain>`): paying it mints a note at a key, it pays nobody. */
+    MintAddress,
 
     /** Nothing to pay with. */
     NoFunds,
@@ -178,6 +182,9 @@ internal class Payer(private val wallet: Wallet) {
                 is LnurlResponse.WithdrawRequest -> return PayPreview.Invalid(PayProblem.WithdrawLink)
                 else -> return PayPreview.Invalid(PayProblem.NotRecognized)
             }
+        // A mint's own address mints a note at the key its comment names, and pays nobody: neither a transfer (only a registered address
+        // takes one, LUD-26) nor a melt (it needs a key, and a mint can't pay its own invoice) can pay it.
+        if (runCatching { MintingPayRequest.from(pay) }.isSuccess) return PayPreview.Invalid(PayProblem.MintAddress)
         val accountId = wallet.activeId()
         val payeeHost = Lnurl.host(url)?.lowercase()
         // Within a mint whose signing key doesn't match nothing moves: the payment goes over Lightning from another, if any.

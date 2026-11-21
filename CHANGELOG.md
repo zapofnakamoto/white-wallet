@@ -44,6 +44,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   actions ("Request log" beside Copy and Clear) gets a line of its own under them. For brands: a `ListRow` or
   `TopBar` of their own should do the same (docs/WHITE_LABEL.md, "Components").
 
+### Fixed
+
+- Sending to a mint's own address (`mint@<domain>`, which only mints notes) spent nothing but failed with the mint's
+  "Missing or malformed comment": the wallet took it for a registered address on its mint and tried to hand it a whole
+  note. Send now says at once that nobody can be paid there. For brands: the brand term `send_problem_mint_address`.
+
 ### Removed
 
 - For developers and brands: the strings `receive_copy`, `receive_share` (now `copy`, `share` in the design system),

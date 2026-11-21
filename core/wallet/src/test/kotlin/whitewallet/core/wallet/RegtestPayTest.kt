@@ -232,4 +232,15 @@ class RegtestPayTest {
             assertEquals(listOf(1_999_000L), alice.notes().map { it.amountMsat })
             assertEquals(emptyList(), alice.sent())
         }
+
+    @Test
+    fun `a mint's own address mints a note and pays nobody, so it is refused before anything is spent, on the account's mint or another`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(2000)
+            assertEquals(PayPreview.Invalid(PayProblem.MintAddress), alice.wallet.previewPayment("mint@${Regtest.HOST}"))
+            assertEquals(PayPreview.Invalid(PayProblem.MintAddress), alice.wallet.previewPayment("mint@${Regtest.HOST2}"))
+            assertEquals(listOf(1_999_000L), alice.notes().map { it.amountMsat })
+            assertEquals(emptyList(), alice.sent())
+        }
 }

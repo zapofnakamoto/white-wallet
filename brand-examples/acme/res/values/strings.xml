@@ -158,6 +158,7 @@
     <string name="send_problem_refused">The provider refused this payment.</string>
     <string name="send_problem_key_changed">The signing key of the provider doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the provider\'s details. Your banknotes there are unchanged.</string>
     <string name="send_problem_own_mint_invoice">This invoice is from your own provider, which can\'t pay itself over Lightning. Ask for a Lightning address instead.</string>
+    <string name="send_problem_mint_address">That\'s a provider\'s own address. Nobody can be paid there.</string>
     <string name="send_problem_mint_message">Message from the provider: “%1$s”</string>
     <string name="note_create_title">Send as a banknote</string>
     <string name="note_create_body">Make a banknote worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
