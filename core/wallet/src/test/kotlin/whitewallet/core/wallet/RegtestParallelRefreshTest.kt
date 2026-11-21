@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.extension.ExtendWith
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.core.wallet.Regtest.HOST3
@@ -19,6 +20,8 @@ import whitewallet.core.wallet.Regtest.HOST3
  *
  * Needs the stack from dev/regtest and LNURLCASH_REGTEST=1; skipped otherwise.
  */
+// The third mint is one of the three: one test at a time on it, as a key rotation restarts it.
+@ExtendWith(ThirdMintLock::class)
 class RegtestParallelRefreshTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
 

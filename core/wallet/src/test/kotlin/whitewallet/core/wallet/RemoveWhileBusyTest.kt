@@ -9,10 +9,10 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -24,29 +24,6 @@ import whitewallet.testkit.MockMint
 /** Removing a mint or an account, and looking at a mint, while the wallet works on something else (a refresh that waits for a mint). */
 class RemoveWhileBusyTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
-
-    /** Holds the first request back once [hold] is called, until [release]: a refresh then keeps the wallet's lock. Others go through. */
-    private class Gate {
-        @Volatile private var holding = false
-        private val claimed = AtomicBoolean(false)
-        private val entered = CountDownLatch(1)
-        private val released = CountDownLatch(1)
-
-        fun pass() {
-            if (!holding || !claimed.compareAndSet(false, true)) return
-            entered.countDown()
-            released.await(30, TimeUnit.SECONDS)
-        }
-
-        fun hold() {
-            holding = true
-        }
-
-        /** Until a request is held back. */
-        fun awaitHeld() = check(entered.await(10, TimeUnit.SECONDS)) { "nothing was sent" }
-
-        fun release() = released.countDown()
-    }
 
     private class Fixture(
         val store: InMemoryWalletStore,
@@ -123,9 +100,10 @@ class RemoveWhileBusyTest {
     @Test
     fun `a removal goes through once the refresh is done, also when the screen that asked was left`() = withBusyWallet {
         duringRefresh {
-            val mint = launch(Dispatchers.IO) { wallet.removeMint(other) }
-            val account = launch(Dispatchers.IO) { wallet.removeAccount() }
-            delay(200)
+            // Started here, each runs until it waits for the wallet: asked for, and waiting, by the next line.
+            val mint = launch(Dispatchers.IO, CoroutineStart.UNDISPATCHED) { wallet.removeMint(other) }
+            val account = launch(Dispatchers.IO, CoroutineStart.UNDISPATCHED) { wallet.removeAccount() }
+            assertTrue(mint.isActive && account.isActive, "the removals wait for the refresh")
             // The user gave up waiting and went back: the screen's work is cancelled.
             mint.cancel()
             account.cancel()
@@ -137,4 +115,27 @@ class RemoveWhileBusyTest {
         assertTrue(wallet.accounts.first().none { it.account.id == savings }, "the account is removed")
         assertEquals("a", store.currentAccountId())
     }
+}
+
+/** Holds the first request back once [hold] is called, until [release]: a refresh then keeps the wallet's lock. Others go through. */
+internal class Gate {
+    @Volatile private var holding = false
+    private val claimed = AtomicBoolean(false)
+    private val entered = CountDownLatch(1)
+    private val released = CountDownLatch(1)
+
+    fun pass() {
+        if (!holding || !claimed.compareAndSet(false, true)) return
+        entered.countDown()
+        released.await(30, TimeUnit.SECONDS)
+    }
+
+    fun hold() {
+        holding = true
+    }
+
+    /** Until a request is held back. */
+    fun awaitHeld() = check(entered.await(10, TimeUnit.SECONDS)) { "nothing was sent" }
+
+    fun release() = released.countDown()
 }

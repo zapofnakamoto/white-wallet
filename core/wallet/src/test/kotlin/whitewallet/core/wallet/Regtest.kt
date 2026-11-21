@@ -234,14 +234,15 @@ internal object Regtest {
         suspend fun balance() = wallet.balanceMsat.first()
 
         /**
-         * Refreshes until [settled] holds, for at most [timeoutMillis]: a mint learns a Lightning payment's outcome on its own schedule, so
-         * the refresh right after it may still see it in flight.
+         * Refreshes until [settled] holds, and fails if it doesn't within [timeoutMillis]: a mint learns a Lightning payment's outcome on
+         * its own schedule, so the refresh right after it may still see it in flight.
          */
         suspend fun refreshUntil(timeoutMillis: Long = 30_000, settled: suspend () -> Boolean) {
             val until = System.currentTimeMillis() + timeoutMillis
             while (true) {
                 wallet.refresh()
-                if (settled() || System.currentTimeMillis() > until) return
+                if (settled()) return
+                check(System.currentTimeMillis() <= until) { "still not there after ${timeoutMillis / 1000} s of refreshes" }
                 delay(1_000)
             }
         }
