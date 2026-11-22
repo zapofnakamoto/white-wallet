@@ -215,7 +215,7 @@ private fun HeldContent(held: HeldAddress, state: OnboardingState, onPay: () -> 
         textAlign = TextAlign.Center,
     )
     Text(stringResource(R.string.address_held_body, formatAmount(held.amountMsat)), textAlign = TextAlign.Center)
-    QrCode("lightning:${invoice.uppercase()}", description = stringResource(R.string.address_held_qr))
+    QrCode("LIGHTNING:${invoice.uppercase()}", description = stringResource(R.string.address_held_qr))
     WalletButton(
         kind = ButtonKind.Secondary,
         onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("invoice", invoice))) } },

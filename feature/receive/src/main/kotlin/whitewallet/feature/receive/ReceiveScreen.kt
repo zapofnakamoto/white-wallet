@@ -229,7 +229,7 @@ private fun FaucetButton(faucet: FaucetState, invoice: Boolean, onPay: () -> Uni
 @Composable
 private fun AddressContent(state: ReceiveState, others: Boolean, actions: InvoiceActions, mintLine: @Composable () -> Unit) {
     val address = state.address ?: return
-    QrCode("lightning:${address.uppercase()}")
+    QrCode("LIGHTNING:${address.uppercase()}")
     Text(address, style = MaterialTheme.typography.titleMedium)
     // The address still shows: the mint may be back by the time someone pays it, and the screen keeps asking.
     if (state.addressKeyChanged) {
@@ -350,7 +350,7 @@ private fun InvoiceContent(shown: ShownInvoice, onDone: () -> Unit, onNewInvoice
             PrimaryButton(stringResource(R.string.receive_invoice_new), onNewInvoice)
         }
         InvoiceStatus.Waiting -> {
-            QrCode("lightning:${request.invoice.uppercase()}", description = stringResource(R.string.receive_invoice_qr))
+            QrCode("LIGHTNING:${request.invoice.uppercase()}", description = stringResource(R.string.receive_invoice_qr))
             Text(formatAmount(request.amountMsat), style = MaterialTheme.typography.headlineSmall)
             if (request.expectedMsat < request.amountMsat) {
                 Text(
