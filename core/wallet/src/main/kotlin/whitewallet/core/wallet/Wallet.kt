@@ -1144,14 +1144,22 @@ class Wallet(
     /**
      * Refreshes (as on Home), then asks the mints about every outstanding note of the active account. A mint that doesn't answer is skipped
      * for the rest of the run. As [WalletTask.Updating] throughout, so the work never seems done between the two.
+     *
+     * The active account's notes handed out as links are told apart, whether the refresh or the asking changed them: those their mint no
+     * longer knows ([NotesCheck.handedOutUnknown]), those it knows again ([NotesCheck.handedOutAgain]), and those the user asked to take
+     * back that were ([NotesCheck.takenBack]) or that the mint refused ([NotesCheck.takeBackRefused]); none of them in [NotesCheck.checked]
+     * or [NotesCheck.unknown].
      */
     suspend fun recheckNotes(): NotesCheck = lock.withLock {
         working(WalletTask.Updating) {
+            val accountId = activeId()
+            val handedOutBefore = store.notes(accountId).first().filter { it.isHandedOut() }
+            val takenBackBefore = takenBack(accountId)
             refreshUnderLock()
             var checked = 0
             var gone = 0
             var unknown = 0
-            var handedOut = 0
+            var takeBackRefused = 0
             val unreachable = mutableListOf<String>()
             val notes = store.notes(activeId()).first().filter { it.isRecheckable() || it.isUnknown() }
             if (notes.isNotEmpty())
@@ -1161,20 +1169,24 @@ class Wallet(
                         if (note.host in unreachable) continue
                         when (recheck(note.id)) {
                             is NoteCheck.Ok -> checked++
-                            NoteCheck.Spent -> {
-                                checked++
+                            NoteCheck.Spent ->
                                 // One handed out as a link was claimed by its recipient: it was out of the balance already.
-                                if (note.handedOut == null) gone++
-                            }
+                                if (note.handedOut == null) {
+                                    checked++
+                                    gone++
+                                }
                             // One set aside before is as it was: nothing to tell.
                             NoteCheck.Unknown ->
                                 if (!note.isUnknown()) {
                                     checked++
                                     unknown++
                                 }
-                            NoteCheck.HandedOutAgain -> handedOut++
+                            is NoteCheck.TakeBackRefused -> takeBackRefused++
                             NoteCheck.Unreachable,
                             is NoteCheck.KeyChanged -> unreachable += note.host
+                            // Told by how the notes handed out changed, below, the refresh's changes among them.
+                            NoteCheck.HandedOutAgain,
+                            is NoteCheck.TakenBack,
                             // Only outstanding notes are checked here; the refresh above settled the confirming ones.
                             NoteCheck.NotFound,
                             NoteCheck.Landed,
@@ -1182,7 +1194,17 @@ class Wallet(
                         }
                     }
                 }
-            NotesCheck(checked, gone, unreachable, unknown, handedOut)
+            val now = store.notes(accountId).first().associateBy { it.id }
+            NotesCheck(
+                checked,
+                gone,
+                unreachable,
+                unknown,
+                handedOutAgain = handedOutBefore.count { it.state == NoteState.Unknown && now[it.id]?.state?.isShared == true },
+                handedOutUnknown = handedOutBefore.count { it.state.isShared && now[it.id]?.state == NoteState.Unknown },
+                takenBack = takenBack(accountId).let { after -> handedOutBefore.count { it.id in after && it.id !in takenBackBefore } },
+                takeBackRefused = takeBackRefused,
+            )
         }
     }
 
@@ -1203,8 +1225,7 @@ class Wallet(
                 return NoteCheck.KeyChanged(note.host)
             }
         return when (probe) {
-            is KeyProbe.Outstanding ->
-                if (note.handedOut == null) NoteCheck.Ok(probe.amountMsat, probe.certified) else knownAgain(note, probe)
+            is KeyProbe.Outstanding -> if (note.handedOut == null) NoteCheck.Ok(probe.amountMsat, probe.certified) else knownAgain(note)
             is KeyProbe.Spent -> NoteCheck.Spent
             is KeyProbe.Unused -> NoteCheck.Unknown
             is KeyProbe.Refused,
@@ -1212,14 +1233,19 @@ class Wallet(
         }
     }
 
+    /** The notes of [accountId] handed out as links that were taken back: their History rows say so ([ActivityStatus.Cancelled]). */
+    private suspend fun takenBack(accountId: String): Set<String> =
+        store.activities(accountId).first().filter { it.status == ActivityStatus.Cancelled }.mapNotNull { it.sentNoteId }.toSet()
+
     /**
      * [note], handed out as a link, is known to its mint again: it waits to be claimed again ([NoteCheck.HandedOutAgain]), or, if the user
-     * asked to take it back, is taken back now ([NoteCheck.Ok], back in the balance).
+     * asked to take it back, is taken back now ([NoteCheck.TakenBack], back in the balance), unless the mint refuses
+     * ([NoteCheck.TakeBackRefused]: the wish stays).
      */
-    private suspend fun knownAgain(note: Note, probe: KeyProbe.Outstanding): NoteCheck =
+    private suspend fun knownAgain(note: Note): NoteCheck =
         when (val taken = sender.takeBackIfAsked(note.id)) {
             null -> NoteCheck.HandedOutAgain
-            is ReclaimResult.Reclaimed -> NoteCheck.Ok(taken.amountMsat, probe.certified)
+            is ReclaimResult.Reclaimed -> NoteCheck.TakenBack(taken.amountMsat)
             ReclaimResult.AlreadySpent -> NoteCheck.Spent
             ReclaimResult.WhenKnown -> NoteCheck.Unknown
             // Sent, its answer lost: settled on a refresh.
@@ -1228,8 +1254,8 @@ class Wallet(
                 when (taken.problem) {
                     PayProblem.KeyChanged -> NoteCheck.KeyChanged(note.host)
                     PayProblem.Unreachable -> NoteCheck.Unreachable
-                    // The wish stays: taken back on a later refresh.
-                    else -> NoteCheck.HandedOutAgain
+                    // The wish stays: tried again on the next refresh while the mint knows it.
+                    else -> NoteCheck.TakeBackRefused(taken.mintMessage)
                 }
         }
 
@@ -1237,8 +1263,8 @@ class Wallet(
      * Asks the mints again, now, about the active account's notes they said they don't know ([NoteState.Unknown]), but not the archived
      * ones, which only the archive asks about; one they know again is back in the balance. [NotesCheck.checked] counts those,
      * [NotesCheck.unknown] those still unknown (not those handed out as links). One handed out as a link that they know again waits to be
-     * claimed again, out of the balance ([NotesCheck.handedOutAgain]), or is taken back into it if the user asked to (counted in
-     * [NotesCheck.checked]).
+     * claimed again, out of the balance ([NotesCheck.handedOutAgain]), or is taken back into it if the user asked to
+     * ([NotesCheck.takenBack], not in [NotesCheck.checked]), unless the mint refuses ([NotesCheck.takeBackRefused]).
      */
     suspend fun recheckUnknownNotes(): NotesCheck = lock.withLock {
         val notes = store.notes(activeId()).first().filter { it.isUnknown() && !it.isArchived }
@@ -1247,6 +1273,8 @@ class Wallet(
                 var back = 0
                 var still = 0
                 var handedOut = 0
+                var takenBack = 0
+                var takeBackRefused = 0
                 val unreachable = mutableListOf<String>()
                 for ((i, note) in notes.withIndex()) {
                     _task.value = WalletTask.CheckingNotes(i, notes.size)
@@ -1260,6 +1288,8 @@ class Wallet(
                             unknownAnsweredAt.update { it + (note.id to now()) }
                         }
                         NoteCheck.HandedOutAgain -> handedOut++
+                        is NoteCheck.TakenBack -> takenBack++
+                        is NoteCheck.TakeBackRefused -> takeBackRefused++
                         NoteCheck.Unreachable,
                         is NoteCheck.KeyChanged -> unreachable += note.host
                         NoteCheck.Spent,
@@ -1268,9 +1298,17 @@ class Wallet(
                         NoteCheck.NotLanded -> Unit
                     }
                 }
-                NotesCheck(back, 0, unreachable, still, handedOut)
+                NotesCheck(
+                    back,
+                    0,
+                    unreachable,
+                    still,
+                    handedOutAgain = handedOut,
+                    takenBack = takenBack,
+                    takeBackRefused = takeBackRefused,
+                )
             }
-            .also { if (it.checked > 0) applyPolicies(activeId()) }
+            .also { if (it.checked > 0 || it.takenBack > 0) applyPolicies(activeId()) }
     }
 
     /**
@@ -1906,11 +1944,21 @@ sealed interface NoteCheck {
     /** The mint has no note at this key. */
     data object Unknown : NoteCheck
 
-    /**
-     * Handed out as a link, the mint knows it again: it waits to be claimed again, out of the balance, with its link. Also one the user
-     * asked to take back that couldn't be yet: it is on a later refresh.
-     */
+    /** Handed out as a link, the mint knows it again: it waits to be claimed again, out of the balance, with its link. */
     data object HandedOutAgain : NoteCheck
+
+    /**
+     * Handed out as a link, the user asked to take it back while its mint didn't know it ([ReclaimResult.WhenKnown]); the mint knows it
+     * again, and it was taken back now: [amountMsat] is back in the balance, its History row cancelled.
+     */
+    data class TakenBack(val amountMsat: Long) : NoteCheck
+
+    /**
+     * Handed out as a link, the user asked to take it back while its mint didn't know it; the mint knows it again but refused the take back
+     * ([mintMessage]: its own words for a refusal the wallet doesn't recognize, its text, in its language, never the app's). The wish
+     * stays: its link is still not shown, it stays out of the balance, and it is tried again on the next refresh while the mint knows it.
+     */
+    data class TakeBackRefused(val mintMessage: String?) : NoteCheck
 
     /** No usable answer; nothing changed. */
     data object Unreachable : NoteCheck
@@ -1929,11 +1977,27 @@ sealed interface NoteCheck {
 }
 
 /**
- * What [Wallet.recheckNotes] found: notes still there, notes gone (spent elsewhere), mints that didn't answer, and notes set aside because
- * their mint doesn't know them ([unknown]). [handedOutAgain]: notes handed out as links that their mint knows again, which wait to be
- * claimed again, out of the balance ([NoteCheck.HandedOutAgain]); not in [checked].
+ * What [Wallet.recheckNotes] (or [Wallet.recheckUnknownNotes]) found: notes still there, notes gone (spent elsewhere), mints that didn't
+ * answer, and notes set aside because their mint doesn't know them ([unknown]). The notes handed out as links, which were never in the
+ * balance, are counted apart, never in [checked], [gone] or [unknown]:
+ * - [handedOutAgain]: their mint knows them again; they wait to be claimed again, out of the balance ([NoteCheck.HandedOutAgain]).
+ * - [handedOutUnknown]: their mint no longer knows them; set aside with the wallet's other unknown notes, still out of the balance, and
+ *   still the recipient's should the mint know them again ([Wallet.recheckNotes] only).
+ * - [takenBack]: the user asked to take them back while their mint didn't know them, and they were taken back now: back in the balance
+ *   ([NoteCheck.TakenBack]).
+ * - [takeBackRefused]: the user asked to take them back, their mint knows them again but refused the take back; the wish stays, tried again
+ *   on the next refresh ([NoteCheck.TakeBackRefused]).
  */
-data class NotesCheck(val checked: Int, val gone: Int, val unreachable: List<String>, val unknown: Int = 0, val handedOutAgain: Int = 0)
+data class NotesCheck(
+    val checked: Int,
+    val gone: Int,
+    val unreachable: List<String>,
+    val unknown: Int = 0,
+    val handedOutAgain: Int = 0,
+    val handedOutUnknown: Int = 0,
+    val takenBack: Int = 0,
+    val takeBackRefused: Int = 0,
+)
 
 /** Notes a lookup can confirm and a rotate can renew: outstanding, at a key derived from the seed. */
 /**

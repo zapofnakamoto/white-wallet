@@ -129,6 +129,10 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notice_moved_home` | Moved %1$s to your home mint |
 | `notes_checked_unknown` | The mint doesn't know %1$d note. It's set aside, out of your balance, and your wallet asks again by itself. / The mint doesn't know %1$d notes. They're set aside, out of your balance, and your wallet asks again by itself. (plural) |
 | `notes_checked_handed_out` | The mint knows %1$d note you handed out again. It waits to be claimed. / The mint knows %1$d notes you handed out again. They wait to be claimed. (plural) |
+| `notes_checked_handed_out_spent` | %1$d note you handed out was spent. / %1$d notes you handed out were spent. (plural) |
+| `notes_checked_handed_out_unknown` | The mint doesn't know %1$d note you handed out, so nobody can claim it yet. Your wallet asks again by itself. / The mint doesn't know %1$d notes you handed out, so nobody can claim them yet. Your wallet asks again by itself. (plural) |
+| `notes_checked_taken_back` | %1$d note you handed out was taken back into your balance. / %1$d notes you handed out were taken back into your balance. (plural) |
+| `notes_checked_take_back_refused` | The mint refused to give back %1$d note you handed out. Your wallet tries again by itself. / The mint refused to give back %1$d notes you handed out. Your wallet tries again by itself. (plural) |
 | `notes_state_unknown` | Unknown to the mint |
 | `notes_state_unknown_detail` | The mint says it doesn't know this note, so it isn't in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it's back in your balance. |
 | `notes_state_unknown_handed_out_detail` | You handed this note out, but the mint says it doesn't know it, so nobody can claim it yet. Your wallet asks the mint again by itself; once the mint knows it again, it waits to be claimed. |
@@ -136,6 +140,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_archived_done` | Moved %d note to the archive. / Moved %d notes to the archive. (plural) |
 | `archive_notes_title` | Notes |
 | `archive_notes_hint` | Their mint doesn't know these notes. Your wallet still asks about them now and then; once the mint knows one again, it's back in your balance. |
+| `archive_handed_out_hint` | You handed these notes out, but their mint doesn't know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or comes back to your balance if you asked to take it back. |
 | `archive_note_remove_title` | Remove this note for good? |
 | `archive_note_remove_body` | Its mint doesn't know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase. |
 | `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
@@ -195,6 +200,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `onboarding_error_mint_without_key` | This mint isn't showing its signing key, so it can't be added. Without it your wallet can't check that its notes are real. It may be back in a moment; if not, pick another mint. |
 | `received_key_changed` | The signing key of its mint doesn't match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint's details. |
 | `note_take_back_when_known` | Its mint doesn't know this note right now. Your wallet takes it back as soon as the mint knows it again. |
+| `mint_message` | Message from the mint: “%1$s” |
 | `received_refused` | Its mint kept refusing it, so your wallet stopped trying. |
 | `received_refused_hours` | Its mint kept refusing it for %d hour, so your wallet stopped trying. / Its mint kept refusing it for %d hours, so your wallet stopped trying. (plural) |
 | `received_refused_days` | Its mint kept refusing it for %d day, so your wallet stopped trying. / Its mint kept refusing it for %d days, so your wallet stopped trying. (plural) |

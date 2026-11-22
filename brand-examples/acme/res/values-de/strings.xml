@@ -92,6 +92,22 @@
         <item quantity="one">Der Anbieter kennt %1$d Geldschein, den du weitergegeben hast, wieder. Er wartet darauf, eingelöst zu werden.</item>
         <item quantity="other">Der Anbieter kennt %1$d Geldscheine, die du weitergegeben hast, wieder. Sie warten darauf, eingelöst zu werden.</item>
     </plurals>
+    <plurals name="notes_checked_handed_out_spent">
+        <item quantity="one">%1$d Geldschein, den du weitergegeben hast, wurde ausgegeben.</item>
+        <item quantity="other">%1$d Geldscheine, die du weitergegeben hast, wurden ausgegeben.</item>
+    </plurals>
+    <plurals name="notes_checked_handed_out_unknown">
+        <item quantity="one">Der Anbieter kennt %1$d Geldschein, den du weitergegeben hast, nicht, deshalb kann ihn noch niemand einlösen. Deine Wallet fragt von selbst wieder.</item>
+        <item quantity="other">Der Anbieter kennt %1$d Geldscheine, die du weitergegeben hast, nicht, deshalb kann sie noch niemand einlösen. Deine Wallet fragt von selbst wieder.</item>
+    </plurals>
+    <plurals name="notes_checked_taken_back">
+        <item quantity="one">%1$d Geldschein, den du weitergegeben hast, ist zurück in deinem Guthaben.</item>
+        <item quantity="other">%1$d Geldscheine, die du weitergegeben hast, sind zurück in deinem Guthaben.</item>
+    </plurals>
+    <plurals name="notes_checked_take_back_refused">
+        <item quantity="one">Der Anbieter hat %1$d Geldschein, den du weitergegeben hast, nicht zurückgegeben. Deine Wallet versucht es von selbst wieder.</item>
+        <item quantity="other">Der Anbieter hat %1$d Geldscheine, die du weitergegeben hast, nicht zurückgegeben. Deine Wallet versucht es von selbst wieder.</item>
+    </plurals>
     <string name="notes_state_unknown">Dem Anbieter unbekannt</string>
     <string name="notes_state_unknown_detail">Der Anbieter sagt, er kennt diesen Geldschein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
     <string name="notes_state_unknown_handed_out_detail">Du hast diesen Geldschein weitergegeben, aber der Anbieter sagt, er kennt ihn nicht, daher kann ihn noch niemand einlösen. Deine Wallet fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, wartet er darauf, eingelöst zu werden.</string>
@@ -105,6 +121,7 @@
     </plurals>
     <string name="archive_notes_title">Geldscheine</string>
     <string name="archive_notes_hint">Ihr Anbieter kennt diese Geldscheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <string name="archive_handed_out_hint">Du hast diese Geldscheine weitergegeben, aber ihr Anbieter kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, wartet er darauf, eingelöst zu werden, oder ist zurück in deinem Guthaben, wenn du ihn zurückholen wolltest.</string>
     <string name="archive_note_remove_title">Diesen Geldschein endgültig entfernen?</string>
     <string name="archive_note_remove_body">Sein Anbieter kennt ihn gerade nicht. Kennt er ihn je wieder, findet ihn „Nach Geldscheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
     <plurals name="home_unknown_title">
@@ -180,6 +197,7 @@
     <string name="note_unknown_to_mint">Der Anbieter kennt diesen Geldschein gerade nicht, deshalb kann ihn noch niemand einlösen. Deine Wallet fragt den Anbieter von selbst wieder.</string>
     <string name="note_unverified">Du hast diesen Geldschein entfernt, als der Anbieter ihn nicht kannte, deshalb ist nicht bekannt, ob er eingelöst wurde.</string>
     <string name="note_take_back_when_known">Der Anbieter kennt diesen Geldschein gerade nicht. Deine Wallet holt ihn zurück, sobald der Anbieter ihn wieder kennt.</string>
+    <string name="mint_message">Nachricht des Anbieters: „%1$s“</string>
     <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Geldschein.</string>
     <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
     <string name="settings_notes">Geldschein-Einstellungen</string>

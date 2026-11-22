@@ -177,7 +177,7 @@ class RegtestHandedOutUnknownTest {
             assertEquals(NoteCheck.Unknown, alice.wallet.recheckNote(note.id))
 
             Regtest.mintTo(Regtest.HOST, ByteVector32(note.id), SATS)
-            val back = assertIs<NoteCheck.Ok>(alice.wallet.recheckNote(note.id))
+            val back = assertIs<NoteCheck.TakenBack>(alice.wallet.recheckNote(note.id))
             assertEquals(back.amountMsat, alice.balance(), "taken back into the balance")
             assertEquals(SharedNoteState.Reclaimed, alice.wallet.sharedNote(note.id)?.state)
             assertEquals(ActivityStatus.Cancelled, alice.sentRow(note.id).status)
@@ -216,6 +216,80 @@ class RegtestHandedOutUnknownTest {
             assertEquals(SharedNoteState.Reclaimed, alice.wallet.sharedNote(note.id)?.state)
             assertEquals(emptyList(), alice.wallet.receivedNotes.first(), "never kept as a received note")
             assertTrue(alice.balance() > 0)
+        }
+
+    @Test
+    fun `the recipient claims a note while the wallet has it set aside as unknown, and it is spent, done, never in the balance`() =
+        runBlocking<Unit> {
+            val wire = Wire()
+            val alice = Regtest.phone(client = Regtest.client(wire))
+            val note = alice.unknownNote()
+            alice.shareOffline(wire, note)
+            alice.wallet.refresh()
+            assertEquals(NoteState.Unknown, alice.store.note(note.id)?.state)
+            val link = assertNotNull(alice.wallet.sharedNote(note.id)?.link)
+
+            // The mint knows it again, and the recipient claims it before the wallet asks.
+            Regtest.mintTo(Regtest.HOST, ByteVector32(note.id), SATS)
+            val bob = Regtest.phone()
+            assertIs<ClaimResult.Claimed>(bob.wallet.claim(assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))))
+            assertEquals(NoteState.Unknown, alice.store.note(note.id)?.state, "still set aside")
+
+            // Asked again: burned (the lookup's `already in use`).
+            assertEquals(NotesCheck(checked = 0, gone = 0, unreachable = emptyList()), alice.wallet.recheckUnknownNotes())
+            val spent = assertNotNull(alice.store.note(note.id))
+            assertEquals(NoteState.Spent, spent.state)
+            assertNull(spent.handedOut)
+            assertEquals(ActivityStatus.Done, alice.sentRow(note.id).status)
+            assertEquals(SharedNoteState.Spent, alice.wallet.sharedNote(note.id)?.state)
+            assertEquals(0, alice.balance(), "never in the balance")
+            assertEquals(ReclaimResult.AlreadySpent, alice.wallet.reclaimNote(note.id))
+        }
+
+    @Test
+    fun `a take back asked for in one account is carried out by a refresh while another account of the wallet is active`() =
+        runBlocking<Unit> {
+            val wire = Wire()
+            // Unknown notes asked about again on every refresh a second apart.
+            val alice =
+                Regtest.phone(
+                    client = Regtest.client(wire),
+                    settings = WalletSettings(unknownNoteCheckIntervalInGracePeriodMillis = 1000),
+                )
+            val first = alice.store.currentAccountId()!!
+            val note = alice.unknownNote()
+            alice.shareOffline(wire, note)
+            alice.wallet.refresh()
+            assertEquals(ReclaimResult.WhenKnown, alice.wallet.reclaimNote(note.id))
+            assertEquals(HandedOut.TakeBack, alice.store.note(note.id)?.handedOut)
+
+            // Another account of the same wallet (recovery phrase) is active now.
+            val second = assertIs<CreateAccountResult.Created>(alice.wallet.createAccount("Savings")).accountId
+            assertEquals(second, alice.store.currentAccountId())
+            val secondNotes = alice.store.notes(second).first()
+            val secondActivity = alice.store.activities(second).first()
+
+            Regtest.mintTo(Regtest.HOST, ByteVector32(note.id), SATS)
+            delay(1_100)
+            alice.wallet.refresh()
+
+            // Taken back into the first account's balance, on its own records.
+            val old = assertNotNull(alice.store.note(note.id))
+            assertEquals(first, old.accountId)
+            assertEquals(NoteState.Spent, old.state, "rotated to a fresh key")
+            assertNull(old.handedOut)
+            val row = alice.store.activities(first).first().single { it.kind == ActivityKind.SentNote && it.sentNoteId == note.id }
+            assertEquals(ActivityStatus.Cancelled, row.status, "taken back")
+            val back = alice.store.notes(first).first().filter { it.state == NoteState.Outstanding }
+            assertEquals(1, back.size)
+            assertTrue(back.single().amountMsat in (worth - 1000)..worth, "back in the first account's balance")
+            assertEquals(KeySet.Wallet.purpose, back.single().purpose)
+
+            // The active account's records are untouched.
+            assertEquals(second, alice.store.currentAccountId())
+            assertEquals(secondNotes, alice.store.notes(second).first())
+            assertEquals(secondActivity, alice.store.activities(second).first())
+            assertEquals(0, alice.balance())
         }
 
     @Test

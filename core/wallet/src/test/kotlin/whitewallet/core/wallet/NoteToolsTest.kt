@@ -169,7 +169,11 @@ class NoteToolsTest {
             assertEquals(21_000, wallet.balanceMsat.first())
 
             mint.credit(Cp1.encode(testKeys(words, mint.host).pubkey(KeySet.Wallet, 900)), 5_000)
-            assertEquals(NotesCheck(checked = 1, gone = 0, unreachable = emptyList()), wallet.recheckUnknownNotes(), "back in the balance")
+            assertEquals(
+                NotesCheck(checked = 0, gone = 0, unreachable = emptyList(), takenBack = 1),
+                wallet.recheckUnknownNotes(),
+                "taken back into the balance",
+            )
             assertEquals(SharedNoteState.Reclaimed, wallet.sharedNote(note.id)?.state)
             assertEquals(ActivityStatus.Cancelled, store.activities("a").first().single { it.kind == ActivityKind.SentNote }.status)
             assertEquals(26_000, wallet.balanceMsat.first())

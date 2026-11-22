@@ -40,6 +40,22 @@
         <item quantity="one">The mint knows %1$d note you handed out again. It waits to be claimed.</item>
         <item quantity="other">The mint knows %1$d notes you handed out again. They wait to be claimed.</item>
     </plurals>
+    <plurals name="notes_checked_handed_out_spent">
+        <item quantity="one">%1$d note you handed out was spent.</item>
+        <item quantity="other">%1$d notes you handed out were spent.</item>
+    </plurals>
+    <plurals name="notes_checked_handed_out_unknown">
+        <item quantity="one">The mint doesn\'t know %1$d note you handed out, so nobody can claim it yet. Your wallet asks again by itself.</item>
+        <item quantity="other">The mint doesn\'t know %1$d notes you handed out, so nobody can claim them yet. Your wallet asks again by itself.</item>
+    </plurals>
+    <plurals name="notes_checked_taken_back">
+        <item quantity="one">%1$d note you handed out was taken back into your balance.</item>
+        <item quantity="other">%1$d notes you handed out were taken back into your balance.</item>
+    </plurals>
+    <plurals name="notes_checked_take_back_refused">
+        <item quantity="one">The mint refused to give back %1$d note you handed out. Your wallet tries again by itself.</item>
+        <item quantity="other">The mint refused to give back %1$d notes you handed out. Your wallet tries again by itself.</item>
+    </plurals>
     <string name="notes_already_spent">This note was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
     <string name="notes_empty">No notes yet. Money you receive is held as notes, and they show up here.</string>
     <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your notes again on every refresh.</string>
@@ -75,6 +91,7 @@
     </plurals>
     <string name="archive_notes_title">Notes</string>
     <string name="archive_notes_hint">Their mint doesn\'t know these notes. Your wallet still asks about them now and then; once the mint knows one again, it\'s back in your balance.</string>
+    <string name="archive_handed_out_hint">You handed these notes out, but their mint doesn\'t know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or comes back to your balance if you asked to take it back.</string>
     <string name="archive_note_remove_title">Remove this note for good?</string>
     <string name="archive_note_remove_body">Its mint doesn\'t know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase.</string>
 
@@ -94,6 +111,12 @@
     <!-- Puts a note its mint doesn't know into the archive (its details, or a selection of such notes). -->
     <string name="notes_archive">Archive</string>
     <string name="notes_archive_hint">Archive it to stop the warning about it. Your wallet still asks about it now and then; once it\'s known again, it\'s back in your balance.</string>
+    <!-- The archive's part of notes the user handed out as links that their mint doesn't know. -->
+    <string name="archive_handed_out_title">Handed out</string>
+    <!-- As notes_archive_hint, for one the user handed out as a link (it was never in the balance). -->
+    <string name="notes_archive_hint_handed_out">Archive it to put it aside. Your wallet still asks about it now and then; once it\'s known again, it waits to be claimed.</string>
+    <!-- The same, once the user asked to take it back. -->
+    <string name="notes_archive_hint_take_back">Archive it to put it aside. Your wallet still asks about it now and then; once it\'s known again, it\'s taken back into your balance.</string>
     <string name="notes_archived_open">Open the archive</string>
     <string name="archive_title">Archive</string>
     <string name="archive_hint">Your wallet no longer tries these links. Try one again, or remove it for good. Until it is claimed, your recovery phrase doesn\'t cover it.</string>

@@ -220,7 +220,8 @@ sealed interface UnknownCheck {
         /** The one thing to say about [check]: good news first, then a mint that didn't answer; null if there was nothing to ask. */
         fun of(check: NotesCheck): UnknownCheck? =
             when {
-                check.checked > 0 -> Back(check.checked)
+                // A take back the user asked for brings money back into the balance too.
+                check.checked + check.takenBack > 0 -> Back(check.checked + check.takenBack)
                 check.unreachable.isNotEmpty() -> Unreachable(check.unreachable.first())
                 check.unknown > 0 -> Still(check.unknown)
                 else -> null

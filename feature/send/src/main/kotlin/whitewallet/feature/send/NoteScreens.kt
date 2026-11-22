@@ -300,6 +300,8 @@ data class SharedNoteUiState(
     val reclaimPending: Boolean = false,
     val alreadySpent: Boolean = false,
     val problem: PayProblem? = null,
+    /** The mint's own words for refusing to give it back, if it gave any. */
+    val mintMessage: String? = null,
     /** Whether the brand lets users print it (`notes.actions`). */
     val canPrint: Boolean = false,
     /** The phone is offline: the note can't be taken back now. */
@@ -341,7 +343,7 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
 
     fun reclaim() {
         if (_state.value.reclaiming) return
-        _state.update { it.copy(confirmReclaim = false, reclaiming = true, problem = null) }
+        _state.update { it.copy(confirmReclaim = false, reclaiming = true, problem = null, mintMessage = null) }
         viewModelScope.launch {
             val result = wallet.reclaimNote(id)
             val note = wallet.sharedNote(id)
@@ -352,7 +354,7 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
                     ReclaimResult.Pending -> it.copy(reclaiming = false, note = note, reclaimPending = true)
                     // Its mint doesn't know it: the note says it is taken back once the mint does.
                     ReclaimResult.WhenKnown -> it.copy(reclaiming = false, note = note)
-                    is ReclaimResult.Failed -> it.copy(reclaiming = false, problem = result.problem)
+                    is ReclaimResult.Failed -> it.copy(reclaiming = false, problem = result.problem, mintMessage = result.mintMessage)
                 }
             }
         }
@@ -492,6 +494,15 @@ fun SharedNoteScreen(
             state.problem
                 ?.takeUnless { state.offline && it == PayProblem.Unreachable }
                 ?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
+            state.mintMessage
+                ?.takeIf { state.problem != null }
+                ?.let {
+                    Text(
+                        stringResource(DesignR.string.mint_message, it),
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             if (note.state != SharedNoteState.Waiting) PrimaryButton(stringResource(R.string.send_done), onBack)
         }
     }

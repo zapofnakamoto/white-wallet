@@ -581,12 +581,27 @@ class NotesScreenTest {
         compose.onNodeWithText(text(R.string.notes_state_unknown_handed_out_detail)).assertExists()
         compose.onNodeWithText(text(R.string.notes_state_unknown_detail)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.notes_archive)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_archive_hint_handed_out)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_archive_hint)).assertDoesNotExist()
     }
 
     @Test
     fun aHandedOutNoteToTakeBackSaysItIsTakenBackOnceItsMintKnowsIt() {
         compose.setContent { NotesContent(state(withHandedOut(HandedOut.TakeBack), { it.copy(open = "u1") }), NotesActions()) }
         compose.onNodeWithText(text(DesignR.string.note_take_back_when_known)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_archive_hint_take_back)).assertExists()
+    }
+
+    @Test
+    fun checkingTellsWhatHappenedToHandedOutNotesApartFromTheBalance() {
+        val checked =
+            NotesOutcome.Checked(ok = 0, gone = 0, unreachable = emptyList(), handedOutSpent = 1, handedOutUnknown = 1, takenBack = 1)
+        compose.setContent { NotesContent(state({ it.copy(outcome = checked) }), NotesActions()) }
+        compose.onNodeWithText(plural(R.plurals.notes_checked_taken_back, 1, 1), substring = true).assertExists()
+        compose.onNodeWithText(plural(R.plurals.notes_checked_handed_out_spent, 1, 1), substring = true).assertExists()
+        compose.onNodeWithText(plural(R.plurals.notes_checked_handed_out_unknown, 1, 1), substring = true).assertExists()
+        compose.onNodeWithText("spent elsewhere", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("out of your balance", substring = true).assertDoesNotExist()
     }
 
     @Test

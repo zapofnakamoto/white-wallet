@@ -104,7 +104,12 @@ sealed interface ReclaimResult {
      */
     data object WhenKnown : ReclaimResult
 
-    data class Failed(val problem: PayProblem) : ReclaimResult
+    /**
+     * Not taken back: [PayProblem.Refused] when the mint answered but wouldn't (with [mintMessage], its own words for a refusal the wallet
+     * doesn't recognize: its text, in its language, never the app's), [PayProblem.KeyChanged] when its signing key doesn't match the pinned
+     * one (nothing was asked or sent), [PayProblem.Unreachable] only when the mint couldn't be reached.
+     */
+    data class Failed(val problem: PayProblem, val mintMessage: String? = null) : ReclaimResult
 }
 
 /**
@@ -202,14 +207,18 @@ internal class NoteSender(private val wallet: Wallet) {
             } ?: return ShareNoteResult.NotShareable
         val state =
             when (check(note)) {
-                Check.Waiting -> NoteState.Shared
+                Check.Waiting,
+                Check.InUse -> NoteState.Shared
                 Check.Offline -> NoteState.SharedUnconfirmed
                 Check.Spent -> return ShareNoteResult.AlreadySpent
                 Check.UnknownToMint -> {
                     unknownNotes.sortOut(listOf(note))
                     return ShareNoteResult.UnknownToMint
                 }
-                Check.Unreadable -> return ShareNoteResult.Unreachable
+                Check.Unreadable,
+                is Check.Refused,
+                Check.KeyChanged,
+                Check.NoMint -> return ShareNoteResult.Unreachable
             }
         val shared =
             note.copy(state = state, updatedAtMillis = wallet.now(), checkedAtMillis = wallet.now().takeIf { state == NoteState.Shared })
@@ -257,7 +266,8 @@ internal class NoteSender(private val wallet: Wallet) {
 
     /**
      * Takes a sent note back while nobody has claimed it: rotated to a fresh wallet key, back in the balance. One its mint doesn't know
-     * can't be: the wish is kept, and it is taken back as soon as the mint knows it again ([ReclaimResult.WhenKnown]).
+     * can't be: the wish is kept, and it is taken back as soon as the mint knows it again ([ReclaimResult.WhenKnown]). A mint that answered
+     * but wouldn't is never told as one that couldn't be reached (see [ReclaimResult.Failed]).
      */
     suspend fun reclaim(id: String): ReclaimResult {
         val accountId = wallet.activeId()
@@ -274,18 +284,16 @@ internal class NoteSender(private val wallet: Wallet) {
                 else -> ReclaimResult.WhenKnown
             }
         }
-        return when (check(note)) {
-            Check.Spent -> ReclaimResult.AlreadySpent
-            Check.Offline,
-            Check.Unreadable -> ReclaimResult.Failed(PayProblem.Unreachable)
-            Check.UnknownToMint -> whenKnown(id)
+        return when (val check = check(note)) {
             Check.Waiting -> takeBack(note)
+            else -> settled(note, check) ?: failure(check) ?: ReclaimResult.Failed(PayProblem.Refused)
         }
     }
 
     /**
-     * Takes back the active account's note [id] now if the user asked to while its mint didn't know it ([HandedOut.TakeBack]) and the mint
-     * knows it again; null if there is no such wish.
+     * Takes back note [id] now if the user asked to while its mint didn't know it ([HandedOut.TakeBack]) and the mint knows it again; null
+     * if there is no such wish. The note may be any account's of the active wallet ([reconcile] runs for each on refresh): it is rotated to
+     * a fresh key of its own account, with that account's keys, and only that account's records change.
      */
     suspend fun takeBackIfAsked(id: String): ReclaimResult? {
         val note =
@@ -305,9 +313,11 @@ internal class NoteSender(private val wallet: Wallet) {
     }
 
     /**
-     * On refresh: an account's shared notes are looked up by key. Spent ones are marked so, and their History rows done; one handed out
-     * offline that its mint has is confirmed; one its mint doesn't know is set aside ([UnknownNotes]). One the user asked to take back
-     * while its mint didn't know it is taken back now that it does.
+     * On refresh, for every account of the active wallet in turn (the accounts that share the active account's recovery phrase), not only
+     * the active one: [accountId]'s shared notes are looked up by key. Spent ones are marked so, and their History rows done; one handed
+     * out offline that its mint has is confirmed; one its mint doesn't know is set aside ([UnknownNotes]). One the user asked to take back
+     * while its mint didn't know it is taken back now that it does ([takeBackIfAsked]), into [accountId]'s own balance; a take back that
+     * doesn't go through keeps the wish for the next refresh. Each account's records change only by its own notes.
      */
     suspend fun reconcile(accountId: String) {
         for (note in wallet.store.notes(accountId).first().filter { it.state.isShared }) {
@@ -335,23 +345,58 @@ internal class NoteSender(private val wallet: Wallet) {
                 cancel(accountId, note.id)
                 ReclaimResult.Pending
             }
-            // Spent in the meantime, or no longer known to its mint?
-            is MutationResult.Refused -> afterRefusal(note) ?: ReclaimResult.Failed(PayProblem.Refused)
-            is MutationResult.Unreachable ->
-                afterRefusal(note) ?: ReclaimResult.Failed(if (result.keyChanged) PayProblem.KeyChanged else PayProblem.Unreachable)
+            // Spent in the meantime, or no longer known to its mint? Otherwise the mint refused, in its own words.
+            is MutationResult.Refused -> settled(note, afterRefusal(note)) ?: refused(result.reason)
+            is MutationResult.Unreachable -> {
+                val again = afterRefusal(note)
+                settled(note, again)
+                    ?: when {
+                        result.keyChanged -> ReclaimResult.Failed(PayProblem.KeyChanged)
+                        // Nothing was sent: the lookup before it may have been refused, which asking again tells.
+                        else -> again?.let { failure(it) } ?: ReclaimResult.Failed(PayProblem.Unreachable)
+                    }
+            }
         }
     }
 
-    /** After a take back that didn't go through: [note] was spent, or its mint no longer knows it (the wish is kept); null otherwise. */
-    private suspend fun afterRefusal(note: Note): ReclaimResult? {
+    /** After a take back that didn't go through: where [note] stands now; null if it is gone from the wallet or no longer handed out. */
+    private suspend fun afterRefusal(note: Note): Check? {
         val now = wallet.store.note(note.id) ?: return null
-        val check = if (now.state == NoteState.Unknown) Check.UnknownToMint else if (now.state.isShared) check(now) else null
-        return when (check) {
-            Check.Spent -> ReclaimResult.AlreadySpent
-            Check.UnknownToMint -> whenKnown(note.id)
-            else -> if (now.state == NoteState.Spent) ReclaimResult.AlreadySpent else null
+        return when {
+            now.state == NoteState.Spent -> Check.Spent
+            now.state == NoteState.Unknown -> Check.UnknownToMint
+            now.state.isShared -> check(now)
+            else -> null
         }
     }
+
+    /** A take back of [note] that [check] ends: it was spent, or its mint doesn't know it (the wish is kept); null otherwise. */
+    private suspend fun settled(note: Note, check: Check?): ReclaimResult? =
+        when (check) {
+            Check.Spent -> ReclaimResult.AlreadySpent
+            Check.UnknownToMint -> whenKnown(note.id)
+            else -> null
+        }
+
+    /** Why [check] keeps a take back from going through; null if it doesn't. "Couldn't connect" only when the mint wasn't reached. */
+    private fun failure(check: Check): ReclaimResult.Failed? =
+        when (check) {
+            Check.Offline,
+            Check.Unreadable -> ReclaimResult.Failed(PayProblem.Unreachable)
+            Check.KeyChanged -> ReclaimResult.Failed(PayProblem.KeyChanged)
+            is Check.Refused -> refused(check.reason)
+            // Being paid out: a refusal the wallet knows, so in the app's words.
+            Check.InUse,
+            // Can't be: a mint holding notes can't be removed. Not asked, so not "couldn't connect".
+            Check.NoMint -> ReclaimResult.Failed(PayProblem.Refused)
+            Check.Waiting,
+            Check.Spent,
+            Check.UnknownToMint -> null
+        }
+
+    /** The mint refused, with its own words ([reason]) as one line of plain text. */
+    private fun refused(reason: String?): ReclaimResult.Failed =
+        ReclaimResult.Failed(PayProblem.Refused, Payer.mintMessage(reason, wallet.settings.paymentMintMessageMaxCharacters))
 
     /** The user asked to take back [id], which its mint doesn't know (set aside): it is taken back once the mint knows it. */
     private suspend fun whenKnown(id: String): ReclaimResult {
@@ -378,40 +423,68 @@ internal class NoteSender(private val wallet: Wallet) {
         return probe
     }
 
-    private enum class Check {
-        Waiting,
-        Spent,
-        UnknownToMint,
-        Offline,
-        Unreadable,
+    /** What a lookup by key says about a handed-out note ([check]). */
+    private sealed interface Check {
+        /** Its mint has it: nobody claimed it yet. */
+        data object Waiting : Check
+
+        /** Its mint has it, being paid out (`pending`): there, but nobody can take it now. */
+        data object InUse : Check
+
+        /** Burned: claimed (recorded as spent). */
+        data object Spent : Check
+
+        /** Its mint says it doesn't know it (set aside, see [UnknownNotes]). */
+        data object UnknownToMint : Check
+
+        /** The mint couldn't be reached. */
+        data object Offline : Check
+
+        /** An answer that isn't a mint's (a proxy in front of one that is down): no answer, as [Wallet.heardFrom] takes it. */
+        data object Unreadable : Check
+
+        /**
+         * The mint answered with a refusal in its own words ([reason], if it gave any), which says nothing of the note: a spent note in its
+         * words among them, which proves nothing.
+         */
+        data class Refused(val reason: String?) : Check
+
+        /**
+         * Its signing key doesn't match the pinned one: not asked (its answers about a link carry no key), or the answer counts for
+         * nothing.
+         */
+        data object KeyChanged : Check
+
+        /** Not one of its account's mints: nobody to ask. */
+        data object NoMint : Check
     }
 
     /**
      * Looks [note] up by `p`, never with its spend: burned (`already in use`) means spent (recorded as such); there confirms it. A spent
-     * note in the mint's own words proves nothing: unreadable, like any other refusal.
+     * note in the mint's own words proves nothing: a refusal, like any other.
      */
     private suspend fun check(note: Note): Check {
-        val known = wallet.mintOf(note.accountId, note.host) ?: return Check.Unreadable
+        val known = wallet.mintOf(note.accountId, note.host) ?: return Check.NoMint
         // A mint whose key doesn't match can't tell: its answers about a link carry no key.
-        val mint = KeyCheckedMint.of(wallet, known) ?: return Check.Unreadable
+        val mint = KeyCheckedMint.of(wallet, known) ?: return Check.KeyChanged
         try {
             Pinning.lookup(wallet, mint, ByteVector32(note.id))
-            return confirmed(note)
+            return confirmed(note, Check.Waiting)
         } catch (e: NoteLookupError) {
             when {
                 e.burned || e.burnedOrPending -> Unit
-                e.kind == RejectionKind.Pending -> return confirmed(note)
+                e.kind == RejectionKind.Pending -> return confirmed(note, Check.InUse)
                 e.kind == RejectionKind.NoteUnknown -> {
                     setAside(note)
                     return Check.UnknownToMint
                 }
-                else -> return Check.Unreadable
+                else -> return Check.Refused(e.reason)
             }
         } catch (e: IOException) {
             return Check.Offline
-        } catch (e: ProtocolViolation) {
-            return Check.Unreadable
         } catch (e: MintKeyChangedException) {
+            return Check.KeyChanged
+        } catch (e: ProtocolViolation) {
             return Check.Unreadable
         }
         wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Spent, updatedAtMillis = wallet.now(), handedOut = null)))
@@ -419,12 +492,12 @@ internal class NoteSender(private val wallet: Wallet) {
         return Check.Spent
     }
 
-    /** Its mint has it: a note handed out offline is confirmed now. */
-    private suspend fun confirmed(note: Note): Check {
+    /** Its mint has it: a note handed out offline is confirmed now. Returns [check]. */
+    private suspend fun confirmed(note: Note, check: Check): Check {
         answered(
             if (note.state == NoteState.SharedUnconfirmed) note.copy(state = NoteState.Shared, updatedAtMillis = wallet.now()) else note
         )
-        return Check.Waiting
+        return check
     }
 
     /**

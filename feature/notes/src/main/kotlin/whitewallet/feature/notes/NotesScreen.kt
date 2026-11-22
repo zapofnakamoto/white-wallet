@@ -609,9 +609,29 @@ private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String =
             buildList {
                     if (outcome.gone > 0) add(pluralStringResource(R.plurals.notes_checked_gone, outcome.gone, outcome.gone))
                     if (outcome.unknown > 0) add(pluralStringResource(R.plurals.notes_checked_unknown, outcome.unknown, outcome.unknown))
+                    if (outcome.takenBack > 0)
+                        add(pluralStringResource(R.plurals.notes_checked_taken_back, outcome.takenBack, outcome.takenBack))
+                    if (outcome.takeBackRefused > 0)
+                        add(
+                            pluralStringResource(
+                                R.plurals.notes_checked_take_back_refused,
+                                outcome.takeBackRefused,
+                                outcome.takeBackRefused,
+                            )
+                        )
+                    if (outcome.handedOutSpent > 0)
+                        add(pluralStringResource(R.plurals.notes_checked_handed_out_spent, outcome.handedOutSpent, outcome.handedOutSpent))
+                    if (outcome.handedOutUnknown > 0)
+                        add(
+                            pluralStringResource(
+                                R.plurals.notes_checked_handed_out_unknown,
+                                outcome.handedOutUnknown,
+                                outcome.handedOutUnknown,
+                            )
+                        )
                     if (outcome.handedOut > 0)
                         add(pluralStringResource(R.plurals.notes_checked_handed_out, outcome.handedOut, outcome.handedOut))
-                    if (outcome.gone == 0 && outcome.unknown == 0 && outcome.handedOut == 0 && outcome.unreachable.isEmpty())
+                    if (outcome.gone == 0 && outcome.unknown == 0 && !outcome.handedOutNews && outcome.unreachable.isEmpty())
                         add(pluralStringResource(R.plurals.notes_checked_ok, outcome.ok, outcome.ok))
                     if (outcome.unreachable.isNotEmpty()) {
                         add(

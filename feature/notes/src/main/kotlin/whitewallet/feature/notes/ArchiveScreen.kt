@@ -19,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -73,6 +74,12 @@ sealed interface RetryOutcome {
     data object NoteNoAnswer : RetryOutcome
 
     data class NoteKeyChanged(val host: String) : RetryOutcome
+
+    /** A note the user handed out: its mint knows it again, and it waits to be claimed. */
+    data object NoteHandedOutAgain : RetryOutcome
+
+    /** A note the user handed out and asked to take back: its mint knows it again, but refused ([mintMessage]: its words, if any). */
+    data class NoteTakeBackRefused(val mintMessage: String?) : RetryOutcome
 }
 
 data class ArchiveState(
@@ -151,6 +158,10 @@ class ArchiveViewModel @Inject constructor(private val wallet: Wallet, defaults:
             val outcome =
                 when (val check = wallet.recheckNote(id)) {
                     is NoteCheck.Ok -> RetryOutcome.NoteBack(check.amountMsat)
+                    // Taken back as the user asked: back in the balance all the same.
+                    is NoteCheck.TakenBack -> RetryOutcome.NoteBack(check.amountMsat)
+                    NoteCheck.HandedOutAgain -> RetryOutcome.NoteHandedOutAgain
+                    is NoteCheck.TakeBackRefused -> RetryOutcome.NoteTakeBackRefused(check.mintMessage)
                     NoteCheck.Unknown,
                     NoteCheck.Spent -> RetryOutcome.NoteStill
                     is NoteCheck.KeyChanged -> RetryOutcome.NoteKeyChanged(check.host)
@@ -221,6 +232,13 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
                 RetryOutcome.NoteStill -> stringResource(R.string.archive_note_still)
                 RetryOutcome.NoteNoAnswer -> stringResource(R.string.archive_note_no_answer)
                 is RetryOutcome.NoteKeyChanged -> stringResource(R.string.notes_key_changed, outcome.host)
+                RetryOutcome.NoteHandedOutAgain -> pluralStringResource(R.plurals.notes_checked_handed_out, 1, 1)
+                is RetryOutcome.NoteTakeBackRefused ->
+                    listOfNotNull(
+                            pluralStringResource(R.plurals.notes_checked_take_back_refused, 1, 1),
+                            outcome.mintMessage?.let { stringResource(DesignR.string.mint_message, it) },
+                        )
+                        .joinToString(" ")
             }
         LaunchedEffect(outcome) {
             snackbars.showSnackbar(message, duration = SnackbarDuration.Long)
@@ -231,8 +249,10 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
         padding ->
         if (!pageLoaded(state.loaded)) return@Scaffold
         BrandBody(Page.Archive, if (state.isEmpty) WalletStatus.Empty else WalletStatus.Idle) {
-            // Each part is titled only when both hold something.
-            val titled = state.notes.isNotEmpty() && state.unknownNotes.isNotEmpty()
+            // Notes handed out as links were never in the balance: a part of their own, which says what becomes of them.
+            val (handedOut, held) = state.unknownNotes.partition { it.handedOut != null }
+            // Each part is titled only when more than one holds something.
+            val titled = listOf(state.notes, held, handedOut).count { it.isNotEmpty() } > 1
             LazyColumn(Modifier.padding(padding).fillMaxSize()) {
                 if (state.isEmpty) item { EmptyState(stringResource(R.string.archive_empty)) }
                 if (state.notes.isNotEmpty()) {
@@ -264,9 +284,23 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
                         )
                     }
                 }
-                if (state.unknownNotes.isNotEmpty()) {
-                    item { PartHeader(R.string.archive_notes_title.takeIf { titled }, R.string.archive_notes_hint, divider = titled) }
-                    items(state.unknownNotes, key = { "note:${it.id}" }) { note -> ArchivedNoteRow(note, state, actions) }
+                if (held.isNotEmpty()) {
+                    val first = state.notes.isEmpty()
+                    item {
+                        PartHeader(R.string.archive_notes_title.takeIf { titled }, R.string.archive_notes_hint, divider = titled && !first)
+                    }
+                    items(held, key = { "note:${it.id}" }) { note -> ArchivedNoteRow(note, state, actions) }
+                }
+                if (handedOut.isNotEmpty()) {
+                    val first = state.notes.isEmpty() && held.isEmpty()
+                    item {
+                        PartHeader(
+                            R.string.archive_handed_out_title.takeIf { titled },
+                            R.string.archive_handed_out_hint,
+                            divider = titled && !first,
+                        )
+                    }
+                    items(handedOut, key = { "note:${it.id}" }) { note -> ArchivedNoteRow(note, state, actions) }
                 }
             }
         }

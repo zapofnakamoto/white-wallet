@@ -136,6 +136,20 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `NotesCheck.handedOutAgain`, `NotesOutcome.Checked.handedOut`, `SharedNote.takeBackAsked`,
   `ActivityStatus.Unverified` and `SharedNoteState.Unverified`. `SharedNote.unknownToMint` comes from the note's state
   now, and `SharedNote.confirmed` is false while its mint doesn't know it.
+- The archive no longer tells a handed-out note that it comes back into your balance once its mint knows it again.
+  Handed-out notes have a part of their own there, "Handed out", which says they wait to be claimed then, or come
+  back only if you asked to take them back; a note's details say the same before you archive it. For brands: new
+  strings `archive_handed_out_title`, `archive_handed_out_hint`, `notes_archive_hint_handed_out` and
+  `notes_archive_hint_take_back`.
+- Taking back a note you handed out no longer says "Couldn't connect" when its mint answered: a refusal says so, with
+  the mint's own words if it gave any, and a changed signing key says that. "Check again" in the notes view and the
+  archive tells what happened to handed-out notes apart from the balance: spent, still unknown to their mint, known
+  again and waiting to be claimed, taken back as you asked, or a take back the mint refused (your wallet tries again
+  by itself). Home's "Check again" counts a take back among the notes back in your balance. For brands: new strings
+  `mint_message`, `notes_checked_handed_out_spent`, `notes_checked_handed_out_unknown`, `notes_checked_taken_back` and
+  `notes_checked_take_back_refused`. For developers: `ReclaimResult.Failed.mintMessage`, `NoteCheck.TakenBack` and
+  `NoteCheck.TakeBackRefused`; `NotesCheck.handedOutUnknown`, `takenBack` and `takeBackRefused`, which `checked`,
+  `gone` and `unknown` no longer count; the same counts on `NotesOutcome.Checked`.
 
 ### Removed
 

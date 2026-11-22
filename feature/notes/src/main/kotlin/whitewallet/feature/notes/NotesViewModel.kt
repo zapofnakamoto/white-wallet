@@ -191,10 +191,26 @@ sealed interface NotesOutcome {
 
     /**
      * Asked the mints about notes: [ok] still there, [gone] spent elsewhere, [unknown] set aside as their mint doesn't know them, no answer
-     * from [unreachable]. [handedOut]: notes the user handed out as links that their mint knows again, which wait to be claimed.
+     * from [unreachable]. Notes the user handed out as links, which were never in the balance, are counted apart: [handedOut] their mint
+     * knows again and they wait to be claimed, [handedOutSpent] spent by whoever holds the link, [handedOutUnknown] set aside as their mint
+     * doesn't know them, [takenBack] taken back into the balance as the user asked, [takeBackRefused] whose take back the mint refused (it
+     * is tried again).
      */
-    data class Checked(val ok: Int, val gone: Int, val unreachable: List<String>, val unknown: Int = 0, val handedOut: Int = 0) :
-        NotesOutcome
+    data class Checked(
+        val ok: Int,
+        val gone: Int,
+        val unreachable: List<String>,
+        val unknown: Int = 0,
+        val handedOut: Int = 0,
+        val handedOutSpent: Int = 0,
+        val handedOutUnknown: Int = 0,
+        val takenBack: Int = 0,
+        val takeBackRefused: Int = 0,
+    ) : NotesOutcome {
+        /** Something happened to a note the user handed out. */
+        val handedOutNews: Boolean
+            get() = handedOut + handedOutSpent + handedOutUnknown + takenBack + takeBackRefused > 0
+    }
 
     data class KeyChanged(val host: String) : NotesOutcome
 
@@ -383,6 +399,9 @@ constructor(
                         check.unreachable,
                         check.unknown,
                         check.handedOutAgain,
+                        handedOutUnknown = check.handedOutUnknown,
+                        takenBack = check.takenBack,
+                        takeBackRefused = check.takeBackRefused,
                     )
                 } catch (e: IOException) {
                     NotesOutcome.Failed(NoteProblem.Unreachable)
@@ -396,7 +415,7 @@ constructor(
                 it.copy(
                     outcome =
                         outcome.takeUnless { o ->
-                            o is NotesOutcome.Checked && o.gone == 0 && o.unknown == 0 && o.handedOut == 0 && o.unreachable.isEmpty()
+                            o is NotesOutcome.Checked && o.gone == 0 && o.unknown == 0 && !o.handedOutNews && o.unreachable.isEmpty()
                         }
                 )
             }
@@ -412,13 +431,21 @@ constructor(
         var gone = 0
         var unknown = 0
         var handedOut = 0
+        var handedOutSpent = 0
+        var handedOutUnknown = 0
+        var takenBack = 0
+        var takeBackRefused = 0
         val unreachable = mutableListOf<String>()
         for (id in ids) {
+            // One handed out as a link was never in the balance: what happens to it is said apart.
+            val handedOutNote = state.value.mints.any { m -> m.notes.any { it.id == id && it.handedOut != null } }
             when (val check = wallet.recheckNote(id)) {
                 is NoteCheck.Ok -> ok++
-                NoteCheck.Spent -> gone++
-                NoteCheck.Unknown -> unknown++
+                NoteCheck.Spent -> if (handedOutNote) handedOutSpent++ else gone++
+                NoteCheck.Unknown -> if (handedOutNote) handedOutUnknown++ else unknown++
                 NoteCheck.HandedOutAgain -> handedOut++
+                is NoteCheck.TakenBack -> takenBack++
+                is NoteCheck.TakeBackRefused -> takeBackRefused++
                 NoteCheck.Unreachable -> state.value.mints.firstOrNull { m -> m.notes.any { it.id == id } }?.let { unreachable += it.host }
                 is NoteCheck.KeyChanged -> return NotesOutcome.KeyChanged(check.host)
                 NoteCheck.NotFound -> Unit
@@ -427,7 +454,17 @@ constructor(
                 NoteCheck.NotLanded -> return NotesOutcome.Settled(landed = false)
             }
         }
-        return NotesOutcome.Checked(ok, gone, unreachable.distinct(), unknown, handedOut)
+        return NotesOutcome.Checked(
+            ok,
+            gone,
+            unreachable.distinct(),
+            unknown,
+            handedOut,
+            handedOutSpent,
+            handedOutUnknown,
+            takenBack,
+            takeBackRefused,
+        )
     }
 
     /** Archives one note its mint doesn't know, from its details. */

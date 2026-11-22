@@ -118,6 +118,28 @@ class SharedNoteScreenTest {
     }
 
     @Test
+    fun aRefusedTakeBackGivesTheMintsWordsNotCouldntConnect() {
+        compose.setContent {
+            SharedNoteScreen(
+                SharedNoteUiState(
+                    note = note(SharedNoteState.Waiting),
+                    loading = false,
+                    problem = PayProblem.Refused,
+                    mintMessage = "Rate limited",
+                ),
+                onBack = {},
+                onShare = {},
+                onCopy = {},
+                onAskReclaim = {},
+                onDismissReclaim = {},
+                onReclaim = {},
+            )
+        }
+        compose.onNodeWithText(text(DesignR.string.mint_message, "Rate limited")).assertExists()
+        compose.onNodeWithText(text(R.string.send_problem_unreachable)).assertDoesNotExist()
+    }
+
+    @Test
     fun aSpentNoteDoesntClaimWhoSpentIt() {
         show(note(SharedNoteState.Spent))
         compose.onNodeWithText("Spent, usually by the recipient", substring = true).assertExists()

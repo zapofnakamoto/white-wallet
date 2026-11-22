@@ -155,7 +155,13 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             }
             if (archivable) {
                 Text(
-                    stringResource(R.string.notes_archive_hint),
+                    stringResource(
+                        when (note.handedOut) {
+                            null -> R.string.notes_archive_hint
+                            HandedOut.Waiting -> R.string.notes_archive_hint_handed_out
+                            HandedOut.TakeBack -> R.string.notes_archive_hint_take_back
+                        }
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

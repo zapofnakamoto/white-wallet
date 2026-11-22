@@ -13,6 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.model.HandedOut
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -43,6 +44,15 @@ class ArchiveScreenTest {
             failingSinceMillis = failingFor?.let { 10 * DAY - it },
             unclaimedReason = reason,
         )
+
+    @Test
+    fun aTakeBackTheMintRefusedSaysSoInItsOwnWords() {
+        compose.setContent {
+            ArchiveScreen(ArchiveState(outcome = RetryOutcome.NoteTakeBackRefused("Rate limited")), ArchiveActions(), onBack = {})
+        }
+        compose.onNodeWithText(plural(R.plurals.notes_checked_take_back_refused, 1, 1), substring = true).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_message, "Rate limited"), substring = true).assertExists()
+    }
 
     @Test
     fun eachArchivedLinkSaysWhyTheWalletStoppedTrying() {
@@ -148,6 +158,35 @@ class ArchiveScreenTest {
         compose.onNodeWithText(text(R.string.archive_links_title)).assertExists()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.archive_notes_title)))
         compose.onNodeWithText(text(R.string.archive_notes_title)).assertExists()
+    }
+
+    @Test
+    fun aHandedOutNoteIsInAPartOfItsOwnThatSaysItWaitsToBeClaimed() {
+        compose.setContent {
+            ArchiveScreen(
+                ArchiveState(unknownNotes = listOf(unknown('h').copy(handedOut = HandedOut.Waiting))),
+                ArchiveActions(),
+                onBack = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.archive_handed_out_hint)).assertExists()
+        compose.onNodeWithText(text(R.string.archive_notes_hint)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.archive_handed_out_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun heldAndHandedOutNotesEachHaveTheirTitledPart() {
+        compose.setContent {
+            ArchiveScreen(
+                ArchiveState(unknownNotes = listOf(unknown('u'), unknown('h').copy(handedOut = HandedOut.TakeBack))),
+                ArchiveActions(),
+                onBack = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.archive_notes_title)).assertExists()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.archive_handed_out_title)))
+        compose.onNodeWithText(text(R.string.archive_handed_out_title)).assertExists()
+        compose.onNodeWithText(text(R.string.archive_handed_out_hint)).assertExists()
     }
 
     @Test

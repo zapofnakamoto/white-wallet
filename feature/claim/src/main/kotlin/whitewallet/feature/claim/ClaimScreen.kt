@@ -498,6 +498,9 @@ private fun TakeBackMessage(result: ReclaimResult) {
         textAlign = TextAlign.Center,
         color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
     )
+    (result as? ReclaimResult.Failed)?.mintMessage?.let {
+        Text(stringResource(DesignR.string.mint_message, it), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+    }
 }
 
 @Composable

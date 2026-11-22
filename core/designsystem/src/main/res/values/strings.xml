@@ -12,6 +12,8 @@
     <string name="received_key_changed">The signing key of its mint doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint\'s details.</string>
     <!-- A handed-out note whose mint doesn't know it, which the user asked to take back (its page, and its own link opened). -->
     <string name="note_take_back_when_known">Its mint doesn\'t know this note right now. Your wallet takes it back as soon as the mint knows it again.</string>
+    <!-- %1$s: the mint's own words, in whatever language it writes. -->
+    <string name="mint_message">Message from the mint: “%1$s”</string>
     <string name="received_refused">Its mint kept refusing it, so your wallet stopped trying.</string>
     <plurals name="received_refused_hours">
         <item quantity="one">Its mint kept refusing it for %d hour, so your wallet stopped trying.</item>
