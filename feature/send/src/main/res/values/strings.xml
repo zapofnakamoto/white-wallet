@@ -90,7 +90,7 @@
     <string name="send_problem_not_exact">This amount can\'t be made from your balance.</string>
     <string name="send_problem_below_minimum">The amount is below what the recipient accepts.</string>
     <string name="send_problem_above_maximum">The amount is above what the recipient accepts.</string>
-    <string name="send_problem_payment_failed">The payment didn\'t go through. Your money is back in your balance.</string>
+    <string name="send_problem_payment_failed">The payment didn\'t go through. Nothing was paid, and the money stays in your wallet.</string>
 
     <!-- Sending a note: a link or QR code that holds the money itself. -->
     <string name="send_or">or</string>

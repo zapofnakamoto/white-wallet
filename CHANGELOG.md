@@ -7,6 +7,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- The screenshot set shows the problems and waits of every screen, not only its everyday state: 67 new previews across
+  Send, Receive, Home, Notes, onboarding and settings (offline, a mint not answering or with another key, a payment
+  pending or failed, a note spent, taken back or unknown to its mint, …), so brands see them in their design too.
 - Every way a claim or a take back ends has a screen of its own, on the success screen's layout: a refused claim says in
   the app's words what happened and what it means ("This note has already been spent." and "Nothing was added to your
   wallet."; "Not claimed yet" while it is tried again;
@@ -69,7 +72,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A note of the wallet's own whose payment failed is renewed on a fresh key by the next refresh (free, shown in History
   as an automatic renewal): its spend went to the mint with the payment.
 - A payment still in flight says what a failure means: "if it fails, nothing is paid and the money stays in your
-  wallet." The archive's handed-out notes say the wallet takes one back if you asked it to.
+  wallet."; a failed one says the same ("Nothing was paid, and the money stays in your wallet."). The archive's handed-out notes say the wallet takes one back if you asked it to.
 - A refused claim or move, and a mint that can't become the home, no longer show the app's own name for why ("Refused",
   "RateLimited", in English in every language): the mint's own words if it gave any, else a plain sentence.
 - Adding a mint, setting up a wallet and the addresses page no longer show the app's or the phone's own English for what

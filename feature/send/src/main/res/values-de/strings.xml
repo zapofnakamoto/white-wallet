@@ -80,7 +80,7 @@
     <string name="send_problem_not_exact">Dieser Betrag lässt sich aus deinem Guthaben nicht bilden.</string>
     <string name="send_problem_below_minimum">Der Betrag liegt unter dem, was der Empfänger annimmt.</string>
     <string name="send_problem_above_maximum">Der Betrag liegt über dem, was der Empfänger annimmt.</string>
-    <string name="send_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Dein Geld ist wieder in deinem Guthaben.</string>
+    <string name="send_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Es wurde nichts bezahlt und das Geld bleibt in deiner Wallet.</string>
 
     <string name="send_or">oder</string>
     <string name="note_bearer_warning">Jeder mit diesem Code kann das Geld nehmen.</string>

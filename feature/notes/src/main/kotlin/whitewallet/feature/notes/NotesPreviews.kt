@@ -8,8 +8,10 @@ import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
+import whitewallet.core.wallet.NoteProblem
 
-// The notes view and the archive in their everyday state (docs/DEVELOPMENT.md, "Screenshots"). Made-up data only.
+// The notes view and the archive in their everyday state, and the states that tell of a problem or a wait (docs/DEVELOPMENT.md,
+// "Screenshots"). Made-up data only.
 
 private const val HOME = "mint.example"
 private const val OTHER = "cash.example"
@@ -58,3 +60,58 @@ internal val archiveState =
 @WalletPreviews @Composable private fun NotesPreview() = NotesContent(notesState, NotesActions())
 
 @WalletPreviews @Composable private fun ArchivePreview() = ArchiveScreen(archiveState, ArchiveActions(), onBack = {})
+
+/** The phone has no connection: the notes view says so, and a note received as a link waits for it. */
+@WalletPreviews @Composable private fun NotesOfflinePreview() = NotesContent(notesState.copy(offline = true), NotesActions())
+
+/** Notes that are being paid out, may or may not have landed, that their mint does not know, or whose amount cannot be verified. */
+@WalletPreviews
+@Composable
+private fun NotesNoteProblemsPreview() =
+    NotesContent(
+        notesState.copy(
+            mints =
+                listOf(
+                    MintNotes(
+                        HOME,
+                        isHome = true,
+                        listOf(
+                            note("n1", HOME, 13_000_000, NoteState.Paying),
+                            note("n2", HOME, 8_000_000, NoteState.Ambiguous),
+                            note("n3", HOME, 4_000_000, NoteState.Unknown),
+                            note("n4", HOME, 2_000_000),
+                        ),
+                        trusted = true,
+                    )
+                )
+        ),
+        NotesActions(),
+    )
+
+/** An action is waiting for its answer: the note list says so. */
+@WalletPreviews
+@Composable
+private fun NotesOutcomePendingPreview() = NotesContent(notesState.copy(outcome = NotesOutcome.Pending), NotesActions())
+
+/** An action failed: the reason is told in the error colour above the notes. */
+@WalletPreviews
+@Composable
+private fun NotesOutcomeFailedPreview() =
+    NotesContent(notesState.copy(outcome = NotesOutcome.Failed(NoteProblem.Unreachable)), NotesActions())
+
+/** The sheet of a note its mint does not know: what that means, and that it can only be asked about again or archived. */
+@WalletPreviews
+@Composable
+private fun NoteSheetUnknownPreview() =
+    NotesContent(
+        notesState.copy(
+            mints = listOf(MintNotes(HOME, isHome = true, listOf(note("n1", HOME, 4_000_000, NoteState.Unknown)), trusted = true)),
+            open = "n1",
+        ),
+        NotesActions(),
+    )
+
+/** An archived received note is being tried again: its button shows the wait, and the others stay off until it is answered. */
+@WalletPreviews
+@Composable
+private fun ArchiveRetryingPreview() = ArchiveScreen(archiveState.copy(retrying = "r2"), ArchiveActions(), onBack = {})

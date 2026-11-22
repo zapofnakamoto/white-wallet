@@ -16,13 +16,22 @@ import whitewallet.core.model.WalletRecord
 import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.AddressEntry
 import whitewallet.core.wallet.AddressStatus
+import whitewallet.core.wallet.Collected
+import whitewallet.core.wallet.DerivedKey
+import whitewallet.core.wallet.KeyId
+import whitewallet.core.wallet.KeyProbe
 import whitewallet.core.wallet.KeySet
+import whitewallet.core.wallet.KeyStatus
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintMoveResult
 import whitewallet.core.wallet.MoneyMoved
 import whitewallet.core.wallet.MovePreview
+import whitewallet.core.wallet.NotCollected
+import whitewallet.core.wallet.NoteProblem
+import whitewallet.core.wallet.PolicyRun
+import whitewallet.core.wallet.RotateResult
 import whitewallet.core.wallet.SingleNoteStrategy
 import whitewallet.core.wallet.TrustDefault
 import whitewallet.lnurlcash.client.LogEntry
@@ -338,4 +347,204 @@ private fun BackupDonePreview() =
         onWroteItDown = {},
         onTap = {},
         onSkipVerify = {},
+    )
+
+/** The mint doesn't answer on the way to a new home: the error stands under the picker. */
+@WalletPreviews
+@Composable
+private fun MoneyMoveErrorPreview() =
+    MoneyMoveScreen(moneyMoveState.copy(preview = null, error = MoneyMoveError.Network), onClose = {}, actions = MoneyMoveActions())
+
+/** The phone is offline: the page says so before anything is tried. */
+@WalletPreviews
+@Composable
+private fun MoneyMoveOfflinePreview() =
+    MoneyMoveScreen(moneyMoveState.copy(preview = null, offline = true), onClose = {}, actions = MoneyMoveActions())
+
+/** The money was paid but hasn't shown up on the other mint yet. */
+@WalletPreviews
+@Composable
+private fun MoneyMovePendingPreview() =
+    MoneyMoveScreen(
+        MoneyMoveState(
+            mode = MoneyMoveMode.Move,
+            from = HOME,
+            target = OTHER,
+            outcome = MoneyMoveOutcome(false, listOf(MoneyMoved(HOME, 21_000_000, MintMoveResult.Pending))),
+        ),
+        onClose = {},
+        actions = MoneyMoveActions(),
+    )
+
+/** The money stayed where it was, with the reason, and the page offers another try. */
+@WalletPreviews
+@Composable
+private fun MoneyMoveFailedPreview() =
+    MoneyMoveScreen(
+        MoneyMoveState(
+            mode = MoneyMoveMode.Move,
+            from = HOME,
+            target = OTHER,
+            outcome = MoneyMoveOutcome(false, listOf(MoneyMoved(HOME, 21_000_000, MintMoveResult.Failed(NoteProblem.Unreachable)))),
+        ),
+        onClose = {},
+        actions = MoneyMoveActions(),
+    )
+
+/** A word tapped that isn't the next one: the backup's check says which word number was meant. */
+@WalletPreviews
+@Composable
+private fun BackupWrongWordPreview() =
+    BackupScreen(
+        BackupState(
+            step =
+                BackupStep.Verify(
+                    words = (backupState.step as BackupStep.Display).words,
+                    choices = listOf(3, 0, 7, 1),
+                    progress = listOf(0),
+                    wrongNumber = 2,
+                )
+        ),
+        onBack = {},
+        onShow = {},
+        onContinueWithoutLock = {},
+        onCopy = {},
+        onWroteItDown = {},
+        onTap = {},
+        onSkipVerify = {},
+    )
+
+@Composable
+private fun DerivedKeysPage(state: DerivedKeysState) =
+    DerivedKeysScreen(
+        state,
+        onBack = {},
+        onHost = {},
+        onSet = {},
+        onToggle = {},
+        onRecheck = {},
+        index = IndexActions({}, {}, {}, {}, {}, {}, {}, {}),
+        rotate = RotateActions({}, {}, {}, {}),
+    )
+
+/** A key's renewal got no answer: the page says it failed, under the index. */
+@WalletPreviews
+@Composable
+private fun DerivedKeysRenewFailedPreview() =
+    DerivedKeysPage(derivedKeysState.copy(lastRotate = RotateOutcome.One(RotateResult.Failed("timeout", noAnswer = true))))
+
+/** The mint refused a lookup: the key's row says so in red. */
+@WalletPreviews
+@Composable
+private fun DerivedKeysLookupRefusedPreview() =
+    DerivedKeysPage(
+        derivedKeysState.copy(
+            keys =
+                listOf(
+                    DerivedKey(
+                        id = KeyId(satoshi.id, HOME, KeySet.Wallet, 2),
+                        q = "5c3f1b7e9a2d4c6e8f0a1b3d5e7f9a2c4e6b8d0f1a3c5e7b9d2f4a6c8e0b1d3f",
+                        cp1 = "02a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+                        probe = KeyProbe.Refused(null, PREVIEW_MILLIS),
+                        failure = null,
+                        noteState = null,
+                        noteAmountMsat = null,
+                        status = KeyStatus.HandedOut,
+                    )
+                )
+        )
+    )
+
+/** The mint's signing key isn't the pinned one: the page says nothing is looked up there. */
+@WalletPreviews @Composable private fun DerivedKeysKeyChangedPreview() = DerivedKeysPage(derivedKeysState.copy(keyChanged = true))
+
+/** The mint doesn't answer: its page says so where it says it is reachable. */
+@WalletPreviews
+@Composable
+private fun MintDetailsUnreachablePreview() =
+    MintDetailsScreen(
+        mintDetailsState.copy(details = mintDetailsState.details!!.copy(reachability = MintDetails.Reachability.Unreachable)),
+        onBack = {},
+        onRefresh = {},
+    )
+
+/** The mint presents another signing key than the pinned one: the key card asks what to do. */
+@WalletPreviews
+@Composable
+private fun MintDetailsKeyChangedPreview() =
+    MintDetailsScreen(
+        mintDetailsState.copy(
+            details =
+                mintDetailsState.details!!.copy(
+                    reachability = MintDetails.Reachability.KeyChanged,
+                    presentedKey = "03d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+                ),
+            canReceive = false,
+        ),
+        onBack = {},
+        onRefresh = {},
+    )
+
+/** A mint whose signing key changed: its row says so in place of its key. */
+@WalletPreviews
+@Composable
+private fun MintsKeyChangedPreview() =
+    MintsScreen(mintsState.copy(keyChanged = setOf(OTHER)), onBack = {}, onOpen = {}, onTrusted = { _, _ -> }, onAdd = {})
+
+/** The addresses' checks: one that the mint can't be asked about, and a refused unregister said on the page. */
+@WalletPreviews
+@Composable
+private fun AddressesProblemPreview() =
+    AddressesScreen(
+        addressesState.copy(
+            entries =
+                listOf(
+                    addressesState.entries[0],
+                    addressesState.entries[1].copy(status = AddressStatus.CheckFailed("no answer")),
+                ),
+            message = AddressesMessage.Unknown("tips@$HOME"),
+        ),
+        onBack = {},
+        onAdd = {},
+        onChangePrimary = {},
+        onCheckAll = {},
+        actions = AddressActions(onCheck = {}, onMakePrimary = {}, onUnregister = {}),
+        onConfirmUnregister = {},
+        onDismissUnregister = {},
+    )
+
+/** What collecting did at the last run: a move still waiting for its note, and notes that stayed where they were. */
+@WalletPreviews
+@Composable
+private fun NotesSettingsCollectProblemPreview() =
+    NotesSettingsScreen(
+        notesSettingsState.copy(
+            lastPolicyRun =
+                PolicyRun(
+                    rotated = 0,
+                    merged = 0,
+                    failed = 0,
+                    stoppedEarly = null,
+                    atMillis = PREVIEW_MILLIS,
+                    collected = listOf(Collected(OTHER, 4_000_000, 10_000, pending = true)),
+                    notCollected = listOf(NotCollected("third.example", 2_000_000, NotCollected.Reason.Failed(NoteProblem.Unreachable))),
+                )
+        ),
+        onBack = {},
+        onNoteStrategy = {},
+        onAutoRotate = {},
+    )
+
+/** Notes the wallet can't tell are settled: the page says how many, in red, above the button. */
+@WalletPreviews
+@Composable
+private fun DeleteWalletUnresolvedPreview() =
+    DeleteWalletScreen(
+        deleteWalletState.copy(unresolved = 2),
+        onBack = {},
+        onBackup = {},
+        onAcknowledge = {},
+        onContinue = {},
+        onDismissConfirm = {},
+        onConfirm = {},
     )
