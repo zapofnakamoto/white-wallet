@@ -18,6 +18,7 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.core.wallet.Regtest.HOST2
 import whitewallet.core.wallet.Regtest.HOST3
+import whitewallet.lnurl.Lnurl
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -131,6 +132,24 @@ class RegtestE2ETest {
                 listOf(ActivityStatus.Cancelled, ActivityStatus.Done),
                 wallet.activity.first().filter { it.kind == ActivityKind.SentNote }.map { it.status },
             )
+        }
+
+    @Test
+    fun `a note handed out in its LNURL form is claimed by another wallet, its certificate verified`() =
+        runBlocking<Unit> {
+            val phone = Regtest.phone(strategy = ManualStrategy.ID)
+            phone.fund(3000)
+            val wallet = phone.wallet
+
+            val sent = assertIs<CreateNoteResult.Created>(wallet.createNote(1_000_000)).note
+            val lnurl = "lightning:" + assertNotNull(Lnurl.bech32Link(sent.link!!))
+            val other = Regtest.phone(strategy = ManualStrategy.ID).wallet
+            val plain = assertIs<ClaimPreview.Ready>(other.previewClaim(sent.link!!))
+            val preview = assertIs<ClaimPreview.Ready>(other.previewClaim(lnurl), "claim preview ($lnurl)")
+            assertTrue(preview.certified)
+            assertEquals(plain.amountMsat, preview.amountMsat)
+            assertIs<ClaimResult.Claimed>(other.claim(preview))
+            assertEquals(SharedNoteState.Spent, wallet.checkSharedNote(sent.id)?.state)
         }
 
     @Test
