@@ -162,7 +162,10 @@ class RegtestWithdrawLinksTest {
             val pay = Lnurl.encodeBech32("https://payee.example/.well-known/lnurlp/carol")
             assertEquals(ClaimPreview.PayLink(pay), bob.wallet.previewClaim(pay))
             assertIs<PayPreview.Ready>(bob.wallet.previewPayment(pay))
+            // A pay link that says so opens straight in Send, also offline: no detour through Claim.
+            assertEquals(IncomingLink.Pay(pay), IncomingLink.classify(pay))
             val wrappedPay = Lnurl.encodeBech32("lnurlp://payee.example/.well-known/lnurlp/carol")
+            assertEquals(IncomingLink.Pay(wrappedPay), IncomingLink.classify(wrappedPay))
             assertEquals(ClaimPreview.PayLink(wrappedPay), bob.wallet.previewClaim(wrappedPay))
             assertIs<PayPreview.Ready>(bob.wallet.previewPayment(wrappedPay))
             // Send hands a withdraw link to Claim rather than calling it unrecognised.

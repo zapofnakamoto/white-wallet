@@ -33,19 +33,29 @@ class IncomingLinkTest {
     }
 
     @Test
-    fun `a lnurlw or lnurlp link inside bech32, which other wallets make against the spec, is read too`() {
+    fun `a lnurlw or lnurlp link inside bech32, which other wallets make against the spec, opens where its scheme says`() {
         val wrapped = Lnurl.encodeBech32(note)
         assertEquals(IncomingLink.Claim(wrapped), IncomingLink.classify(wrapped))
         assertEquals(IncomingLink.Claim(wrapped), IncomingLink.classify("LIGHTNING:$wrapped"))
-        val pay = Lnurl.encodeBech32("lnurlp://mint.example/.well-known/lnurlp/alice")
-        assertEquals(IncomingLink.Claim(pay, mayBePay = true), IncomingLink.classify(pay))
+        val withdraw = Lnurl.encodeBech32("lnurlw://lnbits.example/withdraw/abc")
+        assertEquals(IncomingLink.Claim(withdraw), IncomingLink.classify(withdraw))
+        val pay = Lnurl.encodeBech32("lnurlp://mint.example/pay/alice")
+        assertEquals(IncomingLink.Pay(pay), IncomingLink.classify(pay))
+        assertEquals(IncomingLink.Pay(pay), IncomingLink.classify("LIGHTNING:$pay"))
+    }
+
+    @Test
+    fun `a Lightning address's pay URL inside bech32 opens in Send`() {
+        val pay = Lnurl.encodeBech32("https://mint.example/.well-known/lnurlp/alice")
+        assertEquals(IncomingLink.Pay(pay), IncomingLink.classify(pay))
+        assertEquals(IncomingLink.Pay(pay), IncomingLink.classify("LIGHTNING:$pay"))
     }
 
     @Test
     fun `a bech32 link without a note opens in Claim, which asks its service whether it pays out or is paid`() {
-        val pay = Lnurl.encodeBech32("https://mint.example/.well-known/lnurlp/alice")
-        assertEquals(IncomingLink.Claim(pay, mayBePay = true), IncomingLink.classify(pay))
-        assertEquals(IncomingLink.Claim(pay, mayBePay = true), IncomingLink.classify("LIGHTNING:$pay"))
+        val either = Lnurl.encodeBech32("https://mint.example/lnurl/abc")
+        assertEquals(IncomingLink.Claim(either, mayBePay = true), IncomingLink.classify(either))
+        assertEquals(IncomingLink.Claim(either, mayBePay = true), IncomingLink.classify("LIGHTNING:$either"))
     }
 
     @Test
