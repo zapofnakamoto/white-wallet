@@ -147,6 +147,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- A split, merge or renewal the mint refused as already in use, because another phone with the phrase spent one of its
+  notes first, was sent again up to 20 times on fresh keys. The notes are looked up first now: a spent one ends it at
+  once and is set aside; only a new key the mint holds already is tried again.
 - A claim of a note someone else claimed after it was checked says at once that it is spent, and the note is set aside.
   The mint answers such a claim "already in use", which wasn't looked into, so the note was kept and tried again until
   the next refresh.

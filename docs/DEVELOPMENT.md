@@ -250,7 +250,7 @@ Current developer pages:
 Output keys for the wallet's own purposes (0 wallet, 1 change) come from `IndexGuard.reserve`, which never hands out a key the wallet knows is used:
 - On an account's first use of a mint, the index is discovered first.
 - Keys the wallet already holds a note at are skipped.
-- If the mint still answers `already in use` (another device on the same seed), `NoteMutator` (which claims go through too) rediscovers the index and retries with fresh keys.
+- If the mint still answers `already in use` (another device on the same seed), `NoteMutator` (which claims go through too) first looks its inputs up by `p`: one spent or paid out elsewhere ends the mutation, and the wallet's own such input is set aside (`UnknownNotes.sortOut`). Only with every input still there does it rediscover the index and retry with fresh keys. Test: `RegtestInUseTest`.
 
 ## Money-safety rules in the code
 

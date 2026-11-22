@@ -128,6 +128,7 @@ class ZeroValueLookupTest {
                 mint.onCallback = { mint.lookups[received.id] = note(0) }
                 val result = assertIs<ClaimResult.Failed>(ReceivedNotes(wallet).claim(received))
                 assertEquals(ClaimFailure.Spent, result.outcome)
+                assertEquals(1, mint.callbacks, "looked up, not tried again on fresh keys")
                 val gone = wallet.store.receivedNote(received.id)
                 assertEquals(ReceivedState.Gone, gone?.state)
                 @OptIn(RevealsNoteSecret::class) assertNull(gone?.k1)

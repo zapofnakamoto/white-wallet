@@ -66,9 +66,9 @@ internal class NoteMutator(private val wallet: Wallet) {
 
     /**
      * Journals and sends one mutation of [fromId]'s [inputs], then records its outputs (in [outputs] order): a rotate or merge into one
-     * output, or a split, whose first output gets [splitMsat]. If the mint says an output key is `already in use`, the mutation is retried
-     * with fresh output keys, up to [WalletSettings.newNoteMaxKeysTriedWhileInUse] keys in all; after the first refusal the index is
-     * rediscovered.
+     * output, or a split, whose first output gets [splitMsat]. If the mint says `already in use` while every input is still there, an
+     * output key clashed, and the mutation is retried with fresh output keys (see [run]); a refusal for an input someone else spent sets it
+     * aside.
      */
     private suspend fun mutate(
         fromId: String,
@@ -96,8 +96,9 @@ internal class NoteMutator(private val wallet: Wallet) {
             }
         val result =
             run(fromId, host, mint.withdrawUrl, info, spends, inputs, inputMsat = inputs.sumOf { it.amountMsat }, type, outputs, splitMsat)
-        return if (result is MutationResult.Refused && result.kind in UnknownNotes.GONE) refused(inputs, result.kind, result.reason)
-        else result
+        val aboutInputs =
+            result is MutationResult.Refused && (result.kind in UnknownNotes.GONE || result.kind == RejectionKind.AlreadyInUse)
+        return if (aboutInputs) refused(inputs, result.kind, result.reason) else result
     }
 
     /**
@@ -145,7 +146,11 @@ internal class NoteMutator(private val wallet: Wallet) {
             splitMsat = null,
         )
 
-    /** Sends the mutation, with fresh output keys while the mint says one is `already in use`. */
+    /**
+     * Sends the mutation, with fresh output keys while the mint says one is `already in use`, up to
+     * [WalletSettings.newNoteMaxKeysTriedWhileInUse] keys in all; after the first refusal the index is rediscovered. `already in use` also
+     * names a burned input: the inputs are looked up by key first (no spend goes out), and one taken elsewhere ends the mutation there.
+     */
     private suspend fun run(
         fromId: String,
         host: String,
@@ -179,12 +184,20 @@ internal class NoteMutator(private val wallet: Wallet) {
                     result.kind == RejectionKind.AlreadyInUse &&
                     attempt + 1 < wallet.settings.newNoteMaxKeysTriedWhileInUse
             ) {
-                if (attempt == 0) outputs.distinct().forEach { guard.recover(it.accountId, host, it.set) }
+                if (attempt == 0) {
+                    if (inputTaken(fromId, host, withdrawUrl, spends)) return result
+                    outputs.distinct().forEach { guard.recover(it.accountId, host, it.set) }
+                }
                 attempt++
                 continue
             }
             return result
         }
+    }
+
+    /** Whether one of [spends] was spent, or is being paid out, elsewhere: asked by its key alone. */
+    private suspend fun inputTaken(fromId: String, host: String, withdrawUrl: String, spends: List<Spend>): Boolean = spends.any {
+        (KeyLookup.of(wallet, fromId, host, withdrawUrl, it.q) as? KeyLookup.Refused)?.burned == true
     }
 
     /** The mutation's request: the one place the wallet's spends are written into a URL (sent only by [SecretGate]). */
