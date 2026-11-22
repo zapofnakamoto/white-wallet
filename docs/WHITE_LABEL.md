@@ -155,7 +155,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notice_unknown_still` | Asked just now: the mint still doesn't know your note. / Asked just now: the mint still doesn't know your notes. (plural) |
 | `notice_unknown_unreachable_unnamed` | No answer from the mint. Your wallet asks again later. |
 | `claim_key_changed` | The signing key of %1$s doesn't match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the mint's details. |
-| `claim_kept_key_changed` | Kept. Your wallet claims it once the mint's signing key matches again, or you accept a new key in its details. |
+| `claim_kept_key_changed` | Your wallet claims it once the mint's signing key matches again, or you accept a new key in its details. |
 | `home_working_moving_home` | Moving your money to your home mint… |
 | `mints_add` | Add a mint |
 | `add_mint_setup_title` | Choose your mint |
@@ -196,7 +196,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `claim_melt_into_home` | Into %1$s, your home mint |
 | `claim_melt_pick` | Your account has no home mint. Which mint should receive it? |
 | `claim_melt_no_mint` | Add a mint first, then open this link again. |
-| `claim_kept_for_lightning` | Kept. Receive it over Lightning once you've added a mint. |
+| `claim_kept_for_lightning` | Receive it over Lightning once you've added a mint. |
 | `claim_melt_no_signing_key` | %1$s publishes no signing key, so your wallet doesn't keep money there. It can be received over Lightning instead, for a fee. |
 | `onboarding_error_mint_without_key` | This mint isn't showing its signing key, so it can't be added. Without it your wallet can't check that its notes are real. It may be back in a moment; if not, pick another mint. |
 | `received_key_changed` | The signing key of its mint doesn't match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint's details. |

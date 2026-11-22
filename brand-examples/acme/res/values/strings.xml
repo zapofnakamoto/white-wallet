@@ -49,7 +49,7 @@
     <string name="claim_own_offline">You shared this banknote. Your provider isn\'t answering right now, so it can\'t be taken back yet.</string>
     <string name="claim_own_phone_offline">You shared this banknote. You\'re offline, so it can\'t be taken back yet.</string>
     <string name="claim_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the provider\'s details.</string>
-    <string name="claim_kept_key_changed">Kept. Your wallet claims it once the provider\'s signing key matches again, or you accept a new key in its details.</string>
+    <string name="claim_kept_key_changed">Your wallet claims it once the provider\'s signing key matches again, or you accept a new key in its details.</string>
     <string name="claim_other_mint">This banknote is held by %1$s and stays there.</string>
     <string name="home_tab_notes">Banknotes</string>
     <string name="home_wallet_empty">Nothing here yet. Share your address to get paid, or claim a banknote.</string>
@@ -302,7 +302,7 @@
     <string name="claim_melt_into_home">Into %1$s, your provider</string>
     <string name="claim_melt_pick">Your account has no provider of its own. Which provider should receive it?</string>
     <string name="claim_melt_no_mint">Add a provider first, then open this link again.</string>
-    <string name="claim_kept_for_lightning">Kept. Receive it over Lightning once you\'ve added a provider.</string>
+    <string name="claim_kept_for_lightning">Receive it over Lightning once you\'ve added a provider.</string>
     <string name="claim_melt_no_signing_key">%1$s publishes no signing key, so your wallet doesn\'t keep money there. It can be received over Lightning instead, for a fee.</string>
     <string name="onboarding_error_mint_without_key">This provider isn\'t showing its signing key, so it can\'t be added. Without it your wallet can\'t check that its banknotes are real. It may be back in a moment; if not, pick another provider.</string>
     <string name="home_mint_is_home_not_answering">Provider · not answering</string>

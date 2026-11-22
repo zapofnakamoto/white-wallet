@@ -16,9 +16,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -34,9 +38,10 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
-import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.designsystem.ResultScreen
+import whitewallet.core.designsystem.ResultTone
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.SuccessAction
@@ -44,7 +49,6 @@ import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletNoteFace
-import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
@@ -53,6 +57,7 @@ import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.UnclaimedReason
 import whitewallet.core.scanner.QrScanner
+import whitewallet.core.wallet.ClaimFailure
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.MeltProblem
@@ -139,60 +144,41 @@ fun ClaimScreen(
             )
             return@Scaffold
         }
+        // Anything else it ended in: on the same layout, as a problem or a wait.
+        (state.result ?: state.takenBack)?.let {
+            val outcome =
+                state.result?.let { result -> claimOutcome(result, overLightning, keepForLightning = state.preview !is ClaimPreview.Melt) }
+                    ?: takeBackOutcome(checkNotNull(state.takenBack))
+            ResultScreen(
+                outcome.tone,
+                Anchor.ClaimResult,
+                outcome.status,
+                outcome.title,
+                done = SuccessAction(stringResource(R.string.claim_finish), onBack),
+                modifier = Modifier.padding(padding),
+                more = if (outcome.receiveOverLightning) SuccessAction(stringResource(R.string.claim_melt_receive), onCheck) else null,
+                lines = outcome.lines,
+            )
+            return@Scaffold
+        }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-            when (val result = state.result) {
-                null -> Unit
-                else -> {
-                    val status =
-                        when (result) {
-                            is ClaimResult.Claimed -> WalletStatus.PaymentReceived(result.amountMsat)
-                            is ClaimResult.Failed -> WalletStatus.Problem(ProblemKind.Other)
-                            ClaimResult.Pending,
-                            is ClaimResult.Kept -> WalletStatus.None
-                        }
-                    WalletStatusScope(status) { BrandDecoration(Anchor.ClaimResult) }
-                    ResultMessage(result, overLightning)
-                    if (result is ClaimResult.Kept)
-                        Text(
-                            stringResource(R.string.claim_kept_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center,
-                        )
-                    // Its mint won't keep it here: received over Lightning, if the user agrees to the fee.
-                    if (
-                        result is ClaimResult.Kept &&
-                            result.note.state == ReceivedState.LightningOnly &&
-                            state.preview !is ClaimPreview.Melt
-                    )
-                        WalletButton(kind = ButtonKind.Secondary, onClick = onCheck) { Text(stringResource(R.string.claim_melt_receive)) }
-                    PrimaryButton(stringResource(R.string.claim_finish), onBack)
-                    return@ScreenColumn
-                }
-            }
-            state.takenBack?.let { result ->
-                val status =
-                    when (result) {
-                        is ReclaimResult.Failed -> WalletStatus.Problem(ProblemKind.Other)
-                        else -> WalletStatus.None
-                    }
-                WalletStatusScope(status) { BrandDecoration(Anchor.ClaimResult) }
-                TakeBackMessage(result)
-                PrimaryButton(stringResource(R.string.claim_finish), onBack)
-                return@ScreenColumn
-            }
             if (state.scanning) {
                 Text(stringResource(R.string.claim_scan_hint), textAlign = TextAlign.Center)
                 QrScanner(onScanned = onScanned, modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.large))
                 WalletButton(kind = ButtonKind.Text, onClick = onStopScan) { Text(stringResource(R.string.claim_scan_cancel)) }
                 return@ScreenColumn
             }
+            // Once checked, the link is one line: the note below is what counts. Editing it opens it up again.
+            var editing by remember { mutableStateOf(false) }
+            val compact = state.preview != null && !editing
             WalletTextField(
                 value = state.input,
                 onValueChange = onInputChange,
                 label = { Text(stringResource(R.string.claim_input)) },
-                minLines = 3,
+                minLines = if (compact) 1 else 3,
+                maxLines = if (compact) 1 else Int.MAX_VALUE,
                 enabled = !state.busy,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().onFocusChanged { editing = it.isFocused },
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 WalletButton(kind = ButtonKind.Secondary, onClick = onStartScan, enabled = !state.busy, modifier = Modifier.weight(1f)) {
@@ -481,40 +467,68 @@ private fun previewMessage(preview: ClaimPreview): String =
         is ClaimPreview.OwnShared -> ""
     }
 
+/** How a claim or a take back ended, when not on the success screen: its picture, title, lines and whether Lightning can still help. */
+private class Outcome(
+    val tone: ResultTone,
+    val status: WalletStatus,
+    val title: String,
+    val lines: List<String>,
+    val receiveOverLightning: Boolean = false,
+)
+
+/** The mint's own words, if it gave any (often English), under the app's: never in place of them. */
 @Composable
-private fun TakeBackMessage(result: ReclaimResult) {
-    val (text, isError) =
-        when (result) {
-            // On the success screen instead.
-            is ReclaimResult.Reclaimed -> return
-            ReclaimResult.Pending -> stringResource(R.string.claim_pending) to false
-            ReclaimResult.AlreadySpent -> stringResource(R.string.claim_spent) to true
-            ReclaimResult.WhenKnown -> stringResource(DesignR.string.note_take_back_when_known) to false
-            is ReclaimResult.Failed -> stringResource(R.string.claim_take_back_failed) to true
-        }
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Center,
-        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-    )
-    (result as? ReclaimResult.Failed)?.mintMessage?.let {
-        Text(stringResource(DesignR.string.mint_message, it), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
-    }
-}
+private fun mintWords(reason: String?): List<String> = listOfNotNull(reason?.let { stringResource(DesignR.string.mint_message, it) })
 
 @Composable
-private fun ResultMessage(result: ClaimResult, overLightning: Boolean) {
-    val (text, isError) =
-        when (result) {
-            // On the success screen instead.
-            is ClaimResult.Claimed -> return
-            // The mint's own words if it gave any (often English), never the app's name for them.
-            is ClaimResult.Failed ->
-                (result.reason?.let { stringResource(R.string.claim_failed, it) } ?: stringResource(R.string.claim_failed_plain)) to true
-            ClaimResult.Pending -> stringResource(R.string.claim_pending) to false
-            is ClaimResult.Kept -> {
-                val note = result.note
+private fun claimOutcome(result: ClaimResult, overLightning: Boolean, keepForLightning: Boolean): Outcome {
+    val problem = WalletStatus.Problem(ProblemKind.Other)
+    return when (result) {
+        is ClaimResult.Claimed -> error("on the success screen")
+        is ClaimResult.Failed ->
+            when {
+                overLightning ->
+                    Outcome(ResultTone.Problem, problem, stringResource(R.string.claim_nothing_received), mintWords(result.reason))
+                result.outcome == ClaimFailure.Spent ->
+                    Outcome(
+                        ResultTone.Problem,
+                        problem,
+                        stringResource(R.string.claim_spent),
+                        listOf(stringResource(R.string.claim_nothing_added)) + mintWords(result.reason),
+                    )
+                result.outcome == ClaimFailure.SpentMayReturn ->
+                    Outcome(
+                        ResultTone.Problem,
+                        problem,
+                        stringResource(R.string.claim_spent),
+                        listOf(stringResource(R.string.claim_may_return)) + mintWords(result.reason),
+                    )
+                // Kept and tried again: a wait, not a failure.
+                result.outcome == ClaimFailure.Retrying ->
+                    Outcome(
+                        ResultTone.Waiting,
+                        WalletStatus.None,
+                        stringResource(R.string.claim_retry_title),
+                        listOf(stringResource(R.string.claim_retry_hint)) + mintWords(result.reason),
+                    )
+                else ->
+                    Outcome(
+                        ResultTone.Problem,
+                        problem,
+                        stringResource(R.string.claim_failed_plain),
+                        listOf(stringResource(R.string.claim_nothing_added)) + mintWords(result.reason),
+                    )
+            }
+        ClaimResult.Pending ->
+            Outcome(
+                ResultTone.Waiting,
+                WalletStatus.None,
+                stringResource(R.string.claim_pending_title),
+                listOf(stringResource(R.string.claim_pending)),
+            )
+        is ClaimResult.Kept -> {
+            val note = result.note
+            val why =
                 when {
                     note.state == ReceivedState.Locked && note.lockedUntilMillis != null ->
                         stringResource(R.string.claim_kept_until, recentTime(note.lockedUntilMillis!!))
@@ -525,13 +539,39 @@ private fun ResultMessage(result: ClaimResult, overLightning: Boolean) {
                     // Its mint can't keep it: why, and that Lightning can still bring it in.
                     note.state == ReceivedState.LightningOnly -> meltReason(note.unclaimedReason, note.host)
                     else -> stringResource(R.string.claim_kept)
-                } to false
-            }
+                }
+            Outcome(
+                ResultTone.Waiting,
+                WalletStatus.None,
+                stringResource(R.string.claim_kept_title),
+                listOf(why, stringResource(R.string.claim_kept_hint)),
+                receiveOverLightning = note.state == ReceivedState.LightningOnly && keepForLightning,
+            )
         }
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Center,
-        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-    )
+    }
+}
+
+@Composable
+private fun takeBackOutcome(result: ReclaimResult): Outcome {
+    val problem = WalletStatus.Problem(ProblemKind.Other)
+    return when (result) {
+        is ReclaimResult.Reclaimed -> error("on the success screen")
+        ReclaimResult.Pending ->
+            Outcome(
+                ResultTone.Waiting,
+                WalletStatus.None,
+                stringResource(R.string.claim_pending_title),
+                listOf(stringResource(R.string.claim_pending)),
+            )
+        ReclaimResult.AlreadySpent -> Outcome(ResultTone.Problem, problem, stringResource(R.string.claim_spent), emptyList())
+        ReclaimResult.WhenKnown ->
+            Outcome(
+                ResultTone.Waiting,
+                WalletStatus.None,
+                stringResource(R.string.claim_take_back_waiting_title),
+                listOf(stringResource(DesignR.string.note_take_back_when_known)),
+            )
+        is ReclaimResult.Failed ->
+            Outcome(ResultTone.Problem, problem, stringResource(R.string.claim_take_back_failed), mintWords(result.mintMessage))
+    }
 }

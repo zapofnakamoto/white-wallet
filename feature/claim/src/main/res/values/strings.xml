@@ -25,12 +25,12 @@
     <string name="claim_not_spendable">This link doesn\'t unlock the note it names, so it can\'t be claimed.</string>
     <string name="claim_other_paths">This note can also be spent another way, so someone else may take it before you claim it.</string>
     <string name="claim_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the mint\'s details.</string>
-    <string name="claim_kept_key_changed">Kept. Your wallet claims it once the mint\'s signing key matches again, or you accept a new key in its details.</string>
+    <string name="claim_kept_key_changed">Your wallet claims it once the mint\'s signing key matches again, or you accept a new key in its details.</string>
     <string name="claim_melt_not_a_note">%1$s doesn\'t answer for this as a note: it may be a withdraw link of another kind. It can be received over Lightning instead, for a fee.</string>
     <string name="claim_melt_into_home">Into %1$s, your home mint</string>
     <string name="claim_melt_pick">Your account has no home mint. Which mint should receive it?</string>
     <string name="claim_melt_no_mint">Add a mint first, then open this link again.</string>
-    <string name="claim_kept_for_lightning">Kept. Receive it over Lightning once you\'ve added a mint.</string>
+    <string name="claim_kept_for_lightning">Receive it over Lightning once you\'ve added a mint.</string>
     <string name="claim_melt_no_signing_key">%1$s publishes no signing key, so your wallet doesn\'t keep money there. It can be received over Lightning instead, for a fee.</string>
 
     <string name="claim_paste">Paste</string>
@@ -60,13 +60,20 @@
         <item quantity="other">%d days</item>
     </plurals>
     <string name="claim_keep">Keep and claim later</string>
-    <string name="claim_kept">Kept. Your wallet claims it on its own as soon as it can.</string>
-    <string name="claim_kept_until">Kept. Your wallet claims it after %1$s.</string>
-    <string name="claim_kept_locked">Kept. Your wallet claims it once it opens.</string>
+    <string name="claim_kept">Your wallet claims it on its own as soon as it can.</string>
+    <string name="claim_kept_until">Your wallet claims it after %1$s.</string>
+    <string name="claim_kept_locked">Your wallet claims it once it opens.</string>
     <string name="claim_kept_hint">Not safe until claimed: the sender can still spend the money, and if you lose this phone first, it\'s gone.</string>
-    <string name="claim_failed">The claim was refused: %1$s</string>
     <string name="claim_failed_plain">The claim was refused.</string>
-    <string name="claim_pending">No answer yet. Your wallet asks again on the next refresh.</string>
+    <string name="claim_pending">Your wallet asks again on the next refresh.</string>
+    <string name="claim_kept_title">Kept for later</string>
+    <string name="claim_pending_title">No answer yet</string>
+    <string name="claim_nothing_added">Nothing was added to your wallet.</string>
+    <string name="claim_may_return">If it comes back within a week, your wallet claims it.</string>
+    <string name="claim_retry_title">Not claimed yet</string>
+    <string name="claim_retry_hint">Your wallet keeps it and tries again on the next refresh.</string>
+    <string name="claim_nothing_received">Nothing was received</string>
+    <string name="claim_take_back_waiting_title">Not taken back yet</string>
     <string name="claim_take_back">Take back %1$s</string>
     <string name="claim_taken_back_title">Taken back</string>
     <string name="claim_take_back_failed">It couldn\'t be taken back. Try again later.</string>

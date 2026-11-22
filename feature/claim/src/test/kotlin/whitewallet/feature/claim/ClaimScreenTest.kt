@@ -31,10 +31,12 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.UnclaimedReason
+import whitewallet.core.wallet.ClaimFailure
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.FaucetState
@@ -217,6 +219,85 @@ class ClaimScreenTest {
         show(ClaimState(result = ClaimResult.Failed(RejectionKind.RateLimited, null)))
         compose.onNodeWithText(text(R.string.claim_failed_plain)).assertExists()
         compose.onNodeWithText("RateLimited", substring = true).assertDoesNotExist()
+    }
+
+    private val mintSays = "Note already spent."
+
+    /** [title] as the heading, each of [lines], and Done: the outcome's own screen. */
+    private fun showsOutcome(state: ClaimState, title: Int, vararg lines: String) {
+        show(state)
+        compose.onNodeWithText(text(title)).assertExists()
+        lines.forEach { compose.onNodeWithText(it).assertExists() }
+        compose.onNodeWithText(text(R.string.claim_finish)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_input)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNoteGoneForGoodSaysItIsSpentAndNothingWasAdded() =
+        showsOutcome(
+            ClaimState(result = ClaimResult.Failed(RejectionKind.AlreadyInUse, mintSays, ClaimFailure.Spent)),
+            R.string.claim_spent,
+            text(R.string.claim_nothing_added),
+            text(DesignR.string.mint_message, mintSays),
+        )
+
+    @Test
+    fun aNoteThatMayComeBackSaysTheWalletClaimsItIfItDoes() =
+        showsOutcome(
+            ClaimState(result = ClaimResult.Failed(RejectionKind.Spent, null, ClaimFailure.SpentMayReturn)),
+            R.string.claim_spent,
+            text(R.string.claim_may_return),
+        )
+
+    @Test
+    fun aNoteTriedAgainIsAWaitNotAFailure() =
+        showsOutcome(
+            ClaimState(result = ClaimResult.Failed(RejectionKind.RateLimited, "slow down", ClaimFailure.Retrying)),
+            R.string.claim_retry_title,
+            text(R.string.claim_retry_hint),
+            text(DesignR.string.mint_message, "slow down"),
+        )
+
+    @Test
+    fun aLinkNotReceivedOverLightningSaysNothingWasReceived() =
+        showsOutcome(
+            ClaimState(preview = melt(), result = ClaimResult.Failed(RejectionKind.Other, null)),
+            R.string.claim_nothing_received,
+        )
+
+    @Test
+    fun aKeptNoteHasAShortTitleAndSaysWhy() {
+        val note = ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.Waiting, null, 1, 1)
+        showsOutcome(
+            ClaimState(result = ClaimResult.Kept(note)),
+            R.string.claim_kept_title,
+            text(R.string.claim_kept),
+            text(R.string.claim_kept_hint),
+        )
+    }
+
+    @Test
+    fun noAnswerYetIsAWait() =
+        showsOutcome(ClaimState(result = ClaimResult.Pending), R.string.claim_pending_title, text(R.string.claim_pending))
+
+    @Test
+    fun aTakeBackForLaterIsAWait() =
+        showsOutcome(
+            ClaimState(takenBack = ReclaimResult.WhenKnown),
+            R.string.claim_take_back_waiting_title,
+            text(DesignR.string.note_take_back_when_known),
+        )
+
+    @Test
+    fun theCheckedLinkIsOneLineAndTheEmptyFieldThree() {
+        var state by mutableStateOf(ClaimState())
+        compose.setContent { ClaimScreen(state, onBack = {}, onInputChange = {}, onCheck = {}, onClaim = {}) }
+        val empty = compose.onNodeWithText(text(R.string.claim_input)).fetchSemanticsNode().boundsInRoot.height
+        val link = "lnurlw://other.example/w?k1=" + "66".repeat(32) + "&c=cs1" + "q".repeat(120)
+        state = ClaimState(input = link, preview = ready)
+        compose.waitForIdle()
+        val checked = compose.onNodeWithText(link).fetchSemanticsNode().boundsInRoot.height
+        assertTrue("one line ($checked) is less than three ($empty)", checked < empty)
     }
 
     @Test
@@ -498,7 +579,7 @@ class ClaimScreenTest {
                 .copy(unclaimedReason = UnclaimedReason.NoSigningKey)
         show(ClaimState(result = ClaimResult.Kept(note)), onCheck = { checked++ })
         compose.onNodeWithText(text(R.string.claim_melt_no_signing_key, "mint.example")).assertExists()
-        compose.onNodeWithText(text(R.string.claim_melt_receive)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.claim_melt_receive)).performClick()
         assertEquals(1, checked)
     }
 
