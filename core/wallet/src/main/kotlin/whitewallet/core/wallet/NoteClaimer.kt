@@ -98,11 +98,29 @@ sealed interface ClaimPreview {
     data object AlreadyInWallet : ClaimPreview
 }
 
+/** What becomes of a note whose claim was refused ([ClaimResult.Failed]). */
+enum class ClaimFailure {
+    /** Its mint showed it burned: nothing left to claim. */
+    Spent,
+
+    /** Its mint answered 0 for it (spent, or its maker's payment of it in flight): asked again for a week, claimed if it comes back. */
+    SpentMayReturn,
+
+    /** Refused without proof it is gone: kept, and tried again on each refresh for a week. */
+    Retrying,
+
+    /** Anything else: nothing kept to try again. */
+    Other,
+}
+
 sealed interface ClaimResult {
     data class Claimed(val amountMsat: Long, val certified: Boolean) : ClaimResult
 
-    /** Refused; nothing changed. [reason] is the mint's own words, if it gave any (shown as they are), never the app's. */
-    data class Failed(val kind: RejectionKind, val reason: String?) : ClaimResult
+    /**
+     * Refused; nothing changed. [reason] is the mint's own words, if it gave any (shown as they are), never the app's; [outcome] what
+     * becomes of the note.
+     */
+    data class Failed(val kind: RejectionKind, val reason: String?, val outcome: ClaimFailure = ClaimFailure.Other) : ClaimResult
 
     /** Not known yet whether it landed. Kept in the journal and settled on the next refresh. */
     data object Pending : ClaimResult

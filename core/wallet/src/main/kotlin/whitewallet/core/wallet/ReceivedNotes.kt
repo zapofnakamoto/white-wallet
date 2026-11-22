@@ -146,9 +146,12 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                 )
                 ClaimResult.Pending
             }
-            // Refused as spent or unknown, in the mint's own words: gone only if a lookup by its key shows it burned.
+            // Refused as spent, unknown or already in use (LUD-25: a burned input, or a clash on a new key): gone only if a lookup by its
+            // key
+            // shows it burned.
             is MutationResult.Refused -> {
-                val burned = if (result.kind in UnknownNotes.GONE) shownBurned(note) else null
+                val lookUp = result.kind in UnknownNotes.GONE || result.kind == RejectionKind.AlreadyInUse
+                val burned = if (lookUp) shownBurned(note) else null
                 if (burned != null) gone(note, result.kind, result.reason, keepSpend = burned == Burned.AnsweredZero)
                 else refused(note, spend, result.kind, result.reason)
             }
@@ -320,7 +323,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
     /** Burned by its mint (see [ended]). */
     private suspend fun gone(note: ReceivedNote, kind: RejectionKind, reason: String?, keepSpend: Boolean): ClaimResult {
         ended(note, keepSpend)
-        return ClaimResult.Failed(kind, reason)
+        return ClaimResult.Failed(kind, reason, if (keepSpend) ClaimFailure.SpentMayReturn else ClaimFailure.Spent)
     }
 
     /**
@@ -367,7 +370,7 @@ internal class ReceivedNotes(private val wallet: Wallet) {
         }
         // Another refusal (rate limited, a mint's own trouble).
         failing(note, UnclaimedReason.Refused)
-        return ClaimResult.Failed(kind, reason)
+        return ClaimResult.Failed(kind, reason, ClaimFailure.Retrying)
     }
 
     /** Its mint presents another signing key than the pinned one, or none: kept, and tried again on each refresh. */

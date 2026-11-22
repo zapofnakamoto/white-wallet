@@ -235,6 +235,21 @@ class RegtestReceivedNotesTest {
         }
 
     @Test
+    fun `a note someone else claims after it was checked here fails as spent for good, and nothing is added`() =
+        runBlocking<Unit> {
+            val link = aNote()
+            val bob = Regtest.phone()
+            val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
+            val carol = Regtest.phone()
+            assertIs<ClaimResult.Claimed>(carol.wallet.claim(assertIs<ClaimPreview.Ready>(carol.wallet.previewClaim(link))))
+
+            val failed = assertIs<ClaimResult.Failed>(bob.wallet.claim(preview))
+            assertEquals(ClaimFailure.Spent, failed.outcome, "its key was used: it won't come back")
+            assertEquals(ReceivedState.Gone, bob.wallet.receivedNotes.first().single().state)
+            assertEquals(0, bob.balance())
+        }
+
+    @Test
     fun `a note's spend goes out only with its claim, never to look at it or to try again`() =
         runBlocking<Unit> {
             val connection = Watched()
@@ -494,7 +509,9 @@ class RegtestReceivedNotesTest {
                 )
 
             val preview = assertIs<ClaimPreview.Ready>(bob.wallet.previewClaim(link))
-            assertEquals(RejectionKind.Other, assertIs<ClaimResult.Failed>(bob.wallet.claim(preview)).kind)
+            val failed = assertIs<ClaimResult.Failed>(bob.wallet.claim(preview))
+            assertEquals(RejectionKind.Other, failed.kind)
+            assertEquals(ClaimFailure.Retrying, failed.outcome)
             val refused = bob.wallet.receivedNotes.first().single()
             assertEquals(ReceivedState.Waiting, refused.state, "tried again")
             assertEquals(now, refused.failingSinceMillis)
