@@ -88,13 +88,13 @@
     </plurals>
     <!-- %1$s: what the notes are worth. Plural by how many notes there are. -->
     <plurals name="home_unknown_body">
-        <item quantity="one">%1$s isn\'t in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it\'s back.</item>
-        <item quantity="other">%1$s isn\'t in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they\'re back.</item>
+        <item quantity="one">%1$s isn\'t in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again.</item>
+        <item quantity="other">%1$s isn\'t in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again.</item>
     </plurals>
     <!-- The same while the balance is hidden: no amount. -->
     <plurals name="home_unknown_body_hidden">
-        <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it\'s back.</item>
-        <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they\'re back.</item>
+        <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again.</item>
+        <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again.</item>
     </plurals>
     <!-- Under the card's text: the user has nothing to do, and who to turn to. -->
     <string name="home_unknown_help">There\'s nothing you need to do. If it stays this way, ask the mint\'s operator.</string>
@@ -107,8 +107,8 @@
     </plurals>
     <!-- Short messages after "Check again": what the mint answered. %1$d: how many notes. -->
     <plurals name="notice_unknown_back">
-        <item quantity="one">A note is back in your balance: the mint knows it again.</item>
-        <item quantity="other">%1$d notes are back in your balance: the mint knows them again.</item>
+        <item quantity="one">The mint knows a note again: you can spend it.</item>
+        <item quantity="other">The mint knows %1$d notes again: you can spend them.</item>
     </plurals>
     <plurals name="notice_unknown_still">
         <item quantity="one">Asked just now: the mint still doesn\'t know your note.</item>

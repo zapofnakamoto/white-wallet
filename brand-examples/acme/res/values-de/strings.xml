@@ -110,7 +110,7 @@
     </plurals>
     <string name="notes_state_unknown">Dem Anbieter unbekannt</string>
     <string name="notes_state_unknown_handed_out">Weitergegeben · dem Anbieter unbekannt</string>
-    <string name="notes_state_unknown_detail">Der Anbieter sagt, er kennt diesen Geldschein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <string name="notes_state_unknown_detail">Der Anbieter sagt, er kennt diesen Geldschein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, kannst du ihn wieder ausgeben.</string>
     <string name="notes_state_unknown_handed_out_detail">Du hast diesen Geldschein weitergegeben, aber der Anbieter sagt, er kennt ihn nicht, daher kann ihn noch niemand einlösen. Deine Wallet fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, wartet er darauf, eingelöst zu werden.</string>
     <plurals name="notes_archived_notes">
         <item quantity="one">%d Geldschein, den sein Anbieter nicht kennt</item>
@@ -121,7 +121,7 @@
         <item quantity="other">%d Geldscheine ins Archiv verschoben.</item>
     </plurals>
     <string name="archive_notes_title">Geldscheine</string>
-    <string name="archive_notes_hint">Ihr Anbieter kennt diese Geldscheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <string name="archive_notes_hint">Ihr Anbieter kennt diese Geldscheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, kannst du ihn wieder ausgeben.</string>
     <string name="archive_handed_out_hint">Du hast diese Geldscheine weitergegeben, aber ihr Anbieter kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, wartet er darauf, eingelöst zu werden, oder deine Wallet holt ihn zurück, wenn du das wolltest.</string>
     <string name="archive_note_remove_title">Diesen Geldschein endgültig entfernen?</string>
     <string name="archive_note_remove_body">Sein Anbieter kennt ihn gerade nicht. Kennt er ihn je wieder, findet ihn „Nach Geldscheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
@@ -134,12 +134,12 @@
         <item quantity="other">Dein Anbieter kennt %1$d deiner Geldscheine nicht</item>
     </plurals>
     <plurals name="home_unknown_body">
-        <item quantity="one">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält den Geldschein und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück.</item>
-        <item quantity="other">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, sind sie zurück.</item>
+        <item quantity="one">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält den Geldschein und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, kannst du ihn wieder ausgeben.</item>
+        <item quantity="other">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, kannst du sie wieder ausgeben.</item>
     </plurals>
     <plurals name="home_unknown_body_hidden">
-        <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Geldschein und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück.</item>
-        <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, sind sie zurück.</item>
+        <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Geldschein und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, kannst du ihn wieder ausgeben.</item>
+        <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, kannst du sie wieder ausgeben.</item>
     </plurals>
     <string name="home_unknown_help">Du musst nichts tun. Bleibt es dabei, frag den Anbieter.</string>
     <string name="home_unknown_help_late">Kennt der Anbieter sie weiterhin nicht, frag ihn, oder archiviere sie bei deinen Geldscheinen.</string>
@@ -148,8 +148,8 @@
         <item quantity="other">Geldscheine anzeigen</item>
     </plurals>
     <plurals name="notice_unknown_back">
-        <item quantity="one">Ein Geldschein ist zurück in deinem Guthaben: Der Anbieter kennt ihn wieder.</item>
-        <item quantity="other">%1$d Geldscheine sind zurück in deinem Guthaben: Der Anbieter kennt sie wieder.</item>
+        <item quantity="one">Der Anbieter kennt einen Geldschein wieder: Du kannst ihn ausgeben.</item>
+        <item quantity="other">Der Anbieter kennt %1$d Geldscheine wieder: Du kannst sie ausgeben.</item>
     </plurals>
     <plurals name="notice_unknown_still">
         <item quantity="one">Gerade gefragt: Der Anbieter kennt deinen Geldschein noch immer nicht.</item>

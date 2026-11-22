@@ -72,7 +72,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - A note of the wallet's own whose payment failed is renewed on a fresh key by the next refresh (free, shown in History
   as an automatic renewal): its spend went to the mint with the payment.
 - A payment still in flight says what a failure means: "if it fails, nothing is paid and the money stays in your
-  wallet."; a failed one says the same ("Nothing was paid, and the money stays in your wallet."). The archive's handed-out notes say the wallet takes one back if you asked it to.
+  wallet."; a failed one says the same ("Nothing was paid, and the money stays in your wallet."), in Send and in
+  Notes. No text says money "comes back" any more: notes their mint doesn't know say "once the mint knows it again, you
+  can spend it again" (and "The mint knows a note again: you can spend it."), and a restore "finds your money again".
+  For brands: new words for `home_unknown_body`, `home_unknown_body_hidden`, `notice_unknown_back`,
+  `notes_state_unknown_detail`, `archive_notes_hint` and `notes_archive_hint`. The archive's handed-out notes say the wallet takes one back if you asked it to.
 - A refused claim or move, and a mint that can't become the home, no longer show the app's own name for why ("Refused",
   "RateLimited", in English in every language): the mint's own words if it gave any, else a plain sentence.
 - Adding a mint, setting up a wallet and the addresses page no longer show the app's or the phone's own English for what

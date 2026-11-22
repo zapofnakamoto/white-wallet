@@ -120,8 +120,8 @@
     <string name="backup_continue_anyway">Continue anyway</string>
     <string name="backup_display_warning">Write these words down on paper, in order. Don\'t take a screenshot or photo.</string>
     <plurals name="backup_addresses">
-        <item quantity="one">Also write down this address. Restoring brings back your money, but can\'t find this address by itself:</item>
-        <item quantity="other">Also write down these addresses. Restoring brings back your money, but can\'t find them by itself:</item>
+        <item quantity="one">Also write down this address. Restoring finds your money again, but can\'t find this address by itself:</item>
+        <item quantity="other">Also write down these addresses. Restoring finds your money again, but can\'t find them by itself:</item>
     </plurals>
     <string name="backup_wrote_it_down">I wrote it down</string>
     <string name="backup_copy">Copy</string>

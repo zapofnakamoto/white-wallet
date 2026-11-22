@@ -54,7 +54,7 @@ enum class NoteProblem {
     /** A mint refused; nothing changed. */
     Refused,
 
-    /** The payment to the target failed; the money is back. */
+    /** The payment to the target failed: nothing was paid, and the money stays in the wallet. */
     PaymentFailed,
 
     /** Not moved: the quote wasn't accepted (an automatic move over the fee cap). Nothing was sent. */

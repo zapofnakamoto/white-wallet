@@ -96,7 +96,7 @@
     <string name="note_reclaim">Zurückholen</string>
     <string name="note_reclaim_offline">Du bist offline. Zurückholen geht wieder, sobald du verbunden bist.</string>
     <string name="note_cancel">Abbrechen</string>
-    <string name="note_reclaim_body">Das Geld kommt zurück in dein Guthaben und dieser Code funktioniert nicht mehr. Wurde er schon ausgegeben, ändert sich nichts.</string>
+    <string name="note_reclaim_body">Das Geld ist dann wieder in deinem Guthaben, und dieser Code funktioniert nicht mehr. Wurde er schon ausgegeben, ändert sich nichts.</string>
     <string name="note_spent">Ausgegeben, meist vom Empfänger. Es kann auch ein anderes Gerät mit deiner Wiederherstellungsphrase gewesen sein.</string>
     <string name="note_reclaimed">Zurückgeholt. Das Geld ist wieder in deinem Guthaben.</string>
     <string name="note_reclaim_pending">Wird zurückgeholt … Der Verlauf zeigt, wann es erledigt ist.</string>

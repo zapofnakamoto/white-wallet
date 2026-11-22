@@ -80,7 +80,7 @@
     <string name="notes_state_unknown">Unknown to the mint</string>
     <!-- The same, for a note the user handed out as a link (it is not in the balance). -->
     <string name="notes_state_unknown_handed_out">Handed out · unknown to the mint</string>
-    <string name="notes_state_unknown_detail">The mint says it doesn\'t know this note, so it isn\'t in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it\'s back in your balance.</string>
+    <string name="notes_state_unknown_detail">The mint says it doesn\'t know this note, so it isn\'t in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, you can spend it again.</string>
     <string name="notes_state_unknown_handed_out_detail">You handed this note out, but the mint says it doesn\'t know it, so nobody can claim it yet. Your wallet asks the mint again by itself; once the mint knows it again, it waits to be claimed.</string>
     <!-- The archive of notes their mint doesn't know: what it holds, archiving, and removing one for good. -->
     <plurals name="notes_archived_notes">
@@ -92,7 +92,7 @@
         <item quantity="other">Moved %d notes to the archive.</item>
     </plurals>
     <string name="archive_notes_title">Notes</string>
-    <string name="archive_notes_hint">Their mint doesn\'t know these notes. Your wallet still asks about them now and then; once the mint knows one again, it\'s back in your balance.</string>
+    <string name="archive_notes_hint">Their mint doesn\'t know these notes. Your wallet still asks about them now and then; once the mint knows one again, you can spend it again.</string>
     <string name="archive_handed_out_hint">You handed these notes out, but their mint doesn\'t know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet takes it back if you asked it to.</string>
     <string name="archive_note_remove_title">Remove this note for good?</string>
     <string name="archive_note_remove_body">Its mint doesn\'t know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase.</string>
@@ -112,7 +112,7 @@
     </plurals>
     <!-- Puts a note its mint doesn't know into the archive (its details, or a selection of such notes). -->
     <string name="notes_archive">Archive</string>
-    <string name="notes_archive_hint">Archive it to stop the warning about it. Your wallet still asks about it now and then; once it\'s known again, it\'s back in your balance.</string>
+    <string name="notes_archive_hint">Archive it to stop the warning about it. Your wallet still asks about it now and then; once it\'s known again, you can spend it again.</string>
     <!-- The archive's part of notes the user handed out as links that their mint doesn't know. -->
     <string name="archive_handed_out_title">Handed out</string>
     <!-- As notes_archive_hint, for one the user handed out as a link (it was never in the balance). -->
@@ -134,7 +134,7 @@
     <!-- The archive's two parts, titled only when both hold something. -->
     <string name="archive_links_title">Links</string>
     <!-- After Recheck on an archived note. %1$s: what it is worth. -->
-    <string name="archive_note_back">Known again: %1$s is back in your balance.</string>
+    <string name="archive_note_back">Known again: you can spend %1$s.</string>
     <string name="archive_note_still">Still unknown. Your wallet keeps asking now and then.</string>
     <string name="archive_note_no_answer">No answer. Your wallet asks again later.</string>
     <string name="notes_sheet_where">On %1$s · %2$s</string>
@@ -180,7 +180,7 @@
     <string name="notes_problem_above_maximum_amount">The maximum there is %1$s at once.</string>
     <string name="notes_problem_invoice_mismatch">The answer came with an invoice that doesn\'t match. Nothing was moved.</string>
     <string name="notes_problem_refused">Refused. Nothing was moved.</string>
-    <string name="notes_problem_payment_failed">The payment didn\'t go through. Your money is back.</string>
+    <string name="notes_problem_payment_failed">The payment didn\'t go through. Nothing was paid, and the money stays in your wallet.</string>
     <string name="notes_problem_declined">Not moved: the fee is more than your limit.</string>
     <string name="notes_trusted">Trusted</string>
     <!-- The empty notes view's way forward: opens Receive. -->

@@ -86,7 +86,7 @@ enum class PayProblem {
     /** An earlier payment used the invoice, whether it went through or not: only a new one can be paid. */
     InvoiceUsed,
 
-    /** The mint tried and the payment failed; the money is back. */
+    /** The mint tried and the payment failed: nothing was paid, and the money stays in the wallet. */
     PaymentFailed,
 }
 

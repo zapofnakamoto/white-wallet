@@ -135,23 +135,23 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_checked_take_back_refused` | The mint refused to give back %1$d note you handed out. Your wallet tries again by itself. / The mint refused to give back %1$d notes you handed out. Your wallet tries again by itself. (plural) |
 | `notes_state_unknown` | Unknown to the mint |
 | `notes_state_unknown_handed_out` | Handed out · unknown to the mint |
-| `notes_state_unknown_detail` | The mint says it doesn't know this note, so it isn't in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it's back in your balance. |
+| `notes_state_unknown_detail` | The mint says it doesn't know this note, so it isn't in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, you can spend it again. |
 | `notes_state_unknown_handed_out_detail` | You handed this note out, but the mint says it doesn't know it, so nobody can claim it yet. Your wallet asks the mint again by itself; once the mint knows it again, it waits to be claimed. |
 | `notes_archived_notes` | %d note its mint doesn't know / %d notes their mint doesn't know (plural) |
 | `notes_archived_done` | Moved %d note to the archive. / Moved %d notes to the archive. (plural) |
 | `archive_notes_title` | Notes |
-| `archive_notes_hint` | Their mint doesn't know these notes. Your wallet still asks about them now and then; once the mint knows one again, it's back in your balance. |
+| `archive_notes_hint` | Their mint doesn't know these notes. Your wallet still asks about them now and then; once the mint knows one again, you can spend it again. |
 | `archive_handed_out_hint` | You handed these notes out, but their mint doesn't know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet takes it back if you asked it to. |
 | `archive_note_remove_title` | Remove this note for good? |
 | `archive_note_remove_body` | Its mint doesn't know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase. |
 | `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
 | `home_unknown_title_unnamed` | Your mint doesn't know %1$d of your notes / Your mint doesn't know %1$d of your notes (plural) |
-| `home_unknown_body` | %1$s isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it's back. / %1$s isn't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they're back. (plural) |
-| `home_unknown_body_hidden` | It isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, it's back. / They aren't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, they're back. (plural) |
+| `home_unknown_body` | %1$s isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again. / %1$s isn't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again. (plural) |
+| `home_unknown_body_hidden` | It isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again. / They aren't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again. (plural) |
 | `home_unknown_help` | There's nothing you need to do. If it stays this way, ask the mint's operator. |
 | `home_unknown_help_late` | If the mint still doesn't know them, ask its operator, or archive them in your notes. |
 | `home_unknown_show` | Show note / Show notes (plural) |
-| `notice_unknown_back` | A note is back in your balance: the mint knows it again. / %1$d notes are back in your balance: the mint knows them again. (plural) |
+| `notice_unknown_back` | The mint knows a note again: you can spend it. / The mint knows %1$d notes again: you can spend them. (plural) |
 | `notice_unknown_still` | Asked just now: the mint still doesn't know your note. / Asked just now: the mint still doesn't know your notes. (plural) |
 | `notice_unknown_unreachable_unnamed` | No answer from the mint. Your wallet asks again later. |
 | `claim_key_changed` | The signing key of %1$s doesn't match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the mint's details. |

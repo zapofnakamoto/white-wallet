@@ -73,7 +73,7 @@
     <string name="notes_problem_key_changed">Der Signaturschlüssel der Mint passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint einen neuen Schlüssel annimmst.</string>
     <string name="notes_state_unknown">Der Mint unbekannt</string>
     <string name="notes_state_unknown_handed_out">Weitergegeben · der Mint unbekannt</string>
-    <string name="notes_state_unknown_detail">Die Mint sagt, sie kennt diesen Schein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <string name="notes_state_unknown_detail">Die Mint sagt, sie kennt diesen Schein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, kannst du ihn wieder ausgeben.</string>
     <string name="notes_state_unknown_handed_out_detail">Du hast diesen Schein weitergegeben, aber die Mint sagt, sie kennt ihn nicht, daher kann ihn noch niemand einlösen. Deine Wallet fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, wartet er darauf, eingelöst zu werden.</string>
     <plurals name="notes_archived_notes">
         <item quantity="one">%d Schein, den seine Mint nicht kennt</item>
@@ -84,7 +84,7 @@
         <item quantity="other">%d Scheine ins Archiv verschoben.</item>
     </plurals>
     <string name="archive_notes_title">Scheine</string>
-    <string name="archive_notes_hint">Ihre Mint kennt diese Scheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <string name="archive_notes_hint">Ihre Mint kennt diese Scheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, kannst du ihn wieder ausgeben.</string>
     <string name="archive_handed_out_hint">Du hast diese Scheine weitergegeben, aber ihre Mint kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, wartet er darauf, eingelöst zu werden, oder deine Wallet holt ihn zurück, wenn du das wolltest.</string>
     <string name="archive_note_remove_title">Diesen Schein endgültig entfernen?</string>
     <string name="archive_note_remove_body">Seine Mint kennt ihn gerade nicht. Kennt sie ihn je wieder, findet ihn „Nach Scheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
@@ -102,7 +102,7 @@
         <item quantity="other">%d Links, die deine Wallet nicht mehr einzulösen versucht</item>
     </plurals>
     <string name="notes_archive">Archivieren</string>
-    <string name="notes_archive_hint">Archiviere ihn, damit die Warnung zu ihm verschwindet. Deine Wallet fragt weiter ab und zu nach ihm; sobald er wieder bekannt ist, ist er zurück in deinem Guthaben.</string>
+    <string name="notes_archive_hint">Archiviere ihn, damit die Warnung zu ihm verschwindet. Deine Wallet fragt weiter ab und zu nach ihm; sobald er wieder bekannt ist, kannst du ihn wieder ausgeben.</string>
     <string name="archive_handed_out_title">Weitergegeben</string>
     <string name="notes_archive_hint_handed_out">Archiviere ihn, um ihn beiseitezulegen. Deine Wallet fragt weiter ab und zu nach ihm; sobald er wieder bekannt ist, wartet er darauf, eingelöst zu werden.</string>
     <string name="notes_archive_hint_take_back">Archiviere ihn, um ihn beiseitezulegen. Deine Wallet fragt weiter ab und zu nach ihm; sobald er wieder bekannt ist, wird er in dein Guthaben zurückgeholt.</string>
@@ -119,7 +119,7 @@
     <string name="archive_retry_claimed">%1$s eingelöst.</string>
     <string name="archive_retry_kept">Erneut versucht. Er ist wieder bei den erhaltenen Links, dort siehst du, wie es um ihn steht.</string>
     <string name="archive_links_title">Links</string>
-    <string name="archive_note_back">Wieder bekannt: %1$s sind zurück in deinem Guthaben.</string>
+    <string name="archive_note_back">Wieder bekannt: Du kannst %1$s ausgeben.</string>
     <string name="archive_note_still">Weiterhin unbekannt. Deine Wallet fragt weiter ab und zu.</string>
     <string name="archive_note_no_answer">Keine Antwort. Deine Wallet fragt später wieder.</string>
     <string name="notes_sheet_where">Bei %1$s · %2$s</string>
@@ -161,7 +161,7 @@
     <string name="notes_problem_above_maximum_amount">Das Maximum dort ist %1$s auf einmal.</string>
     <string name="notes_problem_invoice_mismatch">Die Antwort kam mit einer Rechnung, die nicht passt. Es wurde nichts verschoben.</string>
     <string name="notes_problem_refused">Abgelehnt. Es wurde nichts verschoben.</string>
-    <string name="notes_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Dein Geld ist zurück.</string>
+    <string name="notes_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Es wurde nichts bezahlt und das Geld bleibt in deiner Wallet.</string>
     <string name="notes_problem_declined">Nicht verschoben: Die Gebühr ist höher als dein Limit.</string>
     <string name="notes_trusted">Vertraut</string>
     <string name="notes_receive">Empfangen</string>

@@ -110,7 +110,7 @@
     </plurals>
     <string name="notes_state_unknown">Unknown to the provider</string>
     <string name="notes_state_unknown_handed_out">Handed out · unknown to the provider</string>
-    <string name="notes_state_unknown_detail">The provider says it doesn\'t know this banknote, so it isn\'t in your balance. Your wallet keeps it and asks the provider again by itself; once the provider knows it again, it\'s back in your balance.</string>
+    <string name="notes_state_unknown_detail">The provider says it doesn\'t know this banknote, so it isn\'t in your balance. Your wallet keeps it and asks the provider again by itself; once the provider knows it again, you can spend it again.</string>
     <string name="notes_state_unknown_handed_out_detail">You handed this banknote out, but the provider says it doesn\'t know it, so nobody can claim it yet. Your wallet asks the provider again by itself; once the provider knows it again, it waits to be claimed.</string>
     <plurals name="notes_archived_notes">
         <item quantity="one">%d banknote its provider doesn\'t know</item>
@@ -121,7 +121,7 @@
         <item quantity="other">Moved %d banknotes to the archive.</item>
     </plurals>
     <string name="archive_notes_title">Banknotes</string>
-    <string name="archive_notes_hint">Their provider doesn\'t know these banknotes. Your wallet still asks about them now and then; once the provider knows one again, it\'s back in your balance.</string>
+    <string name="archive_notes_hint">Their provider doesn\'t know these banknotes. Your wallet still asks about them now and then; once the provider knows one again, you can spend it again.</string>
     <string name="archive_handed_out_hint">You handed these banknotes out, but their provider doesn\'t know them. Your wallet still asks about them now and then; once the provider knows one again, it waits to be claimed, or your wallet takes it back if you asked it to.</string>
     <string name="archive_note_remove_title">Remove this banknote for good?</string>
     <string name="archive_note_remove_body">Its provider doesn\'t know it now. If the provider ever knows it again, “Scan for banknotes” finds it with your recovery phrase.</string>
@@ -134,12 +134,12 @@
         <item quantity="other">Your provider doesn\'t know %1$d of your banknotes</item>
     </plurals>
     <plurals name="home_unknown_body">
-        <item quantity="one">%1$s isn\'t in your balance for now. Your wallet keeps the banknote and asks the provider again by itself; once the provider knows it again, it\'s back.</item>
-        <item quantity="other">%1$s isn\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, they\'re back.</item>
+        <item quantity="one">%1$s isn\'t in your balance for now. Your wallet keeps the banknote and asks the provider again by itself; once the provider knows it again, you can spend it again.</item>
+        <item quantity="other">%1$s isn\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, you can spend them again.</item>
     </plurals>
     <plurals name="home_unknown_body_hidden">
-        <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the banknote and asks the provider again by itself; once the provider knows it again, it\'s back.</item>
-        <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, they\'re back.</item>
+        <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the banknote and asks the provider again by itself; once the provider knows it again, you can spend it again.</item>
+        <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, you can spend them again.</item>
     </plurals>
     <string name="home_unknown_help">There\'s nothing you need to do. If it stays this way, ask the provider.</string>
     <string name="home_unknown_help_late">If the provider still doesn\'t know them, ask it, or archive them in your banknotes.</string>
@@ -148,8 +148,8 @@
         <item quantity="other">Show banknotes</item>
     </plurals>
     <plurals name="notice_unknown_back">
-        <item quantity="one">A banknote is back in your balance: the provider knows it again.</item>
-        <item quantity="other">%1$d banknotes are back in your balance: the provider knows them again.</item>
+        <item quantity="one">The provider knows a banknote again: you can spend it.</item>
+        <item quantity="other">The provider knows %1$d banknotes again: you can spend them.</item>
     </plurals>
     <plurals name="notice_unknown_still">
         <item quantity="one">Asked just now: the provider still doesn\'t know your banknote.</item>

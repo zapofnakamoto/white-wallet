@@ -93,7 +93,7 @@
     <string name="restore_phrase_unknown">„%1$s“ ist kein Wort einer Wiederherstellungsphrase. Prüfe die Schreibweise.</string>
     <string name="restore_phrase_checksum">Die Wörter passen nicht zusammen. Ein Wort ist vielleicht falsch oder an der falschen Stelle.</string>
     <string name="restore_start">Wiederherstellen</string>
-    <string name="restore_what">Dein Guthaben kommt zurück, ebenso die Adresse, die die App bei der Einrichtung vorgeschlagen hat. Der bisherige Verlauf und andere Adressen sind nicht Teil der Wiederherstellungsphrase.</string>
+    <string name="restore_what">Eine Wiederherstellung findet dein Geld wieder, ebenso die Adresse, die die App bei der Einrichtung vorgeschlagen hat. Der bisherige Verlauf und andere Adressen sind nicht Teil der Wiederherstellungsphrase.</string>
     <string name="restore_error_already">Diese Wiederherstellungsphrase ist schon in dieser Wallet, als Konto „%1$s“. Für eine weitere Adresse füge eine auf der Seite dieses Kontos unter Einstellungen → Wallets hinzu.</string>
 
     <string name="restore_test_phrase">Testphrase verwenden (Entwicklermodus)</string>

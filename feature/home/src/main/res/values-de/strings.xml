@@ -82,12 +82,12 @@
         <item quantity="other">Deine Mint kennt %1$d deiner Scheine nicht</item>
     </plurals>
     <plurals name="home_unknown_body">
-        <item quantity="one">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält den Schein und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück.</item>
-        <item quantity="other">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, sind sie zurück.</item>
+        <item quantity="one">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält den Schein und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, kannst du ihn wieder ausgeben.</item>
+        <item quantity="other">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, kannst du sie wieder ausgeben.</item>
     </plurals>
     <plurals name="home_unknown_body_hidden">
-        <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Schein und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück.</item>
-        <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, sind sie zurück.</item>
+        <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Schein und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, kannst du ihn wieder ausgeben.</item>
+        <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, kannst du sie wieder ausgeben.</item>
     </plurals>
     <string name="home_unknown_help">Du musst nichts tun. Bleibt es dabei, frag den Betreiber der Mint.</string>
     <string name="home_unknown_help_late">Kennt die Mint sie weiterhin nicht, frag ihren Betreiber, oder archiviere sie bei deinen Scheinen.</string>
@@ -96,8 +96,8 @@
         <item quantity="other">Scheine anzeigen</item>
     </plurals>
     <plurals name="notice_unknown_back">
-        <item quantity="one">Ein Schein ist zurück in deinem Guthaben: Die Mint kennt ihn wieder.</item>
-        <item quantity="other">%1$d Scheine sind zurück in deinem Guthaben: Die Mint kennt sie wieder.</item>
+        <item quantity="one">Die Mint kennt einen Schein wieder: Du kannst ihn ausgeben.</item>
+        <item quantity="other">Die Mint kennt %1$d Scheine wieder: Du kannst sie ausgeben.</item>
     </plurals>
     <plurals name="notice_unknown_still">
         <item quantity="one">Gerade gefragt: Die Mint kennt deinen Schein noch immer nicht.</item>

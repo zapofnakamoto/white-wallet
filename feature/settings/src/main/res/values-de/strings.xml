@@ -112,8 +112,8 @@
     <string name="backup_continue_anyway">Trotzdem fortfahren</string>
     <string name="backup_display_warning">Schreib diese Wörter der Reihe nach auf Papier. Mach keinen Screenshot und kein Foto.</string>
     <plurals name="backup_addresses">
-        <item quantity="one">Schreib auch diese Adresse auf. Eine Wiederherstellung bringt dein Geld zurück, findet diese Adresse aber nicht von selbst:</item>
-        <item quantity="other">Schreib auch diese Adressen auf. Eine Wiederherstellung bringt dein Geld zurück, findet sie aber nicht von selbst:</item>
+        <item quantity="one">Schreib auch diese Adresse auf. Eine Wiederherstellung findet dein Geld wieder, findet diese Adresse aber nicht von selbst:</item>
+        <item quantity="other">Schreib auch diese Adressen auf. Eine Wiederherstellung findet dein Geld wieder, findet sie aber nicht von selbst:</item>
     </plurals>
     <string name="backup_wrote_it_down">Ich habe sie aufgeschrieben</string>
     <string name="backup_copy">Kopieren</string>
