@@ -7,6 +7,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- A note waiting for its recipient has a switch below it: `lnurlw://` or `LNURL`, for wallets that read only bech32
+  LNURL1 links. The QR code, Share, Copy and Print follow it; every note starts on `lnurlw://`. A `lnurlw://` or
+  `lnurlp://` link wrapped in bech32 by other wallets (against the spec, and never made here) is read too. For brands:
+  the strings `note_format_lnurlw` and `note_format_lnurl` name the two options.
 - Claiming a note (or a link received over Lightning), taking back a note from its link, moving money to another
   account, to another mint or home, a new home mint, using a mint's new signing key while adding it, and a finished
   backup now end on the success screen too, as sending and receiving do. Only what worked all the way does: a note
@@ -123,6 +127,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- Invoice QR codes start with `LIGHTNING:` in capitals: with a lowercase prefix the whole code was encoded in the
+  bulkier byte mode, so it came out denser than needed.
 - A note handed out while offline that its mint doesn't know no longer gets stuck. Before, it stayed a waiting note
   forever, "Take back" said "Couldn't connect. Nothing was paid. Try again later." every time, and it couldn't be
   archived. Now, once online, it is set aside like any other note its mint doesn't know: the notes view shows it and
