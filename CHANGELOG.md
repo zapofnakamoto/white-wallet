@@ -7,6 +7,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- Every way a claim or a take back ends has a screen of its own, on the success screen's layout: a refused claim says in
+  the app's words what happened and what it means ("This note has already been spent." and "Nothing was added to your
+  wallet."; "If it comes back within a week, your wallet claims it."; "Not claimed yet" while it is tried again;
+  "Nothing was received" over Lightning), the mint's own words below. Kept, locked and unanswered claims end on it as a
+  wait ("Kept for later", "No answer yet"). Once checked, a pasted link takes one line, so the note and its button stay
+  in view. For brands: `ResultScreen` with `ResultTone.Problem` (a warning mark, a "reject" buzz) and
+  `ResultTone.Waiting` (a clock), drawn at the `ClaimResult` anchor; the brand terms `claim_kept_key_changed` and
+  `claim_kept_for_lightning` lost their leading "Kept.", now the title's.
 - A note waiting for its recipient has a switch below it: `lnurlw://` or `LNURL`, for wallets that read only bech32
   LNURL1 links. The QR code, Share, Copy and Print follow it; every note starts on `lnurlw://`. A `lnurlw://` or
   `lnurlp://` link wrapped in bech32 by other wallets (against the spec, and never made here) is read too.
@@ -129,6 +137,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- A claim of a note someone else claimed after it was checked says at once that it is spent, and the note is set aside.
+  The mint answers such a claim "already in use", which wasn't looked into, so the note was kept and tried again until
+  the next refresh.
 - Send checks a pay link or Lightning address scanned while offline again once the phone is back online, as Claim
   does; before, it had to be checked again by hand.
 - Invoice QR codes start with `LIGHTNING:` in capitals: with a lowercase prefix the whole code was encoded in the
