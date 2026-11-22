@@ -9,7 +9,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - A note waiting for its recipient has a switch below it: `lnurlw://` or `LNURL`, for wallets that read only bech32
   LNURL1 links. The QR code, Share, Copy and Print follow it; every note starts on `lnurlw://`. A `lnurlw://` or
-  `lnurlp://` link wrapped in bech32 by other wallets (against the spec, and never made here) is read too. For brands:
+  `lnurlp://` link wrapped in bech32 by other wallets (against the spec, and never made here) is read too.
+  A bech32 link holding `lnurlp://` or a Lightning address's pay URL opens straight in Send, one holding `lnurlw://` in
+  Claim, also offline; only a plain https link is still asked of its service first. For brands:
   the strings `note_format_lnurlw` and `note_format_lnurl` name the two options.
 - Claiming a note (or a link received over Lightning), taking back a note from its link, moving money to another
   account, to another mint or home, a new home mint, using a mint's new signing key while adding it, and a finished
@@ -127,6 +129,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- Send checks a pay link or Lightning address scanned while offline again once the phone is back online, as Claim
+  does; before, it had to be checked again by hand.
 - Invoice QR codes start with `LIGHTNING:` in capitals: with a lowercase prefix the whole code was encoded in the
   bulkier byte mode, so it came out denser than needed.
 - A note handed out while offline that its mint doesn't know no longer gets stuck. Before, it stayed a waiting note
