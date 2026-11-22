@@ -25,7 +25,7 @@
     <string name="add_mint_setup_body">The mint holds your money and makes the invoices you get paid with. Pick one; you can add more later.</string>
     <string name="add_mint_body">Pick a mint. If your recovery phrase holds money there, it is found.</string>
     <string name="add_mint_error_not_allowed">This app doesn\'t work with that mint. Pick another one.</string>
-    <string name="add_mint_error_invalid">That isn\'t a mint this app can use: %1$s</string>
+    <string name="add_mint_error_invalid">That isn\'t a mint this app can use.</string>
     <string name="add_mint_known">This wallet has this mint already. Adding it again looks for your money there again.</string>
     <string name="scan_notes_title">Scan for notes</string>
     <plurals name="scan_mint_checking_notes">
@@ -61,7 +61,9 @@
     <string name="availability_taken">Already taken. Try one of these:</string>
     <string name="availability_unknown">Couldn\'t check right now. You can still try.</string>
 
-    <string name="onboarding_error_username">That name can\'t be used: %1$s</string>
+    <string name="onboarding_error_username">That name can\'t be used. Use 1–32 lowercase letters, digits, dots, dashes or underscores.</string>
+    <!-- Under the name field while the name breaks the rule. -->
+    <string name="onboarding_username_rule">Use 1–32 lowercase letters, digits, dots, dashes or underscores.</string>
 
     <string name="claimed_title">Your address is ready</string>
     <string name="claimed_body">Anyone can pay you at it, even while your phone is off.</string>
@@ -72,8 +74,13 @@
     <string name="onboarding_mint_local">Local regtest mint (developer mode)</string>
     <string name="onboarding_add_body">Another name for this account on %1$s. Payments to any of its addresses arrive in the same balance.</string>
     <string name="onboarding_change_body">Pick the name people will use to pay you on %1$s.</string>
+    <!-- %1$s: the mint's own words, in whatever language it writes. -->
     <string name="onboarding_error_registration">The address wasn\'t registered: %1$s</string>
+    <string name="onboarding_error_registration_plain">The address wasn\'t registered.</string>
+    <!-- %1$s: the mint's own words for why, as it sent them (often English) -->
     <string name="onboarding_error_mint">Can\'t be used: %1$s</string>
+    <!-- The same without the mint's words: it gave none, or the reason is the app's own -->
+    <string name="onboarding_error_mint_plain">Can\'t be used right now.</string>
     <plurals name="onboarding_error_limit">
         <item quantity="one">This account already has %1$d address here, the most this app allows.</item>
         <item quantity="other">This account already has %1$d addresses here, the most this app allows.</item>
@@ -86,7 +93,7 @@
         <item quantity="one">This app holds %1$d wallet at most. To restore another one, delete the wallet on this phone first (Settings → Wallets).</item>
         <item quantity="other">This app holds %1$d wallets at most. To restore another one, delete one on this phone first (Settings → Wallets).</item>
     </plurals>
-    <string name="onboarding_error_network">Couldn\'t connect: %1$s</string>
+    <string name="onboarding_error_network">Couldn\'t connect. Try again in a moment.</string>
 
     <string name="restore_title">Restore account</string>
     <string name="restore_body">Type or paste the recovery phrase you wrote down.</string>
@@ -118,6 +125,7 @@
     <string name="onboarding_error_hold_expired">The reservation ran out before the fee was paid. You can try again.</string>
     <string name="add_mint_done_title">Done</string>
     <string name="add_mint_failed_title">Error while restoring</string>
+    <string name="add_mint_error_not_a_host">That isn\'t a valid address. Check it and try again.</string>
     <string name="add_mint_error_unreachable">Couldn\'t reach it. Check the address and try again.</string>
     <string name="add_mint_offline">You\'re offline. Connect to continue.</string>
     <string name="add_mint_next">Next</string>
@@ -142,13 +150,12 @@
     <string name="add_mint_account">Account %1$d</string>
     <string name="add_mint_account_looking">Looking…</string>
     <string name="add_mint_account_empty">Nothing</string>
-    <string name="add_mint_failed_body">It stopped before it was done: %1$s. Try again; what was found stays.</string>
+    <string name="add_mint_failed_body">It stopped before it was done. Try again; what was found stays.</string>
     <string name="add_mint_failed_kept">Found so far: %1$s.</string>
     <string name="add_mint_found_total">%1$s found</string>
     <string name="add_mint_try_again">Try again</string>
     <string name="add_mint_ok">OK</string>
     <string name="add_mint_later">Later</string>
-    <string name="add_mint_key_accepted">%1$s now uses the new key.</string>
     <string name="add_mint_cancel">Cancel</string>
     <string name="scan_body">Looks for everything your recovery phrase holds and adds what it finds. It only looks; nothing is moved.</string>
     <string name="scan_mint_scanning">Scanning…</string>

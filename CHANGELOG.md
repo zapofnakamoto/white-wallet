@@ -7,6 +7,17 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- Claiming a note (or a link received over Lightning), taking back a note from its link, moving money to another
+  account, to another mint or home, a new home mint, using a mint's new signing key while adding it, and a finished
+  backup now end on the success screen too, as sending and receiving do. Only what worked all the way does: a note
+  kept for later, money still on its way or left behind keeps its own result.
+- Using a mint's new signing key on its page says so in a short message ("mint.example now uses the new key."), as do
+  a new primary Lightning address and one that was unregistered; what went wrong there stays on the page.
+- For brands: the anchors `MintKeyAccepted`, `NoteClaimed`, `NoteTakenBack`, `MoneyMoved`, `HomeChanged` and
+  `BackupDone`, each a check mark that draws itself by default (docs/WHITE_LABEL.md); `ClaimResult` is now only above
+  a claim's or a take-back's result that isn't a success. The brand term `money_home_changed_title` ("Home mint
+  changed").
+
 - Adding a mint (outside a wallet's setup), a Lightning address or an account, and a scan for notes that got through,
   now end on a success screen like sending and receiving do: the brand's picture, a heading, what was found (the same
   words on every screen) and one button on, kept at the bottom of the screen. A new address shows itself with Copy
@@ -35,6 +46,31 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- A refused claim or move, and a mint that can't become the home, no longer show the app's own name for why ("Refused",
+  "RateLimited", in English in every language): the mint's own words if it gave any, else a plain sentence.
+- Adding a mint, setting up a wallet and the addresses page no longer show the app's or the phone's own English for what
+  went wrong (a network error's text, "not a valid host", "the address is still registered"): each says it in the
+  user's language. A mint that refuses keeps its own words, also where it is picked: before, a mint that answered with
+  an error was called "not a mint".
+- For brands: `add_mint_error_invalid`, `add_mint_failed_body`, `onboarding_error_network`, `addresses_status_failed`
+  and `addresses_unregister_unknown` no longer take the error's text; new strings `onboarding_error_mint_plain`,
+  `add_mint_error_not_a_host`, `addresses_status_invalid` and `addresses_unregister_failed_plain` say it without the
+  mint's words.
+- For developers: `OnboardResult.MintInvalid`, `RestoreResult.MintInvalid`, `MintPreview.Invalid` and
+  `AddMintError.Invalid` say why as a `MintRefusal`, with the mint's own words apart (`mintReason`);
+  `UnregisterResult.Failed` has the mint's words only, `UnregisterResult.NetworkError` none. The protocol throws
+  `ServiceRefused` (a `ProtocolViolation`) with the service's reason where it answered ERROR instead of a request.
+- Choosing a Lightning address no longer shows the app's English rule for a name ("use 1-32 lowercase letters, …"), in
+  every language, nor its own English for a registration that failed ("no free share"): the rule is in the user's
+  language, and a mint that refused the name keeps its own words. For brands: `onboarding_error_username` no longer
+  takes the rule; new strings `onboarding_username_rule` and `onboarding_error_registration_plain`. For developers:
+  `AddressStatus.Invalid` says why as an `AddressProblem`; `OnboardResult.UsernameInvalid` is an object, a mint
+  that isn't a host is `MintInvalid(MintRefusal.NotAHost)`; `OnboardResult.RegistrationFailed` has the mint's words
+  only (`mintReason`).
+- For brands: `claim_done`, `claim_received` and `claim_taken_back` ("Claimed ₿…") became the success screens' titles
+  `claim_success_title`, `claim_received_title` and `claim_taken_back_title` (no amount: the screen shows it);
+  `add_mint_key_accepted` is now `mint_key_accepted` in the design system, with `mint_key_accepted_title`; new words for
+  `money_error_mint` ("%1$s doesn't answer as expected.", the mint's address).
 - A mint that shows no signing key is refused where it is shown, before anything is added: its page says that it can't
   be added and why, that the key may be back in a moment, and offers "Check again" in place of "Add this mint". A mint
   that couldn't be asked for its key says it "isn't answering" instead, and a mint the wallet holds isn't taken for one
@@ -85,10 +121,28 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   actions ("Request log" beside Copy and Clear) gets a line of its own under them. For brands: a `ListRow` or
   `TopBar` of their own should do the same (docs/WHITE_LABEL.md, "Components").
 
+### Fixed
+
+- A note handed out while offline that its mint doesn't know no longer gets stuck. Before, it stayed a waiting note
+  forever, "Take back" said "Couldn't connect. Nothing was paid. Try again later." every time, and it couldn't be
+  archived. Now, once online, it is set aside like any other note its mint doesn't know: the notes view shows it and
+  it can be archived. "Take back" says that it is taken back as soon as the mint knows it again, and it then is. If
+  the user didn't ask for it back, it waits to be claimed again once the mint knows it, and never comes back into the
+  balance by itself, since its link is still out there. Home's warning about unknown notes counts only notes from the
+  balance. Removed for good from the archive, it stays in History as "Claim not verified", never as spent. For brands:
+  new strings `note_take_back_when_known`, `notes_state_unknown_handed_out_detail`, `notes_checked_handed_out`,
+  `note_unverified` and `activity_note_unverified`, and new words for `note_unknown_to_mint`. For developers: database
+  version 12 (`Note.handedOut`, `HandedOut`), `ReclaimResult.WhenKnown`, `NoteCheck.HandedOutAgain`,
+  `NotesCheck.handedOutAgain`, `NotesOutcome.Checked.handedOut`, `SharedNote.takeBackAsked`,
+  `ActivityStatus.Unverified` and `SharedNoteState.Unverified`. `SharedNote.unknownToMint` comes from the note's state
+  now, and `SharedNote.confirmed` is false while its mint doesn't know it.
+
 ### Removed
 
 - For developers and brands: the strings `receive_copy`, `receive_share` (now `copy`, `share` in the design system),
   `claimed_copy` and `scan_done`.
+- For developers: `Onboarding.MINT_WITHOUT_SIGNING_KEY`, `Wallet.ALREADY_HOME` and `OnboardingError.MintWithoutSigningKey`
+  (a `MintRefusal` says it), and `Onboarding.USERNAME_RULE` (an `AddressProblem` says it).
 
 ## [0.10.0]
 

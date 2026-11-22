@@ -47,6 +47,7 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.model.AmountUnit
+import whitewallet.core.model.HandedOut
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.MintMoveQuote
@@ -98,6 +99,9 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             when {
                 note.state == NoteState.Paying -> R.string.notes_state_paying
                 note.state == NoteState.Ambiguous -> R.string.notes_state_ambiguous
+                // One the user handed out never comes back into the balance by itself.
+                note.state == NoteState.Unknown && note.handedOut == HandedOut.TakeBack -> DesignR.string.note_take_back_when_known
+                note.state == NoteState.Unknown && note.handedOut != null -> R.string.notes_state_unknown_handed_out_detail
                 note.state == NoteState.Unknown -> R.string.notes_state_unknown_detail
                 note.certificate == null -> R.string.notes_uncertified
                 else -> null

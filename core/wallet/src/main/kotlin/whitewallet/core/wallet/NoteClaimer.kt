@@ -5,7 +5,6 @@ import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.UnclaimedReason
-import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.Cs1
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
@@ -102,7 +101,7 @@ sealed interface ClaimPreview {
 sealed interface ClaimResult {
     data class Claimed(val amountMsat: Long, val certified: Boolean) : ClaimResult
 
-    /** Refused by the mint; nothing changed. */
+    /** Refused; nothing changed. [reason] is the mint's own words, if it gave any (shown as they are), never the app's. */
     data class Failed(val kind: RejectionKind, val reason: String?) : ClaimResult
 
     /** Not known yet whether it landed. Kept in the journal and settled on the next refresh. */
@@ -130,9 +129,9 @@ internal class NoteClaimer(private val wallet: Wallet) {
         if (script != null && (!script.isValidLockClaim || !script.verify(domain))) return ClaimPreview.NotSpendable
         val mine = wallet.store.note(spend.q.toHex())
         if (mine?.state == NoteState.Outstanding) return ClaimPreview.AlreadyInWallet
-        // The account's own note handed out as a link: it is taken back, not claimed. In another account it is
-        // received like any other note, and its own account finds it spent on the next refresh.
-        val shared = mine?.takeIf { it.accountId == accountId && it.state.isShared }
+        // The account's own note handed out as a link (also one set aside while its mint didn't know it): it is taken back, not claimed.
+        // In another account it is received like any other note, and its own account finds it spent on the next refresh.
+        val shared = mine?.takeIf { it.accountId == accountId && it.isHandedOut() }
         if (wallet.store.receivedNote(spend.q.toHex())?.state == ReceivedState.Claimed) return ClaimPreview.AlreadyInWallet
         // A lock by date still ahead: no use asking with the spend, the mint refuses it until then.
         if (script?.lockedUntilSeconds?.let { it * 1000 > wallet.now() } == true) return locked(link, script, accountId)

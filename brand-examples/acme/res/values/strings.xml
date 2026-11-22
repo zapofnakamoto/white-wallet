@@ -12,6 +12,7 @@
     <string name="settings_scan">Scan for banknotes</string>
     <string name="mint_change_home">Change provider</string>
     <string name="mint_make_home">Make this my provider</string>
+    <string name="money_home_changed_title">Provider changed</string>
     <string name="settings_account_mints">Your providers</string>
     <string name="mints_remove_mint">Remove provider</string>
     <string name="activity_moved_mint_other">Moved to another provider</string>
@@ -87,8 +88,13 @@
         <item quantity="one">The provider doesn\'t know %1$d banknote. It\'s set aside, out of your balance, and your wallet asks again by itself.</item>
         <item quantity="other">The provider doesn\'t know %1$d banknotes. They\'re set aside, out of your balance, and your wallet asks again by itself.</item>
     </plurals>
+    <plurals name="notes_checked_handed_out">
+        <item quantity="one">The provider knows %1$d banknote you handed out again. It waits to be claimed.</item>
+        <item quantity="other">The provider knows %1$d banknotes you handed out again. They wait to be claimed.</item>
+    </plurals>
     <string name="notes_state_unknown">Unknown to the provider</string>
     <string name="notes_state_unknown_detail">The provider says it doesn\'t know this banknote, so it isn\'t in your balance. Your wallet keeps it and asks the provider again by itself; once the provider knows it again, it\'s back in your balance.</string>
+    <string name="notes_state_unknown_handed_out_detail">You handed this banknote out, but the provider says it doesn\'t know it, so nobody can claim it yet. Your wallet asks the provider again by itself; once the provider knows it again, it waits to be claimed.</string>
     <plurals name="notes_archived_notes">
         <item quantity="one">%d banknote its provider doesn\'t know</item>
         <item quantity="other">%d banknotes their provider doesn\'t know</item>
@@ -172,7 +178,9 @@
     <string name="note_already_spent">Too late: this banknote has already been spent.</string>
     <string name="note_not_found">This banknote isn\'t in this account.</string>
     <string name="note_unconfirmed">The provider hasn\'t been asked about this banknote yet. Your wallet asks once it\'s online.</string>
-    <string name="note_unknown_to_mint">The provider doesn\'t know this banknote, so the link may not work.</string>
+    <string name="note_unknown_to_mint">The provider doesn\'t know this banknote right now, so nobody can claim it yet. Your wallet asks the provider again by itself.</string>
+    <string name="note_unverified">You removed this banknote while the provider didn\'t know it, so it isn\'t known whether it was claimed.</string>
+    <string name="note_take_back_when_known">The provider doesn\'t know this banknote right now. Your wallet takes it back as soon as the provider knows it again.</string>
     <string name="scan_unknown">This QR code isn\'t a payment or a banknote.</string>
     <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept a new key. Payments to your addresses there wait until then.</string>
     <string name="settings_notes">Banknote settings</string>
@@ -237,7 +245,7 @@
     <string name="add_mint_setup_body">The provider holds your money and makes the invoices you get paid with.</string>
     <string name="add_mint_body">Pick a provider. If your recovery phrase holds money there, it is found.</string>
     <string name="add_mint_error_not_allowed">This app doesn\'t work with that provider. Pick another one.</string>
-    <string name="add_mint_error_invalid">That isn\'t a provider this app can use: %1$s</string>
+    <string name="add_mint_error_invalid">That isn\'t a provider this app can use.</string>
     <string name="add_mint_known">This wallet has this provider already. Adding it again looks for your money there again.</string>
     <string name="scan_notes_title">Scan for banknotes</string>
     <string name="add_mint_use">Use this provider</string>

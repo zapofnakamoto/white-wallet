@@ -25,7 +25,8 @@
     <string name="note_already_spent">Zu spät: Dieser Schein wurde schon ausgegeben.</string>
     <string name="note_not_found">Dieser Schein ist nicht in diesem Konto.</string>
     <string name="note_unconfirmed">Die Mint wurde zu diesem Schein noch nicht gefragt. Deine Wallet fragt, sobald sie online ist.</string>
-    <string name="note_unknown_to_mint">Die Mint kennt diesen Schein nicht, deshalb funktioniert der Link vielleicht nicht.</string>
+    <string name="note_unknown_to_mint">Die Mint kennt diesen Schein gerade nicht, deshalb kann ihn noch niemand einlösen. Deine Wallet fragt die Mint von selbst wieder.</string>
+    <string name="note_unverified">Du hast diesen Schein entfernt, als die Mint ihn nicht kannte, deshalb ist nicht bekannt, ob er eingelöst wurde.</string>
     <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Schein.</string>
 
     <string name="send_title">Senden</string>

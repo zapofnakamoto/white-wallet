@@ -24,6 +24,8 @@ import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.MintPreview
+import whitewallet.core.wallet.MintRefusal
+import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.ScanProgress
 
 /** Adding a mint, step by step: pick, what it is, the scan, what was found. */
@@ -231,7 +233,12 @@ class AddMintScreenTest {
         var cancelled = 0
         var back = 0
         show(
-            pick.copy(step = AddMintStep.Result, preview = preview, failed = "changed", keyChanged = true),
+            pick.copy(
+                step = AddMintStep.Result,
+                preview = preview,
+                failed = OnboardResult.MintInvalid(MintRefusal.KeyChanged),
+                keyChanged = true,
+            ),
             AddMintActions(onTryAgain = { again++ }, onCancel = { cancelled++ }, onBack = { back++ }),
         )
         // Nothing was added, so nothing went wrong with a restore: the title stays the flow's own.
@@ -251,7 +258,7 @@ class AddMintScreenTest {
     fun inTheSetupAFailedAddLeadsToAnotherMint() {
         var picked = 0
         show(
-            pick.copy(setup = true, step = AddMintStep.Result, preview = preview, failed = "timeout"),
+            pick.copy(setup = true, step = AddMintStep.Result, preview = preview, failed = OnboardResult.NetworkError("timeout")),
             AddMintActions(onDone = { picked++ }),
         )
         compose.onNodeWithText(text(R.string.add_mint_cancel)).assertDoesNotExist()
@@ -293,12 +300,28 @@ class AddMintScreenTest {
     }
 
     @Test
-    fun anAcceptedKeySaysSoAndIsNoSuccessScreen() {
+    fun anAcceptedKeyEndsOnItsOwnSuccessScreen() {
         var done = 0
         showDecorated(pick.copy(step = AddMintStep.Result, preview = preview, keyAccepted = true), AddMintActions(onDone = { done++ }))
-        compose.onNodeWithText(text(R.string.add_mint_key_accepted, "mint.example")).assertExists()
+        assertEquals(listOf(Anchor.MintKeyAccepted to WalletStatus.Done(0)), decorated.distinct())
+        compose.onNodeWithText(text(DesignR.string.mint_key_accepted_title)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_key_accepted, "mint.example")).assertExists()
+        // The mint was known before: not "added".
         compose.onNodeWithText(text(R.string.mint_added_title)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.add_mint_ok)).performClick()
+        compose.onNodeWithText(text(R.string.success_done)).performClick()
+        assertEquals(1, done)
+    }
+
+    @Test
+    fun inASetupAnAcceptedKeySaysSoAndGoesOn() {
+        var done = 0
+        showDecorated(
+            pick.copy(step = AddMintStep.Result, preview = preview, keyAccepted = true, setup = true),
+            AddMintActions(onDone = { done++ }),
+        )
+        assertTrue(decorated.none { it.first == Anchor.MintKeyAccepted })
+        compose.onNodeWithText(text(DesignR.string.mint_key_accepted, "mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_next)).performScrollTo().performClick()
         assertEquals(1, done)
     }
 
@@ -307,11 +330,13 @@ class AddMintScreenTest {
         var again = 0
         var done = 0
         show(
-            pick.copy(step = AddMintStep.Result, preview = preview, failed = "timeout", kept = true),
+            pick.copy(step = AddMintStep.Result, preview = preview, failed = OnboardResult.NetworkError("timeout"), kept = true),
             AddMintActions(onAdd = { again++ }, onDone = { done++ }),
         )
         compose.onNodeWithText(text(R.string.add_mint_failed_title)).assertExists()
-        compose.onNodeWithText(text(R.string.add_mint_failed_body, "timeout")).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_failed_body)).assertExists()
+        // The system's words for why are no one's to read.
+        compose.onNodeWithText("timeout", substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.add_mint_try_again)).performClick()
         compose.onNodeWithText(text(R.string.add_mint_later)).performClick()
         assertEquals(1 to 1, again to done)
@@ -374,8 +399,40 @@ class AddMintScreenTest {
     }
 
     @Test
+    fun aMintThatIsntOneSaysSoInTheAppsWords() {
+        show(pick.copy(step = AddMintStep.Result, preview = preview, failed = OnboardResult.MintInvalid(MintRefusal.NotAMint)))
+        compose.onNodeWithText(text(R.string.add_mint_error_invalid)).assertExists()
+    }
+
+    @Test
+    fun aMintThatRefusedIsQuotedOnlyInItsOwnWords() {
+        show(pick.copy(step = AddMintStep.Result, preview = preview, failed = OnboardResult.MintInvalid(MintRefusal.Refused, "closed")))
+        compose.onNodeWithText(text(R.string.onboarding_error_mint, "closed")).assertExists()
+    }
+
+    @Test
+    fun aMintThatRefusesWhenPickedIsQuotedInItsOwnWords() {
+        show(pick.copy(error = AddMintError.Invalid(MintRefusal.Refused, "closed")))
+        compose.onNodeWithText(text(R.string.onboarding_error_mint, "closed")).assertExists()
+    }
+
+    @Test
+    fun aMintThatRefusesWithoutWordsSaysSoInTheAppsWords() {
+        show(pick.copy(error = AddMintError.Invalid(MintRefusal.Refused)))
+        compose.onNodeWithText(text(R.string.onboarding_error_mint_plain)).assertExists()
+    }
+
+    @Test
     fun aMintThatWasntAddedInASetupKeepsTheSetupsTitle() {
-        show(pick.copy(setup = true, step = AddMintStep.Result, preview = preview, failed = "x", withoutSigningKey = true))
+        show(
+            pick.copy(
+                setup = true,
+                step = AddMintStep.Result,
+                preview = preview,
+                failed = OnboardResult.MintInvalid(MintRefusal.WithoutSigningKey),
+                withoutSigningKey = true,
+            )
+        )
         compose.onNodeWithText(text(R.string.add_mint_setup_title)).assertExists()
         compose.onNodeWithText(text(R.string.mint_added_title)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.onboarding_error_mint_without_key)).assertExists()

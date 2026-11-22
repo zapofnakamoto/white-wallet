@@ -2,6 +2,7 @@ package whitewallet.feature.home
 
 import androidx.compose.runtime.Composable
 import whitewallet.core.designsystem.LocalAppName
+import whitewallet.core.designsystem.Moment
 import whitewallet.core.designsystem.PREVIEW_MILLIS
 import whitewallet.core.designsystem.WalletPreviews
 import whitewallet.core.model.Account
@@ -10,8 +11,10 @@ import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
 import whitewallet.core.wallet.AccountMint
+import whitewallet.core.wallet.MoveResult
 
-// The home screen and moving money between accounts, in their everyday state (docs/DEVELOPMENT.md, "Screenshots"). Made-up data only.
+// The home screen and moving money between accounts, in their everyday state, and the move's success screen (docs/DEVELOPMENT.md,
+// "Screenshots"). Made-up data only.
 
 private const val HOME = "mint.example"
 private const val OTHER = "cash.example"
@@ -83,3 +86,16 @@ private fun HomePreview() =
 @WalletPreviews
 @Composable
 private fun MoveFundsPreview() = MoveFundsScreen(moveFundsState, onBack = {}, onTarget = {}, onEverything = {}, onAmount = {}, onMove = {})
+
+@WalletPreviews
+@Moment
+@Composable
+private fun FundsMovedPreview() =
+    MoveFundsScreen(
+        moveFundsState.copy(result = MoveResult.Moved(5_000_000)),
+        onBack = {},
+        onTarget = {},
+        onEverything = {},
+        onAmount = {},
+        onMove = {},
+    )

@@ -2,15 +2,18 @@ package whitewallet.core.wallet
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import whitewallet.core.model.HandedOut
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.isShared
 import whitewallet.lnurlcash.protocol.NoteLookupError
 import whitewallet.lnurlcash.protocol.RejectionKind
 
 /**
  * Notes a mint says it doesn't know ([NoteState.Unknown]): a mint that lost its records, or misbehaves. One such note must never stop the
  * rest of the wallet, so a refused spend is sorted out note by note ([sortOut]) and the unknown ones are set aside, out of the balance.
- * They are never dropped: [recheckDue] asks again on refresh, and a note the mint knows again is outstanding again.
+ * They are never dropped: [recheckDue] asks again on refresh, and a note the mint knows again is outstanding again; one that was handed out
+ * as a link ([Note.handedOut]) is shared again instead, or taken back if the user asked to (see [NoteSender]).
  */
 internal class UnknownNotes(private val wallet: Wallet) {
     private val prober = KeyProber(wallet)
@@ -85,3 +88,18 @@ internal class UnknownNotes(private val wallet: Wallet) {
         fun mayBeGone(e: NoteLookupError): Boolean = e.burned || e.burnedOrPending || e.kind in GONE
     }
 }
+
+/**
+ * This note set aside as unknown to its mint, anew: out of the archive, whatever an earlier time there left. One handed out as a link stays
+ * out of the balance as it was and remembers so ([Note.handedOut]), with when its mint answered.
+ */
+internal fun Note.setAside(now: Long): Note =
+    if (state.isShared)
+        copy(
+            state = NoteState.Unknown,
+            updatedAtMillis = now,
+            archivedAtMillis = null,
+            handedOut = handedOut ?: HandedOut.Waiting,
+            checkedAtMillis = now,
+        )
+    else copy(state = NoteState.Unknown, updatedAtMillis = now, archivedAtMillis = null, handedOut = null)

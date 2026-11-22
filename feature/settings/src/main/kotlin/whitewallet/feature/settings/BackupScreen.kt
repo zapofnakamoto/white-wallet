@@ -29,11 +29,15 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.SensitiveClipboard
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletDialog
@@ -86,6 +90,7 @@ fun BackupScreen(
     val leave = onBack.takeUnless { required && state.step != BackupStep.Success }
     BackHandler(enabled = leave == null) {}
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.backup_title), leave) }) { padding ->
+        if (state.step == BackupStep.Success) return@Scaffold Success(onBack, Modifier.padding(padding))
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             when (val step = state.step) {
                 BackupStep.Intro -> Intro(onShow, leave)
@@ -93,7 +98,7 @@ fun BackupScreen(
                 is BackupStep.Display ->
                     SecureScreen { Display(step.words, state.addressesToWriteDown, state.clipboardClearMillis, onCopy, onWroteItDown) }
                 is BackupStep.Verify -> SecureScreen { Verify(step, state.alreadyVerified, onTap, onSkipVerify) }
-                BackupStep.Success -> Success(onBack)
+                BackupStep.Success -> Unit
             }
         }
     }
@@ -223,9 +228,15 @@ private fun Verify(step: BackupStep.Verify, alreadyVerified: Boolean, onTap: (In
     if (alreadyVerified) WalletButton(kind = ButtonKind.Text, onClick = onSkip) { Text(stringResource(R.string.backup_verify_skip)) }
 }
 
+/** The phrase is written down and checked: the success screen, with where the paper belongs. */
 @Composable
-private fun Success(onDone: () -> Unit) {
-    Text(stringResource(R.string.backup_success_title), style = MaterialTheme.typography.headlineSmall)
-    Text(stringResource(R.string.backup_success_body), textAlign = TextAlign.Center)
-    PrimaryButton(stringResource(R.string.backup_done), onDone)
+private fun Success(onDone: () -> Unit, modifier: Modifier) {
+    SuccessScreen(
+        anchor = Anchor.BackupDone,
+        status = WalletStatus.Done(0),
+        title = stringResource(R.string.backup_success_title),
+        done = SuccessAction(stringResource(R.string.backup_done), onDone),
+        modifier = modifier,
+        lines = listOf(stringResource(R.string.backup_success_body)),
+    )
 }

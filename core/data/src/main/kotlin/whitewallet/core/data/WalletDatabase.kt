@@ -162,7 +162,7 @@ internal interface WalletDao {
             KeyCounterEntity::class,
             ShareScanEntity::class,
         ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 internal abstract class WalletDatabase : RoomDatabase() {
@@ -181,6 +181,7 @@ internal abstract class WalletDatabase : RoomDatabase() {
                 Migration8To9,
                 Migration9To10,
                 Migration10To11,
+                Migration11To12,
             )
     }
 }
@@ -684,5 +685,12 @@ internal object Migration9To10 : Migration(9, 10) {
 internal object Migration10To11 : Migration(10, 11) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE journal ADD COLUMN `verifyUrl` TEXT")
+    }
+}
+
+/** A note handed out as a link that its mint doesn't know remembers so, and whether the user asked to take it back (see Note.handedOut). */
+internal object Migration11To12 : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE notes ADD COLUMN `handedOut` TEXT")
     }
 }

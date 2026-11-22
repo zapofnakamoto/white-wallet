@@ -10,6 +10,12 @@ import whitewallet.lnurl.string
 public open class ProtocolViolation(message: String) : Exception(message)
 
 /**
+ * The service answered ERROR where it should have answered with a request: a refusal in its own words ([reason], if it gave any), not a
+ * broken answer. A [ProtocolViolation] still, for anyone who acts only on the answer.
+ */
+public class ServiceRefused(public val reason: String?) : ProtocolViolation(reason ?: "the server returned an error")
+
+/**
  * A `mintPubkey` that is there but isn't a compressed secp256k1 key: never trusted as a key, nor taken for a mint that publishes none. Its
  * own type, for a wallet that pinned the mint's key to tell it from the rest of an invalid answer.
  */
@@ -58,7 +64,7 @@ public data class MintingPayRequest(
     public companion object {
         /** Parses a payRequest that mints notes; throws [ProtocolViolation] if it does not. */
         public fun from(response: LnurlResponse): MintingPayRequest {
-            val pay = response as? LnurlResponse.PayRequest ?: throw ProtocolViolation(describe(response, "payRequest"))
+            val pay = response as? LnurlResponse.PayRequest ?: throw unexpected(response, "payRequest")
             val withdrawLink = pay.raw.string("withdrawLink") ?: throw ProtocolViolation("payRequest does not mint notes (no withdrawLink)")
             val withdrawUrl = Lnurl.resolve(withdrawLink) ?: throw ProtocolViolation("withdrawLink is not a usable URL")
             if ((pay.commentAllowed ?: 0) < 64) throw ProtocolViolation("minting payRequest must allow a 64-character comment")
@@ -71,7 +77,7 @@ public data class MintingPayRequest(
 public data class WithdrawDiscovery(val mintPubkey: PublicKey?, val response: LnurlResponse.WithdrawRequest) {
     public companion object {
         public fun from(response: LnurlResponse): WithdrawDiscovery {
-            val w = response as? LnurlResponse.WithdrawRequest ?: throw ProtocolViolation(describe(response, "withdrawRequest"))
+            val w = response as? LnurlResponse.WithdrawRequest ?: throw unexpected(response, "withdrawRequest")
             return WithdrawDiscovery(w.raw.string("mintPubkey")?.let(::parseMintPubkey), w)
         }
     }
@@ -84,8 +90,8 @@ public fun parseMintPubkey(hex: String): PublicKey? {
     return PublicKey(bytes).takeIf { it.isValid() }
 }
 
-internal fun describe(response: LnurlResponse, expected: String): String =
+internal fun unexpected(response: LnurlResponse, expected: String): ProtocolViolation =
     when (response) {
-        is LnurlResponse.Error -> response.reason ?: "the server returned an error"
-        else -> "expected a $expected"
+        is LnurlResponse.Error -> ServiceRefused(response.reason)
+        else -> ProtocolViolation("expected a $expected")
     }

@@ -150,7 +150,7 @@ class RegtestMintTest {
         assertEquals(MintDetails.Reachability.KeyChanged, details.reachability)
         assertNull(details.presentedKey, "nothing to accept")
         assertEquals(false, alice.wallet.acceptMintKey(HOST, OTHER_KEY))
-        assertEquals(OnboardResult.MintInvalid(MINT_KEY_CHANGED), assertIs<ConnectResult.Failed>(alice.wallet.addMint(HOST)).result)
+        assertEquals(OnboardResult.MintInvalid(MintRefusal.KeyChanged), assertIs<ConnectResult.Failed>(alice.wallet.addMint(HOST)).result)
         // Kept, never offered over Lightning: claimed at the mint once it shows its key again.
         val claim = assertIs<ClaimPreview.KeyChanged>(alice.wallet.previewClaim(Regtest.note(1000)))
         assertEquals(ReceivedState.KeyChanged, alice.wallet.keepClaim(claim).note.state)

@@ -25,9 +25,19 @@ sealed interface AddressStatus {
     /** Someone else has it (or it is one of the mint's own reserved names). */
     data object Taken : AddressStatus
 
-    data class Invalid(val reason: String) : AddressStatus
+    /** Not an address the app can look up, for [problem]. */
+    data class Invalid(val problem: AddressProblem) : AddressStatus
 
     data class CheckFailed(val reason: String) : AddressStatus
+}
+
+/** Why an address can't be looked up. Never shown as it is: each screen says it in the user's words. */
+enum class AddressProblem {
+    /** The name breaks the rule: 1–32 lowercase letters, digits, `.`, `-` or `_`. */
+    Name,
+
+    /** The mint's host isn't a host name. */
+    Host,
 }
 
 /** [status], and for [AddressStatus.Ours] the share whose proof the mint accepted. */
@@ -43,9 +53,9 @@ internal class AddressCheck(private val wallet: Wallet) {
     suspend fun check(username: String, host: String, accountId: String?): AddressStatus = ownership(username, host, accountId).status
 
     suspend fun ownership(username: String, host: String, accountId: String?, also: Long? = null): Ownership {
-        val name = Onboarding.normalizeUsername(username) ?: return Ownership(AddressStatus.Invalid(Onboarding.USERNAME_RULE))
-        val h = Onboarding.normalizeHost(host) ?: return Ownership(AddressStatus.Invalid("not a valid host"))
-        val url = Lnurl.lightningAddressUrl("$name@$h") ?: return Ownership(AddressStatus.Invalid(Onboarding.USERNAME_RULE))
+        val name = Onboarding.normalizeUsername(username) ?: return Ownership(AddressStatus.Invalid(AddressProblem.Name))
+        val h = Onboarding.normalizeHost(host) ?: return Ownership(AddressStatus.Invalid(AddressProblem.Host))
+        val url = Lnurl.lightningAddressUrl("$name@$h") ?: return Ownership(AddressStatus.Invalid(AddressProblem.Name))
         val response =
             try {
                 wallet.client.get(url)

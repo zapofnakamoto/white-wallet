@@ -53,6 +53,7 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.PrintPage
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.QrCodeCover
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.SensitiveClipboard
@@ -349,6 +350,8 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
                     is ReclaimResult.Reclaimed -> it.copy(reclaiming = false, note = note)
                     ReclaimResult.AlreadySpent -> it.copy(reclaiming = false, note = note, alreadySpent = true)
                     ReclaimResult.Pending -> it.copy(reclaiming = false, note = note, reclaimPending = true)
+                    // Its mint doesn't know it: the note says it is taken back once the mint does.
+                    ReclaimResult.WhenKnown -> it.copy(reclaiming = false, note = note)
                     is ReclaimResult.Failed -> it.copy(reclaiming = false, problem = result.problem)
                 }
             }
@@ -417,6 +420,7 @@ fun SharedNoteScreen(
                         SharedNoteState.Waiting -> NoteStatus.Waiting
                         SharedNoteState.Spent -> NoteStatus.Spent
                         SharedNoteState.Reclaimed -> NoteStatus.TakenBack
+                        SharedNoteState.Unverified -> NoteStatus.Unclear
                     },
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
                 qrCode =
@@ -438,7 +442,8 @@ fun SharedNoteScreen(
                             color = MaterialTheme.colorScheme.error,
                         )
                         Text(stringResource(R.string.note_waiting), style = MaterialTheme.typography.bodyMedium)
-                        if (!note.confirmed) Text(stringResource(R.string.note_unconfirmed), style = MaterialTheme.typography.bodyMedium)
+                        if (!note.confirmed && !note.unknownToMint)
+                            Text(stringResource(R.string.note_unconfirmed), style = MaterialTheme.typography.bodyMedium)
                         note.checkedAtMillis?.let {
                             Text(stringResource(R.string.note_checked_at, recentTime(it)), style = MaterialTheme.typography.bodySmall)
                         }
@@ -467,6 +472,10 @@ fun SharedNoteScreen(
                             Text(stringResource(R.string.note_reclaim))
                         }
                         if (showsWorking(state.reclaiming)) WalletCircularProgress()
+                    } else if (note.takeBackAsked) {
+                        // No link once the user asked for it back: it is taken back as soon as its mint knows it again.
+                        Text(stringResource(DesignR.string.note_take_back_when_known), textAlign = TextAlign.Center)
+                        PrimaryButton(stringResource(R.string.send_done), onBack)
                     }
                 SharedNoteState.Spent ->
                     Text(
@@ -478,6 +487,7 @@ fun SharedNoteScreen(
                         stringResource(if (state.reclaimPending) R.string.note_reclaim_pending else R.string.note_reclaimed),
                         textAlign = TextAlign.Center,
                     )
+                SharedNoteState.Unverified -> Text(stringResource(R.string.note_unverified), textAlign = TextAlign.Center)
             }
             state.problem
                 ?.takeUnless { state.offline && it == PayProblem.Unreachable }
@@ -529,5 +539,6 @@ private fun sharedNoteStatus(state: SharedNoteUiState, note: SharedNote): Wallet
         SharedNoteState.Waiting -> WalletStatus.WaitingForRecipient
         SharedNoteState.Spent -> WalletStatus.Sent(note.amountMsat)
         SharedNoteState.Reclaimed -> if (state.reclaimPending) WalletStatus.None else WalletStatus.Idle
+        SharedNoteState.Unverified -> WalletStatus.None
     }
 }

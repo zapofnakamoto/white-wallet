@@ -15,6 +15,7 @@ import whitewallet.lnurlcash.AddressProof
 import whitewallet.lnurlcash.client.RegistrationOutcome
 import whitewallet.lnurlcash.client.RegistrationRejection
 import whitewallet.lnurlcash.protocol.ProtocolViolation
+import whitewallet.lnurlcash.protocol.ServiceRefused
 import whitewallet.lnurlcash.spendDomain
 
 sealed interface OnboardResult {
@@ -36,12 +37,17 @@ sealed interface OnboardResult {
     /** Someone else has this name. [suggestions] are alternatives the user can pick from. */
     data class UsernameTaken(val suggestions: List<String>) : OnboardResult
 
-    data class UsernameInvalid(val reason: String) : OnboardResult
+    /** The name breaks the rule ([AddressProblem.Name]). */
+    data object UsernameInvalid : OnboardResult
 
-    /** The mint refused the registration for another reason, e.g. registration is turned off. */
-    data class RegistrationFailed(val reason: String?) : OnboardResult
+    /**
+     * The mint refused the registration for another reason, e.g. registration is turned off, or it didn't register the name. [mintReason]
+     * is the mint's own words for it, if it gave any.
+     */
+    data class RegistrationFailed(val mintReason: String? = null) : OnboardResult
 
-    data class MintInvalid(val reason: String) : OnboardResult
+    /** The mint can't be used, for [refusal]; [mintReason] is the mint's own words for it, if it gave any (often English). */
+    data class MintInvalid(val refusal: MintRefusal, val mintReason: String? = null) : OnboardResult
 
     data class NetworkError(val reason: String) : OnboardResult
 
@@ -59,21 +65,56 @@ sealed interface UnregisterResult {
     /** The name no longer points at this account (someone else holds it); removed from the account. */
     data object NotOurs : UnregisterResult
 
-    /** The mint kept the name; nothing changed. */
-    data class Failed(val reason: String) : UnregisterResult
+    /** The mint kept the name; nothing changed. [mintReason] is the mint's own words for refusing, if it gave any. */
+    data class Failed(val mintReason: String? = null) : UnregisterResult
 
     /** Not known whether it worked; the address stays listed until a check shows it is free. */
-    data class NetworkError(val reason: String) : UnregisterResult
+    data object NetworkError : UnregisterResult
 }
+
+/**
+ * Why a mint can't be used ([OnboardResult.MintInvalid], [MintPreview.Invalid]). Never shown as it is: each screen says it in the user's
+ * words.
+ */
+enum class MintRefusal {
+    /** What was given isn't a host name. */
+    NotAHost,
+
+    /** There is no account to use it with. */
+    NoAccount,
+
+    /** No mint was given and the account has no home mint. */
+    NoMint,
+
+    /** It presents another signing key than the one pinned, or than the one it showed a moment ago. */
+    KeyChanged,
+
+    /** It publishes no signing key: the wallet uses no such mint (a note from one comes in over Lightning). */
+    WithoutSigningKey,
+
+    /** It is the account's home mint already. */
+    AlreadyHome,
+
+    /** It answers, but not as an LNURLcash mint the wallet can read. */
+    NotAMint,
+
+    /** It refused what it was asked ([OnboardResult.MintInvalid.mintReason]: its words, if any). */
+    Refused,
+}
+
+/** A mint's answer the wallet can't act on: its refusal, in its own words, or one that isn't a mint's answer. */
+internal fun ProtocolViolation.mintInvalid(): OnboardResult.MintInvalid =
+    if (this is ServiceRefused) OnboardResult.MintInvalid(MintRefusal.Refused, reason) else OnboardResult.MintInvalid(MintRefusal.NotAMint)
+
+/** What an address that can't be looked up means for adding it: a name that breaks the rule, or a mint that isn't a host. */
+private fun AddressStatus.Invalid.result(): OnboardResult =
+    when (problem) {
+        AddressProblem.Name -> OnboardResult.UsernameInvalid
+        AddressProblem.Host -> OnboardResult.MintInvalid(MintRefusal.NotAHost)
+    }
 
 /** Why [Wallet.addMint] refused a mint that presents another signing key than the one pinned, or than the one it showed. */
 const val MINT_KEY_CHANGED = "the signing key of this host changed"
-
-/**
- * Why [Wallet.addMint] refused a mint that publishes no signing key: the wallet uses no such mint (a note from one comes in over
- * Lightning).
- */
-const val MINT_WITHOUT_SIGNING_KEY = "this mint publishes no signing key"
 
 sealed interface ConnectResult {
     data class Connected(val mint: Mint) : ConnectResult
@@ -155,9 +196,9 @@ internal class Onboarding(private val wallet: Wallet) {
 
     /** Claims [username] on [host] as the active account's primary address and confirms it by looking the address up afterwards. */
     suspend fun claimAddress(username: String, host: String): OnboardResult {
-        val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
-        val h = normalizeHost(host) ?: return OnboardResult.MintInvalid("not a valid host")
-        val accountId = wallet.store.currentAccountId() ?: return OnboardResult.MintInvalid("no account")
+        val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid
+        val h = normalizeHost(host) ?: return OnboardResult.MintInvalid(MintRefusal.NotAHost)
+        val accountId = wallet.store.currentAccountId() ?: return OnboardResult.MintInvalid(MintRefusal.NoAccount)
         return claim(name, h, accountId, primary = true)
     }
 
@@ -211,12 +252,12 @@ internal class Onboarding(private val wallet: Wallet) {
      * has none.
      */
     suspend fun addAddress(username: String, limit: Int, host: String? = null): OnboardResult {
-        val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid(USERNAME_RULE)
-        val accountId = wallet.store.currentAccountId() ?: return OnboardResult.MintInvalid("no account")
+        val name = normalizeUsername(username) ?: return OnboardResult.UsernameInvalid
+        val accountId = wallet.store.currentAccountId() ?: return OnboardResult.MintInvalid(MintRefusal.NoAccount)
         val h =
-            host?.let { normalizeHost(it) ?: return OnboardResult.MintInvalid("not a valid host") }
+            host?.let { normalizeHost(it) ?: return OnboardResult.MintInvalid(MintRefusal.NotAHost) }
                 ?: wallet.homeOf(accountId)
-                ?: return OnboardResult.MintInvalid("no mint")
+                ?: return OnboardResult.MintInvalid(MintRefusal.NoMint)
         val onHost = wallet.store.addresses(accountId).first().filter { it.host == h }
         if (onHost.none { it.username == name } && onHost.size >= limit) return OnboardResult.LimitReached(limit)
         return claim(name, h, accountId, primary = false)
@@ -231,7 +272,7 @@ internal class Onboarding(private val wallet: Wallet) {
             try {
                 unregisterAt(accountId, address)
             } catch (e: IOException) {
-                return UnregisterResult.NetworkError(e.message ?: "network error")
+                return UnregisterResult.NetworkError
             }
         val remove = suspend {
             wallet.store.deleteAddress(accountId, address.username, address.host)
@@ -249,10 +290,10 @@ internal class Onboarding(private val wallet: Wallet) {
             AddressStatus.Ours,
             AddressStatus.Unconfirmed -> {
                 wallet.setAddressStatus(accountId, address.address, after)
-                UnregisterResult.Failed((outcome as? RegistrationOutcome.Rejected)?.reason ?: "the address is still registered")
+                UnregisterResult.Failed((outcome as? RegistrationOutcome.Rejected)?.reason)
             }
-            is AddressStatus.Invalid -> UnregisterResult.Failed(after.reason)
-            is AddressStatus.CheckFailed -> UnregisterResult.NetworkError(after.reason)
+            is AddressStatus.Invalid -> UnregisterResult.Failed()
+            is AddressStatus.CheckFailed -> UnregisterResult.NetworkError
         }
     }
 
@@ -279,7 +320,7 @@ internal class Onboarding(private val wallet: Wallet) {
             AddressStatus.Ours -> return ready(true, checkNotNull(before.share))
             AddressStatus.Taken,
             AddressStatus.Unconfirmed -> return taken(name, accountId, h)
-            is AddressStatus.Invalid -> return OnboardResult.UsernameInvalid(before.status.reason)
+            is AddressStatus.Invalid -> return before.status.result()
             is AddressStatus.CheckFailed -> return OnboardResult.NetworkError(before.status.reason)
             AddressStatus.Available -> Unit
         }
@@ -326,7 +367,7 @@ internal class Onboarding(private val wallet: Wallet) {
                 }
             }
         }
-        return OnboardResult.RegistrationFailed("no free share")
+        return OnboardResult.RegistrationFailed()
     }
 
     /** Share [n], reserved for a registration the mint refused, is the next one handed out again; claims hold the wallet's lock. */
@@ -353,9 +394,9 @@ internal class Onboarding(private val wallet: Wallet) {
             } catch (e: IOException) {
                 return OnboardResult.NetworkError(e.message ?: "network error")
             } catch (e: ProtocolViolation) {
-                return OnboardResult.MintInvalid(e.message ?: "unexpected response")
+                return e.mintInvalid()
             }
-        val amount = Bolt11.decode(invoice)?.amountMsat ?: return OnboardResult.RegistrationFailed("the fee invoice can't be read")
+        val amount = Bolt11.decode(invoice)?.amountMsat ?: return OnboardResult.RegistrationFailed()
         val max = minOf(advertised, wallet.maxAddressFeeMsat ?: advertised)
         if (amount > max) return OnboardResult.FeeRefused(amount, max)
         val address = RegisteredAddress(name, h, wallet.now(), share, invoice)
@@ -392,18 +433,18 @@ internal class Onboarding(private val wallet: Wallet) {
             AddressStatus.Ours -> ready(true)
             AddressStatus.Unconfirmed -> ready(false)
             AddressStatus.Taken -> taken(name, accountId, h)
-            AddressStatus.Available -> OnboardResult.RegistrationFailed("the address was not registered")
-            is AddressStatus.Invalid -> OnboardResult.UsernameInvalid(after.reason)
+            AddressStatus.Available -> OnboardResult.RegistrationFailed()
+            is AddressStatus.Invalid -> after.result()
             is AddressStatus.CheckFailed -> OnboardResult.NetworkError(after.reason)
         }
 
     /**
      * Connects the wallet [walletId] to the mint at [host]: fetches what it is and pins its key for that wallet on first contact (only
      * [expectedKey], if given). Nobody's home mint by that alone: where the user chose the mint for the wallet, [homeIfNone] follows. A new
-     * mint is connected only once it presented its signing key: one that publishes none is never used ([MINT_WITHOUT_SIGNING_KEY]).
+     * mint is connected only once it presented its signing key: one that publishes none is never used ([MintRefusal.WithoutSigningKey]).
      */
     suspend fun connectMint(walletId: String, host: String, expectedKey: String? = null): ConnectResult {
-        val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid("not a valid host"))
+        val h = normalizeHost(host) ?: return ConnectResult.Failed(OnboardResult.MintInvalid(MintRefusal.NotAHost))
         return try {
             val pay = wallet.client.servicePayRequest(h)
             val existing = wallet.store.mint(walletId, h)
@@ -412,14 +453,15 @@ internal class Onboarding(private val wallet: Wallet) {
             val discovery =
                 if (existing == null) wallet.client.withdrawDiscovery(h) else runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
             val discovered = discovery?.mintPubkey
-            if (existing == null && discovered == null) return ConnectResult.Failed(OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY))
+            if (existing == null && discovered == null)
+                return ConnectResult.Failed(OnboardResult.MintInvalid(MintRefusal.WithoutSigningKey))
             if (pinned != null && discovery != null) wallet.sawKey(walletId, h, changed = pinned != discovered?.toHex())
             // A pinned mint that answers without a valid key changed it as much as one presenting another.
             if (
                 pinned != null && discovery != null && pinned != discovered?.toHex() ||
                     expectedKey != null && expectedKey != discovered?.toHex()
             ) {
-                return ConnectResult.Failed(OnboardResult.MintInvalid(MINT_KEY_CHANGED))
+                return ConnectResult.Failed(OnboardResult.MintInvalid(MintRefusal.KeyChanged))
             }
             val mint =
                 Mint(
@@ -438,7 +480,7 @@ internal class Onboarding(private val wallet: Wallet) {
             wallet.store.saveMint(mint)
             ConnectResult.Connected(mint)
         } catch (e: ProtocolViolation) {
-            ConnectResult.Failed(OnboardResult.MintInvalid(e.message ?: "not an LNURLcash server"))
+            ConnectResult.Failed(e.mintInvalid())
         } catch (e: IOException) {
             ConnectResult.Failed(OnboardResult.NetworkError(e.message ?: "network error"))
         }
@@ -492,7 +534,6 @@ internal class Onboarding(private val wallet: Wallet) {
     }
 
     companion object {
-        const val USERNAME_RULE = "use 1-32 lowercase letters, digits, '.', '-' or '_'"
         private val USERNAME = Regex("^[a-z0-9._-]{1,32}$")
         private val HOST = Regex("^[a-z0-9.-]+(:[0-9]{1,5})?$")
 

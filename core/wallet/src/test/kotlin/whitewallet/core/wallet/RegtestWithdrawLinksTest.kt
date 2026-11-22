@@ -359,11 +359,11 @@ class RegtestWithdrawLinksTest {
         runBlocking<Unit> {
             val bob = Regtest.phone(client = Regtest.client(Keyless()))
             assertEquals(
-                OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY),
+                OnboardResult.MintInvalid(MintRefusal.WithoutSigningKey),
                 assertIs<ConnectResult.Failed>(bob.wallet.addMint(HOST2)).result,
             )
             assertEquals(
-                OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY),
+                OnboardResult.MintInvalid(MintRefusal.WithoutSigningKey),
                 assertIs<ConnectResult.Failed>(bob.wallet.setHomeMint(HOST2).result).result,
             )
             assertNull(bob.wallet.mintDetails(HOST2).mint)
@@ -390,7 +390,7 @@ class RegtestWithdrawLinksTest {
             )
             askable = true
             assertEquals(
-                OnboardResult.MintInvalid(MINT_WITHOUT_SIGNING_KEY),
+                OnboardResult.MintInvalid(MintRefusal.WithoutSigningKey),
                 assertIs<ConnectResult.Failed>(bob.wallet.addMint(HOST2)).result,
             )
         }

@@ -38,6 +38,70 @@ class AddressesScreenTest {
     }
 
     @Test
+    fun aNewPrimaryAddressIsSaidBrieflyAndGoes() {
+        val message = AddressesMessage.PrimaryChanged("alice@other.example")
+        var shown: AddressesMessage? = null
+        compose.setContent {
+            AddressesScreen(
+                AddressesState(listOf(home, other), homeHost = "home.example", message = message),
+                {},
+                {},
+                {},
+                {},
+                AddressActions({}, {}, {}),
+                {},
+                {},
+                onMessageShown = { shown = it },
+            )
+        }
+        compose.onNodeWithText(text(R.string.addresses_primary_changed, "alice@other.example")).assertExists()
+        compose.mainClock.advanceTimeBy(20_000)
+        compose.onNodeWithText(text(R.string.addresses_primary_changed, "alice@other.example")).assertDoesNotExist()
+        assertEquals(message, shown)
+    }
+
+    @Test
+    fun aRefusedUnregisterStaysOnThePage() {
+        val message = AddressesMessage.NotOurs("alice@home.example")
+        var shown: AddressesMessage? = null
+        compose.setContent {
+            AddressesScreen(
+                AddressesState(listOf(home), homeHost = "home.example", message = message),
+                {},
+                {},
+                {},
+                {},
+                AddressActions({}, {}, {}),
+                {},
+                {},
+                onMessageShown = { shown = it },
+            )
+        }
+        compose.mainClock.advanceTimeBy(20_000)
+        compose.onNodeWithText(text(R.string.addresses_not_ours, "alice@home.example")).assertExists()
+        assertEquals(null, shown)
+    }
+
+    @Test
+    fun aKeptNameQuotesOnlyTheMintsWords() {
+        show(AddressesState(listOf(home), homeHost = "home.example", message = AddressesMessage.Failed("alice@home.example", "busy")))
+        compose.onNodeWithText(text(R.string.addresses_unregister_failed, "alice@home.example", "busy")).assertExists()
+    }
+
+    @Test
+    fun aKeptNameWithoutTheMintsWordsSaysSoPlainly() {
+        show(AddressesState(listOf(home), homeHost = "home.example", message = AddressesMessage.Failed("alice@home.example")))
+        compose.onNodeWithText(text(R.string.addresses_unregister_failed_plain, "alice@home.example")).assertExists()
+    }
+
+    @Test
+    fun aCheckThatFailedShowsNoSystemWords() {
+        show(AddressesState(listOf(home.copy(status = AddressStatus.CheckFailed("timeout"))), homeHost = "home.example"))
+        compose.onNodeWithText(text(R.string.addresses_status_failed)).assertExists()
+        compose.onNodeWithText("timeout", substring = true).assertDoesNotExist()
+    }
+
+    @Test
     fun anAddressOnAnotherMintIsListedUnderItAndCanBecomePrimary() {
         show(AddressesState(listOf(home, other), homeHost = "home.example", otherMints = true))
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("alice@other.example"))

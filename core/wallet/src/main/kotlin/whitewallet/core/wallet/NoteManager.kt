@@ -386,7 +386,7 @@ internal class NoteManager(private val wallet: Wallet) {
         get() =
             when (val r = result) {
                 is OnboardResult.NetworkError -> NoteProblem.Unreachable
-                is OnboardResult.MintInvalid if r.reason == MINT_KEY_CHANGED -> NoteProblem.KeyChanged
+                is OnboardResult.MintInvalid if r.refusal == MintRefusal.KeyChanged -> NoteProblem.KeyChanged
                 else -> NoteProblem.MintInvalid
             }
 

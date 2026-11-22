@@ -33,6 +33,7 @@
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
     <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
     <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
+    <string name="note_take_back_when_known">Die Mint kennt diesen Schein gerade nicht. Deine Wallet holt ihn zurück, sobald die Mint ihn wieder kennt.</string>
 
     <string name="received_title">Erhalten, noch nicht eingelöst</string>
     <string name="received_hint">Noch nicht sicher: Bis zum Einlösen kann der Absender das Geld noch ausgeben, und verlierst du vorher dein Handy, ist es weg. Das Einlösen erledigt deine Wallet von selbst.</string>
@@ -87,4 +88,6 @@
     <string name="mint_key_accept_title">Neuen Schlüssel verwenden?</string>
     <string name="mint_key_accept_confirm">Verwenden</string>
     <string name="mint_key_cancel">Abbrechen</string>
+    <string name="mint_key_accepted_title">Neuer Schlüssel wird verwendet</string>
+    <string name="mint_key_accepted">%1$s nutzt jetzt den neuen Schlüssel.</string>
 </resources>

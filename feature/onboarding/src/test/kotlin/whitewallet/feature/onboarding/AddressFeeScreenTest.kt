@@ -10,8 +10,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.RegisteredAddress
+import whitewallet.core.wallet.AddressProblem
+import whitewallet.core.wallet.MintRefusal
 
 /** An address on a mint that charges for one: the fee on the form, the question, the reserved name and paying for it. */
 @RunWith(RobolectricTestRunner::class)
@@ -123,6 +126,43 @@ class AddressFeeScreenTest {
         show(fromSettings.copy(held = HeldAddress(held, fee, canPayFromBalance = true), error = OnboardingError.FeeNotPaid()))
         compose.onNodeWithText(text(R.string.onboarding_error_fee_not_paid)).assertExists()
         compose.onNodeWithText(text(R.string.address_held_title)).assertExists()
+    }
+
+    @Test
+    fun noConnectionIsSaidWithoutTheSystemsWords() {
+        show(setup.copy(error = OnboardingError.Network("java.net.SocketTimeoutException: timeout")))
+        compose.onNodeWithText(text(R.string.onboarding_error_network)).assertExists()
+        compose.onNodeWithText("timeout", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNameThatBreaksTheRuleSaysTheRuleInTheUsersLanguage() {
+        show(setup.copy(username = "Al ice", availability = Availability.Invalid(AddressProblem.Name)))
+        compose.onNodeWithText(text(R.string.onboarding_username_rule)).assertExists()
+    }
+
+    @Test
+    fun aRefusedNameSaysTheRule() {
+        show(setup.copy(error = OnboardingError.Username()))
+        compose.onNodeWithText(text(R.string.onboarding_error_username)).assertExists()
+    }
+
+    @Test
+    fun aRegistrationTheMintRefusedQuotesOnlyItsOwnWords() {
+        show(setup.copy(error = OnboardingError.Registration("Registration closed")))
+        compose.onNodeWithText(text(R.string.onboarding_error_registration, "Registration closed")).assertExists()
+    }
+
+    @Test
+    fun aRegistrationThatFailedWithoutTheMintsWordsSaysSoPlainly() {
+        show(setup.copy(error = OnboardingError.Registration()))
+        compose.onNodeWithText(text(R.string.onboarding_error_registration_plain)).assertExists()
+    }
+
+    @Test
+    fun aMintWhoseKeyChangedSaysSoAsEverywhere() {
+        show(setup.copy(error = OnboardingError.Mint(MintRefusal.KeyChanged)))
+        compose.onNodeWithText(text(DesignR.string.mint_key_changed, "mint.example")).assertExists()
     }
 
     @Test

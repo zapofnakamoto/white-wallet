@@ -10,6 +10,8 @@
     <string name="release_note_old_keys_body">This version no longer finds notes and Lightning addresses made the way the app made them before version 0.8. Since then, the app moved them over by itself whenever it was opened. If money is missing, open your recovery phrase once in version 0.9.0, which still moves them, then use “Scan for notes” here.</string>
     <!-- Why a note received as a link wasn't claimed (see received_title below). -->
     <string name="received_key_changed">The signing key of its mint doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint\'s details.</string>
+    <!-- A handed-out note whose mint doesn't know it, which the user asked to take back (its page, and its own link opened). -->
+    <string name="note_take_back_when_known">Its mint doesn\'t know this note right now. Your wallet takes it back as soon as the mint knows it again.</string>
     <string name="received_refused">Its mint kept refusing it, so your wallet stopped trying.</string>
     <plurals name="received_refused_hours">
         <item quantity="one">Its mint kept refusing it for %d hour, so your wallet stopped trying.</item>
@@ -99,4 +101,8 @@
     <string name="mint_key_accept_title">Use the new key?</string>
     <string name="mint_key_accept_confirm">Use it</string>
     <string name="mint_key_cancel">Cancel</string>
+    <!-- Once the user used the new key: the success screen's title (Add mint) -->
+    <string name="mint_key_accepted_title">New key in use</string>
+    <!-- Once the user used the new key: below that title, and on the mint's page as a short message. %1$s is the mint's address -->
+    <string name="mint_key_accepted">%1$s now uses the new key.</string>
 </resources>

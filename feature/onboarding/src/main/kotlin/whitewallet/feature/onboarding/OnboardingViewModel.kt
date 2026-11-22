@@ -15,11 +15,12 @@ import kotlinx.coroutines.launch
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.AbandonResult
 import whitewallet.core.wallet.AddressFeeChoice
+import whitewallet.core.wallet.AddressProblem
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
-import whitewallet.core.wallet.MINT_WITHOUT_SIGNING_KEY
 import whitewallet.core.wallet.MintKeyChangedException
+import whitewallet.core.wallet.MintRefusal
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayResult
@@ -39,7 +40,8 @@ sealed interface Availability {
 
     data object Taken : Availability
 
-    data class Invalid(val reason: String) : Availability
+    /** Not an address the app can look up, for [problem]. */
+    data class Invalid(val problem: AddressProblem) : Availability
 
     data object Unknown : Availability
 }
@@ -161,16 +163,17 @@ sealed interface OnboardingError {
     /** The name's hold ran out unpaid. */
     data class HoldExpired(override val detail: String = "") : OnboardingError
 
-    data class Username(override val detail: String) : OnboardingError
+    /** The name breaks the rule. */
+    data class Username(override val detail: String = "") : OnboardingError
 
-    data class Registration(override val detail: String) : OnboardingError
+    /** The mint didn't register the name ([mintReason]: its own words, if it gave any). */
+    data class Registration(val mintReason: String? = null, override val detail: String = "") : OnboardingError
 
-    data class Mint(override val detail: String) : OnboardingError
+    /** The mint can't be used ([refusal]; [mintReason]: its own words, if it gave any). */
+    data class Mint(val refusal: MintRefusal, val mintReason: String? = null, override val detail: String = "") : OnboardingError
 
-    /** The mint publishes no signing key: the wallet uses no such mint. */
-    data class MintWithoutSigningKey(override val detail: String = "") : OnboardingError
-
-    data class Network(override val detail: String) : OnboardingError
+    /** No answer: nothing about why is shown (it would be the system's words, in English). */
+    data class Network(override val detail: String = "") : OnboardingError
 
     data class Limit(val limit: Int) : OnboardingError {
         override val detail: String
@@ -347,9 +350,9 @@ constructor(
             try {
                 work()
             } catch (e: IOException) {
-                fail(OnboardingError.Network(e.message.orEmpty()))
+                fail(OnboardingError.Network())
             } catch (e: MintKeyChangedException) {
-                fail(OnboardingError.Mint(e.message.orEmpty()))
+                fail(OnboardingError.Mint(MintRefusal.KeyChanged))
             }
         }
     }
@@ -437,14 +440,10 @@ constructor(
                 _state.update {
                     it.copy(busy = false, availability = Availability.Taken, suggestions = result.suggestions)
                 }
-            is OnboardResult.UsernameInvalid -> fail(OnboardingError.Username(result.reason))
-            is OnboardResult.RegistrationFailed -> fail(OnboardingError.Registration(result.reason ?: ""))
-            is OnboardResult.MintInvalid ->
-                fail(
-                    if (result.reason == MINT_WITHOUT_SIGNING_KEY) OnboardingError.MintWithoutSigningKey()
-                    else OnboardingError.Mint(result.reason)
-                )
-            is OnboardResult.NetworkError -> fail(OnboardingError.Network(result.reason))
+            OnboardResult.UsernameInvalid -> fail(OnboardingError.Username())
+            is OnboardResult.RegistrationFailed -> fail(OnboardingError.Registration(result.mintReason))
+            is OnboardResult.MintInvalid -> fail(OnboardingError.Mint(result.refusal, result.mintReason))
+            is OnboardResult.NetworkError -> fail(OnboardingError.Network())
             is OnboardResult.LimitReached -> fail(OnboardingError.Limit(result.limit))
         }
     }
@@ -518,7 +517,7 @@ constructor(
                     // A name registered without a published owner cannot be shown to be ours, so it is someone else's.
                     AddressStatus.Taken,
                     AddressStatus.Unconfirmed -> Availability.Taken
-                    is AddressStatus.Invalid -> Availability.Invalid(status.reason)
+                    is AddressStatus.Invalid -> Availability.Invalid(status.problem)
                     is AddressStatus.CheckFailed -> Availability.Unknown
                 }
             _state.update {

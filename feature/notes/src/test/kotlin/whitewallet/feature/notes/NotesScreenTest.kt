@@ -45,6 +45,7 @@ import whitewallet.brand.ui.NoteGroupParams
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.model.HandedOut
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -565,6 +566,39 @@ class NotesScreenTest {
         compose.onNodeWithText(text(R.string.notes_archive_hint)).assertExists()
         compose.onNodeWithText(text(R.string.notes_archive)).performClick()
         assertEquals("u1", archived)
+    }
+
+    private fun withHandedOut(handedOut: HandedOut) = { s: NotesState ->
+        s.copy(
+            mints =
+                listOf(MintNotes("home.example", true, home + unknown.map { if (it.id == "u1") it.copy(handedOut = handedOut) else it }))
+        )
+    }
+
+    @Test
+    fun aHandedOutNoteItsMintDoesNotKnowSaysItWaitsToBeClaimedNotThatItComesBack() {
+        compose.setContent { NotesContent(state(withHandedOut(HandedOut.Waiting), { it.copy(open = "u1") }), NotesActions()) }
+        compose.onNodeWithText(text(R.string.notes_state_unknown_handed_out_detail)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_state_unknown_detail)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.notes_archive)).assertExists()
+    }
+
+    @Test
+    fun aHandedOutNoteToTakeBackSaysItIsTakenBackOnceItsMintKnowsIt() {
+        compose.setContent { NotesContent(state(withHandedOut(HandedOut.TakeBack), { it.copy(open = "u1") }), NotesActions()) }
+        compose.onNodeWithText(text(DesignR.string.note_take_back_when_known)).assertExists()
+    }
+
+    @Test
+    fun checkingSaysWhenHandedOutNotesAreKnownAgain() {
+        compose.setContent {
+            NotesContent(
+                state({ it.copy(outcome = NotesOutcome.Checked(ok = 0, gone = 0, unreachable = emptyList(), handedOut = 1)) }),
+                NotesActions(),
+            )
+        }
+        compose.onNodeWithText(plural(R.plurals.notes_checked_handed_out, 1, 1)).assertExists()
+        compose.onNodeWithText("Checked", substring = true).assertDoesNotExist()
     }
 
     @Test

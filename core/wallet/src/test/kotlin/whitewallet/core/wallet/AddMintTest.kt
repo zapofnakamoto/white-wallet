@@ -135,7 +135,7 @@ abstract class AddMintTest {
             assertIs<MintPreview.Unreachable>(phone.wallet.previewMint("localhost:1"))
 
             val wrong = assertIs<ConnectResult.Failed>(phone.wallet.addMint(other, expectedKey = "02" + "00".repeat(32)))
-            assertEquals(OnboardResult.MintInvalid(MINT_KEY_CHANGED), wrong.result)
+            assertEquals(OnboardResult.MintInvalid(MintRefusal.KeyChanged), wrong.result)
             assertNull(phone.store.mint(other))
             assertIs<ConnectResult.Connected>(phone.wallet.addMint(other, expectedKey = preview.signingKey))
             assertEquals(preview.signingKey, assertIs<MintPreview.Ready>(phone.wallet.previewMint(other)).knownKey)

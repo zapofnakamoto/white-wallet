@@ -1,6 +1,7 @@
 package whitewallet.core.wallet
 
 import java.io.IOException
+import whitewallet.core.model.HandedOut
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -100,6 +101,8 @@ internal class KeyProber(private val wallet: Wallet) {
                 val certificate =
                     info.certificate?.takeIf { certifies(it, id.host, q, pinned) && it.amountMsat == info.maxWithdrawableMsat }
                 val existing = wallet.store.note(noteId)
+                // A note handed out as a link stays out of the balance until it is spent or taken back, also one the mint knows again.
+                val shared = existing?.isHandedOut() == true
                 if (
                     existing == null ||
                         existing.state == NoteState.Spent ||
@@ -117,10 +120,17 @@ internal class KeyProber(private val wallet: Wallet) {
                                 id.index,
                                 amountMsat = info.maxWithdrawableMsat,
                                 certificate = certificate?.encode() ?: existing?.certificate,
-                                // A note handed out as a link stays out of the balance until it is spent or taken back.
-                                state = existing?.state?.takeIf { it.isShared } ?: NoteState.Outstanding,
+                                state =
+                                    when {
+                                        existing?.state?.isShared == true -> existing.state
+                                        shared -> NoteState.Shared
+                                        else -> NoteState.Outstanding
+                                    },
                                 updatedAtMillis = now,
+                                checkedAtMillis = now.takeIf { shared },
                                 share = id.set.share,
+                                // Waiting to be claimed again; or taken back next (NoteSender.takeBackIfAsked), as the user asked.
+                                handedOut = existing?.handedOut?.takeIf { shared && it == HandedOut.TakeBack },
                             )
                         )
                     )
@@ -135,7 +145,9 @@ internal class KeyProber(private val wallet: Wallet) {
                             .note(noteId)
                             ?.takeIf { it.host == id.host && (it.state == NoteState.Outstanding || it.state == NoteState.Unknown) }
                             ?.let {
-                                wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = now)))
+                                wallet.store.upsertNotes(listOf(it.copy(state = NoteState.Spent, updatedAtMillis = now, handedOut = null)))
+                                // Handed out as a link: whoever holds it claimed it once the mint knew it again.
+                                if (it.handedOut != null) wallet.sentNoteDone(it)
                             }
                         ensureCounterPast(id)
                         KeyProbe.Spent(now)
@@ -143,15 +155,15 @@ internal class KeyProber(private val wallet: Wallet) {
                     e.kind == RejectionKind.NoteUnknown -> {
                         // A note the wallet holds that the mint doesn't know: out of the balance, kept until it knows it again. Mints on
                         // one domain share their keys, so the note may be another mint's, which this answer says nothing about.
-                        wallet.store
-                            .note(noteId)
-                            ?.takeIf { it.host == id.host && it.state == NoteState.Outstanding }
-                            ?.let {
-                                // Set aside anew: not in the archive, whatever an earlier time there left.
-                                wallet.store.upsertNotes(
-                                    listOf(it.copy(state = NoteState.Unknown, updatedAtMillis = now, archivedAtMillis = null))
-                                )
-                            }
+                        val held = wallet.store.note(noteId)?.takeIf { it.host == id.host }
+                        when {
+                            held == null -> Unit
+                            held.state == NoteState.Outstanding || held.state.isShared ->
+                                wallet.store.upsertNotes(listOf(held.setAside(now)))
+                            // Its screen tells when the mint last answered for a note handed out.
+                            held.state == NoteState.Unknown && held.handedOut != null ->
+                                wallet.store.upsertNotes(listOf(held.copy(checkedAtMillis = now)))
+                        }
                         KeyProbe.Unused(now)
                     }
                     e.kind == RejectionKind.RateLimited -> KeyProbe.Failed(e.reason ?: "rate limited", now)

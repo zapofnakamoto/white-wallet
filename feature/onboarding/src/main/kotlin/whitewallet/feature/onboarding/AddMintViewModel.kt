@@ -17,9 +17,8 @@ import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.ConnectResult
-import whitewallet.core.wallet.MINT_KEY_CHANGED
-import whitewallet.core.wallet.MINT_WITHOUT_SIGNING_KEY
 import whitewallet.core.wallet.MintPreview
+import whitewallet.core.wallet.MintRefusal
 import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.ScanProgress
 import whitewallet.core.wallet.Wallet
@@ -39,7 +38,8 @@ sealed interface AddMintError {
     /** No answer from it: the address may be wrong, or the mint down. (Offline, the screen says that instead.) */
     data object Unreachable : AddMintError
 
-    data class Invalid(val detail: String) : AddMintError
+    /** It can't be used ([refusal]): not a host, not a mint the wallet can read, or one that refused ([mintReason]: its words, if any). */
+    data class Invalid(val refusal: MintRefusal, val mintReason: String? = null) : AddMintError
 
     /** It answers, but showed no signing key; [asked] false: it couldn't be asked for it. Its page says more, and asks again. */
     data class WithoutKey(val host: String, val asked: Boolean) : AddMintError
@@ -87,7 +87,7 @@ data class AddMintState(
     val progress: ScanProgress? = null,
     val found: List<FoundAccount> = emptyList(),
     /** Why adding stopped; null once it went through. */
-    val failed: String? = null,
+    val failed: OnboardResult? = null,
     /** The mint was added all the same and only its scan stopped: it can be scanned again right here, or later. */
     val kept: Boolean = false,
     val keyChanged: Boolean = false,
@@ -215,7 +215,7 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
     private fun problemOf(host: String, preview: MintPreview): AddMintError? =
         when (preview) {
             is MintPreview.Unreachable -> AddMintError.Unreachable
-            is MintPreview.Invalid -> AddMintError.Invalid(preview.reason)
+            is MintPreview.Invalid -> AddMintError.Invalid(preview.refusal, preview.mintReason)
             is MintPreview.Ready ->
                 if (preview.signingKey == null && !preview.keyDiffers) AddMintError.WithoutKey(host, preview.keyAnswered) else null
         }
@@ -263,7 +263,12 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
                 _state.update { it.copy(busy = false, step = AddMintStep.Pick, preview = null, error = AddMintError.Unreachable) }
             is MintPreview.Invalid ->
                 _state.update {
-                    it.copy(busy = false, step = AddMintStep.Pick, preview = null, error = AddMintError.Invalid(preview.reason))
+                    it.copy(
+                        busy = false,
+                        step = AddMintStep.Pick,
+                        preview = null,
+                        error = AddMintError.Invalid(preview.refusal, preview.mintReason),
+                    )
                 }
         }
     }
@@ -317,8 +322,8 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
         viewModelScope.launch {
             val result = wallet.addMint(preview.host, preview.signingKey) { progress -> _state.update { it.copy(progress = progress) } }
             val found = wallet.heldAt(preview.host).map { (account, msat) -> FoundAccount(account.name, msat) }
-            val reason = ((result as? ConnectResult.Failed)?.result as? OnboardResult.MintInvalid)?.reason
-            val keyChanged = reason == MINT_KEY_CHANGED
+            val refusal = ((result as? ConnectResult.Failed)?.result as? OnboardResult.MintInvalid)?.refusal
+            val keyChanged = refusal == MintRefusal.KeyChanged
             val kept = !keyChanged && wallet.unscannedMints.first().any { it.host == preview.host }
             _state.update {
                 when (result) {
@@ -327,22 +332,15 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
                         it.copy(
                             step = AddMintStep.Result,
                             found = found,
-                            failed = failure(result.result),
+                            failed = result.result,
                             kept = kept,
                             keyChanged = keyChanged,
-                            withoutSigningKey = reason == MINT_WITHOUT_SIGNING_KEY,
+                            withoutSigningKey = refusal == MintRefusal.WithoutSigningKey,
                         )
                 }
             }
         }
     }
-
-    private fun failure(result: OnboardResult): String =
-        when (result) {
-            is OnboardResult.MintInvalid -> result.reason
-            is OnboardResult.NetworkError -> result.reason
-            else -> result.toString()
-        }
 
     /**
      * After the result (a mint that wasn't added: back to the pick): in a setup, on to the address (where there is one to pick) or done;

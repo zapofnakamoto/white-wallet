@@ -108,7 +108,7 @@ data class AccountMint(
     val trusted: Boolean,
     /**
      * Notes there the mint says it doesn't know ([whitewallet.core.model.NoteState.Unknown]), and what they were worth; not those the user
-     * archived ([whitewallet.core.model.Note.isArchived]).
+     * archived ([whitewallet.core.model.Note.isArchived]), nor those handed out as links ([whitewallet.core.model.Note.handedOut]).
      */
     val unknownCount: Int = 0,
     val unknownMsat: Long = 0,

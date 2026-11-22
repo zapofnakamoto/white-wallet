@@ -1,5 +1,7 @@
 package whitewallet.feature.settings
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,6 +21,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.model.Mint
 import whitewallet.core.wallet.AccountMint
@@ -88,6 +95,23 @@ class SettingsScreensTest {
         }
         compose.onNodeWithText(text(R.string.mint_send)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.mint_receive)).assertDoesNotExist()
+    }
+
+    @Test
+    fun anAcceptedKeyIsSaidOnTheMintsPageOnce() {
+        var shown = 0
+        compose.setContent {
+            MintDetailsScreen(
+                MintDetailsState(details(MintDetails.Reachability.Reachable), loading = false, keyAccepted = true),
+                onBack = {},
+                onRefresh = {},
+                onKeyAcceptedShown = { shown++ },
+            )
+        }
+        compose.onNodeWithText(text(DesignR.string.mint_key_accepted, "mint.example")).assertExists()
+        compose.mainClock.advanceTimeBy(20_000)
+        compose.onNodeWithText(text(DesignR.string.mint_key_accepted, "mint.example")).assertDoesNotExist()
+        assertEquals(1, shown)
     }
 
     @Test
@@ -213,6 +237,29 @@ class SettingsScreensTest {
         compose.onNodeWithText(text(R.string.backup_not_now)).assertDoesNotExist()
         compose.onNodeWithContentDescription(text(DesignR.string.back), substring = true, ignoreCase = true).assertDoesNotExist()
         assertEquals(false, left)
+    }
+
+    @Test
+    fun aCheckedBackupEndsOnTheSuccessScreenEvenDuringSetup() {
+        val decorated = mutableListOf<Pair<Anchor, WalletStatus>>()
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    decorated += anchor to context.status
+                }
+            }
+        var left = 0
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design) {
+                BackupScreen(BackupState(step = BackupStep.Success), onBack = { left++ }, {}, {}, {}, {}, {}, {}, required = true)
+            }
+        }
+        assertEquals(listOf(Anchor.BackupDone to WalletStatus.Done(0)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.backup_success_title)).assertExists()
+        compose.onNodeWithText(text(R.string.backup_success_body)).assertExists()
+        compose.onNodeWithText(text(R.string.backup_done)).performClick()
+        assertEquals(1, left)
     }
 
     @Test

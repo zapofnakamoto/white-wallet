@@ -190,19 +190,19 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
      */
     suspend fun withdraw(preview: ClaimPreview.Melt, accountId: String): ClaimResult {
         val link = preview.link
-        val target = preview.target ?: return ClaimResult.Failed(RejectionKind.Other, "no mint to receive into")
-        val callback = link.callback ?: return ClaimResult.Failed(RejectionKind.Other, "not asked yet")
-        val pay = payRequestOf(target) ?: return ClaimResult.Failed(RejectionKind.Other, "unreachable")
-        val amount = amountOf(link, pay) ?: return ClaimResult.Failed(RejectionKind.Other, "out of range")
+        val target = preview.target ?: return ClaimResult.Failed(RejectionKind.Other, null)
+        val callback = link.callback ?: return ClaimResult.Failed(RejectionKind.Other, null)
+        val pay = payRequestOf(target) ?: return ClaimResult.Failed(RejectionKind.Other, null)
+        val amount = amountOf(link, pay) ?: return ClaimResult.Failed(RejectionKind.Other, null)
         // An invoice of the wallet like any other: paid, its note is picked up and recorded in History; expired, it is dropped.
         val invoices = InvoiceReceiver(wallet)
         val invoice =
             when (val requested = invoices.request(accountId, target, pay, amount)) {
                 is InvoiceRequest.Ready -> requested
-                is InvoiceRequest.OutOfRange -> return ClaimResult.Failed(RejectionKind.Other, "out of range")
-                InvoiceRequest.Unreachable -> return ClaimResult.Failed(RejectionKind.Other, "unreachable")
-                InvoiceRequest.Refused -> return ClaimResult.Failed(RejectionKind.Other, "refused")
-                InvoiceRequest.KeyChanged -> return ClaimResult.Failed(RejectionKind.Other, MINT_KEY_CHANGED)
+                is InvoiceRequest.OutOfRange -> return ClaimResult.Failed(RejectionKind.Other, null)
+                InvoiceRequest.Unreachable -> return ClaimResult.Failed(RejectionKind.Other, null)
+                InvoiceRequest.Refused -> return ClaimResult.Failed(RejectionKind.Other, null)
+                InvoiceRequest.KeyChanged -> return ClaimResult.Failed(RejectionKind.Other, null)
             }
         val received = ReceivedNotes(wallet)
         // A note link's preview always says why it is melted.
@@ -213,7 +213,7 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
                 is SecretGate.Released.Sent -> released.outcome
                 is SecretGate.Released.NotSent -> {
                     kept?.let { received.meltFailed(it) }
-                    return ClaimResult.Failed(RejectionKind.Other, released.reason)
+                    return ClaimResult.Failed(RejectionKind.Other, null)
                 }
             }
         if (outcome is MutationOutcome.Rejected) {

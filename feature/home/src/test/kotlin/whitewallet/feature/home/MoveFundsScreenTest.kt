@@ -1,5 +1,7 @@
 package whitewallet.feature.home
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
@@ -12,6 +14,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.wallet.MoveCheck
@@ -156,12 +163,45 @@ class MoveFundsScreenTest {
         assertEquals(1, again)
     }
 
+    /** The anchors the screen asks the brand for, with their status. */
+    private val decorated = mutableListOf<Pair<Anchor, WalletStatus>>()
+
     @Test
-    fun aMoveThatWasWholeOffersNothingMore() {
-        show(twoWallets.copy(result = MoveResult.Moved(9_000)))
+    fun aMoveThatWasWholeEndsOnTheSuccessScreen() {
+        var back = 0
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    decorated += anchor to context.status
+                }
+            }
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design) {
+                MoveFundsScreen(
+                    twoWallets.copy(result = MoveResult.Moved(9_000)),
+                    onBack = { back++ },
+                    onTarget = {},
+                    onEverything = {},
+                    onAmount = {},
+                    onMove = {},
+                )
+            }
+        }
+        assertEquals(listOf(Anchor.MoneyMoved to WalletStatus.Done(9_000)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.move_success_title)).assertExists()
+        // Where it went, under its wallet: there are two.
+        compose.onNodeWithText(text(R.string.move_success_to, text(R.string.home_account_in_wallet, "Wallet 2", "Savings"))).assertExists()
         compose.onNodeWithText(text(R.string.move_retry)).assertDoesNotExist()
-        compose.onNodeWithText("Main", substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.move_done)).assertExists()
+        compose.onNodeWithText(text(R.string.move_done)).performClick()
+        assertEquals(1, back)
+    }
+
+    @Test
+    fun aRefusalWithoutTheMintsWordsNamesNoReasonOfTheApps() {
+        show(twoWallets.copy(result = MoveResult.Failed(MoveFailure.Refused)))
+        compose.onNodeWithText(text(R.string.move_none)).assertExists()
+        compose.onNodeWithText("Refused", substring = true).assertDoesNotExist()
     }
 
     @Test

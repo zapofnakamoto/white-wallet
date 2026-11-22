@@ -115,6 +115,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `addresses_home_mint` | Home mint: %1$s |
 | `mint_change_home` | Change home mint |
 | `mint_make_home` | Make this my home mint |
+| `money_home_changed_title` | Home mint changed |
 | `settings_account_mints` | Your mints |
 | `mints_remove_mint` | Remove mint |
 | `addresses_add_elsewhere` | Add an address on another mint |
@@ -496,7 +497,13 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   | `AccountCreated` | the screen after an account was added (status `Done`, with what it already held) | a check mark that draws itself |
   | `WalletReady` | the screen that ends every wallet's setup, the first wallet's and an added one's, created or restored (status `Done`, with what the wallet holds by then). It shows the address the setup added, in place of `AddressAdded`'s screen, and names the wallet as the one in use when the phone holds others | a check mark that draws itself |
   | `ScanDone` | the screen after a scan for notes got through (status `Done`, with what it found) | a check mark that draws itself |
-  | `ClaimResult` | above a claimed note's result | nothing |
+  | `MintKeyAccepted` | the screen after the user accepted a mint's new signing key while adding it (status `Done`, 0); on the mint's own page a short message says so instead | a check mark that draws itself |
+  | `NoteClaimed` | the screen after a note was claimed, or a link received over Lightning (status `PaymentReceived`) | a check mark that draws itself |
+  | `NoteTakenBack` | the screen after the user took back a note they had handed out, from its link (status `Done`, with the amount back) | a check mark that draws itself |
+  | `MoneyMoved` | the screen after money moved where the user asked, all of it: to another account, to another mint or home (status `Done`, with what arrived); a move that left some behind keeps its own screen | a check mark that draws itself |
+  | `HomeChanged` | the screen after the account got a new home mint (status `Done`, with what moved there along with it) | a check mark that draws itself |
+  | `BackupDone` | the screen after the recovery phrase was written down and checked (status `Done`, 0) | a check mark that draws itself |
+  | `ClaimResult` | above the result of claiming a note, or taking one back, that isn't a success: kept for later, waiting, refused | nothing |
   | `NoteShared` | above a handed-out note's amount (status `WaitingForRecipient`, `Sent` once spent, `Idle` once taken back) | nothing |
   | `NotesHeader` | above the notes view's total (status `Empty` without notes, `WaitingForRecipient` while handed-out notes wait, else `Idle`) | nothing |
   | `NotesEmpty` | above the text of an empty notes view | nothing |

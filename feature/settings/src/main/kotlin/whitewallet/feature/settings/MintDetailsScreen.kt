@@ -10,6 +10,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,10 +42,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.KeyChangedCard
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
@@ -80,6 +84,8 @@ data class MintDetailsState(
     val offline: Boolean = false,
     /** The account can receive here: the brand lets the mint hold money, and its signing key is the one pinned. */
     val canReceive: Boolean = false,
+    /** The user just accepted the mint's new signing key: a short message says so, once. */
+    val keyAccepted: Boolean = false,
 )
 
 /**
@@ -170,15 +176,17 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
         }
     }
 
-    /** Keeps using the mint with the [key] it now presents; if it presents yet another, the refresh shows that. */
+    /** Keeps using the mint with the [key] it now presents and says so; if it presents yet another, the refresh shows that instead. */
     fun acceptKey(key: String) {
         val host = _state.value.details?.host ?: return
         _state.update { it.copy(loading = true) }
         viewModelScope.launch {
-            wallet.acceptMintKey(host, key)
+            if (wallet.acceptMintKey(host, key)) _state.update { it.copy(keyAccepted = true) }
             refresh()
         }
     }
+
+    fun keyAcceptedShown() = _state.update { it.copy(keyAccepted = false) }
 }
 
 @Composable
@@ -204,6 +212,7 @@ fun MintDetailsRoute(
         onBack,
         onRefresh = viewModel::refresh,
         onAcceptKey = viewModel::acceptKey,
+        onKeyAcceptedShown = viewModel::keyAcceptedShown,
         onChangeHome = onChangeHome,
         onMoveMoney = onMoveMoney,
         onMoveAllHere = onMoveAllHere,
@@ -223,6 +232,7 @@ fun MintDetailsScreen(
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onAcceptKey: (String) -> Unit = {},
+    onKeyAcceptedShown: () -> Unit = {},
     onChangeHome: (host: String?) -> Unit = {},
     onMoveMoney: (host: String) -> Unit = {},
     onMoveAllHere: () -> Unit = {},
@@ -231,9 +241,21 @@ fun MintDetailsScreen(
     onReceive: (host: String) -> Unit = {},
 ) {
     val details = state.details
+    val snackbars = remember { SnackbarHostState() }
+    // The user stays on the page, which shows the mint as it is now: a short message, the same words as where a mint is added.
+    if (state.keyAccepted) {
+        val message = stringResource(DesignR.string.mint_key_accepted, details?.host ?: state.host.orEmpty())
+        LaunchedEffect(Unit) {
+            snackbars.showSnackbar(message, duration = SnackbarDuration.Long)
+            onKeyAcceptedShown()
+        }
+    }
     // Which mint it is (the account's home, read from the phone) isn't known yet (a moment): nothing, not a title that changes.
     if (!screenLoaded(details != null || state.host != null || !state.loading)) return
-    Scaffold(topBar = { WalletTopBar(details?.host ?: state.host ?: stringResource(R.string.mint_title), onBack) }) { padding ->
+    Scaffold(
+        topBar = { WalletTopBar(details?.host ?: state.host ?: stringResource(R.string.mint_title), onBack) },
+        snackbarHost = { WalletSnackbarHost(snackbars) },
+    ) { padding ->
         // The mint is asked what it is: nothing of it before it answers.
         if (!pageLoaded(details != null || !state.loading, Modifier.padding(padding))) return@Scaffold
         details ?: return@Scaffold

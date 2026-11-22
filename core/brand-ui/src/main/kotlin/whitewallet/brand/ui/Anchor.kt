@@ -81,7 +81,49 @@ value class Anchor(val id: String) {
          */
         val ScanDone = Anchor("scan.done")
 
-        /** Above the result of claiming a note. Default: nothing. */
+        /**
+         * The picture on the screen that says the user now uses a mint's new signing key, where they accepted it while adding the mint
+         * (status [whitewallet.brand.WalletStatus.Done], 0). On the mint's own page a short message says so instead. Default: a check mark
+         * that draws itself, as at [ReceiveSuccess].
+         */
+        val MintKeyAccepted = Anchor("mint.key_accepted")
+
+        /**
+         * The picture on the screen that says a note was claimed, or a link received over Lightning (status
+         * [whitewallet.brand.WalletStatus.PaymentReceived], with the amount). Default: a check mark that draws itself, as at
+         * [ReceiveSuccess].
+         */
+        val NoteClaimed = Anchor("note.claimed")
+
+        /**
+         * The picture on the screen that says the user took back a note they had handed out, from its link (status
+         * [whitewallet.brand.WalletStatus.Done], with the amount back). Default: a check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val NoteTakenBack = Anchor("note.taken_back")
+
+        /**
+         * The picture on the screen that says money moved where the user asked, all of it: to another account, to another mint or home
+         * (status [whitewallet.brand.WalletStatus.Done], with what arrived). A move that left some behind keeps its own screen. Default: a
+         * check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val MoneyMoved = Anchor("money.moved")
+
+        /**
+         * The picture on the screen that says the account has a new home mint (status [whitewallet.brand.WalletStatus.Done], with what
+         * moved there along with it, 0 if nothing did). Default: a check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val HomeChanged = Anchor("home.changed")
+
+        /**
+         * The picture on the screen that says the user wrote down their recovery phrase and checked it (status
+         * [whitewallet.brand.WalletStatus.Done], 0). Default: a check mark that draws itself, as at [ReceiveSuccess].
+         */
+        val BackupDone = Anchor("backup.done")
+
+        /**
+         * Above the result of claiming a note, or taking one back, that isn't a success: kept for later, waiting, refused. Default:
+         * nothing.
+         */
         val ClaimResult = Anchor("claim.result")
 
         /**

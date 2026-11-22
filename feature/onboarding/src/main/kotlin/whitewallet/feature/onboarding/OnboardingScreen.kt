@@ -68,6 +68,7 @@ import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.screenLoaded
+import whitewallet.core.wallet.AddressProblem
 
 /**
  * A Lightning address for the active account (see [OnboardingMode]): the setup's address step, or one from Settings. [onDone] goes on, in a
@@ -302,11 +303,12 @@ private fun ErrorText(state: OnboardingState) {
                     stringResource(R.string.onboarding_error_fee, formatAmount(error.amountMsat), formatAmount(error.maxMsat))
                 is OnboardingError.FeeNotPaid -> stringResource(R.string.onboarding_error_fee_not_paid)
                 is OnboardingError.HoldExpired -> stringResource(R.string.onboarding_error_hold_expired)
-                is OnboardingError.Username -> stringResource(R.string.onboarding_error_username, error.detail)
-                is OnboardingError.Registration -> stringResource(R.string.onboarding_error_registration, error.detail)
-                is OnboardingError.Mint -> stringResource(R.string.onboarding_error_mint, error.detail)
-                is OnboardingError.MintWithoutSigningKey -> stringResource(R.string.onboarding_error_mint_without_key)
-                is OnboardingError.Network -> stringResource(R.string.onboarding_error_network, error.detail)
+                is OnboardingError.Username -> stringResource(R.string.onboarding_error_username)
+                is OnboardingError.Registration ->
+                    error.mintReason?.let { stringResource(R.string.onboarding_error_registration, it) }
+                        ?: stringResource(R.string.onboarding_error_registration_plain)
+                is OnboardingError.Mint -> mintRefusalText(error.refusal, error.mintReason, state.host)
+                is OnboardingError.Network -> stringResource(R.string.onboarding_error_network)
                 is OnboardingError.Limit -> pluralStringResource(R.plurals.onboarding_error_limit, error.limit, error.limit)
             }
         Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
@@ -401,7 +403,13 @@ private fun AvailabilityText(availability: Availability) {
             Availability.Available -> stringResource(R.string.availability_available) to positive
             Availability.Yours -> stringResource(R.string.availability_yours) to positive
             Availability.Taken -> stringResource(R.string.availability_taken) to MaterialTheme.colorScheme.error
-            is Availability.Invalid -> availability.reason to MaterialTheme.colorScheme.error
+            is Availability.Invalid ->
+                stringResource(
+                    when (availability.problem) {
+                        AddressProblem.Name -> R.string.onboarding_username_rule
+                        AddressProblem.Host -> R.string.add_mint_error_not_a_host
+                    }
+                ) to MaterialTheme.colorScheme.error
             Availability.Unknown -> stringResource(R.string.availability_unknown) to Color.Unspecified
         }
     Text(text, color = color)

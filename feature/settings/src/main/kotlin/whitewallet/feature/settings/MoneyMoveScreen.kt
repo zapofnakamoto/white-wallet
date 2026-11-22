@@ -41,12 +41,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletTextField
@@ -74,7 +77,8 @@ enum class MoneyMoveMode {
 }
 
 sealed interface MoneyMoveError {
-    data class Mint(val detail: String) : MoneyMoveError
+    /** [host] answered, but not as a mint the money can move to: named, without the app's own words for why (English). */
+    data class Mint(val host: String) : MoneyMoveError
 
     /** No answer: nothing about why is shown (it would be the system's words, in English). Offline, the page says that instead. */
     data object Network : MoneyMoveError
@@ -85,6 +89,10 @@ data class MoneyMoveOutcome(val homeChanged: Boolean, val moved: List<MoneyMoved
     /** Mints whose money didn't move and might on another try. */
     val retryable: List<String>
         get() = moved.filter { it.result is MintMoveResult.Failed }.map { it.host }
+
+    /** All the user asked for is done: the home changed, or money moved, and every mint's money arrived. */
+    val complete: Boolean
+        get() = (homeChanged || moved.isNotEmpty()) && moved.all { it.result is MintMoveResult.Moved }
 }
 
 data class MoneyMoveState(
@@ -255,9 +263,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
         when (val r = changed.result) {
             is ConnectResult.Connected -> Unit
             is ConnectResult.Failed ->
-                return fail(
-                    (r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network } ?: MoneyMoveError.Mint(r.result.toString())
-                )
+                return fail((r.result as? OnboardResult.NetworkError)?.let { MoneyMoveError.Network } ?: MoneyMoveError.Mint(target))
         }
         _state.update { it.copy(busy = false, outcome = MoneyMoveOutcome(true, changed.moved)) }
     }
@@ -333,6 +339,12 @@ fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMo
     Scaffold(topBar = { WalletTopBar(title, onClose.takeIf { state.outcome == null && !state.busy }) }) { padding ->
         // Before the mints to pick from are known (a moment): only the title, not "no mints".
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
+        state.outcome
+            ?.takeIf { it.complete }
+            ?.let {
+                CompleteContent(it, state, actions, Modifier.padding(padding))
+                return@Scaffold
+            }
         BrandBody(Page.MoneyMove, if (state.nothingToPick) WalletStatus.Empty else WalletStatus.Idle) {
             ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
                 val outcome = state.outcome
@@ -416,7 +428,7 @@ private fun androidx.compose.material3.ExposedDropdownMenuBoxScope.DropdownMenuI
 private fun ErrorText(error: MoneyMoveError) {
     val text =
         when (error) {
-            is MoneyMoveError.Mint -> stringResource(R.string.money_error_mint, error.detail)
+            is MoneyMoveError.Mint -> stringResource(R.string.money_error_mint, error.host)
             MoneyMoveError.Network -> stringResource(R.string.money_error_network)
         }
     Text(text, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
@@ -517,6 +529,31 @@ private fun ChooseSection(state: MoneyMoveState, onToggle: (String) -> Unit) {
             Text(stringResource(R.string.money_review_choice, formatAmount(line.amountMsat), line.host))
         }
     }
+}
+
+/**
+ * All of it worked: the success screen. A new home says so (with what moved there along with it); a move says what arrived, where, and the
+ * fees.
+ */
+@Composable
+private fun CompleteContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, actions: MoneyMoveActions, modifier: Modifier) {
+    val arrived = outcome.moved.sumOf { (it.result as MintMoveResult.Moved).arrivedMsat }
+    val fees = outcome.moved.sumOf { (it.result as MintMoveResult.Moved).feeMsat }
+    val target = state.target.orEmpty()
+    SuccessScreen(
+        anchor = if (outcome.homeChanged) Anchor.HomeChanged else Anchor.MoneyMoved,
+        status = WalletStatus.Done(arrived),
+        title = stringResource(if (outcome.homeChanged) R.string.money_home_changed_title else R.string.money_moved_title),
+        amountMsat = arrived.takeIf { outcome.moved.isNotEmpty() },
+        done = SuccessAction(stringResource(R.string.money_done), actions.onDone),
+        modifier = modifier,
+        lines =
+            listOfNotNull(
+                stringResource(if (outcome.homeChanged) R.string.money_home_changed else R.string.money_review_to, target),
+                stringResource(R.string.money_result_money_stays).takeIf { outcome.moved.isEmpty() },
+                fees.takeIf { it > 0 }?.let { stringResource(R.string.money_review_fee_total, formatAmount(it)) },
+            ),
+    )
 }
 
 /** What happened: the new home, then per mint what moved or why it stayed, with another try. */

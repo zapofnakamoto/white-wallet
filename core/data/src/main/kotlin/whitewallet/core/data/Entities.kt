@@ -9,6 +9,7 @@ import whitewallet.core.model.Account
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.HandedOut
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
@@ -122,6 +123,7 @@ internal data class NoteEntity(
     val checkedAtMillis: Long? = null,
     val share: Long? = null,
     val archivedAtMillis: Long? = null,
+    val handedOut: String? = null,
 ) {
     fun toModel() =
         Note(
@@ -138,6 +140,7 @@ internal data class NoteEntity(
             checkedAtMillis,
             share,
             archivedAtMillis,
+            handedOut?.let(HandedOut::valueOf),
         )
 
     companion object {
@@ -156,6 +159,7 @@ internal data class NoteEntity(
                 n.checkedAtMillis,
                 n.share,
                 n.archivedAtMillis,
+                n.handedOut?.name,
             )
     }
 }

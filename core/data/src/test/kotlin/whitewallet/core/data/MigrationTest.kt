@@ -28,6 +28,7 @@ import org.robolectric.RuntimeEnvironment
 import whitewallet.core.model.Account
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.HandedOut
 import whitewallet.core.model.JournalEntry
 import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
@@ -551,6 +552,39 @@ class MigrationTest {
                 assertEquals(listOf(q), melt.inputIds)
                 assertEquals("in flight", melt.detail)
                 assertNull(melt.verifyUrl)
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `a wallet of version 11 keeps its notes, none of them handed out unknown, and can keep a take back for one`() =
+        runBlocking<Unit> {
+            val q = "u".repeat(64)
+            val r = "v".repeat(64)
+            oldDatabase("v11.db", 11) {
+                execSQL("INSERT INTO wallets VALUES ('w1', NULL, 1, NULL, NULL)")
+                execSQL("INSERT INTO accounts VALUES ('a0', 'Main', 1, 'w1', 0, 'one.example')")
+                execSQL("INSERT INTO notes VALUES ('$q', 'a0', 'one.example', 'KeyPath', 0, 3, 2000, NULL, 'Unknown', 5, NULL, NULL, 7)")
+                execSQL("INSERT INTO notes VALUES ('$r', 'a0', 'one.example', 'KeyPath', 0, 4, 1000, NULL, 'Shared', 5, 6, NULL, NULL)")
+            }
+            val db =
+                Room.databaseBuilder(context, WalletDatabase::class.java, "v11.db")
+                    .addMigrations(*WalletDatabase.MIGRATIONS)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val store = RoomWalletStore(db)
+                val unknown = assertNotNull(store.note(q))
+                assertEquals(NoteState.Unknown, unknown.state)
+                assertEquals(7L, unknown.archivedAtMillis)
+                assertNull(unknown.handedOut)
+                val shared = assertNotNull(store.note(r))
+                assertEquals(NoteState.Shared, shared.state)
+                assertEquals(6L, shared.checkedAtMillis)
+                assertNull(shared.handedOut)
+                store.upsertNotes(listOf(shared.copy(state = NoteState.Unknown, handedOut = HandedOut.TakeBack)))
+                assertEquals(HandedOut.TakeBack, store.note(r)?.handedOut)
             } finally {
                 db.close()
             }

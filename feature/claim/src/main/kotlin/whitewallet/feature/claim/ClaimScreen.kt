@@ -36,8 +36,11 @@ import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletNoteFace
@@ -111,6 +114,29 @@ fun ClaimScreen(
         // A link from outside being asked what it is: nothing else until it is known, here or in Send.
         if (state.opening) {
             ScreenColumn(Modifier.padding(padding)) { Text(stringResource(R.string.claim_opening), textAlign = TextAlign.Center) }
+            return@Scaffold
+        }
+        // The money is in: the success screen, as a payment received. Kept, waiting or refused stays a result below.
+        (state.result as? ClaimResult.Claimed)?.let { claimed ->
+            SuccessScreen(
+                anchor = Anchor.NoteClaimed,
+                status = WalletStatus.PaymentReceived(claimed.amountMsat),
+                title = stringResource(if (overLightning) R.string.claim_received_title else R.string.claim_success_title),
+                amountMsat = claimed.amountMsat,
+                done = SuccessAction(stringResource(R.string.claim_finish), onBack),
+                modifier = Modifier.padding(padding),
+            )
+            return@Scaffold
+        }
+        (state.takenBack as? ReclaimResult.Reclaimed)?.let { reclaimed ->
+            SuccessScreen(
+                anchor = Anchor.NoteTakenBack,
+                status = WalletStatus.Done(reclaimed.amountMsat),
+                title = stringResource(R.string.claim_taken_back_title),
+                amountMsat = reclaimed.amountMsat,
+                done = SuccessAction(stringResource(R.string.claim_finish), onBack),
+                modifier = Modifier.padding(padding),
+            )
             return@Scaffold
         }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
@@ -459,9 +485,11 @@ private fun previewMessage(preview: ClaimPreview): String =
 private fun TakeBackMessage(result: ReclaimResult) {
     val (text, isError) =
         when (result) {
-            is ReclaimResult.Reclaimed -> stringResource(R.string.claim_taken_back, formatAmount(result.amountMsat)) to false
+            // On the success screen instead.
+            is ReclaimResult.Reclaimed -> return
             ReclaimResult.Pending -> stringResource(R.string.claim_pending) to false
             ReclaimResult.AlreadySpent -> stringResource(R.string.claim_spent) to true
+            ReclaimResult.WhenKnown -> stringResource(DesignR.string.note_take_back_when_known) to false
             is ReclaimResult.Failed -> stringResource(R.string.claim_take_back_failed) to true
         }
     Text(
@@ -476,10 +504,11 @@ private fun TakeBackMessage(result: ReclaimResult) {
 private fun ResultMessage(result: ClaimResult, overLightning: Boolean) {
     val (text, isError) =
         when (result) {
-            is ClaimResult.Claimed ->
-                stringResource(if (overLightning) R.string.claim_received else R.string.claim_done, formatAmount(result.amountMsat)) to
-                    false
-            is ClaimResult.Failed -> stringResource(R.string.claim_failed, result.reason ?: result.kind.name) to true
+            // On the success screen instead.
+            is ClaimResult.Claimed -> return
+            // The mint's own words if it gave any (often English), never the app's name for them.
+            is ClaimResult.Failed ->
+                (result.reason?.let { stringResource(R.string.claim_failed, it) } ?: stringResource(R.string.claim_failed_plain)) to true
             ClaimResult.Pending -> stringResource(R.string.claim_pending) to false
             is ClaimResult.Kept -> {
                 val note = result.note

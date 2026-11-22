@@ -30,7 +30,8 @@ enum class NoteState {
 
     /**
      * Held by this wallet, but its mint says it doesn't know the note (a mint that lost its records, or misbehaves). Not in the balance and
-     * never spent; kept with its certificate, and outstanding again once the mint knows it.
+     * never spent; kept with its certificate, and outstanding again once the mint knows it, or shared again if it was handed out as a link
+     * ([Note.handedOut]).
      */
     Unknown,
 }
@@ -38,6 +39,21 @@ enum class NoteState {
 /** Handed out as a link, confirmed by its mint or not yet. */
 val NoteState.isShared: Boolean
     get() = this == NoteState.Shared || this == NoteState.SharedUnconfirmed
+
+/**
+ * A note handed out as a link that its mint said it doesn't know ([Note.handedOut]): set aside like any other [NoteState.Unknown] note, but
+ * once the mint knows it again it is never back in the balance, as the link is still out there.
+ */
+enum class HandedOut {
+    /** Once the mint knows it again it waits to be claimed, as a [NoteState.Shared] note with its link. */
+    Waiting,
+
+    /**
+     * The user asked to take it back: once the mint knows it again it is taken back at once (rotated to a fresh key of the wallet, back in
+     * the balance), unless whoever holds the link claimed it first. Its link is no longer shown.
+     */
+    TakeBack,
+}
 
 enum class NoteKind {
     KeyPath,
@@ -131,6 +147,11 @@ data class Note(
      * aside again later, it starts out of the archive.
      */
     val archivedAtMillis: Long? = null,
+    /**
+     * Set for a note that was handed out as a link while its mint doesn't know it ([NoteState.Unknown]); null for any other note. One the
+     * user asked to take back stays [HandedOut.TakeBack] once the mint knows it again ([NoteState.Shared]), until it is taken back.
+     */
+    val handedOut: HandedOut? = null,
 ) {
     /** Archived by the user: its mint doesn't know it, and it is still asked about, but Home no longer warns of it. */
     val isArchived: Boolean
@@ -437,6 +458,12 @@ enum class ActivityStatus {
 
     /** Called off by the user before it completed (a sent note taken back). */
     Cancelled,
+
+    /**
+     * A sent note the user removed for good while its mint didn't know it: whether its recipient claimed it isn't known. Not necessarily
+     * the end: a lookup by its id, should the mint know it again, can still tell.
+     */
+    Unverified,
 }
 
 /**

@@ -20,7 +20,7 @@
     <string name="add_mint_setup_body">Die Mint verwahrt dein Geld und erstellt die Rechnungen, mit denen du bezahlt wirst. Wähle eine; weitere kannst du später hinzufügen.</string>
     <string name="add_mint_body">Wähle eine Mint. Hält deine Wiederherstellungsphrase dort Geld, wird es gefunden.</string>
     <string name="add_mint_error_not_allowed">Diese App arbeitet nicht mit dieser Mint. Wähle eine andere.</string>
-    <string name="add_mint_error_invalid">Das ist keine Mint, die diese App nutzen kann: %1$s</string>
+    <string name="add_mint_error_invalid">Das ist keine Mint, die diese App nutzen kann.</string>
     <string name="add_mint_known">Diese Wallet hat diese Mint schon. Fügst du sie noch einmal hinzu, wird dort noch einmal nach deinem Geld gesucht.</string>
     <string name="scan_notes_title">Nach Scheinen suchen</string>
     <string name="add_mint_use">Diese Mint nutzen</string>
@@ -52,7 +52,8 @@
     <string name="availability_taken">Schon vergeben. Probier einen davon:</string>
     <string name="availability_unknown">Gerade nicht prüfbar. Du kannst es trotzdem versuchen.</string>
 
-    <string name="onboarding_error_username">Dieser Name geht nicht: %1$s</string>
+    <string name="onboarding_error_username">Dieser Name geht nicht. Nutze 1–32 Kleinbuchstaben, Ziffern, Punkte, Bindestriche oder Unterstriche.</string>
+    <string name="onboarding_username_rule">Nutze 1–32 Kleinbuchstaben, Ziffern, Punkte, Bindestriche oder Unterstriche.</string>
 
     <string name="claimed_title">Deine Adresse ist bereit</string>
     <string name="claimed_body">Jeder kann dich darüber bezahlen, auch wenn dein Handy aus ist.</string>
@@ -64,7 +65,9 @@
     <string name="onboarding_add_body">Ein weiterer Name für dieses Konto auf %1$s. Zahlungen an jede seiner Adressen landen im selben Guthaben.</string>
     <string name="onboarding_change_body">Wähle den Namen, unter dem man dir auf %1$s zahlt.</string>
     <string name="onboarding_error_registration">Die Adresse wurde nicht registriert: %1$s</string>
+    <string name="onboarding_error_registration_plain">Die Adresse wurde nicht registriert.</string>
     <string name="onboarding_error_mint">Geht nicht: %1$s</string>
+    <string name="onboarding_error_mint_plain">Geht gerade nicht.</string>
     <plurals name="onboarding_error_limit">
         <item quantity="one">Dieses Konto hat hier schon %1$d Adresse, mehr erlaubt diese App nicht.</item>
         <item quantity="other">Dieses Konto hat hier schon %1$d Adressen, mehr erlaubt diese App nicht.</item>
@@ -77,7 +80,7 @@
         <item quantity="one">Diese App hat höchstens %1$d Wallet. Um eine andere wiederherzustellen, lösche zuerst die Wallet auf diesem Handy (Einstellungen → Wallets).</item>
         <item quantity="other">Diese App hat höchstens %1$d Wallets. Um eine wiederherzustellen, lösche zuerst eine auf diesem Handy (Einstellungen → Wallets).</item>
     </plurals>
-    <string name="onboarding_error_network">Keine Verbindung: %1$s</string>
+    <string name="onboarding_error_network">Keine Verbindung. Versuch es gleich noch einmal.</string>
 
     <string name="restore_title">Konto wiederherstellen</string>
     <string name="restore_body">Tippe oder füge die Wiederherstellungsphrase ein, die du aufgeschrieben hast.</string>
@@ -109,6 +112,7 @@
     <string name="onboarding_error_hold_expired">Die Reservierung ist abgelaufen, bevor die Gebühr bezahlt wurde. Du kannst es erneut versuchen.</string>
     <string name="add_mint_done_title">Fertig</string>
     <string name="add_mint_failed_title">Fehler beim Wiederherstellen</string>
+    <string name="add_mint_error_not_a_host">Das ist keine gültige Adresse. Prüfe sie und versuche es erneut.</string>
     <string name="add_mint_error_unreachable">Nicht erreichbar. Prüfe die Adresse und versuche es erneut.</string>
     <string name="add_mint_offline">Du bist offline. Verbinde dich, um fortzufahren.</string>
     <string name="add_mint_next">Weiter</string>
@@ -129,13 +133,12 @@
     <string name="add_mint_account">Konto %1$d</string>
     <string name="add_mint_account_looking">Wird gesucht…</string>
     <string name="add_mint_account_empty">Nichts</string>
-    <string name="add_mint_failed_body">Es hat aufgehört, bevor es fertig war: %1$s. Versuch es noch einmal; was gefunden wurde, bleibt.</string>
+    <string name="add_mint_failed_body">Es hat aufgehört, bevor es fertig war. Versuch es noch einmal; was gefunden wurde, bleibt.</string>
     <string name="add_mint_failed_kept">Bisher gefunden: %1$s.</string>
     <string name="add_mint_found_total">%1$s gefunden</string>
     <string name="add_mint_try_again">Noch einmal versuchen</string>
     <string name="add_mint_ok">OK</string>
     <string name="add_mint_later">Später</string>
-    <string name="add_mint_key_accepted">%1$s nutzt jetzt den neuen Schlüssel.</string>
     <string name="add_mint_cancel">Abbrechen</string>
     <string name="scan_body">Sucht nach allem, was zu deiner Wiederherstellungsphrase gehört, und fügt hinzu, was gefunden wird. Es wird nur nachgesehen, nichts wird bewegt.</string>
     <string name="scan_mint_scanning">Wird durchsucht…</string>

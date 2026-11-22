@@ -2,6 +2,7 @@ package whitewallet.feature.settings
 
 import androidx.compose.runtime.Composable
 import whitewallet.core.designsystem.LocalAppName
+import whitewallet.core.designsystem.Moment
 import whitewallet.core.designsystem.PREVIEW_MILLIS
 import whitewallet.core.designsystem.WalletPreviews
 import whitewallet.core.model.Account
@@ -19,12 +20,15 @@ import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
+import whitewallet.core.wallet.MintMoveResult
+import whitewallet.core.wallet.MoneyMoved
 import whitewallet.core.wallet.MovePreview
 import whitewallet.core.wallet.SingleNoteStrategy
 import whitewallet.core.wallet.TrustDefault
 import whitewallet.lnurlcash.client.LogEntry
 
-// The settings pages in their everyday state (docs/DEVELOPMENT.md, "Screenshots"). Made-up data only; every text is the page's own.
+// The settings pages in their everyday state, and their success screens (docs/DEVELOPMENT.md, "Screenshots"). Made-up data only; every
+// text is the page's own.
 
 private const val HOME = "mint.example"
 private const val OTHER = "cash.example"
@@ -289,3 +293,49 @@ private fun DeveloperSettingsPreview() =
 @WalletPreviews @Composable private fun LocalRegtestPreview() = LocalRegtestScreen(localRegtestState, onBack = {}, onRecheck = {})
 
 @WalletPreviews @Composable private fun RequestLogPreview() = RequestLogScreen(requestLog, onBack = {}, onClear = {})
+
+/** All the money moved, a new home with its money, and a new home that left the money where it was. */
+internal val moneyMovedStates =
+    listOf(
+        MoneyMoveState(
+            mode = MoneyMoveMode.Move,
+            from = HOME,
+            target = OTHER,
+            outcome = MoneyMoveOutcome(false, listOf(MoneyMoved(HOME, 21_000_000, MintMoveResult.Moved(20_990_000, 10_000)))),
+        ),
+        MoneyMoveState(
+            target = OTHER,
+            outcome = MoneyMoveOutcome(true, listOf(MoneyMoved(HOME, 21_000_000, MintMoveResult.Moved(20_990_000, 10_000)))),
+        ),
+        MoneyMoveState(target = OTHER, outcome = MoneyMoveOutcome(true, emptyList())),
+    )
+
+@WalletPreviews
+@Moment
+@Composable
+private fun MoneyMovedPreview() = MoneyMoveScreen(moneyMovedStates[0], onClose = {}, actions = MoneyMoveActions())
+
+@WalletPreviews
+@Moment
+@Composable
+private fun HomeChangedMovedPreview() = MoneyMoveScreen(moneyMovedStates[1], onClose = {}, actions = MoneyMoveActions())
+
+@WalletPreviews
+@Moment
+@Composable
+private fun HomeChangedNonePreview() = MoneyMoveScreen(moneyMovedStates[2], onClose = {}, actions = MoneyMoveActions())
+
+@WalletPreviews
+@Moment
+@Composable
+private fun BackupDonePreview() =
+    BackupScreen(
+        BackupState(step = BackupStep.Success),
+        onBack = {},
+        onShow = {},
+        onContinueWithoutLock = {},
+        onCopy = {},
+        onWroteItDown = {},
+        onTap = {},
+        onSkipVerify = {},
+    )

@@ -1,5 +1,7 @@
 package whitewallet.feature.claim
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,6 +26,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
@@ -37,6 +44,7 @@ import whitewallet.core.wallet.WithdrawLink
 import whitewallet.lnurlcash.Spend
 import whitewallet.lnurlcash.protocol.NoteInfo
 import whitewallet.lnurlcash.protocol.NoteLink
+import whitewallet.lnurlcash.protocol.RejectionKind
 
 @RunWith(RobolectricTestRunner::class)
 class ClaimScreenTest {
@@ -158,6 +166,57 @@ class ClaimScreenTest {
         show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false), offline = true))
         compose.onNodeWithText(text(R.string.claim_own_phone_offline)).assertExists()
         compose.onNodeWithText(text(R.string.claim_own_offline)).assertDoesNotExist()
+    }
+
+    /** The anchors the screen asks the brand for, with their status. */
+    private val decorated = mutableListOf<Pair<Anchor, WalletStatus>>()
+
+    private fun showDecorated(state: ClaimState, onBack: () -> Unit = {}) = compose.setContent {
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    decorated += anchor to context.status
+                }
+            }
+        CompositionLocalProvider(LocalBrandDesign provides design) {
+            ClaimScreen(state, onBack = onBack, onInputChange = {}, onCheck = {}, onClaim = {})
+        }
+    }
+
+    @Test
+    fun aClaimedNoteEndsOnTheSuccessScreenAsMoneyReceived() {
+        var done = 0
+        showDecorated(
+            ClaimState(input = "x", preview = ready, result = ClaimResult.Claimed(5_000_000, certified = true)),
+            onBack = { done++ },
+        )
+        assertEquals(listOf(Anchor.NoteClaimed to WalletStatus.PaymentReceived(5_000_000)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.claim_success_title)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_finish)).performClick()
+        assertEquals(1, done)
+    }
+
+    @Test
+    fun aNoteTakenBackEndsOnTheSuccessScreen() {
+        showDecorated(ClaimState(takenBack = ReclaimResult.Reclaimed(5_000_000)))
+        assertEquals(listOf(Anchor.NoteTakenBack to WalletStatus.Done(5_000_000)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.claim_taken_back_title)).assertExists()
+    }
+
+    @Test
+    fun aKeptNoteIsNoSuccess() {
+        val note = ReceivedNote("q", "acc", "mint.example", "w", "k1", null, null, 5_000_000, null, null, ReceivedState.Waiting, null, 1, 1)
+        showDecorated(ClaimState(result = ClaimResult.Kept(note)))
+        assertTrue(decorated.none { it.first == Anchor.NoteClaimed })
+        compose.onNodeWithText(text(R.string.claim_kept)).assertExists()
+    }
+
+    @Test
+    fun aRefusalWithoutTheMintsWordsNamesNoReasonOfTheApps() {
+        show(ClaimState(result = ClaimResult.Failed(RejectionKind.RateLimited, null)))
+        compose.onNodeWithText(text(R.string.claim_failed_plain)).assertExists()
+        compose.onNodeWithText("RateLimited", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -353,8 +412,8 @@ class ClaimScreenTest {
         showMelt(melt(), state = ClaimState(result = ClaimResult.Claimed(4_999_000, certified = false)))
         compose.onNodeWithText(text(R.string.claim_title_lightning)).assertExists()
         compose.onNodeWithText(text(R.string.claim_title)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.claim_received, amount(4_999_000))).assertExists()
-        compose.onNodeWithText(text(R.string.claim_done, amount(4_999_000))).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.claim_received_title)).assertExists()
+        compose.onNodeWithText(text(R.string.claim_success_title)).assertDoesNotExist()
     }
 
     @Test

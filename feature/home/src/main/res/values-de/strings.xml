@@ -127,6 +127,7 @@
     <string name="activity_note_waiting">Noch nicht eingelöst</string>
     <string name="activity_note_spent">Ausgegeben</string>
     <string name="activity_note_taken_back">Zurückgeholt</string>
+    <string name="activity_note_unverified">Einlösen nicht geprüft</string>
     <string name="activity_moved_mint">Zu %1$s verschoben</string>
     <string name="activity_amount_in">+%1$s</string>
     <string name="activity_amount_out">−%1$s</string>
@@ -168,6 +169,8 @@
     <string name="move_moved">%1$s verschoben</string>
     <string name="move_nothing">Es gibt nichts zu verschieben.</string>
     <string name="move_done">Fertig</string>
+    <string name="move_success_title">Verschoben</string>
+    <string name="move_success_to">Nach %1$s</string>
     <plurals name="home_unresolved">
         <item quantity="one">%1$d Vorgang wartet noch auf Antwort.</item>
         <item quantity="other">%1$d Vorgänge warten noch auf Antwort.</item>

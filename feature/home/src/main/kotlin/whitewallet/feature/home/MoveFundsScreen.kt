@@ -32,10 +32,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
@@ -81,6 +85,31 @@ fun MoveFundsScreen(
     onCancelPartial: () -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.move_title), onBack) }) { padding ->
+        // All of it moved, nothing waits: the success screen. What stayed or waits keeps the result below.
+        (state.result as? MoveResult.Moved)
+            ?.takeIf { it.stayed.isEmpty() && it.pending.isEmpty() }
+            ?.let { moved ->
+                val to = state.targets.firstOrNull { it.account.id == state.targetId }?.account
+                SuccessScreen(
+                    anchor = Anchor.MoneyMoved,
+                    status = WalletStatus.Done(moved.amountMsat),
+                    title = stringResource(R.string.move_success_title),
+                    amountMsat = moved.amountMsat,
+                    done = SuccessAction(stringResource(R.string.move_done), onBack),
+                    modifier = Modifier.padding(padding),
+                    lines =
+                        listOfNotNull(
+                            to?.let {
+                                val name =
+                                    if (state.showWallets)
+                                        stringResource(R.string.home_account_in_wallet, walletLabel(state, it.walletId), it.name)
+                                    else it.name
+                                stringResource(R.string.move_success_to, name)
+                            }
+                        ),
+                )
+                return@Scaffold
+            }
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             // The account the money leaves and the wallet it goes to, as the form names them.
             val fromName =
@@ -312,7 +341,8 @@ private fun ResultText(result: MoveResult) {
                     MoveFailure.NothingToMove -> stringResource(R.string.move_nothing) to true
                     // A mint was why: the money is safe where it was, and the reasons follow.
                     else if result.stayed.isNotEmpty() -> stringResource(R.string.move_none) to false
-                    else -> stringResource(R.string.move_failed, result.detail ?: result.reason.name) to true
+                    // The mint's own words if it gave any, never the app's name for the reason.
+                    else -> (result.detail?.let { stringResource(R.string.move_failed, it) } ?: stringResource(R.string.move_none)) to true
                 }
         }
     Text(

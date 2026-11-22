@@ -44,6 +44,7 @@ import whitewallet.brand.ui.NoteFaceParams
 import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.QrCodeCoverParams
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
@@ -99,6 +100,21 @@ class SharedNoteScreenTest {
         show(note(SharedNoteState.Waiting).copy(unknownToMint = true))
         compose.onNodeWithText(text(R.string.note_unknown_to_mint)).assertExists()
         compose.onNodeWithText(text(R.string.note_unconfirmed)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNoteToTakeBackOnceItsMintKnowsItShowsNoLinkAndSaysWhatHappens() {
+        show(note(SharedNoteState.Waiting).copy(unknownToMint = true, takeBackAsked = true, link = null))
+        compose.onNodeWithText(text(DesignR.string.note_take_back_when_known)).assertExists()
+        compose.onNodeWithText(text(R.string.note_reclaim)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.note_share)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNoteRemovedWhileItsMintDidntKnowItSaysItIsntKnownWhetherItWasClaimed() {
+        show(note(SharedNoteState.Unverified))
+        compose.onNodeWithText(text(R.string.note_unverified)).assertExists()
+        compose.onNodeWithText(text(R.string.note_spent)).assertDoesNotExist()
     }
 
     @Test

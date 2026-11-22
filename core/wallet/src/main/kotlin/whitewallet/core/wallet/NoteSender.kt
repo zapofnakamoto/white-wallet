@@ -3,9 +3,11 @@ package whitewallet.core.wallet
 import fr.acinq.bitcoin.ByteVector32
 import java.io.IOException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.HandedOut
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -28,12 +30,18 @@ enum class SharedNoteState {
 
     /** Taken back into the balance. */
     Reclaimed,
+
+    /** Removed for good while its mint didn't know it: whether it was claimed isn't known ([ActivityStatus.Unverified]). */
+    Unverified,
 }
 
 /**
- * A note handed out as a link. [link] (the money itself) is only there while it is [SharedNoteState.Waiting]. [confirmed]: its mint said it
- * is there; false for a note handed out offline until the wallet could ask. [unknownToMint]: the last check found that its mint doesn't
- * know the note. [checkedAtMillis]: when its mint last answered for it while it waits; null before the first answer.
+ * A note handed out as a link. [link] (the money itself) is only there while it is [SharedNoteState.Waiting], and not once the user asked
+ * to take it back. [confirmed]: its mint said it is there; false for a note handed out offline until the wallet could ask, and while its
+ * mint doesn't know it. [unknownToMint]: its mint said it doesn't know the note: it is set aside with the wallet's other unknown notes
+ * ([NoteState.Unknown]) and waits until the mint knows it again. [takeBackAsked]: the user asked to take it back while its mint didn't know
+ * it ([ReclaimResult.WhenKnown]); it is taken back as soon as the mint knows it, unless it was claimed first. [checkedAtMillis]: when its
+ * mint last answered for it while it waits; null before the first answer.
  */
 data class SharedNote(
     val id: String,
@@ -46,12 +54,14 @@ data class SharedNote(
     val confirmed: Boolean = true,
     val unknownToMint: Boolean = false,
     val checkedAtMillis: Long? = null,
+    val takeBackAsked: Boolean = false,
 ) {
     /** Debug text without the link, which is the money. */
     @OptIn(RevealsNoteSecret::class)
     override fun toString(): String =
         "SharedNote(id=$id, host=$host, amountMsat=$amountMsat, certified=$certified, state=$state, createdAtMillis=$createdAtMillis, " +
-            "link=${link?.let(Redaction::url)}, confirmed=$confirmed, unknownToMint=$unknownToMint, checkedAtMillis=$checkedAtMillis)"
+            "link=${link?.let(Redaction::url)}, confirmed=$confirmed, unknownToMint=$unknownToMint, checkedAtMillis=$checkedAtMillis, " +
+            "takeBackAsked=$takeBackAsked)"
 }
 
 sealed interface CreateNoteResult {
@@ -88,6 +98,12 @@ sealed interface ReclaimResult {
     /** Sent, outcome unknown; a later refresh settles it. The note is out of the balance either way until then. */
     data object Pending : ReclaimResult
 
+    /**
+     * Its mint doesn't know the note, so it can't be taken back now: it is taken back as soon as the mint knows it again (see
+     * [HandedOut.TakeBack]). Until then it stays out of the balance, and its link is no longer shown.
+     */
+    data object WhenKnown : ReclaimResult
+
     data class Failed(val problem: PayProblem) : ReclaimResult
 }
 
@@ -96,12 +112,17 @@ sealed interface ReclaimResult {
  * [NoteState.Shared] and handed out as `lnurlw://…?k1=<ck1>&c=<cs1>`. The link is never stored: it is re-derived from the seed whenever it
  * is shown. The note stays shared until a lookup by `p` shows it burned (spent), or the user takes it back by rotating it to a fresh key of
  * their own. History has one [ActivityKind.SentNote] row per note, `note:<Q>`: pending, then done (spent) or cancelled (taken back).
+ *
+ * A shared note its mint says it doesn't know is set aside like any other unknown note ([UnknownNotes]), remembering it was handed out
+ * ([Note.handedOut]): once the mint knows it again it waits to be claimed again, never back in the balance, or is taken back at once if the
+ * user asked to meanwhile.
  */
 internal class NoteSender(private val wallet: Wallet) {
     private val log = ActivityLog(wallet)
     private val mutator = NoteMutator(wallet)
     private val payer = Payer(wallet)
     private val unknownNotes = UnknownNotes(wallet)
+    private val prober = KeyProber(wallet)
 
     /** The most a single note can be made worth from one mint's notes; with [from], that mint's. */
     suspend fun availableMsat(from: String? = null): Long {
@@ -205,18 +226,20 @@ internal class NoteSender(private val wallet: Wallet) {
         return ShareNoteResult.Shared(checkNotNull(sharedNote(id)))
     }
 
-    /** The active account's sent note [id], with its link while nobody has claimed it. */
-    suspend fun sharedNote(id: String, unknownToMint: Boolean = false): SharedNote? {
+    /** The active account's sent note [id], with its link while nobody has claimed it and the user didn't ask to take it back. */
+    suspend fun sharedNote(id: String): SharedNote? {
         val accountId = wallet.activeId()
         val activity = activity(accountId, id) ?: return null
         val note = wallet.store.note(id)?.takeIf { it.accountId == accountId }
         val state =
             when {
                 activity.status == ActivityStatus.Cancelled -> SharedNoteState.Reclaimed
-                note?.state?.isShared == true -> SharedNoteState.Waiting
+                activity.status == ActivityStatus.Unverified -> SharedNoteState.Unverified
+                note?.isHandedOut() == true -> SharedNoteState.Waiting
                 else -> SharedNoteState.Spent
             }
         val waiting = note?.takeIf { state == SharedNoteState.Waiting }
+        val takeBackAsked = waiting?.handedOut == HandedOut.TakeBack
         return SharedNote(
             id,
             activity.host,
@@ -224,63 +247,136 @@ internal class NoteSender(private val wallet: Wallet) {
             certified = activity.certified == true,
             state,
             activity.createdAtMillis,
-            link = waiting?.let { link(it) },
-            confirmed = note?.state != NoteState.SharedUnconfirmed,
-            unknownToMint = unknownToMint && waiting != null,
+            link = waiting?.takeIf { !takeBackAsked }?.let { link(it) },
+            confirmed = waiting == null || waiting.state == NoteState.Shared,
+            unknownToMint = waiting?.state == NoteState.Unknown,
             checkedAtMillis = waiting?.checkedAtMillis,
+            takeBackAsked = takeBackAsked,
         )
     }
 
-    /** Takes a sent note back while nobody has claimed it: rotated to a fresh wallet key, back in the balance. */
+    /**
+     * Takes a sent note back while nobody has claimed it: rotated to a fresh wallet key, back in the balance. One its mint doesn't know
+     * can't be: the wish is kept, and it is taken back as soon as the mint knows it again ([ReclaimResult.WhenKnown]).
+     */
     suspend fun reclaim(id: String): ReclaimResult {
         val accountId = wallet.activeId()
         val note =
-            wallet.store.note(id)?.takeIf { it.accountId == accountId && it.state.isShared && it.index != null }
+            wallet.store.note(id)?.takeIf { it.accountId == accountId && it.isHandedOut() && it.index != null }
                 ?: return if (sharedNote(id)?.state == SharedNoteState.Spent) ReclaimResult.AlreadySpent
                 else ReclaimResult.Failed(PayProblem.Refused)
-        when (check(note)) {
-            Check.Spent -> return ReclaimResult.AlreadySpent
-            Check.Offline,
-            Check.Unreadable,
-            Check.UnknownToMint -> return ReclaimResult.Failed(PayProblem.Unreachable)
-            Check.Waiting -> Unit
+        if (note.state == NoteState.Unknown) {
+            wallet.store.upsertNotes(listOf(note.copy(handedOut = HandedOut.TakeBack)))
+            // The mint may know it again by now: then it is taken back at once.
+            return when (askAgain(note)) {
+                is KeyProbe.Outstanding -> takeBackIfAsked(id) ?: ReclaimResult.WhenKnown
+                is KeyProbe.Spent -> ReclaimResult.AlreadySpent
+                else -> ReclaimResult.WhenKnown
+            }
         }
-        val result =
-            mutator.rotate(
-                fromId = accountId,
-                note.host,
-                inputs = listOf(note),
-                outputs = listOf(OutputSpec(accountId, KeySet.Wallet)),
-            )
-        return when (result) {
-            is MutationResult.Done -> {
-                cancel(accountId, id)
-                ReclaimResult.Reclaimed(result.outputs.single().amountMsat.takeIf { it > 0 } ?: note.amountMsat)
-            }
-            // Either our rotate landed or the note is ours again once reconciled; the link can no longer be counted on.
-            is MutationResult.Pending -> {
-                cancel(accountId, id)
-                ReclaimResult.Pending
-            }
-            // Spent in the meantime?
-            is MutationResult.Refused ->
-                if (check(note) == Check.Spent) ReclaimResult.AlreadySpent else ReclaimResult.Failed(PayProblem.Refused)
-            is MutationResult.Unreachable ->
-                if (check(note) == Check.Spent) ReclaimResult.AlreadySpent
-                else ReclaimResult.Failed(if (result.keyChanged) PayProblem.KeyChanged else PayProblem.Unreachable)
+        return when (check(note)) {
+            Check.Spent -> ReclaimResult.AlreadySpent
+            Check.Offline,
+            Check.Unreadable -> ReclaimResult.Failed(PayProblem.Unreachable)
+            Check.UnknownToMint -> whenKnown(id)
+            Check.Waiting -> takeBack(note)
         }
     }
 
     /**
-     * On refresh: an account's shared notes are looked up by key. Spent ones are marked so, and their History rows done; one handed out
-     * offline that its mint has is confirmed. Returns the ids its mints say they don't know.
+     * Takes back the active account's note [id] now if the user asked to while its mint didn't know it ([HandedOut.TakeBack]) and the mint
+     * knows it again; null if there is no such wish.
      */
-    suspend fun reconcile(accountId: String): Set<String> =
+    suspend fun takeBackIfAsked(id: String): ReclaimResult? {
+        val note =
+            wallet.store.note(id)?.takeIf { it.state.isShared && it.handedOut == HandedOut.TakeBack && it.index != null } ?: return null
+        return takeBack(note)
+    }
+
+    /**
+     * Asks again, now, about [id] if it is a note of the active account handed out as a link that its mint didn't know: one it knows again
+     * waits to be claimed again, or is taken back if the user asked to (see [reconcile]).
+     */
+    suspend fun askAgain(id: String) {
         wallet.store
-            .notes(accountId)
-            .first()
-            .filter { it.state.isShared && check(it) == Check.UnknownToMint }
-            .mapTo(mutableSetOf()) { it.id }
+            .note(id)
+            ?.takeIf { it.accountId == wallet.activeId() && it.state == NoteState.Unknown && it.handedOut != null }
+            ?.let { askAgain(it) }
+    }
+
+    /**
+     * On refresh: an account's shared notes are looked up by key. Spent ones are marked so, and their History rows done; one handed out
+     * offline that its mint has is confirmed; one its mint doesn't know is set aside ([UnknownNotes]). One the user asked to take back
+     * while its mint didn't know it is taken back now that it does.
+     */
+    suspend fun reconcile(accountId: String) {
+        for (note in wallet.store.notes(accountId).first().filter { it.state.isShared }) {
+            if (check(note) == Check.Waiting && note.handedOut == HandedOut.TakeBack) takeBackIfAsked(note.id)
+        }
+    }
+
+    /** Rotates the shared [note] to a fresh wallet key of its account: back in the balance, its History row cancelled. */
+    private suspend fun takeBack(note: Note): ReclaimResult {
+        val accountId = note.accountId
+        val result =
+            mutator.rotate(
+                fromId = accountId,
+                note.host,
+                inputs = listOf(note.copy(handedOut = null)),
+                outputs = listOf(OutputSpec(accountId, KeySet.Wallet)),
+            )
+        return when (result) {
+            is MutationResult.Done -> {
+                cancel(accountId, note.id)
+                ReclaimResult.Reclaimed(result.outputs.single().amountMsat.takeIf { it > 0 } ?: note.amountMsat)
+            }
+            // Either our rotate landed or the note is ours again once reconciled; the link can no longer be counted on.
+            is MutationResult.Pending -> {
+                cancel(accountId, note.id)
+                ReclaimResult.Pending
+            }
+            // Spent in the meantime, or no longer known to its mint?
+            is MutationResult.Refused -> afterRefusal(note) ?: ReclaimResult.Failed(PayProblem.Refused)
+            is MutationResult.Unreachable ->
+                afterRefusal(note) ?: ReclaimResult.Failed(if (result.keyChanged) PayProblem.KeyChanged else PayProblem.Unreachable)
+        }
+    }
+
+    /** After a take back that didn't go through: [note] was spent, or its mint no longer knows it (the wish is kept); null otherwise. */
+    private suspend fun afterRefusal(note: Note): ReclaimResult? {
+        val now = wallet.store.note(note.id) ?: return null
+        val check = if (now.state == NoteState.Unknown) Check.UnknownToMint else if (now.state.isShared) check(now) else null
+        return when (check) {
+            Check.Spent -> ReclaimResult.AlreadySpent
+            Check.UnknownToMint -> whenKnown(note.id)
+            else -> if (now.state == NoteState.Spent) ReclaimResult.AlreadySpent else null
+        }
+    }
+
+    /** The user asked to take back [id], which its mint doesn't know (set aside): it is taken back once the mint knows it. */
+    private suspend fun whenKnown(id: String): ReclaimResult {
+        wallet.store
+            .note(id)
+            ?.takeIf { it.handedOut != null }
+            ?.let { wallet.store.upsertNotes(listOf(it.copy(handedOut = HandedOut.TakeBack))) }
+        return ReclaimResult.WhenKnown
+    }
+
+    /** Looks [note] (handed out, unknown to its mint) up again by key ([KeyProber]); null if its mint can't be asked. */
+    private suspend fun askAgain(note: Note): KeyProbe? {
+        val known = wallet.mintOf(note.accountId, note.host) ?: return null
+        val mint = KeyCheckedMint.of(wallet, known) ?: return null
+        val now = wallet.now()
+        wallet.unknownCheckedAt[note.id] = now
+        val probe =
+            try {
+                prober.probe(KeySet.of(note).key(note.accountId, note.host, note.index ?: return null), mint)
+            } catch (e: MintKeyChangedException) {
+                return null
+            }
+        if (probe is KeyProbe.Unused) wallet.unknownAnsweredAt.update { it + (note.id to now) }
+        return probe
+    }
 
     private enum class Check {
         Waiting,
@@ -306,7 +402,7 @@ internal class NoteSender(private val wallet: Wallet) {
                 e.burned || e.burnedOrPending -> Unit
                 e.kind == RejectionKind.Pending -> return confirmed(note)
                 e.kind == RejectionKind.NoteUnknown -> {
-                    answered(note)
+                    setAside(note)
                     return Check.UnknownToMint
                 }
                 else -> return Check.Unreadable
@@ -318,10 +414,8 @@ internal class NoteSender(private val wallet: Wallet) {
         } catch (e: MintKeyChangedException) {
             return Check.Unreadable
         }
-        wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Spent, updatedAtMillis = wallet.now())))
-        activity(note.accountId, note.id)
-            ?.takeIf { it.status == ActivityStatus.Pending }
-            ?.let { wallet.store.putActivity(it.copy(status = ActivityStatus.Done)) }
+        wallet.store.upsertNotes(listOf(note.copy(state = NoteState.Spent, updatedAtMillis = wallet.now(), handedOut = null)))
+        wallet.sentNoteDone(note)
         return Check.Spent
     }
 
@@ -331,6 +425,14 @@ internal class NoteSender(private val wallet: Wallet) {
             if (note.state == NoteState.SharedUnconfirmed) note.copy(state = NoteState.Shared, updatedAtMillis = wallet.now()) else note
         )
         return Check.Waiting
+    }
+
+    /**
+     * Its mint doesn't know the shared [note]: set aside like any other unknown note, out of the balance as it was, and asked about again
+     * (see [UnknownNotes.recheckDue]); it remembers it was handed out ([Note.handedOut]).
+     */
+    private suspend fun setAside(note: Note) {
+        if (note.state.isShared) wallet.store.upsertNotes(listOf(note.setAside(wallet.now())))
     }
 
     /** Its mint answered for [note] just now (stored only for a note that is handed out). */
@@ -380,6 +482,20 @@ internal class NoteSender(private val wallet: Wallet) {
 }
 
 private const val SENT_NOTE_PREFIX = "note:"
+
+/** Handed out as a link and not spent or taken back yet: shared, or set aside as unknown to its mint ([Note.handedOut]). */
+internal fun Note.isHandedOut(): Boolean = state.isShared || (state == NoteState.Unknown && handedOut != null)
+
+/** The note [note], handed out as a link, was spent: by whoever holds the link. Its History row is done. */
+internal suspend fun Wallet.sentNoteDone(note: Note) = sentNoteEnds(note, ActivityStatus.Done)
+
+/** The note [note], handed out as a link, ended as [status] while nobody knew of it being claimed: its History row says so. */
+internal suspend fun Wallet.sentNoteEnds(note: Note, status: ActivityStatus) {
+    store
+        .activity(NoteSender.activityId(note.id))
+        ?.takeIf { it.accountId == note.accountId && it.kind == ActivityKind.SentNote && it.status == ActivityStatus.Pending }
+        ?.let { store.putActivity(it.copy(status = status)) }
+}
 
 /** The note behind a [ActivityKind.SentNote] History row (for [Wallet.sharedNote]), or null for any other row. */
 val Activity.sentNoteId: String?

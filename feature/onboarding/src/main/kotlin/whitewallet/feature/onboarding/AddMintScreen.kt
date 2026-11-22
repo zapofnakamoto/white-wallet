@@ -30,6 +30,7 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.KeyChangedCard
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
@@ -40,6 +41,8 @@ import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.MintPreview
+import whitewallet.core.wallet.MintRefusal
+import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.ScanProgress
 
 /**
@@ -109,11 +112,12 @@ fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
     // A failure that added nothing goes back to the pick from here too.
     val failedOnly = state.step == AddMintStep.Result && state.failed != null && !state.kept
     val back = actions.onBack.takeIf { state.step == AddMintStep.Pick || state.step == AddMintStep.Info || failedOnly }
-    // Outside a setup, a mint added ends on the success screen; the setup goes on to its address instead.
-    val success = state.step == AddMintStep.Result && state.failed == null && !state.keyAccepted && !state.setup
+    // Outside a setup, a mint added (or its new key used) ends on the success screen; the setup goes on to its address instead.
+    val success = state.step == AddMintStep.Result && state.failed == null && !state.setup
     Scaffold(topBar = { WalletTopBar(if (success) stringResource(R.string.add_mint_title) else title, back) }) { padding ->
         // Before the mints to pick from are known (a moment): only the title, so the page doesn't show one thing and then another.
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
+        if (success && state.keyAccepted) return@Scaffold KeyAcceptedContent(state, actions, Modifier.padding(padding))
         if (success) return@Scaffold MintAddedContent(state, actions, Modifier.padding(padding))
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             when (state.step) {
@@ -136,7 +140,7 @@ private fun PickContent(state: AddMintState, actions: AddMintActions) {
             when (error) {
                 AddMintError.NotAllowed -> stringResource(R.string.add_mint_error_not_allowed)
                 AddMintError.Unreachable -> stringResource(R.string.add_mint_error_unreachable)
-                is AddMintError.Invalid -> stringResource(R.string.add_mint_error_invalid, error.detail)
+                is AddMintError.Invalid -> mintRefusalText(error.refusal, error.mintReason, state.host)
                 is AddMintError.WithoutKey ->
                     stringResource(if (error.asked) R.string.add_mint_pick_without_key else R.string.add_mint_key_unanswered, error.host)
             },
@@ -250,13 +254,16 @@ private fun ResultContent(state: AddMintState, actions: AddMintActions) {
     val failed = state.failed
     when {
         state.keyAccepted ->
-            Text(stringResource(R.string.add_mint_key_accepted, state.preview?.host.orEmpty()), textAlign = TextAlign.Center)
+            Text(stringResource(DesignR.string.mint_key_accepted, state.preview?.host.orEmpty()), textAlign = TextAlign.Center)
         failed != null -> {
             Text(
                 when {
                     state.keyChanged -> stringResource(R.string.add_mint_failed_key)
                     state.withoutSigningKey -> stringResource(R.string.onboarding_error_mint_without_key)
-                    else -> stringResource(R.string.add_mint_failed_body, failed)
+                    // The scan stopped: the mint is added, and what was found stays.
+                    state.kept -> stringResource(R.string.add_mint_failed_body)
+                    failed is OnboardResult.MintInvalid -> mintRefusalText(failed.refusal, failed.mintReason, state.host)
+                    else -> stringResource(R.string.add_mint_error_unreachable)
                 },
                 textAlign = TextAlign.Center,
             )
@@ -290,6 +297,25 @@ private fun ResultContent(state: AddMintState, actions: AddMintActions) {
         }
     }
 }
+
+/**
+ * Why a mint can't be used, in the user's words: the mint's own (often English) only where it gave them for a refusal, never the app's name
+ * for the reason.
+ */
+@Composable
+internal fun mintRefusalText(refusal: MintRefusal, mintReason: String?, host: String): String =
+    when (refusal) {
+        MintRefusal.NotAHost -> stringResource(R.string.add_mint_error_not_a_host)
+        MintRefusal.NotAMint -> stringResource(R.string.add_mint_error_invalid)
+        MintRefusal.KeyChanged -> stringResource(DesignR.string.mint_key_changed, host)
+        MintRefusal.WithoutSigningKey -> stringResource(R.string.onboarding_error_mint_without_key)
+        MintRefusal.Refused ->
+            mintReason?.let { stringResource(R.string.onboarding_error_mint, it) } ?: stringResource(R.string.onboarding_error_mint_plain)
+        // States the screens don't offer: nothing more to say than that it can't be used.
+        MintRefusal.NoAccount,
+        MintRefusal.NoMint,
+        MintRefusal.AlreadyHome -> stringResource(R.string.onboarding_error_mint_plain)
+    }
 
 @Composable
 internal fun Hint(text: String) =
@@ -332,6 +358,19 @@ private fun MintAddedContent(state: AddMintState, actions: AddMintActions, modif
                     )
             },
         content = { if (state.found.size > 1) FoundAccountRows(state.found) },
+    )
+}
+
+/** The mint known before now uses the new signing key the user accepted here (outside a setup): nothing was scanned, so no amount. */
+@Composable
+private fun KeyAcceptedContent(state: AddMintState, actions: AddMintActions, modifier: Modifier) {
+    SuccessScreen(
+        anchor = Anchor.MintKeyAccepted,
+        status = WalletStatus.Done(0),
+        title = stringResource(DesignR.string.mint_key_accepted_title),
+        done = SuccessAction(stringResource(R.string.success_done), actions.onDone),
+        modifier = modifier,
+        lines = listOf(stringResource(DesignR.string.mint_key_accepted, state.preview?.host.orEmpty())),
     )
 }
 

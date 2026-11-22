@@ -11,6 +11,8 @@
     <string name="settings_scan">Scan for notes</string>
     <string name="mint_change_home">Change home mint</string>
     <string name="mint_make_home">Make this my home mint</string>
+    <!-- The success screen's title once the account has a new home mint -->
+    <string name="money_home_changed_title">Home mint changed</string>
     <string name="settings_account_mints">Your mints</string>
     <string name="mints_remove_mint">Remove mint</string>
     <string name="addresses_home_mint">Home mint: %1$s</string>
@@ -75,7 +77,8 @@
     <string name="addresses_keep">Keep</string>
     <string name="addresses_status_taken">Not active: it points to someone else\'s wallet</string>
     <string name="addresses_status_free">Not registered anymore: payments to it fail</string>
-    <string name="addresses_status_failed">Couldn\'t check: %1$s</string>
+    <string name="addresses_status_failed">Couldn\'t check it right now.</string>
+    <string name="addresses_status_invalid">Not a valid address.</string>
     <string name="addresses_add">Add address</string>
     <string name="addresses_add_elsewhere_hint">Same recovery phrase. Payments to it arrive in this account.</string>
     <string name="addresses_over_limit">More addresses than the current limit (%1$d). They keep working; unregister ones you don\'t use.</string>
@@ -87,7 +90,8 @@
     <string name="addresses_unregistered">%1$s is unregistered.</string>
     <string name="addresses_not_ours">%1$s no longer points to this wallet, so it was removed from the list.</string>
     <string name="addresses_unregister_failed">%1$s is still registered: %2$s</string>
-    <string name="addresses_unregister_unknown">Couldn\'t confirm that %1$s was unregistered (%2$s). Check it again in a moment.</string>
+    <string name="addresses_unregister_failed_plain">%1$s is still registered.</string>
+    <string name="addresses_unregister_unknown">Couldn\'t confirm that %1$s was unregistered. Check it again in a moment.</string>
     <string name="addresses_primary_changed">%1$s is now your primary address.</string>
     <string name="mint_home_hint">New addresses of this account are made here.</string>
     <string name="keys_home_mint">%1$s (home)</string>
@@ -362,7 +366,7 @@
     <string name="money_move_title">Move money</string>
     <string name="money_move_from">All your money on %1$s goes to the one you pick, combined into one payment.</string>
     <string name="money_move_target">To</string>
-    <string name="money_error_mint">That one doesn\'t answer as expected: %1$s</string>
+    <string name="money_error_mint">%1$s doesn\'t answer as expected.</string>
     <string name="money_error_network">Couldn\'t connect. Try again later.</string>
     <string name="money_offline">You\'re offline. Connect to continue.</string>
     <string name="money_continue">Continue</string>
@@ -392,6 +396,8 @@
     <string name="money_reason_refused">refused</string>
     <string name="money_try_again">Try again</string>
     <string name="money_done">Done</string>
+    <!-- The success screen's title once all the money the user moved arrived -->
+    <string name="money_moved_title">Moved</string>
     <string name="mint_move_all_here">Move all money here</string>
     <string name="money_move_all_body">All of this account\'s money held elsewhere comes here, in one payment from each place.</string>
     <string name="account_mints_intro">Where this account\'s money and addresses are. Open one to move money or to change where new payments arrive.</string>

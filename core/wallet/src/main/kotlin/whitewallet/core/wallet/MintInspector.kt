@@ -62,13 +62,13 @@ sealed interface MintPreview {
 
     data class Unreachable(override val host: String, val reason: String) : MintPreview
 
-    /** Not a host, or it answers but isn't a usable LNURLcash mint. */
-    data class Invalid(override val host: String, val reason: String) : MintPreview
+    /** Not a host, or it answers but isn't a usable LNURLcash mint, or refuses ([mintReason]: its words, if any). */
+    data class Invalid(override val host: String, val refusal: MintRefusal, val mintReason: String? = null) : MintPreview
 }
 
 internal class MintInspector(private val wallet: Wallet) {
     suspend fun preview(host: String): MintPreview {
-        val h = Onboarding.normalizeHost(host) ?: return MintPreview.Invalid(host, "not a valid host")
+        val h = Onboarding.normalizeHost(host) ?: return MintPreview.Invalid(host, MintRefusal.NotAHost)
         return try {
             val pay = wallet.client.servicePayRequest(h)
             // Null if it can't be asked now.
@@ -88,7 +88,7 @@ internal class MintInspector(private val wallet: Wallet) {
                 knownKey = walletId?.let { wallet.store.mint(it, h)?.mintPubkey },
             )
         } catch (e: ProtocolViolation) {
-            MintPreview.Invalid(h, e.message ?: "not an LNURLcash server")
+            e.mintInvalid().let { MintPreview.Invalid(h, it.refusal, it.mintReason) }
         } catch (e: IOException) {
             MintPreview.Unreachable(h, e.message ?: "network error")
         }

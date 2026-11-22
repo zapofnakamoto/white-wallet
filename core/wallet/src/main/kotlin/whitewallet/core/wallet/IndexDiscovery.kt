@@ -9,8 +9,8 @@ import whitewallet.core.model.OutputRef
 import whitewallet.lnurlcash.spendDomain
 
 /**
- * [stoppedEarly] says why a scan ended before its gap; [refused] when the mint refused a lookup rather than not answering, or presented
- * another signing key than the pinned one ([keyChanged], with [MINT_KEY_CHANGED]).
+ * [stoppedEarly] says why a scan ended before its gap; [refused] when the mint refused a lookup rather than not answering (in its own words
+ * [mintReason], if it gave any), or presented another signing key than the pinned one ([keyChanged], with [MINT_KEY_CHANGED]).
  */
 data class DiscoveryResult(
     val next: Long,
@@ -19,6 +19,7 @@ data class DiscoveryResult(
     val stoppedEarly: String?,
     val refused: Boolean = false,
     val keyChanged: Boolean = false,
+    val mintReason: String? = null,
 )
 
 /** The state of one key set's index on one mint, for the developer key page. */
@@ -126,7 +127,14 @@ internal class IndexDiscovery(private val wallet: Wallet) {
                             lastUsed = index
                             unused = 0
                         } else {
-                            return DiscoveryResult(kept(), checked, imported, stoppedEarly = probe.reason ?: "refused", refused = true)
+                            return DiscoveryResult(
+                                kept(),
+                                checked,
+                                imported,
+                                stoppedEarly = probe.reason ?: "refused",
+                                refused = true,
+                                mintReason = probe.reason,
+                            )
                         }
                     is KeyProbe.Unused -> unused++
                     is KeyProbe.Failed -> return DiscoveryResult(kept(), checked, imported, probe.reason)

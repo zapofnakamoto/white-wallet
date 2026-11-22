@@ -2,16 +2,24 @@
 
 package whitewallet.core.wallet
 
+import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import okhttp3.Interceptor
+import okhttp3.Response
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.HandedOut
+import whitewallet.core.model.Note
+import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.RevealsNoteSecret
@@ -24,10 +32,9 @@ class NoteToolsTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
 
     /** One phone of this recovery phrase, holding one ₿21 note from an address payment. */
-    private suspend fun phone(mint: MockMint): Pair<InMemoryWalletStore, Wallet> {
+    private suspend fun phone(mint: MockMint, client: LnurlcashClient = LnurlcashClient()): Pair<InMemoryWalletStore, Wallet> {
         val store = InMemoryWalletStore()
-        val wallet =
-            Wallet(store, InMemorySeedStore(mapOf("a" to words)), LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
+        val wallet = Wallet(store, InMemorySeedStore(mapOf("a" to words)), client, policies = NotePolicies.InMemory(ManualStrategy.ID))
         store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
         assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
         return store to wallet
@@ -118,5 +125,76 @@ class NoteToolsTest {
         assertEquals(ShareNoteResult.AlreadySpent, wallet.shareNote(id))
         assertEquals(0, wallet.balanceMsat.first())
         assertEquals(emptyList(), store.activities("a").first().filter { it.kind == ActivityKind.SentNote })
+    }
+
+    /** A client to [mint] whose requests are dropped while [offline]. */
+    private class Wire : Interceptor {
+        var offline = false
+        val client = LnurlcashClient(http = LnurlcashClient.defaultHttpClient().newBuilder().addInterceptor(this).build())
+
+        override fun intercept(chain: Interceptor.Chain): Response {
+            if (offline) throw IOException("offline")
+            return chain.proceed(chain.request())
+        }
+    }
+
+    /** A ₿5 note at wallet key 900, which [mint] has never seen, handed out while offline. */
+    private suspend fun handedOutUnknown(mint: MockMint, store: InMemoryWalletStore, wallet: Wallet, wire: Wire): Note {
+        val q = testKeys(words, mint.host).pubkey(KeySet.Wallet, 900)
+        val note = Note(q.toHex(), "a", mint.host, NoteKind.KeyPath, KeySet.Wallet.purpose, 900, 5_000, null, NoteState.Outstanding, 0)
+        store.upsertNotes(listOf(note))
+        wire.offline = true
+        assertIs<ShareNoteResult.Shared>(wallet.shareNote(note.id))
+        wire.offline = false
+        return note
+    }
+
+    @Test
+    fun `a note handed out offline that its mint doesn't know is set aside, and taken back once the mint knows it if the user asked`() =
+        withMint { mint ->
+            val wire = Wire()
+            val (store, wallet) = phone(mint, wire.client)
+            wallet.refresh()
+            val note = handedOutUnknown(mint, store, wallet, wire)
+            wallet.refresh()
+            assertEquals(HandedOut.Waiting, store.note(note.id)?.handedOut)
+            assertEquals(NoteState.Unknown, store.note(note.id)?.state)
+            val shown = assertNotNull(wallet.sharedNote(note.id))
+            assertEquals(SharedNoteState.Waiting, shown.state)
+            assertTrue(shown.unknownToMint)
+            assertNotNull(shown.link)
+
+            assertEquals(ReclaimResult.WhenKnown, wallet.reclaimNote(note.id), "the mint answered: never \"couldn't connect\"")
+            assertNull(wallet.sharedNote(note.id)?.link)
+            assertEquals(21_000, wallet.balanceMsat.first())
+
+            mint.credit(Cp1.encode(testKeys(words, mint.host).pubkey(KeySet.Wallet, 900)), 5_000)
+            assertEquals(NotesCheck(checked = 1, gone = 0, unreachable = emptyList()), wallet.recheckUnknownNotes(), "back in the balance")
+            assertEquals(SharedNoteState.Reclaimed, wallet.sharedNote(note.id)?.state)
+            assertEquals(ActivityStatus.Cancelled, store.activities("a").first().single { it.kind == ActivityKind.SentNote }.status)
+            assertEquals(26_000, wallet.balanceMsat.first())
+        }
+
+    @Test
+    fun `a note handed out offline that its mint knows again waits to be claimed again, out of the balance`() = withMint { mint ->
+        val wire = Wire()
+        val (store, wallet) = phone(mint, wire.client)
+        wallet.refresh()
+        val note = handedOutUnknown(mint, store, wallet, wire)
+        assertEquals(SharedNoteState.Waiting, wallet.checkSharedNote(note.id)?.state)
+        assertEquals(NoteState.Unknown, store.note(note.id)?.state)
+        assertEquals(1, wallet.archiveUnknownNotes(setOf(note.id)))
+
+        mint.credit(Cp1.encode(testKeys(words, mint.host).pubkey(KeySet.Wallet, 900)), 5_000)
+        assertEquals(NoteCheck.HandedOutAgain, wallet.recheckNote(note.id))
+        val again = assertNotNull(store.note(note.id))
+        assertEquals(NoteState.Shared, again.state)
+        assertNull(again.handedOut)
+        assertNull(again.archivedAtMillis, "out of the archive")
+        assertEquals(21_000, wallet.balanceMsat.first(), "never back in the balance: the link is out there")
+        val shown = assertNotNull(wallet.sharedNote(note.id))
+        assertEquals(SharedNoteState.Waiting, shown.state)
+        assertNotNull(shown.link)
+        assertEquals(ActivityStatus.Pending, store.activities("a").first().single { it.kind == ActivityKind.SentNote }.status)
     }
 }

@@ -6,6 +6,7 @@
     <string name="settings_scan">Nach Scheinen suchen</string>
     <string name="mint_change_home">Haupt-Mint wechseln</string>
     <string name="mint_make_home">Zu meiner Haupt-Mint machen</string>
+    <string name="money_home_changed_title">Haupt-Mint gewechselt</string>
     <string name="settings_account_mints">Deine Mints</string>
     <string name="mints_remove_mint">Mint entfernen</string>
     <string name="addresses_home_mint">Haupt-Mint: %1$s</string>
@@ -68,7 +69,8 @@
     <string name="addresses_keep">Behalten</string>
     <string name="addresses_status_taken">Nicht aktiv: Sie zeigt auf die Wallet von jemand anderem</string>
     <string name="addresses_status_free">Nicht mehr registriert: Zahlungen daran schlagen fehl</string>
-    <string name="addresses_status_failed">Prüfen nicht möglich: %1$s</string>
+    <string name="addresses_status_failed">Gerade nicht prüfbar.</string>
+    <string name="addresses_status_invalid">Keine gültige Adresse.</string>
     <string name="addresses_add">Adresse hinzufügen</string>
     <string name="addresses_add_elsewhere_hint">Dieselbe Wiederherstellungsphrase. Zahlungen daran kommen in diesem Konto an.</string>
     <string name="addresses_over_limit">Mehr Adressen als das aktuelle Limit (%1$d). Sie funktionieren weiter; melde die ab, die du nicht nutzt.</string>
@@ -80,7 +82,8 @@
     <string name="addresses_unregistered">%1$s ist abgemeldet.</string>
     <string name="addresses_not_ours">%1$s zeigt nicht mehr auf diese Wallet und wurde daher aus der Liste entfernt.</string>
     <string name="addresses_unregister_failed">%1$s ist noch registriert: %2$s</string>
-    <string name="addresses_unregister_unknown">Es ließ sich nicht bestätigen, dass %1$s abgemeldet wurde (%2$s). Prüfe es gleich noch einmal.</string>
+    <string name="addresses_unregister_failed_plain">%1$s ist noch registriert.</string>
+    <string name="addresses_unregister_unknown">Es ließ sich nicht bestätigen, dass %1$s abgemeldet wurde. Prüfe es gleich noch einmal.</string>
     <string name="addresses_primary_changed">%1$s ist jetzt deine Hauptadresse.</string>
     <string name="mint_home_hint">Neue Adressen dieses Kontos entstehen hier.</string>
     <string name="keys_home_mint">%1$s (Haupt)</string>
@@ -352,7 +355,7 @@
     <string name="money_move_title">Geld verschieben</string>
     <string name="money_move_from">Dein ganzes Geld auf %1$s geht dorthin, wo du auswählst, in einer Zahlung.</string>
     <string name="money_move_target">Nach</string>
-    <string name="money_error_mint">Antwortet nicht wie erwartet: %1$s</string>
+    <string name="money_error_mint">%1$s antwortet nicht wie erwartet.</string>
     <string name="money_error_network">Keine Verbindung. Versuche es später erneut.</string>
     <string name="money_offline">Du bist offline. Verbinde dich, um fortzufahren.</string>
     <string name="money_continue">Weiter</string>
@@ -382,6 +385,7 @@
     <string name="money_reason_refused">abgelehnt</string>
     <string name="money_try_again">Nochmal versuchen</string>
     <string name="money_done">Fertig</string>
+    <string name="money_moved_title">Verschoben</string>
     <string name="mint_move_all_here">Alles Geld hierher verschieben</string>
     <string name="money_move_all_body">Das ganze Geld dieses Kontos, das anderswo liegt, kommt hierher, von jedem Ort in einer Zahlung.</string>
     <string name="account_mints_intro">Wo das Geld und die Adressen dieses Kontos liegen. Öffne einen, um Geld zu verschieben oder zu ändern, wo neue Zahlungen ankommen.</string>

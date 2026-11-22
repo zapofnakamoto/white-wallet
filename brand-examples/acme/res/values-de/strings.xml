@@ -12,6 +12,7 @@
     <string name="settings_scan">Nach Geldscheinen suchen</string>
     <string name="mint_change_home">Anbieter wechseln</string>
     <string name="mint_make_home">Zu meinem Anbieter machen</string>
+    <string name="money_home_changed_title">Anbieter gewechselt</string>
     <string name="settings_account_mints">Deine Anbieter</string>
     <string name="mints_remove_mint">Anbieter entfernen</string>
     <string name="activity_moved_mint_other">Zu einem anderen Anbieter verschoben</string>
@@ -87,8 +88,13 @@
         <item quantity="one">Der Anbieter kennt %1$d Geldschein nicht. Er ist beiseitegelegt, nicht in deinem Guthaben, und deine Wallet fragt von selbst wieder.</item>
         <item quantity="other">Der Anbieter kennt %1$d Geldscheine nicht. Sie sind beiseitegelegt, nicht in deinem Guthaben, und deine Wallet fragt von selbst wieder.</item>
     </plurals>
+    <plurals name="notes_checked_handed_out">
+        <item quantity="one">Der Anbieter kennt %1$d Geldschein, den du weitergegeben hast, wieder. Er wartet darauf, eingelöst zu werden.</item>
+        <item quantity="other">Der Anbieter kennt %1$d Geldscheine, die du weitergegeben hast, wieder. Sie warten darauf, eingelöst zu werden.</item>
+    </plurals>
     <string name="notes_state_unknown">Dem Anbieter unbekannt</string>
     <string name="notes_state_unknown_detail">Der Anbieter sagt, er kennt diesen Geldschein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
+    <string name="notes_state_unknown_handed_out_detail">Du hast diesen Geldschein weitergegeben, aber der Anbieter sagt, er kennt ihn nicht, daher kann ihn noch niemand einlösen. Deine Wallet fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, wartet er darauf, eingelöst zu werden.</string>
     <plurals name="notes_archived_notes">
         <item quantity="one">%d Geldschein, den sein Anbieter nicht kennt</item>
         <item quantity="other">%d Geldscheine, die ihr Anbieter nicht kennt</item>
@@ -171,7 +177,9 @@
     <string name="note_already_spent">Zu spät: Dieser Geldschein wurde schon ausgegeben.</string>
     <string name="note_not_found">Dieser Geldschein ist nicht in diesem Konto.</string>
     <string name="note_unconfirmed">Der Anbieter wurde zu diesem Geldschein noch nicht gefragt. Deine Wallet fragt, sobald sie online ist.</string>
-    <string name="note_unknown_to_mint">Der Anbieter kennt diesen Geldschein nicht, deshalb funktioniert der Link vielleicht nicht.</string>
+    <string name="note_unknown_to_mint">Der Anbieter kennt diesen Geldschein gerade nicht, deshalb kann ihn noch niemand einlösen. Deine Wallet fragt den Anbieter von selbst wieder.</string>
+    <string name="note_unverified">Du hast diesen Geldschein entfernt, als der Anbieter ihn nicht kannte, deshalb ist nicht bekannt, ob er eingelöst wurde.</string>
+    <string name="note_take_back_when_known">Der Anbieter kennt diesen Geldschein gerade nicht. Deine Wallet holt ihn zurück, sobald der Anbieter ihn wieder kennt.</string>
     <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Geldschein.</string>
     <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
     <string name="settings_notes">Geldschein-Einstellungen</string>
@@ -237,7 +245,7 @@
     <string name="add_mint_setup_body">Der Anbieter verwahrt dein Geld und erstellt die Rechnungen, mit denen du bezahlt wirst.</string>
     <string name="add_mint_body">Wähle einen Anbieter. Hält deine Wiederherstellungsphrase dort Geld, wird es gefunden.</string>
     <string name="add_mint_error_not_allowed">Diese App arbeitet nicht mit diesem Anbieter. Wähle einen anderen.</string>
-    <string name="add_mint_error_invalid">Das ist kein Anbieter, den diese App nutzen kann: %1$s</string>
+    <string name="add_mint_error_invalid">Das ist kein Anbieter, den diese App nutzen kann.</string>
     <string name="add_mint_known">Diese Wallet hat diesen Anbieter schon. Fügst du ihn noch einmal hinzu, wird dort noch einmal nach deinem Geld gesucht.</string>
     <string name="scan_notes_title">Nach Geldscheinen suchen</string>
     <string name="add_mint_use">Diesen Anbieter nutzen</string>

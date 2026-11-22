@@ -191,9 +191,10 @@ sealed interface NotesOutcome {
 
     /**
      * Asked the mints about notes: [ok] still there, [gone] spent elsewhere, [unknown] set aside as their mint doesn't know them, no answer
-     * from [unreachable].
+     * from [unreachable]. [handedOut]: notes the user handed out as links that their mint knows again, which wait to be claimed.
      */
-    data class Checked(val ok: Int, val gone: Int, val unreachable: List<String>, val unknown: Int = 0) : NotesOutcome
+    data class Checked(val ok: Int, val gone: Int, val unreachable: List<String>, val unknown: Int = 0, val handedOut: Int = 0) :
+        NotesOutcome
 
     data class KeyChanged(val host: String) : NotesOutcome
 
@@ -376,7 +377,13 @@ constructor(
             val outcome =
                 try {
                     val check = wallet.recheckNotes()
-                    NotesOutcome.Checked(check.checked - check.gone - check.unknown, check.gone, check.unreachable, check.unknown)
+                    NotesOutcome.Checked(
+                        check.checked - check.gone - check.unknown,
+                        check.gone,
+                        check.unreachable,
+                        check.unknown,
+                        check.handedOutAgain,
+                    )
                 } catch (e: IOException) {
                     NotesOutcome.Failed(NoteProblem.Unreachable)
                 } catch (e: MintKeyChangedException) {
@@ -388,7 +395,9 @@ constructor(
             ui.update {
                 it.copy(
                     outcome =
-                        outcome.takeUnless { o -> o is NotesOutcome.Checked && o.gone == 0 && o.unknown == 0 && o.unreachable.isEmpty() }
+                        outcome.takeUnless { o ->
+                            o is NotesOutcome.Checked && o.gone == 0 && o.unknown == 0 && o.handedOut == 0 && o.unreachable.isEmpty()
+                        }
                 )
             }
         }
@@ -402,12 +411,14 @@ constructor(
         var ok = 0
         var gone = 0
         var unknown = 0
+        var handedOut = 0
         val unreachable = mutableListOf<String>()
         for (id in ids) {
             when (val check = wallet.recheckNote(id)) {
                 is NoteCheck.Ok -> ok++
                 NoteCheck.Spent -> gone++
                 NoteCheck.Unknown -> unknown++
+                NoteCheck.HandedOutAgain -> handedOut++
                 NoteCheck.Unreachable -> state.value.mints.firstOrNull { m -> m.notes.any { it.id == id } }?.let { unreachable += it.host }
                 is NoteCheck.KeyChanged -> return NotesOutcome.KeyChanged(check.host)
                 NoteCheck.NotFound -> Unit
@@ -416,7 +427,7 @@ constructor(
                 NoteCheck.NotLanded -> return NotesOutcome.Settled(landed = false)
             }
         }
-        return NotesOutcome.Checked(ok, gone, unreachable.distinct(), unknown)
+        return NotesOutcome.Checked(ok, gone, unreachable.distinct(), unknown, handedOut)
     }
 
     /** Archives one note its mint doesn't know, from its details. */

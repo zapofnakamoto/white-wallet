@@ -1,5 +1,7 @@
 package whitewallet.feature.settings
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -12,10 +14,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.wallet.MintMoveResult
 import whitewallet.core.wallet.MoneyMoved
 import whitewallet.core.wallet.MovePreview
@@ -95,6 +103,66 @@ class MoneyMoveScreenTest {
         compose.onNodeWithText(text(R.string.money_result_failed, "₿3,000", "same.example", "the payment failed")).assertExists()
         compose.onNodeWithText(text(R.string.money_try_again)).performClick()
         assertEquals(true, retried)
+    }
+
+    /** The anchors the screen asks the brand for, with their status. */
+    private val decorated = mutableListOf<Pair<Anchor, WalletStatus>>()
+
+    private fun showDecorated(state: MoneyMoveState, onDone: () -> Unit = {}) = compose.setContent {
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    decorated += anchor to context.status
+                }
+            }
+        CompositionLocalProvider(LocalBrandDesign provides design) { MoneyMoveScreen(state, {}, MoneyMoveActions(onDone = onDone)) }
+    }
+
+    @Test
+    fun aNewHomeWithAllItsMoneyEndsOnTheSuccessScreen() {
+        var done = 0
+        val outcome =
+            MoneyMoveOutcome(
+                homeChanged = true,
+                moved =
+                    listOf(
+                        MoneyMoved("old.example", 100_000, MintMoveResult.Moved(99_000, 1_000)),
+                        MoneyMoved("other.example", 50_000, MintMoveResult.Moved(49_000, 1_000)),
+                    ),
+            )
+        showDecorated(MoneyMoveState(target = "new.example", outcome = outcome), onDone = { done++ })
+        assertEquals(listOf(Anchor.HomeChanged to WalletStatus.Done(148_000)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.money_home_changed_title)).assertExists()
+        compose.onNodeWithText(text(R.string.money_home_changed, "new.example")).assertExists()
+        compose.onNodeWithText(text(R.string.money_review_fee_total, "₿2")).assertExists()
+        compose.onNodeWithText(text(R.string.money_try_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.money_done)).performClick()
+        assertEquals(1, done)
+    }
+
+    @Test
+    fun aNewHomeWithoutMoneySaysTheMoneyStayed() {
+        showDecorated(MoneyMoveState(target = "new.example", outcome = MoneyMoveOutcome(homeChanged = true, moved = emptyList())))
+        assertEquals(listOf(Anchor.HomeChanged to WalletStatus.Done(0)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.money_result_money_stays)).assertExists()
+    }
+
+    @Test
+    fun aMoveThatArrivedEndsOnTheSuccessScreen() {
+        val outcome = MoneyMoveOutcome(false, listOf(MoneyMoved("old.example", 100_000, MintMoveResult.Moved(99_000, 1_000))))
+        showDecorated(MoneyMoveState(mode = MoneyMoveMode.Move, from = "old.example", target = "new.example", outcome = outcome))
+        assertEquals(listOf(Anchor.MoneyMoved to WalletStatus.Done(99_000)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.money_moved_title)).assertExists()
+        compose.onNodeWithText(text(R.string.money_review_to, "new.example")).assertExists()
+    }
+
+    @Test
+    fun aMoveStillOnItsWayIsNoSuccess() {
+        val outcome = MoneyMoveOutcome(false, listOf(MoneyMoved("old.example", 100_000, MintMoveResult.Pending)))
+        showDecorated(MoneyMoveState(mode = MoneyMoveMode.Move, from = "old.example", target = "new.example", outcome = outcome))
+        assertTrue(decorated.none { it.first == Anchor.MoneyMoved })
+        compose.onNodeWithText(text(R.string.money_result_pending, "₿100", "old.example")).assertExists()
     }
 
     @Test

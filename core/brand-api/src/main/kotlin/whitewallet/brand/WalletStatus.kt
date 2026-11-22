@@ -35,8 +35,8 @@ sealed interface WalletStatus {
     data class Sent(val amountMsat: Long) : WalletStatus
 
     /**
-     * Something the user did just worked (a mint, an address or an account added, a scan finished); [amountMsat] is what it found, 0 if
-     * nothing.
+     * Something the user did just worked (a mint, an address or an account added, a scan finished, money moved or taken back); [amountMsat]
+     * is the money it found, moved or brought back, 0 if none.
      */
     data class Done(val amountMsat: Long) : WalletStatus
 

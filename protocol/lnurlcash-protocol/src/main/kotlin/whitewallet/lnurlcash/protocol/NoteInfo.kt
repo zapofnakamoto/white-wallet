@@ -26,7 +26,7 @@ public data class NoteInfo(
          */
         public fun from(response: LnurlResponse, queriedK1: String?): NoteInfo {
             if (response is LnurlResponse.Error) throw NoteLookupError(response.reason)
-            val w = response as? LnurlResponse.WithdrawRequest ?: throw ProtocolViolation(describe(response, "withdrawRequest"))
+            val w = response as? LnurlResponse.WithdrawRequest ?: throw unexpected(response, "withdrawRequest")
             if (queriedK1 != null && !queriedK1.equals(w.k1, ignoreCase = true)) {
                 throw ProtocolViolation("the server echoed a different k1 than the one queried")
             }

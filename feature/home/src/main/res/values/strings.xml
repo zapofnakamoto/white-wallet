@@ -154,6 +154,8 @@
     <string name="activity_note_waiting">Not claimed yet</string>
     <string name="activity_note_spent">Spent</string>
     <string name="activity_note_taken_back">Taken back</string>
+    <!-- A sent note removed for good while its mint didn't know it: whether it was claimed isn't known. -->
+    <string name="activity_note_unverified">Claim not verified</string>
     <string name="activity_moved_mint">Moved to %1$s</string>
     <string name="activity_amount_in">+%1$s</string>
     <string name="activity_amount_out">−%1$s</string>
@@ -200,6 +202,9 @@
     <string name="move_moved">Moved %1$s</string>
     <string name="move_nothing">There is nothing to move.</string>
     <string name="move_done">Done</string>
+    <!-- The success screen once all of it moved: its title, above the amount, and where it went (an account, or "Wallet 2: Savings") -->
+    <string name="move_success_title">Moved</string>
+    <string name="move_success_to">To %1$s</string>
     <plurals name="home_unresolved">
         <item quantity="one">%1$d operation is still waiting for an answer.</item>
         <item quantity="other">%1$d operations are still waiting for an answer.</item>

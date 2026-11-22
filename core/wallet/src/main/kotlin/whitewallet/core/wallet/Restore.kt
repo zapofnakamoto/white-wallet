@@ -23,7 +23,8 @@ sealed interface RestoreResult {
     /** The app already holds [limit] wallets, the most it allows ([Wallet.maxWallets]). Nothing changed. */
     data class AccountLimitReached(val limit: Int) : RestoreResult
 
-    data class MintInvalid(val reason: String) : RestoreResult
+    /** The mint can't be used, for [refusal]; [mintReason] is the mint's own words for it, if it gave any. */
+    data class MintInvalid(val refusal: MintRefusal, val mintReason: String? = null) : RestoreResult
 
     data class NetworkError(val reason: String) : RestoreResult
 }
@@ -51,7 +52,7 @@ internal class Restore(private val wallet: Wallet) {
             if (wallet.seeds.load(summary.account.walletId) == words) return RestoreResult.AlreadyInWallet(summary.account.name)
         }
         if (!wallet.canAddWallet.first()) return RestoreResult.AccountLimitReached(wallet.maxWallets)
-        val h = host?.let { Onboarding.normalizeHost(it) ?: return RestoreResult.MintInvalid("not a valid host") }
+        val h = host?.let { Onboarding.normalizeHost(it) ?: return RestoreResult.MintInvalid(MintRefusal.NotAHost) }
         val accountId = UUID.randomUUID().toString()
 
         // The wallet and its first account are saved before anything of theirs (the mint, what the scan finds), and removed on failure.
@@ -68,7 +69,10 @@ internal class Restore(private val wallet: Wallet) {
         }
         val failed: suspend (Failure) -> RestoreResult = { failure ->
             undo()
-            if (failure.refused) RestoreResult.MintInvalid(failure.reason) else RestoreResult.NetworkError(failure.reason)
+            when (val r = failure.result) {
+                is OnboardResult.MintInvalid -> RestoreResult.MintInvalid(r.refusal, r.mintReason)
+                else -> RestoreResult.NetworkError(failure.reason)
+            }
         }
         when (val connected = h?.let { onboarding.connectMint(accountId, it) }) {
             null -> Unit
@@ -77,8 +81,8 @@ internal class Restore(private val wallet: Wallet) {
                 undo()
                 return when (val r = connected.result) {
                     is OnboardResult.NetworkError -> RestoreResult.NetworkError(r.reason)
-                    is OnboardResult.MintInvalid -> RestoreResult.MintInvalid(r.reason)
-                    else -> RestoreResult.MintInvalid(r.toString())
+                    is OnboardResult.MintInvalid -> RestoreResult.MintInvalid(r.refusal, r.mintReason)
+                    else -> RestoreResult.MintInvalid(MintRefusal.Refused)
                 }
             }
         }
@@ -113,9 +117,7 @@ internal class Restore(private val wallet: Wallet) {
         val record = { host: String, scan: WalletScan ->
             when (scan) {
                 is WalletScan.Done -> stops[host] = scan.stoppedAt
-                is WalletScan.Failed ->
-                    failed[host] =
-                        scan.failure.let { if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason) }
+                is WalletScan.Failed -> failed[host] = scan.failure.result
             }
         }
         for (h in hosts) record(h, scanMint(walletId, h, run) { onProgress(h, it) })
@@ -206,8 +208,7 @@ internal class Restore(private val wallet: Wallet) {
         for (mint in wallet.store.mints(account.walletId).first()) {
             val found = scan(account.id, mint.host, run, report)
             if (found is Scan.Failed) {
-                val why =
-                    found.failure.let { if (it.refused) OnboardResult.MintInvalid(it.reason) else OnboardResult.NetworkError(it.reason) }
+                val why = found.failure.result
                 return CreateAccountResult.ScanFailed(mint.host, why)
             }
         }
@@ -270,7 +271,16 @@ internal class Restore(private val wallet: Wallet) {
         return WalletScan.Done(stoppedAt = index - unused.size)
     }
 
-    private data class Failure(val reason: String, val refused: Boolean)
+    /** Why a scan stopped: [reason] for the log, and what it means for the caller ([result]). */
+    private data class Failure(val reason: String, val refused: Boolean, val keyChanged: Boolean, val mintReason: String?) {
+        val result: OnboardResult
+            get() =
+                when {
+                    keyChanged -> OnboardResult.MintInvalid(MintRefusal.KeyChanged)
+                    refused -> OnboardResult.MintInvalid(MintRefusal.Refused, mintReason)
+                    else -> OnboardResult.NetworkError(reason)
+                }
+    }
 
     private sealed interface WalletScan {
         /** Every account was looked through; [stoppedAt]: the first index of the unused ones that ended it, or the first not looked at. */
@@ -292,7 +302,7 @@ internal class Restore(private val wallet: Wallet) {
         for (set in listOf(KeySet.Wallet, KeySet.Change)) {
             val found = discovery.discover(accountId, h, set, run = run) { _, probe -> report(probe) }
             found.stoppedEarly?.let {
-                return Scan.Failed(Failure(it, found.refused))
+                return Scan.Failed(Failure(it, found.refused, found.keyChanged, found.mintReason))
             }
             used = used || found.next > 0
         }
@@ -304,7 +314,7 @@ internal class Restore(private val wallet: Wallet) {
         while (unused < wallet.settings.scanStopAfterUnusedShares) {
             val found = discovery.discover(accountId, h, KeySet.Share(share), run = run) { _, probe -> report(probe) }
             found.stoppedEarly?.let {
-                return Scan.Failed(Failure(it, found.refused))
+                return Scan.Failed(Failure(it, found.refused, found.keyChanged, found.mintReason))
             }
             if (found.next > 0) {
                 last = share

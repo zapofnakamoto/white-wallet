@@ -17,7 +17,7 @@ sealed interface MoveResult {
     data class Moved(val amountMsat: Long, val stayed: List<MoveStayed> = emptyList(), val pending: List<MovePending> = emptyList()) :
         MoveResult
 
-    /** Nothing changed. If that was because of a mint, [stayed] says which and why. */
+    /** Nothing changed. If that was because of a mint, [stayed] says which and why; [detail] is the mint's own words, if it gave any. */
     data class Failed(val reason: MoveFailure, val detail: String? = null, val stayed: List<MoveStayed> = emptyList()) : MoveResult
 
     /**
@@ -127,9 +127,9 @@ internal class FundsMover(private val wallet: Wallet) {
         try {
             move()
         } catch (e: IOException) {
-            MoveResult.Failed(MoveFailure.Refused, e.message, listOf(MoveStayed(host, amountMsat, StayReason.Unreachable)))
+            MoveResult.Failed(MoveFailure.Refused, null, listOf(MoveStayed(host, amountMsat, StayReason.Unreachable)))
         } catch (e: MintKeyChangedException) {
-            MoveResult.Failed(MoveFailure.Refused, e.message, listOf(MoveStayed(host, amountMsat, StayReason.KeyChanged)))
+            MoveResult.Failed(MoveFailure.Refused, null, listOf(MoveStayed(host, amountMsat, StayReason.KeyChanged)))
         }
 
     /**
@@ -207,15 +207,16 @@ internal class FundsMover(private val wallet: Wallet) {
         val known = wallet.store.mint(toWallet, host)
         if (known != null) {
             val differs = pinned != null && known.mintPubkey != null && known.mintPubkey != pinned
-            return if (differs) failed(StayReason.OtherWalletKey, MINT_KEY_CHANGED) else null
+            return if (differs) failed(StayReason.OtherWalletKey, null) else null
         }
         return when (val connected = onboarding.connectMint(toWallet, host, expectedKey = pinned)) {
             is ConnectResult.Connected -> null
             is ConnectResult.Failed ->
                 when (val r = connected.result) {
                     is OnboardResult.MintInvalid ->
-                        failed(if (r.reason == MINT_KEY_CHANGED) StayReason.KeyChanged else StayReason.Refused, r.reason)
-                    is OnboardResult.NetworkError -> failed(StayReason.Unreachable, r.reason)
+                        if (r.refusal == MintRefusal.KeyChanged) failed(StayReason.KeyChanged, null)
+                        else failed(StayReason.Refused, r.mintReason)
+                    is OnboardResult.NetworkError -> failed(StayReason.Unreachable, null)
                     else -> failed(StayReason.Refused, null)
                 }
         }
@@ -298,7 +299,7 @@ internal class FundsMover(private val wallet: Wallet) {
             is MutationResult.Unreachable ->
                 MoveResult.Failed(
                     MoveFailure.Refused,
-                    reason,
+                    null,
                     listOf(MoveStayed(host, amountMsat, if (keyChanged) StayReason.KeyChanged else StayReason.Unreachable)),
                 )
             is MutationResult.Pending -> MoveResult.Pending(listOf(MovePending(host, amountMsat)))

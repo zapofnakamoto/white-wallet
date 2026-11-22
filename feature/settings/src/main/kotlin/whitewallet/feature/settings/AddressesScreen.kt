@@ -12,8 +12,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,7 +48,6 @@ import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
 import whitewallet.brand.ui.Tone
-import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.PrimaryButton
@@ -55,6 +57,7 @@ import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.model.RegisteredAddress
@@ -109,13 +112,18 @@ data class AddressesState(
 data class WatchOnlyKey(val address: String, val key: String)
 
 sealed interface AddressesMessage {
+    /** It says something worked: a short message, gone after a while. Anything else stays on the page. */
+    val confirms: Boolean
+        get() = this is Unregistered || this is PrimaryChanged
+
     data class Unregistered(val address: String) : AddressesMessage
 
     data class NotOurs(val address: String) : AddressesMessage
 
-    data class Failed(val address: String, val reason: String) : AddressesMessage
+    /** The mint kept the name; [mintReason] is its own words for it, if it gave any. */
+    data class Failed(val address: String, val mintReason: String? = null) : AddressesMessage
 
-    data class Unknown(val address: String, val reason: String) : AddressesMessage
+    data class Unknown(val address: String) : AddressesMessage
 
     data class PrimaryChanged(val address: String) : AddressesMessage
 
@@ -193,6 +201,8 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
 
     fun askUnregister(address: RegisteredAddress) = ui.update { it.copy(confirm = address, message = null) }
 
+    fun messageShown(message: AddressesMessage) = ui.update { if (it.message == message) it.copy(message = null) else it }
+
     fun dismissUnregister() = ui.update { it.copy(confirm = null) }
 
     fun confirmUnregister() {
@@ -203,8 +213,8 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
                 when (val r = wallet.unregisterAddress(address)) {
                     UnregisterResult.Unregistered -> AddressesMessage.Unregistered(address.address)
                     UnregisterResult.NotOurs -> AddressesMessage.NotOurs(address.address)
-                    is UnregisterResult.Failed -> AddressesMessage.Failed(address.address, r.reason)
-                    is UnregisterResult.NetworkError -> AddressesMessage.Unknown(address.address, r.reason)
+                    is UnregisterResult.Failed -> AddressesMessage.Failed(address.address, r.mintReason)
+                    UnregisterResult.NetworkError -> AddressesMessage.Unknown(address.address)
                 }
             ui.update { it.copy(message = message) }
         }
@@ -267,6 +277,7 @@ fun AddressesRoute(
         onDismissUnregister = viewModel::dismissUnregister,
         onAddElsewhere,
         onNoHome,
+        onMessageShown = viewModel::messageShown,
     )
 }
 
@@ -283,7 +294,18 @@ fun AddressesScreen(
     onDismissUnregister: () -> Unit,
     onAddElsewhere: () -> Unit = {},
     onNoHome: (NoHome) -> Unit = {},
+    onMessageShown: (AddressesMessage) -> Unit = {},
 ) {
+    val snackbars = remember { SnackbarHostState() }
+    state.message
+        ?.takeIf { it.confirms }
+        ?.let { message ->
+            val text = messageText(message)
+            LaunchedEffect(message) {
+                snackbars.showSnackbar(text, duration = SnackbarDuration.Long)
+                onMessageShown(message)
+            }
+        }
     Scaffold(
         topBar = {
             WalletTopBar(stringResource(R.string.addresses_title), onBack) {
@@ -291,7 +313,8 @@ fun AddressesScreen(
                     Text(stringResource(R.string.addresses_check_all))
                 }
             }
-        }
+        },
+        snackbarHost = { WalletSnackbarHost(snackbars) },
     ) { padding ->
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
         val empty = state.entries.isEmpty()
@@ -322,7 +345,7 @@ fun AddressesScreen(
                             }
                     }
                 }
-                state.message?.let { item { MessageText(it) } }
+                state.message?.takeUnless { it.confirms }?.let { item { ProblemText(it) } }
                 state.byMint.forEach { (host, entries) ->
                     item(key = "host:$host") {
                         Text(
@@ -429,27 +452,31 @@ private fun StatusLine(status: AddressStatus?) {
             AddressStatus.Unconfirmed -> stringResource(R.string.settings_address_unconfirmed) to MaterialTheme.colorScheme.onSurfaceVariant
             AddressStatus.Taken -> stringResource(R.string.addresses_status_taken) to MaterialTheme.colorScheme.error
             AddressStatus.Available -> stringResource(R.string.addresses_status_free) to MaterialTheme.colorScheme.error
-            is AddressStatus.Invalid -> status.reason to MaterialTheme.colorScheme.error
-            is AddressStatus.CheckFailed ->
-                stringResource(R.string.addresses_status_failed, status.reason) to MaterialTheme.colorScheme.error
+            is AddressStatus.Invalid -> stringResource(R.string.addresses_status_invalid) to MaterialTheme.colorScheme.error
+            is AddressStatus.CheckFailed -> stringResource(R.string.addresses_status_failed) to MaterialTheme.colorScheme.error
         }
     Text(text, color = color, style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
-private fun MessageText(message: AddressesMessage) {
-    val (text, error) =
-        when (message) {
-            is AddressesMessage.FeeNotPaid -> stringResource(R.string.addresses_held_not_paid, message.address) to true
-            is AddressesMessage.Unregistered -> stringResource(R.string.addresses_unregistered, message.address) to false
-            is AddressesMessage.NotOurs -> stringResource(R.string.addresses_not_ours, message.address) to true
-            is AddressesMessage.Failed -> stringResource(R.string.addresses_unregister_failed, message.address, message.reason) to true
-            is AddressesMessage.Unknown -> stringResource(R.string.addresses_unregister_unknown, message.address, message.reason) to true
-            is AddressesMessage.PrimaryChanged -> stringResource(R.string.addresses_primary_changed, message.address) to false
-        }
+private fun messageText(message: AddressesMessage): String =
+    when (message) {
+        is AddressesMessage.FeeNotPaid -> stringResource(R.string.addresses_held_not_paid, message.address)
+        is AddressesMessage.Unregistered -> stringResource(R.string.addresses_unregistered, message.address)
+        is AddressesMessage.NotOurs -> stringResource(R.string.addresses_not_ours, message.address)
+        is AddressesMessage.Failed ->
+            message.mintReason?.let { stringResource(R.string.addresses_unregister_failed, message.address, it) }
+                ?: stringResource(R.string.addresses_unregister_failed_plain, message.address)
+        is AddressesMessage.Unknown -> stringResource(R.string.addresses_unregister_unknown, message.address)
+        is AddressesMessage.PrimaryChanged -> stringResource(R.string.addresses_primary_changed, message.address)
+    }
+
+/** What went wrong (or isn't known), on the page until the next action. */
+@Composable
+private fun ProblemText(message: AddressesMessage) {
     Text(
-        text,
-        color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.walletColors.success,
+        messageText(message),
+        color = MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.bodyMedium,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
     )

@@ -988,6 +988,7 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
             ActivityStatus.Pending -> add(stringResource(if (sentNote) R.string.activity_note_waiting else R.string.activity_pending))
             ActivityStatus.Failed -> add(stringResource(R.string.activity_failed))
             ActivityStatus.Cancelled -> add(stringResource(R.string.activity_note_taken_back))
+            ActivityStatus.Unverified -> add(stringResource(R.string.activity_note_unverified))
             ActivityStatus.Done -> if (sentNote) add(stringResource(R.string.activity_note_spent))
         }
         if (activity.certified == false) add(stringResource(R.string.activity_uncertified))

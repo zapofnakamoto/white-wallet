@@ -5,6 +5,7 @@ import androidx.compose.ui.res.stringResource
 import whitewallet.core.designsystem.CheckAll
 import whitewallet.core.designsystem.Moment
 import whitewallet.core.designsystem.WalletPreviews
+import whitewallet.core.wallet.MintPreview
 import whitewallet.core.wallet.ScanProgress
 import whitewallet.core.wallet.ScanResult
 
@@ -97,3 +98,26 @@ internal val walletReadyStates =
 @WalletPreviews @Moment @Composable private fun WalletReadyAddedPreview() = WalletReady(walletReadyStates[1])
 
 @WalletPreviews @Moment @Composable private fun WalletReadyRestoredPreview() = WalletReady(walletReadyStates[2])
+
+/** A mint known before, using its new signing key, accepted while adding it. */
+internal val keyAcceptedState =
+    AddMintState(
+        step = AddMintStep.Result,
+        host = MINT,
+        preview =
+            MintPreview.Ready(
+                host = MINT,
+                description = null,
+                feeBaseMsat = null,
+                feePpm = null,
+                minSendableMsat = 1_000,
+                maxSendableMsat = 1_000_000_000,
+                addressFeeMsat = null,
+                signingKey = "02" + "ab".repeat(32),
+                keyAnswered = true,
+                knownKey = "02" + "cd".repeat(32),
+            ),
+        keyAccepted = true,
+    )
+
+@WalletPreviews @Moment @Composable private fun MintKeyAcceptedPreview() = AddMintScreen(keyAcceptedState, AddMintActions())

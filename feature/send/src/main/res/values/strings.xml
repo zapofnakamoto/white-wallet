@@ -32,7 +32,8 @@
     <string name="note_already_spent">Too late: this note has already been spent.</string>
     <string name="note_not_found">This note isn\'t in this account.</string>
     <string name="note_unconfirmed">Its mint hasn\'t been asked about this note yet. Your wallet asks once it\'s online.</string>
-    <string name="note_unknown_to_mint">Its mint doesn\'t know this note, so the link may not work.</string>
+    <string name="note_unknown_to_mint">Its mint doesn\'t know this note right now, so nobody can claim it yet. Your wallet asks the mint again by itself.</string>
+    <string name="note_unverified">You removed this note while its mint didn\'t know it, so it isn\'t known whether it was claimed.</string>
     <string name="scan_unknown">This QR code isn\'t a payment or a note.</string>
 
     <string name="send_problem_mint_silent">%1$s isn\'t answering. Nothing was paid. Try again later.</string>
