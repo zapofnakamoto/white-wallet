@@ -47,6 +47,12 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   asking again. No mint is asked before the user acts on it: not the one preselected, nor the others in the list, and
   a typed address only on "Next". For brands: `add_mint_pick_without_key`, `add_mint_row_not_answering` and
   `add_mint_row_without_key` are new.
+- A button at work no longer turns grey with a spinner in place of its label. It is locked at once and keeps its label
+  and its look; a small spinner appears beside the label only if the work takes more than a moment, and then stays its
+  shortest time, as every other sign of loading does (`loading.indicator.*`). A quick check no longer makes its button
+  blink. For brands that draw their own button (`BrandComponents.Button`): `ButtonParams.busy` now means "show
+  progress beside the label", only once it is due, and `onClick` already does nothing while the button is at work;
+  a button drawn the old way keeps working. For developers: pass `busy` as it is, not `showsWorking(busy)`.
 - Receive finds a payment to the Lightning address it shows sooner: it looks there at once, then every 5 seconds, and
   only at that address (its share, at its own mint) instead of refreshing the whole wallet every 15 seconds. For brands:
   `sync.receive` now defaults to `5s`. For developers: `Wallet.lookForPayments(address)`.

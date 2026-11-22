@@ -50,7 +50,6 @@ import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.screenLoaded
-import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.designsystem.walletName
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.WalletGroup
@@ -531,7 +530,7 @@ internal fun AccountRemovalDialog(name: String, removal: AccountRemoval, removin
     WalletDialog(
         onDismissRequest = { if (!removing) onDismiss() },
         confirmButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = onConfirm, enabled = !removing, busy = showsWorking(removing)) {
+            WalletButton(kind = ButtonKind.Text, onClick = onConfirm, busy = removing) {
                 Text(stringResource(R.string.account_remove_confirm), color = MaterialTheme.colorScheme.error)
             }
         },

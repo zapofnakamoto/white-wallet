@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -32,6 +34,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -181,7 +184,10 @@ class ButtonParams(
     val kind: ButtonKind = ButtonKind.Primary,
     val tone: Tone = Tone.Neutral,
     val enabled: Boolean = true,
-    /** Working: show progress instead of the label (the button is disabled meanwhile). */
+    /**
+     * At work for a while: show progress beside the label, which stays, as does the button's look. The button is locked by then ([onClick]
+     * does nothing), and work over in a moment is never said, so a button never blinks.
+     */
     val busy: Boolean = false,
     val content: @Composable RowScope.() -> Unit,
 )
@@ -455,9 +461,13 @@ class ActivityIconParams(
 object DefaultComponents : BrandComponents {
     @Composable
     fun button(params: ButtonParams, modifier: Modifier) {
-        val enabled = params.enabled && !params.busy
+        val enabled = params.enabled
         val content: @Composable RowScope.() -> Unit = {
-            if (params.busy) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) else params.content(this)
+            if (params.busy) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+            }
+            params.content(this)
         }
         val danger = params.tone == Tone.Danger
         val error = MaterialTheme.colorScheme.error

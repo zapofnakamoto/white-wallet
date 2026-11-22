@@ -432,7 +432,7 @@ private fun RemoveSection(mint: MintInfo, refused: MintUse?, removing: Boolean, 
             title = { Text(stringResource(R.string.mints_remove_title, mint.host)) },
             text = { Text(stringResource(R.string.mints_remove_body)) },
             confirmButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = onRemove, enabled = !removing, busy = showsWorking(removing)) {
+                WalletButton(kind = ButtonKind.Text, onClick = onRemove, busy = removing) {
                     Text(stringResource(R.string.mints_remove_confirm))
                 }
             },

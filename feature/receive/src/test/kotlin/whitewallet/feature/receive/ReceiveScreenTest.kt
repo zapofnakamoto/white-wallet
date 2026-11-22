@@ -201,8 +201,8 @@ class ReceiveScreenTest {
                 .let { ReceiveScreen(it, onBack = {}, onClaim = {}) }
         }
         compose.onNodeWithText(text(R.string.receive_key_checking, "home.example")).assertExists()
-        // The button works away instead of its label, and takes no tap.
-        compose.onNodeWithText(text(R.string.receive_invoice_create)).assertDoesNotExist()
+        // The button keeps its label and takes no tap.
+        compose.onNodeWithText(text(R.string.receive_invoice_create)).assertIsNotEnabled()
     }
 
     @Test

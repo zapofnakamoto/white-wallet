@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -58,6 +59,10 @@ import whitewallet.brand.ui.Tone
 // docs/WHITE_LABEL.md "Design"), so a brand restyles every screen at once; features never use Material's directly
 // (dev/check-design.sh).
 
+/**
+ * A button of the brand. At work ([busy]) it is locked at once and keeps its label and its look; that it works shows beside the label by
+ * the one rule for loading ([showsWorking]): not for work over in a moment, and then for its shortest time, through which it stays locked.
+ */
 @Composable
 fun WalletButton(
     onClick: () -> Unit,
@@ -68,8 +73,16 @@ fun WalletButton(
     busy: Boolean = false,
     content: @Composable RowScope.() -> Unit,
 ) {
-    LocalBrandDesign.current.components.Button(ButtonParams(onClick, kind, tone, enabled, busy, content), modifier)
+    val working = showsWorking(busy)
+    val locked = busy || working
+    LocalBrandDesign.current.components.Button(
+        ButtonParams(if (locked) NoTap else onClick, kind, tone, enabled, working, content),
+        // It looks as it did, so a screen reader is told what a sighted user learns from a tap that does nothing.
+        if (locked) modifier.semantics { disabled() } else modifier,
+    )
 }
+
+private val NoTap: () -> Unit = {}
 
 @Composable
 fun WalletTextField(
