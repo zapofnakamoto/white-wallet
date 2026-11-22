@@ -148,6 +148,10 @@ class RegtestE2ETest {
             val preview = assertIs<ClaimPreview.Ready>(other.previewClaim(lnurl), "claim preview ($lnurl)")
             assertTrue(preview.certified)
             assertEquals(plain.amountMsat, preview.amountMsat)
+            // Other wallets wrap the lnurlw:// link itself in bech32, against the spec (we never do): read the same.
+            val wrapped = assertIs<ClaimPreview.Ready>(other.previewClaim(Lnurl.encodeBech32(sent.link!!)))
+            assertTrue(wrapped.certified)
+            assertEquals(plain.amountMsat, wrapped.amountMsat)
             assertIs<ClaimResult.Claimed>(other.claim(preview))
             assertEquals(SharedNoteState.Spent, wallet.checkSharedNote(sent.id)?.state)
         }

@@ -33,6 +33,15 @@ class IncomingLinkTest {
     }
 
     @Test
+    fun `a lnurlw or lnurlp link inside bech32, which other wallets make against the spec, is read too`() {
+        val wrapped = Lnurl.encodeBech32(note)
+        assertEquals(IncomingLink.Claim(wrapped), IncomingLink.classify(wrapped))
+        assertEquals(IncomingLink.Claim(wrapped), IncomingLink.classify("LIGHTNING:$wrapped"))
+        val pay = Lnurl.encodeBech32("lnurlp://mint.example/.well-known/lnurlp/alice")
+        assertEquals(IncomingLink.Claim(pay, mayBePay = true), IncomingLink.classify(pay))
+    }
+
+    @Test
     fun `a bech32 link without a note opens in Claim, which asks its service whether it pays out or is paid`() {
         val pay = Lnurl.encodeBech32("https://mint.example/.well-known/lnurlp/alice")
         assertEquals(IncomingLink.Claim(pay, mayBePay = true), IncomingLink.classify(pay))

@@ -38,6 +38,22 @@ class LnurlTest {
         assertEquals("https://mint.example/w?k1=ck1abc&c=cs1xyz", Lnurl.decodeBech32(link))
         assertEquals("http://127.0.0.1:3338/w?k1=x", Lnurl.decodeBech32(Lnurl.bech32Link("lnurlw://127.0.0.1:3338/w?k1=x")!!))
         assertNull(Lnurl.bech32Link("hello"))
+        // Never a LUD-17 scheme inside: LUD-01 wraps the URL to fetch.
+        assertEquals(
+            "https://mint.example/.well-known/lnurlp/alice",
+            Lnurl.decodeBech32(Lnurl.bech32Link("lnurlp://mint.example/.well-known/lnurlp/alice")!!),
+        )
+    }
+
+    @Test
+    fun `a LUD-17 scheme inside bech32, against the spec but made by other wallets, is read`() {
+        assertEquals("https://mint.example/w?k1=x", Lnurl.resolve(Lnurl.encodeBech32("lnurlw://mint.example/w?k1=x")))
+        assertEquals(
+            "https://mint.example/w?k1=x",
+            Lnurl.resolve("lightning:" + Lnurl.encodeBech32("lnurlw://mint.example/w?k1=x").lowercase()),
+        )
+        assertEquals("https://mint.example/p", Lnurl.resolve(Lnurl.encodeBech32("lnurlp://mint.example/p")))
+        assertEquals("http://127.0.0.1:3338/w", Lnurl.resolve(Lnurl.encodeBech32("lnurlw://127.0.0.1:3338/w")))
     }
 
     @Test

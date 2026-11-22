@@ -154,11 +154,17 @@ class RegtestWithdrawLinksTest {
             assertIs<IncomingLink.Claim>(IncomingLink.classify("LIGHTNING:$withdraw"))
             val preview = assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(withdraw))
             assertNull(preview.reason, "no note in it")
+            // Other wallets wrap a LUD-17 scheme in bech32, against the spec: read the same.
+            val wrappedWithdraw = Lnurl.encodeBech32("lnurlw://lnbits.example/withdraw/abc")
+            assertNull(assertIs<ClaimPreview.Melt>(bob.wallet.previewClaim(wrappedWithdraw)).reason)
             assertIs<ClaimResult.Claimed>(bob.wallet.melt(preview))
 
             val pay = Lnurl.encodeBech32("https://payee.example/.well-known/lnurlp/carol")
             assertEquals(ClaimPreview.PayLink(pay), bob.wallet.previewClaim(pay))
             assertIs<PayPreview.Ready>(bob.wallet.previewPayment(pay))
+            val wrappedPay = Lnurl.encodeBech32("lnurlp://payee.example/.well-known/lnurlp/carol")
+            assertEquals(ClaimPreview.PayLink(wrappedPay), bob.wallet.previewClaim(wrappedPay))
+            assertIs<PayPreview.Ready>(bob.wallet.previewPayment(wrappedPay))
             // Send hands a withdraw link to Claim rather than calling it unrecognised.
             assertEquals(PayPreview.Invalid(PayProblem.WithdrawLink), bob.wallet.previewPayment(withdraw))
             assertEquals(
