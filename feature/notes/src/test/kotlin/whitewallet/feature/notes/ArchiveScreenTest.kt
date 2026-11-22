@@ -171,6 +171,7 @@ class ArchiveScreenTest {
         }
         compose.onNodeWithText(text(R.string.archive_handed_out_hint)).assertExists()
         compose.onNodeWithText(text(R.string.archive_notes_hint)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.notes_state_unknown_handed_out)).assertExists()
         compose.onNodeWithText(text(R.string.archive_handed_out_title)).assertDoesNotExist()
     }
 

@@ -141,6 +141,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   back only if you asked to take them back; a note's details say the same before you archive it. For brands: new
   strings `archive_handed_out_title`, `archive_handed_out_hint`, `notes_archive_hint_handed_out` and
   `notes_archive_hint_take_back`.
+- In the notes view and the archive, a handed-out note its mint doesn't know says "Handed out · unknown to the mint",
+  not just "Unknown to the mint" like a note from the balance. A note its mint doesn't know offers only Recheck and
+  Archive in its details: Share as QR, Split and Renew, which couldn't be used on it, are gone. For brands: new string
+  `notes_state_unknown_handed_out`.
 - Taking back a note you handed out no longer says "Couldn't connect" when its mint answered: a refusal says so, with
   the mint's own words if it gave any, and a changed signing key says that. "Check again" in the notes view and the
   archive tells what happened to handed-out notes apart from the balance: spent, still unknown to their mint, known

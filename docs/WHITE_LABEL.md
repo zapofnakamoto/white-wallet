@@ -134,6 +134,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_checked_taken_back` | %1$d note you handed out was taken back into your balance. / %1$d notes you handed out were taken back into your balance. (plural) |
 | `notes_checked_take_back_refused` | The mint refused to give back %1$d note you handed out. Your wallet tries again by itself. / The mint refused to give back %1$d notes you handed out. Your wallet tries again by itself. (plural) |
 | `notes_state_unknown` | Unknown to the mint |
+| `notes_state_unknown_handed_out` | Handed out · unknown to the mint |
 | `notes_state_unknown_detail` | The mint says it doesn't know this note, so it isn't in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it's back in your balance. |
 | `notes_state_unknown_handed_out_detail` | You handed this note out, but the mint says it doesn't know it, so nobody can claim it yet. Your wallet asks the mint again by itself; once the mint knows it again, it waits to be claimed. |
 | `notes_archived_notes` | %d note its mint doesn't know / %d notes their mint doesn't know (plural) |

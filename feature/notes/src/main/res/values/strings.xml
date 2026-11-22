@@ -78,6 +78,8 @@
     <string name="notes_problem_key_changed">The signing key of the mint doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the mint\'s details.</string>
     <!-- A note its mint says it doesn't know (the mint lost its records, or misbehaves). -->
     <string name="notes_state_unknown">Unknown to the mint</string>
+    <!-- The same, for a note the user handed out as a link (it is not in the balance). -->
+    <string name="notes_state_unknown_handed_out">Handed out · unknown to the mint</string>
     <string name="notes_state_unknown_detail">The mint says it doesn\'t know this note, so it isn\'t in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it\'s back in your balance.</string>
     <string name="notes_state_unknown_handed_out_detail">You handed this note out, but the mint says it doesn\'t know it, so nobody can claim it yet. Your wallet asks the mint again by itself; once the mint knows it again, it waits to be claimed.</string>
     <!-- The archive of notes their mint doesn't know: what it holds, archiving, and removing one for good. -->

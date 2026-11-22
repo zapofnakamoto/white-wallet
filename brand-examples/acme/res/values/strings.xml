@@ -109,6 +109,7 @@
         <item quantity="other">The provider refused to give back %1$d banknotes you handed out. Your wallet tries again by itself.</item>
     </plurals>
     <string name="notes_state_unknown">Unknown to the provider</string>
+    <string name="notes_state_unknown_handed_out">Handed out · unknown to the provider</string>
     <string name="notes_state_unknown_detail">The provider says it doesn\'t know this banknote, so it isn\'t in your balance. Your wallet keeps it and asks the provider again by itself; once the provider knows it again, it\'s back in your balance.</string>
     <string name="notes_state_unknown_handed_out_detail">You handed this banknote out, but the provider says it doesn\'t know it, so nobody can claim it yet. Your wallet asks the provider again by itself; once the provider knows it again, it waits to be claimed.</string>
     <plurals name="notes_archived_notes">

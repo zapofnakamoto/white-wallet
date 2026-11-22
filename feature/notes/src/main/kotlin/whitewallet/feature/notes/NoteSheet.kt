@@ -74,7 +74,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 note.amountMsat,
                 modifier = Modifier.fillMaxWidth(),
                 status = noteStatus(note),
-                statusText = noteStatusText(noteStatus(note)),
+                statusText = noteStatusText(noteStatus(note), handedOut = note.handedOut != null),
                 age = recentTime(note.updatedAtMillis),
                 mint = note.host.takeIf { state.showMints },
                 trusted = state.openTrusted,
@@ -109,7 +109,8 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 Text(stringResource(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             val enabled = NotesViewModel.selectable(note) && !state.busy
-            val offered = state.noteActions
+            // A note its mint doesn't know can't be shared, split or renewed: only asked about again (or archived).
+            val offered = if (note.state == NoteState.Unknown) state.noteActions intersect setOf(NoteAction.Recheck) else state.noteActions
             val archivable = NotesViewModel.archivable(note)
             if (offered.any { !it.bulk } || NoteAction.Recheck in offered || archivable) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

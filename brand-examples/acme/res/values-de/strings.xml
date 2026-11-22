@@ -109,6 +109,7 @@
         <item quantity="other">Der Anbieter hat %1$d Geldscheine, die du weitergegeben hast, nicht zurückgegeben. Deine Wallet versucht es von selbst wieder.</item>
     </plurals>
     <string name="notes_state_unknown">Dem Anbieter unbekannt</string>
+    <string name="notes_state_unknown_handed_out">Weitergegeben · dem Anbieter unbekannt</string>
     <string name="notes_state_unknown_detail">Der Anbieter sagt, er kennt diesen Geldschein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
     <string name="notes_state_unknown_handed_out_detail">Du hast diesen Geldschein weitergegeben, aber der Anbieter sagt, er kennt ihn nicht, daher kann ihn noch niemand einlösen. Deine Wallet fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, wartet er darauf, eingelöst zu werden.</string>
     <plurals name="notes_archived_notes">

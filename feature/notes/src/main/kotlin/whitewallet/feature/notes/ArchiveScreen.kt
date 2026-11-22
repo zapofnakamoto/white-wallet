@@ -356,7 +356,7 @@ private fun ArchivedNoteRow(note: Note, state: ArchiveState, actions: ArchiveAct
         headlineContent = { Text(formatAmount(note.amountMsat)) },
         supportingContent = {
             Column {
-                Text(stringResource(R.string.notes_state_unknown))
+                Text(stringResource(if (note.handedOut != null) R.string.notes_state_unknown_handed_out else R.string.notes_state_unknown))
                 if (state.showMints) Text(stringResource(DesignR.string.received_on, note.host), style = MaterialTheme.typography.bodySmall)
             }
         },

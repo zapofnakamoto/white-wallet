@@ -72,6 +72,7 @@
     <string name="notes_problem_mint_invalid">Diese Adresse kann keine Scheine verwahren.</string>
     <string name="notes_problem_key_changed">Der Signaturschlüssel der Mint passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint einen neuen Schlüssel annimmst.</string>
     <string name="notes_state_unknown">Der Mint unbekannt</string>
+    <string name="notes_state_unknown_handed_out">Weitergegeben · der Mint unbekannt</string>
     <string name="notes_state_unknown_detail">Die Mint sagt, sie kennt diesen Schein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, ist er zurück in deinem Guthaben.</string>
     <string name="notes_state_unknown_handed_out_detail">Du hast diesen Schein weitergegeben, aber die Mint sagt, sie kennt ihn nicht, daher kann ihn noch niemand einlösen. Deine Wallet fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, wartet er darauf, eingelöst zu werden.</string>
     <plurals name="notes_archived_notes">

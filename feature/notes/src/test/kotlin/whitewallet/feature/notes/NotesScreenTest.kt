@@ -586,6 +586,27 @@ class NotesScreenTest {
     }
 
     @Test
+    fun aHandedOutNoteItsMintDoesNotKnowSaysSoInTheList() {
+        compose.setContent { NotesContent(state(withHandedOut(HandedOut.Waiting)), NotesActions()) }
+        compose.onNodeWithText(text(R.string.notes_state_unknown_handed_out)).assertExists()
+    }
+
+    @Test
+    fun aNoteItsMintDoesNotKnowOffersOnlyRecheckAndArchive() {
+        compose.setContent { NotesContent(state(::withUnknown, { it.copy(open = "u1") }), NotesActions()) }
+        compose.onNodeWithText(text(R.string.notes_recheck)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_archive)).assertExists()
+        for (gone in
+            listOf(
+                R.string.notes_share,
+                R.string.notes_split,
+                R.string.notes_renew,
+                R.string.notes_share_hint,
+                R.string.notes_renew_hint,
+            )) compose.onNodeWithText(text(gone)).assertDoesNotExist()
+    }
+
+    @Test
     fun aHandedOutNoteToTakeBackSaysItIsTakenBackOnceItsMintKnowsIt() {
         compose.setContent { NotesContent(state(withHandedOut(HandedOut.TakeBack), { it.copy(open = "u1") }), NotesActions()) }
         compose.onNodeWithText(text(DesignR.string.note_take_back_when_known)).assertExists()

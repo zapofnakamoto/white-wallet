@@ -418,7 +418,7 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
         size = NoteFaceSize.Row,
         note.amountMsat,
         status = status,
-        statusText = noteStatusText(status),
+        statusText = noteStatusText(status, handedOut = note.handedOut != null),
         statusIcon = noteStatusIcon(status),
         age = recentTime(note.updatedAtMillis),
         mint = note.host.takeIf { state.showMints },
@@ -450,14 +450,14 @@ internal fun noteStatus(note: Note): NoteStatus =
         else -> NoteStatus.Ready
     }
 
-/** What's unusual about a note, in words; null when it is simply ready. */
+/** What's unusual about a note, in words; null when it is simply ready. A [handedOut] note's mint not knowing it says so. */
 @Composable
-internal fun noteStatusText(status: NoteStatus): String? =
+internal fun noteStatusText(status: NoteStatus, handedOut: Boolean = false): String? =
     when (status) {
         NoteStatus.Paying -> stringResource(R.string.notes_state_paying)
         NoteStatus.Unclear -> stringResource(R.string.notes_state_ambiguous)
         NoteStatus.Uncertified -> stringResource(R.string.notes_uncertified)
-        NoteStatus.Unknown -> stringResource(R.string.notes_state_unknown)
+        NoteStatus.Unknown -> stringResource(if (handedOut) R.string.notes_state_unknown_handed_out else R.string.notes_state_unknown)
         else -> null
     }
 
