@@ -93,6 +93,10 @@ data class SendState(
     /** Why the input can't be paid, unless being offline says it already. */
     val shownProblem: PayProblem?
         get() = problem.takeUnless { offline && it == PayProblem.Unreachable }
+
+    /** What was checked couldn't be asked: checked again once the phone is back. */
+    val waitsForConnection: Boolean
+        get() = problem == PayProblem.Unreachable && preview == null && result == null && input.isNotBlank()
 }
 
 @HiltViewModel
@@ -118,9 +122,11 @@ constructor(
             }
         }
         viewModelScope.launch {
-            // Back online, a failure to connect from while offline is no news: the screen says what it is now.
+            // Back online, a failure to connect from while offline is no news: what couldn't be asked is asked now, as Claim does.
             wallet.followOffline { offline, back ->
+                val recheck = back && _state.value.waitsForConnection
                 _state.update { it.copy(offline = offline, problem = it.problem.takeUnless { back && it == PayProblem.Unreachable }) }
+                if (recheck) check()
             }
         }
         // Opened from a link, shared text or NFC tag: check it right away.
