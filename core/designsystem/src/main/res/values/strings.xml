@@ -33,7 +33,7 @@
     <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
-    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created there until it matches again, or you accept a new key. Payments to your addresses there wait until then. Your notes there are unchanged.</string>
+    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept a new key. Payments to your addresses there wait until then.</string>
     <string name="mint_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost.</string>
 
     <string name="back">Back</string>

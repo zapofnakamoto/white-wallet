@@ -53,6 +53,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   blink. For brands that draw their own button (`BrandComponents.Button`): `ButtonParams.busy` now means "show
   progress beside the label", only once it is due, and `onClick` already does nothing while the button is at work;
   a button drawn the old way keeps working. For developers: pass `busy` as it is, not `showsWorking(busy)`.
+- The texts about a mint whose signing key doesn't match no longer end with "Your notes there are unchanged": they
+  already say that nothing is sent there, and the line also showed where the wallet holds no notes. On the mint's page,
+  "no invoice is created there" lost its second "there". For brands: `home_key_changed_body`, `mint_key_changed`,
+  `send_problem_key_changed` and `notes_problem_key_changed` have new words.
 - Receive finds a payment to the Lightning address it shows sooner: it looks there at once, then every 5 seconds, and
   only at that address (its share, at its own mint) instead of refreshing the whole wallet every 15 seconds. For brands:
   `sync.receive` now defaults to `5s`. For developers: `Wallet.lookForPayments(address)`.

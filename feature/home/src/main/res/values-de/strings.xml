@@ -41,7 +41,7 @@
     <string name="activity_sent_note">Schein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Scheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="move_adds_mint">%1$s wird zu den Mints von %2$s hinzugefügt.</string>
-    <string name="home_key_changed_body">Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint einen neuen Schlüssel annimmst. Deine Scheine dort sind unverändert.</string>
+    <string name="home_key_changed_body">Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint einen neuen Schlüssel annimmst.</string>
     <plurals name="notice_combined_into_one">
         <item quantity="one">%1$d Schein zu einem über %2$s zusammengelegt</item>
         <item quantity="other">%1$d Scheine zu einem über %2$s zusammengelegt</item>

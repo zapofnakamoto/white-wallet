@@ -64,7 +64,7 @@
     <string name="activity_sent_note">Sent a banknote</string>
     <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a banknote may cost a split fee.</string>
     <string name="move_adds_mint">%1$s will be added to the providers of %2$s.</string>
-    <string name="home_key_changed_body">Nothing is sent there until it matches again, or you accept a new key in the provider\'s details. Your banknotes there are unchanged.</string>
+    <string name="home_key_changed_body">Nothing is sent there until it matches again, or you accept a new key in the provider\'s details.</string>
     <string name="notes_title">Banknotes</string>
     <string name="notes_settings">Banknote settings</string>
     <plurals name="notes_count">
@@ -151,12 +151,12 @@
     <string name="notes_problem_invalid_amount">This banknote is too small to split, or the amount doesn\'t fit.</string>
     <string name="notes_problem_same_mint">The banknotes are already there.</string>
     <string name="notes_problem_mint_invalid">That address can\'t hold banknotes.</string>
-    <string name="notes_problem_key_changed">The signing key of the provider doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the provider\'s details. Your banknotes there are unchanged.</string>
+    <string name="notes_problem_key_changed">The signing key of the provider doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the provider\'s details.</string>
     <string name="receive_hint">Anyone can pay this address from any Lightning wallet. Payments arrive as banknotes in this wallet.</string>
     <string name="receive_claim">Claim a banknote instead</string>
     <string name="send_create_note">Create a banknote</string>
     <string name="send_problem_refused">The provider refused this payment.</string>
-    <string name="send_problem_key_changed">The signing key of the provider doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the provider\'s details. Your banknotes there are unchanged.</string>
+    <string name="send_problem_key_changed">The signing key of the provider doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the provider\'s details.</string>
     <string name="send_problem_own_mint_invoice">This invoice is from your own provider, which can\'t pay itself over Lightning. Ask for a Lightning address instead.</string>
     <string name="send_problem_mint_message">Message from the provider: “%1$s”</string>
     <string name="note_create_title">Send as a banknote</string>
@@ -174,7 +174,7 @@
     <string name="note_unconfirmed">The provider hasn\'t been asked about this banknote yet. Your wallet asks once it\'s online.</string>
     <string name="note_unknown_to_mint">The provider doesn\'t know this banknote, so the link may not work.</string>
     <string name="scan_unknown">This QR code isn\'t a payment or a banknote.</string>
-    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created there until it matches again, or you accept a new key. Payments to your addresses there wait until then. Your banknotes there are unchanged.</string>
+    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept a new key. Payments to your addresses there wait until then.</string>
     <string name="settings_notes">Banknote settings</string>
     <string name="settings_note_list">Banknotes</string>
     <string name="settings_note_list_hint">See your banknotes one by one, share, split or combine them</string>
