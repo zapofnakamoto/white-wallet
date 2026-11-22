@@ -50,6 +50,42 @@ class SuccessScreenTest {
         assertEquals(listOf(Anchor.MintAdded to WalletStatus.Done(0)), decorated.distinct())
     }
 
+    @Test fun aProblemTakesTheSameLayout() = sameLayout(ResultTone.Problem)
+
+    @Test fun aWaitTakesTheSameLayout() = sameLayout(ResultTone.Waiting)
+
+    private fun sameLayout(tone: ResultTone) {
+        run {
+            val decorated = mutableListOf<Anchor>()
+            var done = false
+            val design =
+                object : BrandDesign {
+                    @Composable
+                    override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                        decorated += anchor
+                        default()
+                    }
+                }
+            compose.setContent {
+                CompositionLocalProvider(LocalBrandDesign provides design) {
+                    ResultScreen(
+                        tone,
+                        Anchor.ClaimResult,
+                        WalletStatus.None,
+                        "This note has already been spent.",
+                        SuccessAction("Done") { done = true },
+                        lines = listOf("Nothing was added to your wallet."),
+                    )
+                }
+            }
+            compose.onNodeWithText("This note has already been spent.").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            compose.onNodeWithText("Nothing was added to your wallet.").assertExists()
+            compose.onNodeWithText("Done").performClick()
+            assertTrue(done)
+            assertEquals(listOf(Anchor.ClaimResult), decorated.distinct())
+        }
+    }
+
     @Test
     fun withoutAnAmountOrSecondButtonOnlyTheDoneButtonShows() {
         var done = false

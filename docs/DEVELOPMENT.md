@@ -123,8 +123,9 @@ English is the source; **German** (`values-de`) is complete in every module and 
 
 Whatever the user did that worked ends on `SuccessScreen` (core/designsystem), the same on every screen: the brand's
 picture at an anchor of its own, a heading, the amount if there is one, `lines`, extra `content` if needed, and
-`SuccessAction`s at the bottom (back does what the main one does). A failure is not a success: it keeps its own screen.
-Adding one:
+`SuccessAction`s at the bottom (back does what the main one does). A failure or a wait is not a success: it ends on
+`ResultScreen` with `ResultTone.Problem` (a warning mark, a "reject" buzz) or `ResultTone.Waiting` (a clock, no buzz),
+the same layout with the anchor of the screen's other results (Claim's are all on one screen this way). Adding a success:
 - an anchor in `Anchor.kt` with its KDoc (screen, status, default), and its row in docs/WHITE_LABEL.md;
 - the status `WalletStatus.Done(found)`, or the money statuses for a payment;
 - strings in `values` and `values-de` (in the *Brand terms* block if they name the mint or a note);

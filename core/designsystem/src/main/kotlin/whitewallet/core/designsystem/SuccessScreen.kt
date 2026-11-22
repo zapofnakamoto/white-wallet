@@ -30,8 +30,15 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.walletSpacing
 
-/** A button of a [SuccessScreen]: what it says and what it does. */
+/** A button of a [SuccessScreen] or [ResultScreen]: what it says and what it does. */
 @Immutable class SuccessAction(val label: String, val onClick: () -> Unit)
+
+/** How something ended, for a [ResultScreen]: it worked, it didn't, or it is still to come. */
+enum class ResultTone {
+    Success,
+    Problem,
+    Waiting,
+}
 
 /**
  * The whole screen after something worked, the same everywhere (money moved, a mint, an address or an account added, a scan finished): the
@@ -51,9 +58,33 @@ fun SuccessScreen(
     amountMsat: Long? = null,
     lines: List<String> = emptyList(),
     content: (@Composable ColumnScope.() -> Unit)? = null,
+) = ResultScreen(ResultTone.Success, anchor, status, title, done, modifier, more, amountMsat, lines, content)
+
+/**
+ * The whole screen at the end of something, success or not, laid out as a [SuccessScreen]: its picture by [tone] (a check mark, a warning
+ * mark, a clock), which the brand may replace at [anchor]. A problem buzzes differently from a success; a wait doesn't buzz.
+ */
+@Composable
+fun ResultScreen(
+    tone: ResultTone,
+    anchor: Anchor,
+    status: WalletStatus,
+    title: String,
+    done: SuccessAction,
+    modifier: Modifier = Modifier,
+    more: SuccessAction? = null,
+    amountMsat: Long? = null,
+    lines: List<String> = emptyList(),
+    content: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val haptics = LocalHapticFeedback.current
-    LaunchedEffect(status) { haptics.performHapticFeedback(HapticFeedbackType.Confirm) }
+    LaunchedEffect(status) {
+        when (tone) {
+            ResultTone.Success -> haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            ResultTone.Problem -> haptics.performHapticFeedback(HapticFeedbackType.Reject)
+            ResultTone.Waiting -> Unit
+        }
+    }
     BackHandler(onBack = done.onClick)
     val spacing = MaterialTheme.walletSpacing
     Column(
@@ -68,7 +99,15 @@ fun SuccessScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(spacing.gap, Alignment.CenterVertically),
             ) {
-                WalletStatusScope(status) { BrandDecoration(anchor) { SuccessCheck() } }
+                WalletStatusScope(status) {
+                    BrandDecoration(anchor) {
+                        when (tone) {
+                            ResultTone.Success -> SuccessCheck()
+                            ResultTone.Problem -> ProblemMark()
+                            ResultTone.Waiting -> WaitingMark()
+                        }
+                    }
+                }
                 Text(
                     title,
                     style = MaterialTheme.typography.headlineSmall,
