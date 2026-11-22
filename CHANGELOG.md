@@ -42,6 +42,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   restoring". For brands: `onboarding_error_mint_without_key` has new words (it no longer says the mint "publishes no
   signing key", which the wallet can't know), and `add_mint_key_unanswered` and `add_mint_check_again` are new. For
   developers: `MintPreview.Ready.keyAnswered`.
+- A mint picked from the list of mints is asked at once what it is, so one that isn't answering or shows no signing key
+  says so right there, before "Next", and keeps a line under its name in the list. "Next" uses that answer instead of
+  asking again. No mint is asked before the user acts on it: not the one preselected, nor the others in the list, and
+  a typed address only on "Next". For brands: `add_mint_pick_without_key`, `add_mint_row_not_answering` and
+  `add_mint_row_without_key` are new.
 - Receive finds a payment to the Lightning address it shows sooner: it looks there at once, then every 5 seconds, and
   only at that address (its share, at its own mint) instead of refreshing the whole wallet every 15 seconds. For brands:
   `sync.receive` now defaults to `5s`. For developers: `Wallet.lookForPayments(address)`.

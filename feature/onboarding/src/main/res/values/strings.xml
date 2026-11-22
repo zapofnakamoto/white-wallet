@@ -132,6 +132,11 @@
     <string name="add_mint_key_none">Not shown</string>
     <!-- On what a mint is, in place of the add button: it answers, but couldn't be asked for its signing key. %1$s: the mint. -->
     <string name="add_mint_key_unanswered">%1$s isn\'t answering, so it can\'t be added. Try again later.</string>
+    <!-- Under the mint picked from the list, before going on: it showed no signing key. %1$s: the mint. Its page says more. -->
+    <string name="add_mint_pick_without_key">%1$s isn\'t showing its signing key, so it can\'t be added.</string>
+    <!-- Under a mint's name in the list of mints: what the wallet learned when the user picked it -->
+    <string name="add_mint_row_not_answering">Isn\'t answering</string>
+    <string name="add_mint_row_without_key">Not showing its signing key</string>
     <!-- Asks a mint that showed no signing key again what it is -->
     <string name="add_mint_check_again">Check again</string>
     <string name="add_mint_account">Account %1$d</string>

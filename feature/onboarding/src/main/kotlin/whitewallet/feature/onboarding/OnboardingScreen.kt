@@ -322,6 +322,8 @@ internal fun MintPicker(
     customHost: String,
     busy: Boolean,
     mint: MintActions,
+    /** What is known to be wrong with a mint of the list, by host: said under its name. */
+    problems: Map<String, MintProblem> = emptyMap(),
 ) {
     var expanded by remember { mutableStateOf(false) }
     val small = MaterialTheme.typography.bodyMedium
@@ -348,6 +350,18 @@ internal fun MintPicker(
                                     stringResource(R.string.onboarding_mint_local),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            problems[option.host]?.let { problem ->
+                                Text(
+                                    stringResource(
+                                        when (problem) {
+                                            MintProblem.NotAnswering -> R.string.add_mint_row_not_answering
+                                            MintProblem.NoSigningKey -> R.string.add_mint_row_without_key
+                                        }
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
                                 )
                             }
                         }

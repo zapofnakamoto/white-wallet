@@ -129,7 +129,7 @@ fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
 @Composable
 private fun PickContent(state: AddMintState, actions: AddMintActions) {
     Text(stringResource(if (state.setup) R.string.add_mint_setup_body else R.string.add_mint_body), textAlign = TextAlign.Center)
-    if (state.showMintPicker) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, actions.mint)
+    if (state.showMintPicker) MintPicker(state.mintOptions, state.selectedMint, state.customHost, state.busy, actions.mint, state.problems)
     else Text(state.host, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
     state.error?.let { error ->
         Text(
@@ -137,6 +137,8 @@ private fun PickContent(state: AddMintState, actions: AddMintActions) {
                 AddMintError.NotAllowed -> stringResource(R.string.add_mint_error_not_allowed)
                 AddMintError.Unreachable -> stringResource(R.string.add_mint_error_unreachable)
                 is AddMintError.Invalid -> stringResource(R.string.add_mint_error_invalid, error.detail)
+                is AddMintError.WithoutKey ->
+                    stringResource(if (error.asked) R.string.add_mint_pick_without_key else R.string.add_mint_key_unanswered, error.host)
             },
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,

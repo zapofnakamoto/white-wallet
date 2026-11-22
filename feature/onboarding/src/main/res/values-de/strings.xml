@@ -123,6 +123,9 @@
     <string name="add_mint_key_none">Nicht angegeben</string>
     <string name="add_mint_key_unanswered">%1$s antwortet nicht und lässt sich daher nicht hinzufügen. Versuche es später erneut.</string>
     <string name="add_mint_check_again">Erneut prüfen</string>
+    <string name="add_mint_pick_without_key">%1$s zeigt den Signaturschlüssel nicht und lässt sich daher nicht hinzufügen.</string>
+    <string name="add_mint_row_not_answering">Antwortet nicht</string>
+    <string name="add_mint_row_without_key">Zeigt keinen Signaturschlüssel</string>
     <string name="add_mint_account">Konto %1$d</string>
     <string name="add_mint_account_looking">Wird gesucht…</string>
     <string name="add_mint_account_empty">Nichts</string>

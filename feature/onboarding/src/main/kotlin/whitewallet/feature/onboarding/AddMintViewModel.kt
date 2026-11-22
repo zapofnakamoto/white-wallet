@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -38,6 +40,15 @@ sealed interface AddMintError {
     data object Unreachable : AddMintError
 
     data class Invalid(val detail: String) : AddMintError
+
+    /** It answers, but showed no signing key; [asked] false: it couldn't be asked for it. Its page says more, and asks again. */
+    data class WithoutKey(val host: String, val asked: Boolean) : AddMintError
+}
+
+/** What the wallet learned about a mint of the list when the user picked it or went on with it: its row says so until it answers well. */
+enum class MintProblem {
+    NotAnswering,
+    NoSigningKey,
 }
 
 /** An account holding money on the added mint, by its name. */
@@ -67,6 +78,8 @@ data class AddMintState(
     val host: String = "",
     /** The wallet's mints already: picking one again looks through it again. */
     val known: Set<String> = emptySet(),
+    /** The mints of the list a problem is known of, by host. None is asked for its row: only one the user acted on. */
+    val problems: Map<String, MintProblem> = emptyMap(),
     val busy: Boolean = false,
     val error: AddMintError? = null,
     val preview: MintPreview.Ready? = null,
@@ -115,6 +128,12 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
     val state: StateFlow<AddMintState> = _state
     private var initialized = false
 
+    /** The mint the user picked from the list, and what it answered when asked at once: going on uses that answer. */
+    private var picked: Pair<String, Deferred<MintPreview>>? = null
+
+    /** The mint the user picked from the list; none for the one preselected, which is only asked once the user goes on. */
+    private var pickedHost: String? = null
+
     /** Call once from the screen; [setup]: the wallet's setup step. */
     fun init(setup: Boolean) {
         if (initialized) return
@@ -154,13 +173,67 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
         _state.update { it.copy(offline = offline, error = it.error.takeUnless { offline && it == AddMintError.Unreachable }) }
         val s = _state.value
         if (back && s.loaded && s.step == AddMintStep.Pick && !s.showMintPicker && s.host.isNotBlank()) next()
+        // A mint picked while offline couldn't be asked then.
+        if (back && s.step == AddMintStep.Pick && !s.busy && picked == null && s.host == pickedHost) askPicked(s.host)
     }
 
-    fun onMintSelected(option: MintOption) = _state.update {
-        it.copy(selectedMint = option, host = option.host ?: it.customHost, error = null)
+    /** Picking a mint from the list is acting on it: it is asked at once what it is, so its problem shows before going on. */
+    fun onMintSelected(option: MintOption) {
+        _state.update { it.copy(selectedMint = option, host = option.host ?: it.customHost, error = null) }
+        pickedHost = option.host
+        askPicked(option.host)
     }
 
-    fun onCustomHostChange(value: String) = _state.update { it.copy(customHost = value, host = value, error = null) }
+    /** An address being typed is asked only once the user goes on. */
+    fun onCustomHostChange(value: String) {
+        askPicked(null)
+        pickedHost = null
+        _state.update { it.copy(customHost = value, host = value, error = null) }
+    }
+
+    /**
+     * Asks [host], just picked, what it is, in place of an earlier pick's question; nothing is saved, and the page doesn't wait for it. Its
+     * problem shows if it is still the mint picked when the answer comes; one that is fine shows nothing.
+     */
+    private fun askPicked(host: String?) {
+        picked?.second?.cancel()
+        picked = null
+        if (host == null || _state.value.offline || !defaults.mintAllowed(host)) return
+        val answer = viewModelScope.async { wallet.previewMint(host) }
+        picked = host to answer
+        viewModelScope.launch {
+            val preview = answer.await()
+            learned(host, preview)
+            _state.update {
+                if (it.step == AddMintStep.Pick && !it.busy && it.host == host) it.copy(error = problemOf(host, preview)) else it
+            }
+        }
+    }
+
+    /** Why [host], which answered with [preview], can't be added as it is, as the pick says it; null if it can. */
+    private fun problemOf(host: String, preview: MintPreview): AddMintError? =
+        when (preview) {
+            is MintPreview.Unreachable -> AddMintError.Unreachable
+            is MintPreview.Invalid -> AddMintError.Invalid(preview.reason)
+            is MintPreview.Ready ->
+                if (preview.signingKey == null && !preview.keyDiffers) AddMintError.WithoutKey(host, preview.keyAnswered) else null
+        }
+
+    /** Keeps for the list what [host] answered: its problem, or that it has none any more. */
+    private fun learned(host: String, preview: MintPreview) {
+        val problem =
+            when (preview) {
+                is MintPreview.Unreachable,
+                is MintPreview.Invalid -> MintProblem.NotAnswering
+                is MintPreview.Ready ->
+                    when {
+                        preview.signingKey != null || preview.keyDiffers -> null
+                        preview.keyAnswered -> MintProblem.NoSigningKey
+                        else -> MintProblem.NotAnswering
+                    }
+            }
+        _state.update { it.copy(problems = if (problem == null) it.problems - host else it.problems + (host to problem)) }
+    }
 
     /** Asks the picked mint what it is; nothing is saved yet. */
     fun next() {
@@ -168,12 +241,22 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
         if (!s.canNext) return
         if (!defaults.mintAllowed(s.host)) return _state.update { it.copy(error = AddMintError.NotAllowed) }
         _state.update { it.copy(busy = true, error = null) }
-        viewModelScope.launch { preview(s.host) }
+        val answer = picked?.takeIf { it.first == s.host }?.second
+        picked = null
+        viewModelScope.launch {
+            // The answer the pick got, awaited if it is still on its way; a mint that didn't answer then is asked again.
+            val known = answer?.await() as? MintPreview.Ready
+            show(known ?: wallet.previewMint(s.host))
+        }
     }
 
     /** What [host] is now: its info, or back to the pick saying why not. */
-    private suspend fun preview(host: String) {
-        when (val preview = wallet.previewMint(host)) {
+    private suspend fun preview(host: String) = show(wallet.previewMint(host))
+
+    /** Goes on with what the mint picked answered. */
+    private fun show(preview: MintPreview) {
+        learned(_state.value.host, preview)
+        when (preview) {
             is MintPreview.Ready -> _state.update { it.copy(busy = false, step = AddMintStep.Info, preview = preview) }
             is MintPreview.Unreachable ->
                 _state.update { it.copy(busy = false, step = AddMintStep.Pick, preview = null, error = AddMintError.Unreachable) }

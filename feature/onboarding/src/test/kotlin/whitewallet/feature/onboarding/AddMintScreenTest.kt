@@ -382,6 +382,34 @@ class AddMintScreenTest {
     }
 
     @Test
+    fun aPickedMintWithoutItsKeySaysSoBeforeGoingOn() {
+        var next = 0
+        show(pick.copy(error = AddMintError.WithoutKey("mint.example", asked = true)), AddMintActions(onNext = { next++ }))
+        compose.onNodeWithText(text(R.string.add_mint_pick_without_key, "mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_next)).performClick()
+        assertEquals(1, next)
+    }
+
+    @Test
+    fun aPickedMintThatCouldntBeAskedForItsKeyIsntAnswering() {
+        show(pick.copy(error = AddMintError.WithoutKey("mint.example", asked = false)))
+        compose.onNodeWithText(text(R.string.add_mint_key_unanswered, "mint.example")).assertExists()
+    }
+
+    @Test
+    fun theListSaysWhatIsKnownToBeWrongWithAMint() {
+        val several =
+            listOf(MintOption.Suggested("mint.example"), MintOption.Suggested("down.example"), MintOption.Suggested("keyless.example"))
+        val problems = mapOf("down.example" to MintProblem.NotAnswering, "keyless.example" to MintProblem.NoSigningKey)
+        show(pick.copy(mintOptions = several, selectedMint = several.first(), problems = problems))
+        compose.onNodeWithText(text(R.string.add_mint_row_not_answering)).assertDoesNotExist()
+        compose.onNodeWithText("mint.example").performClick()
+        compose.onNodeWithText("down.example").assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_row_not_answering)).assertExists()
+        compose.onNodeWithText(text(R.string.add_mint_row_without_key)).assertExists()
+    }
+
+    @Test
     fun untilTheMintsToPickFromAreKnownOnlyTheTitleShows() {
         show(AddMintState(host = "mint.example", loaded = false))
         compose.onNodeWithText("mint.example").assertDoesNotExist()
