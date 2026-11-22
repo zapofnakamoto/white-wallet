@@ -63,9 +63,9 @@ data class MoveFundsState(
     val amountMsat: Long?
         get() = if (everything) null else amountSats.toLongOrNull()?.times(1000)
 
+    /** Offered at work ([busy]) too: the button locks itself then and keeps its look. */
     val canMove: Boolean
-        get() =
-            !busy && targetId != null && (from?.balanceMsat ?: 0) > 0 && (everything || (amountMsat ?: 0) in 1..(from?.balanceMsat ?: 0))
+        get() = targetId != null && (from?.balanceMsat ?: 0) > 0 && (everything || (amountMsat ?: 0) in 1..(from?.balanceMsat ?: 0))
 }
 
 private data class Input(
@@ -118,7 +118,7 @@ class MoveFundsViewModel @Inject constructor(private val wallet: Wallet, private
     fun move() {
         val s = state.value
         val target = s.targetId ?: return
-        if (!s.canMove) return
+        if (!s.canMove || s.busy) return
         input.update { it.copy(busy = true) }
         viewModelScope.launch {
             val check = wallet.checkMoveFunds(target, s.amountMsat)

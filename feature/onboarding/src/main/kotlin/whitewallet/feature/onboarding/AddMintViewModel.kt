@@ -106,8 +106,9 @@ data class AddMintState(
     val showMintPicker: Boolean
         get() = mintOptions.hasChoice()
 
+    /** Next is offered. At work ([busy]) it still is: the button locks itself then and keeps its look. */
     val canNext: Boolean
-        get() = !offline && !busy && host.isNotBlank()
+        get() = !offline && host.isNotBlank()
 
     val foundMsat: Long
         get() = found.sumOf { it.amountMsat }
@@ -238,7 +239,7 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
     /** Asks the picked mint what it is; nothing is saved yet. */
     fun next() {
         val s = _state.value
-        if (!s.canNext) return
+        if (!s.canNext || s.busy) return
         if (!defaults.mintAllowed(s.host)) return _state.update { it.copy(error = AddMintError.NotAllowed) }
         _state.update { it.copy(busy = true, error = null) }
         val answer = picked?.takeIf { it.first == s.host }?.second

@@ -139,8 +139,9 @@ data class MoneyMoveState(
     val canChoose: Boolean
         get() = (changingHome || mode == MoneyMoveMode.MoveHome) && !collects && movable.isNotEmpty()
 
+    /** Offered at work ([busy]) too: the button locks itself then and keeps its look. */
     val canContinue: Boolean
-        get() = !offline && !busy && target != null
+        get() = !offline && target != null
 }
 
 @HiltViewModel
@@ -205,7 +206,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
     fun review() {
         val s = _state.value
         val target = s.target ?: return
-        if (!s.canContinue) return
+        if (!s.canContinue || s.busy) return
         _state.update { it.copy(busy = true, error = null) }
         launchFailing(target) {
             val preview = wallet.previewMove(target, s.from) ?: return@launchFailing fail(MoneyMoveError.Mint(target))

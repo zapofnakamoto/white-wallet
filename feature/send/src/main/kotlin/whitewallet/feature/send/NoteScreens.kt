@@ -112,8 +112,9 @@ data class CreateNoteState(
     val amountMsat: Long?
         get() = amountText.toLongOrNull()?.takeIf { it > 0 }?.times(1000)
 
+    /** Offered at work ([creating]) too: the button locks itself then and keeps its look. */
     val canCreate: Boolean
-        get() = !offline && !creating && !quoting && (quote as? PayQuote.Ok)?.amountMsat == amountMsat
+        get() = !offline && !quoting && (quote as? PayQuote.Ok)?.amountMsat == amountMsat
 }
 
 @HiltViewModel
@@ -176,7 +177,7 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
     fun create() {
         val s = _state.value
         val amount = s.amountMsat ?: return
-        if (!s.canCreate) return
+        if (!s.canCreate || s.creating) return
         _state.update { it.copy(creating = true, problem = null, pending = false) }
         viewModelScope.launch {
             when (val result = wallet.createNote(amount, s.from)) {

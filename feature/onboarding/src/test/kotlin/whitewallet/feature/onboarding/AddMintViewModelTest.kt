@@ -124,6 +124,12 @@ class AddMintViewModelTest {
         }
 
     @Test
+    fun `while the mint is asked, Next keeps its look`() {
+        // The button is locked by busy; disabled as well, it would turn grey while it works.
+        assertTrue(AddMintState(host = first, busy = true).canNext)
+    }
+
+    @Test
     fun `a mint picked from the list is asked at once, and its missing key shows without going on`() =
         runBlocking<Unit> {
             mints[other] = Mint.NoKey

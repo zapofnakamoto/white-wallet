@@ -134,8 +134,9 @@ data class OnboardingState(
     val showMintPicker: Boolean
         get() = canChangeHost && mintOptions.hasChoice()
 
+    /** Offered at work ([busy]) too: the button locks itself then and keeps its look. */
     val canSubmit: Boolean
-        get() = !busy && host.isNotBlank() && addressOk
+        get() = host.isNotBlank() && addressOk
 
     val canSkip: Boolean
         get() = canSkipAddress && !busy
@@ -335,7 +336,7 @@ constructor(
 
     fun start() {
         val s = _state.value
-        if (!s.canSubmit) return
+        if (!s.canSubmit || s.busy) return
         checkJob?.cancel()
         busy { submit(s) }
     }

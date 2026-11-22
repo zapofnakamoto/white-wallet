@@ -39,8 +39,9 @@ data class RestoreState(
     val hint: PhraseCheck
         get() = RecoveryPhrase.checkWhileTyping(phrase)
 
+    /** Offered at work ([busy]) too: the button locks itself then and keeps its look. */
     val canSubmit: Boolean
-        get() = !busy && check is PhraseCheck.Valid
+        get() = check is PhraseCheck.Valid
 }
 
 /** Brings a wallet back from its recovery phrase alone: what it holds is found as its mints are added, in the next steps. */
@@ -63,7 +64,7 @@ class RestoreViewModel @Inject constructor(private val wallet: Wallet, preferenc
     /** Restores the phrase as a wallet named [name] (the app's word for a first wallet, in the user's language). */
     fun restore(name: String) {
         val s = _state.value
-        if (!s.canSubmit) return
+        if (!s.canSubmit || s.busy) return
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             val error =
