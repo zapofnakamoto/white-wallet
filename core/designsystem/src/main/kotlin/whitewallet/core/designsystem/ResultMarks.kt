@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -33,7 +34,9 @@ fun WaitingMark(modifier: Modifier = Modifier, size: Dp = 112.dp) {
         val radius = this.size.minDimension / 2 * 0.8f
         val unit = radius / 40
         drawCircle(color, radius)
-        drawLine(hands, center, Offset(center.x, center.y - 20 * unit), 6 * unit, StrokeCap.Round)
-        drawLine(hands, center, Offset(center.x + 14 * unit, center.y), 6 * unit, StrokeCap.Round)
+        drawCircle(hands, 27 * unit, style = Stroke(width = 4 * unit))
+        drawLine(hands, center, Offset(center.x, center.y - 18 * unit), 5 * unit, StrokeCap.Round)
+        drawLine(hands, center, Offset(center.x + 12 * unit, center.y), 5 * unit, StrokeCap.Round)
+        drawCircle(hands, 3.5f * unit)
     }
 }
