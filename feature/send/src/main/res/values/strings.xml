@@ -98,6 +98,8 @@
     <string name="note_waiting">Not claimed yet. You can take it back until then.</string>
     <string name="note_checked_at">Last checked: %1$s</string>
     <string name="note_share">Share</string>
+    <string name="note_format_lnurlw">lnurlw://</string>
+    <string name="note_format_lnurl">LNURL</string>
     <string name="note_qr_show">Tap to show the QR code</string>
     <string name="note_print">Print</string>
     <string name="note_print_warning">Whoever holds this paper can spend it. Keep it like cash.</string>

@@ -60,6 +60,7 @@ import whitewallet.core.designsystem.SensitiveClipboard
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletNoteFace
 import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.WalletTextField
@@ -402,6 +403,8 @@ fun SharedNoteScreen(
     // The QR code is money: covered until the user taps, and covered again whenever the app leaves the screen.
     var qrShown by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { qrShown = false }
+    // Some wallets read only bech32 LNURL1: the user picks the form when theirs doesn't scan; Share, Copy and Print follow it.
+    var format by rememberSaveable { mutableStateOf(NoteLinkFormat.Lnurlw) }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_title), onBack) }) { padding ->
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             val note = state.note
@@ -428,13 +431,20 @@ fun SharedNoteScreen(
                 qrCode =
                     link?.let { l ->
                         {
-                            if (qrShown) QrCode(l, description = qrDescription)
+                            if (qrShown) QrCode(format.qr(l), description = qrDescription)
                             else QrCodeCover(stringResource(R.string.note_qr_show), onReveal = { qrShown = true })
                         }
                     },
                 place = NoteFacePlace.Shared,
                 qrCovered = link != null && !qrShown,
             )
+            if (link != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    NoteLinkFormat.entries.forEach {
+                        WalletFilterChip(selected = format == it, onClick = { format = it }, label = { Text(stringResource(it.label)) })
+                    }
+                }
+            }
             when (note.state) {
                 SharedNoteState.Waiting ->
                     if (link != null) {
@@ -452,10 +462,18 @@ fun SharedNoteScreen(
                         if (note.unknownToMint) Text(stringResource(R.string.note_unknown_to_mint), color = MaterialTheme.colorScheme.error)
                         if (!note.certified) Text(stringResource(R.string.note_uncertified), style = MaterialTheme.typography.bodySmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            WalletButton(kind = ButtonKind.Secondary, onClick = { onShare(link) }, modifier = Modifier.weight(1f)) {
+                            WalletButton(
+                                kind = ButtonKind.Secondary,
+                                onClick = { onShare(format.text(link)) },
+                                modifier = Modifier.weight(1f),
+                            ) {
                                 Text(stringResource(R.string.note_share))
                             }
-                            WalletButton(kind = ButtonKind.Secondary, onClick = { onCopy(link) }, modifier = Modifier.weight(1f)) {
+                            WalletButton(
+                                kind = ButtonKind.Secondary,
+                                onClick = { onCopy(format.text(link)) },
+                                modifier = Modifier.weight(1f),
+                            ) {
                                 Text(stringResource(R.string.note_copy))
                             }
                             if (state.canPrint) {
@@ -522,7 +540,7 @@ fun SharedNoteScreen(
                 note.amountMsat,
                 status = NoteStatus.Waiting,
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
-                qrCode = { QrCode(checkNotNull(note.link), description = qrDescription) },
+                qrCode = { QrCode(format.qr(checkNotNull(note.link)), description = qrDescription) },
                 place = NoteFacePlace.Paper,
             )
             Text(stringResource(R.string.note_print_warning), textAlign = TextAlign.Center)

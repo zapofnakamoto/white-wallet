@@ -349,6 +349,75 @@ class SharedNoteScreenTest {
         compose.onNodeWithText(text(R.string.note_qr_show)).assertExists()
     }
 
+    private val noteLink = "lnurlw://mint.example/w?k1=ck1abc"
+
+    /** A waiting note with a real link, recording what Share and Copy hand over; [owner] stands in for the app's lifecycle. */
+    private fun showLink(handed: MutableList<String>, owner: LifecycleOwner? = null) = compose.setContent {
+        val screen =
+            @Composable {
+                SharedNoteScreen(
+                    SharedNoteUiState(note = note(SharedNoteState.Waiting).copy(link = noteLink), loading = false),
+                    onBack = {},
+                    onShare = { handed += "share $it" },
+                    onCopy = { handed += "copy $it" },
+                    onAskReclaim = {},
+                    onDismissReclaim = {},
+                    onReclaim = {},
+                )
+            }
+        if (owner == null) screen() else CompositionLocalProvider(LocalLifecycleOwner provides owner) { screen() }
+    }
+
+    @Test
+    fun aWaitingNoteOffersBothFormatsAndStartsOnTheLinkAsItIs() {
+        val handed = mutableListOf<String>()
+        showLink(handed)
+        compose.onNodeWithText(text(R.string.note_format_lnurlw)).assertExists()
+        compose.onNodeWithText(text(R.string.note_format_lnurl)).assertExists()
+        compose.onNodeWithText(text(R.string.note_copy)).performScrollTo().performClick()
+        assertEquals(listOf("copy $noteLink"), handed)
+    }
+
+    @Test
+    fun pickingLnurlChangesShareAndCopyEvenWhileTheCodeIsCovered() {
+        val handed = mutableListOf<String>()
+        showLink(handed)
+        compose.onNodeWithText(text(R.string.note_format_lnurl)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.note_qr_show)).assertExists()
+        compose.onNodeWithText(text(R.string.note_share)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.note_copy)).performScrollTo().performClick()
+        val lnurl = NoteLinkFormat.Lnurl.text(noteLink)
+        assertTrue(lnurl, lnurl.startsWith("lightning:LNURL1"))
+        assertEquals(listOf("share $lnurl", "copy $lnurl"), handed)
+    }
+
+    @Test
+    fun theFormatStaysWhenTheCodeIsCoveredAgain() {
+        val owner =
+            object : LifecycleOwner {
+                val registry = LifecycleRegistry(this)
+                override val lifecycle: Lifecycle
+                    get() = registry
+            }
+        compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
+        val handed = mutableListOf<String>()
+        showLink(handed, owner)
+        compose.onNodeWithText(text(R.string.note_format_lnurl)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.note_qr_show)).performClick()
+        compose.runOnIdle { owner.registry.currentState = Lifecycle.State.CREATED }
+        compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
+        compose.onNodeWithText(text(R.string.note_qr_show)).assertExists()
+        compose.onNodeWithText(text(R.string.note_copy)).performScrollTo().performClick()
+        assertEquals(listOf("copy ${NoteLinkFormat.Lnurl.text(noteLink)}"), handed)
+    }
+
+    @Test
+    fun aSpentNoteHasNoFormatSwitch() {
+        show(note(SharedNoteState.Spent))
+        compose.onNodeWithText(text(R.string.note_format_lnurl)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.note_format_lnurlw)).assertDoesNotExist()
+    }
+
     @Test
     fun aBrandDrawsTheCoverAndTheAppKeepsTheTap() {
         val spark =

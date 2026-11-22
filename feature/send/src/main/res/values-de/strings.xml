@@ -87,6 +87,8 @@
     <string name="note_waiting">Noch nicht eingelöst. Bis dahin kannst du ihn zurückholen.</string>
     <string name="note_checked_at">Zuletzt geprüft: %1$s</string>
     <string name="note_share">Teilen</string>
+    <string name="note_format_lnurlw">lnurlw://</string>
+    <string name="note_format_lnurl">LNURL</string>
     <string name="note_qr_show">Tippen, um den QR-Code zu zeigen</string>
     <string name="note_print">Drucken</string>
     <string name="note_print_warning">Wer dieses Papier hat, kann es ausgeben. Bewahre es auf wie Bargeld.</string>
