@@ -128,8 +128,10 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `settings_no_home_action` | Choose home mint |
 | `notice_moved_home` | Moved %1$s to your home mint |
 | `notes_checked_unknown` | The mint doesn't know %1$d note. It's set aside, out of your balance, and your wallet asks again by itself. / The mint doesn't know %1$d notes. They're set aside, out of your balance, and your wallet asks again by itself. (plural) |
+| `notes_checked_handed_out` | The mint knows %1$d note you handed out again. It waits to be claimed. / The mint knows %1$d notes you handed out again. They wait to be claimed. (plural) |
 | `notes_state_unknown` | Unknown to the mint |
 | `notes_state_unknown_detail` | The mint says it doesn't know this note, so it isn't in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, it's back in your balance. |
+| `notes_state_unknown_handed_out_detail` | You handed this note out, but the mint says it doesn't know it, so nobody can claim it yet. Your wallet asks the mint again by itself; once the mint knows it again, it waits to be claimed. |
 | `notes_archived_notes` | %d note its mint doesn't know / %d notes their mint doesn't know (plural) |
 | `notes_archived_done` | Moved %d note to the archive. / Moved %d notes to the archive. (plural) |
 | `archive_notes_title` | Notes |
@@ -170,7 +172,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `add_mint_setup_body` | The mint holds your money and makes the invoices you get paid with. Pick one; you can add more later. |
 | `add_mint_body` | Pick a mint. If your recovery phrase holds money there, it is found. |
 | `add_mint_error_not_allowed` | This app doesn't work with that mint. Pick another one. |
-| `add_mint_error_invalid` | That isn't a mint this app can use: %1$s |
+| `add_mint_error_invalid` | That isn't a mint this app can use. |
 | `add_mint_known` | This wallet has this mint already. Adding it again looks for your money there again. |
 | `scan_notes_title` | Scan for notes |
 | `scan_mint_checking_notes` | Checking your note… / Checking note %1$d of %2$d… (plural) |
@@ -192,6 +194,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `claim_melt_no_signing_key` | %1$s publishes no signing key, so your wallet doesn't keep money there. It can be received over Lightning instead, for a fee. |
 | `onboarding_error_mint_without_key` | This mint isn't showing its signing key, so it can't be added. Without it your wallet can't check that its notes are real. It may be back in a moment; if not, pick another mint. |
 | `received_key_changed` | The signing key of its mint doesn't match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint's details. |
+| `note_take_back_when_known` | Its mint doesn't know this note right now. Your wallet takes it back as soon as the mint knows it again. |
 | `received_refused` | Its mint kept refusing it, so your wallet stopped trying. |
 | `received_refused_hours` | Its mint kept refusing it for %d hour, so your wallet stopped trying. / Its mint kept refusing it for %d hours, so your wallet stopped trying. (plural) |
 | `received_refused_days` | Its mint kept refusing it for %d day, so your wallet stopped trying. / Its mint kept refusing it for %d days, so your wallet stopped trying. (plural) |
@@ -330,7 +333,8 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `home_working_splitting` | Splitting your notes… |
 | `home_working_renewing` | Renewing your notes… |
 | `note_unconfirmed` | Its mint hasn't been asked about this note yet. Your wallet asks once it's online. |
-| `note_unknown_to_mint` | Its mint doesn't know this note, so the link may not work. |
+| `note_unknown_to_mint` | Its mint doesn't know this note right now, so nobody can claim it yet. Your wallet asks the mint again by itself. |
+| `note_unverified` | You removed this note while its mint didn't know it, so it isn't known whether it was claimed. |
 | `scan_unknown` | This QR code isn't a payment or a note. |
 | `claim_melt_not_a_note` | %1$s doesn't answer for this as a note: it may be a withdraw link of another kind. It can be received over Lightning instead, for a fee. |
 | `release_note_old_keys_title` | Notes from before version 0.8 |
