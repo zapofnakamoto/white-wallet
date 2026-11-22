@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.serialization.json.jsonPrimitive
 import whitewallet.testkit.Vectors
 import whitewallet.testkit.arr
@@ -27,6 +28,16 @@ class LnurlTest {
         val ci = bech32.obj("caseInsensitive")
         assertEquals(ci.str("url"), Lnurl.decodeBech32(ci.str("lower")))
         assertEquals(ci.str("url"), Lnurl.decodeBech32(ci.str("upper")))
+    }
+
+    @Test
+    fun `a link's bech32 form wraps the URL it resolves to, in uppercase`() {
+        val link = Lnurl.bech32Link("lnurlw://mint.example/w?k1=ck1abc&c=cs1xyz")!!
+        assertEquals(link.uppercase(), link)
+        assertTrue(link.startsWith("LNURL1"), link)
+        assertEquals("https://mint.example/w?k1=ck1abc&c=cs1xyz", Lnurl.decodeBech32(link))
+        assertEquals("http://127.0.0.1:3338/w?k1=x", Lnurl.decodeBech32(Lnurl.bech32Link("lnurlw://127.0.0.1:3338/w?k1=x")!!))
+        assertNull(Lnurl.bech32Link("hello"))
     }
 
     @Test

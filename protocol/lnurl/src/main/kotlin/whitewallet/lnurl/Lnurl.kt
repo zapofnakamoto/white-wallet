@@ -24,6 +24,11 @@ public object Lnurl {
     public fun encodeBech32(url: String): String = Bech32.encodeBytes("lnurl", url.encodeToByteArray(), Bech32.Encoding.Bech32).uppercase()
 
     /**
+     * [link] (a LUD-17 scheme, an https URL, …) as an uppercase bech32 LNURL of the URL it resolves to, for wallets that read only LUD-01.
+     */
+    public fun bech32Link(link: String): String? = resolve(link)?.let(::encodeBech32)
+
+    /**
      * Resolves user input (an https URL, a LUD-17 scheme, a bech32 LNURL, a Lightning Address, optionally behind `lightning:`) to the URL
      * to GET. Cleartext http is only allowed for onion and loopback hosts.
      */
