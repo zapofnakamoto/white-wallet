@@ -145,7 +145,9 @@ says where each is enforced.
    the notes are `Ambiguous` until `Reconciler` settles them with lookups by `p`, which never disclose a spend.
    `Unverifiable`: the mutation landed, so the outputs are stored, without a verified certificate.
 4. **A melt is settled by lookup.** The note is `Paying` (out of the balance) until a lookup shows it burned (paid) or
-   spendable again (failed, money back). `pending` means "ask later", never "spent".
+   spendable again (failed: the money stays, and the note is renewed on a fresh key, as its spend went to the mint).
+   For our own melt, `pending` means "ask later", never "spent"; for a note received from someone else, `pending` or 0
+   means someone else is spending it, and it is never tried again.
 5. **A received note is kept first, then claimed** into the wallet's own seed-derived keys, including notes minted by
    paying the mint's own invoice: whoever saw that invoice may know the preimage. The seed can't derive a received
    note's spend, so it is stored with it (`ReceivedNote`) before anything is sent, and stays out of the balance until

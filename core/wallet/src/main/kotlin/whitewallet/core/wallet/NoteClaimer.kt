@@ -100,11 +100,8 @@ sealed interface ClaimPreview {
 
 /** What becomes of a note whose claim was refused ([ClaimResult.Failed]). */
 enum class ClaimFailure {
-    /** Its mint showed it burned: nothing left to claim. */
+    /** Its mint showed it burned (`already in use`, or 0: spent, or its maker's payment of it in flight): nothing left to claim. */
     Spent,
-
-    /** Its mint answered 0 for it (spent, or its maker's payment of it in flight): asked again for a week, claimed if it comes back. */
-    SpentMayReturn,
 
     /** Refused without proof it is gone: kept, and tried again on each refresh for a week. */
     Retrying,

@@ -9,7 +9,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - Every way a claim or a take back ends has a screen of its own, on the success screen's layout: a refused claim says in
   the app's words what happened and what it means ("This note has already been spent." and "Nothing was added to your
-  wallet."; "If it comes back within a week, your wallet claims it."; "Not claimed yet" while it is tried again;
+  wallet."; "Not claimed yet" while it is tried again;
   "Nothing was received" over Lightning), the mint's own words below. Kept, locked and unanswered claims end on it as a
   wait ("Kept for later", "No answer yet"). Once checked, a pasted link takes one line, so the note and its button stay
   in view. For brands: `ResultScreen` with `ResultTone.Problem` (a warning mark, a "reject" buzz) and
@@ -60,6 +60,16 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- A note received from someone else whose mint answers 0 or `pending` for it (spent, or someone paying it out) is now
+  spent for good, at the check as at the claim: its spend is dropped and it is never tried again, whatever becomes of
+  that payment. A note two people try to spend isn't tried again. Notes kept that way by an older version, gone or archived
+  as spent, lose their spend on the next refresh without asking their mint. The wallet's own notes in a payment of its
+  own, and a received note being received over Lightning, are untouched: an answer of 0 there is that payment still
+  in flight.
+- A note of the wallet's own whose payment failed is renewed on a fresh key by the next refresh (free, shown in History
+  as an automatic renewal): its spend went to the mint with the payment.
+- A payment still in flight says what a failure means: "if it fails, nothing is paid and the money stays in your
+  wallet." The archive's handed-out notes say the wallet takes one back if you asked it to.
 - A refused claim or move, and a mint that can't become the home, no longer show the app's own name for why ("Refused",
   "RateLimited", in English in every language): the mint's own words if it gave any, else a plain sentence.
 - Adding a mint, setting up a wallet and the addresses page no longer show the app's or the phone's own English for what

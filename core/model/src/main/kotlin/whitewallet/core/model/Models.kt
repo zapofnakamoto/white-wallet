@@ -191,7 +191,10 @@ enum class ReceivedState {
     /** Renewed to one of the wallet's own keys. */
     Claimed,
 
-    /** Spent by someone else before it was claimed: a lookup by its key answered `already in use`, the only answer that shows it. */
+    /**
+     * Spent by someone else before it was claimed, or being paid out by them: a lookup by its key answered `already in use` or 0, the only
+     * answers that show it. Never tried again.
+     */
     Gone,
 
     /**
@@ -230,8 +233,8 @@ enum class UnclaimedReason {
     ByUser,
 
     /**
-     * Its mint answered 0 for it (spent, or its maker's payment of it still in flight) for a week: archived with its spend, which claims it
-     * if that payment fails and the note comes back.
+     * Older versions only: its mint answered 0 for it for a week. A refresh drops its spend and the note is gone ([ReceivedState.Gone]); no
+     * note is archived for this any more.
      */
     Spent,
 }
@@ -248,10 +251,7 @@ data class ReceivedNote(
     /** The mint host exactly as in the link (port included). */
     val host: String,
     val withdrawUrl: String,
-    /**
-     * The spend; cleared once it is worth nothing ([ReceivedState.Claimed], or [ReceivedState.Gone] as `already in use`). Kept for a note
-     * its mint answered 0 for: its maker's payment of it may still fail.
-     */
+    /** The spend; cleared once it is worth nothing to this wallet ([ReceivedState.Claimed] or [ReceivedState.Gone]). */
     @property:RevealsNoteSecret val k1: String?,
     val certificate: String?,
     /** What the link says it is worth; display only. */

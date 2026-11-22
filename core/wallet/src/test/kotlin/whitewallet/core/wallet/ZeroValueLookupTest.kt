@@ -54,19 +54,84 @@ class ZeroValueLookupTest {
         }
 
     @Test
-    fun `a kept note answered 0 is gone, keeps its spend, and nothing is sent`() =
+    fun `a kept note answered 0 is spent for good, its spend dropped, and nothing is sent`() =
         runBlocking<Unit> {
             LookupMint().use { mint ->
                 val (wallet, accountId) = wallet(mint)
                 val received = received(wallet, accountId, mint)
                 mint.lookups[received.id] = note(0)
                 mint.callback = """{"status":"OK"}"""
-                ReceivedNotes(wallet).claim(received)
+                val result = assertIs<ClaimResult.Failed>(ReceivedNotes(wallet).claim(received))
+                assertEquals(ClaimFailure.Spent, result.outcome)
                 assertEquals(0, mint.callbacks, "no claim went out")
                 val gone = wallet.store.receivedNote(received.id)
                 assertEquals(ReceivedState.Gone, gone?.state)
-                @OptIn(RevealsNoteSecret::class) assertEquals(received.k1, gone?.k1, "its maker's payment may still fail")
-                assertEquals(clock, gone?.failingSinceMillis)
+                @OptIn(RevealsNoteSecret::class) assertNull(gone?.k1, "someone else spends it: never tried again")
+                assertNull(gone?.failingSinceMillis)
+                assertEquals(0, wallet.balanceMsat.first())
+            }
+        }
+
+    @Test
+    fun `Claim says a note answered pending, being paid out by someone else, is already spent`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val spend = someoneElses(mint)
+                mint.lookups[spend.q.toHex()] = error("pending")
+                val preview = NoteClaimer(wallet).preview(NoteLink(mint.withdrawUrl, spend, null, null).encode(), accountId)
+                assertIs<ClaimPreview.AlreadySpent>(preview)
+            }
+        }
+
+    @Test
+    fun `a kept note answered pending is spent for good, and nothing is sent`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val received = received(wallet, accountId, mint)
+                mint.lookups[received.id] = error("pending")
+                mint.callback = """{"status":"OK"}"""
+                val result = assertIs<ClaimResult.Failed>(ReceivedNotes(wallet).claim(received))
+                assertEquals(ClaimFailure.Spent, result.outcome)
+                assertEquals(0, mint.callbacks)
+                val gone = wallet.store.receivedNote(received.id)
+                assertEquals(ReceivedState.Gone, gone?.state)
+                @OptIn(RevealsNoteSecret::class) assertNull(gone?.k1)
+            }
+        }
+
+    @Test
+    fun `a claim refused as pending, its maker paying it out meanwhile, is spent for good`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val received = received(wallet, accountId, mint)
+                mint.lookups[received.id] = note(5_000)
+                mint.callback = error("pending")
+                mint.onCallback = { mint.lookups[received.id] = error("pending") }
+                val result = assertIs<ClaimResult.Failed>(ReceivedNotes(wallet).claim(received))
+                assertEquals(ClaimFailure.Spent, result.outcome)
+                @OptIn(RevealsNoteSecret::class) assertNull(wallet.store.receivedNote(received.id)?.k1)
+            }
+        }
+
+    @Test
+    fun `a claim refused as already in use, its note then answered 0, is spent for good`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val received = received(wallet, accountId, mint)
+                mint.lookups[received.id] = note(5_000)
+                mint.callback = error("already in use")
+                // Its maker paid it out between our lookup and our claim.
+                mint.onCallback = { mint.lookups[received.id] = note(0) }
+                val result = assertIs<ClaimResult.Failed>(ReceivedNotes(wallet).claim(received))
+                assertEquals(ClaimFailure.Spent, result.outcome)
+                val gone = wallet.store.receivedNote(received.id)
+                assertEquals(ReceivedState.Gone, gone?.state)
+                @OptIn(RevealsNoteSecret::class) assertNull(gone?.k1)
+                assertEquals(0, wallet.balanceMsat.first())
             }
         }
 
@@ -142,7 +207,7 @@ class ZeroValueLookupTest {
         }
 
     @Test
-    fun `a gone note whose value comes back is claimed on a refresh`() =
+    fun `a gone note whose value comes back is never claimed`() =
         runBlocking<Unit> {
             LookupMint().use { mint ->
                 val (wallet, accountId) = wallet(mint)
@@ -151,31 +216,32 @@ class ZeroValueLookupTest {
                 ReceivedNotes(wallet).claim(received)
                 mint.lookups[received.id] = note(5_000)
                 mint.callback = """{"status":"OK"}"""
+                val asked = mint.lookupsAsked.get()
                 now += DAY
                 ReceivedNotes(wallet).retryAll(setOf(accountId))
-                assertEquals(1, mint.callbacks, "claimed once its maker's payment failed")
-                assertTrue(wallet.store.receivedNote(received.id)?.state != ReceivedState.Gone)
+                assertEquals(0, mint.callbacks, "its maker's payment failed: the note is theirs")
+                assertEquals(asked, mint.lookupsAsked.get(), "not even asked about")
+                assertEquals(ReceivedState.Gone, wallet.store.receivedNote(received.id)?.state)
+                assertEquals(0, wallet.balanceMsat.first())
             }
         }
 
     @Test
-    fun `a gone note still answered 0 after the give-up time is archived with its spend`() =
+    fun `a gone note an older version kept its spend for loses it on a refresh, without asking its mint`() =
         runBlocking<Unit> {
             LookupMint().use { mint ->
                 val (wallet, accountId) = wallet(mint)
                 val received = received(wallet, accountId, mint)
-                mint.lookups[received.id] = note(0)
-                ReceivedNotes(wallet).claim(received)
-                now += 6 * DAY
+                wallet.store.putReceivedNote(received.copy(state = ReceivedState.Gone, failingSinceMillis = clock))
+                mint.lookups[received.id] = note(5_000)
+                mint.callback = """{"status":"OK"}"""
                 ReceivedNotes(wallet).retryAll(setOf(accountId))
-                assertEquals(ReceivedState.Gone, wallet.store.receivedNote(received.id)?.state, "still within the week")
-                now += DAY
-                ReceivedNotes(wallet).retryAll(setOf(accountId))
-                val archived = wallet.store.receivedNote(received.id)
-                assertEquals(ReceivedState.Archived, archived?.state)
-                assertEquals(UnclaimedReason.Spent, archived?.unclaimedReason)
-                @OptIn(RevealsNoteSecret::class) assertEquals(received.k1, archived?.k1)
-                assertEquals(0, mint.callbacks, "nothing went out")
+                val gone = wallet.store.receivedNote(received.id)
+                assertEquals(ReceivedState.Gone, gone?.state)
+                @OptIn(RevealsNoteSecret::class) assertNull(gone?.k1)
+                assertNull(gone?.failingSinceMillis)
+                assertEquals(0, mint.lookupsAsked.get())
+                assertEquals(0, mint.callbacks)
             }
         }
 
@@ -196,21 +262,44 @@ class ZeroValueLookupTest {
         }
 
     @Test
-    fun `an archived spent note tried again and still answered 0 is gone for another week`() =
+    fun `a note an older version archived as spent is gone without its spend after a refresh`() =
         runBlocking<Unit> {
             LookupMint().use { mint ->
                 val (wallet, accountId) = wallet(mint)
                 val received = received(wallet, accountId, mint)
-                mint.lookups[received.id] = note(0)
-                ReceivedNotes(wallet).claim(received)
-                now += 7 * DAY
+                wallet.store.putReceivedNote(
+                    received.copy(state = ReceivedState.Archived, unclaimedReason = UnclaimedReason.Spent, failingSinceMillis = clock)
+                )
                 ReceivedNotes(wallet).retryAll(setOf(accountId))
-                now += DAY
-                ReceivedNotes(wallet).retry(received.id)
                 val gone = wallet.store.receivedNote(received.id)
                 assertEquals(ReceivedState.Gone, gone?.state)
-                assertEquals(now, gone?.failingSinceMillis)
+                @OptIn(RevealsNoteSecret::class) assertNull(gone?.k1)
                 assertNull(gone?.unclaimedReason)
+                assertEquals(0, mint.lookupsAsked.get())
+            }
+        }
+
+    @Test
+    fun `notes archived for another reason, and one being received over Lightning, keep their spends`() =
+        runBlocking<Unit> {
+            LookupMint().use { mint ->
+                val (wallet, accountId) = wallet(mint)
+                val byUser = received(wallet, accountId, mint)
+                wallet.store.putReceivedNote(byUser.copy(state = ReceivedState.Archived, unclaimedReason = UnclaimedReason.ByUser))
+                val refused = received(wallet, accountId, mint)
+                wallet.store.putReceivedNote(refused.copy(state = ReceivedState.Archived, unclaimedReason = UnclaimedReason.Refused))
+                val melting = received(wallet, accountId, mint)
+                // Our own payment of it: answered 0 while its invoice is paid, and settled by its journal entry.
+                wallet.store.putReceivedNote(
+                    melting.copy(state = ReceivedState.Melting, unclaimedReason = UnclaimedReason.NotANote, journalId = "open-melt")
+                )
+                for (note in listOf(byUser, refused, melting)) mint.lookups[note.id] = note(0)
+                ReceivedNotes(wallet).retryAll(setOf(accountId))
+                for (note in listOf(byUser, refused, melting)) {
+                    @OptIn(RevealsNoteSecret::class) assertEquals(note.k1, wallet.store.receivedNote(note.id)?.k1, note.state.name)
+                }
+                assertEquals(ReceivedState.Archived, wallet.store.receivedNote(byUser.id)?.state)
+                assertEquals(ReceivedState.Archived, wallet.store.receivedNote(refused.id)?.state)
             }
         }
 

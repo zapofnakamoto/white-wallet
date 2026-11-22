@@ -3,9 +3,11 @@ package whitewallet.core.wallet
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
+import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
+import whitewallet.core.model.OperationType
 
 sealed interface RotateResult {
     /** The note now lives at wallet key (purpose 0) [toIndex]. */
@@ -73,6 +75,27 @@ internal class NoteRotator(private val wallet: Wallet) {
             }
         }
         return RotateAllResult(rotated, failed, pending, totalMsat = total, stoppedEarly = null)
+    }
+
+    /**
+     * Renews every note of the accounts [accountIds] whose own payment failed: its spend went to the mint with that payment, so it moves on
+     * to a fresh key once it is back ([NoteState.Outstanding]). Done on each refresh until it lands; a mint that doesn't answer is left for
+     * the next one. A melt that never sent its spend renews its note too: a rotate is free.
+     */
+    suspend fun renewAfterFailedPayments(accountIds: Set<String>) {
+        val returned =
+            wallet.store
+                .journal(setOf(JournalStatus.Rejected))
+                .filter { it.type == OperationType.Melt && it.accountId in accountIds }
+                .flatMap { entry -> entry.inputIds.mapNotNull { wallet.store.note(it) } }
+                .filter { it.accountId in accountIds && it.isRotatable() }
+                .distinctBy { it.id }
+        for ((_, notes) in returned.groupBy { it.host }) {
+            for (note in notes) {
+                val result = rotate(note.accountId, note, automatic = true)
+                if (result is RotateResult.Failed && result.noAnswer) break
+            }
+        }
     }
 
     private suspend fun rotate(accountId: String, note: Note, automatic: Boolean): RotateResult {

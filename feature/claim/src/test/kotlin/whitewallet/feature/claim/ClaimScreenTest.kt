@@ -242,14 +242,6 @@ class ClaimScreenTest {
         )
 
     @Test
-    fun aNoteThatMayComeBackSaysTheWalletClaimsItIfItDoes() =
-        showsOutcome(
-            ClaimState(result = ClaimResult.Failed(RejectionKind.Spent, null, ClaimFailure.SpentMayReturn)),
-            R.string.claim_spent,
-            text(R.string.claim_may_return),
-        )
-
-    @Test
     fun aNoteTriedAgainIsAWaitNotAFailure() =
         showsOutcome(
             ClaimState(result = ClaimResult.Failed(RejectionKind.RateLimited, "slow down", ClaimFailure.Retrying)),

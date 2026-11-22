@@ -496,13 +496,6 @@ private fun claimOutcome(result: ClaimResult, overLightning: Boolean, keepForLig
                         stringResource(R.string.claim_spent),
                         listOf(stringResource(R.string.claim_nothing_added)) + mintWords(result.reason),
                     )
-                result.outcome == ClaimFailure.SpentMayReturn ->
-                    Outcome(
-                        ResultTone.Problem,
-                        problem,
-                        stringResource(R.string.claim_spent),
-                        listOf(stringResource(R.string.claim_may_return)) + mintWords(result.reason),
-                    )
                 // Kept and tried again: a wait, not a failure.
                 result.outcome == ClaimFailure.Retrying ->
                     Outcome(

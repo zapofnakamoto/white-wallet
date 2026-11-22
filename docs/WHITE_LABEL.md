@@ -141,7 +141,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_archived_done` | Moved %d note to the archive. / Moved %d notes to the archive. (plural) |
 | `archive_notes_title` | Notes |
 | `archive_notes_hint` | Their mint doesn't know these notes. Your wallet still asks about them now and then; once the mint knows one again, it's back in your balance. |
-| `archive_handed_out_hint` | You handed these notes out, but their mint doesn't know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or comes back to your balance if you asked to take it back. |
+| `archive_handed_out_hint` | You handed these notes out, but their mint doesn't know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet takes it back if you asked it to. |
 | `archive_note_remove_title` | Remove this note for good? |
 | `archive_note_remove_body` | Its mint doesn't know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase. |
 | `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |

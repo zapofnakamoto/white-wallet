@@ -71,7 +71,6 @@ class PreviewsTest {
                 "ClaimNotePreview",
                 // Every other way a claim or a take back ends
                 "ClaimSpentPreview",
-                "ClaimMayReturnPreview",
                 "ClaimRetryingPreview",
                 "ClaimRefusedPreview",
                 "ClaimNothingReceivedPreview",

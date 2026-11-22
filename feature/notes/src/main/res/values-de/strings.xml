@@ -85,7 +85,7 @@
     </plurals>
     <string name="archive_notes_title">Scheine</string>
     <string name="archive_notes_hint">Ihre Mint kennt diese Scheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, ist er zurück in deinem Guthaben.</string>
-    <string name="archive_handed_out_hint">Du hast diese Scheine weitergegeben, aber ihre Mint kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, wartet er darauf, eingelöst zu werden, oder ist zurück in deinem Guthaben, wenn du ihn zurückholen wolltest.</string>
+    <string name="archive_handed_out_hint">Du hast diese Scheine weitergegeben, aber ihre Mint kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, wartet er darauf, eingelöst zu werden, oder deine Wallet holt ihn zurück, wenn du das wolltest.</string>
     <string name="archive_note_remove_title">Diesen Schein endgültig entfernen?</string>
     <string name="archive_note_remove_body">Seine Mint kennt ihn gerade nicht. Kennt sie ihn je wieder, findet ihn „Nach Scheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
 

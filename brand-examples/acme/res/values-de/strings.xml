@@ -122,7 +122,7 @@
     </plurals>
     <string name="archive_notes_title">Geldscheine</string>
     <string name="archive_notes_hint">Ihr Anbieter kennt diese Geldscheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, ist er zurück in deinem Guthaben.</string>
-    <string name="archive_handed_out_hint">Du hast diese Geldscheine weitergegeben, aber ihr Anbieter kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, wartet er darauf, eingelöst zu werden, oder ist zurück in deinem Guthaben, wenn du ihn zurückholen wolltest.</string>
+    <string name="archive_handed_out_hint">Du hast diese Geldscheine weitergegeben, aber ihr Anbieter kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, wartet er darauf, eingelöst zu werden, oder deine Wallet holt ihn zurück, wenn du das wolltest.</string>
     <string name="archive_note_remove_title">Diesen Geldschein endgültig entfernen?</string>
     <string name="archive_note_remove_body">Sein Anbieter kennt ihn gerade nicht. Kennt er ihn je wieder, findet ihn „Nach Geldscheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
     <plurals name="home_unknown_title">

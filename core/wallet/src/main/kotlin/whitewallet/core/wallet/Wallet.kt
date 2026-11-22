@@ -1428,6 +1428,7 @@ class Wallet(
         val start = now()
         val ids = walletAccountIds()
         reconciler.reconcileAll(ids)
+        rotator.renewAfterFailedPayments(ids)
         received.retryAll(ids)
         val active = store.currentAccountId()
         val accounts = store.accounts.first().map { it.account.id }.filter { it in ids }

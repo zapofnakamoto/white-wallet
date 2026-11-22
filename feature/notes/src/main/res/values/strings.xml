@@ -93,7 +93,7 @@
     </plurals>
     <string name="archive_notes_title">Notes</string>
     <string name="archive_notes_hint">Their mint doesn\'t know these notes. Your wallet still asks about them now and then; once the mint knows one again, it\'s back in your balance.</string>
-    <string name="archive_handed_out_hint">You handed these notes out, but their mint doesn\'t know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or comes back to your balance if you asked to take it back.</string>
+    <string name="archive_handed_out_hint">You handed these notes out, but their mint doesn\'t know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet takes it back if you asked it to.</string>
     <string name="archive_note_remove_title">Remove this note for good?</string>
     <string name="archive_note_remove_body">Its mint doesn\'t know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase.</string>
 

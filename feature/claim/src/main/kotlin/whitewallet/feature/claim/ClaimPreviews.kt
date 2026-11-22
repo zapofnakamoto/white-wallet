@@ -70,12 +70,6 @@ private val keptNote =
 private fun ClaimSpentPreview() =
     Outcome(ClaimState(result = ClaimResult.Failed(RejectionKind.AlreadyInUse, "already in use", ClaimFailure.Spent)))
 
-/** Spent for now; claimed if it comes back within a week. */
-@WalletPreviews
-@Composable
-private fun ClaimMayReturnPreview() =
-    Outcome(ClaimState(result = ClaimResult.Failed(RejectionKind.Spent, null, ClaimFailure.SpentMayReturn)))
-
 /** Refused without proof it is gone: kept and tried again. */
 @WalletPreviews
 @Composable
