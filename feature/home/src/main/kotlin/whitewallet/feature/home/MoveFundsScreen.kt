@@ -39,6 +39,11 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.showsWorking
+import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.brand.ProblemKind
+import whitewallet.core.designsystem.ResultTone
+import whitewallet.core.designsystem.ResultScreen
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletAccountMark
 import whitewallet.core.designsystem.WalletButton
@@ -110,26 +115,39 @@ fun MoveFundsScreen(
                 )
                 return@Scaffold
             }
-        ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            // The account the money leaves and the wallet it goes to, as the form names them.
-            val fromName =
-                state.from?.account?.let {
-                    if (state.showWallets) stringResource(R.string.home_account_in_wallet, walletLabel(state, it.walletId), it.name)
-                    else it.name
-                } ?: ""
-            val toWallet =
-                state.targets.firstOrNull { it.account.id == state.targetId }?.let { walletLabel(state, it.account.walletId) } ?: ""
-            // A move that can't be whole is the user's to decide, before any of it is made.
-            state.partial?.let { PartialDialog(it, fromName, toWallet, state.showMints, onConfirmPartial, onCancelPartial) }
-            state.result?.let { result ->
-                ResultText(result)
+        // The account the money leaves and the wallet it goes to, as the form names them.
+        val fromName =
+            state.from?.account?.let {
+                if (state.showWallets) stringResource(R.string.home_account_in_wallet, walletLabel(state, it.walletId), it.name)
+                else it.name
+            } ?: ""
+        val toWallet = state.targets.firstOrNull { it.account.id == state.targetId }?.let { walletLabel(state, it.account.walletId) } ?: ""
+        // Not all of it moved, or some waits: on the result screen, with what waits, what stayed and why, and another try where it helps.
+        state.result?.let { result ->
+            val stayed = result.stayed
+            // A mint that didn't answer may answer now: the same move again takes what stayed.
+            val retry = stayed.any { it.reason == StayReason.Unreachable }
+            val tone =
+                when {
+                    result.pending.isNotEmpty() -> ResultTone.Waiting
+                    result is MoveResult.Moved -> ResultTone.Success
+                    else -> ResultTone.Problem
+                }
+            ResultScreen(
+                tone,
+                Anchor.MoveResult,
+                when (result) {
+                    is MoveResult.Moved -> WalletStatus.Done(result.amountMsat)
+                    is MoveResult.Pending -> WalletStatus.None
+                    is MoveResult.Failed -> WalletStatus.Problem(ProblemKind.Other)
+                },
+                resultTitle(result),
+                done = SuccessAction(stringResource(R.string.move_done), onBack),
+                modifier = Modifier.padding(padding),
+                more = SuccessAction(stringResource(R.string.move_retry), onMove).takeIf { retry && !state.busy },
+            ) {
                 // What was sent without an answer is out of the balance until a refresh finds out: nothing the user can do but wait.
-                WaitingLines(
-                    result.pending,
-                    state.showMints,
-                    if (result is MoveResult.Pending) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-                )
-                val stayed = result.stayed
+                WaitingLines(result.pending, state.showMints, MaterialTheme.typography.bodyMedium)
                 // What didn't move is safe where it was: said with the amount, why, and what the user can do about it.
                 if (result !is MoveResult.Failed && stayed.isNotEmpty()) {
                     Text(
@@ -139,9 +157,6 @@ fun MoveFundsScreen(
                     )
                 }
                 StayedReasons(stayed, toWallet, state.showMints, TextAlign.Center)
-                // A mint that didn't answer may answer now: the same move again takes what stayed.
-                val retry = stayed.any { it.reason == StayReason.Unreachable }
-                if (retry) PrimaryButton(stringResource(R.string.move_retry), onMove, busy = state.busy)
                 // A signing key the mint changed stays so until the user looked at the mint: its page is this wallet's. (A key the other
                 // wallet differs on is looked at there, as the reason says: only the wallet in use shows its mints.)
                 if (state.showMints) {
@@ -155,10 +170,13 @@ fun MoveFundsScreen(
                             }
                         }
                 }
-                if (retry) WalletButton(kind = ButtonKind.Text, onClick = onBack) { Text(stringResource(R.string.move_done)) }
-                else PrimaryButton(stringResource(R.string.move_done), onBack)
-                return@ScreenColumn
+                if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth())
             }
+            return@Scaffold
+        }
+        ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
+            // A move that can't be whole is the user's to decide, before any of it is made.
+            state.partial?.let { PartialDialog(it, fromName, toWallet, state.showMints, onConfirmPartial, onCancelPartial) }
             val from = state.from ?: return@ScreenColumn
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -327,28 +345,21 @@ private fun PartialDialog(
     )
 }
 
+/** What the move came to, as the result screen's title: what moved, that nothing is known yet, or why none of it moved. */
 @Composable
-private fun ResultText(result: MoveResult) {
-    val (text, error) =
-        when (result) {
-            is MoveResult.Moved -> stringResource(R.string.move_moved, formatAmount(result.amountMsat)) to false
-            // Nothing is known to have moved: what is waiting says it all.
-            is MoveResult.Pending -> return
-            is MoveResult.Failed ->
-                when (result.reason) {
-                    MoveFailure.InsufficientFunds -> stringResource(R.string.move_insufficient) to true
-                    MoveFailure.SplitAcrossMints -> stringResource(R.string.move_split_mints) to true
-                    MoveFailure.NothingToMove -> stringResource(R.string.move_nothing) to true
-                    // A mint was why: the money is safe where it was, and the reasons follow.
-                    else if result.stayed.isNotEmpty() -> stringResource(R.string.move_none) to false
-                    // The mint's own words if it gave any, never the app's name for the reason.
-                    else -> (result.detail?.let { stringResource(R.string.move_failed, it) } ?: stringResource(R.string.move_none)) to true
-                }
-        }
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Center,
-        color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-    )
-}
+private fun resultTitle(result: MoveResult): String =
+    when (result) {
+        is MoveResult.Moved -> stringResource(R.string.move_moved, formatAmount(result.amountMsat))
+        // Nothing is known to have moved: what is waiting says the rest.
+        is MoveResult.Pending -> stringResource(DesignR.string.no_answer_title)
+        is MoveResult.Failed ->
+            when (result.reason) {
+                MoveFailure.InsufficientFunds -> stringResource(R.string.move_insufficient)
+                MoveFailure.SplitAcrossMints -> stringResource(R.string.move_split_mints)
+                MoveFailure.NothingToMove -> stringResource(R.string.move_nothing)
+                // A mint was why: the money is safe where it was, and the reasons follow.
+                else if result.stayed.isNotEmpty() -> stringResource(R.string.move_none)
+                // The mint's own words if it gave any, never the app's name for the reason.
+                else -> result.detail?.let { stringResource(R.string.move_failed, it) } ?: stringResource(R.string.move_none)
+            }
+    }

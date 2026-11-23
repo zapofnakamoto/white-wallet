@@ -19,6 +19,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.core.designsystem.R as DesignR
+import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
@@ -161,8 +163,34 @@ class MoneyMoveScreenTest {
     fun aMoveStillOnItsWayIsNoSuccess() {
         val outcome = MoneyMoveOutcome(false, listOf(MoneyMoved("old.example", 100_000, MintMoveResult.Pending)))
         showDecorated(MoneyMoveState(mode = MoneyMoveMode.Move, from = "old.example", target = "new.example", outcome = outcome))
-        assertTrue(decorated.none { it.first == Anchor.MoneyMoved })
+        assertEquals(listOf(Anchor.MoveResult to WalletStatus.None), decorated.distinct())
+        compose.onNodeWithText(text(DesignR.string.no_answer_title)).assertExists()
         compose.onNodeWithText(text(R.string.money_result_pending, "₿100", "old.example")).assertExists()
+    }
+
+    @Test
+    fun aMoveThatLeftSomeBehindEndsOnTheResultScreenWithAnotherTry() {
+        val outcome =
+            MoneyMoveOutcome(
+                false,
+                listOf(
+                    MoneyMoved("old.example", 100_000, MintMoveResult.Moved(99_000, 1_000)),
+                    MoneyMoved("same.example", 3_000_000, MintMoveResult.Failed(NoteProblem.Unreachable)),
+                ),
+            )
+        showDecorated(MoneyMoveState(mode = MoneyMoveMode.MoveHome, target = "new.example", outcome = outcome))
+        assertEquals(listOf(Anchor.MoveResult to WalletStatus.Done(99_000)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.money_moved_title)).assertExists()
+        compose.onNodeWithText(text(R.string.money_try_again)).assertExists()
+    }
+
+    @Test
+    fun aMoveOfWhichNothingMovedSaysSo() {
+        val outcome = MoneyMoveOutcome(false, listOf(MoneyMoved("old.example", 100_000, MintMoveResult.Failed(NoteProblem.PaymentFailed))))
+        showDecorated(MoneyMoveState(mode = MoneyMoveMode.Move, from = "old.example", target = "new.example", outcome = outcome))
+        assertEquals(listOf(Anchor.MoveResult to WalletStatus.Problem(ProblemKind.Other)), decorated.distinct())
+        compose.onNodeWithText(text(R.string.money_nothing_moved_title)).assertExists()
+        compose.onNodeWithText(text(R.string.money_result_failed, "₿100", "old.example", "the payment failed")).assertExists()
     }
 
     @Test

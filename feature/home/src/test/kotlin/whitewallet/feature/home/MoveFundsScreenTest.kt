@@ -19,6 +19,11 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.core.designsystem.R as DesignR
+import whitewallet.brand.ProblemKind
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import whitewallet.core.model.Account
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.wallet.MoveCheck
@@ -195,6 +200,31 @@ class MoveFundsScreenTest {
         compose.onNodeWithText(text(R.string.move_retry)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.move_done)).performClick()
         assertEquals(1, back)
+    }
+
+    @Test
+    fun aMoveThatDidNotMoveAllOfItEndsOnTheResultScreen() {
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    decorated += anchor to context.status
+                }
+            }
+        var result by mutableStateOf<MoveResult>(MoveResult.Moved(3_000, listOf(stayed(StayReason.Unreachable))))
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design) {
+                MoveFundsScreen(twoWallets.copy(result = result), onBack = {}, onTarget = {}, onEverything = {}, onAmount = {}, onMove = {})
+            }
+        }
+        assertEquals(Anchor.MoveResult to WalletStatus.Done(3_000), decorated.last())
+        result = MoveResult.Pending(listOf(MovePending("mint-b.example", 9_000)))
+        compose.waitForIdle()
+        assertEquals(Anchor.MoveResult to WalletStatus.None, decorated.last())
+        compose.onNodeWithText(text(DesignR.string.no_answer_title)).assertExists()
+        result = MoveResult.Failed(MoveFailure.Refused)
+        compose.waitForIdle()
+        assertEquals(Anchor.MoveResult to WalletStatus.Problem(ProblemKind.Other), decorated.last())
     }
 
     @Test

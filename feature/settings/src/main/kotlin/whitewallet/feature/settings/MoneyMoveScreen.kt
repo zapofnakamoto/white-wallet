@@ -50,6 +50,12 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
+import whitewallet.core.designsystem.showsWorking
+import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.R as DesignR
+import whitewallet.brand.ProblemKind
+import whitewallet.core.designsystem.ResultTone
+import whitewallet.core.designsystem.ResultScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletTextField
@@ -339,18 +345,15 @@ fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMo
     Scaffold(topBar = { WalletTopBar(title, onClose.takeIf { state.outcome == null && !state.busy }) }) { padding ->
         // Before the mints to pick from are known (a moment): only the title, not "no mints".
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
-        state.outcome
-            ?.takeIf { it.complete }
-            ?.let {
-                CompleteContent(it, state, actions, Modifier.padding(padding))
-                return@Scaffold
-            }
+        state.outcome?.let {
+            if (it.complete) CompleteContent(it, state, actions, Modifier.padding(padding))
+            else OutcomeContent(it, state, actions, Modifier.padding(padding))
+            return@Scaffold
+        }
         BrandBody(Page.MoneyMove, if (state.nothingToPick) WalletStatus.Empty else WalletStatus.Idle) {
             ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-                val outcome = state.outcome
                 val preview = state.preview
                 when {
-                    outcome != null -> OutcomeContent(outcome, state, actions)
                     preview != null -> ReviewContent(preview, state, actions)
                     else -> PickContent(state, actions)
                 }
@@ -556,38 +559,53 @@ private fun CompleteContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, ac
     )
 }
 
-/** What happened: the new home, then per mint what moved or why it stayed, with another try. */
+/**
+ * Not all of it done, on the result screen: the new home if there is one, then per mint what moved, waits or stayed and why, with another
+ * try where one can help. A clock while some waits, a check mark when some arrived or the home changed, else a warning mark.
+ */
 @Composable
-private fun OutcomeContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, actions: MoneyMoveActions) {
-    if (outcome.homeChanged) {
-        Text(
-            stringResource(R.string.money_home_changed, state.target.orEmpty()),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-        )
-        if (outcome.moved.isEmpty()) Text(stringResource(R.string.money_result_money_stays), textAlign = TextAlign.Center)
-    }
-    outcome.moved.forEach { m ->
-        val amount = formatAmount(m.amountMsat)
-        val (text, error) =
-            when (val r = m.result) {
-                is MintMoveResult.Moved ->
-                    stringResource(R.string.money_result_moved, formatAmount(r.arrivedMsat), m.host, formatAmount(r.feeMsat)) to false
-                MintMoveResult.Pending -> stringResource(R.string.money_result_pending, amount, m.host) to false
-                is MintMoveResult.Failed -> stringResource(R.string.money_result_failed, amount, m.host, reason(r.problem)) to true
-            }
-        Text(
-            text,
-            color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-        )
-    }
-    if (outcome.retryable.isNotEmpty()) {
-        WalletButton(kind = ButtonKind.Secondary, onClick = actions.onRetry, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.money_try_again))
+private fun OutcomeContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, actions: MoneyMoveActions, modifier: Modifier) {
+    val arrived = outcome.moved.sumOf { (it.result as? MintMoveResult.Moved)?.arrivedMsat ?: 0 }
+    val tone =
+        when {
+            outcome.moved.any { it.result == MintMoveResult.Pending } -> ResultTone.Waiting
+            outcome.homeChanged || outcome.moved.any { it.result is MintMoveResult.Moved } -> ResultTone.Success
+            else -> ResultTone.Problem
         }
+    ResultScreen(
+        tone,
+        Anchor.MoveResult,
+        when (tone) {
+            ResultTone.Success -> WalletStatus.Done(arrived)
+            ResultTone.Waiting -> WalletStatus.None
+            ResultTone.Problem -> WalletStatus.Problem(ProblemKind.Other)
+        },
+        when {
+            outcome.homeChanged -> stringResource(R.string.money_home_changed_title)
+            tone == ResultTone.Waiting -> stringResource(DesignR.string.no_answer_title)
+            tone == ResultTone.Success -> stringResource(R.string.money_moved_title)
+            else -> stringResource(R.string.money_nothing_moved_title)
+        },
+        done = SuccessAction(stringResource(R.string.money_done), actions.onDone),
+        modifier = modifier,
+        more = SuccessAction(stringResource(R.string.money_try_again), actions.onRetry).takeIf { outcome.retryable.isNotEmpty() && !state.busy },
+        lines =
+            listOfNotNull(
+                stringResource(R.string.money_home_changed, state.target.orEmpty()).takeIf { outcome.homeChanged },
+                stringResource(R.string.money_result_money_stays).takeIf { outcome.homeChanged && outcome.moved.isEmpty() },
+            ) +
+                outcome.moved.map { m ->
+                    val amount = formatAmount(m.amountMsat)
+                    when (val r = m.result) {
+                        is MintMoveResult.Moved ->
+                            stringResource(R.string.money_result_moved, formatAmount(r.arrivedMsat), m.host, formatAmount(r.feeMsat))
+                        MintMoveResult.Pending -> stringResource(R.string.money_result_pending, amount, m.host)
+                        is MintMoveResult.Failed -> stringResource(R.string.money_result_failed, amount, m.host, reason(r.problem))
+                    }
+                },
+    ) {
+        if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth())
     }
-    PrimaryButton(stringResource(R.string.money_done), actions.onDone, enabled = !state.busy)
 }
 
 @Composable

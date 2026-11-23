@@ -385,6 +385,7 @@
     <string name="money_reason_refused">abgelehnt</string>
     <string name="money_try_again">Nochmal versuchen</string>
     <string name="money_done">Fertig</string>
+    <string name="money_nothing_moved_title">Nichts verschoben</string>
     <string name="money_moved_title">Verschoben</string>
     <string name="mint_move_all_here">Alles Geld hierher verschieben</string>
     <string name="money_move_all_body">Das ganze Geld dieses Kontos, das anderswo liegt, kommt hierher, von jedem Ort in einer Zahlung.</string>

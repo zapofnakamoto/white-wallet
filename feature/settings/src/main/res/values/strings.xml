@@ -397,6 +397,7 @@
     <string name="money_try_again">Try again</string>
     <string name="money_done">Done</string>
     <!-- The success screen's title once all the money the user moved arrived -->
+    <string name="money_nothing_moved_title">Nothing moved</string>
     <string name="money_moved_title">Moved</string>
     <string name="mint_move_all_here">Move all money here</string>
     <string name="money_move_all_body">All of this account\'s money held elsewhere comes here, in one payment from each place.</string>
