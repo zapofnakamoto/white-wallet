@@ -59,6 +59,8 @@ import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.ResultScreen
+import whitewallet.core.designsystem.ResultTone
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
@@ -154,11 +156,8 @@ fun OnboardingScreen(
             // From Settings the address is the end; a setup ends on the wallet's ready screen instead, which shows it.
             return@Scaffold AddressAddedContent(claimed.address, onContinue, Modifier.padding(padding))
         }
+        if (claimed != null) return@Scaffold ClaimedContent(claimed, onContinue, Modifier.padding(padding))
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-            if (claimed != null) {
-                ClaimedContent(claimed, onContinue)
-                return@ScreenColumn
-            }
             Text(
                 when (state.mode) {
                     OnboardingMode.Setup -> stringResource(R.string.setup_address_body, state.host)
@@ -442,25 +441,26 @@ internal fun AddressReady(address: String) {
     )
 }
 
-/** The address is registered, but the app couldn't check that payments reach this wallet: not a success, a warning. */
+/** The address is registered, but the app couldn't check yet that payments reach this wallet: not a success, a wait. */
 @Composable
-private fun ClaimedContent(claimed: Claimed, onContinue: () -> Unit) {
-    Icon(
-        painterResource(DesignR.drawable.ic_check_circle),
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.tertiary,
-        modifier = Modifier.size(72.dp),
-    )
-    Text(stringResource(R.string.claimed_title_unconfirmed), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
-    Text(
-        claimed.address,
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.primary,
-        textAlign = TextAlign.Center,
-    )
-    Text(stringResource(R.string.claimed_body_unconfirmed), textAlign = TextAlign.Center)
-    CopyShare(claimed.address, stringResource(R.string.claimed_copied))
-    PrimaryButton(stringResource(R.string.claimed_continue), onContinue)
+private fun ClaimedContent(claimed: Claimed, onContinue: () -> Unit, modifier: Modifier) {
+    ResultScreen(
+        ResultTone.Waiting,
+        Anchor.AddressResult,
+        WalletStatus.None,
+        stringResource(R.string.claimed_title_unconfirmed),
+        done = SuccessAction(stringResource(R.string.claimed_continue), onContinue),
+        modifier = modifier,
+    ) {
+        Text(claimed.address, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+        Text(
+            stringResource(R.string.claimed_body_unconfirmed),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        CopyShare(claimed.address, stringResource(R.string.claimed_copied))
+    }
 }
 
 /** Giving the setup up removes the wallet from this phone; its money stays with the recovery phrase. */

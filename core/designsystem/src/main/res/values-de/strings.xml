@@ -95,4 +95,5 @@
     <string name="mint_key_cancel">Abbrechen</string>
     <string name="mint_key_accepted_title">Neuer Schlüssel wird verwendet</string>
     <string name="mint_key_accepted">%1$s nutzt jetzt den neuen Schlüssel.</string>
+    <string name="mint_key_not_accepted">%1$s hat nicht geantwortet oder zeigt inzwischen noch einen anderen Schlüssel. Nichts wurde geändert.</string>
 </resources>

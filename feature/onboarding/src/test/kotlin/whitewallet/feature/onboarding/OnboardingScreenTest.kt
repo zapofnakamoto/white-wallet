@@ -178,10 +178,12 @@ class OnboardingScreenTest {
     }
 
     @Test
-    fun anAddressThatCouldNotBeCheckedKeepsItsWarning() {
+    fun anAddressThatCouldNotBeCheckedWaitsOnTheResultScreen() {
         showClaimed(setup().copy(mode = OnboardingMode.AddAddress, claimed = Claimed("alice@mint.example", confirmed = false)))
         compose.onNodeWithText(text(R.string.claimed_title_unconfirmed)).assertExists()
         compose.onNodeWithText(text(R.string.claimed_body_unconfirmed)).assertExists()
-        assertTrue(decorated.none { it.first == Anchor.AddressAdded })
+        assertEquals(listOf(Anchor.AddressResult to WalletStatus.None), decorated.distinct())
+        compose.onNodeWithText("alice@mint.example").assertExists()
+        compose.onNodeWithText(text(DesignR.string.copy)).assertExists()
     }
 }

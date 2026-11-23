@@ -112,4 +112,5 @@
     <string name="mint_key_accepted_title">New key in use</string>
     <!-- Once the user used the new key: below that title, and on the mint's page as a short message. %1$s is the mint's address -->
     <string name="mint_key_accepted">%1$s now uses the new key.</string>
+    <string name="mint_key_not_accepted">%1$s didn\'t answer, or shows yet another key by now. Nothing changed.</string>
 </resources>

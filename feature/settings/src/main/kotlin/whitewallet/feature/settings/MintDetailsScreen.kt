@@ -86,6 +86,8 @@ data class MintDetailsState(
     val canReceive: Boolean = false,
     /** The user just accepted the mint's new signing key: a short message says so, once. */
     val keyAccepted: Boolean = false,
+    /** Accepting the new key didn't go through: the mint didn't answer, or shows yet another key. Said once, like [keyAccepted]. */
+    val keyNotAccepted: Boolean = false,
 )
 
 /**
@@ -181,12 +183,13 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
         val host = _state.value.details?.host ?: return
         _state.update { it.copy(loading = true) }
         viewModelScope.launch {
-            if (wallet.acceptMintKey(host, key)) _state.update { it.copy(keyAccepted = true) }
+            val accepted = wallet.acceptMintKey(host, key)
+            _state.update { it.copy(keyAccepted = accepted, keyNotAccepted = !accepted) }
             refresh()
         }
     }
 
-    fun keyAcceptedShown() = _state.update { it.copy(keyAccepted = false) }
+    fun keyAcceptedShown() = _state.update { it.copy(keyAccepted = false, keyNotAccepted = false) }
 }
 
 @Composable
@@ -243,8 +246,11 @@ fun MintDetailsScreen(
     val details = state.details
     val snackbars = remember { SnackbarHostState() }
     // The user stays on the page, which shows the mint as it is now: a short message, the same words as where a mint is added.
-    if (state.keyAccepted) {
-        val message = stringResource(DesignR.string.mint_key_accepted, details?.host ?: state.host.orEmpty())
+    if (state.keyAccepted || state.keyNotAccepted) {
+        val host = details?.host ?: state.host.orEmpty()
+        val message =
+            if (state.keyAccepted) stringResource(DesignR.string.mint_key_accepted, host)
+            else stringResource(DesignR.string.mint_key_not_accepted, host)
         LaunchedEffect(Unit) {
             snackbars.showSnackbar(message, duration = SnackbarDuration.Long)
             onKeyAcceptedShown()

@@ -115,6 +115,22 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun aKeyThatCouldNotBeAcceptedIsSaidOnTheMintsPageOnce() {
+        var shown = 0
+        compose.setContent {
+            MintDetailsScreen(
+                MintDetailsState(details(MintDetails.Reachability.Reachable), loading = false, keyNotAccepted = true),
+                onBack = {},
+                onRefresh = {},
+                onKeyAcceptedShown = { shown++ },
+            )
+        }
+        compose.onNodeWithText(text(DesignR.string.mint_key_not_accepted, "mint.example")).assertExists()
+        compose.mainClock.advanceTimeBy(20_000)
+        assertEquals(1, shown)
+    }
+
+    @Test
     fun aMintThatPresentsAnotherKeyIsNotPaidFrom() {
         compose.setContent { MintDetailsScreen(MintDetailsState(details(MintDetails.Reachability.KeyChanged), loading = false), {}, {}) }
         compose.onNodeWithText(text(R.string.mint_send)).assertDoesNotExist()
