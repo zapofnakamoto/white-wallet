@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -155,7 +156,6 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                         }
                 }
             }
-            if (state.failuresOffered) SimulatedFailureChips(state.simulatedFailure, actions.simulateFailure)
             if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth())
             state.outcome?.let {
                 Box(Modifier.bringIntoViewRequester(outcomeView)) { Outcome(it, state.showMints, actions.dismissOutcome) }
@@ -180,12 +180,18 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (state.developerMode && note.purpose != null && note.index != null) {
-                Text(
-                    stringResource(R.string.notes_dev_key, note.purpose!!, note.index!!, note.id.take(8) + "…" + note.id.takeLast(8)),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
-                )
+            // For developers, last and apart, so everything above is exactly what a user sees.
+            val key = note.takeIf { state.developerMode && it.purpose != null && it.index != null }
+            if (state.failuresOffered || key != null) {
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                if (state.failuresOffered) SimulatedFailureChips(state.simulatedFailure, actions.simulateFailure)
+                key?.let {
+                    Text(
+                        stringResource(R.string.notes_dev_key, it.purpose!!, it.index!!, it.id.take(8) + "…" + it.id.takeLast(8)),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
             }
         }
     }

@@ -199,8 +199,8 @@
     </plurals>
     <!-- The heading over received, handed-out and archived notes in the notes view. -->
     <string name="notes_outside_title">Not in your balance</string>
-    <!-- A mint's smallest and biggest note, under its pile of bills: "1,000 sats – 21,000 sats". -->
-    <string name="notes_range">%1$s – %2$s</string>
+    <!-- A mint's smallest and biggest note, under its pile of bills: "From 1,000 sats to 21,000 sats". -->
+    <string name="notes_range">From %1$s to %2$s</string>
     <!-- Read out on a section of the notes view that opens and closes. -->
     <string name="notes_section_open">Open</string>
     <string name="notes_section_closed">Closed</string>

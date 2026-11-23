@@ -6,16 +6,20 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -63,11 +67,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
@@ -78,10 +91,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.sqrt
 import whitewallet.brand.ReleaseStage
 
 /**
@@ -449,20 +464,25 @@ val NoteStatus.inBalance: Boolean
 class NotePileParams(
     /** The mint's host; null where mints aren't named (brand `mints.visible=false`). */
     val mint: String?,
-    /** Home mint and trusted, in words ("Home mint · Trusted"); null when neither. */
-    val labels: String?,
+    /** Home mint, trusted and how many notes, in words ("Home mint · Trusted · 84 notes"). */
+    val labels: String,
     /** What its notes count in the balance, formatted. */
     val total: String,
     val totalMsat: Long,
-    /** How many notes, and from the smallest to the biggest, in words ("84 notes · 1,000 – 21,000 sats"). */
-    val detail: String,
-    /** The amounts of the bills on top of the pile, the biggest first (a few at most); empty when none counts in the balance. */
+    /** From its smallest note to its biggest, in words ("From 1,000 sats to 21,000 sats"); null with one note or all alike. */
+    val range: String?,
+    /** The notes on top of the pile, the biggest first (a few at most), formatted and in msat; empty when none counts in the balance. */
     val bills: List<String>,
+    val billsMsat: List<Long>,
+    /** The biggest note on any of the user's mints: bills are drawn to one scale across the mints. */
+    val largestMsat: Long,
     val colors: NoteColors,
     val home: Boolean,
     val trusted: Boolean,
     /** The mark of a trusted mint. */
     val trustedIcon: Painter,
+    /** The mark that says a tap opens the mint's notes (decorative). */
+    val openIcon: Painter,
 )
 
 class NoteGroupParams(
@@ -899,7 +919,7 @@ object DefaultComponents : BrandComponents {
                                         Modifier,
                                     )
                                 }
-                                Bill(params.billColors(), Modifier.size(width = 40.dp, height = 24.dp), corner = 4.dp)
+                                Bill(params.billColors(), Modifier.size(width = 48.dp, height = 26.dp), corner = 4.dp, frame = 3.dp)
                             }
                         },
                         trailing = params.age?.let { age -> { Text(age, style = MaterialTheme.typography.bodySmall) } },
@@ -911,8 +931,30 @@ object DefaultComponents : BrandComponents {
                 if (params.qrCode == null)
                     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         val colors = params.billColors()
-                        Bill(colors, Modifier.size(width = 240.dp, height = 132.dp), corner = 12.dp) {
-                            BillAmount(params.amount, MaterialTheme.typography.headlineMedium, colors)
+                        Bill(
+                            colors,
+                            Modifier.widthIn(max = 360.dp).fillMaxWidth().aspectRatio(2.04f),
+                            corner = 14.dp,
+                            frame = 10.dp,
+                            seal = 130.dp,
+                            elevation = 4.dp,
+                        ) {
+                            BillAmount(
+                                params.amount,
+                                MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                                colors,
+                                Modifier.align(Alignment.TopStart).padding(start = 24.dp, top = 20.dp, end = 24.dp),
+                            )
+                            params.mint?.let {
+                                Text(
+                                    it,
+                                    Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 20.dp, end = 72.dp),
+                                    color = colors.ink,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                     }
                 else
@@ -927,44 +969,60 @@ object DefaultComponents : BrandComponents {
         }
     }
 
-    /** The mint's bills stacked, the biggest in front with its amount; below, the mint, its labels, total and [NotePileParams.detail]. */
+    /**
+     * A card: the mint's name, labels and total, then its bills fanned out, the biggest in front with its amount, each drawn to one scale
+     * across the mints ([NotePileParams.largestMsat]), and the range below. Always the same height, so swiping between mints keeps the page
+     * still.
+     */
     @Composable
     fun notePile(params: NotePileParams, modifier: Modifier) {
-        Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            // Up to three bills behind the front one, each a little higher and further right.
-            val behind = (params.bills.size - 1).coerceIn(0, 3)
-            val colors = if (params.bills.isEmpty()) greyedBill() else params.colors
-            Box(Modifier.padding(top = 8.dp, bottom = 12.dp).size(width = 220.dp + 8.dp * behind, height = 120.dp + 8.dp * behind)) {
-                for (i in behind downTo 0) {
-                    Bill(
-                        colors,
-                        Modifier.align(Alignment.BottomStart).offset(x = 8.dp * i, y = -8.dp * i).size(width = 220.dp, height = 120.dp),
-                        corner = 12.dp,
-                        shade = 0.12f * i,
-                    ) {
-                        // Decorative: the pile is read out by its mint, labels, total and detail, not by its biggest note.
-                        if (i == 0)
-                            params.bills.firstOrNull()?.let {
-                                BillAmount(it, MaterialTheme.typography.headlineSmall, colors, Modifier.clearAndSetSemantics {})
-                            }
+        val shape = RoundedCornerShape(20.dp)
+        Column(
+            modifier
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+                .padding(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (params.trusted && params.mint != null)
+                            Icon(
+                                params.trustedIcon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        Text(
+                            params.mint ?: params.labels,
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
+                    if (params.mint != null)
+                        Text(
+                            params.labels,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                 }
+                Text(params.total, style = MaterialTheme.typography.titleMedium)
+                Icon(params.openIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (params.trusted)
-                    Icon(
-                        params.trustedIcon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp),
-                    )
-                params.mint?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
-            }
-            params.labels?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(params.total, style = MaterialTheme.typography.titleLarge)
-            Text(params.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            BillFan(params, Modifier.fillMaxWidth().padding(top = 8.dp).height(160.dp))
+            // Always a line, empty or not: every mint's card is as high as the others.
+            Text(
+                params.range.orEmpty(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                minLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 
@@ -1098,7 +1156,7 @@ private fun Int?.orZero() = this ?: 0
 private fun BillAmount(text: String, style: TextStyle, colors: NoteColors, modifier: Modifier = Modifier) {
     BasicText(
         text,
-        modifier.padding(horizontal = 8.dp),
+        modifier,
         style = style.copy(color = colors.ink),
         maxLines = 1,
         autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
@@ -1113,20 +1171,92 @@ private fun NoteFaceParams.billColors(): NoteColors =
 @Composable private fun greyedBill() = NoteColors(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
 
 /**
- * The default bill: the mint's colour with a fine inner frame, [content] (the amount) in its middle. Decorative: the texts it holds are
- * what is read. [shade] darkens a bill further back in a pile.
+ * Up to seven bills, the biggest in front in the mint's colours and the others behind it in a lighter tint, each a little to the right and
+ * slightly turned. Without a note in the balance, one blank bill, greyed out.
  */
 @Composable
-private fun Bill(colors: NoteColors, modifier: Modifier, corner: Dp, shade: Float = 0f, content: @Composable BoxScope.() -> Unit = {}) {
+private fun BillFan(params: NotePileParams, modifier: Modifier) {
+    BoxWithConstraints(modifier) {
+        val largest = minOf(maxWidth * 0.75f, 240.dp)
+        val smallest = largest * 0.6f
+        val shown = params.billsMsat.take(7)
+        if (shown.isEmpty()) {
+            Bill(greyedBill(), Modifier.align(Alignment.CenterStart).size(smallest, smallest * 0.52f), corner = 8.dp, frame = 6.dp)
+            return@BoxWithConstraints
+        }
+        fun width(msat: Long) = smallest + (largest - smallest) * sqrt(msat.toFloat() / params.largestMsat.coerceAtLeast(1))
+        val front = width(shown.first())
+        val step = if (shown.size > 1) minOf(56.dp, (maxWidth - front) / (shown.size - 1)) else 0.dp
+        val tint = NoteColors(lerp(params.colors.paper, MaterialTheme.colorScheme.surface, 0.7f), MaterialTheme.colorScheme.onSurface)
+        for (r in shown.indices.reversed()) {
+            val w = width(shown[r])
+            val h = w * 0.52f
+            Bill(
+                if (r == 0) params.colors else tint,
+                Modifier.offset(x = front - w + step * r, y = (maxHeight - h) / 2)
+                    .size(w, h)
+                    .rotate(
+                        when {
+                            r == 0 -> 0f
+                            r % 2 == 1 -> 2.5f
+                            else -> -2f
+                        }
+                    ),
+                corner = 8.dp,
+                frame = 6.dp,
+                seal = 64.dp,
+                elevation = 2.dp,
+            ) {
+                // Decorative: the card is read out by its mint, labels, total and range, not by its biggest note.
+                if (r == 0)
+                    BillAmount(
+                        params.bills.first(),
+                        MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        params.colors,
+                        Modifier.align(Alignment.TopStart).padding(start = 14.dp, top = 12.dp, end = 14.dp).clearAndSetSemantics {},
+                    )
+            }
+        }
+    }
+}
+
+/**
+ * The default bill: the mint's colour with a dashed frame [frame] inside its edge and, with a [seal], a ring in its lower right corner;
+ * [content] holds its texts. Decorative: the texts it holds are what is read.
+ */
+@Composable
+private fun Bill(
+    colors: NoteColors,
+    modifier: Modifier,
+    corner: Dp,
+    frame: Dp,
+    seal: Dp = 0.dp,
+    elevation: Dp = 0.dp,
+    content: @Composable BoxScope.() -> Unit = {},
+) {
     val shape = RoundedCornerShape(corner)
+    val line = colors.ink.copy(alpha = 0.35f)
     Box(
         modifier
+            .shadow(elevation, shape)
             .clip(shape)
             .background(colors.paper)
-            .background(Color.Black.copy(alpha = shade))
-            .padding(corner / 3)
-            .border(1.dp, colors.ink.copy(alpha = 0.35f), RoundedCornerShape(corner * 2 / 3)),
-        contentAlignment = Alignment.Center,
+            .border(1.dp, Color.Black.copy(alpha = 0.12f), shape)
+            .drawBehind {
+                val inset = frame.toPx()
+                drawRoundRect(
+                    line,
+                    topLeft = Offset(inset, inset),
+                    size = Size(size.width - 2 * inset, size.height - 2 * inset),
+                    cornerRadius = CornerRadius((corner - frame / 2).coerceAtLeast(2.dp).toPx()),
+                    style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
+                )
+                if (seal > 0.dp) {
+                    val radius = seal.toPx() / 2
+                    val out = seal.toPx() * 0.28f
+                    drawCircle(line, radius, Offset(size.width - radius + out, size.height - radius + out), style = Stroke(2.dp.toPx()))
+                }
+            },
         content = content,
     )
 }

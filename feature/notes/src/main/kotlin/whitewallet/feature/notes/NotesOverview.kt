@@ -234,39 +234,40 @@ private fun openMintOf(notes: List<Note>, actions: NotesActions): (() -> Unit)? 
 @Composable
 private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerState) {
     val several = state.mints.size > 1
+    // One scale for every mint's bills: a big note looks big next to another mint's small ones.
+    val largest = state.mints.maxOf { mint -> mint.inBalance.firstOrNull()?.amountMsat ?: 0 }
     HorizontalPager(
         pager,
-        contentPadding = PaddingValues(horizontal = if (several) 40.dp else 16.dp),
-        pageSpacing = 8.dp,
+        contentPadding = PaddingValues(horizontal = if (several) 28.dp else 16.dp),
+        pageSpacing = 12.dp,
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         key = { state.mints[it].host },
     ) { page ->
         val mint = state.mints[page]
         val bills = mint.inBalance
-        val count = pluralStringResource(R.plurals.notes_count, bills.size, bills.size)
         val range =
             bills
                 .takeIf { it.size > 1 && it.first().amountMsat != it.last().amountMsat }
                 ?.let { stringResource(R.string.notes_range, formatAmount(it.last().amountMsat), formatAmount(it.first().amountMsat)) }
-        // Without named mints, nothing tells one mint from the other: no labels either.
+        // Without named mints, nothing tells one mint from the other: no labels but the count.
         val labels =
             listOfNotNull(
                 stringResource(R.string.notes_home_mint).takeIf { mint.isHome && state.showMints },
                 stringResource(R.string.notes_trusted).takeIf { mint.trusted && state.showMints },
+                pluralStringResource(R.plurals.notes_count, bills.size, bills.size),
             )
         WalletNotePile(
             mint = mint.host.takeIf { state.showMints },
-            labels = labels.takeIf { it.isNotEmpty() }?.joinToString(stringResource(R.string.notes_detail_separator)),
+            labels = labels.joinToString(stringResource(R.string.notes_detail_separator)),
             totalMsat = mint.totalMsat,
-            detail = listOfNotNull(count, range).joinToString(stringResource(R.string.notes_detail_separator)),
+            range = range,
             bills = bills.map { it.amountMsat },
+            largestMsat = largest,
             colors = MaterialTheme.walletColors.note(state.colorIndex(mint.host)),
             home = mint.isHome,
             trusted = mint.trusted && state.showMints,
             modifier =
-                Modifier.fillMaxWidth()
-                    .clickable(onClickLabel = stringResource(R.string.notes_mint_open)) { actions.openMint(mint.host) }
-                    .padding(vertical = 8.dp),
+                Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.notes_mint_open)) { actions.openMint(mint.host) },
         )
     }
     if (several) PageControls(pager, state.mints.size)

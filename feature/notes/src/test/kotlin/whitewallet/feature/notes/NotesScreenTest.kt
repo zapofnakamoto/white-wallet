@@ -11,12 +11,14 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -84,9 +86,9 @@ class NotesScreenTest {
         compose.onNodeWithText("₿47,430").assertExists()
         compose.onNodeWithText("4 notes · 2 mints").assertExists()
         compose.onNodeWithText("home.example").assertExists()
-        compose.onNodeWithText(text(R.string.notes_home_mint)).assertExists()
+        compose.onNodeWithText("Home mint · 2 notes").assertExists()
         compose.onNodeWithText("₿45,000").assertExists()
-        compose.onNodeWithText("2 notes · ₿15,000 – ₿30,000").assertExists()
+        compose.onNodeWithText("From ₿15,000 to ₿30,000").assertExists()
         // The notes themselves, and what's unusual about them, are on the mint's page.
         compose.onNodeWithText(text(DesignR.string.uncertified)).assertDoesNotExist()
         compose.onNodeWithText("home.example").performClick()
@@ -192,7 +194,7 @@ class NotesScreenTest {
                 NotesActions(),
             )
         }
-        compose.onNodeWithText("Home mint · Trusted").assertExists()
+        compose.onNodeWithText("Home mint · Trusted · 2 notes").assertExists()
         compose.onNodeWithText(text(R.string.notes_trusted)).assertExists()
     }
 
@@ -414,7 +416,7 @@ class NotesScreenTest {
         var s by mutableStateOf(state())
         compose.setContent { NotesContent(s, NotesActions()) }
         compose.onNodeWithText("4 Scheine · 2 Mints").assertExists()
-        compose.onNodeWithText("Haupt-Mint").assertExists()
+        compose.onNodeWithText("Haupt-Mint · 2 Scheine").assertExists()
         s = state(onPage(), { it.copy(selecting = true, selected = setOf("h1", "h2")) })
         compose.onNodeWithText("2 Scheine · Haupt-Mint").assertExists()
         compose.onNodeWithText("2 Scheine ausgewählt · 45.000 ₿").assertExists()
@@ -477,7 +479,8 @@ class NotesScreenTest {
                 NotesActions(),
             )
         }
-        compose.onNodeWithText("2 notes").assertExists()
+        // The balance's count, and the pile's title where it has no name.
+        compose.onAllNodesWithText("2 notes").assertCountEquals(2)
         compose.onNodeWithText("home.example", substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.notes_home_mint), substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.notes_trusted)).assertDoesNotExist()

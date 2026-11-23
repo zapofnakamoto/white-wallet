@@ -162,7 +162,7 @@
         <item quantity="other">Die Signaturschlüssel von %2$s passen nicht</item>
     </plurals>
     <string name="notes_outside_title">Nicht in deinem Guthaben</string>
-    <string name="notes_range">%1$s – %2$s</string>
+    <string name="notes_range">Von %1$s bis %2$s</string>
     <string name="notes_section_open">Geöffnet</string>
     <string name="notes_section_closed">Geschlossen</string>
     <plurals name="notes_attention_waiting">

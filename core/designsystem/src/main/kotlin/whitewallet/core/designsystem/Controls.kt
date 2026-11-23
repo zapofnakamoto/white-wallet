@@ -284,32 +284,38 @@ fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted
 
 /**
  * One mint's notes as a pile of bills ([whitewallet.brand.ui.BrandComponents.NotePile]): [bills] are the amounts of the notes in the
- * balance, the biggest first. Read out as one: the mint, its labels, total and [detail].
+ * balance, the biggest first, drawn to the scale of [largestMsat] (the biggest on any mint). Read out as one: the mint, its labels, total
+ * and range.
  */
 @Composable
 fun WalletNotePile(
     mint: String?,
-    labels: String?,
+    labels: String,
     totalMsat: Long,
-    detail: String,
+    range: String?,
     bills: List<Long>,
+    largestMsat: Long,
     colors: NoteColors,
     home: Boolean,
     trusted: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val shown = bills.take(7)
     LocalBrandDesign.current.components.NotePile(
         NotePileParams(
             mint,
             labels,
             total = formatAmount(totalMsat),
             totalMsat,
-            detail,
-            bills = bills.take(4).map { formatAmount(it) },
+            range,
+            bills = shown.map { formatAmount(it) },
+            billsMsat = shown,
+            largestMsat = largestMsat,
             colors,
             home,
             trusted,
             trustedIcon = painterResource(R.drawable.ic_check_circle),
+            openIcon = painterResource(R.drawable.ic_chevron_end),
         ),
         modifier.semantics(mergeDescendants = true) {},
     )
