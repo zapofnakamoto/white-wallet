@@ -75,13 +75,13 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.painter.Painter
@@ -99,6 +99,9 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.sqrt
 import whitewallet.brand.ReleaseStage
 
@@ -459,8 +462,9 @@ class NoteFaceParams(
     /** The colours of its mint's bills ([WalletColors.notes]); a note out of the balance is drawn greyed out ([NoteStatus.inBalance]). */
     val colors: NoteColors? = null,
     /**
-     * Its mint's certificate for its amount verified (a certificate that doesn't verify is never kept). The default draws a seal on a
-     * certified bill and none on another; the words for one that isn't ([statusText]) stay the app's.
+     * Its mint's certificate for its amount verified (a certificate that doesn't verify is never kept). The default draws a certified bill
+     * like a banknote (a foil stripe, engraved lines, a medal) and another plain; the words for one that isn't ([statusText]) stay the
+     * app's.
      */
     val certified: Boolean = status != NoteStatus.Uncertified,
 )
@@ -934,8 +938,7 @@ object DefaultComponents : BrandComponents {
                                     Modifier.size(width = 48.dp, height = 26.dp),
                                     corner = 4.dp,
                                     frame = 3.dp,
-                                    seal = 14.dp.takeIf { params.certified },
-                                    sealOut = -0.15f,
+                                    certified = params.certified,
                                 )
                             }
                         },
@@ -953,19 +956,23 @@ object DefaultComponents : BrandComponents {
                             Modifier.widthIn(max = 360.dp).fillMaxWidth().aspectRatio(2.04f),
                             corner = 14.dp,
                             frame = 10.dp,
-                            seal = 130.dp.takeIf { params.certified },
+                            certified = params.certified,
                             elevation = 4.dp,
                         ) {
                             BillAmount(
                                 params.amount,
                                 MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
                                 colors,
-                                Modifier.align(Alignment.TopStart).padding(start = 24.dp, top = 20.dp, end = 24.dp),
+                                Modifier.align(Alignment.TopStart)
+                                    .fillMaxWidth(BILL_TEXT_WIDTH)
+                                    .padding(start = 24.dp, top = 20.dp, end = 8.dp),
                             )
                             params.mint?.let {
                                 Text(
                                     it,
-                                    Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 20.dp, end = 72.dp),
+                                    Modifier.align(Alignment.BottomStart)
+                                        .fillMaxWidth(BILL_TEXT_WIDTH)
+                                        .padding(start = 24.dp, bottom = 20.dp, end = 8.dp),
                                     color = colors.ink,
                                     style = MaterialTheme.typography.bodyMedium,
                                     maxLines = 1,
@@ -1221,7 +1228,7 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
                     ),
                 corner = 8.dp,
                 frame = 6.dp,
-                seal = 64.dp.takeIf { params.billsCertified.getOrElse(r) { true } },
+                certified = params.billsCertified.getOrElse(r) { true },
                 elevation = 2.dp,
             ) {
                 // Decorative: the card is read out by its mint, labels, total and range, not by its biggest note.
@@ -1230,16 +1237,23 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
                         params.bills.first(),
                         MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         params.colors,
-                        Modifier.align(Alignment.TopStart).padding(start = 14.dp, top = 12.dp, end = 14.dp).clearAndSetSemantics {},
+                        Modifier.align(Alignment.TopStart)
+                            .fillMaxWidth(BILL_TEXT_WIDTH)
+                            .padding(start = 14.dp, top = 12.dp, end = 6.dp)
+                            .clearAndSetSemantics {},
                     )
             }
         }
     }
 }
 
+/** How much of a bill's width its texts may take: the rest is the certified bill's foil stripe. */
+private const val BILL_TEXT_WIDTH = 0.76f
+
 /**
- * The default bill: the mint's colour with a dashed frame [frame] inside its edge and, for a certified note, a [seal] in its lower right
- * corner ([sealOut] of it reaching past the edge); [content] holds its texts. Decorative: the texts it holds are what is read.
+ * The default bill: the mint's colour with a dashed frame [frame] inside its edge; [content] holds its texts. A [certified] note's bill
+ * carries the marks of a banknote: a foil stripe with fine engraved lines and a medal near its right edge, and soft waves under the amount;
+ * a small bill only the stripe. Decorative: the texts it holds are what is read.
  */
 @Composable
 private fun Bill(
@@ -1247,8 +1261,7 @@ private fun Bill(
     modifier: Modifier,
     corner: Dp,
     frame: Dp,
-    seal: Dp? = null,
-    sealOut: Float = 0.28f,
+    certified: Boolean = false,
     elevation: Dp = 0.dp,
     content: @Composable BoxScope.() -> Unit = {},
 ) {
@@ -1261,6 +1274,7 @@ private fun Bill(
             .background(colors.paper)
             .border(1.dp, Color.Black.copy(alpha = 0.12f), shape)
             .drawBehind {
+                if (certified) drawCertificateMarks(colors, detailed = size.width >= 100.dp.toPx())
                 val inset = frame.toPx()
                 drawRoundRect(
                     line,
@@ -1269,28 +1283,88 @@ private fun Bill(
                     cornerRadius = CornerRadius((corner - frame / 2).coerceAtLeast(2.dp).toPx()),
                     style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
                 )
-                // The seal of a certified note: a ring with a check mark where it shows.
-                if (seal != null) {
-                    val radius = seal.toPx() / 2
-                    val out = seal.toPx() * sealOut
-                    val mark = colors.ink.copy(alpha = 0.5f)
-                    val stroke = (seal / 12).coerceIn(1.dp, 2.5.dp).toPx()
-                    val center = Offset(size.width - radius + out, size.height - radius + out)
-                    drawCircle(mark, radius, center, style = Stroke(stroke))
-                    // Inside the bill, however far the ring reaches out of it.
-                    val visible = Offset(minOf(center.x, size.width - radius * 0.8f), minOf(center.y, size.height - radius * 0.8f))
-                    val tick = radius * 0.28f
-                    drawPath(
-                        Path().apply {
-                            moveTo(visible.x - tick, visible.y)
-                            lineTo(visible.x - tick * 0.25f, visible.y + tick * 0.75f)
-                            lineTo(visible.x + tick, visible.y - tick * 0.8f)
-                        },
-                        mark,
-                        style = Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round),
-                    )
-                }
             },
         content = content,
     )
 }
+
+/**
+ * A certified bill's marks, laid out on a bill 204 units wide and 100 high: the foil stripe from 160 to 184 with six engraved lines, and
+ * when [detailed] the medal low on it and three soft waves under the amount.
+ */
+private fun DrawScope.drawCertificateMarks(colors: NoteColors, detailed: Boolean) {
+    val ux = size.width / 204
+    val uy = size.height / 100
+    val u = minOf(ux, uy)
+    val ink = colors.ink
+    val hairline = maxOf(0.45f * u, 0.5.dp.toPx())
+    val left = 160 * ux
+    val right = 184 * ux
+    drawRect(
+        Brush.linearGradient(
+            0f to ink.copy(alpha = 0.08f),
+            0.45f to ink.copy(alpha = 0.34f),
+            0.55f to ink.copy(alpha = 0.16f),
+            1f to ink.copy(alpha = 0.06f),
+            start = Offset(left, 0f),
+            end = Offset(left + 0.35f * (right - left), size.height),
+        ),
+        topLeft = Offset(left, 0f),
+        size = Size(right - left, size.height),
+    )
+    for (x in listOf(left, right)) drawLine(ink.copy(alpha = 0.3f), Offset(x, 0f), Offset(x, size.height), hairline)
+    val engraving =
+        Path().apply {
+            for (k in 0 until 6) {
+                val x0 = (162 + k * 4) * ux
+                for (y in 0..100 step 2) {
+                    val x = x0 + 1.5f * ux * sin((y + k * 4) / 18f * 2 * PI.toFloat())
+                    if (y == 0) moveTo(x, 0f) else lineTo(x, y * uy)
+                }
+            }
+        }
+    drawPath(engraving, ink.copy(alpha = 0.3f), style = Stroke(hairline))
+    if (!detailed) return
+    val waves =
+        Path().apply {
+            for (k in 0 until 3) {
+                for (x in 0..160 step 2) {
+                    val y = (60 + k * 6) * uy + 2.5f * u * sin((x + k * 7) / 40f * 2 * PI.toFloat())
+                    if (x == 0) moveTo(0f, y) else lineTo(x * ux, y)
+                }
+            }
+        }
+    drawPath(waves, ink.copy(alpha = 0.18f), style = Stroke(hairline))
+    val center = Offset(172 * ux, 76 * uy)
+    val teeth = star(center, 12.5f * u, 10.8f * u, 28)
+    drawPath(teeth, colors.paper)
+    drawPath(teeth, ink.copy(alpha = 0.24f))
+    drawCircle(colors.paper, 8.4f * u, center)
+    drawCircle(ink.copy(alpha = 0.6f), 8.4f * u, center, style = Stroke(0.7f * u))
+    drawPath(rose(center, 5f * u, 1.6f * u, 10, 0f), ink.copy(alpha = 0.55f), style = Stroke(hairline))
+    drawPath(rose(center, 3.2f * u, 1f * u, 10, PI.toFloat() / 10), ink.copy(alpha = 0.35f), style = Stroke(hairline * 0.9f))
+}
+
+/** A medal's toothed edge: [points] teeth between radius [outer] and [inner]. */
+private fun star(center: Offset, outer: Float, inner: Float, points: Int) =
+    Path().apply {
+        for (i in 0 until 2 * points) {
+            val r = if (i % 2 == 0) outer else inner
+            val t = i / (2f * points) * 2 * PI.toFloat()
+            val p = Offset(center.x + r * cos(t), center.y + r * sin(t))
+            if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
+        }
+        close()
+    }
+
+/** A rosette: a circle of radius [radius] waving [amplitude] in and out [petals] times. */
+private fun rose(center: Offset, radius: Float, amplitude: Float, petals: Int, phase: Float) =
+    Path().apply {
+        for (i in 0..360) {
+            val t = i / 360f * 2 * PI.toFloat()
+            val r = radius + amplitude * cos(petals * t + phase)
+            val p = Offset(center.x + r * cos(t), center.y + r * sin(t))
+            if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
+        }
+        close()
+    }

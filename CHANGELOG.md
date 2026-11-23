@@ -18,8 +18,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   the top bar to a row at the bottom. For brands: the component `NotePile`, `NoteFaceParams.colors`, the colour roles
   `brand_note_1` … `brand_note_3` with their `brand_on_note_*`, `NoteGroupHeader` now heads a mint's page (no
   divider); new strings `notes_attention_*`, `notes_outside_title`, `notes_range`, `notes_mint_*`, `notes_section_*`.
-- A bill whose amount the mint certified carries a seal, a ring with a check mark; a bill without a certificate has
-  none, and still says "Amount not certified" in words. For brands: `NoteFaceParams.certified`,
+- A bill whose amount the mint certified looks like a banknote: a foil stripe with engraved lines and a medal, and
+  soft waves under the amount (a small bill shows the stripe). A bill without a certificate stays plain, and still
+  says "Amount not certified" in words. For brands: `NoteFaceParams.certified`,
   `NotePileParams.billsCertified`.
 - Every money moment ends on the same pair of screens: the success screen when it worked, else the result screen.
   Claiming a handed-out note yourself on its page (its QR code's) now ends on the success screen ("Claimed", "You can

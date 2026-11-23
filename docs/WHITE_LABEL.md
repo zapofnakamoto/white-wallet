@@ -490,7 +490,7 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   `mints.visible=false`), whether it is trusted, `selected` while the user selects (null otherwise) and `colors`, its
   mint's bill colours (`WalletColors.notes`; a status out of the balance, `!status.inBalance`, is drawn greyed out by
   default), and `certified` when its mint's certificate for its amount verified (a certificate that
-  doesn't verify is never kept; the default draws a seal, a ring with a check mark, on a certified bill only, and the
+  doesn't verify is never kept; the default draws a certified bill like a banknote, with a foil stripe, engraved lines and a medal, and the
   words for an uncertified one stay the app's). The notes view shows each mint as a pile of its bills, swiped through: `NotePile(params, modifier)` draws
   one (the top bills, biggest first, formatted and in msat, `largestMsat` to draw every mint's bills to one scale, the
   mint, its `labels` with the count, total, `range`, `colors` and `billsCertified`, whether each bill is certified); keep every mint's pile the same height, so swiping
