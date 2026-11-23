@@ -157,9 +157,13 @@ class ClaimScreenTest {
 
     /** The "Claim … yourself" button, by its string's words around the amount, in any language. */
     private fun takeBackButton() =
-        text(R.string.claim_take_back, "\u0000").split("\u0000").map { it.trim() }.filter { it.isNotEmpty() }.fold(hasClickAction()) { matcher, words ->
-            matcher and hasText(words, substring = true)
-        }
+        text(R.string.claim_take_back, "\u0000")
+            .split("\u0000")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .fold(hasClickAction()) { matcher, words ->
+                matcher and hasText(words, substring = true)
+            }
 
     @Test
     fun theUsersOwnSharedNoteItsMintDidNotAnswerForOffersNothingButToCheckAgain() {
