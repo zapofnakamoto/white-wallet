@@ -360,4 +360,16 @@
     <string name="notes_mint_previous">Previous provider</string>
     <string name="notes_mint_next">Next provider</string>
     <string name="notes_mint_position">Provider %1$d of %2$d</string>
+    <plurals name="notes_attention_unknown_at">
+        <item quantity="one">%2$s doesn\'t know %1$d of your banknotes</item>
+        <item quantity="other">%2$s doesn\'t know %1$d of your banknotes</item>
+    </plurals>
+    <plurals name="notes_attention_unknown">
+        <item quantity="one">Your providers don\'t know %d of your banknotes</item>
+        <item quantity="other">Your providers don\'t know %d of your banknotes</item>
+    </plurals>
+    <plurals name="notes_attention_unknown_unnamed">
+        <item quantity="one">Your provider doesn\'t know %d of your banknotes</item>
+        <item quantity="other">Your provider doesn\'t know %d of your banknotes</item>
+    </plurals>
 </resources>

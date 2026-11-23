@@ -97,6 +97,19 @@
     <string name="archive_handed_out_hint">You handed these notes out, but their mint doesn\'t know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet claims it if you asked it to.</string>
     <string name="archive_note_remove_title">Remove this note for good?</string>
     <string name="archive_note_remove_body">Its mint doesn\'t know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase.</string>
+    <!-- Notes a mint doesn't know, in the needs-attention card: on one mint (%2$s), on several, or with mints not named. -->
+    <plurals name="notes_attention_unknown_at">
+        <item quantity="one">%2$s doesn\'t know %1$d of your notes</item>
+        <item quantity="other">%2$s doesn\'t know %1$d of your notes</item>
+    </plurals>
+    <plurals name="notes_attention_unknown">
+        <item quantity="one">Your mints don\'t know %d of your notes</item>
+        <item quantity="other">Your mints don\'t know %d of your notes</item>
+    </plurals>
+    <plurals name="notes_attention_unknown_unnamed">
+        <item quantity="one">Your mint doesn\'t know %d of your notes</item>
+        <item quantity="other">Your mint doesn\'t know %d of your notes</item>
+    </plurals>
     <plurals name="notes_attention_waiting">
         <item quantity="one">%d note waiting for an answer</item>
         <item quantity="other">%d notes waiting for an answer</item>

@@ -144,6 +144,9 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `archive_handed_out_hint` | You handed these notes out, but their mint doesn't know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet claims it if you asked it to. |
 | `archive_note_remove_title` | Remove this note for good? |
 | `archive_note_remove_body` | Its mint doesn't know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase. |
+| `notes_attention_unknown_at` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
+| `notes_attention_unknown` | Your mints don't know %d of your notes / Your mints don't know %d of your notes (plural) |
+| `notes_attention_unknown_unnamed` | Your mint doesn't know %d of your notes / Your mint doesn't know %d of your notes (plural) |
 | `notes_attention_waiting` | %d note waiting for an answer / %d notes waiting for an answer (plural) |
 | `notes_attention_received` | %d received note needs you / %d received notes need you (plural) |
 | `notes_mint_open` | Show its notes |

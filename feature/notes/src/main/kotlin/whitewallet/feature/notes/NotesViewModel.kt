@@ -73,6 +73,11 @@ data class NotesState(
     val mints: List<MintNotes> = emptyList(),
     /** Notes handed out as links that nobody has claimed yet. */
     val shared: List<Note> = emptyList(),
+    /**
+     * Notes handed out whose mint doesn't know them (not archived): listed with the handed-out ones, with their status. Never in the
+     * balance, so not a warning; their details still offer checking again and the archive.
+     */
+    val handedOutUnknown: List<Note> = emptyList(),
     /** Notes received as links, not claimed yet or no longer claimable: not in the balance. */
     val received: List<ReceivedNote> = emptyList(),
     /** How many received notes are archived: no longer tried, only listed in the archive. */
@@ -155,11 +160,21 @@ data class NotesState(
     val sharedMsat: Long
         get() = shared.sumOf { it.amountMsat }
 
+    /** Everything handed out: waiting for its recipient, or unknown to its mint. */
+    val handedOutMsat: Long
+        get() = sharedMsat + handedOutUnknown.sumOf { it.amountMsat }
+
+    val handedOutCount: Int
+        get() = shared.size + handedOutUnknown.size
+
     val receivedMsat: Long
         get() = received.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
 
+    /** A note the view shows, by its id: on a mint, or handed out and unknown to its mint. */
+    fun note(id: String): Note? = all.firstOrNull { it.id == id } ?: handedOutUnknown.firstOrNull { it.id == id }
+
     val openNote: Note?
-        get() = open?.let { id -> all.firstOrNull { it.id == id } }
+        get() = open?.let(::note)
 
     val openTrusted: Boolean
         get() = openNote?.let { n -> mints.any { it.host == n.host && it.trusted } } == true
@@ -315,8 +330,10 @@ constructor(
                     it.state == NoteState.Outstanding ||
                         it.state == NoteState.Paying ||
                         it.state == NoteState.Ambiguous ||
-                        (it.state == NoteState.Unknown && !it.isArchived)
+                        (it.state == NoteState.Unknown && !it.isArchived && it.handedOut == null)
                 }
+                val handedOutUnknown =
+                    notes.filter { it.state == NoteState.Unknown && !it.isArchived && it.handedOut != null }.sortedWith(c.sort.order)
                 val mints =
                     live
                         .groupBy { it.host }
@@ -337,6 +354,7 @@ constructor(
                     loaded = true,
                     mints = mints,
                     shared = sharedNotes(notes, c.sort),
+                    handedOutUnknown = handedOutUnknown,
                     received = ReceivedNote.shown(received),
                     offline = offline,
                     notAnsweringHosts = notAnswering,
@@ -346,7 +364,7 @@ constructor(
                     archivedNotes = notes.count { it.isArchived },
                     sort = c.sort,
                     selected = u.selected intersect pickable,
-                    open = u.open?.takeIf { id -> live.any { it.id == id } },
+                    open = u.open?.takeIf { id -> live.any { it.id == id } || handedOutUnknown.any { it.id == id } },
                     noteStrategy = c.strategy,
                     strategies = wallet.noteStrategies,
                     developerMode = c.developer,
@@ -486,7 +504,7 @@ constructor(
         val unreachable = mutableListOf<String>()
         for (id in ids) {
             // One handed out as a link was never in the balance: what happens to it is said apart.
-            val handedOutNote = state.value.mints.any { m -> m.notes.any { it.id == id && it.handedOut != null } }
+            val handedOutNote = state.value.note(id)?.handedOut != null
             when (val check = wallet.recheckNote(id)) {
                 is NoteCheck.Ok -> ok++
                 NoteCheck.Spent -> if (handedOutNote) handedOutSpent++ else gone++
@@ -494,7 +512,7 @@ constructor(
                 NoteCheck.HandedOutAgain -> handedOut++
                 is NoteCheck.TakenBack -> takenBack++
                 is NoteCheck.TakeBackRefused -> takeBackRefused++
-                NoteCheck.Unreachable -> state.value.mints.firstOrNull { m -> m.notes.any { it.id == id } }?.let { unreachable += it.host }
+                NoteCheck.Unreachable -> state.value.note(id)?.let { unreachable += it.host }
                 is NoteCheck.KeyChanged -> return NotesOutcome.KeyChanged(check.host)
                 NoteCheck.NotFound -> Unit
                 // Only a confirming note settles, and it is only rechecked on its own.

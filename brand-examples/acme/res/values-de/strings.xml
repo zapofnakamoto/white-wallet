@@ -360,4 +360,16 @@
     <string name="notes_mint_previous">Vorheriger Anbieter</string>
     <string name="notes_mint_next">Nächster Anbieter</string>
     <string name="notes_mint_position">Anbieter %1$d von %2$d</string>
+    <plurals name="notes_attention_unknown_at">
+        <item quantity="one">%2$s kennt %1$d deiner Geldscheine nicht</item>
+        <item quantity="other">%2$s kennt %1$d deiner Geldscheine nicht</item>
+    </plurals>
+    <plurals name="notes_attention_unknown">
+        <item quantity="one">Deine Anbieter kennen %d deiner Geldscheine nicht</item>
+        <item quantity="other">Deine Anbieter kennen %d deiner Geldscheine nicht</item>
+    </plurals>
+    <plurals name="notes_attention_unknown_unnamed">
+        <item quantity="one">Dein Anbieter kennt %d deiner Geldscheine nicht</item>
+        <item quantity="other">Dein Anbieter kennt %d deiner Geldscheine nicht</item>
+    </plurals>
 </resources>

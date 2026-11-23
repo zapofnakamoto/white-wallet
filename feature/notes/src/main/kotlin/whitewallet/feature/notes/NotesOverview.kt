@@ -140,7 +140,15 @@ private fun Attention(state: NotesState, actions: NotesActions, onReceived: () -
         state.unknownNotes
             .takeIf { it.isNotEmpty() }
             ?.let { notes ->
-                add(AttentionLine(pluralStringResource(R.plurals.notes_archived_notes, notes.size, notes.size), openMintOf(notes, actions)))
+                val hosts = notes.map { it.host }.distinct()
+                val text =
+                    when {
+                        !state.showMints -> pluralStringResource(R.plurals.notes_attention_unknown_unnamed, notes.size, notes.size)
+                        hosts.size == 1 ->
+                            pluralStringResource(R.plurals.notes_attention_unknown_at, notes.size, notes.size, hosts.single())
+                        else -> pluralStringResource(R.plurals.notes_attention_unknown, notes.size, notes.size)
+                    }
+                add(AttentionLine(text, openMintOf(notes, actions)))
             }
         state.waitingNotes
             .takeIf { it.isNotEmpty() }
@@ -315,7 +323,7 @@ private fun OutsideBalance(
     overview: OverviewState,
     receivedModifier: Modifier,
 ) {
-    if (state.received.isEmpty() && state.shared.isEmpty() && state.archivedCount == 0) return
+    if (state.received.isEmpty() && state.handedOutCount == 0 && state.archivedCount == 0) return
     var receivedOpen by overview.receivedOpen
     var sharedOpen by overview.sharedOpen
     HorizontalDivider(Modifier.padding(top = 16.dp))
@@ -345,16 +353,17 @@ private fun OutsideBalance(
                 }
             }
         }
-    if (state.shared.isNotEmpty()) {
+    if (state.handedOutCount > 0) {
         Section(
             stringResource(DesignR.string.handed_out_title),
-            amount(state.sharedMsat, state.shared.size),
+            amount(state.handedOutMsat, state.handedOutCount),
             sharedOpen,
             { sharedOpen = !sharedOpen },
         )
         if (sharedOpen) {
-            Hint(stringResource(R.string.notes_shared_hint))
+            if (state.shared.isNotEmpty()) Hint(stringResource(R.string.notes_shared_hint))
             state.shared.forEach { note -> SharedRow(note, state.showMints, actions.openShared) }
+            state.handedOutUnknown.forEach { note -> HandedOutUnknownRow(note, state.showMints, actions.tap) }
         }
     }
     if (state.archivedCount > 0) ArchivedRow(state, actions.openArchive)
@@ -401,6 +410,25 @@ private fun SharedRow(note: Note, showMints: Boolean, onOpen: (String) -> Unit) 
         note.amountMsat,
         modifier = Modifier.clickable { onOpen(note.id) },
         status = NoteStatus.Waiting,
+        age = recentTime(note.updatedAtMillis),
+        mint = note.host.takeIf { showMints },
+        place = NoteFacePlace.Shared,
+    )
+}
+
+/**
+ * A handed-out note its mint doesn't know: nobody can claim it until the mint knows it again. It opens its details (check again, archive),
+ * not its QR code.
+ */
+@Composable
+private fun HandedOutUnknownRow(note: Note, showMints: Boolean, onOpen: (Note) -> Unit) {
+    WalletNoteFace(
+        size = NoteFaceSize.Row,
+        note.amountMsat,
+        modifier = Modifier.clickable { onOpen(note) },
+        status = NoteStatus.Unknown,
+        statusText = noteStatusText(NoteStatus.Unknown),
+        statusIcon = noteStatusIcon(NoteStatus.Unknown),
         age = recentTime(note.updatedAtMillis),
         mint = note.host.takeIf { showMints },
         place = NoteFacePlace.Shared,

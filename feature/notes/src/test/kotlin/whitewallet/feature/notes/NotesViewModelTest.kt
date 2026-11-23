@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import okhttp3.Interceptor
+import whitewallet.core.model.HandedOut
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -130,5 +131,20 @@ class NotesViewModelTest {
         assertEquals(4, state.balanceNoteCount)
         assertEquals(11_000, state.totalMsat)
         assertEquals(5, state.noteCount)
+    }
+
+    @Test
+    fun `a handed-out note its mint doesn't know is listed with the handed-out ones, not on its mint`() = runTest {
+        val screen = screen()
+        store.upsertNotes(listOf(note("u1", home, 7_000, NoteState.Unknown).copy(handedOut = HandedOut.Waiting)))
+        val state = screen.await { it.handedOutUnknown.isNotEmpty() }
+        assertEquals(listOf("u1"), state.handedOutUnknown.map { it.id })
+        assertTrue(state.unknownNotes.isEmpty(), "not a warning: it was never in the balance")
+        assertTrue(state.mints.flatMap { it.notes }.none { it.id == "u1" })
+        assertEquals(7_000, state.handedOutMsat)
+
+        // Its details still open, from the handed-out list.
+        screen.tap(state.note("u1")!!)
+        assertEquals("u1", screen.await { it.openNote != null }.openNote?.id)
     }
 }

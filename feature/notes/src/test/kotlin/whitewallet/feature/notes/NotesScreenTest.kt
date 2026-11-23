@@ -140,7 +140,7 @@ class NotesScreenTest {
             )
         }
         compose.onNodeWithText(text(R.string.notes_attention_title)).assertExists()
-        compose.onNodeWithText(plural(R.plurals.notes_archived_notes, 2, 2)).performClick()
+        compose.onNodeWithText("home.example doesn't know 2 of your notes").performClick()
         assertEquals("home.example", opened)
         compose.onNodeWithText(plural(R.plurals.notes_attention_waiting, 1, 1)).performClick()
         assertEquals("other.example", opened)
@@ -715,9 +715,35 @@ class NotesScreenTest {
     }
 
     @Test
-    fun aHandedOutNoteItsMintDoesNotKnowSaysSoInTheList() {
-        compose.setContent { NotesContent(state(withHandedOut(HandedOut.Waiting), onPage()), NotesActions()) }
-        compose.onNodeWithText(text(R.string.notes_state_unknown_handed_out)).assertExists()
+    fun aHandedOutNoteItsMintDoesNotKnowIsListedWithTheHandedOutOnesNotInTheWarning() {
+        var opened: Note? = null
+        val handedOut = note("u1", "home.example", 5_000, NoteState.Unknown).copy(handedOut = HandedOut.Waiting)
+        compose.setContent { NotesContent(state({ it.copy(handedOutUnknown = listOf(handedOut)) }), NotesActions(tap = { opened = it })) }
+        compose.onNodeWithText(text(R.string.notes_attention_title)).assertDoesNotExist()
+        compose.onNodeWithText("₿5,000 · 1 note").assertExists()
+        compose.onNodeWithText(text(DesignR.string.handed_out_title)).performScrollTo().performClick()
+        // Its details, not its QR code: nobody can claim it until its mint knows it again.
+        compose.onNodeWithText(text(R.string.notes_state_unknown)).performScrollTo().performClick()
+        assertEquals("u1", opened?.id)
+    }
+
+    @Test
+    fun notesUnknownToSeveralMintsAreCountedTogether() {
+        compose.setContent {
+            NotesContent(
+                state(
+                    ::withUnknown,
+                    {
+                        it.copy(
+                            mints =
+                                it.mints + MintNotes("other.example", false, listOf(note("u3", "other.example", 1_000, NoteState.Unknown)))
+                        )
+                    },
+                ),
+                NotesActions(),
+            )
+        }
+        compose.onNodeWithText("Your mints don't know 3 of your notes").assertExists()
     }
 
     @Test
