@@ -42,6 +42,8 @@ import whitewallet.core.designsystem.MintChoiceSheet
 import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.ScreenColumn
+import whitewallet.core.designsystem.ResultScreen
+import whitewallet.core.designsystem.ResultTone
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
@@ -158,14 +160,18 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
             )
             return@Scaffold
         }
+        // Still on its way or not paid: on the same layout, as a wait or a problem.
+        val result = state.result
+        if (result != null && state.preview != null) {
+            PayEnded(result, state.preview, sendStatus(state), state.mintsVisible, onDone, actions.onEdit, Modifier.padding(padding))
+            return@Scaffold
+        }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             val preview = state.preview
-            val result = state.result
             if (preview != null) WalletStatusScope(sendStatus(state)) { BrandDecoration(Anchor.SendHeader) }
             var picking by rememberSaveable { mutableStateOf(false) }
             val onPickMint = { picking = true }.takeIf { state.canPickMint }
             when {
-                result != null && preview != null -> ResultContent(result, preview, state.mintsVisible, onDone, actions.onEdit)
                 preview != null -> ReviewContent(state, preview, actions, onPickMint)
                 state.scanning -> ScanContent(actions)
                 else -> InputContent(state, actions, onPickMint)
@@ -476,49 +482,59 @@ private fun QuoteText(quote: PayQuote?) {
     )
 }
 
+/** A payment that is still on its way, or wasn't paid: what happened, the mint's own words if it gave any, and another try where one can help. */
 @Composable
-private fun ResultContent(
+private fun PayEnded(
     result: PayResult,
     preview: PayPreview.Ready,
+    status: WalletStatus,
     mintsVisible: Boolean,
     onDone: () -> Unit,
     onTryAgain: () -> Unit,
+    modifier: Modifier,
 ) {
     val to = preview.payee
+    val done = SuccessAction(stringResource(R.string.send_done), onDone)
     when (result) {
         // Shown by SuccessScreen instead.
         is PayResult.Paid -> Unit
         is PayResult.Pending -> {
-            Text(stringResource(R.string.send_pending_title), style = MaterialTheme.typography.headlineSmall)
             val sats = formatAmount(result.amountMsat)
-            Text(
-                if (to != null) stringResource(R.string.send_pending_body, sats, to)
-                else stringResource(R.string.send_pending_body_invoice, sats),
-                textAlign = TextAlign.Center,
+            ResultScreen(
+                ResultTone.Waiting,
+                Anchor.SendResult,
+                status,
+                stringResource(R.string.send_pending_title),
+                done = done,
+                modifier = modifier,
+                lines =
+                    listOf(
+                        if (to != null) stringResource(R.string.send_pending_body, sats, to)
+                        else stringResource(R.string.send_pending_body_invoice, sats)
+                    ),
             )
         }
-        is PayResult.Failed -> {
-            Text(
+        is PayResult.Failed ->
+            ResultScreen(
+                ResultTone.Problem,
+                Anchor.SendResult,
+                status,
                 stringResource(R.string.send_failed_title),
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.error,
+                done = done,
+                modifier = modifier,
+                // Only a pay link can be tried again, with a new invoice: a mint pays an invoice once, and takes no second try at one that
+                // failed. One that no mint was asked to pay is as good as new.
+                more =
+                    SuccessAction(stringResource(R.string.send_try_again), onTryAgain).takeIf {
+                        preview.destination is PayDestination.PayLink || result.problem == PayProblem.MintNotAnswering
+                    },
+                lines =
+                    listOfNotNull(
+                        problemText(result.problem, result.host?.takeIf { mintsVisible }),
+                        result.mintMessage?.let { stringResource(R.string.send_problem_mint_message, it) },
+                    ),
             )
-            Text(problemText(result.problem, result.host?.takeIf { mintsVisible }), textAlign = TextAlign.Center)
-            result.mintMessage?.let {
-                Text(
-                    stringResource(R.string.send_problem_mint_message, it),
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            // Only a pay link can be tried again, with a new invoice: a mint pays an invoice once, and takes no second try at one that
-            // failed. One that no mint was asked to pay is as good as new.
-            if (preview.destination is PayDestination.PayLink || result.problem == PayProblem.MintNotAnswering) {
-                WalletButton(kind = ButtonKind.Text, onClick = onTryAgain) { Text(stringResource(R.string.send_try_again)) }
-            }
-        }
     }
-    PrimaryButton(stringResource(R.string.send_done), onDone)
 }
 
 /** What [problem] means, in a full sentence; [host] names the mint that didn't answer ([PayProblem.MintNotAnswering]), where mints show. */

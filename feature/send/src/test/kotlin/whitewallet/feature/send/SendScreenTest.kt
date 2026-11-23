@@ -10,6 +10,14 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
+import androidx.compose.runtime.Composable
+import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ProblemKind
+import androidx.compose.runtime.CompositionLocalProvider
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -157,6 +165,41 @@ class SendScreenTest {
         compose.onNodeWithText(text(R.string.send_try_again)).assertExists()
         preview = payLink.copy(destination = PayDestination.Invoice(invoice))
         compose.onNodeWithText(text(R.string.send_try_again)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aPaymentStillOnItsWayEndsOnTheResultScreen() {
+        var done = 0
+        val pending = PayResult.Pending(1_000_000)
+        compose.setContent { SendScreen(SendState(preview = payLink, result = pending), onBack = {}, onDone = { done++ }, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_pending_title)).assertExists()
+        compose.onNodeWithText(text(R.string.send_pending_body, "₿1,000", "bob@mint.example")).assertExists()
+        compose.onNodeWithText(text(R.string.send_done)).performClick()
+        assertEquals(1, done)
+    }
+
+    @Test
+    fun theBrandSeesAPaymentThatIsNotPaidOrStillOnItsWayAtItsResult() {
+        val seen = mutableListOf<Pair<Anchor, WalletStatus>>()
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    seen += anchor to context.status
+                }
+            }
+        var result by mutableStateOf<PayResult>(PayResult.Failed(PayProblem.PaymentFailed))
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design) {
+                SendScreen(SendState(preview = payLink, result = result), onBack = {}, onDone = {}, actions = actions())
+            }
+        }
+        compose.onNodeWithText(text(R.string.send_failed_title)).assertExists()
+        assertEquals(listOf(Anchor.SendResult to WalletStatus.Problem(ProblemKind.Other)), seen.distinct())
+        seen.clear()
+        result = PayResult.Pending(1_000_000)
+        compose.waitForIdle()
+        assertEquals(listOf(Anchor.SendResult to WalletStatus.Sending), seen.distinct())
     }
 
     @Test
