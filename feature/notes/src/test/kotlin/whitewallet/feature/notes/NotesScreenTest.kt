@@ -541,6 +541,37 @@ class NotesScreenTest {
     }
 
     @Test
+    fun aBrandLearnsWhichNotesAreCertifiedWhateverTheirStatus() {
+        val brand =
+            object : BrandDesign {
+                override val components =
+                    object : BrandComponents {
+                        @Composable
+                        override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
+                            Text("bill ${params.amount} ${if (params.certified) "sealed" else "plain"}", modifier)
+                        }
+                    }
+            }
+        val notes =
+            listOf(
+                note("c1", "home.example", 3_000, NoteState.Ambiguous),
+                note("c2", "home.example", 2_000, NoteState.Ambiguous, certified = false),
+                note("c3", "home.example", 1_000, certified = false),
+            )
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides brand) {
+                NotesContent(
+                    state({ it.copy(mints = listOf(MintNotes("home.example", true, notes))) }, onPage()),
+                    NotesActions(),
+                )
+            }
+        }
+        compose.onNodeWithText("bill ₿3,000 sealed").assertExists()
+        compose.onNodeWithText("bill ₿2,000 plain").assertExists()
+        compose.onNodeWithText("bill ₿1,000 plain").assertExists()
+    }
+
+    @Test
     fun aBrandDecoratesTheTopOfTheNotesAndAnEmptyView() {
         val seen = mutableListOf<Pair<Anchor, WalletStatus>>()
         val bodies = mutableListOf<Pair<Page, WalletStatus>>()

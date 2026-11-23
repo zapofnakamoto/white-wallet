@@ -82,6 +82,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 trusted = state.openTrusted,
                 enabled = NotesViewModel.selectable(note) && !state.busy,
                 colors = MaterialTheme.walletColors.note(state.colorIndex(note.host)),
+                certified = note.certificate != null,
             )
             Text(
                 if (state.showMints) stringResource(R.string.notes_sheet_where, note.host, recentTime(note.updatedAtMillis))

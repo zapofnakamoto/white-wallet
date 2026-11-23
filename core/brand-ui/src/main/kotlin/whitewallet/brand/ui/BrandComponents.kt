@@ -78,7 +78,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.painter.Painter
@@ -455,6 +458,11 @@ class NoteFaceParams(
     val qrCovered: Boolean = false,
     /** The colours of its mint's bills ([WalletColors.notes]); a note out of the balance is drawn greyed out ([NoteStatus.inBalance]). */
     val colors: NoteColors? = null,
+    /**
+     * Its mint's certificate for its amount verified (a certificate that doesn't verify is never kept). The default draws a seal on a
+     * certified bill and none on another; the words for one that isn't ([statusText]) stay the app's.
+     */
+    val certified: Boolean = status != NoteStatus.Uncertified,
 )
 
 /** Whether a note of this status counts in the balance: else a bill is drawn greyed out. */
@@ -474,6 +482,8 @@ class NotePileParams(
     /** The notes on top of the pile, the biggest first (a few at most), formatted and in msat; empty when none counts in the balance. */
     val bills: List<String>,
     val billsMsat: List<Long>,
+    /** Whether each of [bills] is certified ([NoteFaceParams.certified]). */
+    val billsCertified: List<Boolean>,
     /** The biggest note on any of the user's mints: bills are drawn to one scale across the mints. */
     val largestMsat: Long,
     val colors: NoteColors,
@@ -919,7 +929,14 @@ object DefaultComponents : BrandComponents {
                                         Modifier,
                                     )
                                 }
-                                Bill(params.billColors(), Modifier.size(width = 48.dp, height = 26.dp), corner = 4.dp, frame = 3.dp)
+                                Bill(
+                                    params.billColors(),
+                                    Modifier.size(width = 48.dp, height = 26.dp),
+                                    corner = 4.dp,
+                                    frame = 3.dp,
+                                    seal = 14.dp.takeIf { params.certified },
+                                    sealOut = -0.15f,
+                                )
                             }
                         },
                         trailing = params.age?.let { age -> { Text(age, style = MaterialTheme.typography.bodySmall) } },
@@ -936,7 +953,7 @@ object DefaultComponents : BrandComponents {
                             Modifier.widthIn(max = 360.dp).fillMaxWidth().aspectRatio(2.04f),
                             corner = 14.dp,
                             frame = 10.dp,
-                            seal = 130.dp,
+                            seal = 130.dp.takeIf { params.certified },
                             elevation = 4.dp,
                         ) {
                             BillAmount(
@@ -1204,7 +1221,7 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
                     ),
                 corner = 8.dp,
                 frame = 6.dp,
-                seal = 64.dp,
+                seal = 64.dp.takeIf { params.billsCertified.getOrElse(r) { true } },
                 elevation = 2.dp,
             ) {
                 // Decorative: the card is read out by its mint, labels, total and range, not by its biggest note.
@@ -1221,8 +1238,8 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
 }
 
 /**
- * The default bill: the mint's colour with a dashed frame [frame] inside its edge and, with a [seal], a ring in its lower right corner;
- * [content] holds its texts. Decorative: the texts it holds are what is read.
+ * The default bill: the mint's colour with a dashed frame [frame] inside its edge and, for a certified note, a [seal] in its lower right
+ * corner ([sealOut] of it reaching past the edge); [content] holds its texts. Decorative: the texts it holds are what is read.
  */
 @Composable
 private fun Bill(
@@ -1230,7 +1247,8 @@ private fun Bill(
     modifier: Modifier,
     corner: Dp,
     frame: Dp,
-    seal: Dp = 0.dp,
+    seal: Dp? = null,
+    sealOut: Float = 0.28f,
     elevation: Dp = 0.dp,
     content: @Composable BoxScope.() -> Unit = {},
 ) {
@@ -1251,10 +1269,26 @@ private fun Bill(
                     cornerRadius = CornerRadius((corner - frame / 2).coerceAtLeast(2.dp).toPx()),
                     style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
                 )
-                if (seal > 0.dp) {
+                // The seal of a certified note: a ring with a check mark where it shows.
+                if (seal != null) {
                     val radius = seal.toPx() / 2
-                    val out = seal.toPx() * 0.28f
-                    drawCircle(line, radius, Offset(size.width - radius + out, size.height - radius + out), style = Stroke(2.dp.toPx()))
+                    val out = seal.toPx() * sealOut
+                    val mark = colors.ink.copy(alpha = 0.5f)
+                    val stroke = (seal / 12).coerceIn(1.dp, 2.5.dp).toPx()
+                    val center = Offset(size.width - radius + out, size.height - radius + out)
+                    drawCircle(mark, radius, center, style = Stroke(stroke))
+                    // Inside the bill, however far the ring reaches out of it.
+                    val visible = Offset(minOf(center.x, size.width - radius * 0.8f), minOf(center.y, size.height - radius * 0.8f))
+                    val tick = radius * 0.28f
+                    drawPath(
+                        Path().apply {
+                            moveTo(visible.x - tick, visible.y)
+                            lineTo(visible.x - tick * 0.25f, visible.y + tick * 0.75f)
+                            lineTo(visible.x + tick, visible.y - tick * 0.8f)
+                        },
+                        mark,
+                        style = Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round),
+                    )
                 }
             },
         content = content,

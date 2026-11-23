@@ -238,6 +238,7 @@ fun WalletNoteFace(
     place: NoteFacePlace = NoteFacePlace.Wallet,
     qrCovered: Boolean = false,
     colors: NoteColors? = null,
+    certified: Boolean = status != NoteStatus.Uncertified,
 ) {
     val spoken = if (size == NoteFaceSize.Large) spokenAmount(amountMsat) else null
     LocalBrandDesign.current.components.NoteFace(
@@ -257,6 +258,7 @@ fun WalletNoteFace(
             place,
             qrCovered,
             colors,
+            certified,
         ),
         if (spoken != null) modifier.semantics { contentDescription = spoken } else modifier,
     )
@@ -294,6 +296,7 @@ fun WalletNotePile(
     totalMsat: Long,
     range: String?,
     bills: List<Long>,
+    certified: List<Boolean>,
     largestMsat: Long,
     colors: NoteColors,
     home: Boolean,
@@ -310,6 +313,7 @@ fun WalletNotePile(
             range,
             bills = shown.map { formatAmount(it) },
             billsMsat = shown,
+            billsCertified = certified.take(shown.size),
             largestMsat = largestMsat,
             colors,
             home,

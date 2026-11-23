@@ -489,9 +489,11 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   `Spent`, `TakenBack`, `Unknown`; give a `when` an `else`), its words and mark, the age, the mint (null with
   `mints.visible=false`), whether it is trusted, `selected` while the user selects (null otherwise) and `colors`, its
   mint's bill colours (`WalletColors.notes`; a status out of the balance, `!status.inBalance`, is drawn greyed out by
-  default). The notes view shows each mint as a pile of its bills, swiped through: `NotePile(params, modifier)` draws
+  default), and `certified` when its mint's certificate for its amount verified (a certificate that
+  doesn't verify is never kept; the default draws a seal, a ring with a check mark, on a certified bill only, and the
+  words for an uncertified one stay the app's). The notes view shows each mint as a pile of its bills, swiped through: `NotePile(params, modifier)` draws
   one (the top bills, biggest first, formatted and in msat, `largestMsat` to draw every mint's bills to one scale, the
-  mint, its `labels` with the count, total, `range` and `colors`); keep every mint's pile the same height, so swiping
+  mint, its `labels` with the count, total, `range`, `colors` and `billsCertified`, whether each bill is certified); keep every mint's pile the same height, so swiping
   doesn't move the page. The default is a card with the bills fanned out. The app keeps the tap (it opens the mint's
   page) and the swiping, arrows and dots. `NoteGroupHeader`
   heads that page: the mint (null with `mints.visible=false`), its total and labels (how many notes, home, trusted). The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their

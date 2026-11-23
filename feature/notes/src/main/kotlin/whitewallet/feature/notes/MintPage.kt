@@ -191,6 +191,7 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
         selected = selected,
         enabled = enabled && !state.busy,
         colors = MaterialTheme.walletColors.note(state.colorIndex(note.host)),
+        certified = note.certificate != null,
         modifier =
             Modifier.combinedClickable(
                     enabled = !state.busy && (pickable || !state.selecting),
