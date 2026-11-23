@@ -29,7 +29,7 @@
     <string name="settings_strategy_single_hint">Alle Geldscheine zu einem pro Anbieter zusammenlegen. Kostenlos.</string>
     <string name="mint_title">Anbieter</string>
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Geldscheine bei einem Anbieter deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
-    <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Geldscheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut, bis du seinen neuen Schlüssel annimmst.</string>
+    <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Geldscheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut, bis du sden neuen Schlüssel annimmst.</string>
     <string name="mints_empty">Diese Wallet hat noch keinen Anbieter, also kann nichts empfangen werden.</string>
     <string name="settings_no_home">Dieses Konto hat keinen eigenen Anbieter. Wähle einen deiner Anbieter, um dort zu empfangen.</string>
     <string name="settings_no_home_action">Anbieter wählen</string>
@@ -43,13 +43,13 @@
     <string name="claim_scan_hint">Richte die Kamera auf den QR-Code des Geldscheins.</string>
     <string name="claim_check">Geldschein prüfen</string>
     <string name="claim_invalid">Kein gültiger Geldschein: %1$s</string>
-    <string name="claim_spent">Dieser Geldschein wurde bereits ausgegeben.</string>
+    <string name="claim_spent">Zu spät: Dieser Geldschein wurde schon ausgegeben.</string>
     <string name="claim_in_wallet">Dieser Geldschein ist bereits in deiner Wallet.</string>
     <string name="claim_own_shared">Du hast diesen Geldschein weitergegeben, und niemand hat ihn bisher eingelöst.</string>
-    <string name="claim_own_offline">Du hast diesen Geldschein weitergegeben. Dein Anbieter antwortet gerade nicht, darum lässt er sich noch nicht zurückholen.</string>
-    <string name="claim_own_phone_offline">Du hast diesen Geldschein weitergegeben. Du bist offline, darum lässt er sich noch nicht zurückholen.</string>
-    <string name="claim_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt, deshalb wird nichts dorthin gesendet. Behalte ihn: Deine Wallet löst ihn ein, sobald der Schlüssel wieder passt oder du in den Details des Anbieters einen neuen annimmst.</string>
-    <string name="claim_kept_key_changed">Deine Wallet löst ihn ein, sobald der Signaturschlüssel des Anbieters wieder passt oder du in seinen Details einen neuen annimmst.</string>
+    <string name="claim_own_offline">Du hast diesen Geldschein weitergegeben. Der Anbieter antwortet gerade nicht, darum kannst du ihn noch nicht selbst einlösen.</string>
+    <string name="claim_own_phone_offline">Du hast diesen Geldschein weitergegeben. Du bist offline, darum kannst du ihn noch nicht selbst einlösen.</string>
+    <string name="claim_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt, deshalb wird nichts dorthin gesendet. Behalte ihn: Deine Wallet löst ihn ein, sobald der Schlüssel wieder passt oder du in den Details des Anbieters den neuen annimmst.</string>
+    <string name="claim_kept_key_changed">Deine Wallet löst ihn ein, sobald der Signaturschlüssel des Anbieters wieder passt oder du in seinen Details den neuen annimmst.</string>
     <string name="claim_other_mint">Dieser Geldschein liegt bei %1$s und bleibt dort.</string>
     <string name="home_tab_notes">Geldscheine</string>
     <string name="home_wallet_empty">Noch nichts hier. Teile deine Adresse, um Zahlungen zu erhalten, oder löse einen Geldschein ein.</string>
@@ -65,7 +65,7 @@
     <string name="activity_sent_note">Geldschein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Geldscheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="move_adds_mint">%1$s wird zu den Anbietern von %2$s hinzugefügt.</string>
-    <string name="home_key_changed_body">Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details des Anbieters einen neuen Schlüssel annimmst.</string>
+    <string name="home_key_changed_body">Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details des Anbieters den neuen Schlüssel annimmst.</string>
     <string name="notes_title">Geldscheine</string>
     <string name="notes_settings">Geldschein-Einstellungen</string>
     <plurals name="notes_count">
@@ -74,8 +74,8 @@
     </plurals>
     <string name="notes_sort">Geldscheine sortieren</string>
     <string name="notes_select_hint">Tippe auf Geldscheine, um sie auszuwählen.</string>
-    <string name="notes_share_hint">Gibt den ganzen Geldschein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn zurückholst.</string>
-    <string name="notes_share_hint_split">Gibt den ganzen Geldschein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn zurückholst. Um nur einen Teil zu geben, teile ihn zuerst auf.</string>
+    <string name="notes_share_hint">Gibt den ganzen Geldschein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn selbst einlöst.</string>
+    <string name="notes_share_hint_split">Gibt den ganzen Geldschein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn selbst einlöst. Um nur einen Teil zu geben, teile ihn zuerst auf.</string>
     <string name="notes_renew_hint">Erneuern gibt dem Geldschein einen neuen Schlüssel, zum Beispiel wenn du seinen QR-Code versehentlich jemandem gezeigt hast.</string>
     <plurals name="notes_checked_ok">
         <item quantity="one">%1$d Geldschein geprüft: noch da.</item>
@@ -102,12 +102,12 @@
         <item quantity="other">Der Anbieter kennt %1$d Geldscheine, die du weitergegeben hast, nicht, deshalb kann sie noch niemand einlösen. Deine Wallet fragt von selbst wieder.</item>
     </plurals>
     <plurals name="notes_checked_taken_back">
-        <item quantity="one">%1$d Geldschein, den du weitergegeben hast, ist zurück in deinem Guthaben.</item>
-        <item quantity="other">%1$d Geldscheine, die du weitergegeben hast, sind zurück in deinem Guthaben.</item>
+        <item quantity="one">Deine Wallet hat %1$d Geldschein, den du weitergegeben hast, wie gewünscht selbst eingelöst. Du kannst ihn wieder ausgeben.</item>
+        <item quantity="other">Deine Wallet hat %1$d Geldscheine, die du weitergegeben hast, wie gewünscht selbst eingelöst. Du kannst sie wieder ausgeben.</item>
     </plurals>
     <plurals name="notes_checked_take_back_refused">
-        <item quantity="one">Der Anbieter hat %1$d Geldschein, den du weitergegeben hast, nicht zurückgegeben. Deine Wallet versucht es von selbst wieder.</item>
-        <item quantity="other">Der Anbieter hat %1$d Geldscheine, die du weitergegeben hast, nicht zurückgegeben. Deine Wallet versucht es von selbst wieder.</item>
+        <item quantity="one">Der Anbieter hat abgelehnt, dass deine Wallet %1$d Geldschein, den du weitergegeben hast, selbst einlöst. Deine Wallet fragt beim nächsten Aktualisieren erneut.</item>
+        <item quantity="other">Der Anbieter hat abgelehnt, dass deine Wallet %1$d Geldscheine, die du weitergegeben hast, selbst einlöst. Deine Wallet fragt beim nächsten Aktualisieren erneut.</item>
     </plurals>
     <string name="notes_state_unknown">Dem Anbieter unbekannt</string>
     <string name="notes_state_unknown_handed_out">Weitergegeben · dem Anbieter unbekannt</string>
@@ -123,7 +123,7 @@
     </plurals>
     <string name="archive_notes_title">Geldscheine</string>
     <string name="archive_notes_hint">Ihr Anbieter kennt diese Geldscheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, kannst du ihn wieder ausgeben.</string>
-    <string name="archive_handed_out_hint">Du hast diese Geldscheine weitergegeben, aber ihr Anbieter kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, wartet er darauf, eingelöst zu werden, oder deine Wallet holt ihn zurück, wenn du das wolltest.</string>
+    <string name="archive_handed_out_hint">Du hast diese Geldscheine weitergegeben, aber ihr Anbieter kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald der Anbieter einen wieder kennt, wartet er darauf, eingelöst zu werden, oder deine Wallet löst ihn selbst ein, wenn du das wolltest.</string>
     <string name="archive_note_remove_title">Diesen Geldschein endgültig entfernen?</string>
     <string name="archive_note_remove_body">Sein Anbieter kennt ihn gerade nicht. Kennt er ihn je wieder, findet ihn „Nach Geldscheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
     <plurals name="home_unknown_title">
@@ -156,8 +156,8 @@
         <item quantity="one">Gerade gefragt: Der Anbieter kennt deinen Geldschein noch immer nicht.</item>
         <item quantity="other">Gerade gefragt: Der Anbieter kennt deine Geldscheine noch immer nicht.</item>
     </plurals>
-    <string name="notice_unknown_unreachable_unnamed">Keine Antwort vom Anbieter. Deine Wallet fragt später wieder.</string>
-    <string name="notes_already_spent">Dieser Geldschein war schon ausgegeben und wurde daher nicht weitergegeben. Er ist nicht mehr in deinem Guthaben.</string>
+    <string name="notice_unknown_unreachable_unnamed">Dein Anbieter antwortet nicht. Deine Wallet fragt später wieder.</string>
+    <string name="notes_already_spent">Dieser Geldschein wurde schon ausgegeben, deshalb wurde er nicht weitergegeben. Er ist nicht mehr in deinem Guthaben.</string>
     <string name="notes_empty">Noch keine Geldscheine. Geld, das du empfängst, wird als Geldscheine gehalten und erscheint hier.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Geldscheine bei jedem Aktualisieren neu.</string>
     <plurals name="notes_selected">
@@ -175,14 +175,11 @@
     <string name="notes_problem_invalid_amount">Dieser Geldschein ist zu klein zum Aufteilen, oder der Betrag passt nicht.</string>
     <string name="notes_problem_same_mint">Die Geldscheine sind schon dort.</string>
     <string name="notes_problem_mint_invalid">Diese Adresse kann keine Geldscheine verwahren.</string>
-    <string name="notes_problem_key_changed">Der Signaturschlüssel des Anbieters passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details des Anbieters einen neuen Schlüssel annimmst.</string>
     <string name="receive_hint">Jeder kann an diese Adresse aus jeder Lightning-Wallet zahlen. Zahlungen kommen als Geldscheine in dieser Wallet an.</string>
     <string name="receive_claim">Stattdessen einen Geldschein einlösen</string>
     <string name="send_create_note">Geldschein erstellen</string>
     <string name="send_problem_refused">Der Anbieter hat diese Zahlung abgelehnt.</string>
-    <string name="send_problem_key_changed">Der Signaturschlüssel des Anbieters passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details des Anbieters einen neuen Schlüssel annimmst.</string>
     <string name="send_problem_own_mint_invoice">Diese Rechnung stammt von deinem eigenen Anbieter, der sich nicht selbst über Lightning bezahlen kann. Frag stattdessen nach einer Lightning-Adresse.</string>
-    <string name="send_problem_mint_message">Nachricht des Anbieters: „%1$s“</string>
     <string name="note_create_title">Als Geldschein senden</string>
     <string name="note_create_body">Erstelle einen Geldschein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
     <string name="note_available">Du kannst einen Geldschein über bis zu %1$s erstellen.</string>
@@ -192,16 +189,15 @@
     <string name="note_qr_description">QR-Code des Geldscheins</string>
     <string name="note_uncertified">Der Betrag dieses Geldscheins ist nicht zertifiziert.</string>
     <string name="note_share_title">Geldschein teilen</string>
-    <string name="note_reclaim_title">Diesen Geldschein zurückholen?</string>
-    <string name="note_already_spent">Zu spät: Dieser Geldschein wurde schon ausgegeben.</string>
+    <string name="note_reclaim_title">Diesen Geldschein selbst einlösen?</string>
     <string name="note_not_found">Dieser Geldschein ist nicht in diesem Konto.</string>
     <string name="note_unconfirmed">Der Anbieter wurde zu diesem Geldschein noch nicht gefragt. Deine Wallet fragt, sobald sie online ist.</string>
     <string name="note_unknown_to_mint">Der Anbieter kennt diesen Geldschein gerade nicht, deshalb kann ihn noch niemand einlösen. Deine Wallet fragt den Anbieter von selbst wieder.</string>
     <string name="note_unverified">Du hast diesen Geldschein entfernt, als der Anbieter ihn nicht kannte, deshalb ist nicht bekannt, ob er eingelöst wurde.</string>
-    <string name="note_take_back_when_known">Der Anbieter kennt diesen Geldschein gerade nicht. Deine Wallet holt ihn zurück, sobald der Anbieter ihn wieder kennt.</string>
+    <string name="note_take_back_when_known">Der Anbieter kennt diesen Geldschein gerade nicht. Deine Wallet löst ihn ein, sobald der Anbieter ihn wieder kennt.</string>
     <string name="mint_message">Nachricht des Anbieters: „%1$s“</string>
     <string name="scan_unknown">Dieser QR-Code ist weder eine Zahlung noch ein Geldschein.</string>
-    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
+    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du den neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
     <string name="settings_notes">Geldschein-Einstellungen</string>
     <string name="settings_note_list">Geldscheine</string>
     <string name="settings_note_list_hint">Deine Geldscheine einzeln ansehen, weitergeben, aufteilen oder zusammenlegen</string>
@@ -319,7 +315,7 @@
     <string name="send_problem_mint_silent_unnamed">Dein Anbieter antwortet nicht. Es wurde nichts bezahlt. Versuche es später erneut.</string>
     <string name="release_note_old_keys_title">Geldscheine von vor Version 0.8</string>
     <string name="release_note_old_keys_body">Diese Version findet keine Geldscheine und Lightning-Adressen mehr, die so angelegt wurden wie vor Version 0.8. Seitdem hat die App sie bei jedem Öffnen von selbst umgezogen. Fehlt Geld, öffne deine Wiederherstellungsphrase einmal in Version 0.9.0, die sie noch umzieht, und nutze dann hier „Nach Geldscheinen suchen“.</string>
-    <string name="received_key_changed">Der Signaturschlüssel seines Anbieters passt nicht zu dem, den deine Wallet kennt. Wird eingelöst, sobald er wieder passt oder du in den Details des Anbieters einen neuen annimmst.</string>
+    <string name="received_key_changed">Der Signaturschlüssel seines Anbieters passt nicht zu dem, den deine Wallet kennt. Wird eingelöst, sobald er wieder passt oder du in den Details des Anbieters den neuen annimmst.</string>
     <string name="received_refused">Sein Anbieter hat ihn immer wieder abgelehnt, deshalb versucht deine Wallet es nicht mehr.</string>
     <plurals name="received_refused_hours">
         <item quantity="one">Sein Anbieter hat ihn %d Stunde lang abgelehnt, deshalb versucht deine Wallet es nicht mehr.</item>
@@ -338,11 +334,12 @@
         <item quantity="other">Sein Anbieter hat %d Tage lang nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
     </plurals>
     <string name="received_unreachable">Sein Anbieter hat nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</string>
+    <string name="mint_key_changed_nothing_sent">Der Signaturschlüssel seines Anbieters passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du den neuen Schlüssel in den Details des Anbieters annimmst, wird nichts dorthin gesendet.</string>
+    <string name="mint_not_answering_unnamed">Dein Anbieter antwortet nicht. Versuche es später erneut.</string>
     <string name="received_waiting_mint_unnamed">Wird eingelöst, sobald sein Anbieter antwortet.</string>
     <string name="received_lightning_no_key">Sein Anbieter veröffentlicht keinen Signaturschlüssel, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_lightning_not_a_note">Sein Anbieter antwortet darauf nicht wie auf einen Geldschein, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="claim_mint_refused">Der Anbieter nimmt diesen Geldschein gerade nicht an.</string>
-    <string name="claim_mint_refused_reason">Der Anbieter nimmt diesen Geldschein gerade nicht an. Seine Antwort: %1$s</string>
     <string name="receive_on_home">Bei %1$s, deinem Anbieter</string>
     <string name="receive_on_home_detail">Dein Anbieter · %1$s</string>
     <string name="send_from_detail_home">Dein Anbieter · bis zu %1$s</string>

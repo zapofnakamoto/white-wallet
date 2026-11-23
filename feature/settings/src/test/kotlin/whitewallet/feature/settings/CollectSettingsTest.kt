@@ -120,7 +120,7 @@ class CollectSettingsTest {
     fun germanReport() {
         val run = PolicyRun(0, 0, 0, null, 0, collected = listOf(Collected("other.example", 49_000, 1_000)))
         show(state(collect = true, run))
-        compose.onNodeWithText("49 ₿ von other.example verschoben (Gebühr 1 ₿)").performScrollTo().assertExists()
+        compose.onNodeWithText("49 ₿ von other.example verschoben, nach einer Gebühr von 1 ₿").performScrollTo().assertExists()
         compose.onNodeWithText("2 %").performScrollTo().assertExists()
     }
 

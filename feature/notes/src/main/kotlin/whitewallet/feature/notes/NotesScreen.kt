@@ -303,7 +303,7 @@ private fun Summary(state: NotesState) {
         }
         if (state.sharedMsat > 0) {
             Text(
-                stringResource(R.string.notes_waiting_total, formatAmount(state.sharedMsat)),
+                stringResource(DesignR.string.handed_out_total, formatAmount(state.sharedMsat)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -455,8 +455,8 @@ internal fun noteStatus(note: Note): NoteStatus =
 internal fun noteStatusText(status: NoteStatus, handedOut: Boolean = false): String? =
     when (status) {
         NoteStatus.Paying -> stringResource(R.string.notes_state_paying)
-        NoteStatus.Unclear -> stringResource(R.string.notes_state_ambiguous)
-        NoteStatus.Uncertified -> stringResource(R.string.notes_uncertified)
+        NoteStatus.Unclear -> stringResource(DesignR.string.waiting_for_answer)
+        NoteStatus.Uncertified -> stringResource(DesignR.string.uncertified)
         NoteStatus.Unknown -> stringResource(if (handedOut) R.string.notes_state_unknown_handed_out else R.string.notes_state_unknown)
         else -> null
     }
@@ -513,7 +513,7 @@ private fun SharedHeader() {
     WalletListItem(
         headlineContent = {
             Text(
-                stringResource(R.string.notes_shared_title),
+                stringResource(DesignR.string.handed_out_title),
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.semantics { heading() },
             )
@@ -566,10 +566,10 @@ private fun SelectionBar(state: NotesState, actions: NotesActions, modifier: Mod
                     }
                 if (NoteAction.Recheck in offered)
                     WalletButton(kind = ButtonKind.Text, onClick = actions.recheckSelected, enabled = state.canAct) {
-                        Text(stringResource(R.string.notes_recheck))
+                        Text(stringResource(DesignR.string.check_again))
                     }
                 WalletButton(kind = ButtonKind.Text, onClick = actions.stopSelecting, enabled = !state.busy) {
-                    Text(stringResource(R.string.notes_cancel))
+                    Text(stringResource(DesignR.string.cancel))
                 }
             }
         }
@@ -585,7 +585,7 @@ internal fun Outcome(outcome: NotesOutcome, showMints: Boolean, onDismiss: () ->
             color = if (outcome.isProblem) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f).padding(vertical = 12.dp),
         )
-        WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.notes_ok)) }
+        WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(DesignR.string.done)) }
     }
 }
 
@@ -636,8 +636,8 @@ private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String =
                     if (outcome.unreachable.isNotEmpty()) {
                         add(
                             if (showMints)
-                                stringResource(R.string.notes_checked_unreachable, ListFormatter.getInstance().format(outcome.unreachable))
-                            else stringResource(R.string.notes_checked_no_answer)
+                                stringResource(DesignR.string.mint_not_answering, ListFormatter.getInstance().format(outcome.unreachable))
+                            else stringResource(DesignR.string.mint_not_answering_unnamed)
                         )
                     }
                 }

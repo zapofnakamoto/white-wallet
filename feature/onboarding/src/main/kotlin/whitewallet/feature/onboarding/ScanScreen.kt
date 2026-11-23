@@ -22,6 +22,7 @@ import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
@@ -58,7 +59,7 @@ fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
                 anchor = Anchor.ScanDone,
                 status = WalletStatus.Done(result.foundMsat),
                 title = stringResource(R.string.scan_finished_title),
-                done = SuccessAction(stringResource(R.string.success_done), onBack),
+                done = SuccessAction(stringResource(DesignR.string.done), onBack),
                 modifier = Modifier.padding(padding),
                 more = SuccessAction(stringResource(R.string.scan_again), onScan),
                 lines =

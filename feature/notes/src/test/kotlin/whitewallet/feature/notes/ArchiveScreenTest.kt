@@ -77,7 +77,7 @@ class ArchiveScreenTest {
         var retried: String? = null
         val note = archived('a', UnclaimedReason.Unreachable)
         compose.setContent { ArchiveScreen(ArchiveState(notes = listOf(note)), ArchiveActions(retry = { retried = it }), onBack = {}) }
-        compose.onNodeWithText(text(R.string.archive_retry)).performClick()
+        compose.onNodeWithText(text(DesignR.string.try_again)).performClick()
         assertEquals(note.id, retried)
     }
 
@@ -142,7 +142,7 @@ class ArchiveScreenTest {
         compose.onNodeWithText(text(R.string.archive_hint)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.archive_notes_title)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.notes_state_unknown)).assertExists()
-        compose.onNodeWithText(text(R.string.notes_recheck)).performClick()
+        compose.onNodeWithText(text(DesignR.string.check_again)).performClick()
         assertEquals(note.id, rechecked)
     }
 

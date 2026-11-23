@@ -102,7 +102,7 @@ class MoneyMoveScreenTest {
         compose.onNodeWithText(text(R.string.money_home_changed, "new.example")).assertExists()
         compose.onNodeWithText(text(R.string.money_result_moved, "₿99", "old.example", "₿1")).assertExists()
         compose.onNodeWithText(text(R.string.money_result_failed, "₿3,000", "same.example", "the payment failed")).assertExists()
-        compose.onNodeWithText(text(R.string.money_try_again)).performClick()
+        compose.onNodeWithText(text(DesignR.string.try_again)).performClick()
         assertEquals(true, retried)
     }
 
@@ -137,8 +137,8 @@ class MoneyMoveScreenTest {
         compose.onNodeWithText(text(R.string.money_home_changed_title)).assertExists()
         compose.onNodeWithText(text(R.string.money_home_changed, "new.example")).assertExists()
         compose.onNodeWithText(text(R.string.money_review_fee_total, "₿2")).assertExists()
-        compose.onNodeWithText(text(R.string.money_try_again)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.money_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, done)
     }
 
@@ -180,7 +180,7 @@ class MoneyMoveScreenTest {
         showDecorated(MoneyMoveState(mode = MoneyMoveMode.MoveHome, target = "new.example", outcome = outcome))
         assertEquals(listOf(Anchor.MoveResult to WalletStatus.Done(99_000)), decorated.distinct())
         compose.onNodeWithText(text(R.string.money_moved_title)).assertExists()
-        compose.onNodeWithText(text(R.string.money_try_again)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertExists()
     }
 
     @Test

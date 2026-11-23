@@ -45,7 +45,6 @@
     <string name="receive_invoice_other_amount">Other amount</string>
     <string name="receive_invoice_expired">This invoice expired without being paid.</string>
     <string name="receive_invoice_new">New invoice</string>
-    <string name="receive_done">Done</string>
     <string name="receive_success_title">Payment received</string>
     <!-- Several payments came to the address while the screen was open (%d: how many); the amount shown is their total -->
     <plurals name="receive_payments_received">
@@ -63,14 +62,10 @@
     <string name="receive_on_title">Receive on</string>
     <!-- A mint in that list where the account has no Lightning address -->
     <string name="receive_on_invoice">With an invoice for an amount</string>
-    <!-- A mint in that list whose signing key doesn't match: it can't be picked -->
-    <string name="receive_on_key_changed">Signing key doesn\'t match</string>
     <!-- Under the Lightning address, instead of receive_hint, when its mint's signing key doesn't match. %1$s: the mint. -->
-    <string name="receive_address_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Payments to this address wait there until it matches again, or you accept a new key in its details.</string>
+    <string name="receive_address_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in its details, payments to this address wait there.</string>
     <!-- No invoice was made on that mint (%1$s): its signing key doesn't match. -->
-    <string name="receive_invoice_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so no invoice is created there until it matches again, or you accept a new key in its details.</string>
+    <string name="receive_invoice_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in its details, no invoice is created there.</string>
     <!-- While the mint's (%1$s) signing key is asked for, before anything is made there -->
     <string name="receive_key_checking">Checking %1$s…</string>
-    <!-- Opens the mint's details, where its new signing key can be accepted -->
-    <string name="receive_key_changed_action">Details</string>
 </resources>

@@ -18,6 +18,7 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.MintScan
 import whitewallet.core.wallet.MintInfo
@@ -116,7 +117,7 @@ class ScanScreenTest {
         compose.onNodeWithText(text(R.string.add_mint_found_total, "₿5,000")).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.success_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, left)
         compose.onNodeWithText(text(R.string.scan_again)).performClick()
         assertEquals(1, scans)
@@ -128,7 +129,7 @@ class ScanScreenTest {
         assertEquals(listOf(Anchor.ScanDone to WalletStatus.Done(0)), decorated.distinct())
         compose.onNodeWithText(text(R.string.scan_finished_title)).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertExists()
-        compose.onNodeWithText(text(R.string.success_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, left)
     }
 
@@ -144,7 +145,7 @@ class ScanScreenTest {
         assertTrue(decorated.none { it.first == Anchor.ScanDone })
         compose.onNodeWithText(text(R.string.scan_result_stopped)).assertExists()
         compose.onNodeWithText(text(R.string.scan_result_none)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.success_done)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.done)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.scan_again)).performScrollTo().performClick()
         assertEquals(1, scans)
         compose.onNodeWithText(text(R.string.add_mint_later)).performScrollTo().performClick()

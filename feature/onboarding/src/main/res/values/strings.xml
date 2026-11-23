@@ -93,7 +93,6 @@
         <item quantity="one">This app holds %1$d wallet at most. To restore another one, delete the wallet on this phone first (Settings → Wallets).</item>
         <item quantity="other">This app holds %1$d wallets at most. To restore another one, delete one on this phone first (Settings → Wallets).</item>
     </plurals>
-    <string name="onboarding_error_network">Couldn\'t connect. Try again in a moment.</string>
 
     <string name="restore_title">Restore account</string>
     <string name="restore_body">Type or paste the recovery phrase you wrote down.</string>
@@ -130,7 +129,7 @@
     <string name="add_mint_offline">You\'re offline. Connect to continue.</string>
     <string name="add_mint_next">Next</string>
     <string name="add_mint_fees">Fees per payment</string>
-    <string name="add_mint_fees_value">%1$s + %2$s %%</string>
+    <string name="add_mint_fees_value">%1$s + %2$s%%</string>
     <string name="add_mint_fees_unknown">Not stated</string>
     <string name="add_mint_limits">One payment</string>
     <string name="add_mint_limits_value">%1$s to %2$s</string>
@@ -145,18 +144,13 @@
     <!-- Under a mint's name in the list of mints: what the wallet learned when the user picked it -->
     <string name="add_mint_row_not_answering">Isn\'t answering</string>
     <string name="add_mint_row_without_key">Not showing its signing key</string>
-    <!-- Asks a mint that showed no signing key again what it is -->
-    <string name="add_mint_check_again">Check again</string>
     <string name="add_mint_account">Account %1$d</string>
     <string name="add_mint_account_looking">Looking…</string>
     <string name="add_mint_account_empty">Nothing</string>
     <string name="add_mint_failed_body">It stopped before it was done. Try again; what was found stays.</string>
     <string name="add_mint_failed_kept">Found so far: %1$s.</string>
     <string name="add_mint_found_total">%1$s found</string>
-    <string name="add_mint_try_again">Try again</string>
-    <string name="add_mint_ok">OK</string>
     <string name="add_mint_later">Later</string>
-    <string name="add_mint_cancel">Cancel</string>
     <string name="scan_body">Looks for everything your recovery phrase holds and adds what it finds. It only looks; nothing is moved.</string>
     <string name="scan_mint_scanning">Scanning…</string>
     <string name="scan_account_nothing_new">Nothing new</string>
@@ -195,7 +189,6 @@
         <item quantity="one">This wallet holds %1$d account, the most this app allows.</item>
         <item quantity="other">This wallet holds %1$d accounts, the most this app allows.</item>
     </plurals>
-    <string name="success_done">Done</string>
     <string name="scan_finished_title">Scan finished</string>
     <string name="account_created_title">Account created</string>
     <string name="account_created_open">Open account</string>

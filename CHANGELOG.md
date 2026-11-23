@@ -8,21 +8,36 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Added
 
 - Every money moment ends on the same pair of screens: the success screen when it worked, else the result screen.
-  Taking a note back on its page (its QR code's) now ends on the success screen with the amount back, as from its
-  link; spent, no answer, waiting for its mint and refused on the result screen, a refused one with Try again. A
-  payment not paid or still on its way, a note the mint didn't make ("Nothing handed out", or "No answer yet", no
-  longer in red), and a money move that didn't move all of it ("Nothing moved", a check mark when part arrived, a clock
-  while some waits) end there too, with Done and, where it helps, Try again. An address the app couldn't check yet
-  waits on it, with the address to copy or share. A mint's new key that couldn't be accepted on its page says so.
-  For brands: the anchors `SendResult`, `MoveResult` and `AddressResult`; `SendHeader` is no longer above a result;
-  the take back's titles and "No answer yet" moved to the design system (`take_back_done_title`, `take_back_failed`,
-  `take_back_waiting_title`, `no_answer_title`, were `claim_*`); new strings `note_create_failed_title`,
-  `money_nothing_moved_title`, `mint_key_not_accepted`.
+  Claiming a handed-out note yourself on its page (its QR code's) now ends on the success screen ("Claimed", "You can
+  spend it again."), as from its link; too late, no answer, waiting for its mint and refused on the result screen, a
+  refused one with Try again, in the same words on both. A payment not paid or still on its way, a note the mint
+  didn't make ("Not handed out", or "No answer yet", no longer in red), and a money move that didn't move all of it
+  ("Not moved", a check mark when part arrived, a clock while some waits) end there too, with Done and, where it helps,
+  Try again. An address the app couldn't check yet waits on it, with the address to copy or share. A mint's new key
+  that couldn't be accepted on its page says so. For brands: the anchors `SendResult`, `MoveResult` and
+  `AddressResult`; `SendHeader` is no longer above a result; the result titles moved to the design system
+  (`take_back_done_title`, `take_back_failed`, `not_claimed_yet_title`, `no_answer_title`, were `claim_*`); new strings
+  `note_create_failed_title`, `money_nothing_moved_title`, `mint_key_not_accepted`.
 - The note sheet's main button is "Hand out" (was "Share as QR"), full width, with what it does right under it: the
-  whole note goes out as a QR code and leaves the balance until someone claims it or you take it back. Split, Recheck
-  and Renew are below. A note given away is "handed out" on every screen ("Handed out, not claimed yet"); in German
-  "weitergegeben", and splitting is "aufteilen", so neither reads like the other. For brands: the brand term
+  whole note goes out as a QR code and leaves the balance until someone claims it, or you claim it yourself. Split,
+  Check again and Renew are below. A note given away is "handed out" on every screen ("Handed out, not claimed yet");
+  in German "weitergegeben", and splitting is "aufteilen", so neither reads like the other. For brands: the brand term
   `notes_share_hint` no longer mentions splitting; the new `notes_share_hint_split` does, shown where Split is offered.
+- One situation, one wording, on every screen. A handed-out note is never "taken back": the action is "Claim it
+  yourself" ("Selbst einlösen"), History says "Claimed yourself", too late is "Too late: someone already claimed it.".
+  A mint not answering is "<mint> isn't answering. Try again later." (or "Your wallet asks again …" where it does),
+  no connection "Couldn't connect. Try again later.", a signing key that doesn't match says what waits until it
+  matches again or you accept the new key, a spent note "Too late: this note has already been spent.", the mint's own
+  words always "Message from the mint: “…”". Endings say what didn't happen ("Not paid", "Not moved", "Not handed
+  out", "Not received"). Buttons: Done ends (no more OK), Try again retries, Check again asks again (was Recheck).
+  Fees read "Fee: …" as a label and "after a fee of …" in a sentence; English percentages lose their space ("2%").
+  For brands: same texts now share one string in the design system (`done`, `try_again`, `check_again`, `cancel`,
+  `details`, `paste`, `scan_qr`, `fee`, `no_fee`, `uncertified`, `key_mismatch_short`, `handed_out_title`,
+  `handed_out_total`, `waiting_for_answer`, `no_answer_hint`, `couldnt_connect`, `mint_not_answering`,
+  `payment_failed_nothing_paid`, `own_claim_done`, `own_claim_too_late`); the brand terms `send_problem_key_changed`,
+  `notes_problem_key_changed`, `note_already_spent`, `send_problem_mint_message` and `claim_mint_refused_reason` are
+  gone for `mint_key_changed_nothing_sent`, `own_claim_too_late` and `mint_message`; new brand term
+  `mint_not_answering_unnamed`.
 - The screenshot set shows the problems and waits of every screen, not only its everyday state: 67 new previews across
   Send, Receive, Home, Notes, onboarding and settings (offline, a mint not answering or with another key, a payment
   pending or failed, a note spent, taken back or unknown to its mint, …), so brands see them in their design too.

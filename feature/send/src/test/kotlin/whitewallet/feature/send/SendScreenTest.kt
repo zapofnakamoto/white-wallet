@@ -82,7 +82,7 @@ class SendScreenTest {
         }
         compose.onNodeWithText(text(R.string.send_paid_title)).assertExists()
         compose.onNodeWithText("₿1,000").assertExists()
-        compose.onNodeWithText(text(R.string.send_fee, "₿1")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.fee, "₿1")).assertExists()
         compose.onNodeWithText(text(R.string.send_more)).performClick()
         assertTrue(more)
     }
@@ -104,7 +104,7 @@ class SendScreenTest {
         val failed = PayResult.Failed(PayProblem.Refused, "Closed for maintenance.")
         compose.setContent { SendScreen(SendState(preview = payLink, result = failed), onBack = {}, onDone = {}, actions = actions()) }
         compose.onNodeWithText(text(R.string.send_problem_refused)).assertExists()
-        compose.onNodeWithText(text(R.string.send_problem_mint_message, "Closed for maintenance.")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_message, "Closed for maintenance.")).assertExists()
     }
 
     @Test
@@ -112,7 +112,7 @@ class SendScreenTest {
         val failed = PayResult.Failed(PayProblem.OwnMintInvoice)
         compose.setContent { SendScreen(SendState(preview = payLink, result = failed), onBack = {}, onDone = {}, actions = actions()) }
         compose.onNodeWithText(text(R.string.send_problem_own_mint_invoice)).assertExists()
-        compose.onNodeWithText(text(R.string.send_problem_mint_message, ""), substring = true).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.mint_message, ""), substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -140,7 +140,7 @@ class SendScreenTest {
     fun aMintWhoseSigningKeyDoesNotMatchIsSaidSoNotThatItCouldNotBeReached() {
         val failed = PayResult.Failed(PayProblem.KeyChanged)
         compose.setContent { SendScreen(SendState(preview = payLink, result = failed), onBack = {}, onDone = {}, actions = actions()) }
-        compose.onNodeWithText(text(R.string.send_problem_key_changed)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_key_changed_nothing_sent)).assertExists()
         compose.onNodeWithText(text(R.string.send_problem_unreachable)).assertDoesNotExist()
     }
 
@@ -151,7 +151,7 @@ class SendScreenTest {
         var state by mutableStateOf(SendState(preview = payLink.copy(destination = PayDestination.Invoice(invoice)), result = failed))
         compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
         compose.onNodeWithText(text(R.string.send_problem_mint_silent, "home.example")).assertExists()
-        compose.onNodeWithText(text(R.string.send_try_again)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertExists()
         state = state.copy(mintsVisible = false)
         compose.onNodeWithText(text(R.string.send_problem_mint_silent_unnamed)).assertExists()
     }
@@ -162,9 +162,9 @@ class SendScreenTest {
         var preview by mutableStateOf(payLink)
         val failed = PayResult.Failed(PayProblem.PaymentFailed)
         compose.setContent { SendScreen(SendState(preview = preview, result = failed), onBack = {}, onDone = {}, actions = actions()) }
-        compose.onNodeWithText(text(R.string.send_try_again)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertExists()
         preview = payLink.copy(destination = PayDestination.Invoice(invoice))
-        compose.onNodeWithText(text(R.string.send_try_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
     }
 
     @Test
@@ -176,7 +176,7 @@ class SendScreenTest {
         }
         compose.onNodeWithText(text(R.string.send_pending_title)).assertExists()
         compose.onNodeWithText(text(R.string.send_pending_body, "₿1,000", "bob@mint.example")).assertExists()
-        compose.onNodeWithText(text(R.string.send_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, done)
     }
 
@@ -225,7 +225,7 @@ class SendScreenTest {
         compose.onNodeWithText(text(DesignR.string.no_answer_title)).assertExists()
         compose.onNodeWithText(text(R.string.note_create_pending)).assertExists()
         compose.onNodeWithText(text(R.string.note_create)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.send_try_again)).performClick()
+        compose.onNodeWithText(text(DesignR.string.try_again)).performClick()
         assertEquals(1, again)
     }
 
@@ -242,7 +242,7 @@ class SendScreenTest {
         }
         compose.onNodeWithText(text(R.string.note_create_failed_title)).assertExists()
         compose.onNodeWithText(text(R.string.send_problem_refused)).assertExists()
-        compose.onNodeWithText(text(R.string.send_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, back)
     }
 
@@ -318,7 +318,7 @@ class SendScreenTest {
             )
         }
         compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performClick()
-        compose.onNodeWithText(text(R.string.send_from_key_changed)).assertIsNotEnabled()
+        compose.onNodeWithText(text(DesignR.string.key_mismatch_short)).assertIsNotEnabled()
         compose.onNodeWithText("third.example").performClick()
         assertEquals(emptyList<String?>(), picked)
     }
@@ -341,7 +341,7 @@ class SendScreenTest {
         compose.onNodeWithText(text(R.string.send_limit_one_payment, "₿9,000", "₿12,298")).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.send_key_changed_held, "₿298", "stuck.example")).assertExists()
         compose.onNodeWithText(text(R.string.send_input)).assertExists()
-        compose.onNodeWithText(text(R.string.send_key_changed_action)).performClick()
+        compose.onNodeWithText(text(DesignR.string.details)).performClick()
         assertEquals(listOf("stuck.example"), opened)
     }
 
@@ -351,7 +351,7 @@ class SendScreenTest {
             SendScreen(SendState(mints = listOf(stuck), balanceMsat = 298_000), onBack = {}, onDone = {}, actions = actions())
         }
         compose.onNodeWithText(text(R.string.send_key_changed_held, "₿298", "stuck.example")).assertExists()
-        compose.onNodeWithText(text(R.string.send_key_changed_action)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.details)).assertExists()
         compose.onNodeWithText(text(R.string.send_input)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.send_create_note)).assertDoesNotExist()
     }
@@ -361,7 +361,7 @@ class SendScreenTest {
         val state = SendState(mints = mints + stuck + stuck.copy(host = "also.example"), mintsVisible = false)
         compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
         compose.onNodeWithText(text(R.string.send_key_changed_held_unnamed, "₿596")).assertExists()
-        compose.onNodeWithText(text(R.string.send_key_changed_action)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.details)).assertDoesNotExist()
     }
 
     @Test
@@ -378,7 +378,7 @@ class SendScreenTest {
         }
         compose.onNodeWithText(text(R.string.send_key_changed_held, "₿298", "stuck.example")).assertExists()
         compose.onNodeWithText(text(R.string.note_create)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.send_key_changed_action)).performClick()
+        compose.onNodeWithText(text(DesignR.string.details)).performClick()
         assertEquals(listOf("stuck.example"), opened)
     }
 

@@ -36,6 +36,7 @@ import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletSwitch
@@ -146,7 +147,8 @@ private fun MintRow(mint: MintInfo, keyChanged: Boolean, onOpen: (String) -> Uni
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (mint.isHome) Text(stringResource(R.string.settings_home_mint), style = hint, color = MaterialTheme.colorScheme.primary)
                 // A key that doesn't match is what the user has to decide about, on the mint's page: said in place of the key.
-                if (keyChanged) Text(stringResource(R.string.mint_key_changed_short), style = hint, color = MaterialTheme.colorScheme.error)
+                if (keyChanged)
+                    Text(stringResource(DesignR.string.key_mismatch_short), style = hint, color = MaterialTheme.colorScheme.error)
                 else
                     Text(
                         mint.pubkey?.let { stringResource(R.string.mints_key, it.take(8) + "…" + it.takeLast(8)) }

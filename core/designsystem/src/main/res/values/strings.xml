@@ -9,9 +9,9 @@
     <string name="release_note_old_keys_title">Notes from before version 0.8</string>
     <string name="release_note_old_keys_body">This version no longer finds notes and Lightning addresses made the way the app made them before version 0.8. Since then, the app moved them over by itself whenever it was opened. If money is missing, open your recovery phrase once in version 0.9.0, which still moves them, then use “Scan for notes” here.</string>
     <!-- Why a note received as a link wasn't claimed (see received_title below). -->
-    <string name="received_key_changed">The signing key of its mint doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint\'s details.</string>
+    <string name="received_key_changed">The signing key of its mint doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept the new key in the mint\'s details.</string>
     <!-- A handed-out note whose mint doesn't know it, which the user asked to take back (its page, and its own link opened). -->
-    <string name="note_take_back_when_known">Its mint doesn\'t know this note right now. Your wallet takes it back as soon as the mint knows it again.</string>
+    <string name="note_take_back_when_known">Its mint doesn\'t know this note right now. Your wallet claims it as soon as the mint knows it again.</string>
     <!-- %1$s: the mint's own words, in whatever language it writes. -->
     <string name="mint_message">Message from the mint: “%1$s”</string>
     <string name="received_refused">Its mint kept refusing it, so your wallet stopped trying.</string>
@@ -37,14 +37,25 @@
     <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
-    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept a new key. Payments to your addresses there wait until then.</string>
+    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept the new key. Payments to your addresses there wait until then.</string>
+    <!-- The same for a note claimed yourself: nothing else waits there, and the mint is named as the note's. -->
+    <string name="mint_key_changed_nothing_sent">The signing key of its mint doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in the mint\'s details, nothing is sent there.</string>
+    <string name="mint_not_answering_unnamed">Your mint isn\'t answering. Try again later.</string>
     <string name="mint_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost.</string>
 
     <!-- How a take back, or anything asked of a mint, ended: shared by every screen that ends one. -->
-    <string name="take_back_done_title">Taken back</string>
-    <string name="take_back_failed">It couldn\'t be taken back. Try again later.</string>
-    <string name="take_back_waiting_title">Not taken back yet</string>
+    <string name="take_back_done_title">Claimed</string>
+    <string name="take_back_failed">Not claimed</string>
     <string name="no_answer_title">No answer yet</string>
+    <!-- Under no_answer_title, wherever the wallet asks the mint again by itself. -->
+    <string name="no_answer_hint">Your wallet asks again on the next refresh. History shows when it\'s done.</string>
+    <!-- Under take_back_done_title: the user's own handed-out note, claimed by the user. -->
+    <string name="own_claim_done">You can spend it again.</string>
+    <!-- The user's own handed-out note, which someone claimed before the user did. -->
+    <string name="own_claim_too_late">Too late: someone already claimed it.</string>
+    <!-- Why something asked of a mint didn't happen: the phone couldn't reach it. -->
+    <string name="couldnt_connect">Couldn\'t connect. Try again later.</string>
+    <string name="mint_not_answering">%1$s isn\'t answering. Try again later.</string>
 
     <string name="back">Back</string>
     <string name="loading">Loading</string>
@@ -108,10 +119,25 @@
     <string name="mint_key_accept">Use the new key</string>
     <string name="mint_key_accept_title">Use the new key?</string>
     <string name="mint_key_accept_confirm">Use it</string>
-    <string name="mint_key_cancel">Cancel</string>
     <!-- Once the user used the new key: the success screen's title (Add mint) -->
     <string name="mint_key_accepted_title">New key in use</string>
     <!-- Once the user used the new key: below that title, and on the mint's page as a short message. %1$s is the mint's address -->
     <string name="mint_key_accepted">%1$s now uses the new key.</string>
     <string name="mint_key_not_accepted">%1$s didn\'t answer, or shows yet another key by now. Nothing changed.</string>
+    <string name="done">Done</string>
+    <string name="try_again">Try again</string>
+    <string name="check_again">Check again</string>
+    <string name="not_claimed_yet_title">Not claimed yet</string>
+    <string name="payment_failed_nothing_paid">The payment didn\'t go through. Nothing was paid, and the money stays in your wallet.</string>
+    <string name="cancel">Cancel</string>
+    <string name="details">Details</string>
+    <string name="key_mismatch_short">Signing key doesn\'t match</string>
+    <string name="uncertified">Amount not certified</string>
+    <string name="fee">Fee: %1$s</string>
+    <string name="no_fee">No fee</string>
+    <string name="paste">Paste</string>
+    <string name="scan_qr">Scan QR code</string>
+    <string name="handed_out_title">Handed out, not claimed yet</string>
+    <string name="handed_out_total">%1$s handed out, not claimed yet</string>
+    <string name="waiting_for_answer">Waiting for an answer…</string>
 </resources>

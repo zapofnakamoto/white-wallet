@@ -177,7 +177,7 @@ class SettingsScreensTest {
                 {},
             )
         }
-        compose.onNodeWithText(text(R.string.mint_key_changed_short)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.key_mismatch_short)).assertExists()
         compose.onNodeWithText("doesn't match the one your wallet knows", substring = true).assertExists()
     }
 
@@ -208,7 +208,7 @@ class SettingsScreensTest {
         compose.onNodeWithText(presented.chunked(4).joinToString(" ")).assertExists()
         compose.onNodeWithText(text(DesignR.string.mint_key_accept)).performClick()
         compose.onNodeWithText("Only do this if you know why mint.example changed its key", substring = true).assertExists()
-        compose.onNodeWithText(text(R.string.backup_cancel)).performClick()
+        compose.onNodeWithText(text(DesignR.string.cancel)).performClick()
         assertEquals(emptyList<String>(), accepted)
         compose.onNodeWithText(text(DesignR.string.mint_key_accept)).performClick()
         compose.onNodeWithText(text(DesignR.string.mint_key_accept_confirm)).performClick()
@@ -274,7 +274,7 @@ class SettingsScreensTest {
         assertEquals(listOf(Anchor.BackupDone to WalletStatus.Done(0)), decorated.distinct())
         compose.onNodeWithText(text(R.string.backup_success_title)).assertExists()
         compose.onNodeWithText(text(R.string.backup_success_body)).assertExists()
-        compose.onNodeWithText(text(R.string.backup_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, left)
     }
 
@@ -391,7 +391,7 @@ class SettingsScreensTest {
         // While the wallet gets to it (it may be busy with something else), the question stays, and can't be left or asked again.
         state = state.copy(removing = true)
         compose.onNodeWithText(text(R.string.mints_remove_title, "other.example")).assertExists()
-        compose.onNodeWithText(text(R.string.backup_cancel)).assertIsNotEnabled()
+        compose.onNodeWithText(text(DesignR.string.cancel)).assertIsNotEnabled()
 
         // Something ties an account to it by now: the question goes, and the page says it can't be removed.
         state = state.copy(removing = false, mint = removable.copy(removable = false, isHome = true))

@@ -550,7 +550,7 @@ private fun SetIndexDialog(input: String, floor: Long, actions: IndexActions) {
             }
         },
         dismissButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = actions.onDismissSet) { Text(stringResource(R.string.backup_cancel)) }
+            WalletButton(kind = ButtonKind.Text, onClick = actions.onDismissSet) { Text(stringResource(DesignR.string.cancel)) }
         },
     )
 }
@@ -580,7 +580,7 @@ private fun RotateDialog(request: RotateRequest, onConfirm: () -> Unit, onDismis
         title = { Text(title) },
         text = { Text(body) },
         confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = onConfirm) { Text(stringResource(R.string.keys_renew)) } },
-        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.backup_cancel)) } },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(DesignR.string.cancel)) } },
     )
 }
 
@@ -642,7 +642,9 @@ private fun KeyRow(
             if (key.failure == null || key.probe != null) Text(lookupText(key.probe), style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val asks = !busy && !keyChanged
-                WalletButton(kind = ButtonKind.Text, onClick = onRecheck, enabled = asks) { Text(stringResource(R.string.keys_recheck)) }
+                WalletButton(kind = ButtonKind.Text, onClick = onRecheck, enabled = asks) {
+                    Text(stringResource(DesignR.string.check_again))
+                }
                 if (key.noteState == NoteState.Outstanding) {
                     WalletButton(kind = ButtonKind.Text, onClick = onRotate, enabled = asks) { Text(stringResource(R.string.keys_renew)) }
                 }

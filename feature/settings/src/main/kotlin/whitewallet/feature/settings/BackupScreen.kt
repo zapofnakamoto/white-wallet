@@ -33,6 +33,7 @@ import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.SensitiveClipboard
@@ -190,7 +191,7 @@ private fun Display(
                 }
             },
             dismissButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = { confirmCopy = false }) { Text(stringResource(R.string.backup_cancel)) }
+                WalletButton(kind = ButtonKind.Text, onClick = { confirmCopy = false }) { Text(stringResource(DesignR.string.cancel)) }
             },
         )
     }
@@ -235,7 +236,7 @@ private fun Success(onDone: () -> Unit, modifier: Modifier) {
         anchor = Anchor.BackupDone,
         status = WalletStatus.Done(0),
         title = stringResource(R.string.backup_success_title),
-        done = SuccessAction(stringResource(R.string.backup_done), onDone),
+        done = SuccessAction(stringResource(DesignR.string.done), onDone),
         modifier = modifier,
         lines = listOf(stringResource(R.string.backup_success_body)),
     )

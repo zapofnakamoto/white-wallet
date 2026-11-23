@@ -142,7 +142,7 @@ class SharedNoteScreenTest {
         compose.onNodeWithText(text(DesignR.string.take_back_failed)).assertExists()
         compose.onNodeWithText(text(DesignR.string.mint_message, "Rate limited")).assertExists()
         compose.onNodeWithText(text(R.string.send_problem_unreachable)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.send_try_again)).performClick()
+        compose.onNodeWithText(text(DesignR.string.try_again)).performClick()
         assertEquals(1, again)
     }
 
@@ -153,7 +153,7 @@ class SharedNoteScreenTest {
         compose.onNodeWithText(text(DesignR.string.take_back_done_title)).assertExists()
         compose.onNodeWithText("₿1,000").assertExists()
         compose.onNodeWithText(text(R.string.note_reclaimed)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.send_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, back)
     }
 
@@ -167,21 +167,21 @@ class SharedNoteScreenTest {
     @Test
     fun aTakeBackTooLateSaysTheNoteWasSpent() {
         takeBack(ReclaimResult.AlreadySpent, note(SharedNoteState.Spent))
-        compose.onNodeWithText(text(R.string.note_already_spent)).assertExists()
-        compose.onNodeWithText(text(R.string.send_try_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.own_claim_too_late)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
     }
 
     @Test
     fun aTakeBackWithoutAnAnswerWaits() {
         takeBack(ReclaimResult.Pending, note(SharedNoteState.Reclaimed))
         compose.onNodeWithText(text(DesignR.string.no_answer_title)).assertExists()
-        compose.onNodeWithText(text(R.string.note_reclaim_pending)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.no_answer_hint)).assertExists()
     }
 
     @Test
     fun aTakeBackOfANoteItsMintDoesntKnowWaitsForTheMint() {
         takeBack(ReclaimResult.WhenKnown, note(SharedNoteState.Waiting).copy(unknownToMint = true, takeBackAsked = true, link = null))
-        compose.onNodeWithText(text(DesignR.string.take_back_waiting_title)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.not_claimed_yet_title)).assertExists()
         compose.onNodeWithText(text(DesignR.string.note_take_back_when_known)).assertExists()
     }
 

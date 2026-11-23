@@ -131,7 +131,7 @@ class AddressFeeScreenTest {
     @Test
     fun noConnectionIsSaidWithoutTheSystemsWords() {
         show(setup.copy(error = OnboardingError.Network("java.net.SocketTimeoutException: timeout")))
-        compose.onNodeWithText(text(R.string.onboarding_error_network)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.couldnt_connect)).assertExists()
         compose.onNodeWithText("timeout", substring = true).assertDoesNotExist()
     }
 

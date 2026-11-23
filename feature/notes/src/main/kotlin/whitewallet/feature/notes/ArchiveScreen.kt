@@ -270,7 +270,7 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
                                         busy = state.retrying == note.id,
                                         onClick = { actions.retry(note.id) },
                                     ) {
-                                        Text(stringResource(R.string.archive_retry))
+                                        Text(stringResource(DesignR.string.try_again))
                                     }
                                     WalletButton(
                                         kind = ButtonKind.Text,
@@ -368,7 +368,7 @@ private fun ArchivedNoteRow(note: Note, state: ArchiveState, actions: ArchiveAct
                     busy = state.retrying == note.id,
                     onClick = { actions.recheck(note.id) },
                 ) {
-                    Text(stringResource(R.string.notes_recheck))
+                    Text(stringResource(DesignR.string.check_again))
                 }
                 WalletButton(kind = ButtonKind.Text, enabled = state.retrying == null, onClick = { actions.askRemoveNote(note.id) }) {
                     Text(stringResource(R.string.archive_remove))

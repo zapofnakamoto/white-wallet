@@ -432,7 +432,7 @@ private fun ErrorText(error: MoneyMoveError) {
     val text =
         when (error) {
             is MoneyMoveError.Mint -> stringResource(R.string.money_error_mint, error.host)
-            MoneyMoveError.Network -> stringResource(R.string.money_error_network)
+            MoneyMoveError.Network -> stringResource(DesignR.string.couldnt_connect)
         }
     Text(text, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
 }
@@ -548,7 +548,7 @@ private fun CompleteContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, ac
         status = WalletStatus.Done(arrived),
         title = stringResource(if (outcome.homeChanged) R.string.money_home_changed_title else R.string.money_moved_title),
         amountMsat = arrived.takeIf { outcome.moved.isNotEmpty() },
-        done = SuccessAction(stringResource(R.string.money_done), actions.onDone),
+        done = SuccessAction(stringResource(DesignR.string.done), actions.onDone),
         modifier = modifier,
         lines =
             listOfNotNull(
@@ -586,10 +586,10 @@ private fun OutcomeContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, act
             tone == ResultTone.Success -> stringResource(R.string.money_moved_title)
             else -> stringResource(R.string.money_nothing_moved_title)
         },
-        done = SuccessAction(stringResource(R.string.money_done), actions.onDone),
+        done = SuccessAction(stringResource(DesignR.string.done), actions.onDone),
         modifier = modifier,
         more =
-            SuccessAction(stringResource(R.string.money_try_again), actions.onRetry).takeIf {
+            SuccessAction(stringResource(DesignR.string.try_again), actions.onRetry).takeIf {
                 outcome.retryable.isNotEmpty() && !state.busy
             },
         lines =

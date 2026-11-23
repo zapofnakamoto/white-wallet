@@ -441,7 +441,7 @@ class HomeScreenTest {
         var opened: String? = null
         show(HomeState(keyChangedHost = "mint.example"), onOpenMint = { opened = it })
         compose.onNodeWithText(text(R.string.home_key_changed_title, "mint.example")).assertExists()
-        compose.onNodeWithText(text(R.string.home_key_changed_action)).performClick()
+        compose.onNodeWithText(text(DesignR.string.details)).performClick()
         assertEquals("mint.example", opened)
     }
 
@@ -457,7 +457,7 @@ class HomeScreenTest {
         )
         compose.onNodeWithText(text(R.string.home_mint_silent_title_home, "home.example")).assertExists()
         compose.onNodeWithText(text(R.string.home_mint_silent_body_home)).assertExists()
-        compose.onNodeWithText(text(R.string.home_mint_silent_action)).performClick()
+        compose.onNodeWithText(text(DesignR.string.check_again)).performClick()
         assertEquals(1, refreshed)
     }
 
@@ -496,7 +496,7 @@ class HomeScreenTest {
         compose.onNodeWithText(text(R.string.home_mints_silent_body)).assertExists()
         compose.onAllNodesWithText(text(R.string.home_mint_silent_title, "b.example")).assertCountEquals(0)
         compose.onAllNodesWithText(text(R.string.home_mint_not_answering)).assertCountEquals(2)
-        compose.onNodeWithText(text(R.string.home_mint_silent_action)).performClick()
+        compose.onNodeWithText(text(DesignR.string.check_again)).performClick()
         assertEquals(1, refreshed)
     }
 
@@ -528,7 +528,7 @@ class HomeScreenTest {
         compose.onAllNodesWithText(text(R.string.home_mint_not_answering)).assertCountEquals(0)
         compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
         // Home updates by itself once the phone is back: nothing to try now.
-        compose.onAllNodesWithText(text(R.string.home_try_again)).assertCountEquals(0)
+        compose.onAllNodesWithText(text(DesignR.string.try_again)).assertCountEquals(0)
     }
 
     @Test
@@ -536,7 +536,7 @@ class HomeScreenTest {
         var refreshed = 0
         show(HomeState(activeAccountId = "a", refreshFailed = true), onRefresh = { refreshed++ })
         compose.onNodeWithText(text(R.string.home_update_failed)).assertExists()
-        compose.onNodeWithText(text(R.string.home_try_again)).performScrollTo().performClick()
+        compose.onNodeWithText(text(DesignR.string.try_again)).performScrollTo().performClick()
         assertEquals(1, refreshed)
     }
 
@@ -563,7 +563,7 @@ class HomeScreenTest {
         compose.onNodeWithText(text(R.string.home_tab_history)).performClick()
         compose.onNodeWithText(text(R.string.history_show_maintenance)).performClick()
         compose.onNodeWithText(text(R.string.activity_fee_refunded, "₿1"), substring = true).assertExists()
-        compose.onNodeWithText(text(R.string.activity_fee, "₿"), substring = true).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.fee, "₿"), substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -572,7 +572,7 @@ class HomeScreenTest {
         show(HomeState(activity = listOf(combined(-1_000))))
         compose.onNodeWithText("Verlauf").performClick()
         compose.onNodeWithText("Pflege der Scheine anzeigen").performClick()
-        compose.onNodeWithText("Gebühr erstattet 1 ₿", substring = true).assertExists()
+        compose.onNodeWithText("Gebühr erstattet: 1 ₿", substring = true).assertExists()
     }
 
     private fun row(id: String, kind: ActivityKind, automatic: Boolean = false, counterparty: String? = null) =
@@ -813,7 +813,7 @@ class HomeScreenTest {
             )
         }
         compose.onNodeWithText(plural(R.plurals.home_unknown_show, 2)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.home_unknown_action)).performClick()
+        compose.onNodeWithText(text(DesignR.string.check_again)).performClick()
         assertEquals(1, asked)
     }
 
@@ -845,7 +845,7 @@ class HomeScreenTest {
                 onNoticeShown = { shown = true },
             )
         }
-        compose.onNodeWithText(text(R.string.notice_details)).performClick()
+        compose.onNodeWithText(text(DesignR.string.details)).performClick()
         compose.onNodeWithText(text(R.string.activity_split)).assertExists()
         compose.onNodeWithText(text(R.string.activity_sent_note)).assertExists()
         assertEquals(true, shown)
@@ -1153,8 +1153,8 @@ class HomeScreenTest {
         show(HomeState(activeAccountId = "a", balanceMsat = 5_000_000, sharedMsat = 3_000_000))
         compose.onNodeWithText("₿5,000").assertExists()
         compose.onNodeWithText(text(R.string.home_wallet_empty)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.home_shared_total, "₿3,000")).performClick()
-        compose.onNodeWithText(text(R.string.home_shared_total, "₿3,000")).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.handed_out_total, "₿3,000")).performClick()
+        compose.onNodeWithText(text(DesignR.string.handed_out_total, "₿3,000")).assertDoesNotExist()
         compose.onAllNodesWithText(text(R.string.home_tab_history)).assertCountEquals(2)
     }
 
@@ -1173,7 +1173,7 @@ class HomeScreenTest {
         compose
             .onNodeWithText("b.example")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text(R.string.home_mint_opened)))
-        compose.onNodeWithText("b.example").performCustomAccessibilityActionWithLabel(text(R.string.home_mint_details))
+        compose.onNodeWithText("b.example").performCustomAccessibilityActionWithLabel(text(DesignR.string.details))
         assertEquals("b.example", opened)
     }
 
@@ -1223,8 +1223,8 @@ class HomeScreenTest {
         )
         val send = text(R.string.home_mint_send)
         val receive = text(R.string.home_mint_receive)
-        compose.onNodeWithText("a.example").assert(offers(listOf(receive, text(R.string.home_mint_details))))
-        compose.onNodeWithText("b.example").assert(offers(listOf(send, text(R.string.home_mint_details))))
+        compose.onNodeWithText("a.example").assert(offers(listOf(receive, text(DesignR.string.details))))
+        compose.onNodeWithText("b.example").assert(offers(listOf(send, text(DesignR.string.details))))
     }
 
     @Test
@@ -1238,7 +1238,7 @@ class HomeScreenTest {
                 keyChangedHosts = setOf("b.example"),
             )
         )
-        compose.onNodeWithText("b.example").assert(offers(listOf(text(R.string.home_mint_details))))
+        compose.onNodeWithText("b.example").assert(offers(listOf(text(DesignR.string.details))))
     }
 
     @Test
@@ -1253,7 +1253,7 @@ class HomeScreenTest {
             )
         show(state, onOpenMint = { opened = it })
         compose.onNodeWithText(text(R.string.home_key_changed_title, "b.example")).assertExists()
-        compose.onNodeWithText(text(R.string.home_mint_key_changed)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.key_mismatch_short)).assertExists()
         compose.onNodeWithText(text(R.string.home_key_changed_part, "₿298")).performClick()
         assertEquals("b.example", opened)
     }
@@ -1335,7 +1335,7 @@ class HomeScreenTest {
     fun nothingHandedOutSaysNothingAndAHiddenBalanceHidesItsAmount() {
         show(HomeState(activeAccountId = "a", balanceMsat = 5_000_000, balanceHidden = true, sharedMsat = 3_000_000))
         compose.onNodeWithText("₿3,000", substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.home_shared_title)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.handed_out_title)).assertExists()
     }
 
     @Test
@@ -1405,7 +1405,7 @@ class HomeScreenTest {
         compose.onNodeWithText(text(R.string.home_key_changed_title, "mint.example")).assertExists()
         compose.onNodeWithText("The signing key of its mint doesn't match the one your wallet knows", substring = true).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_total, "₿2,000")).assertExists()
-        compose.onNodeWithText(text(R.string.home_key_changed_action)).performClick()
+        compose.onNodeWithText(text(DesignR.string.details)).performClick()
         assertEquals("mint.example", opened)
     }
 

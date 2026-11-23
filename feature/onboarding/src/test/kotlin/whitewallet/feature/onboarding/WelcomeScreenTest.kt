@@ -230,7 +230,7 @@ class WelcomeScreenTest {
             AccountNameScreen(CreateState(scanFailed = "mint.example"), "Sparen", onBack = {}, onCreate = { tried = it })
         }
         compose.onNodeWithText("mint.example war nicht erreichbar", substring = true).assertExists()
-        compose.onNodeWithText("Noch einmal versuchen").performClick()
+        compose.onNodeWithText("Erneut versuchen").performClick()
         assertEquals("Sparen", tried)
     }
 

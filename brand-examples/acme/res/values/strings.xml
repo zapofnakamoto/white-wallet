@@ -43,13 +43,13 @@
     <string name="claim_scan_hint">Point the camera at the banknote\'s QR code.</string>
     <string name="claim_check">Check banknote</string>
     <string name="claim_invalid">Not a valid banknote: %1$s</string>
-    <string name="claim_spent">This banknote has already been spent.</string>
+    <string name="claim_spent">Too late: this banknote has already been spent.</string>
     <string name="claim_in_wallet">This banknote is already in your wallet.</string>
     <string name="claim_own_shared">You handed out this banknote, and nobody has claimed it yet.</string>
-    <string name="claim_own_offline">You handed out this banknote. Your provider isn\'t answering right now, so it can\'t be taken back yet.</string>
-    <string name="claim_own_phone_offline">You handed out this banknote. You\'re offline, so it can\'t be taken back yet.</string>
-    <string name="claim_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the provider\'s details.</string>
-    <string name="claim_kept_key_changed">Your wallet claims it once the provider\'s signing key matches again, or you accept a new key in its details.</string>
+    <string name="claim_own_offline">You handed out this banknote. Its provider isn\'t answering right now, so you can\'t claim it yourself yet.</string>
+    <string name="claim_own_phone_offline">You handed out this banknote. You\'re offline, so you can\'t claim it yourself yet.</string>
+    <string name="claim_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept the new key in the provider\'s details.</string>
+    <string name="claim_kept_key_changed">Your wallet claims it once the provider\'s signing key matches again, or you accept the new key in its details.</string>
     <string name="claim_other_mint">This banknote is held by %1$s and stays there.</string>
     <string name="home_tab_notes">Banknotes</string>
     <string name="home_wallet_empty">Nothing here yet. Share your address to get paid, or claim a banknote.</string>
@@ -65,7 +65,7 @@
     <string name="activity_sent_note">Sent a banknote</string>
     <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a banknote may cost a split fee.</string>
     <string name="move_adds_mint">%1$s will be added to the providers of %2$s.</string>
-    <string name="home_key_changed_body">Nothing is sent there until it matches again, or you accept a new key in the provider\'s details.</string>
+    <string name="home_key_changed_body">Nothing is sent there until it matches again, or you accept the new key in the provider\'s details.</string>
     <string name="notes_title">Banknotes</string>
     <string name="notes_settings">Banknote settings</string>
     <plurals name="notes_count">
@@ -74,8 +74,8 @@
     </plurals>
     <string name="notes_sort">Sort banknotes</string>
     <string name="notes_select_hint">Tap banknotes to select them.</string>
-    <string name="notes_share_hint">Hands out the whole banknote as a QR code. It leaves your balance until someone claims it or you take it back.</string>
-    <string name="notes_share_hint_split">Hands out the whole banknote as a QR code. It leaves your balance until someone claims it or you take it back. To give part of it, split it first.</string>
+    <string name="notes_share_hint">Hands out the whole banknote as a QR code. It leaves your balance until someone claims it, or you claim it yourself.</string>
+    <string name="notes_share_hint_split">Hands out the whole banknote as a QR code. It leaves your balance until someone claims it, or you claim it yourself. To give part of it, split it first.</string>
     <string name="notes_renew_hint">Renew gives the banknote a fresh key, for example after you showed its QR code to someone by mistake.</string>
     <plurals name="notes_checked_ok">
         <item quantity="one">Checked %1$d banknote: still there.</item>
@@ -102,12 +102,12 @@
         <item quantity="other">The provider doesn\'t know %1$d banknotes you handed out, so nobody can claim them yet. Your wallet asks again by itself.</item>
     </plurals>
     <plurals name="notes_checked_taken_back">
-        <item quantity="one">%1$d banknote you handed out was taken back into your balance.</item>
-        <item quantity="other">%1$d banknotes you handed out were taken back into your balance.</item>
+        <item quantity="one">Your wallet claimed %1$d banknote you handed out, as you asked. You can spend it again.</item>
+        <item quantity="other">Your wallet claimed %1$d banknotes you handed out, as you asked. You can spend them again.</item>
     </plurals>
     <plurals name="notes_checked_take_back_refused">
-        <item quantity="one">The provider refused to give back %1$d banknote you handed out. Your wallet tries again by itself.</item>
-        <item quantity="other">The provider refused to give back %1$d banknotes you handed out. Your wallet tries again by itself.</item>
+        <item quantity="one">The provider refused your wallet\'s claim of %1$d banknote you handed out. Your wallet asks again on the next refresh.</item>
+        <item quantity="other">The provider refused your wallet\'s claim of %1$d banknotes you handed out. Your wallet asks again on the next refresh.</item>
     </plurals>
     <string name="notes_state_unknown">Unknown to the provider</string>
     <string name="notes_state_unknown_handed_out">Handed out · unknown to the provider</string>
@@ -123,7 +123,7 @@
     </plurals>
     <string name="archive_notes_title">Banknotes</string>
     <string name="archive_notes_hint">Their provider doesn\'t know these banknotes. Your wallet still asks about them now and then; once the provider knows one again, you can spend it again.</string>
-    <string name="archive_handed_out_hint">You handed these banknotes out, but their provider doesn\'t know them. Your wallet still asks about them now and then; once the provider knows one again, it waits to be claimed, or your wallet takes it back if you asked it to.</string>
+    <string name="archive_handed_out_hint">You handed these banknotes out, but their provider doesn\'t know them. Your wallet still asks about them now and then; once the provider knows one again, it waits to be claimed, or your wallet claims it if you asked it to.</string>
     <string name="archive_note_remove_title">Remove this banknote for good?</string>
     <string name="archive_note_remove_body">Its provider doesn\'t know it now. If the provider ever knows it again, “Scan for banknotes” finds it with your recovery phrase.</string>
     <plurals name="home_unknown_title">
@@ -156,8 +156,8 @@
         <item quantity="one">Asked just now: the provider still doesn\'t know your banknote.</item>
         <item quantity="other">Asked just now: the provider still doesn\'t know your banknotes.</item>
     </plurals>
-    <string name="notice_unknown_unreachable_unnamed">No answer from the provider. Your wallet asks again later.</string>
-    <string name="notes_already_spent">This banknote was already spent, so it wasn\'t handed out. It\'s no longer in your balance.</string>
+    <string name="notice_unknown_unreachable_unnamed">Your provider isn\'t answering. Your wallet asks again later.</string>
+    <string name="notes_already_spent">This banknote has already been spent, so it wasn\'t handed out. It\'s no longer in your balance.</string>
     <string name="notes_empty">No banknotes yet. Money you receive is held as banknotes, and they show up here.</string>
     <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your banknotes again on every refresh.</string>
     <plurals name="notes_selected">
@@ -176,14 +176,11 @@
     <string name="notes_problem_invalid_amount">This banknote is too small to split, or the amount doesn\'t fit.</string>
     <string name="notes_problem_same_mint">The banknotes are already there.</string>
     <string name="notes_problem_mint_invalid">That address can\'t hold banknotes.</string>
-    <string name="notes_problem_key_changed">The signing key of the provider doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the provider\'s details.</string>
     <string name="receive_hint">Anyone can pay this address from any Lightning wallet. Payments arrive as banknotes in this wallet.</string>
     <string name="receive_claim">Claim a banknote instead</string>
     <string name="send_create_note">Create a banknote</string>
     <string name="send_problem_refused">The provider refused this payment.</string>
-    <string name="send_problem_key_changed">The signing key of the provider doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the provider\'s details.</string>
     <string name="send_problem_own_mint_invoice">This invoice is from your own provider, which can\'t pay itself over Lightning. Ask for a Lightning address instead.</string>
-    <string name="send_problem_mint_message">Message from the provider: “%1$s”</string>
     <string name="note_create_title">Send as a banknote</string>
     <string name="note_create_body">Make a banknote worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
     <string name="note_available">You can make a banknote of up to %1$s.</string>
@@ -193,16 +190,15 @@
     <string name="note_qr_description">QR code of the banknote</string>
     <string name="note_uncertified">The amount of this banknote isn\'t certified.</string>
     <string name="note_share_title">Share banknote</string>
-    <string name="note_reclaim_title">Take this banknote back?</string>
-    <string name="note_already_spent">Too late: this banknote has already been spent.</string>
+    <string name="note_reclaim_title">Claim this banknote yourself?</string>
     <string name="note_not_found">This banknote isn\'t in this account.</string>
     <string name="note_unconfirmed">The provider hasn\'t been asked about this banknote yet. Your wallet asks once it\'s online.</string>
     <string name="note_unknown_to_mint">The provider doesn\'t know this banknote right now, so nobody can claim it yet. Your wallet asks the provider again by itself.</string>
     <string name="note_unverified">You removed this banknote while the provider didn\'t know it, so it isn\'t known whether it was claimed.</string>
-    <string name="note_take_back_when_known">The provider doesn\'t know this banknote right now. Your wallet takes it back as soon as the provider knows it again.</string>
+    <string name="note_take_back_when_known">Its provider doesn\'t know this banknote right now. Your wallet claims it as soon as the provider knows it again.</string>
     <string name="mint_message">Message from the provider: “%1$s”</string>
     <string name="scan_unknown">This QR code isn\'t a payment or a banknote.</string>
-    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept a new key. Payments to your addresses there wait until then.</string>
+    <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept the new key. Payments to your addresses there wait until then.</string>
     <string name="settings_notes">Banknote settings</string>
     <string name="settings_note_list">Banknotes</string>
     <string name="settings_note_list_hint">See your banknotes one by one, hand them out, split or combine them</string>
@@ -319,7 +315,7 @@
     <string name="send_problem_mint_silent_unnamed">Your provider isn\'t answering. Nothing was paid. Try again later.</string>
     <string name="release_note_old_keys_title">Banknotes from before version 0.8</string>
     <string name="release_note_old_keys_body">This version no longer finds banknotes and Lightning addresses made the way the app made them before version 0.8. Since then, the app moved them over by itself whenever it was opened. If money is missing, open your recovery phrase once in version 0.9.0, which still moves them, then use “Scan for banknotes” here.</string>
-    <string name="received_key_changed">The signing key of its provider doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept a new key in the provider\'s details.</string>
+    <string name="received_key_changed">The signing key of its provider doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept the new key in the provider\'s details.</string>
     <string name="received_refused">Its provider kept refusing it, so your wallet stopped trying.</string>
     <plurals name="received_refused_hours">
         <item quantity="one">Its provider kept refusing it for %d hour, so your wallet stopped trying.</item>
@@ -338,11 +334,12 @@
         <item quantity="other">Its provider didn\'t answer for %d days, so your wallet stopped trying.</item>
     </plurals>
     <string name="received_unreachable">Its provider didn\'t answer, so your wallet stopped trying.</string>
+    <string name="mint_key_changed_nothing_sent">The signing key of its provider doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in the provider\'s details, nothing is sent there.</string>
+    <string name="mint_not_answering_unnamed">Your provider isn\'t answering. Try again later.</string>
     <string name="received_waiting_mint_unnamed">Claimed when its provider answers.</string>
     <string name="received_lightning_no_key">Its provider publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its provider doesn\'t answer for it as a banknote, so it can only be received over Lightning, for a fee.</string>
     <string name="claim_mint_refused">The provider doesn\'t accept this banknote right now.</string>
-    <string name="claim_mint_refused_reason">The provider doesn\'t accept this banknote right now. Its answer: %1$s</string>
     <string name="receive_on_home">On %1$s, your provider</string>
     <string name="receive_on_home_detail">Your provider · %1$s</string>
     <string name="send_from_detail_home">Your provider · up to %1$s</string>

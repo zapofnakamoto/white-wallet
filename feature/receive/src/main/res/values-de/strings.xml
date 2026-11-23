@@ -34,7 +34,6 @@
     <string name="receive_invoice_other_amount">Anderer Betrag</string>
     <string name="receive_invoice_expired">Diese Rechnung ist abgelaufen, ohne bezahlt zu werden.</string>
     <string name="receive_invoice_new">Neue Rechnung</string>
-    <string name="receive_done">Fertig</string>
     <string name="receive_success_title">Zahlung erhalten</string>
     <!-- Mehrere Zahlungen kamen an der Adresse an, während der Bildschirm offen war (%d: wie viele); der Betrag ist ihre Summe -->
     <plurals name="receive_payments_received">
@@ -50,9 +49,7 @@
     <string name="receive_on">Bei %1$s</string>
     <string name="receive_on_title">Empfangen bei</string>
     <string name="receive_on_invoice">Mit einer Rechnung über einen Betrag</string>
-    <string name="receive_on_key_changed">Signaturschlüssel passt nicht</string>
-    <string name="receive_address_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Zahlungen an diese Adresse warten dort, bis er wieder passt oder du in den Details einen neuen annimmst.</string>
-    <string name="receive_invoice_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt, darum wird dort keine Rechnung erstellt, bis er wieder passt oder du in den Details einen neuen annimmst.</string>
+    <string name="receive_address_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details den neuen Schlüssel annimmst, warten Zahlungen an diese Adresse dort.</string>
+    <string name="receive_invoice_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details den neuen Schlüssel annimmst, wird dort keine Rechnung erstellt.</string>
     <string name="receive_key_checking">Prüfe %1$s …</string>
-    <string name="receive_key_changed_action">Details</string>
 </resources>

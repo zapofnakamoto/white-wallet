@@ -10,11 +10,8 @@
     <string name="send_problem_refused">The mint refused this payment.</string>
     <!-- The mint the money is on didn't answer, and no other could pay instead. %1$s: the mint. -->
     <string name="send_problem_mint_silent_unnamed">Your mint isn\'t answering. Nothing was paid. Try again later.</string>
-    <string name="send_problem_key_changed">The signing key of the mint doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the mint\'s details.</string>
     <string name="send_problem_own_mint_invoice">This invoice is from your own mint, which can\'t pay itself over Lightning. Ask for a Lightning address instead.</string>
     <string name="send_problem_invoice_used">This invoice was already used. Ask for a new one.</string>
-    <!-- %1$s: the mint's own words, in whatever language it writes. -->
-    <string name="send_problem_mint_message">Message from the mint: “%1$s”</string>
     <!-- The home mint in the Send from list. %1$s: the most one payment from it can be. -->
     <string name="send_from_detail_home">Home mint · up to %1$s</string>
     <!-- As send_key_changed_held, where the brand doesn't name mints. %1$s: what is held on all such mints. -->
@@ -28,25 +25,21 @@
     <string name="note_qr_description">QR code of the note</string>
     <string name="note_uncertified">The amount of this note isn\'t certified.</string>
     <string name="note_share_title">Share note</string>
-    <string name="note_reclaim_title">Take this note back?</string>
-    <string name="note_already_spent">Too late: this note has already been spent.</string>
+    <string name="note_reclaim_title">Claim this note yourself?</string>
     <string name="note_not_found">This note isn\'t in this account.</string>
     <string name="note_unconfirmed">Its mint hasn\'t been asked about this note yet. Your wallet asks once it\'s online.</string>
     <string name="note_unknown_to_mint">Its mint doesn\'t know this note right now, so nobody can claim it yet. Your wallet asks the mint again by itself.</string>
     <string name="note_unverified">You removed this note while its mint didn\'t know it, so it isn\'t known whether it was claimed.</string>
     <string name="scan_unknown">This QR code isn\'t a payment or a note.</string>
 
-    <string name="note_create_failed_title">Nothing handed out</string>
+    <string name="note_create_failed_title">Not handed out</string>
 
     <string name="send_problem_mint_silent">%1$s isn\'t answering. Nothing was paid. Try again later.</string>
     <string name="send_title">Send</string>
     <string name="send_input">Invoice, Lightning address or link</string>
     <string name="send_input_hint">lnbc… or name@example.com</string>
-    <string name="send_scan">Scan QR code</string>
-    <string name="send_paste">Paste</string>
     <string name="send_continue">Continue</string>
     <string name="send_scan_hint">Point the camera at a QR code.</string>
-    <string name="send_scan_cancel">Cancel</string>
 
     <string name="send_to_invoice">Lightning invoice</string>
     <string name="send_internal">Arrives instantly, no Lightning needed.</string>
@@ -56,8 +49,6 @@
     <string name="send_available">You can send up to %1$s.</string>
     <!-- Before a destination is entered, when the balance can't be paid at once. %1$s: the most one payment can be, %2$s: the balance. -->
     <string name="send_limit_one_payment">You can send up to %1$s of your %2$s in one payment. Your balance is held in different places, and a payment comes from one of them.</string>
-    <string name="send_fee">Fee: %1$s</string>
-    <string name="send_no_fee">No fee</string>
     <string name="send_not_exact">This amount can\'t be made from your balance. Send exactly %1$s, or at most %2$s.</string>
     <string name="send_below_minimum">The recipient accepts at least %1$s.</string>
     <string name="send_above_maximum">The recipient accepts at most %1$s.</string>
@@ -74,8 +65,6 @@
     <string name="send_pending_title">On its way</string>
     <string name="send_pending_body">%1$s to %2$s is still being paid. History shows when it\'s done; if it fails, nothing is paid and the money stays in your wallet.</string>
     <string name="send_failed_title">Not paid</string>
-    <string name="send_try_again">Try again</string>
-    <string name="send_done">Done</string>
 
     <string name="send_problem_not_recognized">This isn\'t an invoice, Lightning address or payment link.</string>
     <string name="send_problem_withdraw_link">This link pays money out to you. Open it under Receive.</string>
@@ -92,12 +81,11 @@
     <string name="send_problem_not_exact">This amount can\'t be made from your balance.</string>
     <string name="send_problem_below_minimum">The amount is below what the recipient accepts.</string>
     <string name="send_problem_above_maximum">The amount is above what the recipient accepts.</string>
-    <string name="send_problem_payment_failed">The payment didn\'t go through. Nothing was paid, and the money stays in your wallet.</string>
 
     <!-- Sending a note: a link or QR code that holds the money itself. -->
     <string name="send_or">or</string>
     <string name="note_bearer_warning">Anyone with this code can take the money.</string>
-    <string name="note_waiting">Not claimed yet. You can take it back until then.</string>
+    <string name="note_waiting">Not claimed yet. Until then, you can claim it yourself.</string>
     <string name="note_checked_at">Last checked: %1$s</string>
     <string name="note_share">Share</string>
     <string name="note_format_lnurlw">lnurlw://</string>
@@ -106,13 +94,11 @@
     <string name="note_print">Print</string>
     <string name="note_print_warning">Whoever holds this paper can spend it. Keep it like cash.</string>
     <string name="note_copy">Copy</string>
-    <string name="note_reclaim">Take back</string>
-    <string name="note_reclaim_offline">You\'re offline. You can take it back once you\'re connected.</string>
-    <string name="note_cancel">Cancel</string>
-    <string name="note_reclaim_body">The money returns to your balance and this code stops working. If it\'s already been spent, nothing changes.</string>
+    <string name="note_reclaim">Claim it yourself</string>
+    <string name="note_reclaim_offline">You\'re offline. You can claim it yourself once you\'re connected.</string>
+    <string name="note_reclaim_body">Its QR code and link stop working. If someone already claimed it, nothing changes.</string>
     <string name="note_spent">Spent, usually by the recipient. It could also have been another device with your recovery phrase.</string>
-    <string name="note_reclaimed">Taken back. The money is in your balance again.</string>
-    <string name="note_reclaim_pending">Taking it back… History shows when it\'s done.</string>
+    <string name="note_reclaimed">You claimed it yourself. You can spend it again.</string>
     <!-- Developer mode on a local regtest mint (debug builds): dev/regtest's faucet makes an invoice to pay. %1$s: an amount -->
     <string name="send_faucet">Developer: pay a regtest invoice of %1$s</string>
     <!-- %1$s: the faucet's or the connection's error, as it came -->
@@ -128,10 +114,6 @@
     <!-- A mint in that list (%1$s: the most one payment from it can be) -->
     <string name="send_from_detail">Up to %1$s</string>
     <string name="send_from_not_enough">Up to %1$s, not enough for this</string>
-    <!-- A mint in that list whose signing key doesn't match: it can't be picked -->
-    <string name="send_from_key_changed">Signing key doesn\'t match</string>
     <!-- Before anything is entered, under the most that can be sent. %1$s: what is held there, %2$s: where (its name). -->
     <string name="send_key_changed_held">%1$s on %2$s can\'t be sent until its signing key matches.</string>
-    <!-- Opens the details of that place, where its new signing key can be accepted -->
-    <string name="send_key_changed_action">Details</string>
 </resources>

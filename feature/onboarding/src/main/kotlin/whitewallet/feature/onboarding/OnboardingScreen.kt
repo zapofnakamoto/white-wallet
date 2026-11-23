@@ -54,6 +54,7 @@ import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.CopyShare
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ResultScreen
 import whitewallet.core.designsystem.ResultTone
 import whitewallet.core.designsystem.ScreenColumn
@@ -303,7 +304,7 @@ private fun ErrorText(state: OnboardingState) {
                     error.mintReason?.let { stringResource(R.string.onboarding_error_registration, it) }
                         ?: stringResource(R.string.onboarding_error_registration_plain)
                 is OnboardingError.Mint -> mintRefusalText(error.refusal, error.mintReason, state.host)
-                is OnboardingError.Network -> stringResource(R.string.onboarding_error_network)
+                is OnboardingError.Network -> stringResource(DesignR.string.couldnt_connect)
                 is OnboardingError.Limit -> pluralStringResource(R.plurals.onboarding_error_limit, error.limit, error.limit)
             }
         Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
@@ -417,7 +418,7 @@ private fun AddressAddedContent(address: String, onContinue: () -> Unit, modifie
         anchor = Anchor.AddressAdded,
         status = WalletStatus.Done(0),
         title = stringResource(R.string.claimed_title),
-        done = SuccessAction(stringResource(R.string.success_done), onContinue),
+        done = SuccessAction(stringResource(DesignR.string.done), onContinue),
         modifier = modifier,
     ) {
         AddressReady(address)

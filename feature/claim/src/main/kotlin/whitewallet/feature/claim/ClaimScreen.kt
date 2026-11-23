@@ -61,6 +61,7 @@ import whitewallet.core.wallet.ClaimFailure
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.MeltProblem
+import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.ReclaimResult
 
 @Composable
@@ -128,7 +129,7 @@ fun ClaimScreen(
                 status = WalletStatus.PaymentReceived(claimed.amountMsat),
                 title = stringResource(if (overLightning) R.string.claim_received_title else R.string.claim_success_title),
                 amountMsat = claimed.amountMsat,
-                done = SuccessAction(stringResource(R.string.claim_finish), onBack),
+                done = SuccessAction(stringResource(DesignR.string.done), onBack),
                 modifier = Modifier.padding(padding),
             )
             return@Scaffold
@@ -139,8 +140,9 @@ fun ClaimScreen(
                 status = WalletStatus.Done(reclaimed.amountMsat),
                 title = stringResource(DesignR.string.take_back_done_title),
                 amountMsat = reclaimed.amountMsat,
-                done = SuccessAction(stringResource(R.string.claim_finish), onBack),
+                done = SuccessAction(stringResource(DesignR.string.done), onBack),
                 modifier = Modifier.padding(padding),
+                lines = listOf(stringResource(DesignR.string.own_claim_done)),
             )
             return@Scaffold
         }
@@ -154,9 +156,15 @@ fun ClaimScreen(
                 Anchor.ClaimResult,
                 outcome.status,
                 outcome.title,
-                done = SuccessAction(stringResource(R.string.claim_finish), onBack),
+                done = SuccessAction(stringResource(DesignR.string.done), onBack),
                 modifier = Modifier.padding(padding),
-                more = if (outcome.receiveOverLightning) SuccessAction(stringResource(R.string.claim_melt_receive), onCheck) else null,
+                more =
+                    when {
+                        outcome.receiveOverLightning -> SuccessAction(stringResource(R.string.claim_melt_receive), onCheck)
+                        // Claiming one's own note again, as on its page.
+                        state.takenBack is ReclaimResult.Failed -> SuccessAction(stringResource(DesignR.string.try_again), onTakeBack)
+                        else -> null
+                    },
                 lines = outcome.lines,
             )
             return@Scaffold
@@ -165,7 +173,7 @@ fun ClaimScreen(
             if (state.scanning) {
                 Text(stringResource(R.string.claim_scan_hint), textAlign = TextAlign.Center)
                 QrScanner(onScanned = onScanned, modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.large))
-                WalletButton(kind = ButtonKind.Text, onClick = onStopScan) { Text(stringResource(R.string.claim_scan_cancel)) }
+                WalletButton(kind = ButtonKind.Text, onClick = onStopScan) { Text(stringResource(DesignR.string.cancel)) }
                 return@ScreenColumn
             }
             // Once checked, the link is one line: the note below is what counts. Editing it opens it up again.
@@ -182,7 +190,7 @@ fun ClaimScreen(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 WalletButton(kind = ButtonKind.Secondary, onClick = onStartScan, enabled = !state.busy, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.claim_scan))
+                    Text(stringResource(DesignR.string.scan_qr))
                 }
                 WalletButton(
                     kind = ButtonKind.Secondary,
@@ -195,7 +203,7 @@ fun ClaimScreen(
                     enabled = !state.busy,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(stringResource(R.string.claim_paste))
+                    Text(stringResource(DesignR.string.paste))
                 }
             }
 
@@ -338,7 +346,7 @@ private fun MeltSection(preview: ClaimPreview.Melt, state: ClaimState, actions: 
                         color = MaterialTheme.colorScheme.error,
                     )
                 preview.problem == MeltProblem.MintUnreachable ->
-                    Text(stringResource(R.string.claim_melt_unreachable, target), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(DesignR.string.mint_not_answering, target), color = MaterialTheme.colorScheme.error)
                 else -> {
                     Text(stringResource(R.string.claim_melt_pays, host, formatAmount(amount), formatAmount(preview.expectedMsat ?: amount)))
                     Text(
@@ -455,7 +463,11 @@ private fun previewMessage(preview: ClaimPreview): String =
     when (preview) {
         is ClaimPreview.Invalid -> stringResource(R.string.claim_invalid, preview.reason)
         is ClaimPreview.MintRefused ->
-            preview.reason?.let { stringResource(R.string.claim_mint_refused_reason, it) } ?: stringResource(R.string.claim_mint_refused)
+            listOfNotNull(
+                    stringResource(R.string.claim_mint_refused),
+                    preview.reason?.let { stringResource(DesignR.string.mint_message, it) },
+                )
+                .joinToString("\n")
         ClaimPreview.OfflineLink -> stringResource(R.string.claim_offline_link)
         ClaimPreview.AlreadySpent -> stringResource(R.string.claim_spent)
         ClaimPreview.AlreadyInWallet -> stringResource(R.string.claim_in_wallet)
@@ -501,7 +513,7 @@ private fun claimOutcome(result: ClaimResult, overLightning: Boolean, keepForLig
                     Outcome(
                         ResultTone.Waiting,
                         WalletStatus.None,
-                        stringResource(R.string.claim_retry_title),
+                        stringResource(DesignR.string.not_claimed_yet_title),
                         listOf(stringResource(R.string.claim_retry_hint)) + mintWords(result.reason),
                     )
                 else ->
@@ -517,7 +529,7 @@ private fun claimOutcome(result: ClaimResult, overLightning: Boolean, keepForLig
                 ResultTone.Waiting,
                 WalletStatus.None,
                 stringResource(DesignR.string.no_answer_title),
-                listOf(stringResource(R.string.claim_pending)),
+                listOf(stringResource(DesignR.string.no_answer_hint)),
             )
         is ClaimResult.Kept -> {
             val note = result.note
@@ -544,6 +556,7 @@ private fun claimOutcome(result: ClaimResult, overLightning: Boolean, keepForLig
     }
 }
 
+/** How claiming one's own handed-out note ended, when not on the success screen: in the same words as on the note's page. */
 @Composable
 private fun takeBackOutcome(result: ReclaimResult): Outcome {
     val problem = WalletStatus.Problem(ProblemKind.Other)
@@ -554,17 +567,34 @@ private fun takeBackOutcome(result: ReclaimResult): Outcome {
                 ResultTone.Waiting,
                 WalletStatus.None,
                 stringResource(DesignR.string.no_answer_title),
-                listOf(stringResource(R.string.claim_pending)),
+                listOf(stringResource(DesignR.string.no_answer_hint)),
             )
-        ReclaimResult.AlreadySpent -> Outcome(ResultTone.Problem, problem, stringResource(R.string.claim_spent), emptyList())
+        ReclaimResult.AlreadySpent -> Outcome(ResultTone.Problem, problem, stringResource(DesignR.string.own_claim_too_late), emptyList())
         ReclaimResult.WhenKnown ->
             Outcome(
                 ResultTone.Waiting,
                 WalletStatus.None,
-                stringResource(DesignR.string.take_back_waiting_title),
+                stringResource(DesignR.string.not_claimed_yet_title),
                 listOf(stringResource(DesignR.string.note_take_back_when_known)),
             )
         is ReclaimResult.Failed ->
-            Outcome(ResultTone.Problem, problem, stringResource(DesignR.string.take_back_failed), mintWords(result.mintMessage))
+            Outcome(
+                ResultTone.Problem,
+                problem,
+                stringResource(DesignR.string.take_back_failed),
+                listOfNotNull(ownClaimReason(result.problem)) + mintWords(result.mintMessage),
+            )
     }
 }
+
+/**
+ * Why claiming one's own note didn't happen, where the app knows: no connection, or a key that doesn't match. A refusal is the mint's to
+ * say.
+ */
+@Composable
+private fun ownClaimReason(problem: PayProblem): String? =
+    when (problem) {
+        PayProblem.Unreachable -> stringResource(DesignR.string.couldnt_connect)
+        PayProblem.KeyChanged -> stringResource(DesignR.string.mint_key_changed_nothing_sent)
+        else -> null
+    }

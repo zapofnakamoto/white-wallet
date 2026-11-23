@@ -43,6 +43,7 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.BrandTitle
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
@@ -264,7 +265,7 @@ fun AccountNameScreen(
                 )
             }
             PrimaryButton(
-                stringResource(if (state.scanFailed != null) R.string.add_mint_try_again else R.string.onboarding_create_account),
+                stringResource(if (state.scanFailed != null) DesignR.string.try_again else R.string.onboarding_create_account),
                 { onCreate(name) },
                 enabled = name.isNotBlank() && state.limit == null && state.useFirst == null,
                 busy = state.busy,

@@ -132,7 +132,7 @@ class ClaimScreenTest {
     fun checkNeedsALink() {
         show(ClaimState())
         compose.onNodeWithText(text(R.string.claim_check)).assertIsNotEnabled()
-        compose.onNodeWithText(text(R.string.claim_scan)).assertIsEnabled()
+        compose.onNodeWithText(text(DesignR.string.scan_qr)).assertIsEnabled()
     }
 
     @Test
@@ -148,9 +148,9 @@ class ClaimScreenTest {
         var takenBack = false
         show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = true)), onTakeBack = { takenBack = true })
         compose.onNodeWithText(text(R.string.claim_own_shared)).assertExists()
-        compose.onAllNodesWithText("Claim", substring = true).assertCountEquals(1) // the title only
+        compose.onAllNodesWithText("Claim", substring = true).assertCountEquals(2) // the title and "Claim … yourself"
         compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
-        compose.onNodeWithText("Take back", substring = true).performScrollTo().performClick()
+        compose.onNodeWithText("yourself", substring = true).performScrollTo().performClick()
         assertTrue(takenBack)
     }
 
@@ -158,7 +158,7 @@ class ClaimScreenTest {
     fun theUsersOwnSharedNoteItsMintDidNotAnswerForOffersNothingButToCheckAgain() {
         show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false)))
         compose.onNodeWithText(text(R.string.claim_own_offline)).assertExists()
-        compose.onNodeWithText("Take back", substring = true).assertDoesNotExist()
+        compose.onNode(hasText("yourself", substring = true) and hasClickAction()).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.claim_check)).assertIsEnabled()
     }
@@ -195,7 +195,7 @@ class ClaimScreenTest {
         )
         assertEquals(listOf(Anchor.NoteClaimed to WalletStatus.PaymentReceived(5_000_000)), decorated.distinct())
         compose.onNodeWithText(text(R.string.claim_success_title)).assertExists()
-        compose.onNodeWithText(text(R.string.claim_finish)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, done)
     }
 
@@ -228,7 +228,7 @@ class ClaimScreenTest {
         show(state)
         compose.onNodeWithText(text(title)).assertExists()
         lines.forEach { compose.onNodeWithText(it).assertExists() }
-        compose.onNodeWithText(text(R.string.claim_finish)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.done)).assertExists()
         compose.onNodeWithText(text(R.string.claim_input)).assertDoesNotExist()
     }
 
@@ -245,7 +245,7 @@ class ClaimScreenTest {
     fun aNoteTriedAgainIsAWaitNotAFailure() =
         showsOutcome(
             ClaimState(result = ClaimResult.Failed(RejectionKind.RateLimited, "slow down", ClaimFailure.Retrying)),
-            R.string.claim_retry_title,
+            DesignR.string.not_claimed_yet_title,
             text(R.string.claim_retry_hint),
             text(DesignR.string.mint_message, "slow down"),
         )
@@ -270,13 +270,13 @@ class ClaimScreenTest {
 
     @Test
     fun noAnswerYetIsAWait() =
-        showsOutcome(ClaimState(result = ClaimResult.Pending), DesignR.string.no_answer_title, text(R.string.claim_pending))
+        showsOutcome(ClaimState(result = ClaimResult.Pending), DesignR.string.no_answer_title, text(DesignR.string.no_answer_hint))
 
     @Test
     fun aTakeBackForLaterIsAWait() =
         showsOutcome(
             ClaimState(takenBack = ReclaimResult.WhenKnown),
-            DesignR.string.take_back_waiting_title,
+            DesignR.string.not_claimed_yet_title,
             text(DesignR.string.note_take_back_when_known),
         )
 
@@ -295,8 +295,8 @@ class ClaimScreenTest {
     @Test
     fun takingBackSaysHowItWent() {
         show(ClaimState(takenBack = ReclaimResult.AlreadySpent))
-        compose.onNodeWithText(text(R.string.claim_spent)).assertExists()
-        compose.onNodeWithText(text(R.string.claim_finish)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.own_claim_too_late)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.done)).assertExists()
     }
 
     @Test
@@ -308,7 +308,7 @@ class ClaimScreenTest {
     @Test
     fun aNoteItsMintRefusesIsNotCalledSpentAndShowsTheMintsAnswer() {
         show(ClaimState(input = "lnurlw://mint.example/w?k1=00", preview = ClaimPreview.MintRefused("Note already spent.")))
-        compose.onNodeWithText(text(R.string.claim_mint_refused_reason, "Note already spent.")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_message, "Note already spent."), substring = true).assertExists()
         compose.onNodeWithText(text(R.string.claim_spent)).assertDoesNotExist()
     }
 

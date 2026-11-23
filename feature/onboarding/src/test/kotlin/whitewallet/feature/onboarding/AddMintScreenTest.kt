@@ -154,7 +154,7 @@ class AddMintScreenTest {
         compose.onNodeWithText(plural(R.plurals.add_mint_found_accounts, 2, 2)).assertDoesNotExist()
         compose.onNodeWithText("Main").assertExists()
         compose.onNodeWithText("Account 2").assertExists()
-        compose.onNodeWithText(text(R.string.success_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertTrue(done)
     }
 
@@ -191,7 +191,7 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(R.string.mint_added_title)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_done_title)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.add_mint_added_body)).assertExists()
-        compose.onNodeWithText(text(R.string.add_mint_ok)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.done)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.add_mint_next)).performClick()
         assertEquals(1, next)
     }
@@ -246,9 +246,9 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(R.string.add_mint_title)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_failed_key)).assertExists()
         compose.onNodeWithText(text(R.string.add_mint_later)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.add_mint_try_again)).performClick()
+        compose.onNodeWithText(text(DesignR.string.try_again)).performClick()
         assertEquals(1, again)
-        compose.onNodeWithText(text(R.string.add_mint_cancel)).performClick()
+        compose.onNodeWithText(text(DesignR.string.cancel)).performClick()
         assertEquals(1, cancelled)
         compose.onNodeWithContentDescriptionBack().performClick()
         assertEquals(1, back)
@@ -261,7 +261,7 @@ class AddMintScreenTest {
             pick.copy(setup = true, step = AddMintStep.Result, preview = preview, failed = OnboardResult.NetworkError("timeout")),
             AddMintActions(onDone = { picked++ }),
         )
-        compose.onNodeWithText(text(R.string.add_mint_cancel)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.cancel)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.add_mint_other)).performClick()
         assertEquals(1, picked)
     }
@@ -284,7 +284,7 @@ class AddMintScreenTest {
         assertEquals(1, back)
         // Accepting asks first; cancelled, nothing is accepted.
         compose.onNodeWithText(text(DesignR.string.mint_key_accept)).performScrollTo().performClick()
-        compose.onNodeWithText(text(DesignR.string.mint_key_cancel)).performClick()
+        compose.onNodeWithText(text(DesignR.string.cancel)).performClick()
         assertEquals(null, accepted)
         compose.onNodeWithText(text(DesignR.string.mint_key_accept)).performScrollTo().performClick()
         compose.onNodeWithText(text(DesignR.string.mint_key_accept_confirm)).performClick()
@@ -308,7 +308,7 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(DesignR.string.mint_key_accepted, "mint.example")).assertExists()
         // The mint was known before: not "added".
         compose.onNodeWithText(text(R.string.mint_added_title)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.success_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, done)
     }
 
@@ -337,7 +337,7 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(R.string.add_mint_failed_body)).assertExists()
         // The system's words for why are no one's to read.
         compose.onNodeWithText("timeout", substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.add_mint_try_again)).performClick()
+        compose.onNodeWithText(text(DesignR.string.try_again)).performClick()
         compose.onNodeWithText(text(R.string.add_mint_later)).performClick()
         assertEquals(1 to 1, again to done)
     }
@@ -354,7 +354,7 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(R.string.onboarding_error_mint_without_key)).performScrollTo().assertExists()
         compose.onNodeWithText(text(R.string.add_mint_add)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.onboarding_mint_custody)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.add_mint_check_again)).performScrollTo().performClick()
+        compose.onNodeWithText(text(DesignR.string.check_again)).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.add_mint_other)).performScrollTo().performClick()
         assertEquals(1 to 1, again to other)
     }
@@ -365,7 +365,7 @@ class AddMintScreenTest {
         compose.onNodeWithText(text(R.string.add_mint_key_unanswered, "mint.example")).performScrollTo().assertExists()
         compose.onNodeWithText(text(R.string.onboarding_error_mint_without_key)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.add_mint_use)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.add_mint_check_again)).performScrollTo().assertIsEnabled()
+        compose.onNodeWithText(text(DesignR.string.check_again)).performScrollTo().assertIsEnabled()
     }
 
     @Test
@@ -381,7 +381,7 @@ class AddMintScreenTest {
     fun aHeldMintThatAnswersWithoutItsKeyStillShowsTheChangedKey() {
         show(pick.copy(step = AddMintStep.Info, preview = preview.copy(knownKey = preview.signingKey, signingKey = null)))
         compose.onNodeWithText(text(DesignR.string.mint_key_remembered)).performScrollTo().assertExists()
-        compose.onNodeWithText(text(R.string.add_mint_check_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.check_again)).assertDoesNotExist()
     }
 
     @Test
@@ -395,7 +395,7 @@ class AddMintScreenTest {
     fun offlineAMintWithoutItsKeyCantBeCheckedAgain() {
         show(pick.copy(step = AddMintStep.Info, preview = preview.copy(signingKey = null), offline = true))
         compose.onNodeWithText(text(R.string.add_mint_offline)).performScrollTo().assertExists()
-        compose.onNodeWithText(text(R.string.add_mint_check_again)).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText(text(DesignR.string.check_again)).performScrollTo().assertIsNotEnabled()
     }
 
     @Test

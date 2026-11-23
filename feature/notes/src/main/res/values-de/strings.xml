@@ -17,8 +17,8 @@
     </plurals>
     <string name="notes_sort">Scheine sortieren</string>
     <string name="notes_select_hint">Tippe auf Scheine, um sie auszuwählen.</string>
-    <string name="notes_share_hint">Gibt den ganzen Schein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn zurückholst.</string>
-    <string name="notes_share_hint_split">Gibt den ganzen Schein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn zurückholst. Um nur einen Teil zu geben, teile ihn zuerst auf.</string>
+    <string name="notes_share_hint">Gibt den ganzen Schein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn selbst einlöst.</string>
+    <string name="notes_share_hint_split">Gibt den ganzen Schein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn selbst einlöst. Um nur einen Teil zu geben, teile ihn zuerst auf.</string>
     <string name="notes_renew_hint">Erneuern gibt dem Schein einen neuen Schlüssel, zum Beispiel wenn du seinen QR-Code versehentlich jemandem gezeigt hast.</string>
     <plurals name="notes_checked_ok">
         <item quantity="one">%1$d Schein geprüft: noch da.</item>
@@ -45,14 +45,14 @@
         <item quantity="other">Die Mint kennt %1$d Scheine, die du weitergegeben hast, nicht, deshalb kann sie noch niemand einlösen. Deine Wallet fragt von selbst wieder.</item>
     </plurals>
     <plurals name="notes_checked_taken_back">
-        <item quantity="one">%1$d Schein, den du weitergegeben hast, ist zurück in deinem Guthaben.</item>
-        <item quantity="other">%1$d Scheine, die du weitergegeben hast, sind zurück in deinem Guthaben.</item>
+        <item quantity="one">Deine Wallet hat %1$d Schein, den du weitergegeben hast, wie gewünscht selbst eingelöst. Du kannst ihn wieder ausgeben.</item>
+        <item quantity="other">Deine Wallet hat %1$d Scheine, die du weitergegeben hast, wie gewünscht selbst eingelöst. Du kannst sie wieder ausgeben.</item>
     </plurals>
     <plurals name="notes_checked_take_back_refused">
-        <item quantity="one">Die Mint hat %1$d Schein, den du weitergegeben hast, nicht zurückgegeben. Deine Wallet versucht es von selbst wieder.</item>
-        <item quantity="other">Die Mint hat %1$d Scheine, die du weitergegeben hast, nicht zurückgegeben. Deine Wallet versucht es von selbst wieder.</item>
+        <item quantity="one">Die Mint hat abgelehnt, dass deine Wallet %1$d Schein, den du weitergegeben hast, selbst einlöst. Deine Wallet fragt beim nächsten Aktualisieren erneut.</item>
+        <item quantity="other">Die Mint hat abgelehnt, dass deine Wallet %1$d Scheine, die du weitergegeben hast, selbst einlöst. Deine Wallet fragt beim nächsten Aktualisieren erneut.</item>
     </plurals>
-    <string name="notes_already_spent">Dieser Schein war schon ausgegeben und wurde daher nicht weitergegeben. Er ist nicht mehr in deinem Guthaben.</string>
+    <string name="notes_already_spent">Dieser Schein wurde schon ausgegeben, deshalb wurde er nicht weitergegeben. Er ist nicht mehr in deinem Guthaben.</string>
     <string name="notes_empty">Noch keine Scheine. Geld, das du empfängst, wird als Scheine gehalten und erscheint hier.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Scheine bei jedem Aktualisieren neu.</string>
     <plurals name="notes_selected">
@@ -71,7 +71,6 @@
     <string name="notes_problem_invalid_amount">Dieser Schein ist zu klein zum Aufteilen, oder der Betrag passt nicht.</string>
     <string name="notes_problem_same_mint">Die Scheine sind schon dort.</string>
     <string name="notes_problem_mint_invalid">Diese Adresse kann keine Scheine verwahren.</string>
-    <string name="notes_problem_key_changed">Der Signaturschlüssel der Mint passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint einen neuen Schlüssel annimmst.</string>
     <string name="notes_state_unknown">Der Mint unbekannt</string>
     <string name="notes_state_unknown_handed_out">Weitergegeben · der Mint unbekannt</string>
     <string name="notes_state_unknown_detail">Die Mint sagt, sie kennt diesen Schein nicht, daher ist er nicht in deinem Guthaben. Deine Wallet behält ihn und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, kannst du ihn wieder ausgeben.</string>
@@ -86,18 +85,16 @@
     </plurals>
     <string name="archive_notes_title">Scheine</string>
     <string name="archive_notes_hint">Ihre Mint kennt diese Scheine nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, kannst du ihn wieder ausgeben.</string>
-    <string name="archive_handed_out_hint">Du hast diese Scheine weitergegeben, aber ihre Mint kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, wartet er darauf, eingelöst zu werden, oder deine Wallet holt ihn zurück, wenn du das wolltest.</string>
+    <string name="archive_handed_out_hint">Du hast diese Scheine weitergegeben, aber ihre Mint kennt sie nicht. Deine Wallet fragt weiter ab und zu nach ihnen; sobald die Mint einen wieder kennt, wartet er darauf, eingelöst zu werden, oder deine Wallet löst ihn selbst ein, wenn du das wolltest.</string>
     <string name="archive_note_remove_title">Diesen Schein endgültig entfernen?</string>
     <string name="archive_note_remove_body">Seine Mint kennt ihn gerade nicht. Kennt sie ihn je wieder, findet ihn „Nach Scheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
 
-    <string name="notes_waiting_total">%1$s weitergegeben, noch nicht eingelöst</string>
     <string name="notes_sort_largest">Größte zuerst</string>
     <string name="notes_sort_newest">Neueste zuerst</string>
     <string name="notes_select">Auswählen</string>
     <string name="notes_group_not_moved">Nicht nach Hause verschoben: Die Gebühr von %1$s ist höher als %2$d %%.</string>
     <string name="notes_move_anyway">Trotzdem verschieben</string>
-    <string name="notes_shared_title">Weitergegeben, noch nicht eingelöst</string>
-    <string name="notes_shared_hint">Tippe auf einen, um seinen QR-Code erneut zu zeigen oder ihn zurückzuholen.</string>
+    <string name="notes_shared_hint">Tippe auf einen, um seinen QR-Code erneut zu zeigen oder ihn selbst einzulösen.</string>
     <plurals name="notes_archived_links">
         <item quantity="one">%d Link, den deine Wallet nicht mehr einzulösen versucht</item>
         <item quantity="other">%d Links, die deine Wallet nicht mehr einzulösen versucht</item>
@@ -106,12 +103,11 @@
     <string name="notes_archive_hint">Archiviere ihn, damit die Warnung zu ihm verschwindet. Deine Wallet fragt weiter ab und zu nach ihm; sobald er wieder bekannt ist, kannst du ihn wieder ausgeben.</string>
     <string name="archive_handed_out_title">Weitergegeben</string>
     <string name="notes_archive_hint_handed_out">Archiviere ihn, um ihn beiseitezulegen. Deine Wallet fragt weiter ab und zu nach ihm; sobald er wieder bekannt ist, wartet er darauf, eingelöst zu werden.</string>
-    <string name="notes_archive_hint_take_back">Archiviere ihn, um ihn beiseitezulegen. Deine Wallet fragt weiter ab und zu nach ihm; sobald er wieder bekannt ist, wird er in dein Guthaben zurückgeholt.</string>
+    <string name="notes_archive_hint_take_back">Archiviere ihn, um ihn beiseitezulegen. Deine Wallet fragt weiter ab und zu nach ihm; sobald er wieder bekannt ist, löst deine Wallet ihn ein und du kannst ihn wieder ausgeben.</string>
     <string name="notes_archived_open">Archiv öffnen</string>
     <string name="archive_title">Archiv</string>
     <string name="archive_hint">Deine Wallet versucht diese Links nicht mehr. Versuche einen erneut oder entferne ihn endgültig. Bis er eingelöst ist, deckt ihn deine Wiederherstellungsphrase nicht ab.</string>
     <string name="archive_empty">Nichts archiviert.</string>
-    <string name="archive_retry">Erneut versuchen</string>
     <string name="archive_remove">Entfernen</string>
     <string name="archive_remove_title">Diesen Link endgültig entfernen?</string>
     <string name="archive_remove_body">Der Link ist nur auf diesem Telefon. Deine Wiederherstellungsphrase kann ihn nicht zurückholen, was er noch enthält, wäre für dich verloren.</string>
@@ -125,7 +121,6 @@
     <string name="archive_note_no_answer">Keine Antwort. Deine Wallet fragt später wieder.</string>
     <string name="notes_sheet_where">Bei %1$s · %2$s</string>
     <string name="notes_share">Weitergeben</string>
-    <string name="notes_recheck">Prüfen</string>
     <string name="notes_renew">Erneuern</string>
     <string name="notes_dev_key">Schlüssel %1$d/%2$d · %3$s</string>
     <string name="notes_dev_section">Entwicklung · nur in Debug-Builds</string>
@@ -134,35 +129,26 @@
     <string name="notes_dev_fail_refused">Abgelehnt</string>
     <string name="notes_dev_fail_lost">Antwort verloren</string>
     <string name="notes_renewed">Erneuert: %1$s, jetzt mit einem neuen Schlüssel.</string>
-    <string name="notes_checked_unreachable">Keine Antwort von %1$s. Versuche es später erneut.</string>
-    <string name="notes_checked_no_answer">Keine Antwort. Versuche es später erneut.</string>
-    <string name="notes_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Damit passiert nichts mehr, bis er wieder passt oder du in den Details einen neuen annimmst.</string>
+    <string name="notes_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details den neuen Schlüssel annimmst, passiert damit nichts mehr.</string>
     <string name="notes_state_paying">Wird bezahlt …</string>
-    <string name="notes_state_ambiguous">Warte auf Antwort …</string>
-    <string name="notes_uncertified">Betrag nicht zertifiziert</string>
     <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Zusammenlegen</string>
     <string name="notes_split">Aufteilen</string>
     <string name="notes_move">Verschieben</string>
-    <string name="notes_cancel">Abbrechen</string>
-    <string name="notes_ok">OK</string>
-    <string name="notes_fee">Gebühr: %1$s</string>
-    <string name="notes_no_fee">Keine Gebühr</string>
     <string name="notes_split_done">In %1$s und %2$s aufgeteilt.</string>
     <string name="notes_moved">%1$s ist auf %2$s angekommen.</string>
-    <string name="notes_pending">Gesendet, aber noch keine Antwort. Später prüfen oder aktualisieren, um es zu erfahren.</string>
+    <string name="notes_pending">Gesendet, aber noch keine Antwort. Prüfe später erneut oder aktualisiere, um es zu erfahren.</string>
     <string name="notes_settled_landed">Die Änderung ist durchgegangen.</string>
     <string name="notes_settled_back">Die Änderung ist nicht durchgegangen, es hat sich nichts geändert.</string>
     <string name="notes_split_range">Zwischen %1$s und %2$s</string>
     <string name="notes_move_quote">Geht von hier: %1$s. Kommt auf %3$s an: etwa %2$s.</string>
-    <string name="notes_problem_unreachable">Keine Verbindung. Prüfe deine Verbindung und versuche es erneut. Es wurde nichts geändert.</string>
+    <string name="notes_problem_unreachable">Keine Verbindung. Es wurde nichts geändert. Versuche es später erneut.</string>
     <string name="notes_problem_below_minimum">Das ist zu wenig, um es dorthin zu verschieben.</string>
     <string name="notes_problem_above_maximum">Das ist zu viel, um es auf einmal dorthin zu verschieben.</string>
     <string name="notes_problem_below_minimum_amount">Das Minimum dort ist %1$s.</string>
     <string name="notes_problem_above_maximum_amount">Das Maximum dort ist %1$s auf einmal.</string>
     <string name="notes_problem_invoice_mismatch">Die Antwort kam mit einer Rechnung, die nicht passt. Es wurde nichts verschoben.</string>
     <string name="notes_problem_refused">Abgelehnt. Es wurde nichts verschoben.</string>
-    <string name="notes_problem_payment_failed">Die Zahlung ist nicht durchgegangen. Es wurde nichts bezahlt und das Geld bleibt in deiner Wallet.</string>
     <string name="notes_problem_declined">Nicht verschoben: Die Gebühr ist höher als dein Limit.</string>
     <string name="notes_trusted">Vertraut</string>
     <string name="notes_receive">Empfangen</string>

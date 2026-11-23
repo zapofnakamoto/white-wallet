@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Tone
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletTopBar
@@ -189,7 +190,7 @@ private fun StatusCard(host: String, status: LocalMintStatus, onRecheck: () -> U
                 is LocalMintStatus.Unreachable -> Text(status.reason, style = MaterialTheme.typography.bodySmall)
                 LocalMintStatus.Checking -> Unit
             }
-            WalletButton(kind = ButtonKind.Secondary, onClick = onRecheck) { Text(stringResource(R.string.regtest_recheck)) }
+            WalletButton(kind = ButtonKind.Secondary, onClick = onRecheck) { Text(stringResource(DesignR.string.check_again)) }
         }
     }
 }

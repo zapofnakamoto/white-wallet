@@ -282,7 +282,7 @@ fun MintDetailsScreen(
                     if (showsWorking(state.loading)) WalletCircularProgress()
                     else
                         WalletButton(kind = ButtonKind.Text, onClick = onRefresh, enabled = !state.loading) {
-                            Text(stringResource(R.string.mint_check_again))
+                            Text(stringResource(DesignR.string.check_again))
                         }
                 },
             )
@@ -466,7 +466,7 @@ private fun RemoveSection(mint: MintInfo, refused: MintUse?, removing: Boolean, 
             },
             dismissButton = {
                 WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }, enabled = !removing) {
-                    Text(stringResource(R.string.backup_cancel))
+                    Text(stringResource(DesignR.string.cancel))
                 }
             },
         )
@@ -479,5 +479,5 @@ private fun reachabilityText(reachability: MintDetails.Reachability, offline: Bo
         MintDetails.Reachability.Reachable -> R.string.mint_reachable
         MintDetails.Reachability.Unreachable -> if (offline) R.string.mint_offline else R.string.mint_unreachable
         MintDetails.Reachability.Invalid -> R.string.mint_invalid
-        MintDetails.Reachability.KeyChanged -> R.string.mint_key_changed_short
+        MintDetails.Reachability.KeyChanged -> DesignR.string.key_mismatch_short
     }

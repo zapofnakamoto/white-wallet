@@ -22,9 +22,9 @@
     </plurals>
     <string name="notes_sort">Sort notes</string>
     <string name="notes_select_hint">Tap notes to select them.</string>
-    <string name="notes_share_hint">Hands out the whole note as a QR code. It leaves your balance until someone claims it or you take it back.</string>
+    <string name="notes_share_hint">Hands out the whole note as a QR code. It leaves your balance until someone claims it, or you claim it yourself.</string>
     <!-- The same, where the note can also be split. -->
-    <string name="notes_share_hint_split">Hands out the whole note as a QR code. It leaves your balance until someone claims it or you take it back. To give part of it, split it first.</string>
+    <string name="notes_share_hint_split">Hands out the whole note as a QR code. It leaves your balance until someone claims it, or you claim it yourself. To give part of it, split it first.</string>
     <string name="notes_renew_hint">Renew gives the note a fresh key, for example after you showed its QR code to someone by mistake.</string>
     <plurals name="notes_checked_ok">
         <item quantity="one">Checked %1$d note: still there.</item>
@@ -51,14 +51,14 @@
         <item quantity="other">The mint doesn\'t know %1$d notes you handed out, so nobody can claim them yet. Your wallet asks again by itself.</item>
     </plurals>
     <plurals name="notes_checked_taken_back">
-        <item quantity="one">%1$d note you handed out was taken back into your balance.</item>
-        <item quantity="other">%1$d notes you handed out were taken back into your balance.</item>
+        <item quantity="one">Your wallet claimed %1$d note you handed out, as you asked. You can spend it again.</item>
+        <item quantity="other">Your wallet claimed %1$d notes you handed out, as you asked. You can spend them again.</item>
     </plurals>
     <plurals name="notes_checked_take_back_refused">
-        <item quantity="one">The mint refused to give back %1$d note you handed out. Your wallet tries again by itself.</item>
-        <item quantity="other">The mint refused to give back %1$d notes you handed out. Your wallet tries again by itself.</item>
+        <item quantity="one">The mint refused your wallet\'s claim of %1$d note you handed out. Your wallet asks again on the next refresh.</item>
+        <item quantity="other">The mint refused your wallet\'s claim of %1$d notes you handed out. Your wallet asks again on the next refresh.</item>
     </plurals>
-    <string name="notes_already_spent">This note was already spent, so it wasn\'t handed out. It\'s no longer in your balance.</string>
+    <string name="notes_already_spent">This note has already been spent, so it wasn\'t handed out. It\'s no longer in your balance.</string>
     <string name="notes_empty">No notes yet. Money you receive is held as notes, and they show up here.</string>
     <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your notes again on every refresh.</string>
     <plurals name="notes_selected">
@@ -77,7 +77,6 @@
     <string name="notes_problem_invalid_amount">This note is too small to split, or the amount doesn\'t fit.</string>
     <string name="notes_problem_same_mint">The notes are already there.</string>
     <string name="notes_problem_mint_invalid">That address can\'t hold notes.</string>
-    <string name="notes_problem_key_changed">The signing key of the mint doesn\'t match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the mint\'s details.</string>
     <!-- A note its mint says it doesn't know (the mint lost its records, or misbehaves). -->
     <string name="notes_state_unknown">Unknown to the mint</string>
     <!-- The same, for a note the user handed out as a link (it is not in the balance). -->
@@ -95,18 +94,16 @@
     </plurals>
     <string name="archive_notes_title">Notes</string>
     <string name="archive_notes_hint">Their mint doesn\'t know these notes. Your wallet still asks about them now and then; once the mint knows one again, you can spend it again.</string>
-    <string name="archive_handed_out_hint">You handed these notes out, but their mint doesn\'t know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet takes it back if you asked it to.</string>
+    <string name="archive_handed_out_hint">You handed these notes out, but their mint doesn\'t know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet claims it if you asked it to.</string>
     <string name="archive_note_remove_title">Remove this note for good?</string>
     <string name="archive_note_remove_body">Its mint doesn\'t know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase.</string>
 
-    <string name="notes_waiting_total">%1$s handed out, not claimed yet</string>
     <string name="notes_sort_largest">Largest first</string>
     <string name="notes_sort_newest">Newest first</string>
     <string name="notes_select">Select</string>
     <string name="notes_group_not_moved">Not moved home: the fee of %1$s is more than %2$d%%.</string>
     <string name="notes_move_anyway">Move anyway</string>
-    <string name="notes_shared_title">Handed out, not claimed yet</string>
-    <string name="notes_shared_hint">Tap one to show its QR code again or take it back.</string>
+    <string name="notes_shared_hint">Tap one to show its QR code again or claim it yourself.</string>
     <!-- Under "Archive" in the notes view: what it holds. -->
     <plurals name="notes_archived_links">
         <item quantity="one">%d link your wallet no longer tries to claim</item>
@@ -120,12 +117,11 @@
     <!-- As notes_archive_hint, for one the user handed out as a link (it was never in the balance). -->
     <string name="notes_archive_hint_handed_out">Archive it to put it aside. Your wallet still asks about it now and then; once it\'s known again, it waits to be claimed.</string>
     <!-- The same, once the user asked to take it back. -->
-    <string name="notes_archive_hint_take_back">Archive it to put it aside. Your wallet still asks about it now and then; once it\'s known again, it\'s taken back into your balance.</string>
+    <string name="notes_archive_hint_take_back">Archive it to put it aside. Your wallet still asks about it now and then; once it\'s known again, your wallet claims it and you can spend it again.</string>
     <string name="notes_archived_open">Open the archive</string>
     <string name="archive_title">Archive</string>
     <string name="archive_hint">Your wallet no longer tries these links. Try one again, or remove it for good. Until it is claimed, your recovery phrase doesn\'t cover it.</string>
     <string name="archive_empty">Nothing archived.</string>
-    <string name="archive_retry">Try again</string>
     <string name="archive_remove">Remove</string>
     <string name="archive_remove_title">Remove this link for good?</string>
     <string name="archive_remove_body">Its link is only on this phone. Your recovery phrase can\'t bring it back, so anything it still holds would be lost to you.</string>
@@ -141,7 +137,6 @@
     <string name="archive_note_no_answer">No answer. Your wallet asks again later.</string>
     <string name="notes_sheet_where">On %1$s · %2$s</string>
     <string name="notes_share">Hand out</string>
-    <string name="notes_recheck">Recheck</string>
     <string name="notes_renew">Renew</string>
     <!-- Developer mode only. %1$d: key purpose, %2$d: key index, %3$s: the note's public key, shortened. -->
     <string name="notes_dev_key">Key %1$d/%2$d · %3$s</string>
@@ -152,37 +147,26 @@
     <string name="notes_dev_fail_refused">Refused</string>
     <string name="notes_dev_fail_lost">Answer lost</string>
     <string name="notes_renewed">Renewed: %1$s, now under a fresh key.</string>
-    <!-- %1$s: one or more mint hosts, joined for the language ("a.com and b.com"). -->
-    <string name="notes_checked_unreachable">No answer from %1$s. Try again later.</string>
-    <!-- The same, where mints aren't named (brand mints.visible=false). -->
-    <string name="notes_checked_no_answer">No answer. Try again later.</string>
-    <string name="notes_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing more is done with it until it matches again, or you accept a new key in its details.</string>
+    <string name="notes_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in its details, nothing more is done with it.</string>
     <string name="notes_state_paying">Paying…</string>
-    <string name="notes_state_ambiguous">Waiting for an answer…</string>
-    <string name="notes_uncertified">Amount not certified</string>
     <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Combine</string>
     <string name="notes_split">Split</string>
     <string name="notes_move">Move</string>
-    <string name="notes_cancel">Cancel</string>
-    <string name="notes_ok">OK</string>
-    <string name="notes_fee">Fee: %1$s</string>
-    <string name="notes_no_fee">No fee</string>
     <string name="notes_split_done">Split into %1$s and %2$s.</string>
     <string name="notes_moved">%1$s arrived on %2$s.</string>
-    <string name="notes_pending">Sent, but no answer yet. Recheck later, or refresh, to find out.</string>
+    <string name="notes_pending">Sent, but no answer yet. Check again later, or refresh, to find out.</string>
     <string name="notes_settled_landed">The change went through.</string>
     <string name="notes_settled_back">The change didn\'t go through, so nothing changed.</string>
     <string name="notes_split_range">Between %1$s and %2$s</string>
     <string name="notes_move_quote">Leaving here: %1$s. Arriving on %3$s: about %2$s.</string>
-    <string name="notes_problem_unreachable">Couldn\'t connect. Check your connection and try again. Nothing changed.</string>
+    <string name="notes_problem_unreachable">Couldn\'t connect. Nothing changed. Try again later.</string>
     <string name="notes_problem_below_minimum">That\'s too little to move there.</string>
     <string name="notes_problem_above_maximum">That\'s too much to move there at once.</string>
     <string name="notes_problem_below_minimum_amount">The minimum there is %1$s.</string>
     <string name="notes_problem_above_maximum_amount">The maximum there is %1$s at once.</string>
     <string name="notes_problem_invoice_mismatch">The answer came with an invoice that doesn\'t match. Nothing was moved.</string>
     <string name="notes_problem_refused">Refused. Nothing was moved.</string>
-    <string name="notes_problem_payment_failed">The payment didn\'t go through. Nothing was paid, and the money stays in your wallet.</string>
     <string name="notes_problem_declined">Not moved: the fee is more than your limit.</string>
     <string name="notes_trusted">Trusted</string>
     <!-- The empty notes view's way forward: opens Receive. -->

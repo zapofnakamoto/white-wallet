@@ -98,12 +98,12 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             // A ready, certified note needs no words; only a state or an amount that can't be verified does.
             when {
                 note.state == NoteState.Paying -> R.string.notes_state_paying
-                note.state == NoteState.Ambiguous -> R.string.notes_state_ambiguous
+                note.state == NoteState.Ambiguous -> DesignR.string.waiting_for_answer
                 // One the user handed out never comes back into the balance by itself.
                 note.state == NoteState.Unknown && note.handedOut == HandedOut.TakeBack -> DesignR.string.note_take_back_when_known
                 note.state == NoteState.Unknown && note.handedOut != null -> R.string.notes_state_unknown_handed_out_detail
                 note.state == NoteState.Unknown -> R.string.notes_state_unknown_detail
-                note.certificate == null -> R.string.notes_uncertified
+                note.certificate == null -> DesignR.string.uncertified
                 else -> null
             }?.let {
                 Text(stringResource(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -140,7 +140,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                             onClick = { actions.recheck(note.id) },
                             enabled = NotesViewModel.recheckable(note) && !state.busy,
                         ) {
-                            Text(stringResource(R.string.notes_recheck))
+                            Text(stringResource(DesignR.string.check_again))
                         }
                     if (NoteAction.Renew in offered)
                         WalletButton(kind = ButtonKind.Secondary, onClick = { actions.renew(note.id) }, enabled = enabled) {
@@ -256,8 +256,8 @@ internal fun SplitDialog(d: NotesDialog.Split, undoneBy: NoteStrategy?, actions:
                     Text(stringResource(R.string.notes_split_preview, formatAmount(amount), formatAmount(d.limits.maxMsat + 1 - amount)))
                 }
                 Text(
-                    if (d.limits.feeMsat > 0) stringResource(R.string.notes_fee, formatAmount(d.limits.feeMsat))
-                    else stringResource(R.string.notes_no_fee),
+                    if (d.limits.feeMsat > 0) stringResource(DesignR.string.fee, formatAmount(d.limits.feeMsat))
+                    else stringResource(DesignR.string.no_fee),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 undoneBy?.let {
@@ -274,7 +274,7 @@ internal fun SplitDialog(d: NotesDialog.Split, undoneBy: NoteStrategy?, actions:
             }
         },
         dismissButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = actions.dismissDialog) { Text(stringResource(R.string.notes_cancel)) }
+            WalletButton(kind = ButtonKind.Text, onClick = actions.dismissDialog) { Text(stringResource(DesignR.string.cancel)) }
         },
     )
 }
@@ -315,8 +315,8 @@ internal fun MoveDialog(d: NotesDialog.Move, state: NotesState, actions: NotesAc
                             )
                         )
                         Text(
-                            if (d.quote.feeMsat > 0) stringResource(R.string.notes_fee, formatAmount(d.quote.feeMsat))
-                            else stringResource(R.string.notes_no_fee),
+                            if (d.quote.feeMsat > 0) stringResource(DesignR.string.fee, formatAmount(d.quote.feeMsat))
+                            else stringResource(DesignR.string.no_fee),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -335,7 +335,7 @@ internal fun MoveDialog(d: NotesDialog.Move, state: NotesState, actions: NotesAc
             }
         },
         dismissButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = actions.dismissDialog) { Text(stringResource(R.string.notes_cancel)) }
+            WalletButton(kind = ButtonKind.Text, onClick = actions.dismissDialog) { Text(stringResource(DesignR.string.cancel)) }
         },
     )
 }
@@ -363,12 +363,12 @@ internal fun problemText(problem: NoteProblem): String =
             NoteProblem.SameMint -> R.string.notes_problem_same_mint
             NoteProblem.MintInvalid -> R.string.notes_problem_mint_invalid
             NoteProblem.Unreachable -> R.string.notes_problem_unreachable
-            NoteProblem.KeyChanged -> R.string.notes_problem_key_changed
+            NoteProblem.KeyChanged -> DesignR.string.mint_key_changed_nothing_sent
             NoteProblem.BelowMinimum -> R.string.notes_problem_below_minimum
             NoteProblem.AboveMaximum -> R.string.notes_problem_above_maximum
             NoteProblem.InvoiceMismatch -> R.string.notes_problem_invoice_mismatch
             NoteProblem.Refused -> R.string.notes_problem_refused
-            NoteProblem.PaymentFailed -> R.string.notes_problem_payment_failed
+            NoteProblem.PaymentFailed -> DesignR.string.payment_failed_nothing_paid
             NoteProblem.Declined -> R.string.notes_problem_declined
         }
     )

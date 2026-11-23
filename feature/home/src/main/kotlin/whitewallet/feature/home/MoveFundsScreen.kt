@@ -100,7 +100,7 @@ fun MoveFundsScreen(
                     status = WalletStatus.Done(moved.amountMsat),
                     title = stringResource(R.string.move_success_title),
                     amountMsat = moved.amountMsat,
-                    done = SuccessAction(stringResource(R.string.move_done), onBack),
+                    done = SuccessAction(stringResource(DesignR.string.done), onBack),
                     modifier = Modifier.padding(padding),
                     lines =
                         listOfNotNull(
@@ -142,9 +142,9 @@ fun MoveFundsScreen(
                     is MoveResult.Failed -> WalletStatus.Problem(ProblemKind.Other)
                 },
                 resultTitle(result),
-                done = SuccessAction(stringResource(R.string.move_done), onBack),
+                done = SuccessAction(stringResource(DesignR.string.done), onBack),
                 modifier = Modifier.padding(padding),
-                more = SuccessAction(stringResource(R.string.move_retry), onMove).takeIf { retry && !state.busy },
+                more = SuccessAction(stringResource(DesignR.string.try_again), onMove).takeIf { retry && !state.busy },
             ) {
                 // What was sent without an answer is out of the balance until a refresh finds out: nothing the user can do but wait.
                 WaitingLines(result.pending, state.showMints, MaterialTheme.typography.bodyMedium)
@@ -301,7 +301,7 @@ private fun StayedReasons(stayed: List<MoveStayed>, toWallet: String, showMints:
         if (showMints)
             stayed.map {
                 when (it.reason) {
-                    StayReason.Unreachable -> stringResource(R.string.move_stayed_unreachable, it.host)
+                    StayReason.Unreachable -> stringResource(DesignR.string.mint_not_answering, it.host)
                     StayReason.KeyChanged -> stringResource(R.string.move_stayed_key, it.host)
                     StayReason.OtherWalletKey -> stringResource(R.string.move_stayed_other_key, it.host, toWallet)
                     StayReason.Refused -> stringResource(R.string.move_stayed_refused, it.host)
@@ -313,7 +313,7 @@ private fun StayedReasons(stayed: List<MoveStayed>, toWallet: String, showMints:
                 .distinct()
                 .sortedDescending()
                 .map {
-                    stringResource(if (it) R.string.move_stayed_unreachable_unnamed else R.string.move_stayed_blocked_unnamed)
+                    stringResource(if (it) DesignR.string.mint_not_answering_unnamed else R.string.move_stayed_blocked_unnamed)
                 }
     lines.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = align, modifier = Modifier.fillMaxWidth()) }
 }
@@ -340,7 +340,7 @@ private fun PartialDialog(
             WalletButton(onClick = onConfirm) { Text(stringResource(R.string.move_partial_confirm, formatAmount(check.movableMsat))) }
         },
         dismissButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = onCancel) { Text(stringResource(R.string.move_partial_cancel)) }
+            WalletButton(kind = ButtonKind.Text, onClick = onCancel) { Text(stringResource(DesignR.string.cancel)) }
         },
     )
 }

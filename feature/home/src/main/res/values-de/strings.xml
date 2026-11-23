@@ -6,7 +6,6 @@
     <string name="home_add_mint_action">Mint hinzufügen</string>
     <string name="home_mint_is_home">Haupt-Mint</string>
     <string name="home_mint_not_answering">Antwortet nicht</string>
-    <string name="home_mint_key_changed">Signaturschlüssel passt nicht</string>
     <string name="home_mint_is_home_not_answering">Haupt-Mint · antwortet nicht</string>
     <string name="home_mint_is_home_key_changed">Haupt-Mint · Signaturschlüssel passt nicht</string>
     <string name="home_mint_silent_title_home">Deine Haupt-Mint, %1$s, antwortet nicht</string>
@@ -20,7 +19,6 @@
     <string name="home_mints_silent_body">Bis sie antworten, kannst du das Geld dort nicht ausgeben. Deine Wallet fragt weiter nach.</string>
     <string name="home_mint_silent_body_home">Bis eine Antwort kommt, kannst du dort weder empfangen noch Geld ausgeben. Deine Wallet fragt weiter nach.</string>
     <string name="home_mint_silent_body_home_empty">Bis eine Antwort kommt, kannst du dort nichts empfangen. Deine Wallet fragt weiter nach.</string>
-    <string name="home_mint_silent_action">Erneut prüfen</string>
     <plurals name="home_more_mints">
         <item quantity="one">%1$d weitere Mint</item>
         <item quantity="other">%1$d weitere Mints</item>
@@ -41,7 +39,7 @@
     <string name="activity_sent_note">Schein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Scheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="move_adds_mint">%1$s wird zu den Mints von %2$s hinzugefügt.</string>
-    <string name="home_key_changed_body">Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint einen neuen Schlüssel annimmst.</string>
+    <string name="home_key_changed_body">Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint den neuen Schlüssel annimmst.</string>
     <plurals name="notice_combined_into_one">
         <item quantity="one">%1$d Schein zu einem über %2$s zusammengelegt</item>
         <item quantity="other">%1$d Scheine zu einem über %2$s zusammengelegt</item>
@@ -103,7 +101,7 @@
         <item quantity="one">Gerade gefragt: Die Mint kennt deinen Schein noch immer nicht.</item>
         <item quantity="other">Gerade gefragt: Die Mint kennt deine Scheine noch immer nicht.</item>
     </plurals>
-    <string name="notice_unknown_unreachable_unnamed">Keine Antwort von der Mint. Deine Wallet fragt später wieder.</string>
+    <string name="notice_unknown_unreachable_unnamed">Deine Mint antwortet nicht. Deine Wallet fragt später wieder.</string>
 
     <string name="home_link_unreadable">Dieser Link lässt sich hier nicht verwenden.</string>
     <string name="home_receive">Empfangen</string>
@@ -124,24 +122,19 @@
     <string name="activity_moved_in">Von %1$s verschoben</string>
     <string name="activity_moved_in_other">Von einem anderen Konto verschoben</string>
     <string name="activity_renewed">Auf einen neuen Schlüssel verschoben</string>
-    <string name="activity_note_waiting">Noch nicht eingelöst</string>
     <string name="activity_note_spent">Ausgegeben</string>
-    <string name="activity_note_taken_back">Zurückgeholt</string>
+    <string name="activity_note_taken_back">Selbst eingelöst</string>
     <string name="activity_note_unverified">Einlösen nicht geprüft</string>
     <string name="activity_moved_mint">Zu %1$s verschoben</string>
     <string name="activity_amount_in">+%1$s</string>
     <string name="activity_amount_out">−%1$s</string>
-    <string name="activity_pending">Warte auf Antwort …</string>
     <string name="activity_failed">Fehlgeschlagen, nichts geändert</string>
-    <string name="activity_uncertified">Betrag nicht zertifiziert</string>
-    <string name="activity_fee">Gebühr %1$s</string>
-    <string name="activity_fee_refunded">Gebühr erstattet %1$s</string>
+    <string name="activity_fee_refunded">Gebühr erstattet: %1$s</string>
     <string name="activity_automatic">Automatisch</string>
     <string name="activity_manual">Von dir</string>
     <string name="activity_detail_separator">" · "</string>
     <string name="home_offline">Du bist offline. Deine Wallet aktualisiert sich, sobald du wieder online bist.</string>
     <string name="home_update_failed">Aktualisieren fehlgeschlagen. Was du siehst, ist vielleicht nicht aktuell.</string>
-    <string name="home_try_again">Erneut versuchen</string>
     <string name="home_backup_title">Sichere deine Wallet</string>
     <string name="home_backup_body">Wenn du dieses Handy verlierst, bekommst du dein Geld nur mit deiner Wiederherstellungsphrase zurück. Es dauert zwei Minuten.</string>
     <string name="home_backup_action">Sichern</string>
@@ -152,10 +145,9 @@
     <string name="home_address_inactive_title">Eine Adresse ist nicht aktiv</string>
     <string name="home_address_inactive_body">Zahlungen an %1$s erreichen diese Wallet nicht. Sieh dir deine Adressen an, um weiter Zahlungen zu erhalten.</string>
     <string name="home_address_inactive_action">Adressen anzeigen</string>
-    <string name="home_unknown_action">Erneut prüfen</string>
     <string name="home_unknown_asked">Zuletzt gefragt: %1$s</string>
     <string name="home_unknown_asked_now">Zuletzt gefragt: gerade eben</string>
-    <string name="notice_unknown_unreachable">Keine Antwort von %1$s. Deine Wallet fragt später wieder.</string>
+    <string name="notice_unknown_unreachable">%1$s antwortet nicht. Deine Wallet fragt später wieder.</string>
     <string name="accounts_title">Konten</string>
     <string name="accounts_manage">Wallets verwalten</string>
     <string name="accounts_move">Guthaben verschieben</string>
@@ -168,7 +160,6 @@
     <string name="move_action">Verschieben</string>
     <string name="move_moved">%1$s verschoben</string>
     <string name="move_nothing">Es gibt nichts zu verschieben.</string>
-    <string name="move_done">Fertig</string>
     <string name="move_success_title">Verschoben</string>
     <string name="move_success_to">Nach %1$s</string>
     <plurals name="home_unresolved">
@@ -181,32 +172,24 @@
     <string name="move_split_mints">Dein Guthaben liegt an verschiedenen Orten. Verschiebe einen kleineren Betrag oder alles.</string>
     <string name="move_failed">Abgelehnt: %1$s</string>
     <string name="move_stayed">Noch in %2$s: %1$s</string>
-    <string name="move_none">Es wurde nichts verschoben.</string>
-    <string name="move_stayed_unreachable">Keine Antwort von %1$s. Versuche es später erneut.</string>
-    <string name="move_stayed_key">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Sieh dir die Details an, bevor du es erneut versuchst.</string>
+    <string name="move_none">Es wurde nichts verschoben. Dein Geld bleibt, wo es war.</string>
+    <string name="move_stayed_key">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details den neuen Schlüssel annimmst, wird von dort nichts verschoben.</string>
     <string name="move_stayed_other_key">%2$s kennt %1$s unter einem anderen Signaturschlüssel. Sieh es dir in dieser Wallet an, bevor du es erneut versuchst.</string>
     <string name="move_stayed_refused">%1$s nimmt die Verschiebung nicht an.</string>
-    <string name="move_stayed_unreachable_unnamed">Das lässt sich gerade nicht verschieben. Versuche es später erneut.</string>
     <string name="move_stayed_blocked_unnamed">Das lässt sich nicht verschieben.</string>
-    <string name="move_retry">Erneut versuchen</string>
     <string name="move_mint_details">Details zu %1$s</string>
     <string name="move_partial_title">Gerade lässt sich nicht alles verschieben</string>
     <string name="move_partial_body">Bliebe in %2$s: %1$s</string>
     <string name="move_partial_confirm">%1$s verschieben</string>
-    <string name="move_partial_cancel">Abbrechen</string>
     <string name="home_key_changed_title">Signaturschlüssel von %1$s passt nicht</string>
-    <string name="home_key_changed_action">Details</string>
     <string name="notice_with_balance">%1$s. %2$s</string>
     <string name="notice_fees_back">Du hast %1$s an Gebühren zurückbekommen.</string>
     <string name="notice_fees_paid">Bezahlte Gebühren: %1$s.</string>
-    <string name="notice_details">Details</string>
 
     <!-- Home's loading screen: what the wallet is doing, shown instead of figures about to change. -->
     <string name="home_working_updating">Dein Guthaben wird aktualisiert …</string>
     <string name="home_scan">QR-Code scannen</string>
     <string name="accounts_wallet">Wallet %1$d</string>
-    <string name="home_shared_total">%1$s weitergegeben, noch nicht eingelöst</string>
-    <string name="home_shared_title">Weitergegeben, noch nicht eingelöst</string>
     <string name="home_key_changed_part">%1$s davon lässt sich gerade nicht ausgeben</string>
     <string name="home_key_changed_part_title">Ein Teil davon lässt sich gerade nicht ausgeben</string>
     <plurals name="accounts_other_wallets">
@@ -220,7 +203,6 @@
     </plurals>
     <string name="home_mint_send">Senden</string>
     <string name="home_mint_receive">Empfangen</string>
-    <string name="home_mint_details">Details</string>
     <string name="home_mint_open">Aktionen zeigen</string>
     <string name="home_mint_opened">Aktionen sichtbar</string>
 </resources>

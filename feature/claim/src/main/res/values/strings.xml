@@ -12,20 +12,18 @@
     <string name="claim_scan_hint">Point the camera at the note\'s QR code.</string>
     <string name="claim_check">Check note</string>
     <string name="claim_invalid">Not a valid note: %1$s</string>
-    <string name="claim_spent">This note has already been spent.</string>
+    <string name="claim_spent">Too late: this note has already been spent.</string>
     <!-- The note's mint refused to show it, in words that don't prove it spent (it may say "spent" or "unknown"). -->
     <string name="claim_mint_refused">The mint doesn\'t accept this note right now.</string>
-    <!-- As claim_mint_refused, with the mint's own answer (%1$s), as it sent it, often in English. -->
-    <string name="claim_mint_refused_reason">The mint doesn\'t accept this note right now. Its answer: %1$s</string>
     <string name="claim_in_wallet">This note is already in your wallet.</string>
     <string name="claim_own_shared">You handed out this note, and nobody has claimed it yet.</string>
-    <string name="claim_own_offline">You handed out this note. Its mint isn\'t answering right now, so it can\'t be taken back yet.</string>
-    <string name="claim_own_phone_offline">You handed out this note. You\'re offline, so it can\'t be taken back yet.</string>
+    <string name="claim_own_offline">You handed out this note. Its mint isn\'t answering right now, so you can\'t claim it yourself yet.</string>
+    <string name="claim_own_phone_offline">You handed out this note. You\'re offline, so you can\'t claim it yourself yet.</string>
     <string name="claim_other_mint">This note is held by %1$s and stays there.</string>
     <string name="claim_not_spendable">This link doesn\'t unlock the note it names, so it can\'t be claimed.</string>
     <string name="claim_other_paths">This note can also be spent another way, so someone else may take it before you claim it.</string>
-    <string name="claim_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the mint\'s details.</string>
-    <string name="claim_kept_key_changed">Your wallet claims it once the mint\'s signing key matches again, or you accept a new key in its details.</string>
+    <string name="claim_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept the new key in the mint\'s details.</string>
+    <string name="claim_kept_key_changed">Your wallet claims it once the mint\'s signing key matches again, or you accept the new key in its details.</string>
     <string name="claim_melt_not_a_note">%1$s doesn\'t answer for this as a note: it may be a withdraw link of another kind. It can be received over Lightning instead, for a fee.</string>
     <string name="claim_melt_into_home">Into %1$s, your home mint</string>
     <string name="claim_melt_pick">Your account has no home mint. Which mint should receive it?</string>
@@ -33,14 +31,10 @@
     <string name="claim_kept_for_lightning">Receive it over Lightning once you\'ve added a mint.</string>
     <string name="claim_melt_no_signing_key">%1$s publishes no signing key, so your wallet doesn\'t keep money there. It can be received over Lightning instead, for a fee.</string>
 
-    <string name="claim_paste">Paste</string>
-    <string name="claim_scan">Scan QR code</string>
-    <string name="claim_scan_cancel">Cancel</string>
     <string name="claim_action">Claim %1$s</string>
     <string name="claim_mint">On %1$s</string>
     <string name="claim_bearer_warning">Until you claim it, the sender can still spend it.</string>
     <string name="claim_success_title">Claimed</string>
-    <string name="claim_finish">Done</string>
     <string name="claim_not_certified">Not certified: the amount can\'t be verified.</string>
     <string name="claim_offline">You\'re offline. Keep it, and your wallet claims it as soon as you\'re back online.</string>
     <string name="claim_unreachable">Couldn\'t connect. Keep it, and your wallet claims it as soon as it can.</string>
@@ -65,13 +59,11 @@
     <string name="claim_kept_locked">Your wallet claims it once it opens.</string>
     <string name="claim_kept_hint">Not safe until claimed: the sender can still spend the money, and if you lose this phone first, it\'s gone.</string>
     <string name="claim_failed_plain">The claim was refused.</string>
-    <string name="claim_pending">Your wallet asks again on the next refresh.</string>
     <string name="claim_kept_title">Kept for later</string>
     <string name="claim_nothing_added">Nothing was added to your wallet.</string>
-    <string name="claim_retry_title">Not claimed yet</string>
     <string name="claim_retry_hint">Your wallet keeps it and tries again on the next refresh.</string>
-    <string name="claim_nothing_received">Nothing was received</string>
-    <string name="claim_take_back">Take back %1$s</string>
+    <string name="claim_nothing_received">Not received</string>
+    <string name="claim_take_back">Claim %1$s yourself</string>
     <string name="claim_trusted">✓ Trusted</string>
     <string name="claim_not_trusted">Not trusted (see Settings).</string>
     <string name="claim_title_lightning">Receive over Lightning</string>
@@ -86,7 +78,6 @@
     <string name="claim_melt_ask">Ask %1$s</string>
     <!-- %1$s: what the link pays, %2$s: the receiving host, %3$s and %4$s: the least and most it takes -->
     <string name="claim_melt_out_of_range">This link pays %1$s, but %2$s takes %3$s to %4$s.</string>
-    <string name="claim_melt_unreachable">%1$s isn\'t answering right now. Try again once it answers.</string>
     <string name="claim_melt_action">Receive about %1$s</string>
     <string name="claim_melt_receive">Receive over Lightning</string>
     <string name="claim_keep_for_later">Keep it for later</string>

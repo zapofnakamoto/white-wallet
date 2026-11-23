@@ -269,7 +269,7 @@ fun HomeScreen(
     val snackbars = remember { SnackbarHostState() }
     state.notice?.let { notice ->
         val message = noticeMessage(notice)
-        val details = stringResource(R.string.notice_details)
+        val details = stringResource(DesignR.string.details)
         LaunchedEffect(notice) {
             val result = snackbars.showSnackbar(message, actionLabel = details, withDismissAction = false, duration = SnackbarDuration.Long)
             onNoticeShown()
@@ -724,8 +724,8 @@ private fun WalletTab(
             // Handed out as links and not claimed yet: out of the balance, and the user's until someone claims them.
             if (state.sharedMsat > 0) {
                 Text(
-                    if (state.balanceHidden) stringResource(R.string.home_shared_title)
-                    else stringResource(R.string.home_shared_total, formatAmount(state.sharedMsat)),
+                    if (state.balanceHidden) stringResource(DesignR.string.handed_out_title)
+                    else stringResource(DesignR.string.handed_out_total, formatAmount(state.sharedMsat)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -754,7 +754,7 @@ private fun WalletTab(
             else if (state.refreshFailed) {
                 Text(stringResource(R.string.home_update_failed), textAlign = TextAlign.Center)
                 WalletButton(kind = ButtonKind.Text, onClick = onRefresh, enabled = !state.refreshing) {
-                    Text(stringResource(R.string.home_try_again))
+                    Text(stringResource(DesignR.string.try_again))
                 }
             }
             if (state.unresolved > 0) {
@@ -985,17 +985,18 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
         add(recentTime(activity.createdAtMillis))
         val sentNote = activity.kind == ActivityKind.SentNote
         when (activity.status) {
-            ActivityStatus.Pending -> add(stringResource(if (sentNote) R.string.activity_note_waiting else R.string.activity_pending))
+            ActivityStatus.Pending ->
+                add(stringResource(if (sentNote) DesignR.string.not_claimed_yet_title else DesignR.string.waiting_for_answer))
             ActivityStatus.Failed -> add(stringResource(R.string.activity_failed))
             ActivityStatus.Cancelled -> add(stringResource(R.string.activity_note_taken_back))
             ActivityStatus.Unverified -> add(stringResource(R.string.activity_note_unverified))
             ActivityStatus.Done -> if (sentNote) add(stringResource(R.string.activity_note_spent))
         }
-        if (activity.certified == false) add(stringResource(R.string.activity_uncertified))
+        if (activity.certified == false) add(stringResource(DesignR.string.uncertified))
         activity.feeMsat?.let { fee ->
             add(
                 if (fee < 0) stringResource(R.string.activity_fee_refunded, formatAmount(-fee))
-                else stringResource(R.string.activity_fee, formatAmount(fee))
+                else stringResource(DesignR.string.fee, formatAmount(fee))
             )
         }
     }
@@ -1020,7 +1021,7 @@ private fun KeyChanged(host: String, onDetails: () -> Unit) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.home_key_changed_title, host), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.home_key_changed_body), style = MaterialTheme.typography.bodyMedium)
-            WalletButton(onClick = onDetails) { Text(stringResource(R.string.home_key_changed_action)) }
+            WalletButton(onClick = onDetails) { Text(stringResource(DesignR.string.details)) }
         }
     }
 }
@@ -1062,7 +1063,7 @@ private fun UnknownNotesCard(
             if (mint.unknownAskedAtMillis > 0) Text(lastAsked(mint.unknownAskedAtMillis, now), style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 WalletButton(kind = ButtonKind.Secondary, onClick = onRecheck, enabled = !checking) {
-                    Text(stringResource(R.string.home_unknown_action))
+                    Text(stringResource(DesignR.string.check_again))
                 }
                 onShowNotes?.let {
                     WalletButton(kind = ButtonKind.Text, onClick = it) { Text(pluralStringResource(R.plurals.home_unknown_show, n)) }
@@ -1160,7 +1161,7 @@ private fun MintRow(
     val note =
         when {
             keyChanged && mint.isHome -> R.string.home_mint_is_home_key_changed
-            keyChanged -> R.string.home_mint_key_changed
+            keyChanged -> DesignR.string.key_mismatch_short
             !answering && mint.isHome -> R.string.home_mint_is_home_not_answering
             !answering -> R.string.home_mint_not_answering
             mint.isHome -> R.string.home_mint_is_home
@@ -1169,7 +1170,7 @@ private fun MintRow(
     val nameAlpha by animateFloatAsState(if (open) 0f else 1f, label = "mint name")
     val send = stringResource(R.string.home_mint_send)
     val receive = stringResource(R.string.home_mint_receive)
-    val details = stringResource(R.string.home_mint_details)
+    val details = stringResource(DesignR.string.details)
     val opened = stringResource(R.string.home_mint_opened)
     val openLabel = stringResource(R.string.home_mint_open)
     Box {
@@ -1283,7 +1284,7 @@ private fun NotAnsweringCard(title: String, body: String, checking: Boolean, onC
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(body, style = MaterialTheme.typography.bodyMedium)
             WalletButton(kind = ButtonKind.Secondary, onClick = onCheck, enabled = !checking) {
-                Text(stringResource(R.string.home_mint_silent_action))
+                Text(stringResource(DesignR.string.check_again))
             }
         }
     }

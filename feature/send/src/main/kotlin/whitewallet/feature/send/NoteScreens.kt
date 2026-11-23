@@ -239,9 +239,9 @@ fun CreateNoteScreen(
                 Anchor.SendResult,
                 problem?.let { WalletStatus.Problem(problemKind(it)) } ?: WalletStatus.None,
                 stringResource(if (problem != null) R.string.note_create_failed_title else DesignR.string.no_answer_title),
-                done = SuccessAction(stringResource(R.string.send_done), onBack),
+                done = SuccessAction(stringResource(DesignR.string.done), onBack),
                 modifier = Modifier.padding(padding),
-                more = SuccessAction(stringResource(R.string.send_try_again), onTryAgain),
+                more = SuccessAction(stringResource(DesignR.string.try_again), onTryAgain),
                 lines = listOf(if (problem != null) problemText(problem) else stringResource(R.string.note_create_pending)),
             )
             return@Scaffold
@@ -284,8 +284,8 @@ fun CreateNoteScreen(
             when (val quote = state.quote) {
                 is PayQuote.Ok ->
                     Text(
-                        if (quote.feeMsat > 0) stringResource(R.string.send_fee, formatAmount(quote.feeMsat))
-                        else stringResource(R.string.send_no_fee),
+                        if (quote.feeMsat > 0) stringResource(DesignR.string.fee, formatAmount(quote.feeMsat))
+                        else stringResource(DesignR.string.no_fee),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 is PayQuote.Unreachable ->
@@ -511,13 +511,13 @@ fun SharedNoteScreen(
                     } else if (note.takeBackAsked) {
                         // No link once the user asked for it back: it is taken back as soon as its mint knows it again.
                         Text(stringResource(DesignR.string.note_take_back_when_known), textAlign = TextAlign.Center)
-                        PrimaryButton(stringResource(R.string.send_done), onBack)
+                        PrimaryButton(stringResource(DesignR.string.done), onBack)
                     }
                 SharedNoteState.Spent -> Text(stringResource(R.string.note_spent), textAlign = TextAlign.Center)
                 SharedNoteState.Reclaimed -> Text(stringResource(R.string.note_reclaimed), textAlign = TextAlign.Center)
                 SharedNoteState.Unverified -> Text(stringResource(R.string.note_unverified), textAlign = TextAlign.Center)
             }
-            if (note.state != SharedNoteState.Waiting) PrimaryButton(stringResource(R.string.send_done), onBack)
+            if (note.state != SharedNoteState.Waiting) PrimaryButton(stringResource(DesignR.string.done), onBack)
         }
     }
     // On paper what the screen shows, so that whoever finds the paper knows it is money: the note and the warning.
@@ -549,7 +549,7 @@ fun SharedNoteScreen(
             text = { Text(stringResource(R.string.note_reclaim_body)) },
             confirmButton = { WalletButton(kind = ButtonKind.Text, onClick = onReclaim) { Text(stringResource(R.string.note_reclaim)) } },
             dismissButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = onDismissReclaim) { Text(stringResource(R.string.note_cancel)) }
+                WalletButton(kind = ButtonKind.Text, onClick = onDismissReclaim) { Text(stringResource(DesignR.string.cancel)) }
             },
         )
     }
@@ -570,7 +570,7 @@ private fun sharedNoteStatus(note: SharedNote): WalletStatus =
  */
 @Composable
 private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain: () -> Unit, modifier: Modifier) {
-    val done = SuccessAction(stringResource(R.string.send_done), onDone)
+    val done = SuccessAction(stringResource(DesignR.string.done), onDone)
     if (result is ReclaimResult.Reclaimed) {
         SuccessScreen(
             anchor = Anchor.NoteTakenBack,
@@ -579,24 +579,25 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
             amountMsat = result.amountMsat,
             done = done,
             modifier = modifier,
+            lines = listOf(stringResource(DesignR.string.own_claim_done)),
         )
         return
     }
     val (tone, title, lines) =
         when (result) {
             is ReclaimResult.Reclaimed -> error("on the success screen")
-            ReclaimResult.AlreadySpent -> Triple(ResultTone.Problem, stringResource(R.string.note_already_spent), emptyList())
+            ReclaimResult.AlreadySpent -> Triple(ResultTone.Problem, stringResource(DesignR.string.own_claim_too_late), emptyList())
             ReclaimResult.Pending ->
                 Triple(
                     ResultTone.Waiting,
                     stringResource(DesignR.string.no_answer_title),
-                    listOf(stringResource(R.string.note_reclaim_pending)),
+                    listOf(stringResource(DesignR.string.no_answer_hint)),
                 )
             // Its mint doesn't know it: taken back once the mint does.
             ReclaimResult.WhenKnown ->
                 Triple(
                     ResultTone.Waiting,
-                    stringResource(DesignR.string.take_back_waiting_title),
+                    stringResource(DesignR.string.not_claimed_yet_title),
                     listOf(stringResource(DesignR.string.note_take_back_when_known)),
                 )
             // The mint's own words, if it gave any, under the app's.
@@ -604,7 +605,10 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
                 Triple(
                     ResultTone.Problem,
                     stringResource(DesignR.string.take_back_failed),
-                    listOfNotNull(problemText(result.problem), result.mintMessage?.let { stringResource(DesignR.string.mint_message, it) }),
+                    listOfNotNull(
+                        ownClaimReason(result.problem),
+                        result.mintMessage?.let { stringResource(DesignR.string.mint_message, it) },
+                    ),
                 )
         }
     ResultScreen(
@@ -615,7 +619,16 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
         title,
         done = done,
         modifier = modifier,
-        more = SuccessAction(stringResource(R.string.send_try_again), onTryAgain).takeIf { result is ReclaimResult.Failed },
+        more = SuccessAction(stringResource(DesignR.string.try_again), onTryAgain).takeIf { result is ReclaimResult.Failed },
         lines = lines,
     )
 }
+
+// Why claiming one's own note failed, in the same words as on the claim screen.
+@Composable
+private fun ownClaimReason(problem: PayProblem): String? =
+    when (problem) {
+        PayProblem.Unreachable -> stringResource(DesignR.string.couldnt_connect)
+        PayProblem.KeyChanged -> stringResource(DesignR.string.mint_key_changed_nothing_sent)
+        else -> null
+    }

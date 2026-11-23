@@ -80,7 +80,6 @@
         <item quantity="one">Diese App hat höchstens %1$d Wallet. Um eine andere wiederherzustellen, lösche zuerst die Wallet auf diesem Handy (Einstellungen → Wallets).</item>
         <item quantity="other">Diese App hat höchstens %1$d Wallets. Um eine wiederherzustellen, lösche zuerst eine auf diesem Handy (Einstellungen → Wallets).</item>
     </plurals>
-    <string name="onboarding_error_network">Keine Verbindung. Versuch es gleich noch einmal.</string>
 
     <string name="restore_title">Konto wiederherstellen</string>
     <string name="restore_body">Tippe oder füge die Wiederherstellungsphrase ein, die du aufgeschrieben hast.</string>
@@ -126,7 +125,6 @@
     <string name="add_mint_key">Signaturschlüssel</string>
     <string name="add_mint_key_none">Nicht angegeben</string>
     <string name="add_mint_key_unanswered">%1$s antwortet nicht und lässt sich daher nicht hinzufügen. Versuche es später erneut.</string>
-    <string name="add_mint_check_again">Erneut prüfen</string>
     <string name="add_mint_pick_without_key">%1$s zeigt den Signaturschlüssel nicht und lässt sich daher nicht hinzufügen.</string>
     <string name="add_mint_row_not_answering">Antwortet nicht</string>
     <string name="add_mint_row_without_key">Zeigt keinen Signaturschlüssel</string>
@@ -136,10 +134,7 @@
     <string name="add_mint_failed_body">Es hat aufgehört, bevor es fertig war. Versuch es noch einmal; was gefunden wurde, bleibt.</string>
     <string name="add_mint_failed_kept">Bisher gefunden: %1$s.</string>
     <string name="add_mint_found_total">%1$s gefunden</string>
-    <string name="add_mint_try_again">Noch einmal versuchen</string>
-    <string name="add_mint_ok">OK</string>
     <string name="add_mint_later">Später</string>
-    <string name="add_mint_cancel">Abbrechen</string>
     <string name="scan_body">Sucht nach allem, was zu deiner Wiederherstellungsphrase gehört, und fügt hinzu, was gefunden wird. Es wird nur nachgesehen, nichts wird bewegt.</string>
     <string name="scan_mint_scanning">Wird durchsucht…</string>
     <plurals name="scan_mint_checking_notes">
@@ -181,7 +176,6 @@
         <item quantity="one">Diese Wallet hat %1$d Konto, so viele, wie diese App erlaubt.</item>
         <item quantity="other">Diese Wallet hat %1$d Konten, so viele, wie diese App erlaubt.</item>
     </plurals>
-    <string name="success_done">Fertig</string>
     <string name="scan_finished_title">Suche abgeschlossen</string>
     <string name="account_created_title">Konto erstellt</string>
     <string name="account_created_open">Konto öffnen</string>

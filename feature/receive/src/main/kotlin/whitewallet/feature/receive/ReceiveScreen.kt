@@ -43,6 +43,7 @@ import whitewallet.core.designsystem.MintChoiceSheet
 import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
@@ -127,7 +128,7 @@ fun ReceiveScreen(
                     if (payments > 1) pluralStringResource(R.plurals.receive_payments_received, payments, payments)
                     else stringResource(R.string.receive_success_title),
                 amountMsat = arrived,
-                done = SuccessAction(stringResource(R.string.receive_done), onBack),
+                done = SuccessAction(stringResource(DesignR.string.done), onBack),
                 more = SuccessAction(stringResource(R.string.receive_more), invoice.onReceiveMore),
                 modifier = Modifier.padding(padding),
             )
@@ -180,7 +181,7 @@ private fun MintLine(state: ReceiveState, onChange: (() -> Unit)?) {
 /** What [mint] has to receive with: its address there, else an invoice; home said first. */
 @Composable
 private fun mintDetail(mint: ReceiveMint): String {
-    if (mint.keyChanged) return stringResource(R.string.receive_on_key_changed)
+    if (mint.keyChanged) return stringResource(DesignR.string.key_mismatch_short)
     val how = mint.address ?: stringResource(R.string.receive_on_invoice)
     return if (mint.isHome) stringResource(R.string.receive_on_home_detail, how) else how
 }
@@ -279,7 +280,7 @@ private fun Checking(state: ReceiveState, host: String) {
 private fun KeyChanged(state: ReceiveState, message: String, host: String?, onOpenMint: (String) -> Unit) {
     Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
     if (state.mintsVisible && host != null) {
-        WalletButton(kind = ButtonKind.Text, onClick = { onOpenMint(host) }) { Text(stringResource(R.string.receive_key_changed_action)) }
+        WalletButton(kind = ButtonKind.Text, onClick = { onOpenMint(host) }) { Text(stringResource(DesignR.string.details)) }
     }
 }
 

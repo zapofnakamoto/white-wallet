@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
@@ -134,7 +135,7 @@ fun DeleteWalletScreen(
                 }
             },
             dismissButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = onDismissConfirm) { Text(stringResource(R.string.backup_cancel)) }
+                WalletButton(kind = ButtonKind.Text, onClick = onDismissConfirm) { Text(stringResource(DesignR.string.cancel)) }
             },
         )
     }

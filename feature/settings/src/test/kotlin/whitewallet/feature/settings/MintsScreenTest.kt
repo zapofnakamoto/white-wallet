@@ -16,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.TrustDefault
 
@@ -52,7 +53,7 @@ class MintsScreenTest {
     fun aMintWhoseKeyChangedSaysSoInPlaceOfItsKeyAndItsTrustWaits() {
         var changed = false
         show(MintsState(listOf(home), keyChanged = setOf("home.example"))) { _: MintInfo, _: Boolean -> changed = true }
-        compose.onNodeWithText(text(R.string.mint_key_changed_short)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.key_mismatch_short)).assertExists()
         compose.onNodeWithText(text(R.string.mints_key, "02ababab…abababab")).assertDoesNotExist()
         compose.onNode(isToggleable()).assertIsNotEnabled().performClick()
         assertFalse(changed)

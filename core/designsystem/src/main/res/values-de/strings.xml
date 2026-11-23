@@ -31,13 +31,19 @@
     <string name="release_note_old_keys_title">Scheine von vor Version 0.8</string>
     <string name="release_note_old_keys_body">Diese Version findet keine Scheine und Lightning-Adressen mehr, die so angelegt wurden wie vor Version 0.8. Seitdem hat die App sie bei jedem Öffnen von selbst umgezogen. Fehlt Geld, öffne deine Wiederherstellungsphrase einmal in Version 0.9.0, die sie noch umzieht, und nutze dann hier „Nach Scheinen suchen“.</string>
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
-    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
+    <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du den neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
+    <string name="mint_key_changed_nothing_sent">Der Signaturschlüssel seiner Mint passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du den neuen Schlüssel in den Details der Mint annimmst, wird nichts dorthin gesendet.</string>
+    <string name="mint_not_answering_unnamed">Deine Mint antwortet nicht. Versuche es später erneut.</string>
     <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
-    <string name="take_back_done_title">Zurückgeholt</string>
-    <string name="take_back_failed">Zurückholen hat nicht geklappt. Versuch es später noch einmal.</string>
-    <string name="take_back_waiting_title">Noch nicht zurückgeholt</string>
+    <string name="take_back_done_title">Eingelöst</string>
+    <string name="take_back_failed">Nicht eingelöst</string>
     <string name="no_answer_title">Noch keine Antwort</string>
-    <string name="note_take_back_when_known">Die Mint kennt diesen Schein gerade nicht. Deine Wallet holt ihn zurück, sobald die Mint ihn wieder kennt.</string>
+    <string name="no_answer_hint">Deine Wallet fragt beim nächsten Aktualisieren erneut. Der Verlauf zeigt, wann es erledigt ist.</string>
+    <string name="own_claim_done">Du kannst ihn wieder ausgeben.</string>
+    <string name="own_claim_too_late">Zu spät: Jemand hat ihn schon eingelöst.</string>
+    <string name="couldnt_connect">Keine Verbindung. Versuche es später erneut.</string>
+    <string name="mint_not_answering">%1$s antwortet nicht. Versuche es später erneut.</string>
+    <string name="note_take_back_when_known">Die Mint kennt diesen Schein gerade nicht. Deine Wallet löst ihn ein, sobald die Mint ihn wieder kennt.</string>
     <string name="mint_message">Nachricht der Mint: „%1$s“</string>
 
     <string name="received_title">Erhalten, noch nicht eingelöst</string>
@@ -52,7 +58,7 @@
     <string name="received_waiting">Wird bei der nächsten Aktualisierung eingelöst.</string>
     <string name="received_locked_until">Gesperrt bis %1$s</string>
     <string name="received_locked">Vorerst gesperrt. Wird bei jedem Aktualisieren erneut versucht.</string>
-    <string name="received_key_changed">Der Signaturschlüssel seiner Mint passt nicht zu dem, den deine Wallet kennt. Wird eingelöst, sobald er wieder passt oder du in den Details der Mint einen neuen annimmst.</string>
+    <string name="received_key_changed">Der Signaturschlüssel seiner Mint passt nicht zu dem, den deine Wallet kennt. Wird eingelöst, sobald er wieder passt oder du in den Details der Mint den neuen annimmst.</string>
     <string name="received_claiming">Wird eingelöst. Beim nächsten Aktualisieren wird erneut geprüft.</string>
     <string name="received_melting">Wird über Lightning empfangen. Beim nächsten Aktualisieren wird erneut geprüft.</string>
     <string name="received_claimed">Eingelöst</string>
@@ -92,8 +98,23 @@
     <string name="mint_key_accept">Neuen Schlüssel verwenden</string>
     <string name="mint_key_accept_title">Neuen Schlüssel verwenden?</string>
     <string name="mint_key_accept_confirm">Verwenden</string>
-    <string name="mint_key_cancel">Abbrechen</string>
     <string name="mint_key_accepted_title">Neuer Schlüssel wird verwendet</string>
     <string name="mint_key_accepted">%1$s nutzt jetzt den neuen Schlüssel.</string>
     <string name="mint_key_not_accepted">%1$s hat nicht geantwortet oder zeigt inzwischen noch einen anderen Schlüssel. Nichts wurde geändert.</string>
+    <string name="done">Fertig</string>
+    <string name="try_again">Erneut versuchen</string>
+    <string name="check_again">Erneut prüfen</string>
+    <string name="not_claimed_yet_title">Noch nicht eingelöst</string>
+    <string name="payment_failed_nothing_paid">Die Zahlung ist nicht durchgegangen. Es wurde nichts bezahlt und das Geld bleibt in deiner Wallet.</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="details">Details</string>
+    <string name="key_mismatch_short">Signaturschlüssel passt nicht</string>
+    <string name="uncertified">Betrag nicht zertifiziert</string>
+    <string name="fee">Gebühr: %1$s</string>
+    <string name="no_fee">Keine Gebühr</string>
+    <string name="paste">Einfügen</string>
+    <string name="scan_qr">QR-Code scannen</string>
+    <string name="handed_out_title">Weitergegeben, noch nicht eingelöst</string>
+    <string name="handed_out_total">%1$s weitergegeben, noch nicht eingelöst</string>
+    <string name="waiting_for_answer">Warte auf Antwort …</string>
 </resources>

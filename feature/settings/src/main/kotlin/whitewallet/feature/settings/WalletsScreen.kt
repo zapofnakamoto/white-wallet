@@ -535,7 +535,7 @@ internal fun AccountRemovalDialog(name: String, removal: AccountRemoval, removin
             }
         },
         dismissButton = {
-            WalletButton(kind = ButtonKind.Text, onClick = onDismiss, enabled = !removing) { Text(stringResource(R.string.rename_cancel)) }
+            WalletButton(kind = ButtonKind.Text, onClick = onDismiss, enabled = !removing) { Text(stringResource(DesignR.string.cancel)) }
         },
         title = { Text(stringResource(R.string.account_remove_title, name)) },
         text = {
@@ -623,7 +623,7 @@ private fun RenameDialog(
                 Text(stringResource(R.string.rename_save))
             }
         },
-        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(R.string.rename_cancel)) } },
+        dismissButton = { WalletButton(kind = ButtonKind.Text, onClick = onDismiss) { Text(stringResource(DesignR.string.cancel)) } },
         title = { Text(title) },
         text = {
             Column {

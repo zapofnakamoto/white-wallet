@@ -188,7 +188,7 @@ private fun InfoContent(preview: MintPreview.Ready, state: AddMintState, actions
             textAlign = TextAlign.Center,
         )
         if (state.offline) Text(stringResource(R.string.add_mint_offline), textAlign = TextAlign.Center)
-        PrimaryButton(stringResource(R.string.add_mint_check_again), actions.onCheckAgain, enabled = !state.offline, busy = state.busy)
+        PrimaryButton(stringResource(DesignR.string.check_again), actions.onCheckAgain, enabled = !state.offline, busy = state.busy)
         return WalletButton(kind = ButtonKind.Text, onClick = actions.onBack, enabled = !state.busy) {
             Text(stringResource(R.string.add_mint_other))
         }
@@ -282,18 +282,18 @@ private fun ResultContent(state: AddMintState, actions: AddMintActions) {
         }
     }
     when {
-        failed == null -> PrimaryButton(stringResource(if (state.setup) R.string.add_mint_next else R.string.add_mint_ok), actions.onDone)
+        failed == null -> PrimaryButton(stringResource(if (state.setup) R.string.add_mint_next else DesignR.string.done), actions.onDone)
         // The mint is added, only its scan stopped: again right here, or later from the main screen.
         state.kept -> {
-            PrimaryButton(stringResource(R.string.add_mint_try_again), actions.onAdd)
+            PrimaryButton(stringResource(DesignR.string.try_again), actions.onAdd)
             WalletButton(kind = ButtonKind.Text, onClick = actions.onDone) { Text(stringResource(R.string.add_mint_later)) }
         }
         // Nothing was added: again, or out of here (in a setup, to another mint; the pick can give the setup up).
         else -> {
-            PrimaryButton(stringResource(R.string.add_mint_try_again), actions.onTryAgain)
+            PrimaryButton(stringResource(DesignR.string.try_again), actions.onTryAgain)
             if (state.setup)
                 WalletButton(kind = ButtonKind.Text, onClick = actions.onDone) { Text(stringResource(R.string.add_mint_other)) }
-            else WalletButton(kind = ButtonKind.Text, onClick = actions.onCancel) { Text(stringResource(R.string.add_mint_cancel)) }
+            else WalletButton(kind = ButtonKind.Text, onClick = actions.onCancel) { Text(stringResource(DesignR.string.cancel)) }
         }
     }
 }
@@ -344,7 +344,7 @@ private fun MintAddedContent(state: AddMintState, actions: AddMintActions, modif
         anchor = Anchor.MintAdded,
         status = WalletStatus.Done(state.foundMsat),
         title = stringResource(R.string.mint_added_title),
-        done = SuccessAction(stringResource(R.string.success_done), actions.onDone),
+        done = SuccessAction(stringResource(DesignR.string.done), actions.onDone),
         modifier = modifier,
         // The title says the mint is added; below only what the phrase held there: how much and where, or that it held nothing.
         lines =
@@ -368,7 +368,7 @@ private fun KeyAcceptedContent(state: AddMintState, actions: AddMintActions, mod
         anchor = Anchor.MintKeyAccepted,
         status = WalletStatus.Done(0),
         title = stringResource(DesignR.string.mint_key_accepted_title),
-        done = SuccessAction(stringResource(R.string.success_done), actions.onDone),
+        done = SuccessAction(stringResource(DesignR.string.done), actions.onDone),
         modifier = modifier,
         lines = listOf(stringResource(DesignR.string.mint_key_accepted, state.preview?.host.orEmpty())),
     )

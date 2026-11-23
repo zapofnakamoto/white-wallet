@@ -131,8 +131,8 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_checked_handed_out` | The mint knows %1$d note you handed out again. It waits to be claimed. / The mint knows %1$d notes you handed out again. They wait to be claimed. (plural) |
 | `notes_checked_handed_out_spent` | %1$d note you handed out was spent. / %1$d notes you handed out were spent. (plural) |
 | `notes_checked_handed_out_unknown` | The mint doesn't know %1$d note you handed out, so nobody can claim it yet. Your wallet asks again by itself. / The mint doesn't know %1$d notes you handed out, so nobody can claim them yet. Your wallet asks again by itself. (plural) |
-| `notes_checked_taken_back` | %1$d note you handed out was taken back into your balance. / %1$d notes you handed out were taken back into your balance. (plural) |
-| `notes_checked_take_back_refused` | The mint refused to give back %1$d note you handed out. Your wallet tries again by itself. / The mint refused to give back %1$d notes you handed out. Your wallet tries again by itself. (plural) |
+| `notes_checked_taken_back` | Your wallet claimed %1$d note you handed out, as you asked. You can spend it again. / Your wallet claimed %1$d notes you handed out, as you asked. You can spend them again. (plural) |
+| `notes_checked_take_back_refused` | The mint refused your wallet's claim of %1$d note you handed out. Your wallet asks again on the next refresh. / The mint refused your wallet's claim of %1$d notes you handed out. Your wallet asks again on the next refresh. (plural) |
 | `notes_state_unknown` | Unknown to the mint |
 | `notes_state_unknown_handed_out` | Handed out · unknown to the mint |
 | `notes_state_unknown_detail` | The mint says it doesn't know this note, so it isn't in your balance. Your wallet keeps it and asks the mint again by itself; once the mint knows it again, you can spend it again. |
@@ -141,7 +141,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_archived_done` | Moved %d note to the archive. / Moved %d notes to the archive. (plural) |
 | `archive_notes_title` | Notes |
 | `archive_notes_hint` | Their mint doesn't know these notes. Your wallet still asks about them now and then; once the mint knows one again, you can spend it again. |
-| `archive_handed_out_hint` | You handed these notes out, but their mint doesn't know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet takes it back if you asked it to. |
+| `archive_handed_out_hint` | You handed these notes out, but their mint doesn't know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet claims it if you asked it to. |
 | `archive_note_remove_title` | Remove this note for good? |
 | `archive_note_remove_body` | Its mint doesn't know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase. |
 | `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
@@ -153,9 +153,9 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `home_unknown_show` | Show note / Show notes (plural) |
 | `notice_unknown_back` | The mint knows a note again: you can spend it. / The mint knows %1$d notes again: you can spend them. (plural) |
 | `notice_unknown_still` | Asked just now: the mint still doesn't know your note. / Asked just now: the mint still doesn't know your notes. (plural) |
-| `notice_unknown_unreachable_unnamed` | No answer from the mint. Your wallet asks again later. |
-| `claim_key_changed` | The signing key of %1$s doesn't match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the mint's details. |
-| `claim_kept_key_changed` | Your wallet claims it once the mint's signing key matches again, or you accept a new key in its details. |
+| `notice_unknown_unreachable_unnamed` | Your mint isn't answering. Your wallet asks again later. |
+| `claim_key_changed` | The signing key of %1$s doesn't match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept the new key in the mint's details. |
+| `claim_kept_key_changed` | Your wallet claims it once the mint's signing key matches again, or you accept the new key in its details. |
 | `home_working_moving_home` | Moving your money to your home mint… |
 | `mints_add` | Add a mint |
 | `add_mint_setup_title` | Choose your mint |
@@ -199,13 +199,15 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `claim_kept_for_lightning` | Receive it over Lightning once you've added a mint. |
 | `claim_melt_no_signing_key` | %1$s publishes no signing key, so your wallet doesn't keep money there. It can be received over Lightning instead, for a fee. |
 | `onboarding_error_mint_without_key` | This mint isn't showing its signing key, so it can't be added. Without it your wallet can't check that its notes are real. It may be back in a moment; if not, pick another mint. |
-| `received_key_changed` | The signing key of its mint doesn't match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint's details. |
-| `note_take_back_when_known` | Its mint doesn't know this note right now. Your wallet takes it back as soon as the mint knows it again. |
+| `received_key_changed` | The signing key of its mint doesn't match the one your wallet knows. Claimed once it matches again, or you accept the new key in the mint's details. |
+| `note_take_back_when_known` | Its mint doesn't know this note right now. Your wallet claims it as soon as the mint knows it again. |
 | `mint_message` | Message from the mint: “%1$s” |
 | `received_refused` | Its mint kept refusing it, so your wallet stopped trying. |
 | `received_refused_hours` | Its mint kept refusing it for %d hour, so your wallet stopped trying. / Its mint kept refusing it for %d hours, so your wallet stopped trying. (plural) |
 | `received_refused_days` | Its mint kept refusing it for %d day, so your wallet stopped trying. / Its mint kept refusing it for %d days, so your wallet stopped trying. (plural) |
 | `received_unreachable` | Its mint didn't answer, so your wallet stopped trying. |
+| `mint_key_changed_nothing_sent` | The signing key of its mint doesn't match the one your wallet knows. Until it matches again, or you accept the new key in the mint's details, nothing is sent there. |
+| `mint_not_answering_unnamed` | Your mint isn't answering. Try again later. |
 | `received_unreachable_hours` | Its mint didn't answer for %d hour, so your wallet stopped trying. / Its mint didn't answer for %d hours, so your wallet stopped trying. (plural) |
 | `received_unreachable_days` | Its mint didn't answer for %d day, so your wallet stopped trying. / Its mint didn't answer for %d days, so your wallet stopped trying. (plural) |
 | `received_waiting_mint_unnamed` | Claimed when its mint answers. |
@@ -225,13 +227,12 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `claim_scan_hint` | Point the camera at the note's QR code. |
 | `claim_check` | Check note |
 | `claim_invalid` | Not a valid note: %1$s |
-| `claim_spent` | This note has already been spent. |
+| `claim_spent` | Too late: this note has already been spent. |
 | `claim_mint_refused` | The mint doesn't accept this note right now. |
-| `claim_mint_refused_reason` | The mint doesn't accept this note right now. Its answer: %1$s |
 | `claim_in_wallet` | This note is already in your wallet. |
 | `claim_own_shared` | You handed out this note, and nobody has claimed it yet. |
-| `claim_own_offline` | You handed out this note. Its mint isn't answering right now, so it can't be taken back yet. |
-| `claim_own_phone_offline` | You handed out this note. You're offline, so it can't be taken back yet. |
+| `claim_own_offline` | You handed out this note. Its mint isn't answering right now, so you can't claim it yourself yet. |
+| `claim_own_phone_offline` | You handed out this note. You're offline, so you can't claim it yourself yet. |
 | `claim_other_mint` | This note is held by %1$s and stays there. |
 | `home_tab_notes` | Notes |
 | `home_wallet_empty` | Nothing here yet. Share your address to get paid, or claim a note. |
@@ -249,18 +250,18 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notice_split` | Split %1$d note into %2$d / Split %1$d notes into %2$d (plural) |
 | `notice_rearranged` | Rearranged %1$d note into %2$d / Rearranged %1$d notes into %2$d (plural) |
 | `notice_renewed` | Renewed %1$d note / Renewed %1$d notes (plural) |
-| `home_key_changed_body` | Nothing is sent there until it matches again, or you accept a new key in the mint's details. |
+| `home_key_changed_body` | Nothing is sent there until it matches again, or you accept the new key in the mint's details. |
 | `notes_title` | Notes |
 | `notes_settings` | Note settings |
 | `notes_count` | %1$d note / %1$d notes (plural) |
 | `notes_sort` | Sort notes |
 | `notes_select_hint` | Tap notes to select them. |
-| `notes_share_hint` | Hands out the whole note as a QR code. It leaves your balance until someone claims it or you take it back. |
-| `notes_share_hint_split` | Hands out the whole note as a QR code. It leaves your balance until someone claims it or you take it back. To give part of it, split it first. |
+| `notes_share_hint` | Hands out the whole note as a QR code. It leaves your balance until someone claims it, or you claim it yourself. |
+| `notes_share_hint_split` | Hands out the whole note as a QR code. It leaves your balance until someone claims it, or you claim it yourself. To give part of it, split it first. |
 | `notes_renew_hint` | Renew gives the note a fresh key, for example after you showed its QR code to someone by mistake. |
 | `notes_checked_ok` | Checked %1$d note: still there. / Checked %1$d notes: all still there. (plural) |
 | `notes_checked_gone` | %1$d note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone. / %1$d notes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone. (plural) |
-| `notes_already_spent` | This note was already spent, so it wasn't handed out. It's no longer in your balance. |
+| `notes_already_spent` | This note has already been spent, so it wasn't handed out. It's no longer in your balance. |
 | `notes_empty` | No notes yet. Money you receive is held as notes, and they show up here. |
 | `notes_strategy_warning` | "%1$s" is on: it rearranges your notes again on every refresh. |
 | `notes_selected` | %1$d note selected · %2$s / %1$d notes selected · %2$s (plural) |
@@ -276,7 +277,6 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notes_problem_invalid_amount` | This note is too small to split, or the amount doesn't fit. |
 | `notes_problem_same_mint` | The notes are already there. |
 | `notes_problem_mint_invalid` | That address can't hold notes. |
-| `notes_problem_key_changed` | The signing key of the mint doesn't match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the mint's details. |
 | `onboarding_tagline` | Bearer notes on Lightning. Ready in one tap. |
 | `receive_hint` | Anyone can pay this address from any Lightning wallet. Payments arrive as notes in this wallet. |
 | `receive_claim` | Claim a note instead |
@@ -290,10 +290,8 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `send_create_note` | Create a note |
 | `send_problem_refused` | The mint refused this payment. |
 | `send_problem_mint_silent_unnamed` | Your mint isn't answering. Nothing was paid. Try again later. |
-| `send_problem_key_changed` | The signing key of the mint doesn't match the one your wallet knows. Nothing is sent there until it matches again, or you accept a new key in the mint's details. |
 | `send_problem_own_mint_invoice` | This invoice is from your own mint, which can't pay itself over Lightning. Ask for a Lightning address instead. |
 | `send_problem_invoice_used` | This invoice was already used. Ask for a new one. |
-| `send_problem_mint_message` | Message from the mint: “%1$s” |
 | `send_from_detail_home` | Home mint · up to %1$s |
 | `send_key_changed_held_unnamed` | %1$s on your mint can't be sent until its signing key matches. |
 | `note_create_title` | Send as a note |
@@ -305,10 +303,9 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `note_qr_description` | QR code of the note |
 | `note_uncertified` | The amount of this note isn't certified. |
 | `note_share_title` | Share note |
-| `note_reclaim_title` | Take this note back? |
-| `note_already_spent` | Too late: this note has already been spent. |
+| `note_reclaim_title` | Claim this note yourself? |
 | `note_not_found` | This note isn't in this account. |
-| `mint_key_changed` | The signing key of %1$s doesn't match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept a new key. Payments to your addresses there wait until then. |
+| `mint_key_changed` | The signing key of %1$s doesn't match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept the new key. Payments to your addresses there wait until then. |
 | `settings_notes` | Note settings |
 | `settings_note_list` | Notes |
 | `settings_note_list_hint` | See your notes one by one, hand them out, split or combine them |

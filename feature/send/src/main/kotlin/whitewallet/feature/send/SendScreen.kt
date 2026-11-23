@@ -41,6 +41,7 @@ import whitewallet.core.designsystem.MintChoiceLine
 import whitewallet.core.designsystem.MintChoiceSheet
 import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ResultScreen
 import whitewallet.core.designsystem.ResultTone
 import whitewallet.core.designsystem.ScreenColumn
@@ -148,14 +149,14 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
                 anchor = Anchor.SendSuccess,
                 status = WalletStatus.Sent(paid.amountMsat),
                 title = stringResource(R.string.send_paid_title),
-                done = SuccessAction(stringResource(R.string.send_done), onDone),
+                done = SuccessAction(stringResource(DesignR.string.done), onDone),
                 more = SuccessAction(stringResource(R.string.send_more), actions.onSendMore),
                 amountMsat = paid.amountMsat,
                 modifier = Modifier.padding(padding),
                 lines =
                     listOfNotNull(
                         to?.let { stringResource(R.string.send_success_to, it) },
-                        paid.feeMsat.takeIf { it > 0 }?.let { stringResource(R.string.send_fee, formatAmount(it)) },
+                        paid.feeMsat.takeIf { it > 0 }?.let { stringResource(DesignR.string.fee, formatAmount(it)) },
                     ),
             )
             return@Scaffold
@@ -231,7 +232,7 @@ internal fun SendFromSheet(mints: List<SendMint>, from: String?, amountMsat: Lon
 internal fun mintDetail(mint: SendMint, amountMsat: Long?): String {
     val most = formatAmount(mint.maxMsat)
     return when {
-        mint.keyChanged -> stringResource(R.string.send_from_key_changed)
+        mint.keyChanged -> stringResource(DesignR.string.key_mismatch_short)
         amountMsat != null && mint.maxMsat < amountMsat -> stringResource(R.string.send_from_not_enough, most)
         mint.isHome -> stringResource(R.string.send_from_detail_home, most)
         else -> stringResource(R.string.send_from_detail, most)
@@ -285,7 +286,7 @@ private fun InputContent(state: SendState, actions: SendActions, onPickMint: (()
             enabled = !state.checking,
             modifier = Modifier.weight(1f),
         ) {
-            Text(stringResource(R.string.send_scan))
+            Text(stringResource(DesignR.string.scan_qr))
         }
         WalletButton(
             kind = ButtonKind.Secondary,
@@ -298,7 +299,7 @@ private fun InputContent(state: SendState, actions: SendActions, onPickMint: (()
             enabled = !state.checking,
             modifier = Modifier.weight(1f),
         ) {
-            Text(stringResource(R.string.send_paste))
+            Text(stringResource(DesignR.string.paste))
         }
     }
     state.shownProblem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
@@ -339,7 +340,7 @@ internal fun KeyChangedHeld(stuck: List<SendMint>, mintsVisible: Boolean, onOpen
     }
     stuck.forEach { mint ->
         LimitText(stringResource(R.string.send_key_changed_held, formatAmount(mint.maxMsat), mint.host))
-        WalletButton(kind = ButtonKind.Text, onClick = { onOpenMint(mint.host) }) { Text(stringResource(R.string.send_key_changed_action)) }
+        WalletButton(kind = ButtonKind.Text, onClick = { onOpenMint(mint.host) }) { Text(stringResource(DesignR.string.details)) }
     }
 }
 
@@ -372,7 +373,7 @@ private fun ScanContent(actions: SendActions) {
         onScanned = actions.onScanned,
         modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.large),
     )
-    WalletButton(kind = ButtonKind.Text, onClick = actions.onStopScan) { Text(stringResource(R.string.send_scan_cancel)) }
+    WalletButton(kind = ButtonKind.Text, onClick = actions.onStopScan) { Text(stringResource(DesignR.string.cancel)) }
 }
 
 @Composable
@@ -461,8 +462,8 @@ private fun QuoteText(quote: PayQuote?) {
         when (quote) {
             null -> return
             is PayQuote.Ok ->
-                (if (quote.feeMsat > 0) stringResource(R.string.send_fee, formatAmount(quote.feeMsat))
-                else stringResource(R.string.send_no_fee)) to false
+                (if (quote.feeMsat > 0) stringResource(DesignR.string.fee, formatAmount(quote.feeMsat))
+                else stringResource(DesignR.string.no_fee)) to false
             is PayQuote.Unreachable ->
                 stringResource(R.string.send_not_exact, formatAmount(quote.allMsat), formatAmount(quote.maxWithChangeMsat)) to true
             is PayQuote.Invalid ->
@@ -497,7 +498,7 @@ private fun PayEnded(
     modifier: Modifier,
 ) {
     val to = preview.payee
-    val done = SuccessAction(stringResource(R.string.send_done), onDone)
+    val done = SuccessAction(stringResource(DesignR.string.done), onDone)
     when (result) {
         // Shown by SuccessScreen instead.
         is PayResult.Paid -> Unit
@@ -528,13 +529,13 @@ private fun PayEnded(
                 // Only a pay link can be tried again, with a new invoice: a mint pays an invoice once, and takes no second try at one that
                 // failed. One that no mint was asked to pay is as good as new.
                 more =
-                    SuccessAction(stringResource(R.string.send_try_again), onTryAgain).takeIf {
+                    SuccessAction(stringResource(DesignR.string.try_again), onTryAgain).takeIf {
                         preview.destination is PayDestination.PayLink || result.problem == PayProblem.MintNotAnswering
                     },
                 lines =
                     listOfNotNull(
                         problemText(result.problem, result.host?.takeIf { mintsVisible }),
-                        result.mintMessage?.let { stringResource(R.string.send_problem_mint_message, it) },
+                        result.mintMessage?.let { stringResource(DesignR.string.mint_message, it) },
                     ),
             )
     }
@@ -553,7 +554,7 @@ internal fun problemText(problem: PayProblem, host: String? = null): String =
                 PayProblem.Expired -> R.string.send_problem_expired
                 PayProblem.Unreachable -> R.string.send_problem_unreachable
                 PayProblem.MintNotAnswering -> R.string.send_problem_mint_silent_unnamed
-                PayProblem.KeyChanged -> R.string.send_problem_key_changed
+                PayProblem.KeyChanged -> DesignR.string.mint_key_changed_nothing_sent
                 PayProblem.PayeeRefused -> R.string.send_problem_payee_refused
                 PayProblem.InvoiceMismatch -> R.string.send_problem_mismatch
                 PayProblem.OwnAddress -> R.string.send_problem_own_address
@@ -565,6 +566,6 @@ internal fun problemText(problem: PayProblem, host: String? = null): String =
                 PayProblem.Refused -> R.string.send_problem_refused
                 PayProblem.OwnMintInvoice -> R.string.send_problem_own_mint_invoice
                 PayProblem.InvoiceUsed -> R.string.send_problem_invoice_used
-                PayProblem.PaymentFailed -> R.string.send_problem_payment_failed
+                PayProblem.PaymentFailed -> DesignR.string.payment_failed_nothing_paid
             }
         )

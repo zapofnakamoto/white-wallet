@@ -162,9 +162,9 @@ class MoveFundsScreenTest {
         show(twoWallets.copy(result = MoveResult.Moved(3_000, listOf(stayed(StayReason.Unreachable)))), onMove = { again++ })
         // The amount that stayed, with the account it is still in.
         compose.onNode(hasText("Main", substring = true) and hasText("9", substring = true)).assertExists()
-        compose.onNodeWithText(text(R.string.move_stayed_unreachable, "mint-b.example")).assertExists()
-        compose.onNodeWithText(text(R.string.move_done)).assertExists()
-        compose.onNodeWithText(text(R.string.move_retry)).performClick()
+        compose.onNodeWithText(text(DesignR.string.mint_not_answering, "mint-b.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.done)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.try_again)).performClick()
         assertEquals(1, again)
     }
 
@@ -197,8 +197,8 @@ class MoveFundsScreenTest {
         compose.onNodeWithText(text(R.string.move_success_title)).assertExists()
         // Where it went, under its wallet: there are two.
         compose.onNodeWithText(text(R.string.move_success_to, text(R.string.home_account_in_wallet, "Wallet 2", "Savings"))).assertExists()
-        compose.onNodeWithText(text(R.string.move_retry)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.move_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, back)
     }
 
@@ -243,7 +243,7 @@ class MoveFundsScreenTest {
         compose.onNodeWithText(text(R.string.move_stayed_key, "mint-b.example")).assertExists()
         // Nothing a mint or the wallet said in English is shown.
         compose.onNodeWithText("signing key of this host", substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.move_retry)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.move_mint_details, "mint-b.example")).performClick()
         assertEquals("mint-b.example", opened)
     }
@@ -255,7 +255,7 @@ class MoveFundsScreenTest {
         compose.onNodeWithText(text(R.string.move_stayed_other_key, "mint-b.example", "Travel")).assertExists()
         // The page of the mint is the wallet in use's, where nothing is wrong: it isn't offered, nor is trying again.
         compose.onNodeWithText(text(R.string.move_mint_details, "mint-b.example")).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.move_retry)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
         // With several wallets, the account the money is still in is named with its wallet.
         compose
             .onNode(hasText(text(R.string.home_account_in_wallet, text(R.string.accounts_wallet, 1), "Main"), substring = true))
@@ -266,11 +266,11 @@ class MoveFundsScreenTest {
     fun whereMintsArentNamedWhatStayedIsSaidWithoutSayingWhere() {
         val result = MoveResult.Moved(3_000, listOf(stayed(StayReason.Unreachable), stayed(StayReason.OtherWalletKey, "mint-c.example")))
         show(twoWallets.copy(result = result, showMints = false))
-        compose.onNodeWithText(text(R.string.move_stayed_unreachable_unnamed)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_not_answering_unnamed)).assertExists()
         compose.onNodeWithText(text(R.string.move_stayed_blocked_unnamed)).assertExists()
         compose.onNodeWithText("mint-b.example", substring = true).assertDoesNotExist()
         compose.onNodeWithText("mint-c.example", substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.move_retry)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertExists()
     }
 
     @Test
@@ -283,8 +283,8 @@ class MoveFundsScreenTest {
             onCancelPartial = { cancelled++ },
         )
         compose.onNodeWithText(text(R.string.move_partial_title)).assertExists()
-        compose.onNodeWithText(text(R.string.move_stayed_unreachable, "mint-b.example")).assertExists()
-        compose.onNodeWithText(text(R.string.move_partial_cancel)).performClick()
+        compose.onNodeWithText(text(DesignR.string.mint_not_answering, "mint-b.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.cancel)).performClick()
         assertEquals(0 to 1, confirmed to cancelled)
         // The button says how much moves.
         compose.onNode(hasText("3", substring = true) and hasClickAction()).performClick()
@@ -301,18 +301,18 @@ class MoveFundsScreenTest {
             )
         show(twoWallets.copy(result = result))
         compose.onNode(hasText("mint-b.example", substring = true) and hasText("5", substring = true)).assertExists()
-        compose.onNodeWithText(text(R.string.move_stayed_unreachable, "mint-c.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_not_answering, "mint-c.example")).assertExists()
         // Trying again is for the mint that didn't answer before anything was sent.
-        compose.onNodeWithText(text(R.string.move_retry)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertExists()
     }
 
     @Test
     fun aMoveOfWhichNothingIsKnownYetOffersNothingButToWait() {
         show(twoWallets.copy(result = MoveResult.Pending(listOf(MovePending("mint-b.example", 9_000)))))
         compose.onNode(hasText("mint-b.example", substring = true) and hasText("9", substring = true)).assertExists()
-        compose.onNodeWithText(text(R.string.move_retry)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.move_none)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.move_done)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.done)).assertExists()
     }
 
     @Test

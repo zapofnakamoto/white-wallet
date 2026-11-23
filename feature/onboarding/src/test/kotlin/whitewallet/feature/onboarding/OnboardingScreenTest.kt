@@ -173,7 +173,7 @@ class OnboardingScreenTest {
         compose.onNodeWithText(text(DesignR.string.share)).assertExists()
         // What people wouldn't guess: the address receives while the phone is off.
         compose.onNodeWithText(text(R.string.claimed_body)).assertExists()
-        compose.onNodeWithText(text(R.string.success_done)).performClick()
+        compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertTrue(continued)
     }
 

@@ -165,12 +165,12 @@ class ReceiveScreenTest {
         compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}, InvoiceActions(onOpenMint = { opened += it })) }
         compose.onNodeWithText(text(R.string.receive_invoice_key_changed, "home.example")).assertExists()
         compose.onNodeWithText(text(R.string.receive_invoice_refused)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.receive_key_changed_action)).performScrollTo().performClick()
+        compose.onNodeWithText(text(DesignR.string.details)).performScrollTo().performClick()
         assertEquals(listOf("home.example"), opened)
         // Where the brand hides mints, none is named, and there is no page to go to.
         state = state.copy(mintsVisible = false)
         compose.onNodeWithText(text(R.string.receive_invoice_key_changed_unnamed)).assertExists()
-        compose.onNodeWithText(text(R.string.receive_key_changed_action)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.details)).assertDoesNotExist()
     }
 
     @Test
@@ -235,7 +235,7 @@ class ReceiveScreenTest {
         compose.onNodeWithText(text(R.string.receive_address_key_changed, "home.example")).assertExists()
         compose.onNodeWithText(text(R.string.receive_address_mint_silent, "home.example")).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.receive_hint)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.receive_key_changed_action)).performScrollTo().performClick()
+        compose.onNodeWithText(text(DesignR.string.details)).performScrollTo().performClick()
         assertEquals(listOf("home.example"), opened)
     }
 
@@ -293,7 +293,7 @@ class ReceiveScreenTest {
             )
         }
         compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performScrollTo().performClick()
-        compose.onNodeWithText(text(R.string.receive_on_key_changed)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.key_mismatch_short)).assertExists()
         compose.onNodeWithText("other.example").performClick()
         assertTrue(picked.isEmpty())
     }

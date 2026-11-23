@@ -43,7 +43,7 @@
     <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a note may cost a split fee.</string>
     <!-- Before a move to an account of another wallet. %1$s: the mint's host, %2$s: that wallet's name. -->
     <string name="move_adds_mint">%1$s will be added to the mints of %2$s.</string>
-    <string name="home_key_changed_body">Nothing is sent there until it matches again, or you accept a new key in the mint\'s details.</string>
+    <string name="home_key_changed_body">Nothing is sent there until it matches again, or you accept the new key in the mint\'s details.</string>
     <!-- What the wallet did to the notes by itself, in a short message on the home screen. -->
     <plurals name="notice_combined_into_one">
         <item quantity="one">Combined %1$d note into one of %2$s</item>
@@ -115,13 +115,11 @@
         <item quantity="other">Asked just now: the mint still doesn\'t know your notes.</item>
     </plurals>
     <!-- It got no answer, where mints aren't named (brand mints.visible=false) or it isn't known which; else notice_unknown_unreachable. -->
-    <string name="notice_unknown_unreachable_unnamed">No answer from the mint. Your wallet asks again later.</string>
+    <string name="notice_unknown_unreachable_unnamed">Your mint isn\'t answering. Your wallet asks again later.</string>
 
     <!-- A card on the home screen: a mint the account uses (not the home mint) didn't answer. %1$s: the mint. -->
     <!-- Under a mint's row below the balance: it didn't answer the last time the wallet asked it. -->
     <string name="home_mint_not_answering">Not answering</string>
-    <!-- Under a mint's name on Home: its signing key doesn't match the pinned one, so its money can't be spent for now -->
-    <string name="home_mint_key_changed">Signing key doesn\'t match</string>
     <string name="home_mint_silent_title">%1$s isn\'t answering</string>
     <!-- Under the title: what that stops. A mint that isn't the home mint only holds money. -->
     <string name="home_mint_silent_body">Until it answers, you can\'t spend the money there. Your wallet keeps asking.</string>
@@ -129,7 +127,6 @@
     <string name="home_mints_silent_body">Until they answer, you can\'t spend the money there. Your wallet keeps asking.</string>
     <string name="home_mint_silent_body_home">Until it answers, you can\'t receive or spend money there. Your wallet keeps asking.</string>
     <string name="home_mint_silent_body_home_empty">Until it answers, you can\'t receive money there. Your wallet keeps asking.</string>
-    <string name="home_mint_silent_action">Check again</string>
     <string name="home_link_unreadable">This link can\'t be used here.</string>
     <string name="home_receive">Receive</string>
     <string name="home_empty">No payments yet. What you receive and send shows up here.</string>
@@ -151,20 +148,16 @@
     <string name="activity_moved_in">Moved from %1$s</string>
     <string name="activity_moved_in_other">Moved from another account</string>
     <string name="activity_renewed">Moved onto a new key</string>
-    <string name="activity_note_waiting">Not claimed yet</string>
     <string name="activity_note_spent">Spent</string>
-    <string name="activity_note_taken_back">Taken back</string>
+    <string name="activity_note_taken_back">Claimed yourself</string>
     <!-- A sent note removed for good while its mint didn't know it: whether it was claimed isn't known. -->
     <string name="activity_note_unverified">Claim not verified</string>
     <string name="activity_moved_mint">Moved to %1$s</string>
     <string name="activity_amount_in">+%1$s</string>
     <string name="activity_amount_out">−%1$s</string>
-    <string name="activity_pending">Waiting for an answer…</string>
     <string name="activity_failed">Failed, nothing changed</string>
-    <string name="activity_uncertified">Amount not certified</string>
-    <string name="activity_fee">Fee %1$s</string>
     <!-- The mint paid back part of the fees it had taken, e.g. when notes were combined. -->
-    <string name="activity_fee_refunded">Fee refunded %1$s</string>
+    <string name="activity_fee_refunded">Fee refunded: %1$s</string>
     <string name="activity_automatic">Automatic</string>
     <string name="activity_manual">By you</string>
     <!-- Joins the parts of a history row's detail line (time, status, fee). -->
@@ -172,7 +165,6 @@
     <!-- Under Send and Receive, when the last update of the wallet didn't go through, with a button to try again. -->
     <string name="home_offline">You\'re offline. Your wallet updates when you\'re back online.</string>
     <string name="home_update_failed">Couldn\'t update. What you see may be out of date.</string>
-    <string name="home_try_again">Try again</string>
     <string name="home_backup_title">Back up your wallet</string>
     <string name="home_backup_body">If you lose this phone, your recovery phrase is the only way to get your money back. It takes two minutes.</string>
     <string name="home_backup_action">Back up</string>
@@ -183,12 +175,11 @@
     <string name="home_address_inactive_title">An address isn\'t active</string>
     <string name="home_address_inactive_body">Payments to %1$s won\'t reach this wallet. Check your addresses to keep receiving.</string>
     <string name="home_address_inactive_action">Show addresses</string>
-    <string name="home_unknown_action">Check again</string>
     <!-- When the mint last said it doesn't know them. %1$s: how long ago, in the phone's own words ("5 minutes ago"). -->
     <string name="home_unknown_asked">Last asked: %1$s</string>
     <string name="home_unknown_asked_now">Last asked: just now</string>
     <!-- "Check again" got no answer. %1$s: the mint. -->
-    <string name="notice_unknown_unreachable">No answer from %1$s. Your wallet asks again later.</string>
+    <string name="notice_unknown_unreachable">%1$s isn\'t answering. Your wallet asks again later.</string>
     <string name="accounts_title">Accounts</string>
     <string name="accounts_manage">Manage wallets</string>
     <string name="accounts_move">Move funds</string>
@@ -201,7 +192,6 @@
     <string name="move_action">Move</string>
     <string name="move_moved">Moved %1$s</string>
     <string name="move_nothing">There is nothing to move.</string>
-    <string name="move_done">Done</string>
     <!-- The success screen once all of it moved: its title, above the amount, and where it went (an account, or "Wallet 2: Savings") -->
     <string name="move_success_title">Moved</string>
     <string name="move_success_to">To %1$s</string>
@@ -218,17 +208,12 @@
     <string name="move_failed">Refused: %1$s</string>
     <!-- After a move that left money behind. %1$s: the amount that stayed, %2$s: the account it is still in. -->
     <string name="move_stayed">Still in %2$s: %1$s</string>
-    <string name="move_none">Nothing was moved.</string>
-    <!-- Why money stayed, said after a move and before one that can't be whole. %1$s: the mint's host. -->
-    <string name="move_stayed_unreachable">No answer from %1$s. Try again later.</string>
-    <string name="move_stayed_key">The signing key of %1$s doesn\'t match the one your wallet knows. Look at its details before you try again.</string>
+    <string name="move_none">Nothing was moved. Your money stays where it was.</string>
+    <string name="move_stayed_key">The signing key of %1$s doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in its details, nothing is moved from there.</string>
     <!-- The wallet the money was to go to knows the mint by another key. %1$s: the mint's host, %2$s: that wallet's name. -->
     <string name="move_stayed_other_key">%2$s knows %1$s by another signing key. Look at it in that wallet before you try again.</string>
     <string name="move_stayed_refused">%1$s doesn\'t accept the move.</string>
-    <!-- The same where mints aren't named (brand mints.visible=false). -->
-    <string name="move_stayed_unreachable_unnamed">It can\'t be moved right now. Try again later.</string>
     <string name="move_stayed_blocked_unnamed">It can\'t be moved.</string>
-    <string name="move_retry">Try again</string>
     <!-- Opens the page of the mint whose signing key isn't the one expected. %1$s: the mint's host. -->
     <string name="move_mint_details">Details of %1$s</string>
     <!-- Asked before a move of which only a part can be made. -->
@@ -237,24 +222,16 @@
     <string name="move_partial_body">Would stay in %2$s: %1$s</string>
     <!-- The button that moves what can move. %1$s: that amount. -->
     <string name="move_partial_confirm">Move %1$s</string>
-    <string name="move_partial_cancel">Cancel</string>
     <string name="home_key_changed_title">Signing key of %1$s doesn\'t match</string>
-    <string name="home_key_changed_action">Details</string>
     <!-- After a notice_* message: what it did to the balance, as a sentence of its own. -->
     <string name="notice_with_balance">%1$s. %2$s</string>
     <string name="notice_fees_back">You got %1$s in fees back.</string>
     <string name="notice_fees_paid">Fees paid: %1$s.</string>
-    <!-- Opens History with note maintenance shown. -->
-    <string name="notice_details">Details</string>
 
     <!-- Home's loading screen: what the wallet is doing, shown instead of figures about to change. -->
     <string name="home_working_updating">Updating your balance…</string>
     <string name="home_scan">Scan a QR code</string>
     <string name="accounts_wallet">Wallet %1$d</string>
-    <!-- Notes handed out as links that nobody has claimed yet, under the balance. %1$s: what they are worth. -->
-    <string name="home_shared_total">%1$s handed out, not claimed yet</string>
-    <!-- The same while the balance is hidden: no amount. -->
-    <string name="home_shared_title">Handed out, not claimed yet</string>
     <!-- Under the balance: what of it is on mints whose signing key doesn't match (%1$s); counted, but it can't be spent for now -->
     <string name="home_key_changed_part">%1$s of it can\'t be spent right now</string>
     <!-- As home_key_changed_part, while the balance is hidden -->
@@ -273,7 +250,6 @@
     <!-- A mint's row under the balance, opened: pay from it, receive on it, its page -->
     <string name="home_mint_send">Send</string>
     <string name="home_mint_receive">Receive</string>
-    <string name="home_mint_details">Details</string>
     <!-- For screen readers: what tapping a mint's row does, and how it is once opened -->
     <string name="home_mint_open">show actions</string>
     <string name="home_mint_opened">Actions shown</string>

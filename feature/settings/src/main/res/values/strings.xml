@@ -135,7 +135,6 @@
         <item quantity="other">Other apps and keyboards may be able to read your clipboard. Writing the words down is safer. The clipboard is cleared after %d minutes.</item>
     </plurals>
     <string name="backup_copy_confirm">Copy anyway</string>
-    <string name="backup_cancel">Cancel</string>
     <plurals name="backup_copied_seconds">
         <item quantity="one">Copied. The clipboard will be cleared in %d second.</item>
         <item quantity="other">Copied. The clipboard will be cleared in %d seconds.</item>
@@ -150,7 +149,6 @@
     <string name="backup_verify_skip">Skip, I already checked it</string>
     <string name="backup_success_title">Backup complete</string>
     <string name="backup_success_body">Store your paper somewhere safe. Nobody else has a copy of your recovery phrase.</string>
-    <string name="backup_done">Done</string>
 
     <string name="settings_backup_now">Back up your recovery phrase</string>
     <string name="settings_backup_now_hint">Without it, your money is gone if you lose this phone.</string>
@@ -196,7 +194,6 @@
     <string name="keys_purpose_change">Change (1)</string>
     <string name="keys_address_number">Address %1$d</string>
     <string name="keys_scan_stopped">Stopped early: %1$s</string>
-    <string name="keys_recheck">Recheck</string>
     <string name="keys_status_confirming">waiting for an answer</string>
     <string name="keys_status_spent">spent</string>
     <string name="keys_status_skipped">never used</string>
@@ -224,7 +221,6 @@
     <string name="regtest_unreachable">Local mint not reachable at %1$s</string>
     <string name="regtest_limits">Mint limits: %1$s to %2$s</string>
     <string name="regtest_fee">Mint fee: %1$d msat + %2$d ppm</string>
-    <string name="regtest_recheck">Check again</string>
     <string name="regtest_fix">On your computer, start the stack and forward the port to this device:</string>
     <string name="regtest_commands">Commands (run on your computer)</string>
     <string name="regtest_pay_address">Pay your address from the regtest node:</string>
@@ -259,7 +255,7 @@
     <string name="keys_index">Index #%1$d</string>
     <string name="keys_gap_limit">Gap limit</string>
     <string name="keys_scan_ahead">Scan ahead (from #%1$d)</string>
-    <string name="keys_recheck_all">Recheck all (from #0)</string>
+    <string name="keys_recheck_all">Check all again (from #0)</string>
     <string name="keys_scanned">Checked #%1$d–#%2$d: %3$d with funds, %4$d new · index now #%5$d</string>
     <string name="keys_behind">Behind used key #%1$d. Find index fixes this.</string>
     <string name="settings_address_unconfirmed">Registered (the app can\'t confirm it)</string>
@@ -276,18 +272,16 @@
     </plurals>
     <string name="logs_description">Every request to a server and its response</string>
     <string name="keys_hint_skipped">Handed out, but never used</string>
-    <string name="keys_hint_handed_out">Used before, no note in this wallet, never looked up. Recheck to look it up.</string>
+    <string name="keys_hint_handed_out">Used before, no note in this wallet, never looked up. Check again to look it up.</string>
     <string name="keys_lookup">Lookup: %1$s (checked %2$s)</string>
     <string name="keys_lookup_none">Never looked up</string>
     <string name="keys_no_mint">This account has no address yet.</string>
-    <string name="keys_renew_pending">No answer yet. The wallet asks again on the next refresh.</string>
+    <string name="keys_renew_pending">No answer yet. Your wallet asks again on the next refresh.</string>
     <string name="keys_set_body">Lowest allowed: #%1$d. Used keys are never reissued, so the index can\'t go below keys this wallet has used.</string>
 
     <string name="mint_reachable">Reachable</string>
     <string name="mint_unreachable">Not answering right now</string>
     <string name="mint_offline">You\'re offline</string>
-    <string name="mint_key_changed_short">Signing key doesn\'t match</string>
-    <string name="mint_check_again">Check again</string>
     <string name="mint_your_money">Your money here</string>
     <string name="mint_fees">Fees</string>
     <!-- %1$s: base fee per operation (an amount), %2$s: percentage of the amount, already formatted for the locale. -->
@@ -340,7 +334,7 @@
     <string name="notes_collect_confirm">Turn on</string>
     <string name="notes_collect_fee_cap">Only when the fees are at most</string>
     <string name="notes_collect_fee_cap_option">%1$d%%</string>
-    <string name="notes_collect_moved">Moved %1$s from %2$s (fee %3$s)</string>
+    <string name="notes_collect_moved">Moved %1$s from %2$s after a fee of %3$s</string>
     <string name="notes_collect_fee_too_high">Not moved: %1$s on %2$s. The fee of %3$s is more than %4$d%%.</string>
     <string name="notes_collect_too_small">Not moved: %1$s on %2$s is too little to move.</string>
     <string name="notes_collect_failed">Not moved: %1$s on %2$s. Trying again later.</string>
@@ -367,13 +361,12 @@
     <string name="money_move_from">All your money on %1$s goes to the one you pick, combined into one payment.</string>
     <string name="money_move_target">To</string>
     <string name="money_error_mint">%1$s doesn\'t answer as expected.</string>
-    <string name="money_error_network">Couldn\'t connect. Try again later.</string>
     <string name="money_offline">You\'re offline. Connect to continue.</string>
     <string name="money_continue">Continue</string>
     <string name="money_back">Back</string>
     <string name="money_review_to">To %1$s</string>
-    <string name="money_review_moves">%1$s on %2$s: %3$s arrives, the fee is %4$s</string>
-    <string name="money_review_over_cap">%1$s on %2$s stays: moving it costs more than %3$d %%</string>
+    <string name="money_review_moves">%1$s on %2$s: %3$s arrives after a fee of %4$s</string>
+    <string name="money_review_over_cap">%1$s on %2$s stays: moving it costs more than %3$d%%</string>
     <string name="money_review_too_small">%1$s on %2$s stays: too little to move</string>
     <string name="money_review_unavailable">%1$s on %2$s stays: no price right now</string>
     <string name="money_review_fee_total">Fees in total: %1$s</string>
@@ -385,7 +378,7 @@
     <string name="money_change_and_move">Change and move %1$s</string>
     <string name="money_home_changed">New home: %1$s</string>
     <string name="money_result_money_stays">Your money stayed where it was.</string>
-    <string name="money_result_moved">%1$s arrived from %2$s (fee %3$s)</string>
+    <string name="money_result_moved">%1$s arrived from %2$s after a fee of %3$s</string>
     <string name="money_result_pending">%1$s from %2$s is on its way</string>
     <string name="money_result_failed">%1$s on %2$s didn\'t move (%3$s). It\'s still there.</string>
     <string name="money_reason_payment">the payment failed</string>
@@ -394,10 +387,8 @@
     <string name="money_reason_key_changed">the signing key doesn\'t match</string>
     <string name="money_reason_gone">already moved</string>
     <string name="money_reason_refused">refused</string>
-    <string name="money_try_again">Try again</string>
-    <string name="money_done">Done</string>
     <!-- The success screen's title once all the money the user moved arrived -->
-    <string name="money_nothing_moved_title">Nothing moved</string>
+    <string name="money_nothing_moved_title">Not moved</string>
     <string name="money_moved_title">Moved</string>
     <string name="mint_move_all_here">Move all money here</string>
     <string name="money_move_all_body">All of this account\'s money held elsewhere comes here, in one payment from each place.</string>
@@ -454,7 +445,6 @@
     <string name="account_rename_title">Rename account</string>
     <string name="account_rename_hint">The name stays on this phone.</string>
     <string name="rename_save">Save</string>
-    <string name="rename_cancel">Cancel</string>
     <string name="account_not_in_use">This account is not in use. Use it to see what it holds and to change its settings.</string>
     <string name="account_use">Use this account</string>
     <string name="account_remove">Remove this account</string>

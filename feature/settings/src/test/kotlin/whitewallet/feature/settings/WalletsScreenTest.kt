@@ -332,7 +332,7 @@ class WalletsScreenTest {
         val removal = AccountRemoval(null, 0, emptyList())
         compose.setContent { AccountRemovalDialog("Savings", removal, removing = true, { dismissed = true }, {}) }
         compose.onNodeWithText(text(R.string.account_remove_title, "Savings")).assertExists()
-        compose.onNodeWithText(text(R.string.rename_cancel)).assertIsNotEnabled()
+        compose.onNodeWithText(text(DesignR.string.cancel)).assertIsNotEnabled()
         assertEquals(false, dismissed)
     }
 

@@ -68,7 +68,7 @@ fun KeyChangedCard(host: String, remembered: String?, presented: String?, onAcce
                 }
             },
             dismissButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.mint_key_cancel)) }
+                WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
