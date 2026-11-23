@@ -87,7 +87,8 @@ private fun MintPageHeader(mint: MintNotes, state: NotesState, actions: NotesAct
         }
         val labels =
             listOfNotNull(
-                pluralStringResource(R.plurals.notes_count, mint.notes.size, mint.notes.size),
+                // In the balance, as the total and the pile count them; the others say so on their rows.
+                pluralStringResource(R.plurals.notes_count, mint.inBalance.size, mint.inBalance.size),
                 stringResource(R.string.notes_home_mint).takeIf { mint.isHome && state.showMints },
                 stringResource(R.string.notes_trusted).takeIf { mint.trusted && state.showMints },
             )

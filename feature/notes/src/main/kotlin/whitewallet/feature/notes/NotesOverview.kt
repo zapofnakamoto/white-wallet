@@ -25,12 +25,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -73,12 +73,11 @@ import whitewallet.core.model.Note
  * and tapped to open; then what isn't in the balance (received, handed out, the archive) and the note settings.
  */
 @Composable
-internal fun NotesOverview(state: NotesState, actions: NotesActions, scroll: ScrollState, pager: PagerState) {
-    // Received links that wait for the user open their section by themselves.
-    var receivedOpen by rememberSaveable { mutableStateOf(state.received.any { it.needsUser() }) }
+internal fun NotesOverview(state: NotesState, actions: NotesActions, overview: OverviewState) {
+    var receivedOpen by overview.receivedOpen
     val received = remember { BringIntoViewRequester() }
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+    Column(Modifier.fillMaxSize().verticalScroll(overview.scroll)) {
         Summary(state)
         if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
         state.outcome?.takeIf { state.open == null }?.let { Outcome(it, state.showMints, actions.dismissOutcome) }
@@ -89,13 +88,25 @@ internal fun NotesOverview(state: NotesState, actions: NotesActions, scroll: Scr
         }
         Attention(state, actions) {
             receivedOpen = true
-            scope.launch { received.bringIntoView() }
+            // Once its rows are drawn, so they come into view, not only its heading.
+            scope.launch {
+                withFrameNanos {}
+                received.bringIntoView()
+            }
         }
-        if (state.mints.isNotEmpty()) MintPiles(state, actions, pager)
-        OutsideBalance(state, actions, receivedOpen, { receivedOpen = !receivedOpen }, Modifier.bringIntoViewRequester(received))
+        if (state.mints.isNotEmpty()) MintPiles(state, actions, overview.pager)
+        OutsideBalance(state, actions, overview, Modifier.bringIntoViewRequester(received))
         actions.openSettings?.let { SettingsRow(it) }
     }
 }
+
+/** What the overview keeps while a mint's page is open: where it was scrolled and swiped to, and which sections are open. */
+internal class OverviewState(
+    val scroll: ScrollState,
+    val pager: PagerState,
+    val receivedOpen: MutableState<Boolean>,
+    val sharedOpen: MutableState<Boolean>,
+)
 
 /** The balance, and how many notes on how many mints make it up. */
 @Composable
@@ -277,7 +288,6 @@ private fun PageControls(pager: PagerState, count: Int) {
         val position = stringResource(R.string.notes_mint_position, current + 1, count)
         Row(
             Modifier.clearAndSetSemantics {
-                stateDescription = position
                 contentDescription = position
             },
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -301,39 +311,39 @@ private fun PageControls(pager: PagerState, count: Int) {
 private fun OutsideBalance(
     state: NotesState,
     actions: NotesActions,
-    receivedOpen: Boolean,
-    toggleReceived: () -> Unit,
+    overview: OverviewState,
     receivedModifier: Modifier,
 ) {
     if (state.received.isEmpty() && state.shared.isEmpty() && state.archivedCount == 0) return
-    var sharedOpen by rememberSaveable { mutableStateOf(false) }
+    var receivedOpen by overview.receivedOpen
+    var sharedOpen by overview.sharedOpen
     HorizontalDivider(Modifier.padding(top = 16.dp))
     Text(
         stringResource(R.string.notes_outside_title),
         style = MaterialTheme.typography.titleSmall,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp).semantics { heading() },
     )
-    if (state.received.isNotEmpty()) {
-        Section(
-            stringResource(DesignR.string.received_title),
-            amount(state.receivedMsat, state.received.size),
-            receivedOpen,
-            toggleReceived,
-            receivedModifier,
-        )
-        if (receivedOpen) {
-            Hint(stringResource(DesignR.string.received_hint))
-            state.received.forEach { note ->
-                ReceivedNoteRow(
-                    note,
-                    state.showMints,
-                    amountHidden = false,
-                    actions.received,
-                    wait = note.waitsFor(state.offline, state.notAnsweringHosts),
-                )
+    if (state.received.isNotEmpty())
+        Column(receivedModifier) {
+            Section(
+                stringResource(DesignR.string.received_title),
+                amount(state.receivedMsat, state.received.size),
+                receivedOpen,
+                { receivedOpen = !receivedOpen },
+            )
+            if (receivedOpen) {
+                Hint(stringResource(DesignR.string.received_hint))
+                state.received.forEach { note ->
+                    ReceivedNoteRow(
+                        note,
+                        state.showMints,
+                        amountHidden = false,
+                        actions.received,
+                        wait = note.waitsFor(state.offline, state.notAnsweringHosts),
+                    )
+                }
             }
         }
-    }
     if (state.shared.isNotEmpty()) {
         Section(
             stringResource(DesignR.string.handed_out_title),

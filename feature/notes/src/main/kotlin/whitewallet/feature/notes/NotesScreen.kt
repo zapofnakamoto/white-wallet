@@ -16,7 +16,9 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -35,6 +37,7 @@ import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.needsUser
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteState
@@ -178,7 +181,9 @@ fun NotesRoute(
             viewModel.sharedShown()
         }
     }
-    Scaffold(topBar = { WalletTopBar(stringResource(R.string.notes_title), onBack) }) { padding ->
+    // On a mint's page, the top bar's back arrow leads to all mints, as Back does.
+    val back = if (state.mintPage != null) viewModel::closeMint else onBack
+    Scaffold(topBar = { WalletTopBar(stringResource(R.string.notes_title), back) }) { padding ->
         PullToRefreshBox(
             isRefreshing = state.refreshing,
             onRefresh = viewModel::refresh,
@@ -200,12 +205,18 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
         if (state.selecting) actions.stopSelecting() else actions.closeMint()
     }
     if (!pageLoaded(state.loaded)) return
-    // Kept above both views, so coming back from a mint's page finds the overview as it was left.
-    val overviewScroll = rememberScrollState()
-    val pager = rememberPagerState { state.mints.size }
+    // Kept above both views, so coming back from a mint's page finds the overview as it was left. Received links that wait for
+    // the user open their section by themselves.
+    val overview =
+        OverviewState(
+            rememberScrollState(),
+            rememberPagerState { state.mints.size },
+            rememberSaveable { mutableStateOf(state.received.any { it.needsUser() }) },
+            rememberSaveable { mutableStateOf(false) },
+        )
     BrandBody(Page.Notes, notesStatus(state)) {
         when (val mint = state.pageMint) {
-            null -> NotesOverview(state, actions, overviewScroll, pager)
+            null -> NotesOverview(state, actions, overview)
             else -> MintPage(mint, state, actions)
         }
     }

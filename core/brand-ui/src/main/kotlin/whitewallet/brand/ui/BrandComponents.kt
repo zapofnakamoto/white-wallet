@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -79,6 +81,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import whitewallet.brand.ReleaseStage
 
 /**
@@ -160,7 +163,7 @@ interface BrandComponents {
      */
     @Composable fun NoteFace(params: NoteFaceParams, modifier: Modifier) = DefaultComponents.noteFace(params, modifier)
 
-    /** The heading of one mint's notes on its page: its name, labels and total, or only a separator. */
+    /** The heading of a mint's page: its name, labels and total; without a name (`mints.visible=false`) the total and labels. */
     @Composable fun NoteGroupHeader(params: NoteGroupParams, modifier: Modifier) = DefaultComponents.noteGroupHeader(params, modifier)
 
     /**
@@ -909,7 +912,7 @@ object DefaultComponents : BrandComponents {
                     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         val colors = params.billColors()
                         Bill(colors, Modifier.size(width = 240.dp, height = 132.dp), corner = 12.dp) {
-                            Text(params.amount, style = MaterialTheme.typography.headlineMedium, color = colors.ink)
+                            BillAmount(params.amount, MaterialTheme.typography.headlineMedium, colors)
                         }
                     }
                 else
@@ -939,8 +942,11 @@ object DefaultComponents : BrandComponents {
                         corner = 12.dp,
                         shade = 0.12f * i,
                     ) {
+                        // Decorative: the pile is read out by its mint, labels, total and detail, not by its biggest note.
                         if (i == 0)
-                            params.bills.firstOrNull()?.let { Text(it, style = MaterialTheme.typography.headlineSmall, color = colors.ink) }
+                            params.bills.firstOrNull()?.let {
+                                BillAmount(it, MaterialTheme.typography.headlineSmall, colors, Modifier.clearAndSetSemantics {})
+                            }
                     }
                 }
             }
@@ -1086,6 +1092,18 @@ private enum class TopBarSlot {
 }
 
 private fun Int?.orZero() = this ?: 0
+
+/** An amount on a bill: one line, smaller where a large font or a long amount wouldn't fit. */
+@Composable
+private fun BillAmount(text: String, style: TextStyle, colors: NoteColors, modifier: Modifier = Modifier) {
+    BasicText(
+        text,
+        modifier.padding(horizontal = 8.dp),
+        style = style.copy(color = colors.ink),
+        maxLines = 1,
+        autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
+    )
+}
 
 /** A bill's colours: its mint's, greyed out when the note is out of the balance. */
 @Composable

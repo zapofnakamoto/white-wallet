@@ -49,6 +49,10 @@ data class WalletColors(
      */
     val notes: List<NoteColors>,
 ) {
+    init {
+        require(notes.isNotEmpty()) { "WalletColors.notes needs at least one colour: the home mint's" }
+    }
+
     /** The bill colours of the mint at [index] among the user's mints, the home mint at 0 (see [notes]). */
     fun note(index: Int): NoteColors =
         when {

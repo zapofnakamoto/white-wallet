@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -97,7 +98,7 @@ data class NotesState(
     val developerMode: Boolean = false,
     /** What the brand lets users do with notes (brand `notes.actions`). */
     val noteActions: Set<NoteAction> = NoteAction.entries.toSet(),
-    /** Whether mints are named (brand `mints.visible`); without, one mint's notes are a plain list. */
+    /** Whether mints are named (brand `mints.visible`); without, the piles and a mint's page show no name nor labels. */
     val showMints: Boolean = true,
     /** The phone is offline ([Wallet.offline]): the view says so, and a received note waits for it. */
     val offline: Boolean = false,
@@ -183,10 +184,6 @@ data class NotesState(
     /** Selecting several notes only makes sense with an action that works on several, or with notes to archive. */
     val canSelect: Boolean
         get() = noteActions.any { it.bulk } || all.any(NotesViewModel::archivable)
-
-    /** A header per mint, unless mints aren't named and there is only one. */
-    val groupHeaders: Boolean
-        get() = showMints || mints.size > 1
 
     /** A split by hand would be undone by the account's strategy, so it switches to manual first (if offered). */
     val switchesToManual: Boolean
@@ -358,6 +355,12 @@ constructor(
                     knownHosts = (listOfNotNull(c.home) + mints.map { it.host } + c.devHosts).distinct(),
                 )
             }
+            // A mint's page whose notes are all gone closes for good, with its selection: it must not open by itself when a note
+            // lands there again, nor leave a selection behind on the overview.
+            .onEach { s ->
+                if (s.mintPage == null && ui.value.mintPage != null)
+                    ui.update { it.copy(mintPage = null, selecting = false, selected = emptySet()) }
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesState(loaded = false))
 
     /** Forgets a received note someone else spent. */
@@ -400,7 +403,7 @@ constructor(
     fun close() = ui.update { it.copy(open = null) }
 
     /** Opens [host]'s notes on a page of their own. */
-    fun openMint(host: String) = ui.update { it.copy(mintPage = host, outcome = null) }
+    fun openMint(host: String) = ui.update { it.copy(mintPage = host, outcome = null, selecting = false, selected = emptySet()) }
 
     /** Back to all mints at a glance; a selection ends with the page. */
     fun closeMint() = ui.update { it.copy(mintPage = null, selecting = false, selected = emptySet()) }

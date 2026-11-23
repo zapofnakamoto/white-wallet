@@ -263,8 +263,8 @@ fun WalletNoteFace(
 }
 
 /**
- * The heading of one mint's notes ([whitewallet.brand.ui.BrandComponents.NoteGroupHeader]); a heading for screen readers when it names the
- * [mint], else only a separator.
+ * The heading of a mint's page ([whitewallet.brand.ui.BrandComponents.NoteGroupHeader]): its name, total and labels; a heading for screen
+ * readers when it names the [mint].
  */
 @Composable
 fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted: Boolean, labels: String?, modifier: Modifier = Modifier) {

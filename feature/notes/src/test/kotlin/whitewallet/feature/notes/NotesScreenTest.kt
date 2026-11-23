@@ -494,7 +494,7 @@ class NotesScreenTest {
             )
         }
         compose.onNodeWithText("4 notes").assertExists()
-        compose.onNodeWithText("₿2,000").assertExists()
+        compose.onNodeWithText("₿2,430").assertExists()
         compose.onNodeWithText("other.example", substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.mint_not_answering_unnamed)).assertExists()
     }
