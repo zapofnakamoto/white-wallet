@@ -1,5 +1,7 @@
 package whitewallet.feature.send
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,19 +12,17 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
-import androidx.compose.runtime.Composable
-import whitewallet.brand.ui.LocalBrandDesign
-import whitewallet.brand.ui.DecorationContext
-import whitewallet.brand.ui.BrandDesign
-import whitewallet.brand.ui.Anchor
-import whitewallet.brand.WalletStatus
-import whitewallet.brand.ProblemKind
-import androidx.compose.runtime.CompositionLocalProvider
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import whitewallet.brand.ProblemKind
+import whitewallet.brand.WalletStatus
+import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.BrandDesign
+import whitewallet.brand.ui.DecorationContext
+import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.PayDestination
 import whitewallet.core.wallet.PayPreview
@@ -171,7 +171,9 @@ class SendScreenTest {
     fun aPaymentStillOnItsWayEndsOnTheResultScreen() {
         var done = 0
         val pending = PayResult.Pending(1_000_000)
-        compose.setContent { SendScreen(SendState(preview = payLink, result = pending), onBack = {}, onDone = { done++ }, actions = actions()) }
+        compose.setContent {
+            SendScreen(SendState(preview = payLink, result = pending), onBack = {}, onDone = { done++ }, actions = actions())
+        }
         compose.onNodeWithText(text(R.string.send_pending_title)).assertExists()
         compose.onNodeWithText(text(R.string.send_pending_body, "₿1,000", "bob@mint.example")).assertExists()
         compose.onNodeWithText(text(R.string.send_done)).performClick()

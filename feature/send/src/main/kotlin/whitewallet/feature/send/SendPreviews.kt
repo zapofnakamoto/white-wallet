@@ -10,8 +10,8 @@ import whitewallet.core.wallet.PayPreview
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
-import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.ReclaimResult
+import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
 
 // Sending, making a note and showing it, and scanning, in their everyday state, and the Send screen's success screen
@@ -196,28 +196,20 @@ private fun CreateNoteOfflinePreview() =
 private fun SharedNoteSpentPreview() =
     SharedNoteOf(sharedNoteState.copy(note = sharedNoteState.note?.copy(state = SharedNoteState.Spent, link = null)))
 
-/** A note taken back into the balance. */
+/** A note taken back earlier, opened again: its page says so. */
 @WalletPreviews
 @Composable
-private fun SharedNoteTakenBackPreview() =
+private fun SharedNoteTakenBackEarlierPreview() =
     SharedNoteOf(sharedNoteState.copy(note = sharedNoteState.note?.copy(state = SharedNoteState.Reclaimed, link = null)))
 
-/** A note taken back, its mint not yet sure. */
+/** A take back on the note's page without an answer yet. */
 @WalletPreviews
 @Composable
-private fun SharedNoteReclaimPendingPreview() =
-    SharedNoteOf(
-        sharedNoteState.copy(note = sharedNoteState.note?.copy(state = SharedNoteState.Reclaimed, link = null), takenBack = ReclaimResult.Pending)
-    )
-
-/** Taken back on its page just now: the success screen. */
-@WalletPreviews
-@Composable
-private fun SharedNoteTakeBackDonePreview() =
+private fun SharedNoteTakeBackPendingPreview() =
     SharedNoteOf(
         sharedNoteState.copy(
             note = sharedNoteState.note?.copy(state = SharedNoteState.Reclaimed, link = null),
-            takenBack = ReclaimResult.Reclaimed(sharedNoteState.note?.amountMsat ?: 0),
+            takenBack = ReclaimResult.Pending,
         )
     )
 
@@ -238,7 +230,7 @@ private fun SharedNoteUnknownPreview() =
 /** Taking a note back failed, and the mint said why in its own words. */
 @WalletPreviews
 @Composable
-private fun SharedNoteReclaimFailedPreview() =
+private fun SharedNoteTakeBackFailedPreview() =
     SharedNoteOf(sharedNoteState.copy(takenBack = ReclaimResult.Failed(PayProblem.Refused, "Try again later")))
 
 /** The question before taking a note back. */

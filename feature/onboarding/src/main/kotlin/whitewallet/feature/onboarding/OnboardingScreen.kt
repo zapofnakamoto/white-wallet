@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,7 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -40,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -57,10 +54,9 @@ import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.CopyShare
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
-import whitewallet.core.designsystem.R as DesignR
-import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.ResultScreen
 import whitewallet.core.designsystem.ResultTone
+import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
@@ -452,7 +448,12 @@ private fun ClaimedContent(claimed: Claimed, onContinue: () -> Unit, modifier: M
         done = SuccessAction(stringResource(R.string.claimed_continue), onContinue),
         modifier = modifier,
     ) {
-        Text(claimed.address, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+        Text(
+            claimed.address,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+        )
         Text(
             stringResource(R.string.claimed_body_unconfirmed),
             style = MaterialTheme.typography.bodyMedium,

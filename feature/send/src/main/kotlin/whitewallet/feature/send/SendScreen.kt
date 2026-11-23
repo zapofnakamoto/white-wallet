@@ -41,9 +41,9 @@ import whitewallet.core.designsystem.MintChoiceLine
 import whitewallet.core.designsystem.MintChoiceSheet
 import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
-import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.ResultScreen
 import whitewallet.core.designsystem.ResultTone
+import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
@@ -482,7 +482,10 @@ private fun QuoteText(quote: PayQuote?) {
     )
 }
 
-/** A payment that is still on its way, or wasn't paid: what happened, the mint's own words if it gave any, and another try where one can help. */
+/**
+ * A payment that is still on its way, or wasn't paid: what happened, the mint's own words if it gave any, and another try where one can
+ * help.
+ */
 @Composable
 private fun PayEnded(
     result: PayResult,

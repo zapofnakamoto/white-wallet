@@ -121,8 +121,8 @@ value class Anchor(val id: String) {
         val BackupDone = Anchor("backup.done")
 
         /**
-         * Above the result of claiming a note, or taking one back, that isn't a success: kept for later, waiting, refused. Default:
-         * nothing.
+         * The picture on the result of claiming a note, or taking one back (from its link or its page), that isn't a success: kept for
+         * later, waiting, refused. Default: a warning mark, or a clock while it waits.
          */
         val ClaimResult = Anchor("claim.result")
 

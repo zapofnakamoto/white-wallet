@@ -11,11 +11,6 @@
     <!-- Why a note received as a link wasn't claimed (see received_title below). -->
     <string name="received_key_changed">The signing key of its mint doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint\'s details.</string>
     <!-- A handed-out note whose mint doesn't know it, which the user asked to take back (its page, and its own link opened). -->
-    <!-- How a take back, or anything asked of a mint, ended: shared by every screen that ends one. -->
-    <string name="take_back_done_title">Taken back</string>
-    <string name="take_back_failed">It couldn\'t be taken back. Try again later.</string>
-    <string name="take_back_waiting_title">Not taken back yet</string>
-    <string name="no_answer_title">No answer yet</string>
     <string name="note_take_back_when_known">Its mint doesn\'t know this note right now. Your wallet takes it back as soon as the mint knows it again.</string>
     <!-- %1$s: the mint's own words, in whatever language it writes. -->
     <string name="mint_message">Message from the mint: “%1$s”</string>
@@ -44,6 +39,12 @@
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
     <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept a new key. Payments to your addresses there wait until then.</string>
     <string name="mint_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost.</string>
+
+    <!-- How a take back, or anything asked of a mint, ended: shared by every screen that ends one. -->
+    <string name="take_back_done_title">Taken back</string>
+    <string name="take_back_failed">It couldn\'t be taken back. Try again later.</string>
+    <string name="take_back_waiting_title">Not taken back yet</string>
+    <string name="no_answer_title">No answer yet</string>
 
     <string name="back">Back</string>
     <string name="loading">Loading</string>

@@ -502,20 +502,23 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   | `HomeTitle` | the wallet tab's top bar | the app's name |
   | `ReceiveHeader` | above the address or invoice | nothing |
   | `ReceiveSuccess` | the screen after a payment arrived (status `PaymentReceived`) | a check mark that draws itself |
-  | `SendHeader` | above a payment's review, its progress and a result that isn't a success | nothing |
+  | `SendHeader` | above a payment's review and its progress | nothing |
   | `SendSuccess` | the screen after a payment went out (status `Sent`) | a check mark that draws itself |
   | `MintAdded` | the screen after a mint was added outside a wallet's setup (status `Done`, with what the phrase held there) | a check mark that draws itself |
-  | `AddressAdded` | the screen after a Lightning address is ready and checked, outside a wallet's setup (status `Done`, 0); one the app couldn't check keeps its warning screen | a check mark that draws itself |
+  | `AddressAdded` | the screen after a Lightning address is ready and checked, outside a wallet's setup (status `Done`, 0); one the app couldn't check waits at `AddressResult` | a check mark that draws itself |
   | `AccountCreated` | the screen after an account was added (status `Done`, with what it already held) | a check mark that draws itself |
   | `WalletReady` | the screen that ends every wallet's setup, the first wallet's and an added one's, created or restored (status `Done`, with what the wallet holds by then). It shows the address the setup added, in place of `AddressAdded`'s screen, and names the wallet as the one in use when the phone holds others | a check mark that draws itself |
   | `ScanDone` | the screen after a scan for notes got through (status `Done`, with what it found) | a check mark that draws itself |
   | `MintKeyAccepted` | the screen after the user accepted a mint's new signing key while adding it (status `Done`, 0); on the mint's own page a short message says so instead | a check mark that draws itself |
   | `NoteClaimed` | the screen after a note was claimed, or a link received over Lightning (status `PaymentReceived`) | a check mark that draws itself |
-  | `NoteTakenBack` | the screen after the user took back a note they had handed out, from its link (status `Done`, with the amount back) | a check mark that draws itself |
-  | `MoneyMoved` | the screen after money moved where the user asked, all of it: to another account, to another mint or home (status `Done`, with what arrived); a move that left some behind keeps its own screen | a check mark that draws itself |
+  | `NoteTakenBack` | the screen after the user took back a note they had handed out, from its link or its QR code's page (status `Done`, with the amount back) | a check mark that draws itself |
+  | `MoneyMoved` | the screen after money moved where the user asked, all of it: to another account, to another mint or home (status `Done`, with what arrived); a move that left some behind ends at `MoveResult` | a check mark that draws itself |
   | `HomeChanged` | the screen after the account got a new home mint (status `Done`, with what moved there along with it) | a check mark that draws itself |
   | `BackupDone` | the screen after the recovery phrase was written down and checked (status `Done`, 0) | a check mark that draws itself |
-  | `ClaimResult` | above the result of claiming a note, or taking one back, that isn't a success: kept for later, waiting, refused | nothing |
+  | `ClaimResult` | the result of claiming a note, or taking one back (from its link or its page), that isn't a success: kept for later, waiting, refused | a warning mark, or a clock while it waits |
+  | `SendResult` | the result of a payment, or of making a note to hand out, that didn't go through or isn't done yet (status as at `SendHeader`, else `None`) | a warning mark, or a clock while it waits |
+  | `MoveResult` | the result of a money move that didn't move all of it (status `Done` with what arrived, `None` while some waits, `Problem` when none moved) | a check mark, a clock or a warning mark |
+  | `AddressResult` | an address registered that the app couldn't check yet reaches this wallet (status `None`) | a clock |
   | `NoteShared` | above a handed-out note's amount (status `WaitingForRecipient`, `Sent` once spent, `Idle` once taken back) | nothing |
   | `NotesHeader` | above the notes view's total (status `Empty` without notes, `WaitingForRecipient` while handed-out notes wait, else `Idle`) | nothing |
   | `NotesEmpty` | above the text of an empty notes view | nothing |

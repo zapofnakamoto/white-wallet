@@ -7,6 +7,22 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- Every money moment ends on the same pair of screens: the success screen when it worked, else the result screen.
+  Taking a note back on its page (its QR code's) now ends on the success screen with the amount back, as from its
+  link; spent, no answer, waiting for its mint and refused on the result screen, a refused one with Try again. A
+  payment not paid or still on its way, a note the mint didn't make ("Nothing handed out", or "No answer yet", no
+  longer in red), and a money move that didn't move all of it ("Nothing moved", a check mark when part arrived, a clock
+  while some waits) end there too, with Done and, where it helps, Try again. An address the app couldn't check yet
+  waits on it, with the address to copy or share. A mint's new key that couldn't be accepted on its page says so.
+  For brands: the anchors `SendResult`, `MoveResult` and `AddressResult`; `SendHeader` is no longer above a result;
+  the take back's titles and "No answer yet" moved to the design system (`take_back_done_title`, `take_back_failed`,
+  `take_back_waiting_title`, `no_answer_title`, were `claim_*`); new strings `note_create_failed_title`,
+  `money_nothing_moved_title`, `mint_key_not_accepted`.
+- The note sheet's main button is "Hand out" (was "Share as QR"), full width, with what it does right under it: the
+  whole note goes out as a QR code and leaves the balance until someone claims it or you take it back. Split, Recheck
+  and Renew are below. A note given away is "handed out" on every screen ("Handed out, not claimed yet"); in German
+  "weitergegeben", and splitting is "aufteilen", so neither reads like the other. For brands: the brand term
+  `notes_share_hint` no longer mentions splitting; the new `notes_share_hint_split` does, shown where Split is offered.
 - The screenshot set shows the problems and waits of every screen, not only its everyday state: 67 new previews across
   Send, Receive, Home, Notes, onboarding and settings (offline, a mint not answering or with another key, a payment
   pending or failed, a note spent, taken back or unknown to its mint, …), so brands see them in their design too.

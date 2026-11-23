@@ -41,12 +41,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import whitewallet.brand.WalletStatus
 import whitewallet.brand.ProblemKind
-import whitewallet.core.designsystem.SuccessScreen
-import whitewallet.core.designsystem.SuccessAction
-import whitewallet.core.designsystem.ResultTone
-import whitewallet.core.designsystem.ResultScreen
+import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.NoteFacePlace
@@ -59,9 +55,13 @@ import whitewallet.core.designsystem.PrintPage
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.QrCodeCover
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.designsystem.ResultScreen
+import whitewallet.core.designsystem.ResultTone
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SecureScreen
 import whitewallet.core.designsystem.SensitiveClipboard
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
@@ -587,7 +587,11 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
             is ReclaimResult.Reclaimed -> error("on the success screen")
             ReclaimResult.AlreadySpent -> Triple(ResultTone.Problem, stringResource(R.string.note_already_spent), emptyList())
             ReclaimResult.Pending ->
-                Triple(ResultTone.Waiting, stringResource(DesignR.string.no_answer_title), listOf(stringResource(R.string.note_reclaim_pending)))
+                Triple(
+                    ResultTone.Waiting,
+                    stringResource(DesignR.string.no_answer_title),
+                    listOf(stringResource(R.string.note_reclaim_pending)),
+                )
             // Its mint doesn't know it: taken back once the mint does.
             ReclaimResult.WhenKnown ->
                 Triple(
@@ -607,8 +611,7 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
         tone,
         Anchor.ClaimResult,
         if (result is ReclaimResult.Failed) WalletStatus.Problem(problemKind(result.problem))
-        else if (tone == ResultTone.Problem) WalletStatus.Problem(ProblemKind.Other)
-        else WalletStatus.None,
+        else if (tone == ResultTone.Problem) WalletStatus.Problem(ProblemKind.Other) else WalletStatus.None,
         title,
         done = done,
         modifier = modifier,

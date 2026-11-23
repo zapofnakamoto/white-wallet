@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
@@ -47,21 +48,20 @@ import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.PrimaryButton
+import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.designsystem.ResultScreen
+import whitewallet.core.designsystem.ResultTone
 import whitewallet.core.designsystem.ScreenColumn
 import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
-import whitewallet.core.designsystem.showsWorking
-import whitewallet.core.designsystem.WalletLinearProgress
-import whitewallet.core.designsystem.R as DesignR
-import whitewallet.brand.ProblemKind
-import whitewallet.core.designsystem.ResultTone
-import whitewallet.core.designsystem.ResultScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCheckbox
+import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
+import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ConnectResult
 import whitewallet.core.wallet.MintKeyChangedException
@@ -588,7 +588,10 @@ private fun OutcomeContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, act
         },
         done = SuccessAction(stringResource(R.string.money_done), actions.onDone),
         modifier = modifier,
-        more = SuccessAction(stringResource(R.string.money_try_again), actions.onRetry).takeIf { outcome.retryable.isNotEmpty() && !state.busy },
+        more =
+            SuccessAction(stringResource(R.string.money_try_again), actions.onRetry).takeIf {
+                outcome.retryable.isNotEmpty() && !state.busy
+            },
         lines =
             listOfNotNull(
                 stringResource(R.string.money_home_changed, state.target.orEmpty()).takeIf { outcome.homeChanged },

@@ -46,8 +46,8 @@ import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.QrCodeCoverParams
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.PayProblem
-import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.ReclaimResult
+import whitewallet.core.wallet.SharedNote
 import whitewallet.core.wallet.SharedNoteState
 
 @RunWith(RobolectricTestRunner::class)
@@ -118,18 +118,22 @@ class SharedNoteScreenTest {
         compose.onNodeWithText(text(R.string.note_spent)).assertDoesNotExist()
     }
 
-    private fun takeBack(result: ReclaimResult, note: SharedNote = note(SharedNoteState.Waiting), onBack: () -> Unit = {}, onReclaim: () -> Unit = {}) =
-        compose.setContent {
-            SharedNoteScreen(
-                SharedNoteUiState(note = note, loading = false, takenBack = result),
-                onBack = onBack,
-                onShare = {},
-                onCopy = {},
-                onAskReclaim = {},
-                onDismissReclaim = {},
-                onReclaim = onReclaim,
-            )
-        }
+    private fun takeBack(
+        result: ReclaimResult,
+        note: SharedNote = note(SharedNoteState.Waiting),
+        onBack: () -> Unit = {},
+        onReclaim: () -> Unit = {},
+    ) = compose.setContent {
+        SharedNoteScreen(
+            SharedNoteUiState(note = note, loading = false, takenBack = result),
+            onBack = onBack,
+            onShare = {},
+            onCopy = {},
+            onAskReclaim = {},
+            onDismissReclaim = {},
+            onReclaim = onReclaim,
+        )
+    }
 
     @Test
     fun aRefusedTakeBackGivesTheMintsWordsNotCouldntConnect() {
@@ -253,7 +257,6 @@ class SharedNoteScreenTest {
         state = state.copy(note = note(SharedNoteState.Reclaimed))
         compose.waitForIdle()
         assertEquals(WalletStatus.Idle, statuses.last())
-
     }
 
     @Test
