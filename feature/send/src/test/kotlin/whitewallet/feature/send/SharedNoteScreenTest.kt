@@ -123,9 +123,10 @@ class SharedNoteScreenTest {
         note: SharedNote = note(SharedNoteState.Waiting),
         onBack: () -> Unit = {},
         onReclaim: () -> Unit = {},
+        offline: Boolean = false,
     ) = compose.setContent {
         SharedNoteScreen(
-            SharedNoteUiState(note = note, loading = false, takenBack = result),
+            SharedNoteUiState(note = note, loading = false, takenBack = result, offline = offline),
             onBack = onBack,
             onShare = {},
             onCopy = {},
@@ -144,6 +145,13 @@ class SharedNoteScreenTest {
         compose.onNodeWithText(text(R.string.send_problem_unreachable)).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.try_again)).performClick()
         assertEquals(1, again)
+    }
+
+    @Test
+    fun offlineAFailedClaimSaysSoInsteadOfOfferingAnotherTry() {
+        takeBack(ReclaimResult.Failed(PayProblem.Unreachable), offline = true)
+        compose.onNodeWithText(text(R.string.note_reclaim_offline)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
     }
 
     @Test
@@ -181,7 +189,7 @@ class SharedNoteScreenTest {
     fun aTakeBackWithoutAnAnswerWaits() {
         takeBack(ReclaimResult.Pending, note(SharedNoteState.Reclaimed))
         compose.onNodeWithText(text(DesignR.string.no_answer_title)).assertExists()
-        compose.onNodeWithText(text(DesignR.string.no_answer_hint)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.own_claim_no_answer_hint)).assertExists()
     }
 
     @Test

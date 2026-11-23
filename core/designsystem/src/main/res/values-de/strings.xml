@@ -40,6 +40,7 @@
     <string name="take_back_failed">Nicht eingelöst</string>
     <string name="no_answer_title">Noch keine Antwort</string>
     <string name="no_answer_hint">Deine Wallet fragt beim nächsten Aktualisieren erneut. Der Verlauf zeigt, wann es erledigt ist.</string>
+    <string name="own_claim_no_answer_hint">Deine Wallet fragt beim nächsten Aktualisieren erneut.</string>
     <string name="own_claim_done">Du kannst ihn wieder ausgeben.</string>
     <string name="own_claim_too_late">Zu spät: Jemand hat ihn schon eingelöst.</string>
     <string name="couldnt_connect">Keine Verbindung. Versuche es später erneut.</string>

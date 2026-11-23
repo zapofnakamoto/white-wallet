@@ -50,6 +50,8 @@
     <string name="no_answer_title">No answer yet</string>
     <!-- Under no_answer_title, wherever the wallet asks the mint again by itself. -->
     <string name="no_answer_hint">Your wallet asks again on the next refresh. History shows when it\'s done.</string>
+    <!-- The same for claiming one's own note: its History row already says so, so it isn't pointed at. -->
+    <string name="own_claim_no_answer_hint">Your wallet asks again on the next refresh.</string>
     <!-- Under take_back_done_title: the user's own handed-out note, claimed by the user. -->
     <string name="own_claim_done">You can spend it again.</string>
     <!-- The user's own handed-out note, which someone claimed before the user did. -->

@@ -34,7 +34,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   For brands: same texts now share one string in the design system (`done`, `try_again`, `check_again`, `cancel`,
   `details`, `paste`, `scan_qr`, `fee`, `no_fee`, `uncertified`, `key_mismatch_short`, `handed_out_title`,
   `handed_out_total`, `waiting_for_answer`, `no_answer_hint`, `couldnt_connect`, `mint_not_answering`,
-  `payment_failed_nothing_paid`, `own_claim_done`, `own_claim_too_late`); the brand terms `send_problem_key_changed`,
+  `payment_failed_nothing_paid`, `own_claim_done`, `own_claim_too_late`, `own_claim_no_answer_hint`); the brand terms `send_problem_key_changed`,
   `notes_problem_key_changed`, `note_already_spent`, `send_problem_mint_message` and `claim_mint_refused_reason` are
   gone for `mint_key_changed_nothing_sent`, `own_claim_too_late` and `mint_message`; new brand terms
   `mint_not_answering_unnamed` and

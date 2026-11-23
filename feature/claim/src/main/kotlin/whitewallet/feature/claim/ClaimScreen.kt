@@ -567,7 +567,7 @@ private fun takeBackOutcome(result: ReclaimResult): Outcome {
                 ResultTone.Waiting,
                 WalletStatus.None,
                 stringResource(DesignR.string.no_answer_title),
-                listOf(stringResource(DesignR.string.no_answer_hint)),
+                listOf(stringResource(DesignR.string.own_claim_no_answer_hint)),
             )
         ReclaimResult.AlreadySpent -> Outcome(ResultTone.Problem, problem, stringResource(DesignR.string.own_claim_too_late), emptyList())
         ReclaimResult.WhenKnown ->

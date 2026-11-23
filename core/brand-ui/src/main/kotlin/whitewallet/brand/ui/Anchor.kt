@@ -135,9 +135,9 @@ value class Anchor(val id: String) {
 
         /**
          * The picture on the screen that ends a money move (to another account, another mint or home) that didn't move all of it: part
-         * moved, some waits for an answer, or none moved (status [whitewallet.brand.WalletStatus.Done] with what arrived, else
-         * [whitewallet.brand.WalletStatus.None]). Default: a check mark if some moved and nothing waits, a clock while some waits, else a
-         * warning mark.
+         * moved, some waits for an answer, or none moved (status [whitewallet.brand.WalletStatus.Done] with what arrived — 0 when only the
+         * home mint changed —, [whitewallet.brand.WalletStatus.None] while some waits, [whitewallet.brand.WalletStatus.Problem] when none
+         * moved). Default: a check mark if some moved and nothing waits, a clock while some waits, else a warning mark.
          */
         val MoveResult = Anchor("money.move_result")
 

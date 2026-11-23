@@ -419,7 +419,7 @@ fun SharedNoteScreen(
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_title), onBack) }) { padding ->
         // A take back on this visit ends on its own screen, as one from the note's link does; a note opened later says how it ended below.
         state.takenBack?.let {
-            TakeBackEnded(it, onBack, onReclaim, Modifier.padding(padding))
+            TakeBackEnded(it, state.offline, onBack, onReclaim, Modifier.padding(padding))
             return@Scaffold
         }
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
@@ -569,7 +569,7 @@ private fun sharedNoteStatus(note: SharedNote): WalletStatus =
  * the result screen. Only a refused or unanswered take back can be tried again.
  */
 @Composable
-private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain: () -> Unit, modifier: Modifier) {
+private fun TakeBackEnded(result: ReclaimResult, offline: Boolean, onDone: () -> Unit, onTryAgain: () -> Unit, modifier: Modifier) {
     val done = SuccessAction(stringResource(DesignR.string.done), onDone)
     if (result is ReclaimResult.Reclaimed) {
         SuccessScreen(
@@ -591,7 +591,7 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
                 Triple(
                     ResultTone.Waiting,
                     stringResource(DesignR.string.no_answer_title),
-                    listOf(stringResource(DesignR.string.no_answer_hint)),
+                    listOf(stringResource(DesignR.string.own_claim_no_answer_hint)),
                 )
             // Its mint doesn't know it: taken back once the mint does.
             ReclaimResult.WhenKnown ->
@@ -607,6 +607,8 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
                     stringResource(DesignR.string.take_back_failed),
                     listOfNotNull(
                         ownClaimReason(result.problem, result.mintMessage),
+                        // Offline, another try can't work: said instead of offered.
+                        stringResource(R.string.note_reclaim_offline).takeIf { offline },
                         result.mintMessage?.let { stringResource(DesignR.string.mint_message, it) },
                     ),
                 )
@@ -619,7 +621,7 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
         title,
         done = done,
         modifier = modifier,
-        more = SuccessAction(stringResource(DesignR.string.try_again), onTryAgain).takeIf { result is ReclaimResult.Failed },
+        more = SuccessAction(stringResource(DesignR.string.try_again), onTryAgain).takeIf { result is ReclaimResult.Failed && !offline },
         lines = lines,
     )
 }

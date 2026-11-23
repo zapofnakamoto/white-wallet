@@ -151,15 +151,21 @@ class ClaimScreenTest {
         compose.onNodeWithText(text(R.string.claim_own_shared)).assertExists()
         compose.onAllNodesWithText("Claim", substring = true).assertCountEquals(2) // the title and "Claim … yourself"
         compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
-        compose.onNodeWithText("yourself", substring = true).performScrollTo().performClick()
+        compose.onNode(takeBackButton()).performScrollTo().performClick()
         assertTrue(takenBack)
     }
+
+    /** The "Claim … yourself" button, by its string's words around the amount, in any language. */
+    private fun takeBackButton() =
+        text(R.string.claim_take_back, "\u0000").split("\u0000").map { it.trim() }.filter { it.isNotEmpty() }.fold(hasClickAction()) { matcher, words ->
+            matcher and hasText(words, substring = true)
+        }
 
     @Test
     fun theUsersOwnSharedNoteItsMintDidNotAnswerForOffersNothingButToCheckAgain() {
         show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false)))
         compose.onNodeWithText(text(R.string.claim_own_offline)).assertExists()
-        compose.onNode(hasText("yourself", substring = true) and hasClickAction()).assertDoesNotExist()
+        compose.onNode(takeBackButton()).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.claim_check)).assertIsEnabled()
     }
@@ -304,6 +310,13 @@ class ClaimScreenTest {
     fun claimingOnesOwnNoteRefusedWithoutTheMintsWordsStillSaysWhy() {
         show(ClaimState(takenBack = ReclaimResult.Failed(PayProblem.Refused)))
         compose.onNodeWithText(text(DesignR.string.own_claim_refused)).assertExists()
+    }
+
+    @Test
+    fun claimingOnesOwnNoteWithoutAnAnswerDoesNotPointAtHistory() {
+        show(ClaimState(takenBack = ReclaimResult.Pending))
+        compose.onNodeWithText(text(DesignR.string.own_claim_no_answer_hint)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.no_answer_hint)).assertDoesNotExist()
     }
 
     @Test

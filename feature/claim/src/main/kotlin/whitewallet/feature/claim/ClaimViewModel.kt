@@ -205,7 +205,8 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
     fun takeBack() {
         val preview = _state.value.preview as? ClaimPreview.OwnShared ?: return
         if (_state.value.busy || !preview.reachable) return
-        _state.update { it.copy(busy = true) }
+        // Another try leaves the result screen for the note with its busy button, so the try is seen.
+        _state.update { it.copy(busy = true, takenBack = null) }
         viewModelScope.launch {
             val result = wallet.reclaimNote(preview.id)
             _state.update { it.copy(busy = false, takenBack = result) }
