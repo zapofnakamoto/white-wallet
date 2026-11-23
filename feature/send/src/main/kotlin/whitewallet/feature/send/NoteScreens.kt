@@ -148,6 +148,9 @@ class CreateNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
         }
     }
 
+    /** From a note's result screen back to its form, the amount kept, for another try. */
+    fun dismissResult() = _state.update { it.copy(problem = null, pending = false) }
+
     fun onAmountChange(value: String) {
         _state.update { it.copy(amountText = value.filter(Char::isDigit).take(12), problem = null, pending = false) }
         requote()
@@ -211,7 +214,7 @@ fun CreateNoteRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.createdId) { state.createdId?.let(onCreated) }
-    CreateNoteScreen(state, onBack, viewModel::onAmountChange, viewModel::create, viewModel::makeFrom, onOpenMint)
+    CreateNoteScreen(state, onBack, viewModel::onAmountChange, viewModel::create, viewModel::makeFrom, onOpenMint, viewModel::dismissResult)
 }
 
 @Composable
@@ -222,10 +225,27 @@ fun CreateNoteScreen(
     onCreate: () -> Unit,
     onMakeFrom: (String?) -> Unit = {},
     onOpenMint: (String) -> Unit = {},
+    /** From the result screen back to the form, for another try. */
+    onTryAgain: () -> Unit = {},
 ) {
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_create_title), onBack.takeIf { !state.creating }) }) { padding ->
         // What can be sent is read first (a moment), so it doesn't come in under the field afterwards.
         if (!pageLoaded(state.availableMsat != null, Modifier.padding(padding))) return@Scaffold
+        // No note: on the result screen, as a wait or a problem. Offline the form says so before the user tries.
+        val problem = state.problem?.takeUnless { state.offline && it == PayProblem.Unreachable }
+        if (state.pending || problem != null) {
+            ResultScreen(
+                if (problem != null) ResultTone.Problem else ResultTone.Waiting,
+                Anchor.SendResult,
+                problem?.let { WalletStatus.Problem(problemKind(it)) } ?: WalletStatus.None,
+                stringResource(if (problem != null) R.string.note_create_failed_title else DesignR.string.no_answer_title),
+                done = SuccessAction(stringResource(R.string.send_done), onBack),
+                modifier = Modifier.padding(padding),
+                more = SuccessAction(stringResource(R.string.send_try_again), onTryAgain),
+                lines = listOf(if (problem != null) problemText(problem) else stringResource(R.string.note_create_pending)),
+            )
+            return@Scaffold
+        }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.note_create_body))
             // Money on a mint whose signing key doesn't match can't go into a note; with nothing else to make one from, that is all there
@@ -282,11 +302,6 @@ fun CreateNoteScreen(
                     )
                 null -> Unit
             }
-            state.problem
-                ?.takeUnless { state.offline && it == PayProblem.Unreachable }
-                ?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
-            if (state.pending)
-                Text(stringResource(R.string.note_create_pending), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             if (state.offline) Text(stringResource(R.string.send_offline), textAlign = TextAlign.Center)
             Text(
                 stringResource(R.string.note_bearer_warning),

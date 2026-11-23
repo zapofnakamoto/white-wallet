@@ -16,6 +16,7 @@
     <string name="note_create_body">Erstelle einen Schein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
     <string name="note_available">Du kannst einen Schein über bis zu %1$s erstellen.</string>
     <string name="note_create">Schein erstellen</string>
+    <string name="note_create_failed_title">Nichts weitergegeben</string>
     <string name="note_create_pending">Noch keine Antwort zum Schein, deshalb wurde nichts weitergegeben. Versuche es gleich noch einmal.</string>
     <string name="note_title">Schein</string>
     <string name="note_qr_description">QR-Code des Scheins</string>

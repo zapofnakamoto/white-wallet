@@ -209,6 +209,56 @@ class SendScreenTest {
     }
 
     @Test
+    fun aNoteWithoutAnAnswerWaitsOnTheResultScreenAndCanBeTriedAgain() {
+        var again = 0
+        compose.setContent {
+            CreateNoteScreen(
+                CreateNoteState(availableMsat = 5_000_000, amountText = "1000", pending = true),
+                onBack = {},
+                onAmountChange = {},
+                onCreate = {},
+                onTryAgain = { again++ },
+            )
+        }
+        compose.onNodeWithText(text(DesignR.string.no_answer_title)).assertExists()
+        compose.onNodeWithText(text(R.string.note_create_pending)).assertExists()
+        compose.onNodeWithText(text(R.string.note_create)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.send_try_again)).performClick()
+        assertEquals(1, again)
+    }
+
+    @Test
+    fun aNoteTheMintRefusedSaysNothingWasHandedOut() {
+        var back = 0
+        compose.setContent {
+            CreateNoteScreen(
+                CreateNoteState(availableMsat = 5_000_000, amountText = "1000", problem = PayProblem.Refused),
+                onBack = { back++ },
+                onAmountChange = {},
+                onCreate = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.note_create_failed_title)).assertExists()
+        compose.onNodeWithText(text(R.string.send_problem_refused)).assertExists()
+        compose.onNodeWithText(text(R.string.send_done)).performClick()
+        assertEquals(1, back)
+    }
+
+    @Test
+    fun offlineANoteKeepsItsFormAndSaysSo() {
+        compose.setContent {
+            CreateNoteScreen(
+                CreateNoteState(availableMsat = 5_000_000, offline = true, problem = PayProblem.Unreachable),
+                onBack = {},
+                onAmountChange = {},
+                onCreate = {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.send_offline)).assertExists()
+        compose.onNodeWithText(text(R.string.note_create_failed_title)).assertDoesNotExist()
+    }
+
+    @Test
     fun aNotesFormIsNotDrawnBeforeWhatCanBeSentIsRead() {
         compose.setContent { CreateNoteScreen(CreateNoteState(), onBack = {}, onAmountChange = {}, onCreate = {}) }
         compose.onNodeWithText(text(R.string.note_bearer_warning)).assertDoesNotExist()

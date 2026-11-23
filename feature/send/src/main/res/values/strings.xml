@@ -23,6 +23,7 @@
     <string name="note_create_body">Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
     <string name="note_available">You can make a note of up to %1$s.</string>
     <string name="note_create">Create note</string>
+    <string name="note_create_failed_title">Nothing handed out</string>
     <string name="note_create_pending">No answer about the note yet, so nothing was handed out. Try again in a moment.</string>
     <string name="note_title">Note</string>
     <string name="note_qr_description">QR code of the note</string>
