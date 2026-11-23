@@ -154,6 +154,20 @@ fun ReceivedNoteRow(
 }
 
 /**
+ * A received note the wallet can't claim on its own, so it waits for the user: one only Lightning can bring in, one spent by someone else,
+ * one whose mint's key changed, or a locked one past its date (or without one) that its mint keeps refusing. Its row offers what they can
+ * do.
+ */
+fun ReceivedNote.needsUser(nowMillis: Long = System.currentTimeMillis()): Boolean =
+    when (state) {
+        ReceivedState.LightningOnly,
+        ReceivedState.Gone,
+        ReceivedState.KeyChanged -> true
+        ReceivedState.Locked -> lockedUntilMillis.let { it == null || it <= nowMillis }
+        else -> false
+    }
+
+/**
  * Remove for one spent by someone else, Archive for one whose mint's key changed or whose lock has passed (or has no date), Receive (and
  * Archive) for one only Lightning can bring in; nothing for one that only waits (the wallet claims it, or archives it after trying long
  * enough).
@@ -184,7 +198,7 @@ private fun receivedNoteAction(note: ReceivedNote, actions: ReceivedNoteActions)
             }
         }
         // A locked one past its date that still isn't claimed: its mint keeps refusing it, and the wallet never gives it up by itself.
-        ReceivedState.Locked if note.lockedUntilMillis.let { it == null || it <= System.currentTimeMillis() } -> archive(note, actions)
+        ReceivedState.Locked if note.needsUser() -> archive(note, actions)
         ReceivedState.KeyChanged -> archive(note, actions)
         else -> null
     }

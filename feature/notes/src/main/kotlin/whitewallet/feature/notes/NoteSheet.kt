@@ -32,6 +32,7 @@ import whitewallet.brand.NoteStrategy
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.Tone
+import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.LocalAmountUnit
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletAssistChip
@@ -79,6 +80,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 mint = note.host.takeIf { state.showMints },
                 trusted = state.openTrusted,
                 enabled = NotesViewModel.selectable(note) && !state.busy,
+                colors = MaterialTheme.walletColors.note(state.colorIndex(note.host)),
             )
             Text(
                 if (state.showMints) stringResource(R.string.notes_sheet_where, note.host, recentTime(note.updatedAtMillis))

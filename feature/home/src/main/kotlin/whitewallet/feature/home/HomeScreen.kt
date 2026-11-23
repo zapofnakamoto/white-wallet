@@ -215,15 +215,10 @@ fun HomeRoute(
 class HomeMenuItem(@StringRes val title: Int, val onClick: () -> Unit)
 
 /**
- * The Notes tab, supplied by the app (the notes view lives in its own module): its content, the actions it adds to the top bar, and its own
- * refresh (asking the mints about every note).
+ * The Notes tab, supplied by the app (the notes view lives in its own module): its content and its own refresh (asking the mints about
+ * every note).
  */
-class NotesTabSlot(
-    val refreshing: Boolean,
-    val onRefresh: () -> Unit,
-    val actions: @Composable () -> Unit,
-    val content: @Composable () -> Unit,
-)
+class NotesTabSlot(val refreshing: Boolean, val onRefresh: () -> Unit, val content: @Composable () -> Unit)
 
 private enum class HomeTab {
     Wallet,
@@ -306,7 +301,6 @@ fun HomeScreen(
                     HomeTab.History -> stringResource(R.string.home_tab_history)
                 }
             val actions: @Composable () -> Unit = {
-                if (tab == HomeTab.Notes) notesTab?.actions?.invoke()
                 // Scanning is a step towards Send or Claim: a quiet icon on the wallet tab, so Send and Receive stand alone below.
                 if (tab == HomeTab.Wallet && onScan != null) {
                     IconButton(onClick = onScan) { Icon(painterResource(DesignR.drawable.ic_qr_scan), stringResource(R.string.home_scan)) }

@@ -144,6 +144,12 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `archive_handed_out_hint` | You handed these notes out, but their mint doesn't know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet claims it if you asked it to. |
 | `archive_note_remove_title` | Remove this note for good? |
 | `archive_note_remove_body` | Its mint doesn't know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase. |
+| `notes_attention_waiting` | %d note waiting for an answer / %d notes waiting for an answer (plural) |
+| `notes_attention_received` | %d received note needs you / %d received notes need you (plural) |
+| `notes_mint_open` | Show its notes |
+| `notes_mint_previous` | Previous mint |
+| `notes_mint_next` | Next mint |
+| `notes_mint_position` | Mint %1$d of %2$d |
 | `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
 | `home_unknown_title_unnamed` | Your mint doesn't know %1$d of your notes / Your mint doesn't know %1$d of your notes (plural) |
 | `home_unknown_body` | %1$s isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again. / %1$s isn't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again. (plural) |
@@ -407,7 +413,7 @@ brand chooses every value, under names of its own.
 |---|---|---|
 | 1. Tokens | `res/` | colour roles, fonts, text sizes, corners, spacing |
 | 2. Theme | `code/`: `BrandDesign.Theme` | change any token, or add CompositionLocals of the brand's own |
-| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, short messages (`Snackbar`), toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the cover over a secret one (`QrCodeCover`), the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status, and the wallets, where the one in use carries `activeBadge` as the account in use does on its `AccountMark`), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`) and the release stage's badge (`ReleaseBadge`) look |
+| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, short messages (`Snackbar`), toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the cover over a secret one (`QrCodeCover`), the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status, and the wallets, where the one in use carries `activeBadge` as the account in use does on its `AccountMark`), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`, `NotePile`) and the release stage's badge (`ReleaseBadge`) look |
 | 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark), knowing the app's name and release stage |
 | 5. Status and events | `code/`: `WalletStatus`, `WalletEvent` | what a screen is about and what just happened, to show or react to |
 | 6. Screens | `code/`: `BrandScreen` | pages of the brand's own, reached from Settings, the wallet's menu or right after setup |
@@ -430,7 +436,7 @@ like and point the roles at them:
 | Tokens | Names |
 |---|---|
 | Colour roles (Material 3) | `brand_primary`, `brand_on_primary`, `brand_primary_container`, `brand_on_primary_container`, `brand_inverse_primary`, `brand_secondary` …, `brand_tertiary` …, `brand_background`, `brand_on_background`, `brand_surface`, `brand_on_surface`, `brand_surface_variant`, `brand_on_surface_variant`, `brand_surface_container{_lowest,_low,,_high,_highest}`, `brand_surface_dim`, `brand_surface_bright`, `brand_surface_tint`, `brand_inverse_surface`, `brand_inverse_on_surface`, `brand_error` …, `brand_outline`, `brand_outline_variant`, `brand_scrim` |
-| Wallet roles | `brand_incoming`, `brand_outgoing` (history amounts), `brand_success`, `brand_warning`, `brand_warning_container`, `brand_on_warning_container` (notices), `brand_amount` (the balance) |
+| Wallet roles | `brand_incoming`, `brand_outgoing` (history amounts), `brand_success`, `brand_warning`, `brand_warning_container`, `brand_on_warning_container` (notices), `brand_amount` (the balance), `brand_note_1` … `brand_note_3` with `brand_on_note_1` … `brand_on_note_3` (a mint's bills in the notes view: 1 the home mint, 2 and 3 the other mints in turn; default primary, tertiary, secondary) |
 | Fonts | `font/brand_font_display`, `_headline`, `_title`, `_body`, `_label`: a font file or a font-family XML (several weights). Headline falls back to display; title and label to body; any unset group to the system font |
 | Text styles | `brand_text_<style>_size`, `_line_height` (sp) and `brand_text_<style>_weight` (integer), for Material's 15 styles (`display_large` … `label_small`); 0 keeps Material's |
 | Shapes | `brand_corner_extra_small`, `_small`, `_medium`, `_large`, `_extra_large`; -1dp keeps Material's |
@@ -468,8 +474,8 @@ releases don't break it; the parameter objects of components (`ButtonParams`, �
   action), put it below the text, as `DefaultComponents.listRow` does, so no word is split. A `TopBar` of your own
   likewise: a title that wouldn't fit beside the back button and the actions gets a line of its own under them
   (`DefaultComponents.topBar`).
-- **Notes:** a note is one object the brand designs once. `NoteFace(params, modifier)` draws it as a row of the notes
-  list (`NoteFaceSize.Row`) and large (`NoteFaceSize.Large`) on its details, the claim preview and a handed-out note's
+- **Notes:** a note is one object the brand designs once. `NoteFace(params, modifier)` draws it as a row of a mint's
+  notes (`NoteFaceSize.Row`) and large (`NoteFaceSize.Large`) on its details, the claim preview and a handed-out note's
   page, where `params.qrCode` is the QR code: place and frame it, never alter or cover it. On a handed-out note's
   page that slot first holds the cover (`QrCodeCover`, as large as the code; by default in the theme's
   `surfaceVariant`, and the brand may draw its own, the app's modifier keeping the tap), until the user taps it and
@@ -478,12 +484,16 @@ releases don't break it; the parameter objects of components (`ButtonParams`, �
   handed-out note: its page, and its row in the notes view, under the handed-out heading) or `Paper` (printed). `params` has the amount
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
   `Spent`, `TakenBack`, `Unknown`; give a `when` an `else`), its words and mark, the age, the mint (null with
-  `mints.visible=false`), whether it is trusted, and `selected` while the user selects (null otherwise).
-  `NoteGroupHeader` heads one mint's notes; its `mint` is null with `mints.visible=false`, and then it only separates
-  them. The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
+  `mints.visible=false`), whether it is trusted, `selected` while the user selects (null otherwise) and `colors`, its
+  mint's bill colours (`WalletColors.notes`; a status out of the balance, `!status.inBalance`, is drawn greyed out by
+  default). The notes view shows each mint as a pile of its bills, swiped through: `NotePile(params, modifier)` draws
+  one (the amounts of the top bills, biggest first, the mint, its labels, total, `detail` with the count and range, and
+  its `colors`); the app keeps the tap (it opens the mint's page) and the swiping, arrows and dots. `NoteGroupHeader`
+  heads that page: the mint (null with `mints.visible=false`), its total and labels (how many notes, home, trusted). The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
   confirmations and the bearer warning, and on a large face the status, age and mint in words below it. Draw the
-  texts you are given with `Text`, so screen readers read them. The defaults draw through your `ListRow`, `Toggle`,
-  `ListIcon` and `Amount`. `brand-examples/acme/` draws them as banknotes: a small bill in the list, the whole bill
+  texts you are given with `Text`, so screen readers read them. The defaults draw a bill in the mint's colour beside the row
+  (and the checkbox), the bill alone on a note's details and the claim preview (the amount as on the wallet tab where
+  there is a QR code), through your `ListRow`, `Toggle`, `ListIcon` and `Amount`. `brand-examples/acme/` draws them as banknotes: a small bill in the list, the whole bill
   on a note's page, with the provider as issuer and the QR code on a white margin of its own.
 - **Decorations:** `Decoration(anchor, context, default)`: call `default()` to keep what the app shows there, or
   draw something else. Decorations are decorative; screen readers read the text next to them (for a title anchor,

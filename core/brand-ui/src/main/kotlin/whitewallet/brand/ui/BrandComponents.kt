@@ -2,6 +2,7 @@ package whitewallet.brand.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -30,7 +31,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
@@ -63,6 +63,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
@@ -159,8 +160,14 @@ interface BrandComponents {
      */
     @Composable fun NoteFace(params: NoteFaceParams, modifier: Modifier) = DefaultComponents.noteFace(params, modifier)
 
-    /** The heading of one mint's notes in the notes list: its name, labels and total, or only a separator. */
+    /** The heading of one mint's notes on its page: its name, labels and total, or only a separator. */
     @Composable fun NoteGroupHeader(params: NoteGroupParams, modifier: Modifier) = DefaultComponents.noteGroupHeader(params, modifier)
+
+    /**
+     * One mint's notes at a glance on the notes view: a pile of its bills, the biggest in front, with the mint's name, labels, total and
+     * the range of its notes. The app handles the tap (it opens the mint's notes) and the swiping between mints.
+     */
+    @Composable fun NotePile(params: NotePileParams, modifier: Modifier) = DefaultComponents.notePile(params, modifier)
 }
 
 /** How prominent a button is: one [Primary] action per screen, [Secondary] and [Text] for the rest. */
@@ -428,17 +435,42 @@ class NoteFaceParams(
     val place: NoteFacePlace = NoteFacePlace.Wallet,
     /** [qrCode] holds the cover over the code (`QrCodeCover`) until the user taps it; nothing to scan yet. False without a [qrCode]. */
     val qrCovered: Boolean = false,
+    /** The colours of its mint's bills ([WalletColors.notes]); a note out of the balance is drawn greyed out ([NoteStatus.inBalance]). */
+    val colors: NoteColors? = null,
+)
+
+/** Whether a note of this status counts in the balance: else a bill is drawn greyed out. */
+val NoteStatus.inBalance: Boolean
+    get() = this == NoteStatus.Ready || this == NoteStatus.Uncertified
+
+class NotePileParams(
+    /** The mint's host; null where mints aren't named (brand `mints.visible=false`). */
+    val mint: String?,
+    /** Home mint and trusted, in words ("Home mint · Trusted"); null when neither. */
+    val labels: String?,
+    /** What its notes count in the balance, formatted. */
+    val total: String,
+    val totalMsat: Long,
+    /** How many notes, and from the smallest to the biggest, in words ("84 notes · 1,000 – 21,000 sats"). */
+    val detail: String,
+    /** The amounts of the bills on top of the pile, the biggest first (a few at most); empty when none counts in the balance. */
+    val bills: List<String>,
+    val colors: NoteColors,
+    val home: Boolean,
+    val trusted: Boolean,
+    /** The mark of a trusted mint. */
+    val trustedIcon: Painter,
 )
 
 class NoteGroupParams(
-    /** The mint's host; null where mints aren't named: then the header only separates two mints' notes. */
+    /** The mint's host; null where mints aren't named. */
     val mint: String?,
     /** What the group's notes count in the balance, formatted. */
     val total: String,
     val totalMsat: Long,
     val home: Boolean,
     val trusted: Boolean,
-    /** [home] and [trusted] in words ("Home mint · Trusted"); null when neither. */
+    /** How many notes, [home] and [trusted], in words ("84 notes · Home mint · Trusted"); null when there's nothing to say. */
     val labels: String?,
     /** The mark of a trusted mint. */
     val trustedIcon: Painter,
@@ -856,50 +888,96 @@ object DefaultComponents : BrandComponents {
                             }
                                 // A handed-out note has no mint header above it, so its row names the mint.
                                 ?: params.mint?.takeIf { params.place == NoteFacePlace.Shared }?.let { mint -> { Text(mint) } },
-                        leading =
-                            params.selected?.let { selected ->
-                                {
+                        leading = {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                params.selected?.let { selected ->
                                     components.Toggle(
                                         ToggleParams(ToggleKind.Checkbox, selected, onCheckedChange = null, enabled = params.enabled),
                                         Modifier,
                                     )
                                 }
-                            },
+                                Bill(params.billColors(), Modifier.size(width = 40.dp, height = 24.dp), corner = 4.dp)
+                            }
+                        },
                         trailing = params.age?.let { age -> { Text(age, style = MaterialTheme.typography.bodySmall) } },
                     ),
                     modifier,
                 )
+            // Without a QR code, the note is a bill of its own; with one, the amount as on the wallet tab above the code.
             NoteFaceSize.Large ->
-                Column(
-                    modifier,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(MaterialTheme.walletSpacing.gap),
-                ) {
-                    components.Amount(AmountParams(params.amount), Modifier.fillMaxWidth())
-                    params.qrCode?.invoke()
-                }
+                if (params.qrCode == null)
+                    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        val colors = params.billColors()
+                        Bill(colors, Modifier.size(width = 240.dp, height = 132.dp), corner = 12.dp) {
+                            Text(params.amount, style = MaterialTheme.typography.headlineMedium, color = colors.ink)
+                        }
+                    }
+                else
+                    Column(
+                        modifier,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(MaterialTheme.walletSpacing.gap),
+                    ) {
+                        components.Amount(AmountParams(params.amount), Modifier.fillMaxWidth())
+                        params.qrCode.invoke()
+                    }
         }
     }
 
-    /** A line above the group; with a [NoteGroupParams.mint], a row with its name, labels and total below it. */
+    /** The mint's bills stacked, the biggest in front with its amount; below, the mint, its labels, total and [NotePileParams.detail]. */
+    @Composable
+    fun notePile(params: NotePileParams, modifier: Modifier) {
+        Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Up to three bills behind the front one, each a little higher and further right.
+            val behind = (params.bills.size - 1).coerceIn(0, 3)
+            val colors = if (params.bills.isEmpty()) greyedBill() else params.colors
+            Box(Modifier.padding(top = 8.dp, bottom = 12.dp).size(width = 220.dp + 8.dp * behind, height = 120.dp + 8.dp * behind)) {
+                for (i in behind downTo 0) {
+                    Bill(
+                        colors,
+                        Modifier.align(Alignment.BottomStart).offset(x = 8.dp * i, y = -8.dp * i).size(width = 220.dp, height = 120.dp),
+                        corner = 12.dp,
+                        shade = 0.12f * i,
+                    ) {
+                        if (i == 0)
+                            params.bills.firstOrNull()?.let { Text(it, style = MaterialTheme.typography.headlineSmall, color = colors.ink) }
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (params.trusted)
+                    Icon(
+                        params.trustedIcon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                params.mint?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+            }
+            params.labels?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(params.total, style = MaterialTheme.typography.titleLarge)
+            Text(params.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+
+    /** A row with the mint's name, labels and total; without a [NoteGroupParams.mint], the total and labels only. */
     @Composable
     fun noteGroupHeader(params: NoteGroupParams, modifier: Modifier) {
-        Column(modifier) {
-            HorizontalDivider()
-            val mint = params.mint ?: return@Column
-            LocalBrandDesign.current.components.ListRow(
-                ListRowParams(
-                    headline = { Text(mint, style = MaterialTheme.typography.titleSmall) },
-                    supporting = params.labels?.let { labels -> { Text(labels) } },
-                    leading =
-                        if (params.trusted)
-                            ({ Icon(params.trustedIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) })
-                        else null,
-                    trailing = { Text(params.total, style = MaterialTheme.typography.titleSmall) },
-                ),
-                Modifier,
-            )
-        }
+        val mint = params.mint
+        LocalBrandDesign.current.components.ListRow(
+            ListRowParams(
+                headline = { Text(mint ?: params.total, style = MaterialTheme.typography.titleMedium) },
+                supporting = params.labels?.let { labels -> { Text(labels) } },
+                leading =
+                    if (params.trusted && mint != null)
+                        ({ Icon(params.trustedIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) })
+                    else null,
+                trailing = mint?.let { { Text(params.total, style = MaterialTheme.typography.titleMedium) } },
+            ),
+            modifier,
+        )
     }
 
     /** The icon in the secondary text colour, or the tone's colour; a check badge on the wallet in use. */
@@ -1008,3 +1086,29 @@ private enum class TopBarSlot {
 }
 
 private fun Int?.orZero() = this ?: 0
+
+/** A bill's colours: its mint's, greyed out when the note is out of the balance. */
+@Composable
+private fun NoteFaceParams.billColors(): NoteColors =
+    if (!status.inBalance || place == NoteFacePlace.Shared) greyedBill() else colors ?: MaterialTheme.walletColors.note(0)
+
+@Composable private fun greyedBill() = NoteColors(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+
+/**
+ * The default bill: the mint's colour with a fine inner frame, [content] (the amount) in its middle. Decorative: the texts it holds are
+ * what is read. [shade] darkens a bill further back in a pile.
+ */
+@Composable
+private fun Bill(colors: NoteColors, modifier: Modifier, corner: Dp, shade: Float = 0f, content: @Composable BoxScope.() -> Unit = {}) {
+    val shape = RoundedCornerShape(corner)
+    Box(
+        modifier
+            .clip(shape)
+            .background(colors.paper)
+            .background(Color.Black.copy(alpha = shade))
+            .padding(corner / 3)
+            .border(1.dp, colors.ink.copy(alpha = 0.35f), RoundedCornerShape(corner * 2 / 3)),
+        contentAlignment = Alignment.Center,
+        content = content,
+    )
+}

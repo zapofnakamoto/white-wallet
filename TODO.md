@@ -236,3 +236,11 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     catches the canary's cases (27) without a note or a fee, but not someone who passes the request through.
       - Make a Cs1 a MUST in every mutation answer with a `cp1` output, so a missing one is a violation, not
     "unverifiable but landed".
+28. **Brands draw the notes view their own way.** White Wallet's notes view (the balance, the needs-attention card,
+    the notes by mint, "Not in your balance") becomes the default of a new brand level. The brand gets a read-only
+    model (notes by mint, totals, states, home and trusted) and actions (open a note, open a mint, select, refresh)
+    that start White Wallet's own flows, so confirmations, the bearer warning and the checks stay the app's.
+    Safeguards: the balance and the needs-attention warning stay White Wallet's to draw; the standard view is always
+    reachable (Settings → Notes) and the warning leads there; `just screenshots` draws a brand's view in every note
+    state (unknown, waiting, handed out, many notes). Examples to show it: Acme as a pile of bills, a second one as a
+    map. Asked for by a developer on 2026-11-23; after the new default notes view, which is built first.

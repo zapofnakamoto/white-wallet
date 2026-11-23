@@ -31,6 +31,7 @@ import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DefaultBrandDesign
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.LocalReduceMotion
+import whitewallet.brand.ui.NoteColors
 import whitewallet.brand.ui.ThemeTokens
 import whitewallet.brand.ui.WalletColors
 import whitewallet.brand.ui.WalletSpacing
@@ -98,6 +99,15 @@ internal object BrandTokens {
                         warningContainer = res.role(R.color.brand_warning_container) ?: warningContainer,
                         onWarningContainer = res.role(R.color.brand_on_warning_container) ?: onWarningContainer,
                         amount = res.role(R.color.brand_amount) ?: amount,
+                        notes =
+                            listOf(
+                                    Triple(R.color.brand_note_1, R.color.brand_on_note_1, notes[0]),
+                                    Triple(R.color.brand_note_2, R.color.brand_on_note_2, notes[1]),
+                                    Triple(R.color.brand_note_3, R.color.brand_on_note_3, notes[2]),
+                                )
+                                .map { (paper, ink, fallback) ->
+                                    NoteColors(res.role(paper) ?: fallback.paper, res.role(ink) ?: fallback.ink)
+                                },
                     )
                 },
             spacing = WalletSpacing(screen = res.dp(R.dimen.brand_spacing_screen), gap = res.dp(R.dimen.brand_spacing_gap)),

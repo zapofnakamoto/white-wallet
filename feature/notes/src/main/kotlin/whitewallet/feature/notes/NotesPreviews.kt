@@ -64,29 +64,37 @@ internal val archiveState =
 /** The phone has no connection: the notes view says so, and a note received as a link waits for it. */
 @WalletPreviews @Composable private fun NotesOfflinePreview() = NotesContent(notesState.copy(offline = true), NotesActions())
 
-/** Notes that are being paid out, may or may not have landed, that their mint does not know, or whose amount cannot be verified. */
+/** Notes being paid out, that may or may not have landed, that their mint doesn't know, or whose amount can't be verified. */
+private val problemsState =
+    notesState.copy(
+        mints =
+            listOf(
+                MintNotes(
+                    HOME,
+                    isHome = true,
+                    listOf(
+                        note("n1", HOME, 13_000_000, NoteState.Paying),
+                        note("n2", HOME, 8_000_000, NoteState.Ambiguous),
+                        note("n3", HOME, 4_000_000, NoteState.Unknown),
+                        note("n4", HOME, 2_000_000),
+                    ),
+                    trusted = true,
+                )
+            ),
+        keyChangedHosts = setOf(HOME),
+    )
+
+/** The overview with such notes: the needs-attention card says what needs the user. */
+@WalletPreviews @Composable private fun NotesNoteProblemsPreview() = NotesContent(problemsState, NotesActions())
+
+/** The same mint's page: every note as a row with a small bill, those out of the balance greyed out with their status in words. */
+@WalletPreviews @Composable private fun NotesMintPagePreview() = NotesContent(problemsState.copy(mintPage = HOME), NotesActions())
+
+/** Selecting on a mint's page: checkboxes, and the bar with what can be done with the selection. */
 @WalletPreviews
 @Composable
-private fun NotesNoteProblemsPreview() =
-    NotesContent(
-        notesState.copy(
-            mints =
-                listOf(
-                    MintNotes(
-                        HOME,
-                        isHome = true,
-                        listOf(
-                            note("n1", HOME, 13_000_000, NoteState.Paying),
-                            note("n2", HOME, 8_000_000, NoteState.Ambiguous),
-                            note("n3", HOME, 4_000_000, NoteState.Unknown),
-                            note("n4", HOME, 2_000_000),
-                        ),
-                        trusted = true,
-                    )
-                )
-        ),
-        NotesActions(),
-    )
+private fun NotesSelectingPreview() =
+    NotesContent(notesState.copy(mintPage = HOME, selecting = true, selected = setOf("n1", "n2")), NotesActions())
 
 /** An action is waiting for its answer: the note list says so. */
 @WalletPreviews

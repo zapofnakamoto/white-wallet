@@ -57,9 +57,12 @@ data class MintNotes(
     /** The user trusts this mint (by its signing key; see Settings → Mints). */
     val trusted: Boolean = false,
 ) {
-    /** What counts in the balance (notes being paid or confirmed are shown, but not counted). */
+    /** What counts in the balance (notes being paid or confirmed are shown, but not counted), the biggest first. */
+    val inBalance: List<Note>
+        get() = notes.filter { it.state == NoteState.Outstanding }.sortedByDescending { it.amountMsat }
+
     val totalMsat: Long
-        get() = notes.filter { it.state == NoteState.Outstanding }.sumOf { it.amountMsat }
+        get() = inBalance.sumOf { it.amountMsat }
 }
 
 data class NotesState(
@@ -100,6 +103,10 @@ data class NotesState(
     val offline: Boolean = false,
     /** Every mint that didn't answer the last time the wallet asked it: what a received note there waits for. */
     val notAnsweringHosts: Set<String> = emptySet(),
+    /** Mints whose signing key doesn't match the one the wallet knows: nothing is sent there until it does. */
+    val keyChangedHosts: Set<String> = emptySet(),
+    /** The mint whose notes are open on a page of their own (sorting and selecting are there); null: all mints at a glance. */
+    val mintPage: String? = null,
     /** Debug builds in developer mode: a note's sheet offers making the next action fail ([SimulatedFailure]). */
     val failuresOffered: Boolean = false,
     /** How the next action fails, once; null: it runs as it is. */
@@ -113,6 +120,36 @@ data class NotesState(
 
     val noteCount: Int
         get() = all.size
+
+    /** How many notes count in the balance. */
+    val balanceNoteCount: Int
+        get() = mints.sumOf { it.inBalance.size }
+
+    /** The mint whose page is open. */
+    val pageMint: MintNotes?
+        get() = mintPage?.let { host -> mints.firstOrNull { it.host == host } }
+
+    /** Notes their mint doesn't know, not archived yet: they need the user. */
+    val unknownNotes: List<Note>
+        get() = all.filter { it.state == NoteState.Unknown }
+
+    /** Notes in a payment whose outcome isn't known yet: the wallet waits for the mint's answer. */
+    val waitingNotes: List<Note>
+        get() = all.filter { it.state == NoteState.Ambiguous }
+
+    /** Mints holding notes that didn't answer (offline, none answers, which the view says on its own). */
+    val silentMints: List<String>
+        get() = if (offline) emptyList() else mints.map { it.host }.filter { it in notAnsweringHosts }
+
+    /** Mints holding notes whose key changed. */
+    val keyChangedMints: List<String>
+        get() = mints.map { it.host }.filter { it in keyChangedHosts }
+
+    /** The bill colours of [host]'s notes: the home mint's first, the other mints' in turn ([whitewallet.brand.ui.WalletColors.note]). */
+    fun colorIndex(host: String): Int {
+        val others = mints.filterNot { it.isHome }
+        return if (mints.any { it.isHome && it.host == host }) 0 else others.indexOfFirst { it.host == host } + 1
+    }
 
     val sharedMsat: Long
         get() = shared.sumOf { it.amountMsat }
@@ -272,11 +309,11 @@ constructor(
         val sort: NoteSort,
     )
 
-    /** Whether the phone is offline, and the mints that didn't answer: what a received note waits for. */
-    private val reach = combine(wallet.offline, wallet.mintsNotAnswering, ::Pair)
+    /** Whether the phone is offline, the mints that didn't answer (what a received note waits for), and those whose key changed. */
+    private val reach = combine(wallet.offline, wallet.mintsNotAnswering, wallet.mintsWithChangedKey, ::Triple)
 
     val state: StateFlow<NotesState> =
-        combine(wallet.notes, wallet.receivedNotes, context, ui, reach) { notes, received, c, u, (offline, notAnswering) ->
+        combine(wallet.notes, wallet.receivedNotes, context, ui, reach) { notes, received, c, u, (offline, notAnswering, keyChanged) ->
                 val live = notes.filter {
                     it.state == NoteState.Outstanding ||
                         it.state == NoteState.Paying ||
@@ -306,6 +343,8 @@ constructor(
                     received = ReceivedNote.shown(received),
                     offline = offline,
                     notAnsweringHosts = notAnswering,
+                    keyChangedHosts = keyChanged,
+                    mintPage = u.mintPage?.takeIf { host -> mints.any { it.host == host } },
                     archivedLinks = ReceivedNote.archived(received).size,
                     archivedNotes = notes.count { it.isArchived },
                     sort = c.sort,
@@ -359,6 +398,12 @@ constructor(
     fun stopSelecting() = ui.update { it.copy(selecting = false, selected = emptySet()) }
 
     fun close() = ui.update { it.copy(open = null) }
+
+    /** Opens [host]'s notes on a page of their own. */
+    fun openMint(host: String) = ui.update { it.copy(mintPage = host, outcome = null) }
+
+    /** Back to all mints at a glance; a selection ends with the page. */
+    fun closeMint() = ui.update { it.copy(mintPage = null, selecting = false, selected = emptySet()) }
 
     fun dismissOutcome() = ui.update { it.copy(outcome = null) }
 

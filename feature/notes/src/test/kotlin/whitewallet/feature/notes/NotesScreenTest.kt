@@ -14,15 +14,13 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -76,15 +74,109 @@ class NotesScreenTest {
         return changes.fold(base) { s, change -> change(s) }
     }
 
+    /** The page of [host]'s notes is open. */
+    private fun onPage(host: String = "home.example") = { s: NotesState -> s.copy(mintPage = host) }
+
     @Test
-    fun theOverviewShowsTheTotalPerMintAndOnlyUnusualStatus() {
-        compose.setContent { NotesContent(state(), NotesActions()) }
+    fun theOverviewShowsEachMintAsAPileWithItsTotalAndRange() {
+        var opened: String? = null
+        compose.setContent { NotesContent(state(), NotesActions(openMint = { opened = it })) }
         compose.onNodeWithText("₿47,430").assertExists()
         compose.onNodeWithText("4 notes · 2 mints").assertExists()
         compose.onNodeWithText("home.example").assertExists()
         compose.onNodeWithText(text(R.string.notes_home_mint)).assertExists()
         compose.onNodeWithText("₿45,000").assertExists()
+        compose.onNodeWithText("2 notes · ₿15,000 – ₿30,000").assertExists()
+        // The notes themselves, and what's unusual about them, are on the mint's page.
+        compose.onNodeWithText(text(DesignR.string.uncertified)).assertDoesNotExist()
+        compose.onNodeWithText("home.example").performClick()
+        assertEquals("home.example", opened)
+    }
+
+    @Test
+    fun aMintsPageListsItsNotesWithOnlyUnusualStatusAndLeadsBack() {
+        var closed = 0
+        compose.setContent { NotesContent(state(onPage("other.example")), NotesActions(closeMint = { closed++ })) }
+        compose.onNodeWithText("other.example").assertExists()
+        compose.onNodeWithText("2 notes").assertExists()
+        compose.onNodeWithText("₿2,000").assertExists()
+        compose.onNodeWithText("₿430").assertExists()
         compose.onNodeWithText(text(DesignR.string.uncertified)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_sort_largest)).assertExists()
+        compose.onNodeWithContentDescription(text(DesignR.string.back)).performClick()
+        assertEquals(1, closed)
+    }
+
+    @Test
+    fun severalMintsAreSwipedThroughOrMovedByTheArrows() {
+        compose.setContent { NotesContent(state(), NotesActions()) }
+        compose.onNodeWithContentDescription(text(R.string.notes_mint_position, 1, 2)).assertExists()
+        compose.onNodeWithContentDescription(text(R.string.notes_mint_previous)).assertIsNotEnabled()
+        compose.onNodeWithContentDescription(text(R.string.notes_mint_next)).performClick()
+        compose.onNodeWithContentDescription(text(R.string.notes_mint_position, 2, 2)).assertExists()
+        compose.onNodeWithContentDescription(text(R.string.notes_mint_next)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun theAttentionCardSaysWhatNeedsTheUserAndLeadsThere() {
+        var opened: String? = null
+        var details: String? = null
+        compose.setContent {
+            NotesContent(
+                state(
+                    ::withUnknown,
+                    {
+                        it.copy(
+                            mints =
+                                it.mints +
+                                    MintNotes("other.example", false, listOf(note("a1", "other.example", 1_000, NoteState.Ambiguous))),
+                            keyChangedHosts = setOf("other.example"),
+                        )
+                    },
+                ),
+                NotesActions(openMint = { opened = it }, openMintDetails = { details = it }),
+            )
+        }
+        compose.onNodeWithText(text(R.string.notes_attention_title)).assertExists()
+        compose.onNodeWithText(plural(R.plurals.notes_archived_notes, 2, 2)).performClick()
+        assertEquals("home.example", opened)
+        compose.onNodeWithText(plural(R.plurals.notes_attention_waiting, 1, 1)).performClick()
+        assertEquals("other.example", opened)
+        compose.onNodeWithText("The signing key of other.example doesn't match").performClick()
+        assertEquals("other.example", details)
+    }
+
+    @Test
+    fun aMintNotAnsweringNeedsAttentionButNotWhileOffline() {
+        var s by mutableStateOf(state({ it.copy(notAnsweringHosts = setOf("other.example", "elsewhere.example")) }))
+        compose.setContent { NotesContent(s, NotesActions()) }
+        compose.onNodeWithText("other.example isn't answering").assertExists()
+        s = s.copy(offline = true)
+        compose.onNodeWithText("other.example isn't answering").assertDoesNotExist()
+    }
+
+    @Test
+    fun aReceivedLinkThatNeedsTheUserIsInTheCardAndOpensItsSection() {
+        val onlyLightning = waiting().copy(state = ReceivedState.LightningOnly)
+        compose.setContent { NotesContent(state({ it.copy(received = listOf(onlyLightning)) }), NotesActions()) }
+        compose.onNodeWithText(plural(R.plurals.notes_attention_received, 1, 1)).assertExists()
+        // Its section is open by itself: the link's own actions are right there.
+        compose.onNodeWithText(text(DesignR.string.received_receive)).assertExists()
+    }
+
+    @Test
+    fun uncertifiedNotesNeedNoAttention() {
+        // other.example holds one that isn't certified: spent like any other, nothing to do.
+        compose.setContent { NotesContent(state(), NotesActions()) }
+        compose.onNodeWithText(text(R.string.notes_attention_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theNoteSettingsAreARowAtTheBottom() {
+        var opened = 0
+        compose.setContent { NotesContent(state(), NotesActions(openSettings = { opened++ })) }
+        compose.onNodeWithText(text(R.string.notes_settings)).performScrollTo().performClick()
+        assertEquals(1, opened)
     }
 
     @Test
@@ -150,10 +242,10 @@ class NotesScreenTest {
             )
         }
         compose.onNodeWithText(text(R.string.notes_dev_section)).assertExists()
-        compose.onNodeWithText(text(R.string.notes_dev_fail_lost)).performClick()
+        compose.onNodeWithText(text(R.string.notes_dev_fail_lost)).performScrollTo().performClick()
         assertEquals(SimulatedFailure.Kind.AnswerLost, chosen)
         // Tapped again, it is taken back.
-        compose.onNodeWithText(text(R.string.notes_dev_fail_lost)).performClick()
+        compose.onNodeWithText(text(R.string.notes_dev_fail_lost)).performScrollTo().performClick()
         assertEquals(null, chosen)
     }
 
@@ -213,15 +305,15 @@ class NotesScreenTest {
     fun longPressStartsSelectingAndTheBarActsOnTheSelection() {
         var pressed: Note? = null
         var combined = false
-        var s by mutableStateOf(state())
+        var s by mutableStateOf(state(onPage()))
         compose.setContent { NotesContent(s, NotesActions(longPress = { pressed = it }, combine = { combined = true })) }
         compose.onNodeWithText("₿30,000").performTouchInput { longClick() }
         assertEquals("h1", pressed?.id)
 
-        s = state({ it.copy(selecting = true, selected = setOf("h1")) })
+        s = state(onPage(), { it.copy(selecting = true, selected = setOf("h1")) })
         compose.onNodeWithText("1 note selected · ₿30,000").assertExists()
         compose.onNodeWithText(text(R.string.notes_combine)).assertIsNotEnabled()
-        s = state({ it.copy(selecting = true, selected = setOf("h1", "h2")) })
+        s = state(onPage(), { it.copy(selecting = true, selected = setOf("h1", "h2")) })
         compose.onNodeWithText(text(R.string.notes_combine)).assertIsEnabled().performClick()
         assertEquals(true, combined)
     }
@@ -232,9 +324,12 @@ class NotesScreenTest {
         val skipped = NotCollected.Reason.FeeTooHigh(feeMsat = 2_000, capPercent = 2)
         compose.setContent {
             NotesContent(
-                state({
-                    it.copy(mints = listOf(MintNotes("home.example", true, home), MintNotes("other.example", false, other, skipped)))
-                }),
+                state(
+                    onPage("other.example"),
+                    {
+                        it.copy(mints = listOf(MintNotes("home.example", true, home), MintNotes("other.example", false, other, skipped)))
+                    },
+                ),
                 NotesActions(moveAnyway = { moved = it }),
             )
         }
@@ -248,11 +343,13 @@ class NotesScreenTest {
         var opened: String? = null
         val shared = note("s", "home.example", 3_333, NoteState.Shared)
         compose.setContent { NotesContent(state({ it.copy(shared = listOf(shared)) }), NotesActions(openShared = { opened = it })) }
-        compose.onNodeWithText(text(DesignR.string.handed_out_total, "₿3,333")).assertExists()
-        // The list is lazy: rows below the screen exist only once scrolled to.
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.notes_shared_hint)))
-        compose.onNodeWithText(text(DesignR.string.handed_out_title)).assertExists()
-        compose.onNodeWithText("₿3,333").performClick()
+        compose.onNodeWithText(text(R.string.notes_outside_title)).assertExists()
+        // A closed row with what it holds, opened by a tap.
+        compose.onNodeWithText("₿3,333 · 1 note").assertExists()
+        compose.onNodeWithText(text(R.string.notes_shared_hint)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.handed_out_title)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.notes_shared_hint)).assertExists()
+        compose.onNodeWithText("₿3,333").performScrollTo().performClick()
         assertEquals("s", opened)
     }
 
@@ -277,7 +374,8 @@ class NotesScreenTest {
                 NotesContent(state({ it.copy(shared = listOf(shared)) }), NotesActions(openShared = { opened = it }))
             }
         }
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("zap ₿3,333 home.example"))
+        compose.onNodeWithText(text(DesignR.string.handed_out_title)).performScrollTo().performClick()
+        compose.onNodeWithText("zap ₿3,333 home.example").performScrollTo()
         assertTrue(Triple(NoteFaceSize.Row, NoteStatus.Waiting, NoteFacePlace.Shared) in faces)
         // The tap stays the app's.
         compose.onNodeWithText("zap ₿3,333 home.example").performClick()
@@ -313,9 +411,12 @@ class NotesScreenTest {
     @Test
     @Config(qualifiers = "de")
     fun german() {
-        compose.setContent { NotesContent(state({ it.copy(selecting = true, selected = setOf("h1", "h2")) }), NotesActions()) }
+        var s by mutableStateOf(state())
+        compose.setContent { NotesContent(s, NotesActions()) }
         compose.onNodeWithText("4 Scheine · 2 Mints").assertExists()
         compose.onNodeWithText("Haupt-Mint").assertExists()
+        s = state(onPage(), { it.copy(selecting = true, selected = setOf("h1", "h2")) })
+        compose.onNodeWithText("2 Scheine · Haupt-Mint").assertExists()
         compose.onNodeWithText("2 Scheine ausgewählt · 45.000 ₿").assertExists()
         compose.onNodeWithText("Zusammenlegen").assertExists()
     }
@@ -346,7 +447,7 @@ class NotesScreenTest {
         var pressed: Note? = null
         compose.setContent {
             NotesContent(
-                state({ it.copy(noteActions = setOf(NoteAction.Share, NoteAction.Split)) }),
+                state(onPage(), { it.copy(noteActions = setOf(NoteAction.Share, NoteAction.Split)) }),
                 NotesActions(longPress = { pressed = it }),
             )
         }
@@ -359,7 +460,7 @@ class NotesScreenTest {
     fun theSelectionBarOffersOnlyTheAllowedBulkActions() {
         compose.setContent {
             NotesContent(
-                state({ it.copy(selecting = true, selected = setOf("h1"), noteActions = setOf(NoteAction.Recheck)) }),
+                state(onPage(), { it.copy(selecting = true, selected = setOf("h1"), noteActions = setOf(NoteAction.Recheck)) }),
                 NotesActions(),
             )
         }
@@ -418,17 +519,16 @@ class NotesScreenTest {
     @Test
     fun aBrandDrawsTheNotesAndTheAppKeepsWhatTheyDo() {
         var tapped: Note? = null
-        var s by mutableStateOf(state())
+        var s by mutableStateOf(state(onPage()))
         compose.setContent {
             CompositionLocalProvider(LocalBrandDesign provides bills) { NotesContent(s, NotesActions(tap = { tapped = it })) }
         }
         compose.onNodeWithText("bank home.example ₿45,000").assert(isHeading())
-        compose.onNodeWithText("bill ₿430 Uncertified").assertExists()
         compose.onNodeWithText("bill ₿30,000 Ready").performClick()
         assertEquals("h1", tapped?.id)
 
         // Selecting: the app says which are selected, whatever the brand draws.
-        s = state({ it.copy(selecting = true, selected = setOf("h1")) })
+        s = state(onPage(), { it.copy(selecting = true, selected = setOf("h1")) })
         compose
             .onNodeWithText("bill ₿30,000 Ready ✓")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
@@ -493,8 +593,11 @@ class NotesScreenTest {
                 1,
             )
         compose.setContent { NotesContent(NotesState(loaded = true, received = listOf(locked)), NotesActions()) }
-        compose.onNodeWithText(text(DesignR.string.received_total, "₿4,000")).assertExists()
-        compose.onNodeWithText(text(DesignR.string.received_title)).assertExists()
+        compose.onNodeWithText("₿4,000 · 1 note").assertExists()
+        // It only waits: nothing to do, so its section stays closed until opened.
+        compose.onNodeWithText(text(R.string.notes_attention_title)).assertDoesNotExist()
+        compose.onNodeWithText("Locked until ", substring = true).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.received_title)).performClick()
         compose.onNodeWithText("Locked until ", substring = true).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_on, "mint.example")).assertExists()
         compose.onNodeWithText("No notes yet", substring = true).assertDoesNotExist()
@@ -508,6 +611,7 @@ class NotesScreenTest {
         val state = NotesState(loaded = true, offline = true, received = listOf(waiting()))
         assertEquals(WalletStatus.Problem(ProblemKind.Offline), notesStatus(state))
         compose.setContent { NotesContent(state, NotesActions()) }
+        compose.onNodeWithText(text(DesignR.string.received_title)).performClick()
         compose.onNodeWithText(text(DesignR.string.received_waiting_offline)).assertExists()
     }
 
@@ -522,6 +626,7 @@ class NotesScreenTest {
         compose.setContent {
             NotesContent(NotesState(loaded = true, notAnsweringHosts = setOf("mint.example"), received = listOf(waiting())), NotesActions())
         }
+        compose.onNodeWithText(text(DesignR.string.received_title)).performClick()
         compose.onNodeWithText(text(DesignR.string.received_waiting_mint, "mint.example")).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_hint)).assertExists()
         compose.onNodeWithText(text(DesignR.string.received_archive)).assertDoesNotExist()
@@ -537,7 +642,7 @@ class NotesScreenTest {
         }
         compose.onNodeWithText(text(R.string.archive_title)).assertDoesNotExist()
         links = 2
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.archive_title)))
+        compose.onNodeWithText(text(R.string.archive_title)).performScrollTo()
         compose.onNodeWithText(plural(R.plurals.notes_archived_links, 2, 2)).assertExists()
         compose.onNodeWithText(plural(R.plurals.notes_archived_notes, 1, 1)).assertDoesNotExist()
         notes = 1
@@ -555,7 +660,7 @@ class NotesScreenTest {
         var archived = 0
         compose.setContent {
             NotesContent(
-                state(::withUnknown, { it.copy(selecting = true, selected = setOf("u1", "u2")) }),
+                state(::withUnknown, onPage(), { it.copy(selecting = true, selected = setOf("u1", "u2")) }),
                 NotesActions(archiveSelected = { archived++ }),
             )
         }
@@ -568,7 +673,9 @@ class NotesScreenTest {
 
     @Test
     fun selectedNotesInTheBalanceAreNotOfferedTheArchive() {
-        compose.setContent { NotesContent(state(::withUnknown, { it.copy(selecting = true, selected = setOf("h1")) }), NotesActions()) }
+        compose.setContent {
+            NotesContent(state(::withUnknown, onPage(), { it.copy(selecting = true, selected = setOf("h1")) }), NotesActions())
+        }
         compose.onNodeWithText(text(R.string.notes_combine)).assertExists()
         compose.onNodeWithText(text(R.string.notes_archive)).assertDoesNotExist()
     }
@@ -606,7 +713,7 @@ class NotesScreenTest {
 
     @Test
     fun aHandedOutNoteItsMintDoesNotKnowSaysSoInTheList() {
-        compose.setContent { NotesContent(state(withHandedOut(HandedOut.Waiting)), NotesActions()) }
+        compose.setContent { NotesContent(state(withHandedOut(HandedOut.Waiting), onPage()), NotesActions()) }
         compose.onNodeWithText(text(R.string.notes_state_unknown_handed_out)).assertExists()
     }
 

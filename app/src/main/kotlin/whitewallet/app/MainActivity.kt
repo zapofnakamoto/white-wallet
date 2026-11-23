@@ -68,7 +68,6 @@ import whitewallet.feature.home.HomeRoute
 import whitewallet.feature.home.MoveFundsRoute
 import whitewallet.feature.home.NotesTabSlot
 import whitewallet.feature.notes.ArchiveRoute
-import whitewallet.feature.notes.NoteSettingsButton
 import whitewallet.feature.notes.NotesRoute
 import whitewallet.feature.notes.NotesTab
 import whitewallet.feature.notes.NotesViewModel
@@ -457,6 +456,7 @@ private fun WalletApp(
                             onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
                             onClaim = openClaim,
                             onReceive = { nav.navigate(Routes.RECEIVE) },
+                            onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
                         )
                     else null,
             )
@@ -469,6 +469,7 @@ private fun WalletApp(
                 onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
                 onClaim = openClaim,
                 onReceive = { nav.navigate(Routes.RECEIVE) },
+                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
             )
         }
         composable(Routes.ARCHIVE) { ArchiveRoute(onBack = { nav.popBackStack() }) }
@@ -800,7 +801,9 @@ internal class BrandScreens(screens: Set<BrandScreen>) {
 private val BrandScreenEntry.afterSetup: Boolean
     get() = this == BrandScreenEntry.AfterOnboarding || this == BrandScreenEntry.AfterEverySetup
 
-/** The Notes tab for Home: the notes view, its refresh (asking the mints about every note) and its settings button. */
+/**
+ * The Notes tab for Home: the notes view (its note settings in a row at the bottom) and its refresh (asking the mints about every note).
+ */
 @Composable
 private fun notesTab(
     onSettings: () -> Unit,
@@ -808,14 +811,14 @@ private fun notesTab(
     onOpenArchive: () -> Unit,
     onClaim: (String) -> Unit,
     onReceive: () -> Unit,
+    onOpenMint: (String) -> Unit,
     viewModel: NotesViewModel = hiltViewModel(),
 ): NotesTabSlot {
     val state by viewModel.state.collectAsStateWithLifecycle()
     return NotesTabSlot(
         refreshing = state.refreshing,
         onRefresh = viewModel::refresh,
-        actions = { NoteSettingsButton(onSettings) },
-        content = { NotesTab(viewModel, onOpenShared, onOpenArchive, onClaim, onReceive) },
+        content = { NotesTab(viewModel, onOpenShared, onOpenArchive, onClaim, onReceive, onSettings, onOpenMint) },
     )
 }
 

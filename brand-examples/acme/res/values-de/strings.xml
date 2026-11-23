@@ -348,4 +348,16 @@
     <string name="receive_invoice_key_changed_unnamed">Der Signaturschlüssel deines Anbieters passt nicht zu dem, den deine Wallet kennt, darum lässt sich gerade keine Rechnung erstellen.</string>
     <string name="receive_key_checking_unnamed">Prüfe deinen Anbieter …</string>
     <string name="send_key_changed_held_unnamed">%1$s bei deinem Anbieter lässt sich erst senden, wenn sein Signaturschlüssel wieder passt.</string>
+    <plurals name="notes_attention_waiting">
+        <item quantity="one">%d Geldschein wartet auf eine Antwort</item>
+        <item quantity="other">%d Geldscheine warten auf eine Antwort</item>
+    </plurals>
+    <plurals name="notes_attention_received">
+        <item quantity="one">%d empfangener Geldschein braucht dich</item>
+        <item quantity="other">%d empfangene Geldscheine brauchen dich</item>
+    </plurals>
+    <string name="notes_mint_open">Seine Geldscheine zeigen</string>
+    <string name="notes_mint_previous">Vorheriger Anbieter</string>
+    <string name="notes_mint_next">Nächster Anbieter</string>
+    <string name="notes_mint_position">Anbieter %1$d von %2$d</string>
 </resources>

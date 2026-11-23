@@ -40,10 +40,12 @@ import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.MoneyDirection
 import whitewallet.brand.ui.NavigationBarParams
 import whitewallet.brand.ui.NavigationItem
+import whitewallet.brand.ui.NoteColors
 import whitewallet.brand.ui.NoteFaceParams
 import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteGroupParams
+import whitewallet.brand.ui.NotePileParams
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.ProgressKind
 import whitewallet.brand.ui.ProgressParams
@@ -235,6 +237,7 @@ fun WalletNoteFace(
     qrCode: (@Composable () -> Unit)? = null,
     place: NoteFacePlace = NoteFacePlace.Wallet,
     qrCovered: Boolean = false,
+    colors: NoteColors? = null,
 ) {
     val spoken = if (size == NoteFaceSize.Large) spokenAmount(amountMsat) else null
     LocalBrandDesign.current.components.NoteFace(
@@ -253,6 +256,7 @@ fun WalletNoteFace(
             qrCode,
             place,
             qrCovered,
+            colors,
         ),
         if (spoken != null) modifier.semantics { contentDescription = spoken } else modifier,
     )
@@ -275,6 +279,39 @@ fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted
             trustedIcon = painterResource(R.drawable.ic_check_circle),
         ),
         if (mint != null) modifier.semantics(mergeDescendants = true) { heading() } else modifier,
+    )
+}
+
+/**
+ * One mint's notes as a pile of bills ([whitewallet.brand.ui.BrandComponents.NotePile]): [bills] are the amounts of the notes in the
+ * balance, the biggest first. Read out as one: the mint, its labels, total and [detail].
+ */
+@Composable
+fun WalletNotePile(
+    mint: String?,
+    labels: String?,
+    totalMsat: Long,
+    detail: String,
+    bills: List<Long>,
+    colors: NoteColors,
+    home: Boolean,
+    trusted: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    LocalBrandDesign.current.components.NotePile(
+        NotePileParams(
+            mint,
+            labels,
+            total = formatAmount(totalMsat),
+            totalMsat,
+            detail,
+            bills = bills.take(4).map { formatAmount(it) },
+            colors,
+            home,
+            trusted,
+            trustedIcon = painterResource(R.drawable.ic_check_circle),
+        ),
+        modifier.semantics(mergeDescendants = true) {},
     )
 }
 

@@ -348,4 +348,16 @@
     <string name="receive_invoice_key_changed_unnamed">The signing key of your provider doesn\'t match the one your wallet knows, so no invoice can be created right now.</string>
     <string name="receive_key_checking_unnamed">Checking your provider…</string>
     <string name="send_key_changed_held_unnamed">%1$s with your provider can\'t be sent until its signing key matches.</string>
+    <plurals name="notes_attention_waiting">
+        <item quantity="one">%d banknote waiting for an answer</item>
+        <item quantity="other">%d banknotes waiting for an answer</item>
+    </plurals>
+    <plurals name="notes_attention_received">
+        <item quantity="one">%d received banknote needs you</item>
+        <item quantity="other">%d received banknotes need you</item>
+    </plurals>
+    <string name="notes_mint_open">Show its banknotes</string>
+    <string name="notes_mint_previous">Previous provider</string>
+    <string name="notes_mint_next">Next provider</string>
+    <string name="notes_mint_position">Provider %1$d of %2$d</string>
 </resources>

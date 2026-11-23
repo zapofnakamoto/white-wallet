@@ -43,7 +43,19 @@ data class WalletColors(
     val onWarningContainer: Color,
     /** Large amounts, such as the balance. Default: onSurface. */
     val amount: Color,
+    /**
+     * The colours of the bills a mint's notes are drawn as: the first for the home mint, the others in turn for the other mints. Default:
+     * primary, tertiary, secondary (each with its on- colour).
+     */
+    val notes: List<NoteColors>,
 ) {
+    /** The bill colours of the mint at [index] among the user's mints, the home mint at 0 (see [notes]). */
+    fun note(index: Int): NoteColors =
+        when {
+            index <= 0 || notes.size < 2 -> notes.first()
+            else -> notes[1 + (index - 1) % (notes.size - 1)]
+        }
+
     companion object {
         /** Every role at its fallback in [scheme]. */
         fun from(scheme: ColorScheme) =
@@ -55,9 +67,18 @@ data class WalletColors(
                 warningContainer = scheme.errorContainer,
                 onWarningContainer = scheme.onErrorContainer,
                 amount = scheme.onSurface,
+                notes =
+                    listOf(
+                        NoteColors(scheme.primary, scheme.onPrimary),
+                        NoteColors(scheme.tertiary, scheme.onTertiary),
+                        NoteColors(scheme.secondary, scheme.onSecondary),
+                    ),
             )
     }
 }
+
+/** A bill's [paper] and the [ink] its amount is printed in. */
+@Immutable data class NoteColors(val paper: Color, val ink: Color)
 
 /** The screens' rhythm: the padding at a screen's edges and the gap between its blocks. */
 @Immutable data class WalletSpacing(val screen: Dp = 24.dp, val gap: Dp = 16.dp)

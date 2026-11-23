@@ -7,6 +7,17 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- The notes view is simpler. At the top the balance and "N notes · M mints" (they add up), then a "Needs attention"
+  card only when something does, one short line each: notes their mint doesn't know, notes waiting for an answer, a
+  mint not answering or whose signing key doesn't match, received links the wallet can't claim on its own; a tap leads
+  there. Each mint's notes are a pile of bills in the mint's colour (the home mint's in the brand's primary), the
+  biggest in front, with its name, labels, total and range; swipe between mints, or use the arrows. A tap opens the
+  mint's page: its notes as rows with a small bill, sorting and Select (selecting is only there). A note's sheet shows
+  it as a large bill. Money outside the balance sits apart under "Not in your balance": received links (opened by a
+  tap, or by themselves when one needs you), handed-out notes (a closed row) and the archive. Note settings moved from
+  the top bar to a row at the bottom. For brands: the component `NotePile`, `NoteFaceParams.colors`, the colour roles
+  `brand_note_1` … `brand_note_3` with their `brand_on_note_*`, `NoteGroupHeader` now heads a mint's page (no
+  divider); new strings `notes_attention_*`, `notes_outside_title`, `notes_range`, `notes_mint_*`, `notes_section_*`.
 - Every money moment ends on the same pair of screens: the success screen when it worked, else the result screen.
   Claiming a handed-out note yourself on its page (its QR code's) now ends on the success screen ("Claimed", "You can
   spend it again."), as from its link; too late, no answer, waiting for its mint and refused on the result screen, a

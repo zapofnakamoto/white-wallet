@@ -78,8 +78,7 @@ class HomeScreenTest {
             onToggleBalance = onToggle,
             onOpenMint = onOpenMint,
             received = received,
-            notesTab =
-                if (withNotesTab) NotesTabSlot(refreshing = false, onRefresh = {}, actions = {}, content = { Text("the notes") }) else null,
+            notesTab = if (withNotesTab) NotesTabSlot(refreshing = false, onRefresh = {}, content = { Text("the notes") }) else null,
         )
     }
 
@@ -759,7 +758,7 @@ class HomeScreenTest {
                 onDismissBackup = {},
                 onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
-                notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, actions = {}, content = { Text("the notes") }),
+                notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, content = { Text("the notes") }),
             )
         }
         compose.onNodeWithText(plural(R.plurals.home_unknown_show, 2)).performClick()
@@ -780,7 +779,7 @@ class HomeScreenTest {
                 onDismissBackup = {},
                 onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
-                notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, actions = {}, content = { Text("the notes") }),
+                notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, content = { Text("the notes") }),
             )
         }
         compose.onNodeWithText(text(R.string.home_unknown_help_late)).assertExists()

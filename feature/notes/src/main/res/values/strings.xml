@@ -97,6 +97,20 @@
     <string name="archive_handed_out_hint">You handed these notes out, but their mint doesn\'t know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet claims it if you asked it to.</string>
     <string name="archive_note_remove_title">Remove this note for good?</string>
     <string name="archive_note_remove_body">Its mint doesn\'t know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase.</string>
+    <plurals name="notes_attention_waiting">
+        <item quantity="one">%d note waiting for an answer</item>
+        <item quantity="other">%d notes waiting for an answer</item>
+    </plurals>
+    <plurals name="notes_attention_received">
+        <item quantity="one">%d received note needs you</item>
+        <item quantity="other">%d received notes need you</item>
+    </plurals>
+    <!-- Read out on a mint's pile of bills: what a tap does. -->
+    <string name="notes_mint_open">Show its notes</string>
+    <string name="notes_mint_previous">Previous mint</string>
+    <string name="notes_mint_next">Next mint</string>
+    <!-- Read out on the dots under the mints' piles. -->
+    <string name="notes_mint_position">Mint %1$d of %2$d</string>
 
     <string name="notes_sort_largest">Largest first</string>
     <string name="notes_sort_newest">Newest first</string>
@@ -171,4 +185,23 @@
     <string name="notes_trusted">Trusted</string>
     <!-- The empty notes view's way forward: opens Receive. -->
     <string name="notes_receive">Receive</string>
+    <!-- The notes view: the card that says what needs the user, one line each. -->
+    <string name="notes_attention_title">Needs attention</string>
+    <!-- One or more mints (%2$s, joined for the language, "a.com and b.com"); %1$d: how many. -->
+    <plurals name="notes_attention_not_answering">
+        <item quantity="one">%2$s isn\'t answering</item>
+        <item quantity="other">%2$s aren\'t answering</item>
+    </plurals>
+    <!-- One or more mints, as above. -->
+    <plurals name="notes_attention_key_changed">
+        <item quantity="one">The signing key of %2$s doesn\'t match</item>
+        <item quantity="other">The signing keys of %2$s don\'t match</item>
+    </plurals>
+    <!-- The heading over received, handed-out and archived notes in the notes view. -->
+    <string name="notes_outside_title">Not in your balance</string>
+    <!-- A mint's smallest and biggest note, under its pile of bills: "1,000 sats – 21,000 sats". -->
+    <string name="notes_range">%1$s – %2$s</string>
+    <!-- Read out on a section of the notes view that opens and closes. -->
+    <string name="notes_section_open">Open</string>
+    <string name="notes_section_closed">Closed</string>
 </resources>

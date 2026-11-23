@@ -152,4 +152,29 @@
     <string name="notes_problem_declined">Nicht verschoben: Die Gebühr ist höher als dein Limit.</string>
     <string name="notes_trusted">Vertraut</string>
     <string name="notes_receive">Empfangen</string>
+    <string name="notes_attention_title">Braucht deine Aufmerksamkeit</string>
+    <plurals name="notes_attention_not_answering">
+        <item quantity="one">%2$s antwortet nicht</item>
+        <item quantity="other">%2$s antworten nicht</item>
+    </plurals>
+    <plurals name="notes_attention_key_changed">
+        <item quantity="one">Der Signaturschlüssel von %2$s passt nicht</item>
+        <item quantity="other">Die Signaturschlüssel von %2$s passen nicht</item>
+    </plurals>
+    <string name="notes_outside_title">Nicht in deinem Guthaben</string>
+    <string name="notes_range">%1$s – %2$s</string>
+    <string name="notes_section_open">Geöffnet</string>
+    <string name="notes_section_closed">Geschlossen</string>
+    <plurals name="notes_attention_waiting">
+        <item quantity="one">%d Schein wartet auf eine Antwort</item>
+        <item quantity="other">%d Scheine warten auf eine Antwort</item>
+    </plurals>
+    <plurals name="notes_attention_received">
+        <item quantity="one">%d empfangener Schein braucht dich</item>
+        <item quantity="other">%d empfangene Scheine brauchen dich</item>
+    </plurals>
+    <string name="notes_mint_open">Ihre Scheine zeigen</string>
+    <string name="notes_mint_previous">Vorherige Mint</string>
+    <string name="notes_mint_next">Nächste Mint</string>
+    <string name="notes_mint_position">Mint %1$d von %2$d</string>
 </resources>
