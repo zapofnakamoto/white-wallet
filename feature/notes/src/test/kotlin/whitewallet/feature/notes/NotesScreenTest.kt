@@ -119,33 +119,60 @@ class NotesScreenTest {
         compose.onNodeWithContentDescription(text(R.string.notes_mint_next)).assertIsNotEnabled()
     }
 
+    /** Notes home.example doesn't know, one on other.example waiting for an answer, and other.example's key changed. */
+    private fun troubled(s: NotesState) =
+        withUnknown(s)
+            .copy(
+                mints =
+                    withUnknown(s).mints +
+                        MintNotes("other.example", false, listOf(note("a1", "other.example", 1_000, NoteState.Ambiguous))),
+                keyChangedHosts = setOf("other.example"),
+            )
+
     @Test
-    fun theAttentionCardSaysWhatNeedsTheUserAndLeadsThere() {
-        var opened: String? = null
+    fun theAttentionCardSaysWhatNeedsTheUserAndOneLinkShowsIt() {
+        var opened = 0
+        compose.setContent { NotesContent(state(::troubled), NotesActions(openAttention = { opened++ })) }
+        compose.onNodeWithText(text(R.string.notes_attention_title)).assertExists()
+        compose.onNodeWithText("home.example doesn't know 2 of your notes").assertExists()
+        compose.onNodeWithText(plural(R.plurals.notes_attention_waiting, 1, 1)).assertExists()
+        compose.onNodeWithText("The signing key of other.example doesn't match").assertExists()
+        compose.onNodeWithText(text(R.string.notes_attention_open)).performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun theAttentionPageListsWhatNeedsTheUserByMint() {
+        var tapped: Note? = null
         var details: String? = null
+        var closed = 0
         compose.setContent {
             NotesContent(
-                state(
-                    ::withUnknown,
-                    {
-                        it.copy(
-                            mints =
-                                it.mints +
-                                    MintNotes("other.example", false, listOf(note("a1", "other.example", 1_000, NoteState.Ambiguous))),
-                            keyChangedHosts = setOf("other.example"),
-                        )
-                    },
-                ),
-                NotesActions(openMint = { opened = it }, openMintDetails = { details = it }),
+                state(::troubled, { it.copy(attentionOpen = true) }),
+                NotesActions(tap = { tapped = it }, openMintDetails = { details = it }, closeAttention = { closed++ }),
             )
         }
-        compose.onNodeWithText(text(R.string.notes_attention_title)).assertExists()
-        compose.onNodeWithText("home.example doesn't know 2 of your notes").performClick()
-        assertEquals("home.example", opened)
-        compose.onNodeWithText(plural(R.plurals.notes_attention_waiting, 1, 1)).performClick()
-        assertEquals("other.example", opened)
-        compose.onNodeWithText("The signing key of other.example doesn't match").performClick()
+        compose.onNodeWithText(text(R.string.notes_attention_title)).assert(isHeading())
+        compose.onNodeWithText("home.example").assert(isHeading())
+        compose.onNodeWithText("other.example").assert(isHeading())
+        // Only the notes that need the user: not the good ones next to them.
+        compose.onNodeWithText("₿30,000").assertDoesNotExist()
+        compose.onNodeWithText("₿5,000").performClick()
+        assertEquals("u1", tapped?.id)
+        // The other note home.example doesn't know, and other.example's waiting one.
+        compose.onAllNodesWithText("₿1,000", substring = true).assertCountEquals(2)
+        compose.onNodeWithText(text(DesignR.string.mint_key_changed_nothing_sent)).performClick()
         assertEquals("other.example", details)
+        compose.onNodeWithContentDescription(text(DesignR.string.back)).performClick()
+        assertEquals(1, closed)
+    }
+
+    @Test
+    fun aReceivedLinkThatNeedsTheUserIsOnTheAttentionPageWithItsActions() {
+        val onlyLightning = waiting().copy(state = ReceivedState.LightningOnly)
+        compose.setContent { NotesContent(state({ it.copy(received = listOf(onlyLightning), attentionOpen = true) }), NotesActions()) }
+        compose.onNodeWithText(text(DesignR.string.received_title)).assert(isHeading())
+        compose.onNodeWithText(text(DesignR.string.received_receive)).assertExists()
     }
 
     @Test

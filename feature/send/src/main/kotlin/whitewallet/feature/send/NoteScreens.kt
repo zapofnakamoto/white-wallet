@@ -443,6 +443,7 @@ fun SharedNoteScreen(
                         SharedNoteState.Reclaimed -> NoteStatus.TakenBack
                         SharedNoteState.Unverified -> NoteStatus.Unclear
                     },
+                certified = note.certified,
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
                 qrCode =
                     link?.let { l ->
@@ -535,6 +536,7 @@ fun SharedNoteScreen(
                 size = NoteFaceSize.Large,
                 note.amountMsat,
                 status = NoteStatus.Waiting,
+                certified = note.certified,
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
                 qrCode = { QrCode(format.qr(checkNotNull(note.link)), description = qrDescription) },
                 place = NoteFacePlace.Paper,

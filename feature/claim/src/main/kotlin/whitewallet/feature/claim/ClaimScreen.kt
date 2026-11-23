@@ -270,6 +270,7 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
                 preview.amountMsat,
                 modifier = Modifier.fillMaxWidth(),
                 status = if (preview.certified) NoteStatus.Ready else NoteStatus.Uncertified,
+                certified = preview.certified,
                 mint = preview.link.host.takeIf { showMints },
                 trusted = preview.trusted,
                 place = NoteFacePlace.Claim,
@@ -401,6 +402,7 @@ private fun OwnCard(preview: ClaimPreview.OwnShared) {
                 preview.amountMsat,
                 modifier = Modifier.fillMaxWidth(),
                 status = NoteStatus.Waiting,
+                certified = preview.certified,
                 place = NoteFacePlace.Claim,
             )
             Text(stringResource(R.string.claim_own_shared), style = MaterialTheme.typography.bodyMedium)

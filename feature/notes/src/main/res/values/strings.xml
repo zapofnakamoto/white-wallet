@@ -200,6 +200,8 @@
     <string name="notes_receive">Receive</string>
     <!-- The notes view: the card that says what needs the user, one line each. -->
     <string name="notes_attention_title">Needs attention</string>
+    <!-- The card's link to everything that needs the user, on a page of its own. -->
+    <string name="notes_attention_open">Show all</string>
     <!-- One or more mints (%2$s, joined for the language, "a.com and b.com"); %1$d: how many. -->
     <plurals name="notes_attention_not_answering">
         <item quantity="one">%2$s isn\'t answering</item>

@@ -238,7 +238,7 @@ fun WalletNoteFace(
     place: NoteFacePlace = NoteFacePlace.Wallet,
     qrCovered: Boolean = false,
     colors: NoteColors? = null,
-    certified: Boolean = status != NoteStatus.Uncertified,
+    certified: Boolean,
 ) {
     val spoken = if (size == NoteFaceSize.Large) spokenAmount(amountMsat) else null
     LocalBrandDesign.current.components.NoteFace(

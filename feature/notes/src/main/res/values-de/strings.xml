@@ -153,6 +153,8 @@
     <string name="notes_trusted">Vertraut</string>
     <string name="notes_receive">Empfangen</string>
     <string name="notes_attention_title">Braucht deine Aufmerksamkeit</string>
+    <!-- The card's link to everything that needs the user, on a page of its own. -->
+    <string name="notes_attention_open">Alle anzeigen</string>
     <plurals name="notes_attention_not_answering">
         <item quantity="one">%2$s antwortet nicht</item>
         <item quantity="other">%2$s antworten nicht</item>

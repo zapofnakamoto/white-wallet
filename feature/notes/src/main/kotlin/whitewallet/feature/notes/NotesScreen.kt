@@ -75,6 +75,9 @@ class NotesActions(
     /** A mint's notes on their page, and back to all mints. */
     val openMint: (host: String) -> Unit = {},
     val closeMint: () -> Unit = {},
+    /** What needs the user on a page of its own, and back. */
+    val openAttention: () -> Unit = {},
+    val closeAttention: () -> Unit = {},
     /** The mint's details (its key, to accept a new one); null: not offered. */
     val openMintDetails: ((host: String) -> Unit)? = null,
     /** The note settings (strategy, collecting at the home mint, auto-rotate); null: not offered. */
@@ -132,6 +135,8 @@ fun rememberNotesActions(
             openReceive = onReceive,
             openMint = viewModel::openMint,
             closeMint = viewModel::closeMint,
+            openAttention = viewModel::openAttention,
+            closeAttention = viewModel::closeAttention,
             openMintDetails = onOpenMint,
             openSettings = onSettings,
         )
@@ -181,8 +186,13 @@ fun NotesRoute(
             viewModel.sharedShown()
         }
     }
-    // On a mint's page, the top bar's back arrow leads to all mints, as Back does.
-    val back = if (state.mintPage != null) viewModel::closeMint else onBack
+    // On a mint's page or what needs the user, the top bar's back arrow leads to all mints, as Back does.
+    val back =
+        when {
+            state.mintPage != null -> viewModel::closeMint
+            state.attentionOpen -> viewModel::closeAttention
+            else -> onBack
+        }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.notes_title), back) }) { padding ->
         PullToRefreshBox(
             isRefreshing = state.refreshing,
@@ -195,17 +205,23 @@ fun NotesRoute(
 }
 
 /**
- * The notes: the balance, what needs the user, each mint's notes as a pile of bills (swiped through, tapped to open the mint's notes) and
- * what isn't in the balance. On a mint's page, tap a note for its details and actions; long-press (or Select) to pick several.
+ * The notes: the balance, what needs the user (all of it on a page of its own, by mint), each mint's notes as a pile of bills (swiped
+ * through, tapped to open the mint's notes) and what isn't in the balance. On a mint's page, tap a note for its details and actions;
+ * long-press (or Select) to pick several.
  */
 @Composable
 fun NotesContent(state: NotesState, actions: NotesActions) {
-    // Back ends selecting first, then leaves the mint's page, before it leaves the tab.
-    BackHandler(enabled = state.selecting || state.mintPage != null) {
-        if (state.selecting) actions.stopSelecting() else actions.closeMint()
+    // Back ends selecting first, then leaves the mint's page or what needs the user, before it leaves the tab.
+    BackHandler(enabled = state.selecting || state.mintPage != null || state.attentionOpen) {
+        when {
+            state.selecting -> actions.stopSelecting()
+            state.mintPage != null -> actions.closeMint()
+            else -> actions.closeAttention()
+        }
     }
     if (!pageLoaded(state.loaded)) return
-    // Kept above both views, so coming back from a mint's page finds the overview as it was left. Received links that wait for
+    // Kept above all three views, so coming back from a mint's page or what needs the user finds the overview as it was left. Received
+    // links that wait for
     // the user open their section by themselves.
     val overview =
         OverviewState(
@@ -215,9 +231,11 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
             rememberSaveable { mutableStateOf(false) },
         )
     BrandBody(Page.Notes, notesStatus(state)) {
-        when (val mint = state.pageMint) {
-            null -> NotesOverview(state, actions, overview)
-            else -> MintPage(mint, state, actions)
+        val mint = state.pageMint
+        when {
+            mint != null -> MintPage(mint, state, actions)
+            state.attentionOpen -> AttentionPage(state, actions)
+            else -> NotesOverview(state, actions, overview)
         }
     }
     state.openNote?.let { NoteSheet(it, state, actions) }

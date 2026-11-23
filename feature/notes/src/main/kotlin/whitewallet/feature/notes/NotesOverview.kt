@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -27,10 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -45,6 +41,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.Anchor
+import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
@@ -55,6 +52,7 @@ import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteRow
+import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletListItem
@@ -62,7 +60,6 @@ import whitewallet.core.designsystem.WalletNoteFace
 import whitewallet.core.designsystem.WalletNotePile
 import whitewallet.core.designsystem.WalletStatusScope
 import whitewallet.core.designsystem.formatAmount
-import whitewallet.core.designsystem.needsUser
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.designsystem.waitsFor
@@ -74,9 +71,6 @@ import whitewallet.core.model.Note
  */
 @Composable
 internal fun NotesOverview(state: NotesState, actions: NotesActions, overview: OverviewState) {
-    var receivedOpen by overview.receivedOpen
-    val received = remember { BringIntoViewRequester() }
-    val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize().verticalScroll(overview.scroll)) {
         Summary(state)
         if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
@@ -86,21 +80,17 @@ internal fun NotesOverview(state: NotesState, actions: NotesActions, overview: O
                 PrimaryButton(stringResource(R.string.notes_receive), actions.openReceive)
             }
         }
-        Attention(state, actions) {
-            receivedOpen = true
-            // Once its rows are drawn, so they come into view, not only its heading.
-            scope.launch {
-                withFrameNanos {}
-                received.bringIntoView()
-            }
-        }
+        Attention(state, actions.openAttention)
         if (state.mints.isNotEmpty()) MintPiles(state, actions, overview.pager)
-        OutsideBalance(state, actions, overview, Modifier.bringIntoViewRequester(received))
+        OutsideBalance(state, actions, overview)
         actions.openSettings?.let { SettingsRow(it) }
     }
 }
 
-/** What the overview keeps while a mint's page is open: where it was scrolled and swiped to, and which sections are open. */
+/**
+ * What the overview keeps while a mint's page or what needs the user is open: where it was scrolled and swiped to, and which sections are
+ * open.
+ */
 internal class OverviewState(
     val scroll: ScrollState,
     val pager: PagerState,
@@ -126,82 +116,63 @@ private fun Summary(state: NotesState) {
     }
 }
 
-/** One thing that needs the user, in a line; [onClick] leads to it (null: the line says it all). */
-private class AttentionLine(val text: String, val onClick: (() -> Unit)?)
-
 /**
  * What needs the user, one short line each, only when anything does: notes their mint doesn't know, notes waiting for an answer, mints that
- * don't answer or whose key changed, received links the wallet can't claim on its own ([onReceived] opens them). Uncertified notes don't:
- * they are spent like any other.
+ * don't answer or whose key changed, received links the wallet can't claim on its own. Uncertified notes don't: they are spent like any
+ * other. [onOpen] shows all of it on a page of its own, by mint.
  */
 @Composable
-private fun Attention(state: NotesState, actions: NotesActions, onReceived: () -> Unit) {
+private fun Attention(state: NotesState, onOpen: () -> Unit) {
+    if (!state.needsAttention) return
     val lines = buildList {
         state.unknownNotes
             .takeIf { it.isNotEmpty() }
             ?.let { notes ->
                 val hosts = notes.map { it.host }.distinct()
-                val text =
+                add(
                     when {
                         !state.showMints -> pluralStringResource(R.plurals.notes_attention_unknown_unnamed, notes.size, notes.size)
                         hosts.size == 1 ->
                             pluralStringResource(R.plurals.notes_attention_unknown_at, notes.size, notes.size, hosts.single())
                         else -> pluralStringResource(R.plurals.notes_attention_unknown, notes.size, notes.size)
                     }
-                add(AttentionLine(text, openMintOf(notes, actions)))
+                )
             }
         state.waitingNotes
             .takeIf { it.isNotEmpty() }
-            ?.let { notes ->
-                add(
-                    AttentionLine(
-                        pluralStringResource(R.plurals.notes_attention_waiting, notes.size, notes.size),
-                        openMintOf(notes, actions),
-                    )
-                )
-            }
+            ?.let { notes -> add(pluralStringResource(R.plurals.notes_attention_waiting, notes.size, notes.size)) }
         state.silentMints
             .takeIf { it.isNotEmpty() }
             ?.let { hosts ->
                 add(
-                    AttentionLine(
-                        if (state.showMints)
-                            pluralStringResource(
-                                R.plurals.notes_attention_not_answering,
-                                hosts.size,
-                                hosts.size,
-                                ListFormatter.getInstance().format(hosts),
-                            )
-                        else stringResource(DesignR.string.mint_not_answering_unnamed),
-                        hosts.singleOrNull()?.let { host -> { actions.openMint(host) } },
-                    )
+                    if (state.showMints)
+                        pluralStringResource(
+                            R.plurals.notes_attention_not_answering,
+                            hosts.size,
+                            hosts.size,
+                            ListFormatter.getInstance().format(hosts),
+                        )
+                    else stringResource(DesignR.string.mint_not_answering_unnamed)
                 )
             }
         state.keyChangedMints
             .takeIf { it.isNotEmpty() }
             ?.let { hosts ->
                 add(
-                    AttentionLine(
-                        if (state.showMints)
-                            pluralStringResource(
-                                R.plurals.notes_attention_key_changed,
-                                hosts.size,
-                                hosts.size,
-                                ListFormatter.getInstance().format(hosts),
-                            )
-                        else stringResource(DesignR.string.mint_key_changed_nothing_sent),
-                        actions.openMintDetails?.let { open -> hosts.singleOrNull()?.let { host -> { open(host) } } },
-                    )
+                    if (state.showMints)
+                        pluralStringResource(
+                            R.plurals.notes_attention_key_changed,
+                            hosts.size,
+                            hosts.size,
+                            ListFormatter.getInstance().format(hosts),
+                        )
+                    else stringResource(DesignR.string.mint_key_changed_nothing_sent)
                 )
             }
-        state.received
-            .count { it.needsUser() }
+        state.receivedNeedingUser.size
             .takeIf { it > 0 }
-            ?.let { count ->
-                add(AttentionLine(pluralStringResource(R.plurals.notes_attention_received, count, count), onReceived))
-            }
+            ?.let { count -> add(pluralStringResource(R.plurals.notes_attention_received, count, count)) }
     }
-    if (lines.isEmpty()) return
     WalletCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), tone = Tone.Warning) {
         Row(
             Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
@@ -216,24 +187,17 @@ private fun Attention(state: NotesState, actions: NotesActions, onReceived: () -
             )
         }
         lines.forEach { line ->
-            val click = line.onClick
-            Row(
-                (if (click != null) Modifier.clickable(onClick = click) else Modifier)
-                    .fillMaxWidth()
-                    .padding(start = 44.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(line.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                if (click != null) Icon(painterResource(DesignR.drawable.ic_chevron_end), contentDescription = null)
-            }
+            Text(
+                line,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth().padding(start = 44.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
+            )
         }
-        Box(Modifier.padding(bottom = 6.dp))
+        Row(Modifier.fillMaxWidth().padding(end = 8.dp, bottom = 4.dp), horizontalArrangement = Arrangement.End) {
+            WalletButton(kind = ButtonKind.Text, onClick = onOpen) { Text(stringResource(R.string.notes_attention_open)) }
+        }
     }
 }
-
-/** Opens the page of the (first) mint holding [notes]. */
-private fun openMintOf(notes: List<Note>, actions: NotesActions): (() -> Unit)? =
-    notes.firstOrNull()?.host?.let { host -> { actions.openMint(host) } }
 
 /**
  * Each mint's notes as a pile of bills, one mint at a time: swiped through, the next one peeking in at the edge, or moved by the arrows
@@ -322,7 +286,6 @@ private fun OutsideBalance(
     state: NotesState,
     actions: NotesActions,
     overview: OverviewState,
-    receivedModifier: Modifier,
 ) {
     if (state.received.isEmpty() && state.handedOutCount == 0 && state.archivedCount == 0) return
     var receivedOpen by overview.receivedOpen
@@ -333,27 +296,26 @@ private fun OutsideBalance(
         style = MaterialTheme.typography.titleSmall,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp).semantics { heading() },
     )
-    if (state.received.isNotEmpty())
-        Column(receivedModifier) {
-            Section(
-                stringResource(DesignR.string.received_title),
-                amount(state.receivedMsat, state.received.size),
-                receivedOpen,
-                { receivedOpen = !receivedOpen },
-            )
-            if (receivedOpen) {
-                Hint(stringResource(DesignR.string.received_hint))
-                state.received.forEach { note ->
-                    ReceivedNoteRow(
-                        note,
-                        state.showMints,
-                        amountHidden = false,
-                        actions.received,
-                        wait = note.waitsFor(state.offline, state.notAnsweringHosts),
-                    )
-                }
+    if (state.received.isNotEmpty()) {
+        Section(
+            stringResource(DesignR.string.received_title),
+            amount(state.receivedMsat, state.received.size),
+            receivedOpen,
+            { receivedOpen = !receivedOpen },
+        )
+        if (receivedOpen) {
+            Hint(stringResource(DesignR.string.received_hint))
+            state.received.forEach { note ->
+                ReceivedNoteRow(
+                    note,
+                    state.showMints,
+                    amountHidden = false,
+                    actions.received,
+                    wait = note.waitsFor(state.offline, state.notAnsweringHosts),
+                )
             }
         }
+    }
     if (state.handedOutCount > 0) {
         Section(
             stringResource(DesignR.string.handed_out_title),

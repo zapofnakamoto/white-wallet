@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.NoteStrategy
+import whitewallet.core.designsystem.needsUser
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -113,6 +114,8 @@ data class NotesState(
     val keyChangedHosts: Set<String> = emptySet(),
     /** The mint whose notes are open on a page of their own (sorting and selecting are there); null: all mints at a glance. */
     val mintPage: String? = null,
+    /** What needs the user is open on a page of its own; it closes by itself once nothing does. */
+    val attentionOpen: Boolean = false,
     /** Debug builds in developer mode: a note's sheet offers making the next action fail ([SimulatedFailure]). */
     val failuresOffered: Boolean = false,
     /** How the next action fails, once; null: it runs as it is. */
@@ -150,6 +153,26 @@ data class NotesState(
     /** Mints holding notes whose key changed. */
     val keyChangedMints: List<String>
         get() = mints.map { it.host }.filter { it in keyChangedHosts }
+
+    /** Received links the wallet can't claim on its own. */
+    val receivedNeedingUser: List<ReceivedNote>
+        get() = received.filter { it.needsUser() }
+
+    /** Whether anything needs the user: the overview's card, and the page it opens. */
+    val needsAttention: Boolean
+        get() =
+            unknownNotes.isNotEmpty() ||
+                waitingNotes.isNotEmpty() ||
+                silentMints.isNotEmpty() ||
+                keyChangedMints.isNotEmpty() ||
+                receivedNeedingUser.isNotEmpty()
+
+    /**
+     * Whether the page of what needs the user stays open: also while offline hides a mint that isn't answering, so a moment without network
+     * doesn't close it for good.
+     */
+    val keepsAttentionOpen: Boolean
+        get() = needsAttention || (offline && mints.any { it.host in notAnsweringHosts })
 
     /** The bill colours of [host]'s notes: the home mint's first, the other mints' in turn ([whitewallet.brand.ui.WalletColors.note]). */
     fun colorIndex(host: String): Int {
@@ -351,33 +374,36 @@ constructor(
                         }
                 val pickable = live.filter(::pickable).map { it.id }.toSet()
                 u.copy(
-                    loaded = true,
-                    mints = mints,
-                    shared = sharedNotes(notes, c.sort),
-                    handedOutUnknown = handedOutUnknown,
-                    received = ReceivedNote.shown(received),
-                    offline = offline,
-                    notAnsweringHosts = notAnswering,
-                    keyChangedHosts = keyChanged,
-                    mintPage = u.mintPage?.takeIf { host -> mints.any { it.host == host } },
-                    archivedLinks = ReceivedNote.archived(received).size,
-                    archivedNotes = notes.count { it.isArchived },
-                    sort = c.sort,
-                    selected = u.selected intersect pickable,
-                    open = u.open?.takeIf { id -> live.any { it.id == id } || handedOutUnknown.any { it.id == id } },
-                    noteStrategy = c.strategy,
-                    strategies = wallet.noteStrategies,
-                    developerMode = c.developer,
-                    failuresOffered = c.developer && failuresBuilt,
-                    simulatedFailure = u.simulatedFailure.takeIf { c.developer && failuresBuilt },
-                    knownHosts = (listOfNotNull(c.home) + mints.map { it.host } + c.devHosts).distinct(),
-                )
+                        loaded = true,
+                        mints = mints,
+                        shared = sharedNotes(notes, c.sort),
+                        handedOutUnknown = handedOutUnknown,
+                        received = ReceivedNote.shown(received),
+                        offline = offline,
+                        notAnsweringHosts = notAnswering,
+                        keyChangedHosts = keyChanged,
+                        mintPage = u.mintPage?.takeIf { host -> mints.any { it.host == host } },
+                        archivedLinks = ReceivedNote.archived(received).size,
+                        archivedNotes = notes.count { it.isArchived },
+                        sort = c.sort,
+                        selected = u.selected intersect pickable,
+                        open = u.open?.takeIf { id -> live.any { it.id == id } || handedOutUnknown.any { it.id == id } },
+                        noteStrategy = c.strategy,
+                        strategies = wallet.noteStrategies,
+                        developerMode = c.developer,
+                        failuresOffered = c.developer && failuresBuilt,
+                        simulatedFailure = u.simulatedFailure.takeIf { c.developer && failuresBuilt },
+                        knownHosts = (listOfNotNull(c.home) + mints.map { it.host } + c.devHosts).distinct(),
+                    )
+                    .let { it.copy(attentionOpen = it.attentionOpen && it.keepsAttentionOpen) }
             }
             // A mint's page whose notes are all gone closes for good, with its selection: it must not open by itself when a note
             // lands there again, nor leave a selection behind on the overview.
             .onEach { s ->
                 if (s.mintPage == null && ui.value.mintPage != null)
                     ui.update { it.copy(mintPage = null, selecting = false, selected = emptySet()) }
+                // So does the page of what needs the user, once nothing does.
+                if (!s.attentionOpen && ui.value.attentionOpen) ui.update { it.copy(attentionOpen = false) }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesState(loaded = false))
 
@@ -425,6 +451,12 @@ constructor(
 
     /** Back to all mints at a glance; a selection ends with the page. */
     fun closeMint() = ui.update { it.copy(mintPage = null, selecting = false, selected = emptySet()) }
+
+    /** Opens what needs the user, on a page of its own. */
+    fun openAttention() = ui.update { it.copy(attentionOpen = true, outcome = null) }
+
+    /** Back to all mints at a glance. */
+    fun closeAttention() = ui.update { it.copy(attentionOpen = false) }
 
     fun dismissOutcome() = ui.update { it.copy(outcome = null) }
 

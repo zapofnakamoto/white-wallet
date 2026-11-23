@@ -66,8 +66,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
@@ -964,14 +965,14 @@ object DefaultComponents : BrandComponents {
                                 MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
                                 colors,
                                 Modifier.align(Alignment.TopStart)
-                                    .fillMaxWidth(BILL_TEXT_WIDTH)
+                                    .fillMaxWidth(billTextWidth(params.certified))
                                     .padding(start = 24.dp, top = 20.dp, end = 8.dp),
                             )
                             params.mint?.let {
                                 Text(
                                     it,
                                     Modifier.align(Alignment.BottomStart)
-                                        .fillMaxWidth(BILL_TEXT_WIDTH)
+                                        .fillMaxWidth(billTextWidth(params.certified))
                                         .padding(start = 24.dp, bottom = 20.dp, end = 8.dp),
                                     color = colors.ink,
                                     style = MaterialTheme.typography.bodyMedium,
@@ -1238,7 +1239,7 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
                         MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         params.colors,
                         Modifier.align(Alignment.TopStart)
-                            .fillMaxWidth(BILL_TEXT_WIDTH)
+                            .fillMaxWidth(billTextWidth(params.billsCertified.firstOrNull() ?: true))
                             .padding(start = 14.dp, top = 12.dp, end = 6.dp)
                             .clearAndSetSemantics {},
                     )
@@ -1247,8 +1248,8 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
     }
 }
 
-/** How much of a bill's width its texts may take: the rest is the certified bill's foil stripe. */
-private const val BILL_TEXT_WIDTH = 0.76f
+/** How much of a bill's width its texts may take: a certified bill keeps the rest for its foil stripe. */
+private fun billTextWidth(certified: Boolean) = if (certified) 0.76f else 1f
 
 /**
  * The default bill: the mint's colour with a dashed frame [frame] inside its edge; [content] holds its texts. A [certified] note's bill
@@ -1273,26 +1274,33 @@ private fun Bill(
             .clip(shape)
             .background(colors.paper)
             .border(1.dp, Color.Black.copy(alpha = 0.12f), shape)
-            .drawBehind {
-                if (certified) drawCertificateMarks(colors, detailed = size.width >= 100.dp.toPx())
+            // Built once per size: a list scrolls many bills.
+            .drawWithCache {
+                val marks = if (certified) certificateMarks(colors, detailed = size.width >= 100.dp.toPx()) else null
                 val inset = frame.toPx()
-                drawRoundRect(
-                    line,
-                    topLeft = Offset(inset, inset),
-                    size = Size(size.width - 2 * inset, size.height - 2 * inset),
-                    cornerRadius = CornerRadius((corner - frame / 2).coerceAtLeast(2.dp).toPx()),
-                    style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
-                )
+                val dashes = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
+                val radius = CornerRadius((corner - frame / 2).coerceAtLeast(2.dp).toPx())
+                onDrawBehind {
+                    marks?.invoke(this)
+                    drawRoundRect(
+                        line,
+                        topLeft = Offset(inset, inset),
+                        size = Size(size.width - 2 * inset, size.height - 2 * inset),
+                        cornerRadius = radius,
+                        style = dashes,
+                    )
+                }
             },
         content = content,
     )
 }
 
 /**
- * A certified bill's marks, laid out on a bill 204 units wide and 100 high: the foil stripe from 160 to 184 with six engraved lines, and
- * when [detailed] the medal low on it and three soft waves under the amount.
+ * A certified bill's marks, laid out on a bill 204 units wide and 100 high: the foil stripe from 160 to 184 with engraved lines (three on a
+ * small bill, six else), and when [detailed] the medal low on it and three soft waves under the amount. Built once, drawn by what it
+ * returns.
  */
-private fun DrawScope.drawCertificateMarks(colors: NoteColors, detailed: Boolean) {
+private fun CacheDrawScope.certificateMarks(colors: NoteColors, detailed: Boolean): DrawScope.() -> Unit {
     val ux = size.width / 204
     val uy = size.height / 100
     val u = minOf(ux, uy)
@@ -1300,7 +1308,7 @@ private fun DrawScope.drawCertificateMarks(colors: NoteColors, detailed: Boolean
     val hairline = maxOf(0.45f * u, 0.5.dp.toPx())
     val left = 160 * ux
     val right = 184 * ux
-    drawRect(
+    val foil =
         Brush.linearGradient(
             0f to ink.copy(alpha = 0.08f),
             0.45f to ink.copy(alpha = 0.34f),
@@ -1308,23 +1316,18 @@ private fun DrawScope.drawCertificateMarks(colors: NoteColors, detailed: Boolean
             1f to ink.copy(alpha = 0.06f),
             start = Offset(left, 0f),
             end = Offset(left + 0.35f * (right - left), size.height),
-        ),
-        topLeft = Offset(left, 0f),
-        size = Size(right - left, size.height),
-    )
-    for (x in listOf(left, right)) drawLine(ink.copy(alpha = 0.3f), Offset(x, 0f), Offset(x, size.height), hairline)
+        )
+    val lines = if (detailed) 6 else 3
     val engraving =
         Path().apply {
-            for (k in 0 until 6) {
-                val x0 = (162 + k * 4) * ux
+            for (k in 0 until lines) {
+                val x0 = left + (k + 0.5f) * (right - left) / lines
                 for (y in 0..100 step 2) {
                     val x = x0 + 1.5f * ux * sin((y + k * 4) / 18f * 2 * PI.toFloat())
                     if (y == 0) moveTo(x, 0f) else lineTo(x, y * uy)
                 }
             }
         }
-    drawPath(engraving, ink.copy(alpha = 0.3f), style = Stroke(hairline))
-    if (!detailed) return
     val waves =
         Path().apply {
             for (k in 0 until 3) {
@@ -1334,15 +1337,25 @@ private fun DrawScope.drawCertificateMarks(colors: NoteColors, detailed: Boolean
                 }
             }
         }
-    drawPath(waves, ink.copy(alpha = 0.18f), style = Stroke(hairline))
     val center = Offset(172 * ux, 76 * uy)
     val teeth = star(center, 12.5f * u, 10.8f * u, 28)
-    drawPath(teeth, colors.paper)
-    drawPath(teeth, ink.copy(alpha = 0.24f))
-    drawCircle(colors.paper, 8.4f * u, center)
-    drawCircle(ink.copy(alpha = 0.6f), 8.4f * u, center, style = Stroke(0.7f * u))
-    drawPath(rose(center, 5f * u, 1.6f * u, 10, 0f), ink.copy(alpha = 0.55f), style = Stroke(hairline))
-    drawPath(rose(center, 3.2f * u, 1f * u, 10, PI.toFloat() / 10), ink.copy(alpha = 0.35f), style = Stroke(hairline * 0.9f))
+    val rosette = rose(center, 5f * u, 1.6f * u, 10, 0f)
+    val inner = rose(center, 3.2f * u, 1f * u, 10, PI.toFloat() / 10)
+    return {
+        drawRect(foil, topLeft = Offset(left, 0f), size = Size(right - left, size.height))
+        drawLine(ink.copy(alpha = 0.3f), Offset(left, 0f), Offset(left, size.height), hairline)
+        drawLine(ink.copy(alpha = 0.3f), Offset(right, 0f), Offset(right, size.height), hairline)
+        drawPath(engraving, ink.copy(alpha = 0.3f), style = Stroke(hairline))
+        if (detailed) {
+            drawPath(waves, ink.copy(alpha = 0.18f), style = Stroke(hairline))
+            drawPath(teeth, colors.paper)
+            drawPath(teeth, ink.copy(alpha = 0.24f))
+            drawCircle(colors.paper, 8.4f * u, center)
+            drawCircle(ink.copy(alpha = 0.6f), 8.4f * u, center, style = Stroke(maxOf(0.7f * u, hairline)))
+            drawPath(rosette, ink.copy(alpha = 0.55f), style = Stroke(hairline))
+            drawPath(inner, ink.copy(alpha = 0.35f), style = Stroke(hairline * 0.9f))
+        }
+    }
 }
 
 /** A medal's toothed edge: [points] teeth between radius [outer] and [inner]. */

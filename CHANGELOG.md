@@ -9,8 +9,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - The notes view is simpler. At the top the balance and "N notes · M mints" (they add up), then a "Needs attention"
   card only when something does, one short line each: notes their mint doesn't know, notes waiting for an answer, a
-  mint not answering or whose signing key doesn't match, received links the wallet can't claim on its own; a tap leads
-  there. Each mint's notes are a pile of bills in the mint's colour (the home mint's in the brand's primary), the
+  mint not answering or whose signing key doesn't match, received links the wallet can't claim on its own; "Show all"
+  opens them on a page of their own, by mint, each note there opening its details. Each mint's notes are a pile of
+  bills in the mint's colour (the home mint's in the brand's primary), the
   biggest in front, with its name, labels, total and range; swipe between mints, or use the arrows. A tap opens the
   mint's page: its notes as rows with a small bill, sorting and Select (selecting is only there). A note's sheet shows
   it as a large bill. Money outside the balance sits apart under "Not in your balance": received links (opened by a

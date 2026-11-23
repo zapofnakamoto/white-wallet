@@ -86,6 +86,7 @@ class PreviewsTest {
                 "NotesOfflinePreview",
                 "NotesNoteProblemsPreview",
                 "NotesMintPagePreview",
+                "NotesAttentionPagePreview",
                 "NotesSelectingPreview",
                 "NotesOutcomePendingPreview",
                 "NotesOutcomeFailedPreview",

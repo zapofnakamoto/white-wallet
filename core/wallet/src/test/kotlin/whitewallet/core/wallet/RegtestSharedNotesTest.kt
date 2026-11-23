@@ -109,7 +109,10 @@ class RegtestSharedNotesTest {
             val before = alice.balance()
 
             wire.offline = true
-            assertEquals(ClaimPreview.OwnShared(sent.id, 1_000_000, reachable = false), alice.wallet.previewClaim(assertNotNull(sent.link)))
+            assertEquals(
+                ClaimPreview.OwnShared(sent.id, 1_000_000, reachable = false, certified = true),
+                alice.wallet.previewClaim(assertNotNull(sent.link)),
+            )
 
             wire.offline = false
             val own = assertIs<ClaimPreview.OwnShared>(alice.wallet.previewClaim(assertNotNull(sent.link)))

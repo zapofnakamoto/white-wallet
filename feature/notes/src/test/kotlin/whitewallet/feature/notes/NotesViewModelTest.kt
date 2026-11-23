@@ -147,4 +147,32 @@ class NotesViewModelTest {
         screen.tap(state.note("u1")!!)
         assertEquals("u1", screen.await { it.openNote != null }.openNote?.id)
     }
+
+    @Test
+    fun `the page of what needs the user closes once nothing does, and doesn't open again by itself`() = runTest {
+        val screen = screen()
+        store.upsertNotes(listOf(note("u1", home, 7_000, NoteState.Unknown)))
+        screen.await { it.needsAttention }
+        screen.openAttention()
+        screen.await { it.attentionOpen }
+
+        // The mint knows it after all: nothing needs the user, the overview again.
+        store.upsertNotes(listOf(note("u1", home, 7_000)))
+        screen.await { !it.needsAttention }
+
+        // Another note it doesn't know: the card says so, the page stays closed.
+        store.upsertNotes(listOf(note("u2", home, 1_000, NoteState.Unknown)))
+        assertFalse(screen.await { it.needsAttention }.attentionOpen)
+    }
+
+    @Test
+    fun `a moment offline doesn't close the page of a mint that isn't answering`() {
+        val notes = listOf(MintNotes(other, false, listOf(note("o1", other, 5_000))))
+        val silent = NotesState(loaded = true, mints = notes, notAnsweringHosts = setOf(other))
+        assertTrue(silent.needsAttention)
+        // Offline, no mint is said to be not answering; the page stays all the same.
+        assertFalse(silent.copy(offline = true).needsAttention)
+        assertTrue(silent.copy(offline = true).keepsAttentionOpen)
+        assertFalse(silent.copy(notAnsweringHosts = emptySet()).keepsAttentionOpen)
+    }
 }

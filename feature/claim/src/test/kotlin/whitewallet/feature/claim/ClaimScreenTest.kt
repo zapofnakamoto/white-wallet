@@ -147,7 +147,10 @@ class ClaimScreenTest {
     @Test
     fun theUsersOwnSharedNoteIsTakenBackNotClaimed() {
         var takenBack = false
-        show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = true)), onTakeBack = { takenBack = true })
+        show(
+            ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = true, certified = true)),
+            onTakeBack = { takenBack = true },
+        )
         compose.onNodeWithText(text(R.string.claim_own_shared)).assertExists()
         compose.onAllNodesWithText("Claim", substring = true).assertCountEquals(2) // the title and "Claim … yourself"
         compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
@@ -167,7 +170,7 @@ class ClaimScreenTest {
 
     @Test
     fun theUsersOwnSharedNoteItsMintDidNotAnswerForOffersNothingButToCheckAgain() {
-        show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false)))
+        show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false, certified = true)))
         compose.onNodeWithText(text(R.string.claim_own_offline)).assertExists()
         compose.onNode(takeBackButton()).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.claim_keep)).assertDoesNotExist()
@@ -176,7 +179,7 @@ class ClaimScreenTest {
 
     @Test
     fun theUsersOwnSharedNoteOpenedOfflineBlamesTheConnectionNotTheMint() {
-        show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false), offline = true))
+        show(ClaimState(input = "x", preview = ClaimPreview.OwnShared("q", 5_000_000, reachable = false, certified = true), offline = true))
         compose.onNodeWithText(text(R.string.claim_own_phone_offline)).assertExists()
         compose.onNodeWithText(text(R.string.claim_own_offline)).assertDoesNotExist()
     }

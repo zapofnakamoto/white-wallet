@@ -55,9 +55,9 @@ sealed interface ClaimPreview {
 
     /**
      * One of the active account's own notes, handed out as a link and not claimed yet: taken back ([Wallet.reclaimNote] with [id]), never
-     * claimed. [reachable] is false while its mint can't be asked.
+     * claimed. [reachable] is false while its mint can't be asked; [certified]: its mint certified its amount.
      */
-    data class OwnShared(val id: String, val amountMsat: Long, val reachable: Boolean) : ClaimPreview
+    data class OwnShared(val id: String, val amountMsat: Long, val reachable: Boolean, val certified: Boolean) : ClaimPreview
 
     /**
      * Can't be kept at its own mint ([reason]), but can be received over Lightning into [target], a mint of the account: its home mint, or
@@ -163,21 +163,35 @@ internal class NoteClaimer(private val wallet: Wallet) {
                 is KeyLookup.Refused -> return if (found.burned) ClaimPreview.AlreadySpent else ClaimPreview.MintRefused(found.reason)
                 // As at a mint that shows no key: the account's own note is still taken back (and refused there), any other kept.
                 KeyLookup.KeyChanged -> {
-                    if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
+                    if (shared != null)
+                        return ClaimPreview.OwnShared(
+                            shared.id,
+                            shared.amountMsat,
+                            reachable = true,
+                            certified = shared.certificate != null,
+                        )
                     return ClaimPreview.KeyChanged(link, link.host, certifiedOffline(link, accountId))
                 }
                 KeyLookup.Unreachable -> {
-                    if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = false)
+                    if (shared != null)
+                        return ClaimPreview.OwnShared(
+                            shared.id,
+                            shared.amountMsat,
+                            reachable = false,
+                            certified = shared.certificate != null,
+                        )
                     return ClaimPreview.Offline(link, link.declaredAmountMsat, certifiedOffline(link, accountId))
                 }
             }
         val mint = wallet.mintOf(accountId, link.host)
         // A mint whose key doesn't match isn't believed either when it says the note is worth nothing.
         if (mint?.mintPubkey != null && mint.mintPubkey != info.mintPubkey?.toHex()) {
-            if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
+            if (shared != null)
+                return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true, certified = shared.certificate != null)
             return ClaimPreview.KeyChanged(link, link.host, certifiedOffline(link, accountId))
         }
-        if (shared != null) return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true)
+        if (shared != null)
+            return ClaimPreview.OwnShared(shared.id, shared.amountMsat, reachable = true, certified = shared.certificate != null)
         val own = wallet.homeOf(accountId)
         // The wallet keeps no notes at a mint without a signing key: only Lightning brings one in.
         val key = info.mintPubkey ?: return withdrawer.forNote(link, UnclaimedReason.NoSigningKey, found, accountId)

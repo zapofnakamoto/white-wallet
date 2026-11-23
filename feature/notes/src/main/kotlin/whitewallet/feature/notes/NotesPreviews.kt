@@ -90,6 +90,9 @@ private val problemsState =
 /** The same mint's page: every note as a row with a small bill, those out of the balance greyed out with their status in words. */
 @WalletPreviews @Composable private fun NotesMintPagePreview() = NotesContent(problemsState.copy(mintPage = HOME), NotesActions())
 
+/** What needs the user on a page of its own, by mint. */
+@WalletPreviews @Composable private fun NotesAttentionPagePreview() = NotesContent(problemsState.copy(attentionOpen = true), NotesActions())
+
 /** Selecting on a mint's page: checkboxes, and the bar with what can be done with the selection. */
 @WalletPreviews
 @Composable
