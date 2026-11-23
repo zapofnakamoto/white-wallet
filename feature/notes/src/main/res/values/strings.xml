@@ -58,7 +58,7 @@
         <item quantity="one">The mint refused to give back %1$d note you handed out. Your wallet tries again by itself.</item>
         <item quantity="other">The mint refused to give back %1$d notes you handed out. Your wallet tries again by itself.</item>
     </plurals>
-    <string name="notes_already_spent">This note was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
+    <string name="notes_already_spent">This note was already spent, so it wasn\'t handed out. It\'s no longer in your balance.</string>
     <string name="notes_empty">No notes yet. Money you receive is held as notes, and they show up here.</string>
     <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your notes again on every refresh.</string>
     <plurals name="notes_selected">
@@ -99,7 +99,7 @@
     <string name="archive_note_remove_title">Remove this note for good?</string>
     <string name="archive_note_remove_body">Its mint doesn\'t know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase.</string>
 
-    <string name="notes_waiting_total">%1$s shared, not claimed yet</string>
+    <string name="notes_waiting_total">%1$s handed out, not claimed yet</string>
     <string name="notes_sort_largest">Largest first</string>
     <string name="notes_sort_newest">Newest first</string>
     <string name="notes_select">Select</string>

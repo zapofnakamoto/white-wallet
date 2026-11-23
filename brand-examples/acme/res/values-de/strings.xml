@@ -45,9 +45,9 @@
     <string name="claim_invalid">Kein gültiger Geldschein: %1$s</string>
     <string name="claim_spent">Dieser Geldschein wurde bereits ausgegeben.</string>
     <string name="claim_in_wallet">Dieser Geldschein ist bereits in deiner Wallet.</string>
-    <string name="claim_own_shared">Du hast diesen Geldschein geteilt, und niemand hat ihn bisher eingelöst.</string>
-    <string name="claim_own_offline">Du hast diesen Geldschein geteilt. Dein Anbieter antwortet gerade nicht, darum lässt er sich noch nicht zurückholen.</string>
-    <string name="claim_own_phone_offline">Du hast diesen Geldschein geteilt. Du bist offline, darum lässt er sich noch nicht zurückholen.</string>
+    <string name="claim_own_shared">Du hast diesen Geldschein weitergegeben, und niemand hat ihn bisher eingelöst.</string>
+    <string name="claim_own_offline">Du hast diesen Geldschein weitergegeben. Dein Anbieter antwortet gerade nicht, darum lässt er sich noch nicht zurückholen.</string>
+    <string name="claim_own_phone_offline">Du hast diesen Geldschein weitergegeben. Du bist offline, darum lässt er sich noch nicht zurückholen.</string>
     <string name="claim_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt, deshalb wird nichts dorthin gesendet. Behalte ihn: Deine Wallet löst ihn ein, sobald der Schlüssel wieder passt oder du in den Details des Anbieters einen neuen annimmst.</string>
     <string name="claim_kept_key_changed">Deine Wallet löst ihn ein, sobald der Signaturschlüssel des Anbieters wieder passt oder du in seinen Details einen neuen annimmst.</string>
     <string name="claim_other_mint">Dieser Geldschein liegt bei %1$s und bleibt dort.</string>
@@ -61,7 +61,7 @@
         <item quantity="one">%1$d Geldschein zusammengelegt</item>
         <item quantity="other">%1$d Geldscheine zusammengelegt</item>
     </plurals>
-    <string name="activity_split">Einen Geldschein in zwei geteilt</string>
+    <string name="activity_split">Einen Geldschein in zwei aufgeteilt</string>
     <string name="activity_sent_note">Geldschein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Geldscheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="move_adds_mint">%1$s wird zu den Anbietern von %2$s hinzugefügt.</string>
@@ -74,7 +74,8 @@
     </plurals>
     <string name="notes_sort">Geldscheine sortieren</string>
     <string name="notes_select_hint">Tippe auf Geldscheine, um sie auszuwählen.</string>
-    <string name="notes_share_hint">„Als QR teilen“ gibt den ganzen Geldschein weiter. Um nur einen Teil zu geben, teile ihn zuerst.</string>
+    <string name="notes_share_hint">Gibt den ganzen Geldschein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn zurückholst.</string>
+    <string name="notes_share_hint_split">Gibt den ganzen Geldschein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn zurückholst. Um nur einen Teil zu geben, teile ihn zuerst auf.</string>
     <string name="notes_renew_hint">Erneuern gibt dem Geldschein einen neuen Schlüssel, zum Beispiel wenn du seinen QR-Code versehentlich jemandem gezeigt hast.</string>
     <plurals name="notes_checked_ok">
         <item quantity="one">%1$d Geldschein geprüft: noch da.</item>
@@ -156,7 +157,7 @@
         <item quantity="other">Gerade gefragt: Der Anbieter kennt deine Geldscheine noch immer nicht.</item>
     </plurals>
     <string name="notice_unknown_unreachable_unnamed">Keine Antwort vom Anbieter. Deine Wallet fragt später wieder.</string>
-    <string name="notes_already_spent">Dieser Geldschein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
+    <string name="notes_already_spent">Dieser Geldschein war schon ausgegeben und wurde daher nicht weitergegeben. Er ist nicht mehr in deinem Guthaben.</string>
     <string name="notes_empty">Noch keine Geldscheine. Geld, das du empfängst, wird als Geldscheine gehalten und erscheint hier.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Geldscheine bei jedem Aktualisieren neu.</string>
     <plurals name="notes_selected">
@@ -164,14 +165,14 @@
         <item quantity="other">%1$d Geldscheine ausgewählt · %2$s</item>
     </plurals>
     <string name="notes_combined">Zu einem Geldschein über %1$s zusammengelegt.</string>
-    <string name="notes_split_title">Geldschein teilen</string>
+    <string name="notes_split_title">Geldschein aufteilen</string>
     <string name="notes_split_amount_bitcoin">Erster Geldschein, in ₿</string>
     <string name="notes_split_amount_sats">Erster Geldschein, in Sats</string>
     <string name="notes_split_preview">Du bekommst einen Geldschein über %1$s und einen über %2$s.</string>
     <string name="notes_move_hint">Die Geldscheine werden über Lightning ausgezahlt und kommen dort als neuer Geldschein an. Beide Seiten berechnen ihre Gebühren.</string>
     <string name="notes_problem_not_found">Diese Geldscheine haben sich inzwischen geändert. Wähle sie erneut aus.</string>
     <string name="notes_problem_too_few">Wähle mindestens zwei Geldscheine zum Zusammenlegen aus.</string>
-    <string name="notes_problem_invalid_amount">Dieser Geldschein ist zu klein zum Teilen, oder der Betrag passt nicht.</string>
+    <string name="notes_problem_invalid_amount">Dieser Geldschein ist zu klein zum Aufteilen, oder der Betrag passt nicht.</string>
     <string name="notes_problem_same_mint">Die Geldscheine sind schon dort.</string>
     <string name="notes_problem_mint_invalid">Diese Adresse kann keine Geldscheine verwahren.</string>
     <string name="notes_problem_key_changed">Der Signaturschlüssel des Anbieters passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details des Anbieters einen neuen Schlüssel annimmst.</string>
@@ -203,7 +204,7 @@
     <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
     <string name="settings_notes">Geldschein-Einstellungen</string>
     <string name="settings_note_list">Geldscheine</string>
-    <string name="settings_note_list_hint">Deine Geldscheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>
+    <string name="settings_note_list_hint">Deine Geldscheine einzeln ansehen, weitergeben, aufteilen oder zusammenlegen</string>
     <string name="delete_what">Das entfernt dieses Konto von diesem Handy: seine Wiederherstellungsphrase, seine Geldscheine und seine Einstellungen. Andere Konten sind nicht betroffen.</string>
     <string name="settings_note_strategy">Umgang mit Geldscheinen</string>
     <string name="settings_strategy_manual_hint">Geldscheine so behalten, wie sie ankommen.</string>
@@ -231,8 +232,8 @@
         <item quantity="other">%1$d Geldscheine zu %2$d zusammengelegt</item>
     </plurals>
     <plurals name="notice_split">
-        <item quantity="one">%1$d Geldschein in %2$d geteilt</item>
-        <item quantity="other">%1$d Geldscheine in %2$d geteilt</item>
+        <item quantity="one">%1$d Geldschein in %2$d aufgeteilt</item>
+        <item quantity="other">%1$d Geldscheine in %2$d aufgeteilt</item>
     </plurals>
     <plurals name="notice_rearranged">
         <item quantity="one">%1$d Geldschein zu %2$d neu aufgeteilt</item>
@@ -252,11 +253,11 @@
         <item quantity="other">Geldschein %1$d von %2$d wird geprüft …</item>
     </plurals>
     <string name="home_working_combining">Deine Geldscheine werden zusammengelegt …</string>
-    <string name="home_working_splitting">Deine Geldscheine werden geteilt …</string>
+    <string name="home_working_splitting">Deine Geldscheine werden aufgeteilt …</string>
     <string name="home_working_renewing">Deine Geldscheine werden erneuert …</string>
     <string name="home_working_moving_home">Dein Geld wird zu deinem Anbieter verschoben …</string>
     <string name="notes_split_switches_manual">„%1$s“ würde das rückgängig machen, daher verwaltest du deine Geldscheine ab jetzt selbst.</string>
-    <string name="settings_notices_hint">Eine kurze Nachricht, wenn die Wallet deine Geldscheine von selbst zusammengelegt, geteilt, erneuert oder verschoben hat.</string>
+    <string name="settings_notices_hint">Eine kurze Nachricht, wenn die Wallet deine Geldscheine von selbst zusammengelegt, aufgeteilt, erneuert oder verschoben hat.</string>
     <string name="mints_add">Anbieter hinzufügen</string>
     <string name="add_mint_setup_title">Dein Anbieter</string>
     <string name="add_mint_title">Anbieter hinzufügen</string>

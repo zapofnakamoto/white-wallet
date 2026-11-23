@@ -229,9 +229,9 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `claim_mint_refused` | The mint doesn't accept this note right now. |
 | `claim_mint_refused_reason` | The mint doesn't accept this note right now. Its answer: %1$s |
 | `claim_in_wallet` | This note is already in your wallet. |
-| `claim_own_shared` | You shared this note, and nobody has claimed it yet. |
-| `claim_own_offline` | You shared this note. Its mint isn't answering right now, so it can't be taken back yet. |
-| `claim_own_phone_offline` | You shared this note. You're offline, so it can't be taken back yet. |
+| `claim_own_shared` | You handed out this note, and nobody has claimed it yet. |
+| `claim_own_offline` | You handed out this note. Its mint isn't answering right now, so it can't be taken back yet. |
+| `claim_own_phone_offline` | You handed out this note. You're offline, so it can't be taken back yet. |
 | `claim_other_mint` | This note is held by %1$s and stays there. |
 | `home_tab_notes` | Notes |
 | `home_wallet_empty` | Nothing here yet. Share your address to get paid, or claim a note. |
@@ -255,11 +255,12 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notes_count` | %1$d note / %1$d notes (plural) |
 | `notes_sort` | Sort notes |
 | `notes_select_hint` | Tap notes to select them. |
-| `notes_share_hint` | Share as QR hands over the whole note. To give part of it, split it first. |
+| `notes_share_hint` | Hands out the whole note as a QR code. It leaves your balance until someone claims it or you take it back. |
+| `notes_share_hint_split` | Hands out the whole note as a QR code. It leaves your balance until someone claims it or you take it back. To give part of it, split it first. |
 | `notes_renew_hint` | Renew gives the note a fresh key, for example after you showed its QR code to someone by mistake. |
 | `notes_checked_ok` | Checked %1$d note: still there. / Checked %1$d notes: all still there. (plural) |
 | `notes_checked_gone` | %1$d note is no longer there: it was spent elsewhere, for example with this recovery phrase on another phone. / %1$d notes are no longer there: they were spent elsewhere, for example with this recovery phrase on another phone. (plural) |
-| `notes_already_spent` | This note was already spent, so it wasn't shared. It's no longer in your balance. |
+| `notes_already_spent` | This note was already spent, so it wasn't handed out. It's no longer in your balance. |
 | `notes_empty` | No notes yet. Money you receive is held as notes, and they show up here. |
 | `notes_strategy_warning` | "%1$s" is on: it rearranges your notes again on every refresh. |
 | `notes_selected` | %1$d note selected · %2$s / %1$d notes selected · %2$s (plural) |
@@ -310,7 +311,7 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `mint_key_changed` | The signing key of %1$s doesn't match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept a new key. Payments to your addresses there wait until then. |
 | `settings_notes` | Note settings |
 | `settings_note_list` | Notes |
-| `settings_note_list_hint` | See your notes one by one, share, split or combine them |
+| `settings_note_list_hint` | See your notes one by one, hand them out, split or combine them |
 | `delete_what` | This removes this wallet from this phone: its recovery phrase and its accounts, with their notes and settings. Other wallets are not affected. |
 | `settings_note_strategy` | Note strategy |
 | `settings_strategy_manual_hint` | Keep notes as they arrive. |

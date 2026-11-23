@@ -252,9 +252,9 @@
     <string name="home_scan">Scan a QR code</string>
     <string name="accounts_wallet">Wallet %1$d</string>
     <!-- Notes handed out as links that nobody has claimed yet, under the balance. %1$s: what they are worth. -->
-    <string name="home_shared_total">%1$s shared, not claimed yet</string>
+    <string name="home_shared_total">%1$s handed out, not claimed yet</string>
     <!-- The same while the balance is hidden: no amount. -->
-    <string name="home_shared_title">Shared, not claimed yet</string>
+    <string name="home_shared_title">Handed out, not claimed yet</string>
     <!-- Under the balance: what of it is on mints whose signing key doesn't match (%1$s); counted, but it can't be spent for now -->
     <string name="home_key_changed_part">%1$s of it can\'t be spent right now</string>
     <!-- As home_key_changed_part, while the balance is hidden -->

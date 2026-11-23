@@ -45,9 +45,9 @@
     <string name="claim_invalid">Not a valid banknote: %1$s</string>
     <string name="claim_spent">This banknote has already been spent.</string>
     <string name="claim_in_wallet">This banknote is already in your wallet.</string>
-    <string name="claim_own_shared">You shared this banknote, and nobody has claimed it yet.</string>
-    <string name="claim_own_offline">You shared this banknote. Your provider isn\'t answering right now, so it can\'t be taken back yet.</string>
-    <string name="claim_own_phone_offline">You shared this banknote. You\'re offline, so it can\'t be taken back yet.</string>
+    <string name="claim_own_shared">You handed out this banknote, and nobody has claimed it yet.</string>
+    <string name="claim_own_offline">You handed out this banknote. Your provider isn\'t answering right now, so it can\'t be taken back yet.</string>
+    <string name="claim_own_phone_offline">You handed out this banknote. You\'re offline, so it can\'t be taken back yet.</string>
     <string name="claim_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows, so nothing is sent there. Keep it: your wallet claims it once the key matches again, or you accept a new key in the provider\'s details.</string>
     <string name="claim_kept_key_changed">Your wallet claims it once the provider\'s signing key matches again, or you accept a new key in its details.</string>
     <string name="claim_other_mint">This banknote is held by %1$s and stays there.</string>
@@ -74,7 +74,8 @@
     </plurals>
     <string name="notes_sort">Sort banknotes</string>
     <string name="notes_select_hint">Tap banknotes to select them.</string>
-    <string name="notes_share_hint">Share as QR hands over the whole banknote. To give part of it, split it first.</string>
+    <string name="notes_share_hint">Hands out the whole banknote as a QR code. It leaves your balance until someone claims it or you take it back.</string>
+    <string name="notes_share_hint_split">Hands out the whole banknote as a QR code. It leaves your balance until someone claims it or you take it back. To give part of it, split it first.</string>
     <string name="notes_renew_hint">Renew gives the banknote a fresh key, for example after you showed its QR code to someone by mistake.</string>
     <plurals name="notes_checked_ok">
         <item quantity="one">Checked %1$d banknote: still there.</item>
@@ -156,7 +157,7 @@
         <item quantity="other">Asked just now: the provider still doesn\'t know your banknotes.</item>
     </plurals>
     <string name="notice_unknown_unreachable_unnamed">No answer from the provider. Your wallet asks again later.</string>
-    <string name="notes_already_spent">This banknote was already spent, so it wasn\'t shared. It\'s no longer in your balance.</string>
+    <string name="notes_already_spent">This banknote was already spent, so it wasn\'t handed out. It\'s no longer in your balance.</string>
     <string name="notes_empty">No banknotes yet. Money you receive is held as banknotes, and they show up here.</string>
     <string name="notes_strategy_warning">\"%1$s\" is on: it rearranges your banknotes again on every refresh.</string>
     <plurals name="notes_selected">
@@ -204,7 +205,7 @@
     <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept a new key. Payments to your addresses there wait until then.</string>
     <string name="settings_notes">Banknote settings</string>
     <string name="settings_note_list">Banknotes</string>
-    <string name="settings_note_list_hint">See your banknotes one by one, share, split or combine them</string>
+    <string name="settings_note_list_hint">See your banknotes one by one, hand them out, split or combine them</string>
     <string name="delete_what">This removes this account from this phone: its recovery phrase, its banknotes and its settings. Other accounts are not affected.</string>
     <string name="settings_note_strategy">Banknote strategy</string>
     <string name="settings_strategy_manual_hint">Keep banknotes as they arrive.</string>

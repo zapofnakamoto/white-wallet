@@ -52,7 +52,7 @@
         <item quantity="one">Die Mint hat %1$d Schein, den du weitergegeben hast, nicht zurückgegeben. Deine Wallet versucht es von selbst wieder.</item>
         <item quantity="other">Die Mint hat %1$d Scheine, die du weitergegeben hast, nicht zurückgegeben. Deine Wallet versucht es von selbst wieder.</item>
     </plurals>
-    <string name="notes_already_spent">Dieser Schein war schon ausgegeben und wurde daher nicht verschickt. Er ist nicht mehr in deinem Guthaben.</string>
+    <string name="notes_already_spent">Dieser Schein war schon ausgegeben und wurde daher nicht weitergegeben. Er ist nicht mehr in deinem Guthaben.</string>
     <string name="notes_empty">Noch keine Scheine. Geld, das du empfängst, wird als Scheine gehalten und erscheint hier.</string>
     <string name="notes_strategy_warning">„%1$s“ ist an und ordnet deine Scheine bei jedem Aktualisieren neu.</string>
     <plurals name="notes_selected">
@@ -68,7 +68,7 @@
     <string name="notes_move_hint">Die Scheine werden über Lightning ausgezahlt und kommen dort als neuer Schein an. Beide Seiten berechnen ihre Gebühren.</string>
     <string name="notes_problem_not_found">Diese Scheine haben sich inzwischen geändert. Wähle sie erneut aus.</string>
     <string name="notes_problem_too_few">Wähle mindestens zwei Scheine zum Zusammenlegen aus.</string>
-    <string name="notes_problem_invalid_amount">Dieser Schein ist zu klein zum Teilen, oder der Betrag passt nicht.</string>
+    <string name="notes_problem_invalid_amount">Dieser Schein ist zu klein zum Aufteilen, oder der Betrag passt nicht.</string>
     <string name="notes_problem_same_mint">Die Scheine sind schon dort.</string>
     <string name="notes_problem_mint_invalid">Diese Adresse kann keine Scheine verwahren.</string>
     <string name="notes_problem_key_changed">Der Signaturschlüssel der Mint passt nicht zu dem, den deine Wallet kennt. Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint einen neuen Schlüssel annimmst.</string>
@@ -90,7 +90,7 @@
     <string name="archive_note_remove_title">Diesen Schein endgültig entfernen?</string>
     <string name="archive_note_remove_body">Seine Mint kennt ihn gerade nicht. Kennt sie ihn je wieder, findet ihn „Nach Scheinen suchen“ mit deiner Wiederherstellungsphrase.</string>
 
-    <string name="notes_waiting_total">%1$s verschickt, noch nicht eingelöst</string>
+    <string name="notes_waiting_total">%1$s weitergegeben, noch nicht eingelöst</string>
     <string name="notes_sort_largest">Größte zuerst</string>
     <string name="notes_sort_newest">Neueste zuerst</string>
     <string name="notes_select">Auswählen</string>

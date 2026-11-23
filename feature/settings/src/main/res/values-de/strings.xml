@@ -20,7 +20,7 @@
     <string name="settings_no_home_action">Haupt-Mint wählen</string>
     <string name="settings_notes">Schein-Einstellungen</string>
     <string name="settings_note_list">Scheine</string>
-    <string name="settings_note_list_hint">Deine Scheine einzeln ansehen, teilen, aufteilen oder zusammenlegen</string>
+    <string name="settings_note_list_hint">Deine Scheine einzeln ansehen, weitergeben, aufteilen oder zusammenlegen</string>
     <string name="delete_what">Das entfernt diese Wallet von diesem Handy: ihre Wiederherstellungsphrase und ihre Konten, mit ihren Scheinen und Einstellungen. Andere Wallets sind nicht betroffen.</string>
     <string name="settings_note_strategy">Umgang mit Scheinen</string>
     <string name="settings_strategy_manual_hint">Scheine so behalten, wie sie ankommen.</string>
@@ -36,7 +36,7 @@
     <string name="notes_collect_hint">Scheine, die du anderswo bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Scheinen“ oben.</string>
     <string name="notes_collect_pending">Die Scheine von %1$s werden verschoben; sie kommen gleich an.</string>
     <string name="mints_remove_body">Diese Wallet vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die Wallet merkt. Ein Konto, dessen Haupt-Mint er ist, hat keine mehr, bis du eine andere wählst.</string>
-    <string name="settings_notices_hint">Eine kurze Nachricht, wenn die Wallet deine Scheine von selbst zusammengelegt, geteilt, erneuert oder verschoben hat.</string>
+    <string name="settings_notices_hint">Eine kurze Nachricht, wenn die Wallet deine Scheine von selbst zusammengelegt, aufgeteilt, erneuert oder verschoben hat.</string>
     <string name="notes_pay_from_others_first">Zuerst von anderen Mints zahlen</string>
     <string name="notes_pay_from_others_first_hint">Zahlungen nehmen zuerst Scheine deiner anderen Mints, dann die von %1$s; so sammelt sich dein Geld bei deiner Haupt-Mint.</string>
     <string name="notes_collect_confirm_body">Wenn du das einschaltest, werden deine Scheine anderer Mints jetzt dorthin verschoben:</string>
@@ -236,7 +236,7 @@
     <string name="keys_renew_not_possible">Nichts zu erneuern: %1$s</string>
     <string name="settings_strategy_manual">Manuell</string>
     <string name="settings_auto_renew_included">In „%1$s“ enthalten.</string>
-    <string name="settings_policy_run">Letzter automatischer Lauf: %1$d zusammengelegt, %2$d geteilt, %3$d erneuert, %4$d fehlgeschlagen</string>
+    <string name="settings_policy_run">Letzter automatischer Lauf: %1$d zusammengelegt, %2$d aufgeteilt, %3$d erneuert, %4$d fehlgeschlagen</string>
     <string name="settings_policy_stopped">Angehalten: %1$s</string>
     <string name="keys_find_index">Index finden</string>
     <string name="keys_set_index">Index setzen …</string>

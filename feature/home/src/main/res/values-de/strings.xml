@@ -37,7 +37,7 @@
         <item quantity="one">%1$d Schein zusammengelegt</item>
         <item quantity="other">%1$d Scheine zusammengelegt</item>
     </plurals>
-    <string name="activity_split">Einen Schein in zwei geteilt</string>
+    <string name="activity_split">Einen Schein in zwei aufgeteilt</string>
     <string name="activity_sent_note">Schein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Scheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="move_adds_mint">%1$s wird zu den Mints von %2$s hinzugefügt.</string>
@@ -51,8 +51,8 @@
         <item quantity="other">%1$d Scheine zu %2$d zusammengelegt</item>
     </plurals>
     <plurals name="notice_split">
-        <item quantity="one">%1$d Schein in %2$d geteilt</item>
-        <item quantity="other">%1$d Scheine in %2$d geteilt</item>
+        <item quantity="one">%1$d Schein in %2$d aufgeteilt</item>
+        <item quantity="other">%1$d Scheine in %2$d aufgeteilt</item>
     </plurals>
     <plurals name="notice_rearranged">
         <item quantity="one">%1$d Schein zu %2$d neu aufgeteilt</item>
@@ -70,7 +70,7 @@
         <item quantity="other">Schein %1$d von %2$d wird geprüft …</item>
     </plurals>
     <string name="home_working_combining">Deine Scheine werden zusammengelegt …</string>
-    <string name="home_working_splitting">Deine Scheine werden geteilt …</string>
+    <string name="home_working_splitting">Deine Scheine werden aufgeteilt …</string>
     <string name="home_working_renewing">Deine Scheine werden erneuert …</string>
     <string name="home_working_moving_home">Dein Geld wird zu deiner Haupt-Mint verschoben …</string>
     <plurals name="home_unknown_title">
@@ -205,8 +205,8 @@
     <string name="home_working_updating">Dein Guthaben wird aktualisiert …</string>
     <string name="home_scan">QR-Code scannen</string>
     <string name="accounts_wallet">Wallet %1$d</string>
-    <string name="home_shared_total">%1$s verschickt, noch nicht eingelöst</string>
-    <string name="home_shared_title">Verschickt, noch nicht eingelöst</string>
+    <string name="home_shared_total">%1$s weitergegeben, noch nicht eingelöst</string>
+    <string name="home_shared_title">Weitergegeben, noch nicht eingelöst</string>
     <string name="home_key_changed_part">%1$s davon lässt sich gerade nicht ausgeben</string>
     <string name="home_key_changed_part_title">Ein Teil davon lässt sich gerade nicht ausgeben</string>
     <plurals name="accounts_other_wallets">

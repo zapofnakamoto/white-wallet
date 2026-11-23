@@ -18,9 +18,9 @@
     <!-- As claim_mint_refused, with the mint's own answer (%1$s), as it sent it, often in English. -->
     <string name="claim_mint_refused_reason">The mint doesn\'t accept this note right now. Its answer: %1$s</string>
     <string name="claim_in_wallet">This note is already in your wallet.</string>
-    <string name="claim_own_shared">You shared this note, and nobody has claimed it yet.</string>
-    <string name="claim_own_offline">You shared this note. Its mint isn\'t answering right now, so it can\'t be taken back yet.</string>
-    <string name="claim_own_phone_offline">You shared this note. You\'re offline, so it can\'t be taken back yet.</string>
+    <string name="claim_own_shared">You handed out this note, and nobody has claimed it yet.</string>
+    <string name="claim_own_offline">You handed out this note. Its mint isn\'t answering right now, so it can\'t be taken back yet.</string>
+    <string name="claim_own_phone_offline">You handed out this note. You\'re offline, so it can\'t be taken back yet.</string>
     <string name="claim_other_mint">This note is held by %1$s and stays there.</string>
     <string name="claim_not_spendable">This link doesn\'t unlock the note it names, so it can\'t be claimed.</string>
     <string name="claim_other_paths">This note can also be spent another way, so someone else may take it before you claim it.</string>
