@@ -112,12 +112,24 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             // A note its mint doesn't know can't be shared, split or renewed: only asked about again (or archived).
             val offered = if (note.state == NoteState.Unknown) state.noteActions intersect setOf(NoteAction.Recheck) else state.noteActions
             val archivable = NotesViewModel.archivable(note)
-            if (offered.any { !it.bulk } || NoteAction.Recheck in offered || archivable) {
+            // Handing out moves money out of the wallet, so it stands apart from looking after the note, and says so before the tap.
+            if (NoteAction.Share in offered) {
+                WalletButton(
+                    kind = ButtonKind.Primary,
+                    onClick = { actions.share(note.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = enabled,
+                ) {
+                    Text(stringResource(R.string.notes_share))
+                }
+                Text(
+                    stringResource(if (NoteAction.Split in offered) R.string.notes_share_hint_split else R.string.notes_share_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (offered.any { !it.bulk && it != NoteAction.Share } || NoteAction.Recheck in offered || archivable) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (NoteAction.Share in offered)
-                        WalletButton(kind = ButtonKind.Tonal, onClick = { actions.share(note.id) }, enabled = enabled) {
-                            Text(stringResource(R.string.notes_share))
-                        }
                     if (NoteAction.Split in offered)
                         WalletButton(kind = ButtonKind.Secondary, onClick = { actions.openSplit(note.id) }, enabled = enabled) {
                             Text(stringResource(R.string.notes_split))
@@ -145,14 +157,6 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth())
             state.outcome?.let {
                 Box(Modifier.bringIntoViewRequester(outcomeView)) { Outcome(it, state.showMints, actions.dismissOutcome) }
-            }
-            // The share hint mentions splitting, so it needs both.
-            if (NoteAction.Share in offered && NoteAction.Split in offered) {
-                Text(
-                    stringResource(R.string.notes_share_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
             if (archivable) {
                 Text(

@@ -22,7 +22,9 @@
     </plurals>
     <string name="notes_sort">Sort notes</string>
     <string name="notes_select_hint">Tap notes to select them.</string>
-    <string name="notes_share_hint">Share as QR hands over the whole note. To give part of it, split it first.</string>
+    <string name="notes_share_hint">Hands out the whole note as a QR code. It leaves your balance until someone claims it or you take it back.</string>
+    <!-- The same, where the note can also be split. -->
+    <string name="notes_share_hint_split">Hands out the whole note as a QR code. It leaves your balance until someone claims it or you take it back. To give part of it, split it first.</string>
     <string name="notes_renew_hint">Renew gives the note a fresh key, for example after you showed its QR code to someone by mistake.</string>
     <plurals name="notes_checked_ok">
         <item quantity="one">Checked %1$d note: still there.</item>
@@ -103,7 +105,7 @@
     <string name="notes_select">Select</string>
     <string name="notes_group_not_moved">Not moved home: the fee of %1$s is more than %2$d%%.</string>
     <string name="notes_move_anyway">Move anyway</string>
-    <string name="notes_shared_title">Shared, not claimed yet</string>
+    <string name="notes_shared_title">Handed out, not claimed yet</string>
     <string name="notes_shared_hint">Tap one to show its QR code again or take it back.</string>
     <!-- Under "Archive" in the notes view: what it holds. -->
     <plurals name="notes_archived_links">
@@ -138,7 +140,7 @@
     <string name="archive_note_still">Still unknown. Your wallet keeps asking now and then.</string>
     <string name="archive_note_no_answer">No answer. Your wallet asks again later.</string>
     <string name="notes_sheet_where">On %1$s · %2$s</string>
-    <string name="notes_share">Share as QR</string>
+    <string name="notes_share">Hand out</string>
     <string name="notes_recheck">Recheck</string>
     <string name="notes_renew">Renew</string>
     <!-- Developer mode only. %1$d: key purpose, %2$d: key index, %3$s: the note's public key, shortened. -->

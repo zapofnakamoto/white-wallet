@@ -318,8 +318,16 @@ class NotesScreenTest {
         compose.onNodeWithText(text(R.string.notes_renew)).assertExists()
         compose.onNodeWithText(text(R.string.notes_split)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.notes_recheck)).assertDoesNotExist()
-        // The share hint tells users to split first, which they can't here.
-        compose.onNodeWithText("To give part of it, split it first.", substring = true).assertDoesNotExist()
+        // The hand-out hint tells users to split first only where they can.
+        compose.onNodeWithText(text(R.string.notes_share_hint)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_share_hint_split)).assertDoesNotExist()
+    }
+
+    @Test
+    fun handingOutSaysFirstThatTheNoteLeavesTheBalance() {
+        compose.setContent { NotesContent(state({ it.copy(open = "h2") }), NotesActions()) }
+        compose.onNodeWithText(text(R.string.notes_share_hint_split)).assertExists()
+        compose.onNodeWithText(text(R.string.notes_share_hint)).assertDoesNotExist()
     }
 
     @Test
@@ -602,6 +610,7 @@ class NotesScreenTest {
                 R.string.notes_split,
                 R.string.notes_renew,
                 R.string.notes_share_hint,
+                R.string.notes_share_hint_split,
                 R.string.notes_renew_hint,
             )) compose.onNodeWithText(text(gone)).assertDoesNotExist()
     }

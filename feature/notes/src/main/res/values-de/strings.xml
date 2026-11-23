@@ -17,7 +17,8 @@
     </plurals>
     <string name="notes_sort">Scheine sortieren</string>
     <string name="notes_select_hint">Tippe auf Scheine, um sie auszuwählen.</string>
-    <string name="notes_share_hint">„Als QR teilen“ gibt den ganzen Schein weiter. Um nur einen Teil zu geben, teile ihn zuerst.</string>
+    <string name="notes_share_hint">Gibt den ganzen Schein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn zurückholst.</string>
+    <string name="notes_share_hint_split">Gibt den ganzen Schein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn zurückholst. Um nur einen Teil zu geben, teile ihn zuerst auf.</string>
     <string name="notes_renew_hint">Erneuern gibt dem Schein einen neuen Schlüssel, zum Beispiel wenn du seinen QR-Code versehentlich jemandem gezeigt hast.</string>
     <plurals name="notes_checked_ok">
         <item quantity="one">%1$d Schein geprüft: noch da.</item>
@@ -59,7 +60,7 @@
         <item quantity="other">%1$d Scheine ausgewählt · %2$s</item>
     </plurals>
     <string name="notes_combined">Zu einem Schein über %1$s zusammengelegt.</string>
-    <string name="notes_split_title">Schein teilen</string>
+    <string name="notes_split_title">Schein aufteilen</string>
     <string name="notes_split_amount_bitcoin">Erster Schein, in ₿</string>
     <string name="notes_split_amount_sats">Erster Schein, in Sats</string>
     <string name="notes_split_preview">Du bekommst einen Schein über %1$s und einen über %2$s.</string>
@@ -95,7 +96,7 @@
     <string name="notes_select">Auswählen</string>
     <string name="notes_group_not_moved">Nicht nach Hause verschoben: Die Gebühr von %1$s ist höher als %2$d %%.</string>
     <string name="notes_move_anyway">Trotzdem verschieben</string>
-    <string name="notes_shared_title">Verschickt, noch nicht eingelöst</string>
+    <string name="notes_shared_title">Weitergegeben, noch nicht eingelöst</string>
     <string name="notes_shared_hint">Tippe auf einen, um seinen QR-Code erneut zu zeigen oder ihn zurückzuholen.</string>
     <plurals name="notes_archived_links">
         <item quantity="one">%d Link, den deine Wallet nicht mehr einzulösen versucht</item>
@@ -123,7 +124,7 @@
     <string name="archive_note_still">Weiterhin unbekannt. Deine Wallet fragt weiter ab und zu.</string>
     <string name="archive_note_no_answer">Keine Antwort. Deine Wallet fragt später wieder.</string>
     <string name="notes_sheet_where">Bei %1$s · %2$s</string>
-    <string name="notes_share">Als QR teilen</string>
+    <string name="notes_share">Weitergeben</string>
     <string name="notes_recheck">Prüfen</string>
     <string name="notes_renew">Erneuern</string>
     <string name="notes_dev_key">Schlüssel %1$d/%2$d · %3$s</string>
@@ -141,13 +142,13 @@
     <string name="notes_uncertified">Betrag nicht zertifiziert</string>
     <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Zusammenlegen</string>
-    <string name="notes_split">Teilen</string>
+    <string name="notes_split">Aufteilen</string>
     <string name="notes_move">Verschieben</string>
     <string name="notes_cancel">Abbrechen</string>
     <string name="notes_ok">OK</string>
     <string name="notes_fee">Gebühr: %1$s</string>
     <string name="notes_no_fee">Keine Gebühr</string>
-    <string name="notes_split_done">In %1$s und %2$s geteilt.</string>
+    <string name="notes_split_done">In %1$s und %2$s aufgeteilt.</string>
     <string name="notes_moved">%1$s ist auf %2$s angekommen.</string>
     <string name="notes_pending">Gesendet, aber noch keine Antwort. Später prüfen oder aktualisieren, um es zu erfahren.</string>
     <string name="notes_settled_landed">Die Änderung ist durchgegangen.</string>
