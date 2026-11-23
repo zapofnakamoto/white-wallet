@@ -33,6 +33,10 @@
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
     <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du einen neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
     <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
+    <string name="take_back_done_title">Zurückgeholt</string>
+    <string name="take_back_failed">Zurückholen hat nicht geklappt. Versuch es später noch einmal.</string>
+    <string name="take_back_waiting_title">Noch nicht zurückgeholt</string>
+    <string name="no_answer_title">Noch keine Antwort</string>
     <string name="note_take_back_when_known">Die Mint kennt diesen Schein gerade nicht. Deine Wallet holt ihn zurück, sobald die Mint ihn wieder kennt.</string>
     <string name="mint_message">Nachricht der Mint: „%1$s“</string>
 

@@ -41,7 +41,7 @@ value class Anchor(val id: String) {
          */
         val ReceiveSuccess = Anchor("receive.success")
 
-        /** Above a payment once it is understood: its review, while it is paid, and an unfinished result. Default: nothing. */
+        /** Above a payment once it is understood: its review and while it is paid. Default: nothing. */
         val SendHeader = Anchor("send.header")
 
         /**
@@ -96,14 +96,14 @@ value class Anchor(val id: String) {
         val NoteClaimed = Anchor("note.claimed")
 
         /**
-         * The picture on the screen that says the user took back a note they had handed out, from its link (status
+         * The picture on the screen that says the user took back a note they had handed out, from its link or its QR code's page (status
          * [whitewallet.brand.WalletStatus.Done], with the amount back). Default: a check mark that draws itself, as at [ReceiveSuccess].
          */
         val NoteTakenBack = Anchor("note.taken_back")
 
         /**
          * The picture on the screen that says money moved where the user asked, all of it: to another account, to another mint or home
-         * (status [whitewallet.brand.WalletStatus.Done], with what arrived). A move that left some behind keeps its own screen. Default: a
+         * (status [whitewallet.brand.WalletStatus.Done], with what arrived). A move that left some behind ends at [MoveResult]. Default: a
          * check mark that draws itself, as at [ReceiveSuccess].
          */
         val MoneyMoved = Anchor("money.moved")
@@ -125,6 +125,27 @@ value class Anchor(val id: String) {
          * nothing.
          */
         val ClaimResult = Anchor("claim.result")
+
+        /**
+         * The picture on the screen that ends a payment, or making a note to hand out, that didn't go through or isn't done yet: not paid,
+         * still on its way, no answer (status as at [SendHeader], or [whitewallet.brand.WalletStatus.None]). Default: a warning mark, or a
+         * clock while it waits.
+         */
+        val SendResult = Anchor("send.result")
+
+        /**
+         * The picture on the screen that ends a money move (to another account, another mint or home) that didn't move all of it: part
+         * moved, some waits for an answer, or none moved (status [whitewallet.brand.WalletStatus.Done] with what arrived, else
+         * [whitewallet.brand.WalletStatus.None]). Default: a check mark if some moved and nothing waits, a clock while some waits, else a
+         * warning mark.
+         */
+        val MoveResult = Anchor("money.move_result")
+
+        /**
+         * The picture on the screen that says a Lightning address was registered, but the app couldn't check yet that it reaches this
+         * wallet (status [whitewallet.brand.WalletStatus.None]). Default: a clock.
+         */
+        val AddressResult = Anchor("address.result")
 
         /**
          * Above a handed-out note's amount: while it waits for its recipient (status [whitewallet.brand.WalletStatus.WaitingForRecipient]),

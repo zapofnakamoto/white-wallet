@@ -203,7 +203,7 @@ class ClaimScreenTest {
     fun aNoteTakenBackEndsOnTheSuccessScreen() {
         showDecorated(ClaimState(takenBack = ReclaimResult.Reclaimed(5_000_000)))
         assertEquals(listOf(Anchor.NoteTakenBack to WalletStatus.Done(5_000_000)), decorated.distinct())
-        compose.onNodeWithText(text(R.string.claim_taken_back_title)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.take_back_done_title)).assertExists()
     }
 
     @Test
@@ -270,13 +270,13 @@ class ClaimScreenTest {
 
     @Test
     fun noAnswerYetIsAWait() =
-        showsOutcome(ClaimState(result = ClaimResult.Pending), R.string.claim_pending_title, text(R.string.claim_pending))
+        showsOutcome(ClaimState(result = ClaimResult.Pending), DesignR.string.no_answer_title, text(R.string.claim_pending))
 
     @Test
     fun aTakeBackForLaterIsAWait() =
         showsOutcome(
             ClaimState(takenBack = ReclaimResult.WhenKnown),
-            R.string.claim_take_back_waiting_title,
+            DesignR.string.take_back_waiting_title,
             text(DesignR.string.note_take_back_when_known),
         )
 

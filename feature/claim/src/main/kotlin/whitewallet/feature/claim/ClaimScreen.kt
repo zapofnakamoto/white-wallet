@@ -137,7 +137,7 @@ fun ClaimScreen(
             SuccessScreen(
                 anchor = Anchor.NoteTakenBack,
                 status = WalletStatus.Done(reclaimed.amountMsat),
-                title = stringResource(R.string.claim_taken_back_title),
+                title = stringResource(DesignR.string.take_back_done_title),
                 amountMsat = reclaimed.amountMsat,
                 done = SuccessAction(stringResource(R.string.claim_finish), onBack),
                 modifier = Modifier.padding(padding),
@@ -516,7 +516,7 @@ private fun claimOutcome(result: ClaimResult, overLightning: Boolean, keepForLig
             Outcome(
                 ResultTone.Waiting,
                 WalletStatus.None,
-                stringResource(R.string.claim_pending_title),
+                stringResource(DesignR.string.no_answer_title),
                 listOf(stringResource(R.string.claim_pending)),
             )
         is ClaimResult.Kept -> {
@@ -553,7 +553,7 @@ private fun takeBackOutcome(result: ReclaimResult): Outcome {
             Outcome(
                 ResultTone.Waiting,
                 WalletStatus.None,
-                stringResource(R.string.claim_pending_title),
+                stringResource(DesignR.string.no_answer_title),
                 listOf(stringResource(R.string.claim_pending)),
             )
         ReclaimResult.AlreadySpent -> Outcome(ResultTone.Problem, problem, stringResource(R.string.claim_spent), emptyList())
@@ -561,10 +561,10 @@ private fun takeBackOutcome(result: ReclaimResult): Outcome {
             Outcome(
                 ResultTone.Waiting,
                 WalletStatus.None,
-                stringResource(R.string.claim_take_back_waiting_title),
+                stringResource(DesignR.string.take_back_waiting_title),
                 listOf(stringResource(DesignR.string.note_take_back_when_known)),
             )
         is ReclaimResult.Failed ->
-            Outcome(ResultTone.Problem, problem, stringResource(R.string.claim_take_back_failed), mintWords(result.mintMessage))
+            Outcome(ResultTone.Problem, problem, stringResource(DesignR.string.take_back_failed), mintWords(result.mintMessage))
     }
 }

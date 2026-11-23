@@ -11,6 +11,7 @@ import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
 import whitewallet.core.wallet.SharedNote
+import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.SharedNoteState
 
 // Sending, making a note and showing it, and scanning, in their everyday state, and the Send screen's success screen
@@ -206,7 +207,18 @@ private fun SharedNoteTakenBackPreview() =
 @Composable
 private fun SharedNoteReclaimPendingPreview() =
     SharedNoteOf(
-        sharedNoteState.copy(note = sharedNoteState.note?.copy(state = SharedNoteState.Reclaimed, link = null), reclaimPending = true)
+        sharedNoteState.copy(note = sharedNoteState.note?.copy(state = SharedNoteState.Reclaimed, link = null), takenBack = ReclaimResult.Pending)
+    )
+
+/** Taken back on its page just now: the success screen. */
+@WalletPreviews
+@Composable
+private fun SharedNoteTakeBackDonePreview() =
+    SharedNoteOf(
+        sharedNoteState.copy(
+            note = sharedNoteState.note?.copy(state = SharedNoteState.Reclaimed, link = null),
+            takenBack = ReclaimResult.Reclaimed(sharedNoteState.note?.amountMsat ?: 0),
+        )
     )
 
 /** A note removed while its mint didn't know it: whether it was claimed isn't known. */
@@ -227,7 +239,7 @@ private fun SharedNoteUnknownPreview() =
 @WalletPreviews
 @Composable
 private fun SharedNoteReclaimFailedPreview() =
-    SharedNoteOf(sharedNoteState.copy(problem = PayProblem.Refused, mintMessage = "Try again later"))
+    SharedNoteOf(sharedNoteState.copy(takenBack = ReclaimResult.Failed(PayProblem.Refused, "Try again later")))
 
 /** The question before taking a note back. */
 @WalletPreviews @Composable private fun SharedNoteReclaimConfirmPreview() = SharedNoteOf(sharedNoteState.copy(confirmReclaim = true))

@@ -67,15 +67,11 @@
     <string name="claim_failed_plain">The claim was refused.</string>
     <string name="claim_pending">Your wallet asks again on the next refresh.</string>
     <string name="claim_kept_title">Kept for later</string>
-    <string name="claim_pending_title">No answer yet</string>
     <string name="claim_nothing_added">Nothing was added to your wallet.</string>
     <string name="claim_retry_title">Not claimed yet</string>
     <string name="claim_retry_hint">Your wallet keeps it and tries again on the next refresh.</string>
     <string name="claim_nothing_received">Nothing was received</string>
-    <string name="claim_take_back_waiting_title">Not taken back yet</string>
     <string name="claim_take_back">Take back %1$s</string>
-    <string name="claim_taken_back_title">Taken back</string>
-    <string name="claim_take_back_failed">It couldn\'t be taken back. Try again later.</string>
     <string name="claim_trusted">✓ Trusted</string>
     <string name="claim_not_trusted">Not trusted (see Settings).</string>
     <string name="claim_title_lightning">Receive over Lightning</string>

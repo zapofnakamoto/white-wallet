@@ -47,6 +47,7 @@ import whitewallet.brand.ui.QrCodeCoverParams
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.SharedNote
+import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.SharedNoteState
 
 @RunWith(RobolectricTestRunner::class)
@@ -117,26 +118,97 @@ class SharedNoteScreenTest {
         compose.onNodeWithText(text(R.string.note_spent)).assertDoesNotExist()
     }
 
-    @Test
-    fun aRefusedTakeBackGivesTheMintsWordsNotCouldntConnect() {
+    private fun takeBack(result: ReclaimResult, note: SharedNote = note(SharedNoteState.Waiting), onBack: () -> Unit = {}, onReclaim: () -> Unit = {}) =
         compose.setContent {
             SharedNoteScreen(
-                SharedNoteUiState(
-                    note = note(SharedNoteState.Waiting),
-                    loading = false,
-                    problem = PayProblem.Refused,
-                    mintMessage = "Rate limited",
-                ),
-                onBack = {},
+                SharedNoteUiState(note = note, loading = false, takenBack = result),
+                onBack = onBack,
                 onShare = {},
                 onCopy = {},
                 onAskReclaim = {},
                 onDismissReclaim = {},
-                onReclaim = {},
+                onReclaim = onReclaim,
             )
         }
+
+    @Test
+    fun aRefusedTakeBackGivesTheMintsWordsNotCouldntConnect() {
+        var again = 0
+        takeBack(ReclaimResult.Failed(PayProblem.Refused, "Rate limited"), onReclaim = { again++ })
+        compose.onNodeWithText(text(DesignR.string.take_back_failed)).assertExists()
         compose.onNodeWithText(text(DesignR.string.mint_message, "Rate limited")).assertExists()
         compose.onNodeWithText(text(R.string.send_problem_unreachable)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.send_try_again)).performClick()
+        assertEquals(1, again)
+    }
+
+    @Test
+    fun aNoteTakenBackEndsOnTheSuccessScreenWithItsAmount() {
+        var back = 0
+        takeBack(ReclaimResult.Reclaimed(1_000_000), note(SharedNoteState.Reclaimed), onBack = { back++ })
+        compose.onNodeWithText(text(DesignR.string.take_back_done_title)).assertExists()
+        compose.onNodeWithText("₿1,000").assertExists()
+        compose.onNodeWithText(text(R.string.note_reclaimed)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.send_done)).performClick()
+        assertEquals(1, back)
+    }
+
+    @Test
+    fun aNoteOpenedLongAfterItWasTakenBackSaysSoOnItsPage() {
+        show(note(SharedNoteState.Reclaimed))
+        compose.onNodeWithText(text(R.string.note_reclaimed)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.take_back_done_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aTakeBackTooLateSaysTheNoteWasSpent() {
+        takeBack(ReclaimResult.AlreadySpent, note(SharedNoteState.Spent))
+        compose.onNodeWithText(text(R.string.note_already_spent)).assertExists()
+        compose.onNodeWithText(text(R.string.send_try_again)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aTakeBackWithoutAnAnswerWaits() {
+        takeBack(ReclaimResult.Pending, note(SharedNoteState.Reclaimed))
+        compose.onNodeWithText(text(DesignR.string.no_answer_title)).assertExists()
+        compose.onNodeWithText(text(R.string.note_reclaim_pending)).assertExists()
+    }
+
+    @Test
+    fun aTakeBackOfANoteItsMintDoesntKnowWaitsForTheMint() {
+        takeBack(ReclaimResult.WhenKnown, note(SharedNoteState.Waiting).copy(unknownToMint = true, takeBackAsked = true, link = null))
+        compose.onNodeWithText(text(DesignR.string.take_back_waiting_title)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.note_take_back_when_known)).assertExists()
+    }
+
+    @Test
+    fun theBrandSeesHowATakeBackEnded() {
+        val seen = mutableListOf<Pair<Anchor, WalletStatus>>()
+        val design =
+            object : BrandDesign {
+                @Composable
+                override fun Decoration(anchor: Anchor, context: DecorationContext, default: @Composable () -> Unit) {
+                    seen += anchor to context.status
+                }
+            }
+        var result by mutableStateOf<ReclaimResult>(ReclaimResult.Reclaimed(1_000_000))
+        compose.setContent {
+            CompositionLocalProvider(LocalBrandDesign provides design) {
+                SharedNoteScreen(
+                    SharedNoteUiState(note = note(SharedNoteState.Reclaimed), loading = false, takenBack = result),
+                    onBack = {},
+                    onShare = {},
+                    onCopy = {},
+                    onAskReclaim = {},
+                    onDismissReclaim = {},
+                    onReclaim = {},
+                )
+            }
+        }
+        assertEquals(Anchor.NoteTakenBack to WalletStatus.Done(1_000_000), seen.last())
+        result = ReclaimResult.Failed(PayProblem.Unreachable)
+        compose.waitForIdle()
+        assertEquals(Anchor.ClaimResult to WalletStatus.Problem(ProblemKind.Offline), seen.last())
     }
 
     @Test
@@ -182,13 +254,6 @@ class SharedNoteScreenTest {
         compose.waitForIdle()
         assertEquals(WalletStatus.Idle, statuses.last())
 
-        state = state.copy(reclaimPending = true)
-        compose.waitForIdle()
-        assertEquals(WalletStatus.None, statuses.last())
-
-        state = state.copy(note = note(SharedNoteState.Waiting), reclaimPending = false, problem = PayProblem.Unreachable)
-        compose.waitForIdle()
-        assertEquals(WalletStatus.Problem(ProblemKind.Offline), statuses.last())
     }
 
     @Test

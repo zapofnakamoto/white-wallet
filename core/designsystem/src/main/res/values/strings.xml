@@ -11,6 +11,11 @@
     <!-- Why a note received as a link wasn't claimed (see received_title below). -->
     <string name="received_key_changed">The signing key of its mint doesn\'t match the one your wallet knows. Claimed once it matches again, or you accept a new key in the mint\'s details.</string>
     <!-- A handed-out note whose mint doesn't know it, which the user asked to take back (its page, and its own link opened). -->
+    <!-- How a take back, or anything asked of a mint, ended: shared by every screen that ends one. -->
+    <string name="take_back_done_title">Taken back</string>
+    <string name="take_back_failed">It couldn\'t be taken back. Try again later.</string>
+    <string name="take_back_waiting_title">Not taken back yet</string>
+    <string name="no_answer_title">No answer yet</string>
     <string name="note_take_back_when_known">Its mint doesn\'t know this note right now. Your wallet takes it back as soon as the mint knows it again.</string>
     <!-- %1$s: the mint's own words, in whatever language it writes. -->
     <string name="mint_message">Message from the mint: “%1$s”</string>

@@ -42,6 +42,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.WalletStatus
+import whitewallet.brand.ProblemKind
+import whitewallet.core.designsystem.SuccessScreen
+import whitewallet.core.designsystem.SuccessAction
+import whitewallet.core.designsystem.ResultTone
+import whitewallet.core.designsystem.ResultScreen
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.NoteFacePlace
@@ -298,11 +303,8 @@ data class SharedNoteUiState(
     val loading: Boolean = true,
     val confirmReclaim: Boolean = false,
     val reclaiming: Boolean = false,
-    val reclaimPending: Boolean = false,
-    val alreadySpent: Boolean = false,
-    val problem: PayProblem? = null,
-    /** The mint's own words for refusing to give it back, if it gave any. */
-    val mintMessage: String? = null,
+    /** How taking it back ended, on this visit: drawn as the take back's own success or result screen. */
+    val takenBack: ReclaimResult? = null,
     /** Whether the brand lets users print it (`notes.actions`). */
     val canPrint: Boolean = false,
     /** The phone is offline: the note can't be taken back now. */
@@ -324,7 +326,10 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
         viewModelScope.launch {
             // Back online, a failure to connect from while offline is no news.
             wallet.followOffline { offline, back ->
-                _state.update { it.copy(offline = offline, problem = it.problem.takeUnless { back && it == PayProblem.Unreachable }) }
+                _state.update {
+                    val unreachable = (it.takenBack as? ReclaimResult.Failed)?.problem == PayProblem.Unreachable
+                    it.copy(offline = offline, takenBack = it.takenBack.takeUnless { back && unreachable })
+                }
             }
         }
         viewModelScope.launch {
@@ -344,20 +349,11 @@ class SharedNoteViewModel @Inject constructor(private val wallet: Wallet, savedS
 
     fun reclaim() {
         if (_state.value.reclaiming) return
-        _state.update { it.copy(confirmReclaim = false, reclaiming = true, problem = null, mintMessage = null) }
+        _state.update { it.copy(confirmReclaim = false, reclaiming = true, takenBack = null) }
         viewModelScope.launch {
             val result = wallet.reclaimNote(id)
             val note = wallet.sharedNote(id)
-            _state.update {
-                when (result) {
-                    is ReclaimResult.Reclaimed -> it.copy(reclaiming = false, note = note)
-                    ReclaimResult.AlreadySpent -> it.copy(reclaiming = false, note = note, alreadySpent = true)
-                    ReclaimResult.Pending -> it.copy(reclaiming = false, note = note, reclaimPending = true)
-                    // Its mint doesn't know it: the note says it is taken back once the mint does.
-                    ReclaimResult.WhenKnown -> it.copy(reclaiming = false, note = note)
-                    is ReclaimResult.Failed -> it.copy(reclaiming = false, problem = result.problem, mintMessage = result.mintMessage)
-                }
-            }
+            _state.update { it.copy(reclaiming = false, note = note ?: it.note, takenBack = result) }
         }
     }
 }
@@ -406,6 +402,11 @@ fun SharedNoteScreen(
     // Some wallets read only bech32 LNURL1: the user picks the form when theirs doesn't scan; Share, Copy and Print follow it.
     var format by rememberSaveable { mutableStateOf(NoteLinkFormat.Lnurlw) }
     Scaffold(topBar = { WalletTopBar(stringResource(R.string.note_title), onBack) }) { padding ->
+        // A take back on this visit ends on its own screen, as one from the note's link does; a note opened later says how it ended below.
+        state.takenBack?.let {
+            TakeBackEnded(it, onBack, onReclaim, Modifier.padding(padding))
+            return@Scaffold
+        }
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
             val note = state.note
             if (note == null) {
@@ -413,7 +414,7 @@ fun SharedNoteScreen(
                 if (!state.loading) Text(stringResource(R.string.note_not_found))
                 return@ScreenColumn
             }
-            WalletStatusScope(sharedNoteStatus(state, note)) { BrandDecoration(Anchor.NoteShared) }
+            WalletStatusScope(sharedNoteStatus(note)) { BrandDecoration(Anchor.NoteShared) }
             // The QR code only while it waits for its recipient; the app draws it, the brand may frame it.
             val link = note.link?.takeIf { note.state == SharedNoteState.Waiting }
             val qrDescription = stringResource(R.string.note_qr_description)
@@ -497,30 +498,10 @@ fun SharedNoteScreen(
                         Text(stringResource(DesignR.string.note_take_back_when_known), textAlign = TextAlign.Center)
                         PrimaryButton(stringResource(R.string.send_done), onBack)
                     }
-                SharedNoteState.Spent ->
-                    Text(
-                        stringResource(if (state.alreadySpent) R.string.note_already_spent else R.string.note_spent),
-                        textAlign = TextAlign.Center,
-                    )
-                SharedNoteState.Reclaimed ->
-                    Text(
-                        stringResource(if (state.reclaimPending) R.string.note_reclaim_pending else R.string.note_reclaimed),
-                        textAlign = TextAlign.Center,
-                    )
+                SharedNoteState.Spent -> Text(stringResource(R.string.note_spent), textAlign = TextAlign.Center)
+                SharedNoteState.Reclaimed -> Text(stringResource(R.string.note_reclaimed), textAlign = TextAlign.Center)
                 SharedNoteState.Unverified -> Text(stringResource(R.string.note_unverified), textAlign = TextAlign.Center)
             }
-            state.problem
-                ?.takeUnless { state.offline && it == PayProblem.Unreachable }
-                ?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
-            state.mintMessage
-                ?.takeIf { state.problem != null }
-                ?.let {
-                    Text(
-                        stringResource(DesignR.string.mint_message, it),
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                    )
-                }
             if (note.state != SharedNoteState.Waiting) PrimaryButton(stringResource(R.string.send_done), onBack)
         }
     }
@@ -560,14 +541,63 @@ fun SharedNoteScreen(
 }
 
 /** Waiting for its recipient, spent like a payment that went out, or back in the wallet once taken back. */
-private fun sharedNoteStatus(state: SharedNoteUiState, note: SharedNote): WalletStatus {
-    state.problem?.let {
-        return WalletStatus.Problem(problemKind(it))
-    }
-    return when (note.state) {
+private fun sharedNoteStatus(note: SharedNote): WalletStatus =
+    when (note.state) {
         SharedNoteState.Waiting -> WalletStatus.WaitingForRecipient
         SharedNoteState.Spent -> WalletStatus.Sent(note.amountMsat)
-        SharedNoteState.Reclaimed -> if (state.reclaimPending) WalletStatus.None else WalletStatus.Idle
+        SharedNoteState.Reclaimed -> WalletStatus.Idle
         SharedNoteState.Unverified -> WalletStatus.None
     }
+
+/**
+ * How a take back on the note's page ended, on the screens a take back from its link ends on: the success screen with the amount back, else
+ * the result screen. Only a refused or unanswered take back can be tried again.
+ */
+@Composable
+private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain: () -> Unit, modifier: Modifier) {
+    val done = SuccessAction(stringResource(R.string.send_done), onDone)
+    if (result is ReclaimResult.Reclaimed) {
+        SuccessScreen(
+            anchor = Anchor.NoteTakenBack,
+            status = WalletStatus.Done(result.amountMsat),
+            title = stringResource(DesignR.string.take_back_done_title),
+            amountMsat = result.amountMsat,
+            done = done,
+            modifier = modifier,
+        )
+        return
+    }
+    val (tone, title, lines) =
+        when (result) {
+            is ReclaimResult.Reclaimed -> error("on the success screen")
+            ReclaimResult.AlreadySpent -> Triple(ResultTone.Problem, stringResource(R.string.note_already_spent), emptyList())
+            ReclaimResult.Pending ->
+                Triple(ResultTone.Waiting, stringResource(DesignR.string.no_answer_title), listOf(stringResource(R.string.note_reclaim_pending)))
+            // Its mint doesn't know it: taken back once the mint does.
+            ReclaimResult.WhenKnown ->
+                Triple(
+                    ResultTone.Waiting,
+                    stringResource(DesignR.string.take_back_waiting_title),
+                    listOf(stringResource(DesignR.string.note_take_back_when_known)),
+                )
+            // The mint's own words, if it gave any, under the app's.
+            is ReclaimResult.Failed ->
+                Triple(
+                    ResultTone.Problem,
+                    stringResource(DesignR.string.take_back_failed),
+                    listOfNotNull(problemText(result.problem), result.mintMessage?.let { stringResource(DesignR.string.mint_message, it) }),
+                )
+        }
+    ResultScreen(
+        tone,
+        Anchor.ClaimResult,
+        if (result is ReclaimResult.Failed) WalletStatus.Problem(problemKind(result.problem))
+        else if (tone == ResultTone.Problem) WalletStatus.Problem(ProblemKind.Other)
+        else WalletStatus.None,
+        title,
+        done = done,
+        modifier = modifier,
+        more = SuccessAction(stringResource(R.string.send_try_again), onTryAgain).takeIf { result is ReclaimResult.Failed },
+        lines = lines,
+    )
 }
