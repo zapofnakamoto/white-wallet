@@ -122,6 +122,9 @@ fun MoveFundsScreen(
                 else it.name
             } ?: ""
         val toWallet = state.targets.firstOrNull { it.account.id == state.targetId }?.let { walletLabel(state, it.account.walletId) } ?: ""
+        // Only part of the money can move (a mint isn't answering, say): nothing moves until the user chooses to move that part or
+        // cancel. Drawn over the result screen too, as another try there can end in the same question.
+        state.partial?.let { PartialDialog(it, fromName, toWallet, state.showMints, onConfirmPartial, onCancelPartial) }
         // Not all of it moved, or some waits: on the result screen, with what waits, what stayed and why, and another try where it helps.
         state.result?.let { result ->
             val stayed = result.stayed
@@ -175,8 +178,6 @@ fun MoveFundsScreen(
             return@Scaffold
         }
         ScreenColumn(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            // A move that can't be whole is the user's to decide, before any of it is made.
-            state.partial?.let { PartialDialog(it, fromName, toWallet, state.showMints, onConfirmPartial, onCancelPartial) }
             val from = state.from ?: return@ScreenColumn
             Row(
                 verticalAlignment = Alignment.CenterVertically,

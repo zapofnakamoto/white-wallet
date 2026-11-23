@@ -300,6 +300,17 @@ class NotesScreenTest {
     }
 
     @Test
+    fun twoMintsNotAnsweringAreSaidInThePlural() {
+        compose.setContent {
+            NotesContent(
+                state({ it.copy(outcome = NotesOutcome.Checked(ok = 3, gone = 0, unreachable = listOf("a.example", "b.example"))) }),
+                NotesActions(),
+            )
+        }
+        compose.onNodeWithText("a.example and b.example aren't answering. Try again later.", substring = true).assertExists()
+    }
+
+    @Test
     @Config(qualifiers = "de")
     fun german() {
         compose.setContent { NotesContent(state({ it.copy(selecting = true, selected = setOf("h1", "h2")) }), NotesActions()) }

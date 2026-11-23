@@ -292,6 +292,21 @@ class MoveFundsScreenTest {
     }
 
     @Test
+    fun anotherTryThatCantBeWholeIsAskedAboutOverTheResult() {
+        var confirmed = 0
+        show(
+            twoWallets.copy(
+                result = MoveResult.Moved(3_000, listOf(stayed(StayReason.Unreachable))),
+                partial = MoveCheck(3_000, listOf(stayed(StayReason.Unreachable))),
+            ),
+            onConfirmPartial = { confirmed++ },
+        )
+        compose.onNodeWithText(text(R.string.move_partial_title)).assertExists()
+        compose.onNode(hasText("3", substring = true) and hasClickAction()).performClick()
+        assertEquals(1, confirmed)
+    }
+
+    @Test
     fun whatWasSentWithoutAnAnswerIsSaidApartFromWhatMovedAndWhatStayed() {
         val result =
             MoveResult.Moved(

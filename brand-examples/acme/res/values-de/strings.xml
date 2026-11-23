@@ -29,7 +29,7 @@
     <string name="settings_strategy_single_hint">Alle Geldscheine zu einem pro Anbieter zusammenlegen. Kostenlos.</string>
     <string name="mint_title">Anbieter</string>
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Geldscheine bei einem Anbieter deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
-    <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Geldscheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut, bis du sden neuen Schlüssel annimmst.</string>
+    <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Geldscheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut, bis du seinen neuen Schlüssel annimmst.</string>
     <string name="mints_empty">Diese Wallet hat noch keinen Anbieter, also kann nichts empfangen werden.</string>
     <string name="settings_no_home">Dieses Konto hat keinen eigenen Anbieter. Wähle einen deiner Anbieter, um dort zu empfangen.</string>
     <string name="settings_no_home_action">Anbieter wählen</string>
@@ -334,8 +334,9 @@
         <item quantity="other">Sein Anbieter hat %d Tage lang nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
     </plurals>
     <string name="received_unreachable">Sein Anbieter hat nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</string>
-    <string name="mint_key_changed_nothing_sent">Der Signaturschlüssel seines Anbieters passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du den neuen Schlüssel in den Details des Anbieters annimmst, wird nichts dorthin gesendet.</string>
+    <string name="mint_key_changed_nothing_sent">Der Signaturschlüssel des Anbieters passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details des Anbieters den neuen Schlüssel annimmst, wird nichts dorthin gesendet.</string>
     <string name="mint_not_answering_unnamed">Dein Anbieter antwortet nicht. Versuche es später erneut.</string>
+    <string name="own_claim_refused">Der Anbieter hat das nicht angenommen. Versuche es später erneut.</string>
     <string name="received_waiting_mint_unnamed">Wird eingelöst, sobald sein Anbieter antwortet.</string>
     <string name="received_lightning_no_key">Sein Anbieter veröffentlicht keinen Signaturschlüssel, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_lightning_not_a_note">Sein Anbieter antwortet darauf nicht wie auf einen Geldschein, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>

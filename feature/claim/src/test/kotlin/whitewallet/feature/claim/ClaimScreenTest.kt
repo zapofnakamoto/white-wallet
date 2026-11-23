@@ -41,6 +41,7 @@ import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.FaucetState
 import whitewallet.core.wallet.MeltProblem
+import whitewallet.core.wallet.PayProblem
 import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.WithdrawLink
 import whitewallet.lnurlcash.Spend
@@ -297,6 +298,12 @@ class ClaimScreenTest {
         show(ClaimState(takenBack = ReclaimResult.AlreadySpent))
         compose.onNodeWithText(text(DesignR.string.own_claim_too_late)).assertExists()
         compose.onNodeWithText(text(DesignR.string.done)).assertExists()
+    }
+
+    @Test
+    fun claimingOnesOwnNoteRefusedWithoutTheMintsWordsStillSaysWhy() {
+        show(ClaimState(takenBack = ReclaimResult.Failed(PayProblem.Refused)))
+        compose.onNodeWithText(text(DesignR.string.own_claim_refused)).assertExists()
     }
 
     @Test

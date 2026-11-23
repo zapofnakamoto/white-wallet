@@ -334,8 +334,9 @@
         <item quantity="other">Its provider didn\'t answer for %d days, so your wallet stopped trying.</item>
     </plurals>
     <string name="received_unreachable">Its provider didn\'t answer, so your wallet stopped trying.</string>
-    <string name="mint_key_changed_nothing_sent">The signing key of its provider doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in the provider\'s details, nothing is sent there.</string>
+    <string name="mint_key_changed_nothing_sent">The signing key of the provider doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in the provider\'s details, nothing is sent there.</string>
     <string name="mint_not_answering_unnamed">Your provider isn\'t answering. Try again later.</string>
+    <string name="own_claim_refused">Its provider didn\'t accept that. Try again later.</string>
     <string name="received_waiting_mint_unnamed">Claimed when its provider answers.</string>
     <string name="received_lightning_no_key">Its provider publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its provider doesn\'t answer for it as a banknote, so it can only be received over Lightning, for a fee.</string>

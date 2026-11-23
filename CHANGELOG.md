@@ -36,8 +36,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `handed_out_total`, `waiting_for_answer`, `no_answer_hint`, `couldnt_connect`, `mint_not_answering`,
   `payment_failed_nothing_paid`, `own_claim_done`, `own_claim_too_late`); the brand terms `send_problem_key_changed`,
   `notes_problem_key_changed`, `note_already_spent`, `send_problem_mint_message` and `claim_mint_refused_reason` are
-  gone for `mint_key_changed_nothing_sent`, `own_claim_too_late` and `mint_message`; new brand term
-  `mint_not_answering_unnamed`.
+  gone for `mint_key_changed_nothing_sent`, `own_claim_too_late` and `mint_message`; new brand terms
+  `mint_not_answering_unnamed` and
+  `own_claim_refused` (a claim of one's own note refused without the mint's words).
 - The screenshot set shows the problems and waits of every screen, not only its everyday state: 67 new previews across
   Send, Receive, Home, Notes, onboarding and settings (offline, a mint not answering or with another key, a payment
   pending or failed, a note spent, taken back or unknown to its mint, …), so brands see them in their design too.

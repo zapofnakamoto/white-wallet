@@ -32,8 +32,9 @@
     <string name="release_note_old_keys_body">Diese Version findet keine Scheine und Lightning-Adressen mehr, die so angelegt wurden wie vor Version 0.8. Seitdem hat die App sie bei jedem Öffnen von selbst umgezogen. Fehlt Geld, öffne deine Wiederherstellungsphrase einmal in Version 0.9.0, die sie noch umzieht, und nutze dann hier „Nach Scheinen suchen“.</string>
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
     <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du den neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
-    <string name="mint_key_changed_nothing_sent">Der Signaturschlüssel seiner Mint passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du den neuen Schlüssel in den Details der Mint annimmst, wird nichts dorthin gesendet.</string>
+    <string name="mint_key_changed_nothing_sent">Der Signaturschlüssel der Mint passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details der Mint den neuen Schlüssel annimmst, wird nichts dorthin gesendet.</string>
     <string name="mint_not_answering_unnamed">Deine Mint antwortet nicht. Versuche es später erneut.</string>
+    <string name="own_claim_refused">Die Mint hat das nicht angenommen. Versuche es später erneut.</string>
     <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
     <string name="take_back_done_title">Eingelöst</string>
     <string name="take_back_failed">Nicht eingelöst</string>
@@ -43,6 +44,10 @@
     <string name="own_claim_too_late">Zu spät: Jemand hat ihn schon eingelöst.</string>
     <string name="couldnt_connect">Keine Verbindung. Versuche es später erneut.</string>
     <string name="mint_not_answering">%1$s antwortet nicht. Versuche es später erneut.</string>
+    <plurals name="mints_not_answering">
+        <item quantity="one">%2$s antwortet nicht. Versuche es später erneut.</item>
+        <item quantity="other">%2$s antworten nicht. Versuche es später erneut.</item>
+    </plurals>
     <string name="note_take_back_when_known">Die Mint kennt diesen Schein gerade nicht. Deine Wallet löst ihn ein, sobald die Mint ihn wieder kennt.</string>
     <string name="mint_message">Nachricht der Mint: „%1$s“</string>
 

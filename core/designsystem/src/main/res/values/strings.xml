@@ -38,9 +38,10 @@
     <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
     <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept the new key. Payments to your addresses there wait until then.</string>
-    <!-- The same for a note claimed yourself: nothing else waits there, and the mint is named as the note's. -->
-    <string name="mint_key_changed_nothing_sent">The signing key of its mint doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in the mint\'s details, nothing is sent there.</string>
+    <!-- The same where one thing failed on that mint (a payment, a note, claiming one handed out): nothing else waits there. -->
+    <string name="mint_key_changed_nothing_sent">The signing key of the mint doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in the mint\'s details, nothing is sent there.</string>
     <string name="mint_not_answering_unnamed">Your mint isn\'t answering. Try again later.</string>
+    <string name="own_claim_refused">Its mint didn\'t accept that. Try again later.</string>
     <string name="mint_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost.</string>
 
     <!-- How a take back, or anything asked of a mint, ended: shared by every screen that ends one. -->
@@ -56,6 +57,11 @@
     <!-- Why something asked of a mint didn't happen: the phone couldn't reach it. -->
     <string name="couldnt_connect">Couldn\'t connect. Try again later.</string>
     <string name="mint_not_answering">%1$s isn\'t answering. Try again later.</string>
+    <!-- One or more mints (%2$s, joined for the language, "a.com and b.com"); %1$d: how many. -->
+    <plurals name="mints_not_answering">
+        <item quantity="one">%2$s isn\'t answering. Try again later.</item>
+        <item quantity="other">%2$s aren\'t answering. Try again later.</item>
+    </plurals>
 
     <string name="back">Back</string>
     <string name="loading">Loading</string>

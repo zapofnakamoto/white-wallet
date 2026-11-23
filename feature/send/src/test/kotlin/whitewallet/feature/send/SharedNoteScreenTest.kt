@@ -147,6 +147,12 @@ class SharedNoteScreenTest {
     }
 
     @Test
+    fun aRefusalWithoutTheMintsWordsStillSaysWhy() {
+        takeBack(ReclaimResult.Failed(PayProblem.Refused))
+        compose.onNodeWithText(text(DesignR.string.own_claim_refused)).assertExists()
+    }
+
+    @Test
     fun aNoteTakenBackEndsOnTheSuccessScreenWithItsAmount() {
         var back = 0
         takeBack(ReclaimResult.Reclaimed(1_000_000), note(SharedNoteState.Reclaimed), onBack = { back++ })

@@ -206,8 +206,9 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `received_refused_hours` | Its mint kept refusing it for %d hour, so your wallet stopped trying. / Its mint kept refusing it for %d hours, so your wallet stopped trying. (plural) |
 | `received_refused_days` | Its mint kept refusing it for %d day, so your wallet stopped trying. / Its mint kept refusing it for %d days, so your wallet stopped trying. (plural) |
 | `received_unreachable` | Its mint didn't answer, so your wallet stopped trying. |
-| `mint_key_changed_nothing_sent` | The signing key of its mint doesn't match the one your wallet knows. Until it matches again, or you accept the new key in the mint's details, nothing is sent there. |
+| `mint_key_changed_nothing_sent` | The signing key of the mint doesn't match the one your wallet knows. Until it matches again, or you accept the new key in the mint's details, nothing is sent there. |
 | `mint_not_answering_unnamed` | Your mint isn't answering. Try again later. |
+| `own_claim_refused` | Its mint didn't accept that. Try again later. |
 | `received_unreachable_hours` | Its mint didn't answer for %d hour, so your wallet stopped trying. / Its mint didn't answer for %d hours, so your wallet stopped trying. (plural) |
 | `received_unreachable_days` | Its mint didn't answer for %d day, so your wallet stopped trying. / Its mint didn't answer for %d days, so your wallet stopped trying. (plural) |
 | `received_waiting_mint_unnamed` | Claimed when its mint answers. |

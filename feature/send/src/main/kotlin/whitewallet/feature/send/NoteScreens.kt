@@ -606,7 +606,7 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
                     ResultTone.Problem,
                     stringResource(DesignR.string.take_back_failed),
                     listOfNotNull(
-                        ownClaimReason(result.problem),
+                        ownClaimReason(result.problem, result.mintMessage),
                         result.mintMessage?.let { stringResource(DesignR.string.mint_message, it) },
                     ),
                 )
@@ -626,9 +626,11 @@ private fun TakeBackEnded(result: ReclaimResult, onDone: () -> Unit, onTryAgain:
 
 // Why claiming one's own note failed, in the same words as on the claim screen.
 @Composable
-private fun ownClaimReason(problem: PayProblem): String? =
+private fun ownClaimReason(problem: PayProblem, mintMessage: String?): String? =
     when (problem) {
         PayProblem.Unreachable -> stringResource(DesignR.string.couldnt_connect)
         PayProblem.KeyChanged -> stringResource(DesignR.string.mint_key_changed_nothing_sent)
+        // The mint's own words, if any, say why: else the app says it.
+        PayProblem.Refused -> if (mintMessage == null) stringResource(DesignR.string.own_claim_refused) else null
         else -> null
     }

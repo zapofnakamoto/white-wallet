@@ -582,7 +582,7 @@ private fun takeBackOutcome(result: ReclaimResult): Outcome {
                 ResultTone.Problem,
                 problem,
                 stringResource(DesignR.string.take_back_failed),
-                listOfNotNull(ownClaimReason(result.problem)) + mintWords(result.mintMessage),
+                listOfNotNull(ownClaimReason(result.problem, result.mintMessage)) + mintWords(result.mintMessage),
             )
     }
 }
@@ -592,9 +592,11 @@ private fun takeBackOutcome(result: ReclaimResult): Outcome {
  * say.
  */
 @Composable
-private fun ownClaimReason(problem: PayProblem): String? =
+private fun ownClaimReason(problem: PayProblem, mintMessage: String?): String? =
     when (problem) {
         PayProblem.Unreachable -> stringResource(DesignR.string.couldnt_connect)
         PayProblem.KeyChanged -> stringResource(DesignR.string.mint_key_changed_nothing_sent)
+        // The mint's own words, if any, say why: else the app says it.
+        PayProblem.Refused -> if (mintMessage == null) stringResource(DesignR.string.own_claim_refused) else null
         else -> null
     }

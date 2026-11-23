@@ -636,7 +636,12 @@ private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String =
                     if (outcome.unreachable.isNotEmpty()) {
                         add(
                             if (showMints)
-                                stringResource(DesignR.string.mint_not_answering, ListFormatter.getInstance().format(outcome.unreachable))
+                                pluralStringResource(
+                                    DesignR.plurals.mints_not_answering,
+                                    outcome.unreachable.size,
+                                    outcome.unreachable.size,
+                                    ListFormatter.getInstance().format(outcome.unreachable),
+                                )
                             else stringResource(DesignR.string.mint_not_answering_unnamed)
                         )
                     }
