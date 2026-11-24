@@ -57,6 +57,8 @@ class NetworkCodeTest {
                 "protocol/lnurlcash-client/src/main/" to "the client: every request to a mint",
                 "core/wallet/src/main/kotlin/whitewallet/core/wallet/RegtestFaucet.kt" to
                     "regtest only: pays and makes invoices at the local faucet, never handles a note",
+                "core/designsystem/src/main/kotlin/whitewallet/core/designsystem/HostText.kt" to
+                    "OkHttp's public suffix list, to bold a host's registered name: parses hosts, sends nothing",
             )
 
         val NETWORK =
