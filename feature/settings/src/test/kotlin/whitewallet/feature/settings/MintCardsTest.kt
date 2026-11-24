@@ -120,6 +120,17 @@ class MintCardsTest {
     }
 
     @Test
+    fun `home is the account's own, never a mint the wallet marks home that the account holds nothing on`() {
+        val cards =
+            mintCards(
+                listOf(info("x.example"), info("y.example", home = true)),
+                listOf(held("x.example", 1_000, home = true)),
+                emptySet(),
+            )
+        assertEquals(listOf("x.example"), cards.filter { it.isHome }.map { it.host })
+    }
+
+    @Test
     fun `no mints give no cards`() {
         assertEquals(emptyList(), mintCards(emptyList(), emptyList(), emptySet()))
     }

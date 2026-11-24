@@ -2,6 +2,10 @@ package whitewallet.feature.settings
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -14,12 +18,14 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import java.text.NumberFormat
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import whitewallet.core.designsystem.AccountActions
 import whitewallet.core.designsystem.MINT_KEY_WARNING_TAG
 import whitewallet.core.designsystem.R as DesignR
@@ -215,13 +221,71 @@ class MintsScreenTest {
         compose.onNodeWithContentDescription("Savings").assertDoesNotExist()
     }
 
+    /** What a screen reader says for a card: its parts in order, as the card joins them. */
+    private fun readOut(vararg parts: String) = parts.joinToString(text(R.string.mints_card_read_separator))
+
+    private fun cardNode(host: String) =
+        compose.onNode(hasClickAction() and hasContentDescription(host, substring = true)).fetchSemanticsNode()
+
+    private fun spoken(host: String) = cardNode(host).config[SemanticsProperties.ContentDescription].first()
+
     @Test
-    fun eachCardIsReadAsOne() {
+    fun theHomeCardIsOneNodeReadInOrderAndOpensWithItsLabel() {
+        show(MintsPageState(home = home, others = listOf(cash), canChangeHome = true))
+        assertEquals(
+            readOut(
+                text(R.string.settings_home_mint),
+                "home.example",
+                formatAmount(21_000_000),
+                plural(DesignR.plurals.notes_count, 3),
+                plural(R.plurals.account_mints_addresses, 1),
+            ),
+            spoken("home.example"),
+        )
+        val node = cardNode("home.example")
+        assertEquals(text(R.string.mints_card_open), node.config[SemanticsActions.OnClick].label)
+        assertEquals(Role.Button, node.config[SemanticsProperties.Role])
+        // Changing the home stays a button of its own, not part of the card.
+        val change = compose.onNode(hasClickAction() and hasText(text(R.string.mint_change_home))).fetchSemanticsNode()
+        assertNotEquals(node.id, change.id)
+    }
+
+    @Test
+    fun anotherCardIsOneNodeReadAsHostAmountNotesThenTrust() {
         show(MintsPageState(home = home, others = listOf(cash)))
-        val read = compose.onNode(hasText("cash.example", substring = true)).fetchSemanticsNode().config
-        val words = read.getOrElse(androidx.compose.ui.semantics.SemanticsProperties.Text) { emptyList() }.joinToString(" ")
-        assertTrue(words, formatAmount(4_000_000) in words)
-        assertTrue(words, plural(DesignR.plurals.notes_count, 1) in words)
+        assertEquals(
+            readOut("cash.example", formatAmount(4_000_000), plural(DesignR.plurals.notes_count, 1), text(DesignR.string.notes_trusted)),
+            spoken("cash.example"),
+        )
+        val node = cardNode("cash.example")
+        assertEquals(text(R.string.mints_card_open), node.config[SemanticsActions.OnClick].label)
+        assertEquals(Role.Button, node.config[SemanticsProperties.Role])
+    }
+
+    @Test
+    fun aCardWithAChangedKeyEndsWithTheWarning() {
+        show(
+            MintsPageState(
+                home = home.copy(keyChanged = true, trusted = false),
+                others = listOf(cash.copy(keyChanged = true, trusted = false)),
+            )
+        )
+        val warning = text(DesignR.string.key_mismatch_short)
+        assertEquals(readOut(text(R.string.settings_home_mint), "home.example", formatAmount(21_000_000), warning), spoken("home.example"))
+        assertEquals(readOut("cash.example", formatAmount(4_000_000), warning), spoken("cash.example"))
+    }
+
+    @Test
+    fun anUnusedCardIsReadAsNotUsed() {
+        show(MintsPageState(home = home, others = listOf(old)))
+        assertEquals(readOut("old.example", text(R.string.mints_card_unused)), spoken("old.example"))
+    }
+
+    @Test
+    fun anEmptyHomeSaysNothingOfNotes() {
+        show(MintsPageState(home = card("home.example", home = true)))
+        compose.onNodeWithText(plural(DesignR.plurals.notes_count, 0), substring = true).assertDoesNotExist()
+        assertEquals(readOut(text(R.string.settings_home_mint), "home.example", formatAmount(0)), spoken("home.example"))
     }
 
     private fun showLarge(state: MintsPageState) = compose.setContent {
@@ -263,6 +327,29 @@ class MintsScreenTest {
         val amount = compose.onNodeWithText(formatAmount(2_100_000_000_000_000), useUnmergedTree = true).fetchSemanticsNode().size.width
         val root = compose.onRoot().fetchSemanticsNode().size.width
         assertTrue("the amount is $amount of $root", amount <= root / 3)
+    }
+
+    // Native graphics: text is measured as on a phone, so the amount's width is real.
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers = "w320dp-h640dp")
+    fun theLargestAmountIsWholeOnANarrowPhoneAtTwiceTheFontSize() {
+        // All bitcoin there will ever be.
+        val most = 2_100_000_000_000_000_000
+        showLarge(
+            MintsPageState(
+                home = card("a-very-long-subdomain.of-a-mint.example", most, notes = 9, home = true),
+                others = listOf(card("another-long-subdomain.of-a-mint.example", most, notes = 9)),
+            )
+        )
+        val amounts = compose.onAllNodes(hasText(formatAmount(most)), useUnmergedTree = true).fetchSemanticsNodes()
+        assertEquals(2, amounts.size)
+        amounts.forEach { node ->
+            val layout = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            node.config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action?.invoke(layout)
+            assertTrue("the amount is not cut", !layout.single().hasVisualOverflow)
+            assertTrue("the amount is drawn", node.size.width > 0)
+        }
     }
 
     @Test

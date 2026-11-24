@@ -160,7 +160,7 @@
     <string name="accounts_separate_backups">Accounts in a wallet share its recovery phrase. Each wallet has its own: back up every wallet.</string>
     <string name="accounts_wallet">Wallet %1$d</string>
     <string name="account_switch">Switch account</string>
-    <!-- The account in use, with several wallets, over the balance. %1$s: the wallet's name, %2$s: the account's. -->
+    <!-- An account where there are several wallets: on Home over the balance, in the account switcher and its button, in Move funds. %1$s: the wallet's name, %2$s: the account's. -->
     <string name="account_in_wallet">%1$s · %2$s</string>
     <plurals name="accounts_other_wallets">
         <item quantity="one">%1$d other wallet</item>

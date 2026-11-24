@@ -26,8 +26,8 @@ data class MintCard(
 
 /**
  * Every mint of the wallet ([mints]) and every one the account holds something on ([held]), once each: the home first, then the mints with
- * money, most first, then the rest; by host where that leaves a tie. Trust is the wallet's; money, notes and addresses the account's.
- * [holding]: the mints where the account has a note that isn't spent, in its balance or not.
+ * money, most first, then the rest; by host where that leaves a tie. Trust is the wallet's; the home, money, notes and addresses the
+ * account's. [holding]: the mints where the account has a note that isn't spent, in its balance or not.
  */
 fun mintCards(mints: List<MintInfo>, held: List<AccountMint>, keyChanged: Set<String>, holding: Set<String> = emptySet()): List<MintCard> {
     val wallet = mints.associateBy { it.host }
@@ -40,7 +40,7 @@ fun mintCards(mints: List<MintInfo>, held: List<AccountMint>, keyChanged: Set<St
             val changed = host in keyChanged
             MintCard(
                 host,
-                isHome = mine?.isHome ?: info?.isHome ?: false,
+                isHome = mine?.isHome ?: false,
                 balanceMsat = mine?.balanceMsat ?: 0,
                 noteCount = mine?.noteCount ?: 0,
                 addresses = mine?.addresses ?: 0,

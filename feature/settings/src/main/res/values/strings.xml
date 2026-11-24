@@ -21,9 +21,9 @@
     <string name="about_body">A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device.</string>
     <string name="mint_trusted_hint">Notes from a trusted mint are marked with a check. If it ever signs with a different key, it is no longer trusted until you accept its new key.</string>
     <string name="mints_empty">This wallet has no mint yet, so nothing can be received.</string>
-    <!-- An account without a home mint, as on Receive (Lightning addresses, Mints). -->
     <!-- Under Mints in Settings and on the account page: the account in use has no home mint -->
     <string name="settings_mints_no_home">No home mint</string>
+    <!-- An account without a home mint, as on Receive: on the Mints page and Lightning addresses, with the way to choose one -->
     <string name="settings_no_home">This account has no home mint. Choose one of your mints to receive there.</string>
     <string name="settings_no_home_action">Choose home mint</string>
     <string name="settings_notes">Note settings</string>
@@ -44,6 +44,8 @@
     <string name="notes_collect_hint">Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too.</string>
     <string name="notes_collect_pending">Moving the notes from %1$s; they arrive shortly.</string>
     <string name="mints_remove_body">This wallet forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the wallet remembers. An account that has it as its home mint has none until you choose another.</string>
+    <!-- Names no mint, but refers to it: a brand's word may need another pronoun (German "die Mint": "sie") -->
+    <string name="mints_remove_in_use">Can\'t be removed while an account uses it: with money, an address or an unfinished payment there.</string>
     <string name="settings_notices_hint">A short message when the wallet combined, split, renewed or moved your notes by itself.</string>
     <string name="notes_pay_from_others_first">Pay from other mints first</string>
     <string name="notes_pay_from_others_first_hint">Payments use notes on your other mints before those at %1$s, so your money gathers at your home mint.</string>
@@ -392,7 +394,6 @@
     </plurals>
     <string name="mints_remove_title">Remove %1$s?</string>
     <string name="mints_remove_confirm">Remove</string>
-    <string name="mints_remove_in_use">Can\'t be removed while an account uses it: with money, an address or an unfinished payment there.</string>
     <string name="settings_notices">Tell me what the wallet did by itself</string>
 
     <!-- Developer options: requests behave as on a bad connection. -->
@@ -461,4 +462,8 @@
 
     <!-- Mints page: a mint the account in use has no money, note or address on -->
     <string name="mints_card_unused">Not used in this account</string>
+    <!-- Read out on a card of the Mints page: what a tap does -->
+    <string name="mints_card_open">Open</string>
+    <!-- Read out on a card of the Mints page: between its parts (name, money, notes, trust), where the eye sees separate lines -->
+    <string name="mints_card_read_separator">", "</string>
 </resources>

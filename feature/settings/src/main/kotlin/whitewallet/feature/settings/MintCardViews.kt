@@ -26,12 +26,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.intl.Locale
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.toUpperCase
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import whitewallet.brand.ui.ButtonKind
@@ -55,6 +63,8 @@ import whitewallet.core.designsystem.formatAmount
 internal fun HomeMintCard(card: MintCard, onOpen: (String) -> Unit, onChangeHome: (() -> Unit)?) {
     val colors = cardColors(card, MaterialTheme.walletColors.note(true))
     val pattern = remember(card.host) { MintPattern.of(card.host) }
+    val spoken = spokenCard(card)
+    val open = stringResource(R.string.mints_card_open)
     Column(
         Modifier.fillMaxWidth()
             .padding(16.dp)
@@ -66,18 +76,22 @@ internal fun HomeMintCard(card: MintCard, onOpen: (String) -> Unit, onChangeHome
                 val seal = mintSeal(pattern, Offset(size.width - radius - 16.dp.toPx(), radius + 16.dp.toPx()), radius, 2.dp.toPx())
                 onDrawBehind { seal(colors.ink.copy(alpha = 0.15f), null) }
             }
-            .clickable { onOpen(card.host) }
+            .clickable(onClickLabel = open, role = Role.Button) { onOpen(card.host) }
+            .semantics { contentDescription = spoken }
             .padding(20.dp)
     ) {
-        Text(
-            stringResource(R.string.settings_home_mint).toUpperCase(Locale.current),
-            style = MaterialTheme.typography.labelMedium,
-            color = colors.ink.copy(alpha = 0.8f),
-        )
-        Spacer(Modifier.height(8.dp))
-        HostText(card.host, style = MaterialTheme.typography.titleMedium.copy(color = colors.ink))
-        CardAmount(card.balanceMsat, MaterialTheme.typography.headlineMedium, colors)
-        CardDetails(card, colors)
+        // Read out as one (above), the label in its own case: its lines aren't, so nothing is said twice. Changing the home stays a button.
+        Column(Modifier.semantics { hideFromAccessibility() }) {
+            Text(
+                stringResource(R.string.settings_home_mint).toUpperCase(Locale.current),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.ink.copy(alpha = 0.8f),
+            )
+            Spacer(Modifier.height(8.dp))
+            HostText(card.host, style = MaterialTheme.typography.titleMedium.copy(color = colors.ink))
+            CardAmount(card.balanceMsat, MaterialTheme.typography.headlineMedium, colors)
+            CardDetails(card, colors)
+        }
         onChangeHome?.let { change ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 WalletButton(kind = ButtonKind.Secondary, onClick = change) {
@@ -95,17 +109,25 @@ internal fun HomeMintCard(card: MintCard, onOpen: (String) -> Unit, onChangeHome
 @Composable
 internal fun OtherMintCard(card: MintCard, onOpen: (String) -> Unit) {
     val colors = cardColors(card, NoteColors(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.onSurface))
+    val spoken = spokenCard(card)
+    val open = stringResource(R.string.mints_card_open)
+    val amountStyle = MaterialTheme.typography.titleMedium
     BoxWithConstraints(
         Modifier.fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(colors.paper)
-            .clickable { onOpen(card.host) }
+            .clickable(onClickLabel = open, role = Role.Button) { onOpen(card.host) }
+            .semantics { contentDescription = spoken }
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // The amount at its own width, at most half the room beside the mark: a huge one gets smaller rather than squeezing the name.
+        // The amount at its own width, at most half the room beside the mark: a huge one gets smaller rather than squeezing the name, and
+        // goes under the name where it wouldn't fit even at its smallest.
         val amountMax = (maxWidth - 40.dp - 24.dp) / 2
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        val amount = formatAmount(card.balanceMsat)
+        val beside = card.used && fitsOnOneLine(amount, amountStyle, amountMax)
+        // Read out as one (above): its lines aren't, so nothing is said twice.
+        Row(Modifier.semantics { hideFromAccessibility() }, verticalAlignment = Alignment.CenterVertically) {
             WalletMintMark(card.host, home = false, size = 40.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
@@ -125,26 +147,48 @@ internal fun OtherMintCard(card: MintCard, onOpen: (String) -> Unit) {
                         )
                     }
                 }
+                if (card.used && !beside) CardAmount(card.balanceMsat, amountStyle, colors)
                 CardDetails(card, colors)
             }
-            if (card.used) {
+            if (beside) {
                 Spacer(Modifier.width(12.dp))
-                CardAmount(card.balanceMsat, MaterialTheme.typography.titleMedium, colors, Modifier.widthIn(max = amountMax))
+                CardAmount(card.balanceMsat, amountStyle, colors, Modifier.widthIn(max = amountMax))
             }
         }
     }
 }
 
-/** The account's money at a mint: one line, smaller where a large font or a long amount wouldn't fit, as on the bills. */
+/**
+ * The account's money at a mint: one line, smaller where a large font or a long amount wouldn't fit, as on the bills; at its smallest on
+ * more lines where even that wouldn't. An amount is never cut.
+ */
 @Composable
 private fun CardAmount(msat: Long, style: TextStyle, colors: NoteColors, modifier: Modifier = Modifier) =
-    BasicText(
-        formatAmount(msat),
-        modifier,
-        style = style.copy(color = colors.ink),
-        maxLines = 1,
-        autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
-    )
+    BoxWithConstraints(modifier) {
+        val amount = formatAmount(msat)
+        val ink = style.copy(color = colors.ink)
+        if (fitsOnOneLine(amount, style, maxWidth))
+            BasicText(
+                amount,
+                style = ink,
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(minFontSize = AMOUNT_MIN, maxFontSize = style.fontSize),
+            )
+        else BasicText(amount, style = ink.copy(fontSize = AMOUNT_MIN))
+    }
+
+/** The smallest an amount on a card gets. */
+private val AMOUNT_MIN = 10.sp
+
+/** Whether [text] fits in [width] on one line at [AMOUNT_MIN]. */
+@Composable
+private fun fitsOnOneLine(text: String, style: TextStyle, width: Dp): Boolean {
+    val measurer = rememberTextMeasurer()
+    val px = with(LocalDensity.current) { width.roundToPx() }.coerceAtLeast(0)
+    return remember(text, style, px) {
+        !measurer.measure(text, style.copy(fontSize = AMOUNT_MIN), maxLines = 1, constraints = Constraints(maxWidth = px)).hasVisualOverflow
+    }
+}
 
 /** The error colours for a mint whose key doesn't match, whatever card it is; [usual] otherwise. */
 @Composable
@@ -152,25 +196,53 @@ private fun cardColors(card: MintCard, usual: NoteColors) =
     if (card.keyChanged) NoteColors(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer) else usual
 
 /**
- * The line under a card's name: the key warning when it doesn't match; else "Not used in this account"; else its notes, addresses, and "Not
- * answering" when the mint didn't answer, in Home's words. Nothing when there is nothing to say.
+ * The line under a card's name: the key warning when it doesn't match; else [cardDetails], in Home's words. Nothing when there is nothing
+ * to say.
  */
 @Composable
 private fun CardDetails(card: MintCard, colors: NoteColors) {
     val style = MaterialTheme.typography.bodySmall
-    val quiet = colors.ink.copy(alpha = 0.8f)
     if (card.keyChanged) {
         MintKeyWarning(Modifier.padding(top = 2.dp), style = style, color = colors.ink)
         return
     }
-    if (!card.used) {
-        Text(stringResource(R.string.mints_card_unused), style = style, color = quiet)
-        return
-    }
-    val parts = buildList {
-        if (card.noteCount > 0 || card.isHome) add(pluralStringResource(DesignR.plurals.notes_count, card.noteCount, card.noteCount))
-        if (card.addresses > 0) add(pluralStringResource(R.plurals.account_mints_addresses, card.addresses, card.addresses))
-        if (!card.answering) add(stringResource(DesignR.string.mint_not_answering_short))
-    }
-    if (parts.isNotEmpty()) Text(parts.joinToString(stringResource(DesignR.string.notes_detail_separator)), style = style, color = quiet)
+    val parts = cardDetails(card)
+    if (parts.isNotEmpty())
+        Text(
+            parts.joinToString(stringResource(DesignR.string.notes_detail_separator)),
+            style = style,
+            color = colors.ink.copy(alpha = 0.8f),
+        )
 }
+
+/**
+ * What a card says under its name, the key warning aside: "Not used in this account"; else its notes (when it has some), addresses, and
+ * "Not answering" when the mint didn't answer.
+ */
+@Composable
+private fun cardDetails(card: MintCard): List<String> =
+    when {
+        card.keyChanged -> emptyList()
+        !card.used -> listOf(stringResource(R.string.mints_card_unused))
+        else ->
+            buildList {
+                if (card.noteCount > 0) add(pluralStringResource(DesignR.plurals.notes_count, card.noteCount, card.noteCount))
+                if (card.addresses > 0) add(pluralStringResource(R.plurals.account_mints_addresses, card.addresses, card.addresses))
+                if (!card.answering) add(stringResource(DesignR.string.mint_not_answering_short))
+            }
+    }
+
+/**
+ * What a screen reader says for a card, in its own words and case: "Home mint" on the home's, the host, the amount where it shows, what it
+ * says under its name, "Trusted" for its ✓ (the home card has none), then the key warning.
+ */
+@Composable
+private fun spokenCard(card: MintCard): String = buildList {
+    if (card.isHome) add(stringResource(R.string.settings_home_mint))
+    add(card.host)
+    if (card.used) add(formatAmount(card.balanceMsat))
+    addAll(cardDetails(card))
+    if (card.trusted && !card.isHome) add(stringResource(DesignR.string.notes_trusted))
+    if (card.keyChanged) add(stringResource(DesignR.string.key_mismatch_short))
+}
+    .joinToString(stringResource(R.string.mints_card_read_separator))

@@ -150,18 +150,24 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   doesn't use says "Not used in this account". A mint whose signing key doesn't match turns its whole card the error
   colour, the home card too, which stays on top with its button. The account mark in the top bar switches account, as
   on Home. Settings and the account's page both lead there, the row saying "Home mint: mint.example" (or "No home
-  mint"); the wallet's page no longer has a Mints row, and Home's "N more mints" opens it too.
+  mint"); the wallet's page no longer has a Mints row, and Home's "N more mints" opens it too. A screen reader reads
+  each card as one ("Home mint" on the home's, the mint, its money, notes, "Trusted" for a ✓, then a key warning) and
+  "Open" as what a tap does; "Change home mint" stays its own button. An empty home says nothing of notes. An amount
+  too long for its place even at its smallest goes under the mint's name, on two lines if need be: it is never cut.
 - A mint has one page, wherever it is opened: what the account has and can do there, a **Trusted** switch with what
   trust means (notes from it carry a check) and why it is trusted by default, and Remove. Trust is changed there now,
   not in a list; the switch is off without a signing key and can't change while the mint shows another one. Its top bar
   has the account mark, as on the Mints page.
 - A mint whose signing key doesn't match is marked the same way everywhere it is listed: Home, the mint pickers of Send
   and Receive, and the Mints page show a warning sign with "Signing key doesn't match".
-- For brands: `Page.Mints` is the one Mints page (`Empty` without any mint). New brand term `settings_mints_no_home`
-  ("No home mint"); new string `mints_card_unused`. `notes_count`, `notes_detail_separator` and `notes_trusted` are in
-  the design system now (a brand overrides them by name as before).
-- For developers: the account switcher (`AccountSwitcher`, `AccountActions`, `WalletAccountButton`) and `AccountChoice`
-  are shared, for any page that shows one account's things; `MintKeyWarning` draws the key warning in every list.
+- For brands: `Page.Mints` is the one Mints page (`Empty` without any mint). New brand terms `settings_mints_no_home`
+  ("No home mint") and `mints_remove_in_use` (it names no mint, but its pronoun follows the brand's word); new strings
+  `mints_card_unused`, `mints_card_open` and `mints_card_read_separator`. `notes_count`, `notes_detail_separator` and
+  `notes_trusted` are in the design system now (a brand overrides them by name as before).
+- For developers: the account switcher (`AccountSwitcher`, `AccountActions`, `WalletAccountButton`) moved from
+  `feature/home` to `core/designsystem`, with its strings (a brand overrides them by name as before), and with the new
+  `AccountChoice` (`core/model`, from `Wallet.accountChoice`) it is shared, for any page that shows one account's
+  things; `MintKeyWarning` draws the key warning in every list.
 - A note received from someone else whose mint answers 0 or `pending` for it (spent, or someone paying it out) is now
   spent for good, at the check as at the claim: its spend is dropped and it is never tried again, whatever becomes of
   that payment. A note two people try to spend isn't tried again. Notes kept that way by an older version, gone or archived

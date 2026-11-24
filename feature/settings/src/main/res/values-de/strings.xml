@@ -37,6 +37,7 @@
     <string name="notes_collect_hint">Scheine, die du anderswo bekommst, werden automatisch hierher verschoben, wenn die Gebühren in deinem Limit bleiben. Danach gilt für sie „Umgang mit Scheinen“ oben.</string>
     <string name="notes_collect_pending">Die Scheine von %1$s werden verschoben; sie kommen gleich an.</string>
     <string name="mints_remove_body">Diese Wallet vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Scheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die Wallet merkt. Ein Konto, dessen Haupt-Mint er ist, hat keine mehr, bis du eine andere wählst.</string>
+    <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto sie nutzt: mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
     <string name="settings_notices_hint">Eine kurze Nachricht, wenn die Wallet deine Scheine von selbst zusammengelegt, aufgeteilt, erneuert oder verschoben hat.</string>
     <string name="notes_pay_from_others_first">Zuerst von anderen Mints zahlen</string>
     <string name="notes_pay_from_others_first_hint">Zahlungen nehmen zuerst Scheine deiner anderen Mints, dann die von %1$s; so sammelt sich dein Geld bei deiner Haupt-Mint.</string>
@@ -381,7 +382,6 @@
     </plurals>
     <string name="mints_remove_title">%1$s entfernen?</string>
     <string name="mints_remove_confirm">Entfernen</string>
-    <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto sie nutzt: mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
     <string name="settings_notices">Melden, was die Wallet selbst erledigt hat</string>
 
     <!-- Developer options: requests behave as on a bad connection. -->
@@ -447,4 +447,8 @@
 
     <!-- Mints page: a mint the account in use has no money, note or address on -->
     <string name="mints_card_unused">In diesem Konto nicht genutzt</string>
+    <!-- Read out on a card of the Mints page: what a tap does -->
+    <string name="mints_card_open">Öffnen</string>
+    <!-- Read out on a card of the Mints page: between its parts (name, money, notes, trust), where the eye sees separate lines -->
+    <string name="mints_card_read_separator">", "</string>
 </resources>
