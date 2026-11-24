@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.designsystem.needsUser
-import whitewallet.core.designsystem.noteColorIndex
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -179,8 +178,8 @@ data class NotesState(
     val keepsAttentionOpen: Boolean
         get() = needsAttention || silentWhileOffline.isNotEmpty()
 
-    /** The bill colours of [host]'s notes: the home mint's first, another mint's by its host ([noteColorIndex]). */
-    fun colorIndex(host: String): Int = noteColorIndex(host, mints.firstOrNull { it.isHome }?.host)
+    /** Whether [host] is the home mint: its notes are drawn in the home mint's bill colours, every other mint's in the others'. */
+    fun isHomeMint(host: String): Boolean = mints.any { it.host == host && it.isHome }
 
     val sharedMsat: Long
         get() = shared.sumOf { it.amountMsat }

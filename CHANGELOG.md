@@ -11,13 +11,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   card only when something does, one short line each: notes their mint doesn't know, notes waiting for an answer, a
   mint not answering or whose signing key doesn't match, received links the wallet can't claim on its own; "Show all"
   opens them on a page of their own, by mint, each note there opening its details. Each mint's notes are a pile of
-  bills in the mint's colour (the home mint's in the brand's primary), the
+  bills, the home mint's in its own colour (the brand's primary) and every other mint's in another (secondary), the
   biggest in front, with its name, labels, total and range; swipe between mints, or use the arrows. A tap opens the
   mint's page: its notes as rows with a small bill, sorting and Select (selecting is only there). A note's sheet shows
   it as a large bill. Money outside the balance sits apart under "Not in your balance": received links (opened by a
   tap; already open when the view opens while one needs you), handed-out notes (a closed row) and the archive. Note settings moved from
   the top bar to a row at the bottom. For brands: the component `NotePile`, `NoteFaceParams.colors`, the colour roles
-  `brand_note_1` … `brand_note_3` with their `brand_on_note_*`, `NoteGroupHeader` now heads a mint's page (no
+  `brand_home_mint_note_color` and `brand_other_mints_note_color` with their `*_text_color`, `NoteGroupHeader` now heads a mint's page (no
   divider); new strings `notes_attention_*`, `notes_outside_title`, `notes_range`, `notes_mint_*`, `notes_section_*`.
 - The notes view, after a review: a note handed out while its mint doesn't know it no longer shows "No notes yet"
   beside it, and its row names its mint; Received counts only the links its amount sums; offline, the page of what
@@ -30,10 +30,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - The notes view, after a second review: Home and the notes view agree on which received links need you (a locked one
   past its date does on both); the notes view counts as empty only when it shows its empty state, so the brand's mark
   above it stays while only archived notes or spent links are left; a note's sheet closed because its note left the
-  view doesn't open by itself when the note comes back; "0 notes" no longer shows while every note is set aside; a
-  mint's bills take their colour from its host, so a mint keeps its colour when you add or remove others (the home
-  mint's stay in the brand's primary; two other mints may share one); the claim screen waits for the
-  wallet's mints before drawing, so a bill never changes colour, and keeps them for the next link; the page of what
+  view doesn't open by itself when the note comes back; "0 notes" no longer shows while every note is set aside; bills
+  are in the home mint's colour or the other mints' colour (no longer one per mint, which shifted as mints came and
+  went), and the claim screen waits for the home mint before drawing, so a bill never changes colour; the page of what
   needs you says which mint isn't answering without naming it twice, and whose when mints aren't named; its rows and
   the handed-out rows read out "Show details" and are at least 48dp high. For brands: the `NotePile` KDoc says the
   pile takes the tap itself; `WHITE_LABEL.md` no longer promises that parameter objects only gain options with

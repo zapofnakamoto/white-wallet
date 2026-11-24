@@ -53,7 +53,6 @@ import whitewallet.core.designsystem.WalletNoteFace
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
-import whitewallet.core.designsystem.noteColorIndex
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.ReceivedState
@@ -278,7 +277,7 @@ private fun ReadyCard(preview: ClaimPreview.Ready, state: ClaimState) {
                 trusted = preview.trusted,
                 place = NoteFacePlace.Claim,
                 // In the colour its mint's notes have on the notes view, once it is claimed.
-                colors = MaterialTheme.walletColors.note(noteColorIndex(preview.link.host, state.home)),
+                colors = MaterialTheme.walletColors.note(homeMint = preview.link.host == state.home),
             )
             // Without showMints, only what needs the user: an amount that can't be verified, other spend paths, and the bearer warning.
             if (showMints) {

@@ -43,22 +43,16 @@ data class WalletColors(
     val onWarningContainer: Color,
     /** Large amounts, such as the balance. Default: onSurface. */
     val amount: Color,
+    /** The bills of the home mint's notes. Default: primary / onPrimary. */
+    val homeMintNote: NoteColors,
     /**
-     * The colours of the bills a mint's notes are drawn as: the first for the home mint, one of the others for each other mint, chosen by
-     * its host (two mints may share one). Default: primary, tertiary, secondary (each with its on- colour).
+     * The bills of every other mint's notes: mints are told apart by name, the colour says only "not the home mint". Default: secondary /
+     * onSecondary.
      */
-    val notes: List<NoteColors>,
+    val otherMintsNote: NoteColors,
 ) {
-    init {
-        require(notes.isNotEmpty()) { "WalletColors.notes needs at least one colour: the home mint's" }
-    }
-
-    /** The bill colours for [index]: 0 the home mint's, any other one of the others, spread evenly (see [notes]). */
-    fun note(index: Int): NoteColors =
-        when {
-            index <= 0 || notes.size < 2 -> notes.first()
-            else -> notes[1 + (index - 1) % (notes.size - 1)]
-        }
+    /** The bill colours of a mint's notes: [homeMintNote] for the home mint, else [otherMintsNote]. */
+    fun note(homeMint: Boolean): NoteColors = if (homeMint) homeMintNote else otherMintsNote
 
     companion object {
         /** Every role at its fallback in [scheme]. */
@@ -71,12 +65,8 @@ data class WalletColors(
                 warningContainer = scheme.errorContainer,
                 onWarningContainer = scheme.onErrorContainer,
                 amount = scheme.onSurface,
-                notes =
-                    listOf(
-                        NoteColors(scheme.primary, scheme.onPrimary),
-                        NoteColors(scheme.tertiary, scheme.onTertiary),
-                        NoteColors(scheme.secondary, scheme.onSecondary),
-                    ),
+                homeMintNote = NoteColors(scheme.primary, scheme.onPrimary),
+                otherMintsNote = NoteColors(scheme.secondary, scheme.onSecondary),
             )
     }
 }

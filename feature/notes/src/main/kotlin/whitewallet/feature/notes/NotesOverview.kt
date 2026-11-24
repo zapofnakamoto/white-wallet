@@ -239,7 +239,7 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
             bills = bills.map { it.amountMsat },
             certified = bills.map { it.certificate != null },
             largestMsat = largest,
-            colors = MaterialTheme.walletColors.note(state.colorIndex(mint.host)),
+            colors = MaterialTheme.walletColors.note(mint.isHome),
             home = mint.isHome,
             trusted = mint.trusted && state.showMints,
             onClick = { actions.openMint(mint.host) },

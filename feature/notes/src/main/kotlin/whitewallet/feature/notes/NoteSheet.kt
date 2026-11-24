@@ -81,7 +81,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 mint = note.host.takeIf { state.showMints },
                 trusted = state.openTrusted,
                 enabled = NotesViewModel.selectable(note) && !state.busy,
-                colors = MaterialTheme.walletColors.note(state.colorIndex(note.host)),
+                colors = MaterialTheme.walletColors.note(state.isHomeMint(note.host)),
                 certified = note.certificate != null,
             )
             Text(

@@ -99,15 +99,16 @@ internal object BrandTokens {
                         warningContainer = res.role(R.color.brand_warning_container) ?: warningContainer,
                         onWarningContainer = res.role(R.color.brand_on_warning_container) ?: onWarningContainer,
                         amount = res.role(R.color.brand_amount) ?: amount,
-                        notes =
-                            listOf(
-                                    Triple(R.color.brand_note_1, R.color.brand_on_note_1, notes[0]),
-                                    Triple(R.color.brand_note_2, R.color.brand_on_note_2, notes[1]),
-                                    Triple(R.color.brand_note_3, R.color.brand_on_note_3, notes[2]),
-                                )
-                                .map { (paper, ink, fallback) ->
-                                    NoteColors(res.role(paper) ?: fallback.paper, res.role(ink) ?: fallback.ink)
-                                },
+                        homeMintNote =
+                            NoteColors(
+                                res.role(R.color.brand_home_mint_note_color) ?: homeMintNote.paper,
+                                res.role(R.color.brand_home_mint_note_text_color) ?: homeMintNote.ink,
+                            ),
+                        otherMintsNote =
+                            NoteColors(
+                                res.role(R.color.brand_other_mints_note_color) ?: otherMintsNote.paper,
+                                res.role(R.color.brand_other_mints_note_text_color) ?: otherMintsNote.ink,
+                            ),
                     )
                 },
             spacing = WalletSpacing(screen = res.dp(R.dimen.brand_spacing_screen), gap = res.dp(R.dimen.brand_spacing_gap)),
@@ -327,17 +328,4 @@ internal object BrandTokens {
     private fun Resources.dp(@DimenRes id: Int) = (getDimension(id) / displayMetrics.density).dp
 
     @Suppress("DEPRECATION") private fun android.util.DisplayMetrics.scaledDensity() = scaledDensity
-}
-
-/**
- * Which bill colours ([whitewallet.brand.ui.WalletColors.note]) [host]'s notes are drawn in, wherever they are drawn: 0 for the [home]
- * mint, else one taken from its host alone (FNV-1a of the lowercase host, port included), so a mint keeps its colour whatever other mints
- * the wallet has, and on every phone. Two mints may share one.
- */
-fun noteColorIndex(host: String, home: String?): Int {
-    if (host == home) return 0
-    var hash = 0x811c9dc5.toInt()
-    for (byte in host.lowercase().encodeToByteArray()) hash = (hash xor (byte.toInt() and 0xff)) * 0x01000193
-    // Never 0 (the home mint's): WalletColors.note spreads 1 and up over the other colours.
-    return 1 + (hash ushr 1)
 }

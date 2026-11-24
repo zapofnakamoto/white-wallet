@@ -191,7 +191,7 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
         trusted = state.mints.any { it.host == note.host && it.trusted },
         selected = selected,
         enabled = enabled && !state.busy,
-        colors = MaterialTheme.walletColors.note(state.colorIndex(note.host)),
+        colors = MaterialTheme.walletColors.note(state.isHomeMint(note.host)),
         certified = note.certificate != null,
         modifier =
             Modifier.combinedClickable(

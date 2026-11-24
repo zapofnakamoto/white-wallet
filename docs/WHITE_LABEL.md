@@ -440,7 +440,7 @@ like and point the roles at them:
 | Tokens | Names |
 |---|---|
 | Colour roles (Material 3) | `brand_primary`, `brand_on_primary`, `brand_primary_container`, `brand_on_primary_container`, `brand_inverse_primary`, `brand_secondary` …, `brand_tertiary` …, `brand_background`, `brand_on_background`, `brand_surface`, `brand_on_surface`, `brand_surface_variant`, `brand_on_surface_variant`, `brand_surface_container{_lowest,_low,,_high,_highest}`, `brand_surface_dim`, `brand_surface_bright`, `brand_surface_tint`, `brand_inverse_surface`, `brand_inverse_on_surface`, `brand_error` …, `brand_outline`, `brand_outline_variant`, `brand_scrim` |
-| Wallet roles | `brand_incoming`, `brand_outgoing` (history amounts), `brand_success`, `brand_warning`, `brand_warning_container`, `brand_on_warning_container` (notices), `brand_amount` (the balance), `brand_note_1` … `brand_note_3` with `brand_on_note_1` … `brand_on_note_3` (a mint's bills in the notes view: 1 the home mint, 2 or 3 any other mint, chosen by its host so it keeps its colour; default primary, tertiary, secondary) |
+| Wallet roles | `brand_incoming`, `brand_outgoing` (history amounts), `brand_success`, `brand_warning`, `brand_warning_container`, `brand_on_warning_container` (notices), `brand_amount` (the balance), `brand_home_mint_note_color` with `brand_home_mint_note_text_color` (the home mint's bills in the notes view; default primary, on_primary), `brand_other_mints_note_color` with `brand_other_mints_note_text_color` (every other mint's bills; default secondary, on_secondary; mints are told apart by name, not colour) |
 | Fonts | `font/brand_font_display`, `_headline`, `_title`, `_body`, `_label`: a font file or a font-family XML (several weights). Headline falls back to display; title and label to body; any unset group to the system font |
 | Text styles | `brand_text_<style>_size`, `_line_height` (sp) and `brand_text_<style>_weight` (integer), for Material's 15 styles (`display_large` … `label_small`); 0 keeps Material's |
 | Shapes | `brand_corner_extra_small`, `_small`, `_medium`, `_large`, `_extra_large`; -1dp keeps Material's |
@@ -466,7 +466,7 @@ object MyModule {
 
 `BrandDesign` has a default for every member, so a brand overrides only what it changes and new members in later
 releases don't break it. The parameter objects of components (`ButtonParams`, …) and the colour roles mostly gain
-options with defaults; one a brand must decide for itself has none (`NoteFaceParams.certified`, `WalletColors.notes`),
+options with defaults; one a brand must decide for itself has none (`NoteFaceParams.certified`, `WalletColors.homeMintNote` and `otherMintsNote`),
 and the CHANGELOG says so for each.
 
 - **Theme:** `Theme(tokens, content)` gets the tokens from the resources (`tokens.copy(typography = …)`) and ends
@@ -491,7 +491,7 @@ and the CHANGELOG says so for each.
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
   `Spent`, `TakenBack`, `Unknown`; give a `when` an `else`), its words and mark, the age, the mint (null with
   `mints.visible=false`), whether it is trusted, `selected` while the user selects (null otherwise) and `colors`, its
-  mint's bill colours (`WalletColors.notes`; a status out of the balance, `!status.inBalance`, is drawn greyed out by
+  mint's bill colours (`WalletColors.homeMintNote` or `otherMintsNote`; a status out of the balance, `!status.inBalance`, is drawn greyed out by
   default), and `certified` when its mint's certificate for its amount verified (a certificate that
   doesn't verify is never kept; the default draws a certified bill like a banknote, with a foil stripe, engraved lines and a medal, and the
   words for an uncertified one stay the app's). The notes view shows each mint as a pile of its bills, swiped through: `NotePile(params, modifier)` draws

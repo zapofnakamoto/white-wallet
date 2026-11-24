@@ -49,7 +49,8 @@
 
     <!-- Wallet roles: incoming/success → primary, outgoing/amount → on_surface, warning → error,
          warning_container/on_warning_container → error_container/on_error_container,
-         note_1/2/3 (a mint's bills: 1 the home mint, 2 and 3 the others in turn) → primary, tertiary, secondary. -->
+         home_mint_note_color/home_mint_note_text_color (the home mint's bills) → primary/on_primary,
+         other_mints_note_color/other_mints_note_text_color (every other mint's bills) → secondary/on_secondary. -->
     <color name="brand_incoming">@color/brand_unset</color>
     <color name="brand_outgoing">@color/brand_unset</color>
     <color name="brand_success">@color/brand_unset</color>
@@ -57,12 +58,10 @@
     <color name="brand_warning_container">@color/brand_unset</color>
     <color name="brand_on_warning_container">@color/brand_unset</color>
     <color name="brand_amount">@color/brand_unset</color>
-    <color name="brand_note_1">@color/brand_unset</color>
-    <color name="brand_on_note_1">@color/brand_unset</color>
-    <color name="brand_note_2">@color/brand_unset</color>
-    <color name="brand_on_note_2">@color/brand_unset</color>
-    <color name="brand_note_3">@color/brand_unset</color>
-    <color name="brand_on_note_3">@color/brand_unset</color>
+    <color name="brand_home_mint_note_color">@color/brand_unset</color>
+    <color name="brand_home_mint_note_text_color">@color/brand_unset</color>
+    <color name="brand_other_mints_note_color">@color/brand_unset</color>
+    <color name="brand_other_mints_note_text_color">@color/brand_unset</color>
 
     <!-- Fonts per group, as res/font/<name>.xml (a font family) or .ttf/.otf: unset falls back to display for
          headline, to body for title and label, and to the system font. -->

@@ -462,7 +462,10 @@ class NoteFaceParams(
     val place: NoteFacePlace = NoteFacePlace.Wallet,
     /** [qrCode] holds the cover over the code (`QrCodeCover`) until the user taps it; nothing to scan yet. False without a [qrCode]. */
     val qrCovered: Boolean = false,
-    /** The colours of its mint's bills ([WalletColors.notes]); a note out of the balance is drawn greyed out ([NoteStatus.inBalance]). */
+    /**
+     * The colours of its mint's bills ([WalletColors.homeMintNote] or [WalletColors.otherMintsNote]); a note out of the balance is drawn
+     * greyed out ([NoteStatus.inBalance]).
+     */
     val colors: NoteColors? = null,
     /**
      * Its mint's certificate for its amount verified (a certificate that doesn't verify is never kept). The default draws a certified bill
@@ -1209,7 +1212,7 @@ private fun BillAmount(text: String, style: TextStyle, colors: NoteColors, modif
 /** A bill's colours: its mint's, greyed out when the note is out of the balance. */
 @Composable
 private fun NoteFaceParams.billColors(): NoteColors =
-    if (!status.inBalance || place == NoteFacePlace.Shared) greyedBill() else colors ?: MaterialTheme.walletColors.note(0)
+    if (!status.inBalance || place == NoteFacePlace.Shared) greyedBill() else colors ?: MaterialTheme.walletColors.homeMintNote
 
 @Composable private fun greyedBill() = NoteColors(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
 
