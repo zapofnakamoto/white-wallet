@@ -507,10 +507,12 @@ and the CHANGELOG says so for each.
   seal, `sealShape` (`SealShape`) around `sealMotif` (`SealMotif`) with `petals` and `depth`. New values may come: give
   a `when` an `else`. It reaches `NoteFace`, `NotePile` and `NoteGroupHeader` as `params.pattern`, also with
   `mints.visible=false`. The default bills draw all of it; a brand may use only some traits, or none, but if it draws
-  a seal, keep its outline and motif, which tell mints apart most. `MintMark(params, modifier)` draws the mint's mark
-  beside its name in lists and pickers of mints (never inside a sentence), and on the pile and a mint's page: by default the seal on a disc
-  in the mint's bill colour (`params.colors`), ringed by its border, at `params.size`; decorative, the name beside it
-  is what is read. Two mints can share a design, and a host can be picked to match another's: the name identifies the
+  a seal, keep its outline and motif, which tell mints apart most. To draw the seal as the default bills do, over a
+  brand's own notes, call `mintSeal(pattern, center, radius, width)` in a `drawWithCache`; it gives back what draws it
+  in a colour. `MintMark(params, modifier)` draws the mint's mark beside its name in lists and pickers of mints (never
+  inside a sentence), and on the pile and a mint's page: by default the seal on a disc in the mint's bill colour
+  (`params.colors`), ringed by its border, at `params.size`; decorative, the name beside it is what is read. Two mints
+  can share a design, and a host can be picked to match another's: the name identifies the
   mint (the app shows its registered part bolder), the design only helps recognise it. Never present it as a check. The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
   confirmations and the bearer warning, and on a large face the status, age and mint in words below it. Draw the
   texts you are given with `Text`, so screen readers read them. The defaults draw a bill in the mint's colour beside the row

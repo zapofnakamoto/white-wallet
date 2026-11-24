@@ -1524,6 +1524,26 @@ private fun CacheDrawScope.borderLine(border: BillBorder, rect: Rect, radius: Fl
     }
 }
 
+/**
+ * For a brand drawing its own notes: the mint's seal, its outline and motif, centred on [center] with its outline's farthest point [radius]
+ * away (the line reaches half [width] further), as the default bills draw it, in lines [width] wide; all in px. Build it in a
+ * `drawWithCache`; what it gives back draws it with lines in `ink` over a `fill` (null: none).
+ */
+fun CacheDrawScope.mintSeal(
+    pattern: MintPattern,
+    center: Offset,
+    radius: Float,
+    width: Float,
+): DrawScope.(ink: Color, fill: Color?) -> Unit {
+    val seal = Seal(pattern, center, radius / reach(pattern.sealShape), pattern.depth)
+    val stroke = Stroke(width)
+    return { ink, fill ->
+        fill?.let { drawPath(seal.outline, it) }
+        drawPath(seal.outline, ink, style = stroke)
+        seal.motif.forEach { drawPath(it, ink.copy(alpha = ink.alpha * 0.9f), style = stroke) }
+    }
+}
+
 /** A zigzag around [rect]: points every [step], [amplitude] in and out, each side on its own so the corners stay sharp. */
 private fun zigzag(rect: Rect, step: Float, amplitude: Float) =
     Path().apply {

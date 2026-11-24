@@ -53,7 +53,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   says "Amount not certified" in words. For brands: `MintPattern` (`of(host)`, its traits and their enums: give a
   `when` an `else`), the component `MintMark` with `MintMarkParams`, `NoteFaceParams.pattern`,
   `NotePileParams.pattern`, `NoteGroupParams.pattern` and `colors` (the mark replaces `trustedIcon`, gone from both),
-  `NoteFaceParams.certified`, `NotePileParams.billsCertified`.
+  `NoteFaceParams.certified`, `NotePileParams.billsCertified`, and `mintSeal` to draw a mint's seal over a
+  brand's own notes.
 - Every money moment ends on the same pair of screens: the success screen when it worked, else the result screen.
   Claiming a handed-out note yourself on its page (its QR code's) now ends on the success screen ("Claimed", "You can
   spend it again."), as from its link; too late, no answer, waiting for its mint and refused on the result screen, a
