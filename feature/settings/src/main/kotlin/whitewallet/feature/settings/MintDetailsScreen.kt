@@ -39,30 +39,38 @@ import java.text.NumberFormat
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.AccountActions
+import whitewallet.core.designsystem.AccountSwitcher
 import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.KeyChangedCard
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.designsystem.WalletAccountButton
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletSnackbarHost
+import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.screenLoaded
 import whitewallet.core.designsystem.showsWorking
+import whitewallet.core.model.AccountChoice
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintUse
 import whitewallet.core.wallet.RemoveMintResult
+import whitewallet.core.wallet.TrustDefault
 import whitewallet.core.wallet.Wallet
 
 data class MintDetailsState(
@@ -72,9 +80,7 @@ data class MintDetailsState(
     val canChangeHome: Boolean = false,
     /** The account collects at its home mint: money only moves home, so the home's page offers no move. */
     val collects: Boolean = false,
-    /** Opened from Settings → Mints: only the mint itself (whose home it is, removing it), nothing of an account. */
-    val device: Boolean = false,
-    /** The mint as the device knows it ([device] mode): whose home it is, whether it can be removed. */
+    /** The mint as the wallet knows it: whether it is trusted (and by default), whether it can be removed. */
     val mint: MintInfo? = null,
     /** Why the last removal was refused. */
     val removeRefused: MintUse? = null,
@@ -91,6 +97,8 @@ data class MintDetailsState(
     val offline: Boolean = false,
     /** The account can receive here: the brand lets the mint hold money, and its signing key is the one pinned. */
     val canReceive: Boolean = false,
+    /** The account mark in the top bar, read with [host] and again with [details]: never one account's mark over another's money. */
+    val accounts: AccountChoice? = null,
     /** The user just accepted the mint's new signing key: a short message says so, once. */
     val keyAccepted: Boolean = false,
     /** Accepting the new key didn't go through: the mint didn't answer, or shows yet another key. Said once, like [keyAccepted]. */
@@ -114,13 +122,15 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
     /** The mint to show: the route's `host`, else the active account's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
     // The host comes with whether it is home (a moment, from the phone), so the title is drawn once.
-    private val _state = MutableStateFlow(MintDetailsState(device = savedState.get<Boolean>("device") ?: false))
+    private val _state = MutableStateFlow(MintDetailsState())
     val state: StateFlow<MintDetailsState> = _state
 
     init {
         refresh()
         // After a change of the home mint (see onChangeHome), back here: this page may be the old or the new home.
         viewModelScope.launch { wallet.homeHost.drop(1).collect { refresh() } }
+        // Another account in use (its switcher is in the top bar): its money here, and its home.
+        viewModelScope.launch { wallet.activeAccount.map { it?.account?.id }.distinctUntilChanged().drop(1).collect { refresh() } }
         viewModelScope.launch { wallet.collectAtHome.collect { c -> _state.update { it.copy(collects = c) } } }
         viewModelScope.launch {
             wallet.followOffline { offline, back ->
@@ -148,8 +158,10 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
         _state.update { it.copy(loading = true) }
         viewModelScope.launch {
             val home = wallet.homeHost.first()
-            val host = requestedHost ?: home ?: return@launch _state.update { it.copy(loading = false) }
-            _state.update { it.copy(host = host, home = host == home) }
+            val accounts = wallet.accountChoice.first()
+            val host = requestedHost ?: home ?: return@launch _state.update { it.copy(loading = false, accounts = accounts) }
+            // The mark comes with the title the first time; after a switch, only with the new account's money below.
+            _state.update { it.copy(host = host, home = host == home, accounts = it.accounts ?: accounts) }
             val details = wallet.mintDetails(host)
             val mint = wallet.mints.first().firstOrNull { it.host == details.host }
             // Read here too, so the page shows with them: the collectors above may not have had their first value yet.
@@ -169,6 +181,7 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
                     canReceive = canReceive,
                     collects = collects,
                     moneyElsewhere = moneyElsewhere,
+                    accounts = accounts,
                 )
             }
         }
@@ -185,6 +198,25 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
                 is RemoveMintResult.InUse -> _state.update { it.copy(removing = false, removeRefused = r.reason) }
             }
         }
+    }
+
+    /**
+     * Trusts or stops trusting the mint, with the signing key the wallet pinned. Not without a key, nor while the mint presents another
+     * one: trust is in the key, and a key that doesn't match is decided on first (accept it, or not).
+     */
+    fun setTrusted(trusted: Boolean) {
+        val s = _state.value
+        val mint = s.mint ?: return
+        if (mint.pubkey == null || s.details?.reachability == MintDetails.Reachability.KeyChanged) return
+        viewModelScope.launch {
+            if (mint.host in wallet.mintsWithChangedKey.first()) return@launch
+            wallet.setMintTrusted(mint.host, trusted)
+        }
+    }
+
+    /** Makes [accountId] the account in use; the page then shows its money here. */
+    fun switchAccount(accountId: String) {
+        viewModelScope.launch { wallet.switchAccount(accountId) }
     }
 
     /** Keeps using the mint with the [key] it now presents and says so; if it presents yet another, the refresh shows that instead. */
@@ -214,6 +246,9 @@ fun MintDetailsRoute(
     onSend: (host: String) -> Unit = {},
     /** Opens Receive, on [host]. */
     onReceive: (host: String) -> Unit = {},
+    /** The account switcher's way to the wallets and accounts, and to moving funds. */
+    onManageAccounts: () -> Unit = {},
+    onMoveFunds: () -> Unit = {},
     viewModel: MintDetailsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -231,12 +266,15 @@ fun MintDetailsRoute(
         onRemove = viewModel::remove,
         onSend = onSend,
         onReceive = onReceive,
+        onTrusted = viewModel::setTrusted,
+        accountActions = AccountActions(viewModel::switchAccount, onManageAccounts, onMoveFunds),
     )
 }
 
 /**
- * One mint (brief §6): whether it answers, its description, fees and limits, the signing key pinned on first contact (and, if it changed,
- * both keys and a way to use the new one), the account's money there, its website, and the account's watch-only key.
+ * One mint, the same page wherever it is opened (brief §6): whether it answers, its description, what the account in use has and can do
+ * there, whether the user trusts it, fees and limits, the signing key pinned on first contact (and, if it changed, both keys and a way to
+ * use the new one), its website, and removing it. The account mark in the top bar switches account, as on the Mints page.
  */
 @Composable
 fun MintDetailsScreen(
@@ -251,9 +289,12 @@ fun MintDetailsScreen(
     onRemove: () -> Unit = {},
     onSend: (host: String) -> Unit = {},
     onReceive: (host: String) -> Unit = {},
+    onTrusted: (Boolean) -> Unit = {},
+    accountActions: AccountActions = AccountActions({}, {}, {}),
 ) {
     val details = state.details
     val snackbars = remember { SnackbarHostState() }
+    var showAccounts by remember { mutableStateOf(false) }
     // The user stays on the page, which shows the mint as it is now: a short message, the same words as where a mint is added.
     if (state.keyAccepted || state.keyNotAccepted) {
         val host = details?.host ?: state.host.orEmpty()
@@ -281,7 +322,7 @@ fun MintDetailsScreen(
                         }
                     },
                     onBack = onBack,
-                    actions = {},
+                    actions = { state.accounts?.let { WalletAccountButton(it) { showAccounts = true } } },
                 )
         },
         snackbarHost = { WalletSnackbarHost(snackbars) },
@@ -310,11 +351,8 @@ fun MintDetailsScreen(
                         }
                 },
             )
-            if (state.device) {
-                if (state.mint?.isHome == true) WalletListItem(headlineContent = { Text(stringResource(R.string.settings_home_mint)) })
-            } else {
-                AccountSection(details, state, onChangeHome, onMoveMoney, onMoveAllHere, onSend, onReceive)
-            }
+            AccountSection(details, state, onChangeHome, onMoveMoney, onMoveAllHere, onSend, onReceive)
+            state.mint?.let { TrustSection(it, details.reachability == MintDetails.Reachability.KeyChanged, onTrusted) }
             details.mint?.let { mint ->
                 val base = mint.feeBaseMsat
                 val ppm = mint.feePpm
@@ -361,9 +399,72 @@ fun MintDetailsScreen(
                     }
                 },
             )
-            if (state.device) state.mint?.let { RemoveSection(it, state.removeRefused, state.removing, onRemove) }
+            state.mint?.let { RemoveSection(it, state.removeRefused, state.removing, onRemove) }
         }
     }
+    val accounts = state.accounts
+    if (showAccounts && accounts != null) {
+        AccountSwitcher(
+            accounts = accounts.accounts,
+            activeId = accounts.activeId,
+            walletNames = accounts.walletNames,
+            onSelect = {
+                showAccounts = false
+                accountActions.onSwitch(it)
+            },
+            onManage = {
+                showAccounts = false
+                accountActions.onManage()
+            },
+            onMove = {
+                showAccounts = false
+                accountActions.onMove()
+            },
+            onDismiss = { showAccounts = false },
+        )
+    }
+}
+
+/**
+ * Whether the user trusts this mint (notes from it carry a check), with what that means and why it is trusted by default. Trust is in the
+ * pinned signing key: not without one, nor while the mint presents another ([keyChanged]): then it isn't trusted, as in the lists, until
+ * the new key is accepted, and no default is claimed.
+ */
+@Composable
+private fun TrustSection(mint: MintInfo, keyChanged: Boolean, onTrusted: (Boolean) -> Unit) {
+    val hint = MaterialTheme.typography.bodySmall
+    val trusted = mint.trusted && !keyChanged
+    WalletListItem(
+        headlineContent = { Text(stringResource(DesignR.string.notes_trusted)) },
+        supportingContent = {
+            Column {
+                Text(stringResource(R.string.mint_trusted_hint))
+                mint.trustedByDefault
+                    ?.takeUnless { keyChanged }
+                    ?.let { default ->
+                        Text(
+                            stringResource(
+                                when {
+                                    !mint.trusted -> R.string.mints_untrusted_default
+                                    default == TrustDefault.Home -> R.string.mints_default_home
+                                    else -> R.string.mints_default_brand
+                                }
+                            ),
+                            style = hint,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+            }
+        },
+        trailingContent = {
+            WalletSwitch(
+                checked = trusted,
+                onCheckedChange = onTrusted,
+                enabled = mint.pubkey != null && !keyChanged,
+                modifier = Modifier,
+            )
+        },
+    )
 }
 
 /** What the active account has and can do on this mint: change or make home, its money there, sending and receiving it, moving it. */

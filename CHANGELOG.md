@@ -151,6 +151,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   colour, the home card too, which stays on top with its button. The account mark in the top bar switches account, as
   on Home. Settings and the account's page both lead there, the row saying "Home mint: mint.example" (or "No home
   mint"); the wallet's page no longer has a Mints row, and Home's "N more mints" opens it too.
+- A mint has one page, wherever it is opened: what the account has and can do there, a **Trusted** switch with what
+  trust means (notes from it carry a check) and why it is trusted by default, and Remove. Trust is changed there now,
+  not in a list; the switch is off without a signing key and can't change while the mint shows another one. Its top bar
+  has the account mark, as on the Mints page.
 - A mint whose signing key doesn't match is marked the same way everywhere it is listed: Home, the mint pickers of Send
   and Receive, and the Mints page show a warning sign with "Signing key doesn't match".
 - For brands: `Page.Mints` is the one Mints page (`Empty` without any mint). New brand term `settings_mints_no_home`
@@ -295,10 +299,13 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 - For developers and brands: the strings `receive_copy`, `receive_share` (now `copy`, `share` in the design system),
   `claimed_copy` and `scan_done`.
+- For brands: the brand term `mints_intro` is `mint_trusted_hint`, about one mint ("Notes from a trusted mint are marked with
+  a check. …"); the strings `mints_key` and `mints_no_key`; `mints_default_home` says "an account's home".
 - For brands: `Page.AccountMints` and the strings `settings_account_mints`, `account_mints_intro` and
   `settings_mints_summary` (Account → Your mints is the Mints page now); `home_switch_account`, `home_account_in_wallet`
   and `home_mint_not_answering` are `account_switch`, `account_in_wallet` and `mint_not_answering_short`.
-- For developers: `AccountMintsScreen`, `MintsState`, `MintsViewModel`, `SettingsTarget.AccountMints`.
+- For developers: `AccountMintsScreen`, `MintsState`, `MintsViewModel`, `SettingsTarget.AccountMints`, `MintDetailsState.device`
+  and the mint route's `device` argument.
 - For developers: `Onboarding.MINT_WITHOUT_SIGNING_KEY`, `Wallet.ALREADY_HOME` and `OnboardingError.MintWithoutSigningKey`
   (a `MintRefusal` says it), and `Onboarding.USERNAME_RULE` (an `AddressProblem` says it).
 

@@ -24,6 +24,7 @@ import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.KeyStatus
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.MintDetails
+import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintMoveResult
 import whitewallet.core.wallet.MoneyMoved
 import whitewallet.core.wallet.MovePreview
@@ -33,6 +34,7 @@ import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.RotateResult
 import whitewallet.core.wallet.SingleNoteStrategy
+import whitewallet.core.wallet.TrustDefault
 import whitewallet.lnurlcash.client.LogEntry
 
 // The settings pages in their everyday state, and their success screens (docs/DEVELOPMENT.md, "Screenshots"). Made-up data only; every
@@ -119,6 +121,8 @@ internal val mintDetailsState =
         canChangeHome = true,
         host = HOME,
         canReceive = true,
+        mint = MintInfo(HOME, "02a1b2c3", trusted = true, TrustDefault.Home, isHome = true),
+        accounts = mintsState.accounts,
     )
 
 internal val addressesState =

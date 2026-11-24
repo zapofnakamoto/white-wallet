@@ -13,7 +13,7 @@
     <string name="settings_strategy_single_hint">Alle Scheine zu einem pro Mint zusammenlegen. Kostenlos.</string>
     <string name="mint_title">Mint</string>
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einer Mint deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
-    <string name="mints_intro">Vertraue einer Mint anhand ihres Signaturschlüssels: Scheine von vertrauten Mints sind mit einem Haken markiert. Signiert eine Mint einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut, bis du ihren neuen Schlüssel annimmst.</string>
+    <string name="mint_trusted_hint">Scheine von einer vertrauten Mint sind mit einem Haken markiert. Signiert sie einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut, bis du ihren neuen Schlüssel annimmst.</string>
     <string name="mints_empty">Diese Wallet hat noch keine Mint, also kann nichts empfangen werden.</string>
     <!-- Under Mints in Settings and on the account page: the account in use has no home mint -->
     <string name="settings_mints_no_home">Keine Haupt-Mint</string>
@@ -330,9 +330,7 @@
     <string name="notes_collect_too_small">Nicht verschoben: %1$s bei %2$s ist zu wenig zum Verschieben.</string>
     <string name="notes_collect_failed">Nicht verschoben: %1$s bei %2$s. Wird später erneut versucht.</string>
     <string name="settings_notes_with_collect">%1$s · verschiebt alles zu %2$s</string>
-    <string name="mints_key">Schlüssel %1$s</string>
-    <string name="mints_no_key">Noch kein Signaturschlüssel bekannt</string>
-    <string name="mints_default_home">Standardmäßig vertraut: das Zuhause deines Kontos</string>
+    <string name="mints_default_home">Standardmäßig vertraut: das Zuhause eines Kontos</string>
     <string name="mints_default_brand">Standardmäßig vertraut in dieser App</string>
     <string name="mints_untrusted_default">Standardmäßig vertraut, aber von dir ausgeschaltet</string>
     <string name="about_developer_unlocked">Die Entwickleroptionen sind jetzt in den Einstellungen.</string>
@@ -383,7 +381,7 @@
     </plurals>
     <string name="mints_remove_title">%1$s entfernen?</string>
     <string name="mints_remove_confirm">Entfernen</string>
-    <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto ihn nutzt: mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
+    <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto sie nutzt: mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
     <string name="settings_notices">Melden, was die Wallet selbst erledigt hat</string>
 
     <!-- Developer options: requests behave as on a bad connection. -->

@@ -28,7 +28,7 @@
     <string name="settings_strategy_single_hint">Combine all banknotes into one per provider. Free.</string>
     <string name="mint_title">Provider</string>
     <string name="about_body">A Lightning wallet that keeps your money as banknotes with a provider you choose. Your recovery phrase stays on this device.</string>
-    <string name="mints_intro">Trust a provider by its signing key: banknotes from trusted providers are marked with a check. If a provider ever signs with a different key, it is no longer trusted until you accept its new key.</string>
+    <string name="mint_trusted_hint">Banknotes from a trusted provider are marked with a check. If it ever signs with a different key, it is no longer trusted until you accept its new key.</string>
     <string name="mints_empty">This wallet has no provider yet, so nothing can be received.</string>
     <string name="settings_mints_no_home">No provider</string>
     <string name="settings_no_home">This account has no provider of its own. Choose one of your providers to receive there.</string>

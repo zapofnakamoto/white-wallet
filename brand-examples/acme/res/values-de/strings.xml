@@ -28,7 +28,7 @@
     <string name="settings_strategy_single_hint">Alle Geldscheine zu einem pro Anbieter zusammenlegen. Kostenlos.</string>
     <string name="mint_title">Anbieter</string>
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Geldscheine bei einem Anbieter deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
-    <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Geldscheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut, bis du seinen neuen Schlüssel annimmst.</string>
+    <string name="mint_trusted_hint">Geldscheine von einem vertrauten Anbieter sind mit einem Haken markiert. Signiert er einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut, bis du seinen neuen Schlüssel annimmst.</string>
     <string name="mints_empty">Diese Wallet hat noch keinen Anbieter, also kann nichts empfangen werden.</string>
     <string name="settings_mints_no_home">Kein Anbieter</string>
     <string name="settings_no_home">Dieses Konto hat keinen eigenen Anbieter. Wähle einen deiner Anbieter, um dort zu empfangen.</string>

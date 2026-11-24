@@ -8,6 +8,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -26,7 +28,11 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.core.designsystem.AccountActions
 import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.model.Account
+import whitewallet.core.model.AccountChoice
+import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Mint
 import whitewallet.core.wallet.AddressShare
 import whitewallet.core.wallet.AppDefaults
@@ -34,6 +40,7 @@ import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintUse
+import whitewallet.core.wallet.TrustDefault
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsScreensTest {
@@ -366,7 +373,7 @@ class SettingsScreensTest {
     }
 
     @Test
-    fun fromTheDevicesListAMintPageShowsNoAccountButWhoseHomeItIsAndRemoving() {
+    fun removeIsOnEveryMintsPageAndAsksFirst() {
         var removed = false
         val removable = MintInfo("other.example", mint.mintPubkey, trusted = false, trustedByDefault = null, removable = true)
         var state by
@@ -375,13 +382,13 @@ class SettingsScreensTest {
                     details(MintDetails.Reachability.Reachable).copy(host = "other.example", isHome = false),
                     loading = false,
                     canChangeHome = true,
-                    device = true,
                     mint = removable,
                 )
             )
         compose.setContent { MintDetailsScreen(state, {}, {}, onRemove = { removed = true }) }
-        compose.onNodeWithText("Your money").assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.mint_make_home)).assertDoesNotExist()
+        // The one page for a mint: what the account has there, its trust, and removing it.
+        compose.onNodeWithText(text(R.string.mint_your_money)).assertExists()
+        compose.onNodeWithText(text(R.string.mint_make_home)).assertExists()
         compose.onNodeWithText(text(R.string.mints_remove_mint)).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.mints_remove_confirm)).performClick()
         assertEquals(true, removed)
@@ -394,7 +401,6 @@ class SettingsScreensTest {
         // Something ties an account to it by now: the question goes, and the page says it can't be removed.
         state = state.copy(removing = false, mint = removable.copy(removable = false, isHome = true))
         compose.onNodeWithText(text(R.string.mints_remove_title, "other.example")).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.settings_home_mint)).assertExists()
         compose.onNodeWithText("Can't be removed", substring = true).performScrollTo().assertExists()
     }
 
@@ -406,7 +412,6 @@ class SettingsScreensTest {
                 MintDetailsState(
                     details(MintDetails.Reachability.Reachable).copy(host = "other.example", isHome = false),
                     loading = false,
-                    device = true,
                     mint = removable.copy(removable = false),
                     removeRefused = MintUse.Address,
                 )
@@ -419,6 +424,101 @@ class SettingsScreensTest {
         state = state.copy(mint = removable, removeRefused = MintUse.OpenOperation)
         compose.onAllNodesWithText(text(R.string.mints_remove_in_use)).assertCountEquals(1)
         compose.onNodeWithText(text(R.string.mints_remove_mint)).assertExists()
+    }
+
+    private fun info(trusted: Boolean = true, default: TrustDefault? = null, pubkey: String? = mint.mintPubkey) =
+        MintInfo("mint.example", pubkey, trusted = trusted, trustedByDefault = default, isHome = true)
+
+    private fun trustPage(info: MintInfo?, reachability: MintDetails.Reachability = MintDetails.Reachability.Reachable) =
+        MintDetailsState(details(reachability), loading = false, mint = info)
+
+    private fun trustSwitch() = compose.onNode(isToggleable()).performScrollTo()
+
+    @Test
+    fun theTrustSwitchIsOnForATrustedMintAndTurnsItOff() {
+        val asked = mutableListOf<Boolean>()
+        compose.setContent { MintDetailsScreen(trustPage(info()), {}, {}, onTrusted = { asked += it }) }
+        compose.onNodeWithText(text(DesignR.string.notes_trusted)).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.mint_trusted_hint)).performScrollTo().assertExists()
+        trustSwitch().assertIsOn().assertIsEnabled().performClick()
+        assertEquals(listOf(false), asked)
+    }
+
+    @Test
+    fun theTrustSwitchIsOffAndDisabledWithoutAKey() {
+        compose.setContent { MintDetailsScreen(trustPage(info(trusted = false, pubkey = null)), {}, {}) }
+        trustSwitch().assertIsOff().assertIsNotEnabled()
+    }
+
+    @Test
+    fun theTrustSwitchIsDisabledWhileTheKeyDoesntMatch() {
+        compose.setContent { MintDetailsScreen(trustPage(info(trusted = false), MintDetails.Reachability.KeyChanged), {}, {}) }
+        trustSwitch().assertIsNotEnabled()
+    }
+
+    @Test
+    fun whileTheKeyDoesntMatchATrustedMintIsShownNotTrustedAndNoDefaultIsClaimed() {
+        // Trust is in the pinned key; the mint signs with another one now, so it isn't trusted until the new key is accepted.
+        compose.setContent { MintDetailsScreen(trustPage(info(default = TrustDefault.Home), MintDetails.Reachability.KeyChanged), {}, {}) }
+        trustSwitch().assertIsOff().assertIsNotEnabled()
+        compose.onNodeWithText(text(R.string.mints_default_home)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mints_untrusted_default)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aHomesDefaultTrustSaysAnAccountsHome() {
+        compose.setContent { MintDetailsScreen(trustPage(info(default = TrustDefault.Home)), {}, {}) }
+        compose.onNodeWithText(text(R.string.mints_default_home)).performScrollTo().assertExists()
+    }
+
+    @Test
+    fun aBrandsDefaultSaysInThisApp() {
+        compose.setContent { MintDetailsScreen(trustPage(info(default = TrustDefault.Brand)), {}, {}) }
+        compose.onNodeWithText(text(R.string.mints_default_brand)).performScrollTo().assertExists()
+    }
+
+    @Test
+    fun anUntrustedDefaultSaysSo() {
+        compose.setContent { MintDetailsScreen(trustPage(info(trusted = false, default = TrustDefault.Brand)), {}, {}) }
+        compose.onNodeWithText(text(R.string.mints_untrusted_default)).performScrollTo().assertExists()
+    }
+
+    @Test
+    fun theTrustRowIsThereInTheFirstDrawnFrame() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent { MintDetailsScreen(trustPage(info()), {}, {}) }
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNode(isToggleable()).assertExists()
+    }
+
+    @Test
+    fun noMakeThisMyHomeWithoutLeaveToChangeIt() {
+        val other = details(MintDetails.Reachability.Reachable).copy(host = "other.example", isHome = false)
+        compose.setContent { MintDetailsScreen(MintDetailsState(other, loading = false, canChangeHome = false, mint = info()), {}, {}) }
+        compose.onNodeWithText(text(R.string.mint_make_home)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mints_remove_mint)).performScrollTo().assertExists()
+    }
+
+    @Test
+    fun theAccountMarkShowsByTheRuleAndSwitches() {
+        val choice =
+            AccountChoice(
+                listOf(
+                    AccountSummary(Account("a", "Savings", 0, walletId = "w"), 0),
+                    AccountSummary(Account("b", "Daily", 0, walletId = "w"), 0),
+                ),
+                "a",
+                emptyMap(),
+                shown = true,
+            )
+        var switched: String? = null
+        var state by mutableStateOf(trustPage(info()).copy(accounts = choice))
+        compose.setContent { MintDetailsScreen(state, {}, {}, accountActions = AccountActions({ switched = it }, {}, {})) }
+        compose.onNodeWithContentDescription("Savings").performClick()
+        compose.onNodeWithText("Daily").performClick()
+        assertEquals("b", switched)
+        state = state.copy(accounts = choice.copy(shown = false))
+        compose.onNodeWithContentDescription("Savings").assertDoesNotExist()
     }
 
     @Test

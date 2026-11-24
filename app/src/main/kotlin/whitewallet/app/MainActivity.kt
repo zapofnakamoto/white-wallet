@@ -278,11 +278,11 @@ internal object Routes {
     const val NOTE_LIST = "notes"
     const val MINTS = "settings/mints"
     const val DISPLAY = "settings/display"
-    const val MINT = "settings/mint?host={host}&device={device}"
+    const val MINT = "settings/mint?host={host}"
     const val SECURITY = "settings/security"
     const val ABOUT = "settings/about"
 
-    fun mint(host: String, device: Boolean = false) = "settings/mint?host=${Uri.encode(host)}&device=$device"
+    fun mint(host: String) = "settings/mint?host=${Uri.encode(host)}"
 
     const val ADD_ADDRESS = "addresses/add"
     const val ADD_ADDRESS_ELSEWHERE = "addresses/add-elsewhere"
@@ -627,11 +627,7 @@ private fun WalletApp(
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
-                    },
-                    navArgument("device") {
-                        type = NavType.BoolType
-                        defaultValue = false
-                    },
+                    }
                 ),
         ) {
             MintDetailsRoute(
@@ -641,6 +637,8 @@ private fun WalletApp(
                 onReceive = { host -> nav.navigate(Routes.receiveOn(host)) },
                 onMoveMoney = { host -> nav.navigate(Routes.moveMoney(host)) },
                 onMoveAllHere = { nav.navigate(Routes.MOVE_HOME) },
+                onManageAccounts = { nav.navigate(Routes.WALLETS) },
+                onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
             )
         }
         composable(
