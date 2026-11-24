@@ -31,7 +31,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   past its date does on both); the notes view counts as empty only when it shows its empty state, so the brand's mark
   above it stays while only archived notes or spent links are left; a note's sheet closed because its note left the
   view doesn't open by itself when the note comes back; "0 notes" no longer shows while every note is set aside; a
-  mint that holds only a handed-out note no longer takes the home mint's colour; the claim screen waits for the
+  mint's bills take their colour from its host, so a mint keeps its colour when you add or remove others (the home
+  mint's stay in the brand's primary; two other mints may share one); the claim screen waits for the
   wallet's mints before drawing, so a bill never changes colour, and keeps them for the next link; the page of what
   needs you says which mint isn't answering without naming it twice, and whose when mints aren't named; its rows and
   the handed-out rows read out "Show details" and are at least 48dp high. For brands: the `NotePile` KDoc says the

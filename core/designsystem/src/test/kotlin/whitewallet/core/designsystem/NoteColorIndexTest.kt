@@ -1,27 +1,21 @@
 package whitewallet.core.designsystem
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class NoteColorIndexTest {
-    private val hosts = listOf("home.example", "b.example", "a.example")
-
     @Test
-    fun `the home mint takes the first colour, the others theirs in turn by name`() {
-        assertEquals(0, noteColorIndex("home.example", "home.example", hosts))
-        assertEquals(1, noteColorIndex("a.example", "home.example", hosts))
-        assertEquals(2, noteColorIndex("b.example", "home.example", hosts))
+    fun `the home mint takes the first colour`() {
+        assertEquals(0, noteColorIndex("home.example", "home.example"))
     }
 
     @Test
-    fun `a note from a mint not shown yet takes the colour it gets there once added`() {
-        assertEquals(2, noteColorIndex("aa.example", "home.example", hosts))
-        assertEquals(3, noteColorIndex("c.example", "home.example", hosts))
-    }
-
-    @Test
-    fun `a mint not shown is never drawn in the home mint's colour`() {
-        assertEquals(1, noteColorIndex("a.example", "home.example", listOf("home.example")))
-        assertEquals(1, noteColorIndex("a.example", null, emptyList()))
+    fun `another mint's colour comes from its host alone, never the home mint's`() {
+        // Pinned: a mint keeps its colour across releases and phones.
+        assertEquals(1 + 0x78b12f74, noteColorIndex("a.example", "home.example"))
+        assertEquals(noteColorIndex("a.example", "home.example"), noteColorIndex("a.example", null))
+        assertEquals(noteColorIndex("a.example", null), noteColorIndex("A.Example", null))
+        for (host in listOf("a.example", "b.example", "mint.example:8111", "")) assertNotEquals(0, noteColorIndex(host, "home.example"))
     }
 }

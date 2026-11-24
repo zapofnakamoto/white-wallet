@@ -44,8 +44,8 @@ data class WalletColors(
     /** Large amounts, such as the balance. Default: onSurface. */
     val amount: Color,
     /**
-     * The colours of the bills a mint's notes are drawn as: the first for the home mint, the others in turn for the other mints. Default:
-     * primary, tertiary, secondary (each with its on- colour).
+     * The colours of the bills a mint's notes are drawn as: the first for the home mint, one of the others for each other mint, chosen by
+     * its host (two mints may share one). Default: primary, tertiary, secondary (each with its on- colour).
      */
     val notes: List<NoteColors>,
 ) {
@@ -53,7 +53,7 @@ data class WalletColors(
         require(notes.isNotEmpty()) { "WalletColors.notes needs at least one colour: the home mint's" }
     }
 
-    /** The bill colours of the mint at [index] among the user's mints, the home mint at 0 (see [notes]). */
+    /** The bill colours for [index]: 0 the home mint's, any other one of the others, spread evenly (see [notes]). */
     fun note(index: Int): NoteColors =
         when {
             index <= 0 || notes.size < 2 -> notes.first()

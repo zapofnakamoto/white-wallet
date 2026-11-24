@@ -330,9 +330,14 @@ internal object BrandTokens {
 }
 
 /**
- * Which bill colours ([whitewallet.brand.ui.WalletColors.note]) [host]'s notes are drawn in, as on the notes view: 0 for the [home] mint,
- * then the other mints in [hosts] in turn, by name. A mint not among [hosts] (a note received from it, or handed out on it while it holds
- * nothing else) takes the colour it would get there.
+ * Which bill colours ([whitewallet.brand.ui.WalletColors.note]) [host]'s notes are drawn in, wherever they are drawn: 0 for the [home]
+ * mint, else one taken from its host alone (FNV-1a of the lowercase host, port included), so a mint keeps its colour whatever other mints
+ * the wallet has, and on every phone. Two mints may share one.
  */
-fun noteColorIndex(host: String, home: String?, hosts: Collection<String>): Int =
-    if (host == home) 0 else (hosts + host).filter { it != home }.distinct().sorted().indexOf(host) + 1
+fun noteColorIndex(host: String, home: String?): Int {
+    if (host == home) return 0
+    var hash = 0x811c9dc5.toInt()
+    for (byte in host.lowercase().encodeToByteArray()) hash = (hash xor (byte.toInt() and 0xff)) * 0x01000193
+    // Never 0 (the home mint's): WalletColors.note spreads 1 and up over the other colours.
+    return 1 + (hash ushr 1)
+}

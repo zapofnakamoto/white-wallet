@@ -179,8 +179,8 @@ data class NotesState(
     val keepsAttentionOpen: Boolean
         get() = needsAttention || silentWhileOffline.isNotEmpty()
 
-    /** The bill colours of [host]'s notes: the home mint's first, the other mints' in turn ([noteColorIndex]). */
-    fun colorIndex(host: String): Int = noteColorIndex(host, mints.firstOrNull { it.isHome }?.host, mints.map { it.host })
+    /** The bill colours of [host]'s notes: the home mint's first, another mint's by its host ([noteColorIndex]). */
+    fun colorIndex(host: String): Int = noteColorIndex(host, mints.firstOrNull { it.isHome }?.host)
 
     val sharedMsat: Long
         get() = shared.sumOf { it.amountMsat }

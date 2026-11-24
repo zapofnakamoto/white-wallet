@@ -38,9 +38,7 @@ data class ClaimState(
     /** Developer: the local regtest mints the faucet makes a note on, and its last attempt. Empty outside developer mode. */
     val faucetMints: List<String> = emptyList(),
     val faucet: FaucetState = FaucetState(),
-    /**
-     * [faucetMints], [home] and [noteHosts] are known: until then nothing is drawn, so buttons don't come in late nor a bill change colour.
-     */
+    /** [faucetMints] and [home] are known: until then nothing is drawn, so buttons don't come in late nor a bill change colour. */
     val loaded: Boolean = true,
     /**
      * A link from outside without a note in it is being asked what it is (a withdraw or a pay link): only "Opening link" is drawn, then
@@ -51,8 +49,6 @@ data class ClaimState(
     val home: String? = null,
     /** The phone is offline: a note that can't be claimed is said to wait for the connection, not for its mint. */
     val offline: Boolean = false,
-    /** The mints the notes view shows notes on: a received note's bill takes the colour its mint has there ([noteColorIndex]). */
-    val noteHosts: Set<String> = emptySet(),
 ) {
     /** What was checked couldn't be asked: checked again once the phone is back. */
     val waitsForConnection: Boolean
@@ -78,14 +74,11 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
     val state: StateFlow<ClaimState> = _state
 
     init {
-        // Loaded once all three are known: a note's bill is drawn in its mint's colour from the start, never in another first.
+        // Loaded once both are known: a bill from the home mint is drawn in its colour from the start, never in another first.
         viewModelScope.launch {
-            combine(faucet.noteMints, wallet.homeHost, wallet.notes) { mints, home, notes ->
-                    Triple(mints, home, notes.filter { it.isWithItsMint }.map { it.host }.toSet())
-                }
-                .collect { (mints, home, hosts) ->
-                    _state.update { it.copy(faucetMints = mints, home = home, noteHosts = hosts, loaded = true) }
-                }
+            combine(faucet.noteMints, wallet.homeHost, ::Pair).collect { (mints, home) ->
+                _state.update { it.copy(faucetMints = mints, home = home, loaded = true) }
+            }
         }
         viewModelScope.launch {
             wallet.followOffline { offline, back ->
@@ -116,7 +109,6 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
             loaded = from.loaded,
             home = from.home,
             offline = from.offline,
-            noteHosts = from.noteHosts,
         )
 
     /** Developer: has the regtest faucet make a note on the local mint [mint], and checks it as if it was pasted. */

@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import okhttp3.Interceptor
+import whitewallet.core.designsystem.noteColorIndex
 import whitewallet.core.model.HandedOut
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -138,12 +139,12 @@ class NotesViewModelTest {
     }
 
     @Test
-    fun `the home mint's notes get the first bill colours, the others theirs in turn`() = runTest {
+    fun `the home mint's notes get the first bill colours, another mint's those of its host`() = runTest {
         val screen = screen()
         val state = screen.await { it.mints.size == 2 }
         assertEquals(listOf(home, other), state.mints.map { it.host })
         assertEquals(0, state.colorIndex(home))
-        assertEquals(1, state.colorIndex(other))
+        assertEquals(noteColorIndex(other, home), state.colorIndex(other))
     }
 
     @Test
