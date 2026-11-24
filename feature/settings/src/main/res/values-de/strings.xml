@@ -7,7 +7,6 @@
     <string name="mint_change_home">Haupt-Mint wechseln</string>
     <string name="mint_make_home">Zu meiner Haupt-Mint machen</string>
     <string name="money_home_changed_title">Haupt-Mint gewechselt</string>
-    <string name="settings_account_mints">Deine Mints</string>
     <string name="mints_remove_mint">Mint entfernen</string>
     <string name="addresses_home_mint">Haupt-Mint: %1$s</string>
     <string name="addresses_add_elsewhere">Adresse bei einer anderen Mint hinzufügen</string>
@@ -16,6 +15,8 @@
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Scheine bei einer Mint deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
     <string name="mints_intro">Vertraue einer Mint anhand ihres Signaturschlüssels: Scheine von vertrauten Mints sind mit einem Haken markiert. Signiert eine Mint einmal mit einem anderen Schlüssel, ist sie nicht mehr vertraut, bis du ihren neuen Schlüssel annimmst.</string>
     <string name="mints_empty">Diese Wallet hat noch keine Mint, also kann nichts empfangen werden.</string>
+    <!-- Under Mints in Settings and on the account page: the account in use has no home mint -->
+    <string name="settings_mints_no_home">Keine Haupt-Mint</string>
     <string name="settings_no_home">Dieses Konto hat keine Haupt-Mint. Wähle eine deiner Mints, um dort zu empfangen.</string>
     <string name="settings_no_home_action">Haupt-Mint wählen</string>
     <string name="settings_notes">Schein-Einstellungen</string>
@@ -334,10 +335,6 @@
     <string name="mints_default_home">Standardmäßig vertraut: das Zuhause deines Kontos</string>
     <string name="mints_default_brand">Standardmäßig vertraut in dieser App</string>
     <string name="mints_untrusted_default">Standardmäßig vertraut, aber von dir ausgeschaltet</string>
-    <plurals name="settings_mints_summary">
-        <item quantity="one">%1$d bekannt, %2$d vertraut</item>
-        <item quantity="other">%1$d bekannt, %2$d vertraut</item>
-    </plurals>
     <string name="about_developer_unlocked">Die Entwickleroptionen sind jetzt in den Einstellungen.</string>
     <string name="settings_scan_done">Suche abgeschlossen</string>
     <string name="settings_scan_unfinished">Nicht abgeschlossen</string>
@@ -380,7 +377,6 @@
     <string name="money_moved_title">Verschoben</string>
     <string name="mint_move_all_here">Alles Geld hierher verschieben</string>
     <string name="money_move_all_body">Das ganze Geld dieses Kontos, das anderswo liegt, kommt hierher, von jedem Ort in einer Zahlung.</string>
-    <string name="account_mints_intro">Wo das Geld und die Adressen dieses Kontos liegen. Öffne einen, um Geld zu verschieben oder zu ändern, wo neue Zahlungen ankommen.</string>
     <plurals name="account_mints_addresses">
         <item quantity="one">%1$d Adresse</item>
         <item quantity="other">%1$d Adressen</item>

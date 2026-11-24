@@ -47,9 +47,6 @@ data class SettingsState(
     val collectAtHome: Boolean = false,
     /** Pages this brand leaves out (see [hiddenPages]): no row. */
     val hidden: Set<SettingsTarget> = setOf(SettingsTarget.NoteList),
-    /** Mints the wallet knows, and how many of them are trusted. */
-    val mintCount: Int = 0,
-    val trustedCount: Int = 0,
     /** Mints whose keys weren't looked through to the end: the wallet may hold more there than it shows. */
     val unscannedCount: Int = 0,
     /** The wallet was read: until then the pages that show this draw nothing (rather than "no address", no mints, and so on). */
@@ -71,7 +68,7 @@ internal fun hiddenPages(
 ): Set<SettingsTarget> = buildSet {
     if (!defaults.developerOptionsVisible(developer, unlocked)) add(SettingsTarget.Developer)
     if (defaults.notesView != NotesView.Settings) add(SettingsTarget.NoteList)
-    if (!defaults.showMints) addAll(listOf(SettingsTarget.Mints, SettingsTarget.AccountMints))
+    if (!defaults.showMints) add(SettingsTarget.Mints)
     if (!defaults.allowUnitChange) add(SettingsTarget.Display)
     val nothingToChoose =
         wallet.noteStrategies.size <= 1 &&
@@ -125,8 +122,6 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
                     homeHost = homeHost,
                     collectAtHome = collect,
                     hidden = hiddenPages(defaults, wallet, strategy, developer, unlocked),
-                    mintCount = mints.size,
-                    trustedCount = mints.count { it.trusted },
                     unscannedCount = mints.count { it.scan != null && it.scan != MintScan.Finished },
                 )
             }

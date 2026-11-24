@@ -34,8 +34,8 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 | `app.supportUrl` | Exposed as `BuildConfig.SUPPORT_URL` |
 | `mints.suggestions` | The LNURLcash mints offered at setup and restore, comma-separated (`host` or `host:port`); the first is preselected. Empty: users bring their own mint (needs `mints.custom=true`). Only for bootstrapping: after setup, users choose among the mints they know (see "Which mints users can use") |
 | `mints.custom` | `true` (default): users may also use mints you don't suggest: type one at setup ("Custom…"), add one under Settings → Mints, make it their home. `false`: only the suggested mints can be a home, hold an address or receive moved money; users add a missing one from your list under Settings → Mints. Notes from any mint can still be claimed. `false` with no suggestions fails the build |
-| `mints.changeable` | After setup: `true` lets users add a Lightning address on another mint (same recovery phrase), change their home mint (from an account's Your mints and the mint pages) and move money between the mints they know, which needs `mints.visible=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose). `false`: each account stays on the mint it was set up with. With `true` (and `mints.visible=true`, and `addresses.lightning` not `required`), setup and restore also offer to go on without a mint: Home then asks for one until it is added |
-| `mints.visible` | `false` hides everything about mints from users: Settings → Mints (the device's mints), Account → Your mints (the account's, with its actions) and the mint pages, on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged), and in the notes view the mints' names, labels and totals: one mint's notes are a plain list, several mints' are only separated by a line. Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`), `notes.collect.atHomeMint` `hidden` or `always`, and `notes.maintenance.notices` `hidden` or `always` |
+| `mints.changeable` | After setup: `true` lets users add a Lightning address on another mint (same recovery phrase), change their home mint (from Settings → Mints and the mint pages) and move money between the mints they know, which needs `mints.visible=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose). `false`: each account stays on the mint it was set up with. With `true` (and `mints.visible=true`, and `addresses.lightning` not `required`), setup and restore also offer to go on without a mint: Home then asks for one until it is added |
+| `mints.visible` | `false` hides everything about mints from users: Settings → Mints (the account's home mint and the wallet's other mints, also on the account's page) and the mint pages, on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged), and in the notes view the mints' names, labels and totals: one mint's notes are a plain list, several mints' are only separated by a line. Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`), `notes.collect.atHomeMint` `hidden` or `always`, and `notes.maintenance.notices` `hidden` or `always` |
 | `mints.trusted` | Mints shown as trusted from the start (Settings → Mints; a check mark on their notes, a hint when claiming), comma-separated `host:pubkey` with the mint's signing key (66 hex characters). Trust names the key: a mint presenting another key isn't trusted. Users can untrust them. Each account's home mint is trusted by default anyway. Default empty |
 | `accounts.max` | How many accounts one recovery phrase may hold. `0` = no limit. With `wallets.max=1`, `1` hides the account switcher on Home, and Settings → Wallets (the same pages in every app: the wallets, a wallet's page, an account's page) offers no "Add wallet" or "Add account". Set both for an app of one account: `wallets.max` has no limit by default |
 | `wallets.max` | How many recovery phrases the app holds, each backed up and deleted as one. `0` = no limit |
@@ -113,10 +113,10 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `settings_mints` | Mints |
 | `settings_scan` | Scan for notes |
 | `addresses_home_mint` | Home mint: %1$s |
+| `settings_mints_no_home` | No home mint |
 | `mint_change_home` | Change home mint |
 | `mint_make_home` | Make this my home mint |
 | `money_home_changed_title` | Home mint changed |
-| `settings_account_mints` | Your mints |
 | `mints_remove_mint` | Remove mint |
 | `addresses_add_elsewhere` | Add an address on another mint |
 | `settings_strategy_single_hint` | Combine all notes into one per mint. Free. |
@@ -570,7 +570,6 @@ and the CHANGELOG says so for each.
   | `Archive` | archived received notes | there are none (else `Idle`) |
   | `Receive` | Receive | there is no mint, or no home mint (else what `ReceiveHeader` gets) |
   | `Mints` | Settings → Mints | the wallet has no mint (else `Idle`) |
-  | `AccountMints` | Account → Mints | the account has none (else `Idle`) |
   | `Addresses` | Lightning addresses | the account has none (else `Idle`) |
   | `MoneyMove` | Change home mint, Move money | there is no mint to pick (else `Idle`) |
 

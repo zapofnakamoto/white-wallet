@@ -39,7 +39,6 @@ class PreviewsTest {
                 "AccountNotInUsePreview",
                 "MintsPreview",
                 "MintDetailsPreview",
-                "AccountMintsPreview",
                 "AddressesPreview",
                 "BackupPreview",
                 "NotesSettingsPreview",

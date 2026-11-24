@@ -28,14 +28,12 @@ import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.model.Mint
-import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.AddressShare
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintUse
-import whitewallet.core.wallet.NoHome
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsScreensTest {
@@ -435,62 +433,17 @@ class SettingsScreensTest {
     }
 
     @Test
-    fun anAccountsMintsShowItsMoneyHomeFirst() {
-        var opened: String? = null
-        val mints =
-            listOf(
-                AccountMint("home.example", isHome = true, balanceMsat = 21_000, noteCount = 2, addresses = 1, trusted = true),
-                AccountMint("other.example", isHome = false, balanceMsat = 5_000, noteCount = 1, addresses = 0, trusted = false),
-            )
-        compose.setContent { AccountMintsScreen(mints, {}, { opened = it }) }
-        compose.onNodeWithText("₿21 in 2 notes").assertExists()
-        compose.onNodeWithText("1 address").assertExists()
-        compose.onNodeWithText("other.example").performClick()
-        assertEquals("other.example", opened)
-    }
-
-    @Test
-    fun theAccountsMintsOfferChangingItsHomeOnlyWhereItCanChange() {
-        val mints = listOf(AccountMint("home.example", isHome = true, balanceMsat = 21_000, noteCount = 2, addresses = 1, trusted = true))
-        var asked = 0
-        var change: (() -> Unit)? by mutableStateOf({ asked++ })
-        compose.setContent { AccountMintsScreen(mints, {}, {}, onChangeHome = change) }
-        compose.onNodeWithText(text(R.string.mint_change_home)).performClick()
-        assertEquals(1, asked)
-
-        change = null
-        compose.onNodeWithText(text(R.string.mint_change_home)).assertDoesNotExist()
-    }
-
-    @Test
-    fun anAccountWithoutMintsSaysWhatIsMissingAndLeadsThere() {
-        var asked: NoHome? = null
-        var noHome by mutableStateOf(NoHome.NoMint)
-        compose.setContent { AccountMintsScreen(emptyList(), {}, {}, noHome, { asked = it }) }
-        compose.onNodeWithText(text(R.string.mints_empty)).assertExists()
-        compose.onNodeWithText(text(R.string.account_mints_intro)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.mints_add)).performClick()
-        assertEquals(NoHome.NoMint, asked)
-
-        noHome = NoHome.PickHome
-        compose.onNodeWithText(text(R.string.settings_no_home_action)).performClick()
-        assertEquals(NoHome.PickHome, asked)
-    }
-
-    @Test
     fun pagesDrawNothingUntilWhatTheyShowIsRead() {
         compose.setContent {
             androidx.compose.foundation.layout.Column {
                 SecuritySettingsScreen(appLock = null, available = true, onBack = {}, onAppLock = {})
                 DisplaySettingsScreen(null, {}, {})
-                AccountMintsScreen(null, {}, {})
                 DeleteWalletScreen(DeleteWalletState(loaded = false), {}, {}, {}, {}, {}, {})
                 MintDetailsScreen(MintDetailsState(), {}, {})
             }
         }
         compose.onNodeWithText(text(R.string.security_app_lock)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_amounts_hint)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.account_mints_intro)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.delete_what)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.mint_title)).assertDoesNotExist()
     }

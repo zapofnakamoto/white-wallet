@@ -127,7 +127,8 @@ class WalletsScreenTest {
         var adding = false
         compose.setContent { WalletScreen(first, state, active, {}, { opened += it }, { adding = true }, {}, {}) }
         compose.onNodeWithText(text(R.string.settings_recovery_phrase)).performClick()
-        compose.onNodeWithText(text(R.string.settings_mints)).performClick()
+        // The mints are the account's, on its page: the wallet page has no Mints row.
+        compose.onNodeWithText(text(R.string.settings_mints)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_scan_done)).assertExists()
         compose.onNodeWithText(text(R.string.settings_scan)).performClick()
         compose.onNodeWithText("alice@mint.example").assertExists() // the account in use shows its address
@@ -137,7 +138,6 @@ class WalletsScreenTest {
         assertEquals(
             listOf(
                 SettingsDestination.Page(SettingsTarget.Backup),
-                SettingsDestination.Page(SettingsTarget.Mints),
                 SettingsDestination.Page(SettingsTarget.Scan),
                 SettingsDestination.Account("b"),
                 SettingsDestination.Page(SettingsTarget.Delete),

@@ -14,7 +14,6 @@ import whitewallet.core.model.Mint
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.WalletGroup
 import whitewallet.core.model.WalletRecord
-import whitewallet.core.wallet.AccountMint
 import whitewallet.core.wallet.AddressEntry
 import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.Collected
@@ -73,8 +72,6 @@ internal val settingsState =
         addressStatus = AddressStatus.Ours,
         noteStrategy = single,
         homeHost = HOME,
-        mintCount = 2,
-        trustedCount = 2,
     )
 
 internal val walletsState =
@@ -122,12 +119,6 @@ internal val mintDetailsState =
         canChangeHome = true,
         host = HOME,
         canReceive = true,
-    )
-
-internal val accountMints =
-    listOf(
-        AccountMint(HOME, isHome = true, balanceMsat = 21_000_000, noteCount = 3, addresses = 1, trusted = true),
-        AccountMint(OTHER, isHome = false, balanceMsat = 4_000_000, noteCount = 1, addresses = 0, trusted = true),
     )
 
 internal val addressesState =
@@ -223,10 +214,6 @@ private fun MintsWith(state: MintsPageState) =
     MintsScreen(state, onBack = {}, onOpen = {}, onAdd = {}, onNoHome = {}, onChangeHome = {}, accountActions = AccountActions({}, {}, {}))
 
 @WalletPreviews @Composable private fun MintDetailsPreview() = MintDetailsScreen(mintDetailsState, onBack = {}, onRefresh = {})
-
-@WalletPreviews
-@Composable
-private fun AccountMintsPreview() = AccountMintsScreen(accountMints, onBack = {}, onOpen = {}, onChangeHome = {})
 
 @WalletPreviews
 @Composable

@@ -13,7 +13,6 @@
     <string name="mint_change_home">Anbieter wechseln</string>
     <string name="mint_make_home">Zu meinem Anbieter machen</string>
     <string name="money_home_changed_title">Anbieter gewechselt</string>
-    <string name="settings_account_mints">Deine Anbieter</string>
     <string name="mints_remove_mint">Anbieter entfernen</string>
     <string name="activity_moved_mint_other">Zu einem anderen Anbieter verschoben</string>
     <string name="onboarding_add_elsewhere_title">Adresse bei einem anderen Anbieter</string>
@@ -31,6 +30,7 @@
     <string name="about_body">Eine Lightning-Wallet, die dein Geld als Geldscheine bei einem Anbieter deiner Wahl verwahrt. Deine Wiederherstellungsphrase bleibt auf diesem Gerät.</string>
     <string name="mints_intro">Vertraue einem Anbieter anhand seines Signaturschlüssels: Geldscheine von vertrauten Anbietern sind mit einem Haken markiert. Signiert ein Anbieter einmal mit einem anderen Schlüssel, ist er nicht mehr vertraut, bis du seinen neuen Schlüssel annimmst.</string>
     <string name="mints_empty">Diese Wallet hat noch keinen Anbieter, also kann nichts empfangen werden.</string>
+    <string name="settings_mints_no_home">Kein Anbieter</string>
     <string name="settings_no_home">Dieses Konto hat keinen eigenen Anbieter. Wähle einen deiner Anbieter, um dort zu empfangen.</string>
     <string name="settings_no_home_action">Anbieter wählen</string>
     <string name="money_change_no_mints">Du hast keinen anderen Anbieter, zu dem du wechseln kannst.</string>

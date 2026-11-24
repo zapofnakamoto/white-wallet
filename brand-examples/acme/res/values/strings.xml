@@ -13,7 +13,6 @@
     <string name="mint_change_home">Change provider</string>
     <string name="mint_make_home">Make this my provider</string>
     <string name="money_home_changed_title">Provider changed</string>
-    <string name="settings_account_mints">Your providers</string>
     <string name="mints_remove_mint">Remove provider</string>
     <string name="activity_moved_mint_other">Moved to another provider</string>
     <string name="onboarding_add_elsewhere_title">Address with another provider</string>
@@ -31,6 +30,7 @@
     <string name="about_body">A Lightning wallet that keeps your money as banknotes with a provider you choose. Your recovery phrase stays on this device.</string>
     <string name="mints_intro">Trust a provider by its signing key: banknotes from trusted providers are marked with a check. If a provider ever signs with a different key, it is no longer trusted until you accept its new key.</string>
     <string name="mints_empty">This wallet has no provider yet, so nothing can be received.</string>
+    <string name="settings_mints_no_home">No provider</string>
     <string name="settings_no_home">This account has no provider of its own. Choose one of your providers to receive there.</string>
     <string name="settings_no_home_action">Choose provider</string>
     <string name="money_change_no_mints">You have no other provider to change to.</string>

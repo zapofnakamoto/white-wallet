@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -104,7 +103,7 @@ private fun Hub(
         SummaryRow(
             pageIcon(SettingsTarget.Mints),
             stringResource(R.string.settings_mints),
-            pluralStringResource(R.plurals.settings_mints_summary, state.mintCount, state.mintCount, state.trustedCount),
+            mintsSummary(state.homeHost),
         ) {
             open(SettingsTarget.Mints)
         }
@@ -164,8 +163,7 @@ private fun iconOf(target: SettingsTarget): Int =
         SettingsTarget.Addresses -> DesignR.drawable.ic_address
         SettingsTarget.Notes -> DesignR.drawable.ic_tune
         SettingsTarget.NoteList -> DesignR.drawable.ic_notes
-        SettingsTarget.Mints,
-        SettingsTarget.AccountMints -> DesignR.drawable.ic_mint
+        SettingsTarget.Mints -> DesignR.drawable.ic_mint
         SettingsTarget.Scan -> DesignR.drawable.ic_refresh
         SettingsTarget.Delete -> DesignR.drawable.ic_delete
         SettingsTarget.Display -> DesignR.drawable.ic_amounts
@@ -225,3 +223,8 @@ internal fun addressSummary(status: AddressStatus?): Pair<String?, Color> =
         AddressStatus.Available -> stringResource(R.string.settings_address_inactive) to MaterialTheme.colorScheme.error
         else -> null to Color.Unspecified
     }
+
+/** Under Mints, wherever it is a row: the account in use's home mint, the first thing the page shows. */
+@Composable
+internal fun mintsSummary(homeHost: String?): String =
+    homeHost?.let { stringResource(R.string.addresses_home_mint, it) } ?: stringResource(R.string.settings_mints_no_home)

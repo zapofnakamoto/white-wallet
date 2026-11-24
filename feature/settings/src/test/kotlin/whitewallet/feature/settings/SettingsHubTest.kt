@@ -3,6 +3,7 @@ package whitewallet.feature.settings
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import kotlin.test.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -51,14 +52,62 @@ class SettingsHubTest {
 
     @Test
     fun hiddenPagesHaveNoRowOnTheAccountPage() {
-        val hidden = setOf(SettingsTarget.Mints, SettingsTarget.AccountMints, SettingsTarget.Notes, SettingsTarget.NoteList)
+        val hidden = setOf(SettingsTarget.Mints, SettingsTarget.Notes, SettingsTarget.NoteList)
         val state =
             SettingsState(accountName = "Main", address = address, backupVerified = true, homeHost = "mint.example", hidden = hidden)
         compose.setContent { AccountSettingsScreen(state, {}, {}) }
         compose.onNodeWithText("alice@mint.example").assertExists()
-        compose.onNodeWithText(text(R.string.settings_account_mints)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.settings_mints)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_home_mint, "mint.example")).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_notes)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_note_list)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theMintsRowSaysTheHomeMint() {
+        val opened = mutableListOf<SettingsDestination>()
+        compose.setContent {
+            SettingsScreen(
+                SettingsState(accountName = "Main", address = address, backupVerified = true, homeHost = "mint.example"),
+                "1.0",
+                {},
+            ) {
+                opened += it
+            }
+        }
+        compose.onNodeWithText(text(R.string.addresses_home_mint, "mint.example")).performClick()
+        assertEquals(listOf<SettingsDestination>(SettingsDestination.Page(SettingsTarget.Mints)), opened)
+    }
+
+    @Test
+    fun theMintsRowSaysNoHomeMintWhenThereIsNone() {
+        compose.setContent { SettingsScreen(SettingsState(accountName = "Main", address = address, backupVerified = true), "1.0", {}) {} }
+        compose.onNodeWithText(text(R.string.settings_mints_no_home)).assertExists()
+    }
+
+    @Test
+    fun theAccountPagesMintsRowSaysTheHomeMintAndOpensTheMintsPage() {
+        val opened = mutableListOf<SettingsTarget>()
+        val state =
+            SettingsState(accountName = "Main", address = address, backupVerified = true, homeHost = "mint.example", hidden = emptySet())
+        compose.setContent { AccountSettingsScreen(state, {}, { opened += it }) }
+        compose.onNodeWithText(text(R.string.addresses_home_mint, "mint.example")).performScrollTo().assertExists()
+        compose.onNodeWithText(text(R.string.settings_mints)).performScrollTo().performClick()
+        assertEquals(listOf(SettingsTarget.Mints), opened)
+    }
+
+    @Test
+    fun theAccountPagesMintsRowStaysWithoutAHomeAndSaysSo() {
+        val state = SettingsState(accountName = "Main", address = address, backupVerified = true, hidden = emptySet())
+        compose.setContent { AccountSettingsScreen(state, {}, {}) }
+        compose.onNodeWithText(text(R.string.settings_mints_no_home)).performScrollTo().assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun noHomeMintInGerman() {
+        compose.setContent { SettingsScreen(SettingsState(accountName = "Main", address = address, backupVerified = true), "1.0", {}) {} }
+        compose.onNodeWithText("Keine Haupt-Mint").assertExists()
     }
 
     @Test

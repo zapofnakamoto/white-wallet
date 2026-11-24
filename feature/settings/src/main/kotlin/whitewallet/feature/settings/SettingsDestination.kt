@@ -6,7 +6,6 @@ enum class SettingsTarget {
     Wallets,
     Backup,
     Addresses,
-    AccountMints,
     Notes,
     NoteList,
     Mints,

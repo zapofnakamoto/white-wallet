@@ -258,15 +258,6 @@ fun WalletScreen(
                 ) {
                     open(SettingsTarget.Backup)
                 }
-                if (SettingsTarget.Mints !in active.hidden) {
-                    SummaryRow(
-                        pageIcon(SettingsTarget.Mints),
-                        stringResource(R.string.settings_mints),
-                        pluralStringResource(R.plurals.settings_mints_summary, active.mintCount, active.mintCount, active.trustedCount),
-                    ) {
-                        open(SettingsTarget.Mints)
-                    }
-                }
                 val unscanned = active.unscannedCount
                 SummaryRow(
                     pageIcon(SettingsTarget.Scan, if (unscanned == 0) Tone.Neutral else Tone.Danger),
@@ -431,17 +422,11 @@ fun AccountSettingsScreen(
                     open(SettingsTarget.Addresses)
                 }
             }
-            state.homeHost
-                ?.takeIf { SettingsTarget.AccountMints !in state.hidden }
-                ?.let { host ->
-                    SummaryRow(
-                        pageIcon(SettingsTarget.AccountMints),
-                        stringResource(R.string.settings_account_mints),
-                        stringResource(R.string.addresses_home_mint, host),
-                    ) {
-                        open(SettingsTarget.AccountMints)
-                    }
+            if (SettingsTarget.Mints !in state.hidden) {
+                SummaryRow(pageIcon(SettingsTarget.Mints), stringResource(R.string.settings_mints), mintsSummary(state.homeHost)) {
+                    open(SettingsTarget.Mints)
                 }
+            }
             if (SettingsTarget.NoteList !in state.hidden) {
                 SummaryRow(
                     pageIcon(SettingsTarget.NoteList),

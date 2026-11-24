@@ -13,7 +13,6 @@
     <string name="mint_make_home">Make this my home mint</string>
     <!-- The success screen's title once the account has a new home mint -->
     <string name="money_home_changed_title">Home mint changed</string>
-    <string name="settings_account_mints">Your mints</string>
     <string name="mints_remove_mint">Remove mint</string>
     <string name="addresses_home_mint">Home mint: %1$s</string>
     <string name="addresses_add_elsewhere">Add an address on another mint</string>
@@ -22,7 +21,9 @@
     <string name="about_body">A Lightning wallet that keeps your money as notes on a mint you choose. Your recovery phrase stays on this device.</string>
     <string name="mints_intro">Trust a mint by its signing key: notes from trusted mints are marked with a check. If a mint ever signs with a different key, it is no longer trusted until you accept its new key.</string>
     <string name="mints_empty">This wallet has no mint yet, so nothing can be received.</string>
-    <!-- An account without a home mint, as on Receive (Lightning addresses, Account → Mints). -->
+    <!-- An account without a home mint, as on Receive (Lightning addresses, Mints). -->
+    <!-- Under Mints in Settings and on the account page: the account in use has no home mint -->
+    <string name="settings_mints_no_home">No home mint</string>
     <string name="settings_no_home">This account has no home mint. Choose one of your mints to receive there.</string>
     <string name="settings_no_home_action">Choose home mint</string>
     <string name="settings_notes">Note settings</string>
@@ -345,10 +346,6 @@
     <string name="mints_default_home">Trusted by default: your account\'s home</string>
     <string name="mints_default_brand">Trusted by default in this app</string>
     <string name="mints_untrusted_default">Trusted by default, but you switched it off</string>
-    <plurals name="settings_mints_summary">
-        <item quantity="one">%1$d known, %2$d trusted</item>
-        <item quantity="other">%1$d known, %2$d trusted</item>
-    </plurals>
     <string name="about_developer_unlocked">Developer options are now in Settings.</string>
     <string name="settings_scan_done">Scan complete</string>
     <string name="settings_scan_unfinished">Not finished</string>
@@ -392,7 +389,6 @@
     <string name="money_moved_title">Moved</string>
     <string name="mint_move_all_here">Move all money here</string>
     <string name="money_move_all_body">All of this account\'s money held elsewhere comes here, in one payment from each place.</string>
-    <string name="account_mints_intro">Where this account\'s money and addresses are. Open one to move money or to change where new payments arrive.</string>
     <plurals name="account_mints_addresses">
         <item quantity="one">%1$d address</item>
         <item quantity="other">%1$d addresses</item>

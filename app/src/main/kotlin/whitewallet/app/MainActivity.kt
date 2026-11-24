@@ -87,7 +87,6 @@ import whitewallet.feature.send.ScanRoute
 import whitewallet.feature.send.SendRoute
 import whitewallet.feature.send.SharedNoteRoute
 import whitewallet.feature.settings.AboutRoute
-import whitewallet.feature.settings.AccountMintsRoute
 import whitewallet.feature.settings.AccountSettingsRoute
 import whitewallet.feature.settings.AddressesRoute
 import whitewallet.feature.settings.BackupRoute
@@ -280,7 +279,6 @@ internal object Routes {
     const val MINTS = "settings/mints"
     const val DISPLAY = "settings/display"
     const val MINT = "settings/mint?host={host}&device={device}"
-    const val ACCOUNT_MINTS = "settings/account/mints"
     const val SECURITY = "settings/security"
     const val ABOUT = "settings/about"
 
@@ -443,7 +441,7 @@ private fun WalletApp(
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
                 onAddMint = { nav.navigate(Routes.ADD_MINT) },
                 onScanMints = { nav.navigate(Routes.scanNotes(start = true)) },
-                onOpenMints = { nav.navigate(Routes.ACCOUNT_MINTS) },
+                onOpenMints = { nav.navigate(Routes.MINTS) },
                 menu =
                     brand.on(BrandScreenEntry.HomeMenu).map { screen ->
                         HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) }
@@ -684,14 +682,6 @@ private fun WalletApp(
         composable(Routes.MOVE_HOME) {
             MoneyMoveRoute(MoneyMoveMode.MoveHome, null, onClose = { nav.popBackStack() })
         }
-        composable(Routes.ACCOUNT_MINTS) {
-            AccountMintsRoute(
-                onBack = { nav.popBackStack() },
-                onOpen = { host -> nav.navigate(Routes.mint(host)) },
-                onNoHome = { noHome -> nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) },
-                onChangeHome = { nav.navigate(Routes.changeMint(null)) },
-            )
-        }
         composable(Routes.MINTS) {
             MintsRoute(
                 onBack = { nav.popBackStack() },
@@ -845,7 +835,6 @@ private fun settingsRoute(target: SettingsTarget): String =
         SettingsTarget.Mints -> Routes.MINTS
         SettingsTarget.Scan -> Routes.SCAN_NOTES
         SettingsTarget.Display -> Routes.DISPLAY
-        SettingsTarget.AccountMints -> Routes.ACCOUNT_MINTS
         SettingsTarget.Security -> Routes.SECURITY
         SettingsTarget.About -> Routes.ABOUT
         SettingsTarget.Delete -> Routes.DELETE

@@ -25,11 +25,11 @@ value class Page(val id: String) {
          */
         val Receive = Page("receive")
 
-        /** The wallet's mints (Settings): [whitewallet.brand.WalletStatus.Empty] with none, else [whitewallet.brand.WalletStatus.Idle]. */
+        /**
+         * The wallet's mints as the account in use sees them (Settings → Mints): [whitewallet.brand.WalletStatus.Empty] with none, else
+         * [whitewallet.brand.WalletStatus.Idle].
+         */
         val Mints = Page("mints")
-
-        /** One account's mints: [whitewallet.brand.WalletStatus.Empty] with none, else [whitewallet.brand.WalletStatus.Idle]. */
-        val AccountMints = Page("account.mints")
 
         /**
          * The account's Lightning addresses: [whitewallet.brand.WalletStatus.Empty] with none, else [whitewallet.brand.WalletStatus.Idle].
