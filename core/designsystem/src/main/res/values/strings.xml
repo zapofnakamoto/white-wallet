@@ -161,4 +161,7 @@
         <item quantity="one">%1$d other wallet</item>
         <item quantity="other">%1$d other wallets</item>
     </plurals>
+    <!-- A mint that didn't answer the last time the wallet asked: wherever mints are listed -->
+    <!-- Under a mint's row below the balance: it didn't answer the last time the wallet asked it. -->
+    <string name="mint_not_answering_short">Not answering</string>
 </resources>

@@ -216,6 +216,7 @@ internal fun SendFromSheet(mints: List<SendMint>, from: String?, amountMsat: Lon
                     it.isHome,
                     mintDetail(it, amountMsat),
                     enabled = !it.keyChanged && (amountMsat == null || it.maxMsat >= amountMsat),
+                    keyChanged = it.keyChanged,
                 )
             },
         selected = from,

@@ -118,8 +118,6 @@
     <string name="notice_unknown_unreachable_unnamed">Your mint isn\'t answering. Your wallet asks again later.</string>
 
     <!-- A card on the home screen: a mint the account uses (not the home mint) didn't answer. %1$s: the mint. -->
-    <!-- Under a mint's row below the balance: it didn't answer the last time the wallet asked it. -->
-    <string name="home_mint_not_answering">Not answering</string>
     <string name="home_mint_silent_title">%1$s isn\'t answering</string>
     <!-- Under the title: what that stops. A mint that isn't the home mint only holds money. -->
     <string name="home_mint_silent_body">Until it answers, you can\'t spend the money there. Your wallet keeps asking.</string>

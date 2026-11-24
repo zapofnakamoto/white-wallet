@@ -98,6 +98,7 @@ import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.LastFigure
 import whitewallet.core.designsystem.LoadingIndicator
 import whitewallet.core.designsystem.LoadingPhase
+import whitewallet.core.designsystem.MintKeyWarning
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteActions
@@ -1146,7 +1147,7 @@ private fun MintRow(
             keyChanged && mint.isHome -> R.string.home_mint_is_home_key_changed
             keyChanged -> DesignR.string.key_mismatch_short
             !answering && mint.isHome -> R.string.home_mint_is_home_not_answering
-            !answering -> R.string.home_mint_not_answering
+            !answering -> DesignR.string.mint_not_answering_short
             mint.isHome -> R.string.home_mint_is_home
             else -> null
         }
@@ -1161,7 +1162,14 @@ private fun MintRow(
             // The mark goes with the name: the row's actions slide in over both.
             leadingContent = { WalletMintMark(mint.host, mint.isHome, Modifier.alpha(nameAlpha)) },
             headlineContent = { HostText(mint.host, Modifier.alpha(nameAlpha)) },
-            supportingContent = note?.let { { Text(stringResource(it), Modifier.alpha(nameAlpha)) } },
+            // A signing key that doesn't match is said as everywhere: the warning, in the home row with its being home.
+            supportingContent =
+                note?.let {
+                    {
+                        if (keyChanged) MintKeyWarning(Modifier.alpha(nameAlpha), text = stringResource(it))
+                        else Text(stringResource(it), Modifier.alpha(nameAlpha))
+                    }
+                },
             // Money that can't be spent for now: quieter than the rest.
             trailingContent = {
                 Text(

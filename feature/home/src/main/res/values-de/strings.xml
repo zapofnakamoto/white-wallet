@@ -5,7 +5,6 @@
     <string name="home_add_mint_body">Diese Wallet hat noch keine Mint, deshalb kann nichts empfangen werden. Fügst du die Mint hinzu, die du benutzt, wird das Geld gefunden, das deine Wiederherstellungsphrase dort hat.</string>
     <string name="home_add_mint_action">Mint hinzufügen</string>
     <string name="home_mint_is_home">Haupt-Mint</string>
-    <string name="home_mint_not_answering">Antwortet nicht</string>
     <string name="home_mint_is_home_not_answering">Haupt-Mint · antwortet nicht</string>
     <string name="home_mint_is_home_key_changed">Haupt-Mint · Signaturschlüssel passt nicht</string>
     <string name="home_mint_silent_title_home">Deine Haupt-Mint, %1$s, antwortet nicht</string>

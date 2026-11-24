@@ -14,6 +14,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -40,6 +41,7 @@ import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.AccountActions
 import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
+import whitewallet.core.designsystem.MINT_KEY_WARNING_TAG
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.model.Account
@@ -472,7 +474,7 @@ class HomeScreenTest {
         )
         compose.onNodeWithText(text(R.string.home_mint_silent_title, "other.example")).assertExists()
         compose.onNodeWithText(text(R.string.home_mint_silent_body)).assertExists()
-        compose.onNodeWithText(text(R.string.home_mint_not_answering)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_not_answering_short)).assertExists()
         compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
     }
 
@@ -495,7 +497,7 @@ class HomeScreenTest {
         compose.onNodeWithText(plural(R.plurals.home_mints_silent_title, 2, 2)).assertExists()
         compose.onNodeWithText(text(R.string.home_mints_silent_body)).assertExists()
         compose.onAllNodesWithText(text(R.string.home_mint_silent_title, "b.example")).assertCountEquals(0)
-        compose.onAllNodesWithText(text(R.string.home_mint_not_answering)).assertCountEquals(2)
+        compose.onAllNodesWithText(text(DesignR.string.mint_not_answering_short)).assertCountEquals(2)
         compose.onNodeWithText(text(DesignR.string.check_again)).performClick()
         assertEquals(1, refreshed)
     }
@@ -525,7 +527,7 @@ class HomeScreenTest {
         )
         compose.onNodeWithText(text(R.string.home_offline)).assertExists()
         compose.onAllNodesWithText(text(R.string.home_mint_silent_title_home, "home.example")).assertCountEquals(0)
-        compose.onAllNodesWithText(text(R.string.home_mint_not_answering)).assertCountEquals(0)
+        compose.onAllNodesWithText(text(DesignR.string.mint_not_answering_short)).assertCountEquals(0)
         compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
         // Home updates by itself once the phone is back: nothing to try now.
         compose.onAllNodesWithText(text(DesignR.string.try_again)).assertCountEquals(0)
@@ -1285,6 +1287,43 @@ class HomeScreenTest {
         compose.onNodeWithText(text(R.string.home_key_changed_part_title)).assertExists()
         compose.onNodeWithText(text(R.string.home_key_changed_part, "₿298")).assertDoesNotExist()
     }
+
+    @Test
+    fun anotherMintsRowWithAChangedKeyShowsTheWarning() {
+        show(
+            HomeState(
+                activeAccountId = "a",
+                balanceMsat = 2_298_000,
+                mints = listOf(mint("a.example", 2_000_000, home = true), mint("b.example", 298_000)),
+                keyChangedHosts = setOf("b.example"),
+            )
+        )
+        assertEquals(1, shownWarnings())
+    }
+
+    @Test
+    fun theHomeRowWithAChangedKeyShowsTheWarningAndStillSaysItIsHome() {
+        show(
+            HomeState(
+                activeAccountId = "a",
+                balanceMsat = 2_000_000,
+                mints = listOf(mint("a.example", 2_000_000, home = true), mint("b.example", 0)),
+                keyChangedHosts = setOf("a.example"),
+            )
+        )
+        assertEquals(1, shownWarnings())
+        compose.onNodeWithText(text(R.string.home_mint_is_home_key_changed)).assertExists()
+    }
+
+    @Test
+    fun rowsWithMatchingKeysShowNoWarning() {
+        show(HomeState(activeAccountId = "a", balanceMsat = 2_000, mints = listOf(mint("a.example", 2_000, home = true))))
+        assertEquals(0, shownWarnings())
+    }
+
+    /** Key warnings drawn on the screen; a list row may also lay one out at no size, to measure it. */
+    private fun shownWarnings() =
+        compose.onAllNodes(hasTestTag(MINT_KEY_WARNING_TAG), useUnmergedTree = true).fetchSemanticsNodes().count { it.size.width > 0 }
 
     private fun offers(labels: List<String>) =
         SemanticsMatcher("offers $labels") { node ->

@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -23,6 +24,7 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.core.designsystem.MINT_KEY_WARNING_TAG
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.wallet.PayDestination
 import whitewallet.core.wallet.PayPreview
@@ -319,6 +321,7 @@ class SendScreenTest {
         }
         compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performClick()
         compose.onNodeWithText(text(DesignR.string.key_mismatch_short)).assertIsNotEnabled()
+        compose.onNode(hasTestTag(MINT_KEY_WARNING_TAG), useUnmergedTree = true).assertExists()
         compose.onNodeWithText("third.example").performClick()
         assertEquals(emptyList<String?>(), picked)
     }

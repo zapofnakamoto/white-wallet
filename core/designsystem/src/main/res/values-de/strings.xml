@@ -135,4 +135,6 @@
         <item quantity="one">%1$d weitere Wallet</item>
         <item quantity="other">%1$d weitere Wallets</item>
     </plurals>
+    <!-- A mint that didn't answer the last time the wallet asked: wherever mints are listed -->
+    <string name="mint_not_answering_short">Antwortet nicht</string>
 </resources>
