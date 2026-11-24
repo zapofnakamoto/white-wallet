@@ -28,6 +28,7 @@ import java.text.NumberFormat
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.KeyChangedCard
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
@@ -162,9 +163,12 @@ private fun PickContent(state: AddMintState, actions: AddMintActions) {
 /** What the mint says about itself, before anything is saved: the user decides here. */
 @Composable
 private fun InfoContent(preview: MintPreview.Ready, state: AddMintState, actions: AddMintActions) {
-    // As the mint will show in its lists: in setup it becomes the home mint.
-    WalletMintMark(preview.host, home = state.setup, size = 40.dp)
-    Text(preview.host, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+    // As the mint will show in its lists, its registered name bolder: where a look-alike host shows best.
+    WalletMintMark(preview.host, home = state.becomesHome, size = 40.dp)
+    HostText(
+        preview.host,
+        style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center),
+    )
     preview.description?.let { Text(it, textAlign = TextAlign.Center) }
     // The wallet has it with another key: that is all there is to decide here, and leaving decides nothing.
     if (preview.keyDiffers) {

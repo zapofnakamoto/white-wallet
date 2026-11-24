@@ -78,6 +78,8 @@ data class AddMintState(
     val host: String = "",
     /** The wallet's mints already: picking one again looks through it again. */
     val known: Set<String> = emptySet(),
+    /** The mint added becomes the active account's home: in a setup, or while it has none. Its mark is in the home mint's colours. */
+    val becomesHome: Boolean = false,
     /** The mints of the list a problem is known of, by host. None is asked for its row: only one the user acted on. */
     val problems: Map<String, MintProblem> = emptyMap(),
     val busy: Boolean = false,
@@ -143,7 +145,8 @@ constructor(private val wallet: Wallet, private val defaults: AppDefaults, priva
         viewModelScope.launch { followConnection() }
         viewModelScope.launch {
             val known = wallet.mints.first().map { it.host }
-            _state.update { it.copy(known = known.toSet()) }
+            val noHome = wallet.homeHost.first() == null
+            _state.update { it.copy(known = known.toSet(), becomesHome = setup || noHome) }
             var first = true
             // The dropdown follows developer mode (the local mints appear while it is on).
             preferences.developerMode.collect { developerMode ->

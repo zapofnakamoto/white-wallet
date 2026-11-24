@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.getTextLayoutResult
 import androidx.compose.ui.semantics.text
@@ -30,19 +31,25 @@ import okhttp3.OkHttp
 @Composable
 fun HostText(host: String, modifier: Modifier = Modifier, style: TextStyle = LocalTextStyle.current) {
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-    val name = remember(host) { distinctiveName(host) }
+    val context = LocalContext.current.applicationContext
     val weight = style.fontWeight ?: FontWeight.Normal
-    val text = buildAnnotatedString {
-        if (name == null) append(breakable(host))
-        else {
-            append(breakable(host.substring(0, name.first)))
-            // Two weight steps over the rest: one is hard to see on a phone.
-            withStyle(SpanStyle(fontWeight = FontWeight((weight.weight + 200).coerceAtMost(900)))) {
-                append(breakable(host.substring(name)))
+    val text =
+        remember(host, weight) {
+            // Before the first lookup: a list OkHttp failed to read stays unread for the whole process.
+            publicSuffixes(context)
+            val name = distinctiveName(host)
+            buildAnnotatedString {
+                if (name == null) append(breakable(host))
+                else {
+                    append(breakable(host.substring(0, name.first)))
+                    // Two weight steps over the rest: one is hard to see on a phone.
+                    withStyle(SpanStyle(fontWeight = FontWeight((weight.weight + 200).coerceAtMost(900)))) {
+                        append(breakable(host.substring(name)))
+                    }
+                    append(breakable(host.substring(name.last + 1)))
+                }
             }
-            append(breakable(host.substring(name.last + 1)))
         }
-    }
     Text(
         text,
         modifier.clearAndSetSemantics {
@@ -63,7 +70,8 @@ private fun breakable(text: String) = text.replace(".", ".​")
  */
 internal fun distinctiveName(host: String): IntRange? {
     if (host.startsWith("[")) return null
-    val name = host.substringBefore(':')
+    // A trailing dot (the root) is no label of its own.
+    val name = host.substringBefore(':').trimEnd('.')
     if (name.all { it.isDigit() || it == '.' }) return null
     // The public suffix list, from OkHttp (read once, at the app's start: [warmHostText]).
     val registered = runCatching { "http://$name/".toHttpUrlOrNull()?.topPrivateDomain() }.getOrNull() ?: return null
@@ -79,6 +87,15 @@ internal fun distinctiveName(host: String): IntRange? {
  * through [context]: on a phone its startup initializer hands it over too, a test (Robolectric runs none) has only this.
  */
 fun warmHostText(context: Context) {
-    OkHttp.initialize(context.applicationContext)
+    publicSuffixes(context)
     distinctiveName("mint.example.com")
+}
+
+@Volatile private var suffixesReadable = false
+
+/** Hands OkHttp the app's [context] once, so it can read the public suffix list; cheap after the first call. */
+private fun publicSuffixes(context: Context) {
+    if (suffixesReadable) return
+    OkHttp.initialize(context.applicationContext)
+    suffixesReadable = true
 }

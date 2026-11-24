@@ -108,6 +108,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -446,11 +448,13 @@ enum class NoteStatus {
     Unknown,
 }
 
+/** A mint's mark ([BrandComponents.MintMark]), beside its name in lists and pickers of mints; decorative. */
 class MintMarkParams(
     /** How the mint's bills are drawn: the mark is its seal ([MintPattern.sealShape], [MintPattern.sealMotif]) ringed by its border. */
     val pattern: MintPattern,
     /** Its bills' colours: the home mint's or the other mints' ([WalletColors.note]). */
     val colors: NoteColors,
+    /** The mint is the active account's home (the default reads it from [colors] alone). */
     val home: Boolean,
     /** The mark's diameter. */
     val size: Dp,
@@ -1213,8 +1217,11 @@ object DefaultComponents : BrandComponents {
                             }
                             else -> borderLine(pattern.border, bounds, ring, step, line)
                         }
-                    // The mark always waves the same: its size leaves no room to tell depths apart.
-                    val seal = Seal(pattern, center, 0.6f * r, depth = 0.3f)
+                    // Inside the ring, whatever its style and the outline's points. The mark always waves the same: its size leaves
+                    // no room to tell depths apart.
+                    val depth = if (pattern.border == BillBorder.Zigzag) step * 0.4f else borderDepth(pattern.border, line)
+                    val inner = ring - depth - 1.5f * line
+                    val seal = Seal(pattern, center, minOf(0.6f * r, inner / reach(pattern.sealShape)), depth = 0.3f)
                     val stroke = Stroke(line)
                     onDrawBehind {
                         drawCircle(colors.paper)
@@ -1405,13 +1412,15 @@ private fun CacheDrawScope.billMarks(
     val detailed = size.width >= 100.dp.toPx()
     val hairline = maxOf(0.45f * u, 0.5.dp.toPx())
     val inset = frame.toPx()
+    val borderStep = maxOf(4 * u, 3.dp.toPx())
+    val borderWidth = if (detailed) 1.dp.toPx() else 0.75.dp.toPx()
     val border =
         borderLine(
             pattern.border,
             Rect(inset, inset, size.width - inset, size.height - inset),
             (corner - frame / 2).coerceAtLeast(2.dp).toPx(),
-            step = maxOf(4 * u, 3.dp.toPx()),
-            width = if (detailed) 1.dp.toPx() else 0.75.dp.toPx(),
+            step = borderStep,
+            width = borderWidth,
         )
     val left = 160 * ux
     val right = 184 * ux
@@ -1428,12 +1437,14 @@ private fun CacheDrawScope.billMarks(
                     end = Offset(left + 0.35f * (right - left), size.height),
                 )
             val lines = if (detailed) 6 else 3
+            val spacing = (right - left) / lines
             val lean = tan(pattern.engravingAngle * PI.toFloat() / 180) * size.height
+            // Past the stripe on both sides, as far as the lines lean: once clipped, they cover it from corner to corner.
+            val extra = ceil(abs(lean) / 2 / spacing).toInt() + 1
             val engraving =
                 Path().apply {
-                    // Past the stripe on both sides: leaning lines still cover it from edge to edge once clipped.
-                    for (k in -lines..2 * lines) {
-                        val x = left + (k + 0.5f) * (right - left) / lines
+                    for (k in -extra until lines + extra) {
+                        val x = left + (k + 0.5f) * spacing
                         moveTo(x - lean / 2, 0f)
                         lineTo(x + lean / 2, size.height)
                     }
@@ -1462,7 +1473,11 @@ private fun CacheDrawScope.billMarks(
                     }
                 }
             val center = Offset(172 * ux, 74 * uy)
-            val seal = Seal(pattern, center, 15 * u, pattern.depth)
+            val inward =
+                if (pattern.border == BillBorder.Zigzag) borderStep * 0.45f + borderWidth else borderDepth(pattern.border, borderWidth)
+            // Clear of the border on a short bill: the outline's farthest point stays inside it.
+            val reachable = minOf(size.height - center.y, size.width - center.x) - inset - inward
+            val seal = Seal(pattern, center, minOf(15 * u, (reachable - hairline) / reach(pattern.sealShape)), pattern.depth)
             val sealLine = Stroke(maxOf(0.7f * u, hairline))
             val draw: DrawScope.() -> Unit = {
                 drawPath(waves, ink.copy(alpha = 0.2f), style = Stroke(hairline))
@@ -1514,7 +1529,8 @@ private fun zigzag(rect: Rect, step: Float, amplitude: Float) =
     Path().apply {
         fun side(from: Offset, to: Offset, inward: Offset) {
             val length = (to - from).getDistance()
-            val n = maxOf(2, (length / step).toInt())
+            // Even: each side ends on its corner.
+            val n = maxOf(2, (length / step).toInt()).let { it + it % 2 }
             for (i in 0..n) {
                 val along = from + (to - from) * (i.toFloat() / n)
                 val p = along + inward * (if (i % 2 == 0) 0f else amplitude)
@@ -1525,6 +1541,19 @@ private fun zigzag(rect: Rect, step: Float, amplitude: Float) =
         side(rect.topRight, rect.bottomRight, Offset(-1f, 0f))
         side(rect.bottomRight, rect.bottomLeft, Offset(0f, -1f))
         side(rect.bottomLeft, rect.topLeft, Offset(1f, 0f))
+    }
+
+/** How far in from its line a [border] of lines [width] wide reaches: past the inner line of a double one, else half its own width. */
+private fun CacheDrawScope.borderDepth(border: BillBorder, width: Float): Float =
+    if (border == BillBorder.Double) maxOf(width * 2.5f, 2.dp.toPx()) + width else width
+
+/** How far a seal's outline reaches, as a share of its radius ([Seal]). */
+private fun reach(shape: SealShape): Float =
+    when (shape) {
+        SealShape.Star -> 1.2f
+        SealShape.Diamond -> 1.15f
+        SealShape.Square -> 1.1f
+        else -> 1f
     }
 
 /**

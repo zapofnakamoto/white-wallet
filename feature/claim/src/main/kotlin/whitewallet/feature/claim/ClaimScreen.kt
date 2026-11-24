@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
@@ -39,6 +40,7 @@ import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.walletColors
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ResultScreen
@@ -49,6 +51,7 @@ import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
+import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletNoteFace
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
@@ -369,7 +372,13 @@ private fun MeltSection(preview: ClaimPreview.Melt, state: ClaimState, actions: 
             if (preview.link.note != null) PrimaryButton(stringResource(R.string.claim_keep_for_later), actions.keep, busy = state.busy)
         target == null ->
             preview.mints.forEach { mint ->
-                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.into(mint) }, enabled = !state.busy) { Text(mint) }
+                // A pick of mints like any other: each with its mark, its registered name bolder.
+                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.into(mint) }, enabled = !state.busy) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        WalletMintMark(mint, home = mint == state.home, size = 24.dp)
+                        HostText(mint)
+                    }
+                }
             }
         preview.amountMsat == null ->
             PrimaryButton(stringResource(R.string.claim_melt_ask, preview.link.host), actions.ask, busy = state.busy)

@@ -53,6 +53,7 @@ class HostTextTest {
         assertEquals("mymint", emphasised("mymint.fly.dev"))
         assertEquals(null, emphasised("fly.dev"))
         assertEquals("example", emphasised("mint.example.com:3338"))
+        assertEquals("example", emphasised("mint.example.com."))
         assertEquals("Example", emphasised("Mint.Example.COM"))
         assertEquals("münze", emphasised("mint.münze.de"))
         assertEquals("xn--mnze-0ra", emphasised("mint.xn--mnze-0ra.de"))

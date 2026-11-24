@@ -44,9 +44,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 - Every mint's bills have a design of their own, taken from its host alone, so the same on every phone and whatever
   other mints the wallet has: a border (double, dashes, dots or zigzag), waves under the amount, and a seal low on the
   right (a toothed circle, hexagon, diamond, square or star, around a rosette, spokes, rings or a double rosette); a
-  small bill shows the border. The same seal, ringed by the mint's border, is its mark beside its name wherever mints
-  are listed or picked: Home, Settings → Mints, an account's mints, a mint's page, the pickers of Send, Receive and
-  Change home mint, Add mint, Scan for notes, the notes view and Addresses. Two mints can share a design; their names
+  small bill shows the border. The same seal, ringed by the mint's border, is its mark beside its name where mints are
+  listed or picked: Home, Settings → Mints, an account's mints, a mint's page, the pickers of Send, Receive and
+  Change home mint, the claim screen's choice of mint, Add mint, Scan for notes, the notes view and Addresses. Two mints can share a design; their names
   always tell them apart, and the part of a host that was registered is now bolder ("mint.**example**.com", public
   suffixes like co.uk known), so a host that only looks like another stands out. A bill whose amount the mint
   certified carries a foil stripe with engraved lines, at the mint's own angle; one without stays without, and still

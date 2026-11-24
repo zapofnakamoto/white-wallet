@@ -11,7 +11,7 @@ import whitewallet.brand.ui.SealShape
 
 class MintPatternTest {
     @Test
-    fun `a mint keeps its pattern across releases and phones, as in the approved mockup`() {
+    fun `a mint keeps its pattern across releases and phones`() {
         assertEquals(
             MintPattern(BillBorder.Dots, 2, 0.375f, 20f, SealShape.Diamond, SealMotif.Spokes, 6, 0.16f),
             MintPattern.of("mint.harbor.example"),

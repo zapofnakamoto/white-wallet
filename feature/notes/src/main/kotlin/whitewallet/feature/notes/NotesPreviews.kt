@@ -10,13 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.walletColors
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PREVIEW_MILLIS
 import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletNoteFace
@@ -170,7 +170,7 @@ private fun MintPatternsPreview() =
             host ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 WalletMintMark(host, home = i == 0)
-                Text(host, style = MaterialTheme.typography.titleSmall)
+                HostText(host, style = MaterialTheme.typography.titleSmall)
             }
             WalletNoteFace(
                 size = NoteFaceSize.Large,
