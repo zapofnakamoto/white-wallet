@@ -219,6 +219,11 @@
     <string name="mints_remove_body">Die App vergisst ihn, seinen Signaturschlüssel und ob du ihm vertraust. Geldscheine und Verlauf bleiben. Fügst du ihn später wieder hinzu, ist es wie beim ersten Mal: Der Schlüssel, den er dann zeigt, ist der, den sich die App merkt.</string>
     <!-- "der Anbieter": "ihn", where White Wallet's "die Mint" says "sie" -->
     <string name="mints_remove_in_use">Kann nicht entfernt werden, solange ein Konto ihn nutzt: mit Geld, einer Adresse oder einer unfertigen Zahlung dort.</string>
+    <string name="mints_remove_home_this">Er ist der eigene Anbieter dieses Kontos: Es hat dann keinen, bis du einen anderen wählst.</string>
+    <plurals name="mints_remove_home_others">
+        <item quantity="one">Das Konto %1$s hat ihn als eigenen Anbieter und dann keinen, bis du dort einen anderen wählst.</item>
+        <item quantity="other">Die Konten %1$s haben ihn als eigenen Anbieter und dann keinen, bis du dort jeweils einen anderen wählst.</item>
+    </plurals>
     <string name="claim_not_spendable">Dieser Link öffnet den Geldschein nicht, den er nennt; er lässt sich nicht einlösen.</string>
     <string name="claim_other_paths">Dieser Geldschein lässt sich auch auf anderem Weg ausgeben; jemand anderes kann ihn also nehmen, bevor du ihn einlöst.</string>
     <plurals name="notice_combined_into_one">

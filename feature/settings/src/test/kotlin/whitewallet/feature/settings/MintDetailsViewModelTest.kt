@@ -84,6 +84,18 @@ class MintDetailsViewModelTest {
     }
 
     @Test
+    fun `the page knows which other accounts of the wallet have the mint as home, never the one in use`() = runTest {
+        val other = page()
+        store.saveAccount(Account("b", "Savings", 1, walletId = "w", index = 1, homeHost = "other.example"))
+        store.saveAccount(Account("c", "Daily", 2, walletId = "w", index = 2, homeHost = "h1.example"))
+        assertEquals(listOf("Savings"), other.state.first { it.details != null && it.homeOf.isNotEmpty() }.homeOf)
+        val home =
+            MintDetailsViewModel(wallet, SavedStateHandle(mapOf("host" to "h1.example")), AppDefaults(emptyList(), allowMintChange = true))
+        CoroutineScope(Dispatchers.Unconfined).launch { home.state.collect {} }
+        assertEquals(listOf("Daily"), home.state.first { it.details != null && it.homeOf.isNotEmpty() }.homeOf)
+    }
+
+    @Test
     fun `setTrusted is ignored while the key doesn't match`() = runTest {
         trust.setKeyChanged("w", "other.example", true)
         val screen = page()

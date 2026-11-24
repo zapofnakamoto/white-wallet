@@ -55,9 +55,9 @@ import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.formatAmount
 
 /**
- * The account's home mint as the first thing on the Mints page: a card in the home notes' colour with the mint's seal, its money large, and
- * [onChangeHome] inside (null: the home can't be changed here). A key that doesn't match turns the whole card the error colour and says so
- * in place of its notes; it stays the home card, in its place.
+ * The account's home mint as the first thing on the Mints page: a card in the home notes' colour with the mint's seal, ✓ when trusted (as
+ * on the other cards), its money large, and [onChangeHome] inside (null: the home can't be changed here). A key that doesn't match turns
+ * the whole card the error colour and says so in place of its notes; it stays the home card, in its place.
  */
 @Composable
 internal fun HomeMintCard(card: MintCard, onOpen: (String) -> Unit, onChangeHome: (() -> Unit)?) {
@@ -88,7 +88,7 @@ internal fun HomeMintCard(card: MintCard, onOpen: (String) -> Unit, onChangeHome
                 color = colors.ink.copy(alpha = 0.8f),
             )
             Spacer(Modifier.height(8.dp))
-            HostText(card.host, style = MaterialTheme.typography.titleMedium.copy(color = colors.ink))
+            HostWithTrust(card, MaterialTheme.typography.titleMedium, colors)
             CardAmount(card.balanceMsat, MaterialTheme.typography.headlineMedium, colors)
             CardDetails(card, colors)
         }
@@ -131,22 +131,7 @@ internal fun OtherMintCard(card: MintCard, onOpen: (String) -> Unit) {
             WalletMintMark(card.host, home = false, size = 40.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    HostText(
-                        card.host,
-                        Modifier.weight(1f, fill = false),
-                        style = MaterialTheme.typography.bodyLarge.copy(color = colors.ink),
-                    )
-                    if (card.trusted) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            painterResource(DesignR.drawable.ic_check_circle),
-                            contentDescription = stringResource(DesignR.string.notes_trusted),
-                            Modifier.size(18.dp),
-                            tint = colors.ink,
-                        )
-                    }
-                }
+                HostWithTrust(card, MaterialTheme.typography.bodyLarge, colors)
                 if (card.used && !beside) CardAmount(card.balanceMsat, amountStyle, colors)
                 CardDetails(card, colors)
             }
@@ -157,6 +142,22 @@ internal fun OtherMintCard(card: MintCard, onOpen: (String) -> Unit) {
         }
     }
 }
+
+/** A card's mint by name, with ✓ after it when trusted: the same on every card, the home's too. */
+@Composable
+private fun HostWithTrust(card: MintCard, style: TextStyle, colors: NoteColors) =
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        HostText(card.host, Modifier.weight(1f, fill = false), style = style.copy(color = colors.ink))
+        if (card.trusted) {
+            Spacer(Modifier.width(4.dp))
+            Icon(
+                painterResource(DesignR.drawable.ic_check_circle),
+                contentDescription = stringResource(DesignR.string.notes_trusted),
+                Modifier.size(18.dp),
+                tint = colors.ink,
+            )
+        }
+    }
 
 /**
  * The account's money at a mint: one line, smaller where a large font or a long amount wouldn't fit, as on the bills; at its smallest on
@@ -234,7 +235,7 @@ private fun cardDetails(card: MintCard): List<String> =
 
 /**
  * What a screen reader says for a card, in its own words and case: "Home mint" on the home's, the host, the amount where it shows, what it
- * says under its name, "Trusted" for its ✓ (the home card has none), then the key warning.
+ * says under its name, "Trusted" for its ✓, then the key warning.
  */
 @Composable
 private fun spokenCard(card: MintCard): String = buildList {
@@ -242,7 +243,7 @@ private fun spokenCard(card: MintCard): String = buildList {
     add(card.host)
     if (card.used) add(formatAmount(card.balanceMsat))
     addAll(cardDetails(card))
-    if (card.trusted && !card.isHome) add(stringResource(DesignR.string.notes_trusted))
+    if (card.trusted) add(stringResource(DesignR.string.notes_trusted))
     if (card.keyChanged) add(stringResource(DesignR.string.key_mismatch_short))
 }
     .joinToString(stringResource(R.string.mints_card_read_separator))

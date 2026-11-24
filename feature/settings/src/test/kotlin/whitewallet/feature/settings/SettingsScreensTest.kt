@@ -1,5 +1,6 @@
 package whitewallet.feature.settings
 
+import android.icu.text.ListFormatter
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -402,6 +403,79 @@ class SettingsScreensTest {
         state = state.copy(removing = false, mint = removable.copy(removable = false, isHome = true))
         compose.onNodeWithText(text(R.string.mints_remove_title, "other.example")).assertDoesNotExist()
         compose.onNodeWithText("Can't be removed", substring = true).performScrollTo().assertExists()
+    }
+
+    @Test
+    fun removingAnotherAccountsHomeNamesItAndKeepIsTheWayBack() {
+        var removed = false
+        val removable = MintInfo("other.example", mint.mintPubkey, trusted = false, trustedByDefault = null, removable = true)
+        compose.setContent {
+            MintDetailsScreen(
+                MintDetailsState(
+                    details(MintDetails.Reachability.Reachable).copy(host = "other.example", isHome = false),
+                    loading = false,
+                    mint = removable,
+                    homeOf = listOf("Savings"),
+                ),
+                {},
+                {},
+                onRemove = { removed = true },
+            )
+        }
+        compose.onNodeWithText(text(R.string.mints_remove_mint)).performScrollTo().performClick()
+        compose.onNodeWithText(plural(R.plurals.mints_remove_home_others, 1, "Savings")).assertExists()
+        compose.onNodeWithText(text(R.string.mints_remove_confirm)).assertDoesNotExist()
+        // Keep: nothing happens, the question goes.
+        compose.onNodeWithText(text(R.string.mints_remove_keep)).performClick()
+        compose.onNodeWithText(text(R.string.mints_remove_title, "other.example")).assertDoesNotExist()
+        assertEquals(false, removed)
+        // Asked again, the user removes it anyway.
+        compose.onNodeWithText(text(R.string.mints_remove_mint)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.mints_remove_anyway)).performClick()
+        assertEquals(true, removed)
+    }
+
+    @Test
+    fun removingThisAccountsHomeSaysSoAndNamesTheOthers() {
+        val removable = MintInfo("mint.example", mint.mintPubkey, trusted = true, trustedByDefault = null, isHome = true, removable = true)
+        compose.setContent {
+            MintDetailsScreen(
+                MintDetailsState(
+                    details(MintDetails.Reachability.Reachable),
+                    loading = false,
+                    mint = removable,
+                    homeOf = listOf("Savings", "Daily"),
+                ),
+                {},
+                {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.mints_remove_mint)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.mints_remove_home_this)).assertExists()
+        compose
+            .onNodeWithText(plural(R.plurals.mints_remove_home_others, 2, ListFormatter.getInstance().format(listOf("Savings", "Daily"))))
+            .assertExists()
+        compose.onNodeWithText(text(R.string.mints_remove_anyway)).assertExists()
+    }
+
+    @Test
+    fun removingAMintNoAccountHasAsHomeAsksAsBefore() {
+        val removable = MintInfo("other.example", mint.mintPubkey, trusted = false, trustedByDefault = null, removable = true)
+        compose.setContent {
+            MintDetailsScreen(
+                MintDetailsState(
+                    details(MintDetails.Reachability.Reachable).copy(host = "other.example", isHome = false),
+                    loading = false,
+                    mint = removable,
+                ),
+                {},
+                {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.mints_remove_mint)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.mints_remove_confirm)).assertExists()
+        compose.onNodeWithText(text(R.string.mints_remove_home_this)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.mints_remove_anyway)).assertDoesNotExist()
     }
 
     @Test

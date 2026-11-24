@@ -12,7 +12,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
@@ -107,7 +106,8 @@ class MintsScreenTest {
 
     @Test
     fun otherMintsShowTheirAmountNotesAndTrust() {
-        show(MintsPageState(home = home, others = listOf(cash)))
+        // An untrusted home, so the only ✓ is the other mint's.
+        show(MintsPageState(home = home.copy(trusted = false), others = listOf(cash)))
         compose.onNodeWithText(formatAmount(4_000_000)).assertExists()
         compose.onNodeWithText(plural(DesignR.plurals.notes_count, 1), substring = true).assertExists()
         compose.onNode(hasContentDescription(text(DesignR.string.notes_trusted)), useUnmergedTree = true).assertExists()
@@ -160,7 +160,7 @@ class MintsScreenTest {
 
     @Test
     fun anotherMintWithAChangedKeyShowsTheWarningInPlaceOfItsNotesAndNoTrust() {
-        show(MintsPageState(home = home, others = listOf(cash.copy(keyChanged = true, trusted = false))))
+        show(MintsPageState(home = home.copy(trusted = false), others = listOf(cash.copy(keyChanged = true, trusted = false))))
         assertEquals(1, shownWarnings())
         compose.onNodeWithText(plural(DesignR.plurals.notes_count, 1)).assertDoesNotExist()
         compose.onNode(hasContentDescription(text(DesignR.string.notes_trusted)), useUnmergedTree = true).assertDoesNotExist()
@@ -239,6 +239,7 @@ class MintsScreenTest {
                 formatAmount(21_000_000),
                 plural(DesignR.plurals.notes_count, 3),
                 plural(R.plurals.account_mints_addresses, 1),
+                text(DesignR.string.notes_trusted),
             ),
             spoken("home.example"),
         )
@@ -282,10 +283,26 @@ class MintsScreenTest {
     }
 
     @Test
+    fun aTrustedHomeShowsTheCheckAsTheOtherCardsDo() {
+        show(MintsPageState(home = home))
+        compose.onNode(hasContentDescription(text(DesignR.string.notes_trusted)), useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun anUntrustedHomeHasNoCheckAndIsNotReadAsTrusted() {
+        show(MintsPageState(home = home.copy(trusted = false)))
+        compose.onNode(hasContentDescription(text(DesignR.string.notes_trusted)), useUnmergedTree = true).assertDoesNotExist()
+        assertTrue(text(DesignR.string.notes_trusted) !in spoken("home.example"))
+    }
+
+    @Test
     fun anEmptyHomeSaysNothingOfNotes() {
         show(MintsPageState(home = card("home.example", home = true)))
         compose.onNodeWithText(plural(DesignR.plurals.notes_count, 0), substring = true).assertDoesNotExist()
-        assertEquals(readOut(text(R.string.settings_home_mint), "home.example", formatAmount(0)), spoken("home.example"))
+        assertEquals(
+            readOut(text(R.string.settings_home_mint), "home.example", formatAmount(0), text(DesignR.string.notes_trusted)),
+            spoken("home.example"),
+        )
     }
 
     private fun showLarge(state: MintsPageState) = compose.setContent {
@@ -311,22 +328,25 @@ class MintsScreenTest {
     }
 
     @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun aLongHostAndAHugeAmountAreShownWholeAtTwiceTheFontSize() {
         showLarge(MintsPageState(home = card("a-very-long-subdomain.of-a-mint.example", 2_100_000_000_000_000, notes = 9, home = true)))
         assertWhole(formatAmount(2_100_000_000_000_000))
     }
 
     @Test
-    fun anotherMintsHugeAmountIsWholeAndLeavesTheNameHalfTheRowAtTwiceTheFontSize() {
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun anotherMintsHugeAmountGoesWholeUnderTheNameAtTwiceTheFontSize() {
         showLarge(
             MintsPageState(home = home, others = listOf(card("a-very-long-subdomain.of-a-mint.example", 2_100_000_000_000_000, notes = 9)))
         )
         assertWhole(formatAmount(2_100_000_000_000_000))
         assertWhole("a-very-long-subdomain.of-a-mint.example")
-        // The amount gets smaller before it takes more than half the room beside the mark: the name keeps the other half.
-        val amount = compose.onNodeWithText(formatAmount(2_100_000_000_000_000), useUnmergedTree = true).fetchSemanticsNode().size.width
-        val root = compose.onRoot().fetchSemanticsNode().size.width
-        assertTrue("the amount is $amount of $root", amount <= root / 3)
+        // Too wide beside the name even at its smallest: it goes under the name rather than squeezing it or being cut.
+        // Positions, not bounds: the card runs past the screen's foot, where bounds are cut.
+        val amount = compose.onNodeWithText(formatAmount(2_100_000_000_000_000), useUnmergedTree = true).fetchSemanticsNode()
+        val name = compose.onNodeWithText("a-very-long-subdomain.of-a-mint.example", useUnmergedTree = true).fetchSemanticsNode()
+        assertTrue("the amount is under the name", amount.positionInRoot.y >= name.positionInRoot.y + name.size.height)
     }
 
     // Native graphics: text is measured as on a phone, so the amount's width is real.

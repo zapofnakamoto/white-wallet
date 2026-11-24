@@ -144,25 +144,29 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 ### Changed
 
 - One Mints page instead of two (Settings → Mints for the wallet, Account → Your mints for the account): the account's
-  home mint is a card on top, in the home notes' colour, with its money large, its notes and addresses, and "Change
-  home mint" inside (only where it can change: the brand lets users change it, and allows another mint). The wallet's
-  other mints follow as quieter cards with the account's money there, most first, ✓ when trusted; a mint the account
-  doesn't use says "Not used in this account". A mint whose signing key doesn't match turns its whole card the error
-  colour, the home card too, which stays on top with its button. The account mark in the top bar switches account, as
-  on Home. Settings and the account's page both lead there, the row saying "Home mint: mint.example" (or "No home
-  mint"); the wallet's page no longer has a Mints row, and Home's "N more mints" opens it too. A screen reader reads
-  each card as one ("Home mint" on the home's, the mint, its money, notes, "Trusted" for a ✓, then a key warning) and
-  "Open" as what a tap does; "Change home mint" stays its own button. An empty home says nothing of notes. An amount
-  too long for its place even at its smallest goes under the mint's name, on two lines if need be: it is never cut.
+  home mint is a card on top, in the home notes' colour, with ✓ when trusted as on the other cards, its money large,
+  its notes and addresses, and "Change home mint" inside (only where it can change: the brand lets users change it,
+  and allows another mint). The wallet's other mints follow as quieter cards with the account's money there, most
+  first, ✓ when trusted; a mint the account doesn't use says "Not used in this account". A mint whose signing key
+  doesn't match turns its whole card the error colour, the home card too, which stays on top with its button. The
+  account mark in the top bar switches account, as on Home. Settings and the account's page both lead there, the row
+  saying "Home mint: mint.example" (or "No home mint"); the wallet's page no longer has a Mints row, and Home's "N
+  more mints" opens it too. A screen reader reads each card as one ("Home mint" on the home's, the mint, its money,
+  notes, "Trusted" for a ✓, then a key warning) and "Open" as what a tap does; "Change home mint" stays its own
+  button. An empty home says nothing of notes. An amount too long for its place even at its smallest goes under the
+  mint's name, on two lines if need be: it is never cut.
 - A mint has one page, wherever it is opened: what the account has and can do there, a **Trusted** switch with what
-  trust means (notes from it carry a check) and why it is trusted by default, and Remove. Trust is changed there now,
-  not in a list; the switch is off without a signing key and can't change while the mint shows another one. Its top bar
-  has the account mark, as on the Mints page.
+  trust means (notes from it carry a check) and why it is trusted by default, and Remove. Removing a mint that is an
+  account's home says which accounts lose it ("Savings has it as its home mint…"), with Keep as the safe answer and
+  Remove anyway in red. Trust is changed there now, not in a list; the switch is off without a signing key and can't
+  change while the mint shows another one. Its top bar has the account mark, as on the Mints page.
 - A mint whose signing key doesn't match is marked the same way everywhere it is listed: Home, the mint pickers of Send
   and Receive, and the Mints page show a warning sign with "Signing key doesn't match".
 - For brands: `Page.Mints` is the one Mints page (`Empty` without any mint). New brand terms `settings_mints_no_home`
-  ("No home mint") and `mints_remove_in_use` (it names no mint, but its pronoun follows the brand's word); new strings
-  `mints_card_unused`, `mints_card_open` and `mints_card_read_separator`. `notes_count`, `notes_detail_separator` and
+  ("No home mint"), `mints_remove_in_use` (it names no mint, but its pronoun follows the brand's word),
+  `mints_remove_home_this` and `mints_remove_home_others`; `mints_remove_body` no longer says that an account loses its
+  home (the new terms say which); new strings `mints_card_unused`, `mints_card_open`, `mints_card_read_separator`,
+  `mints_remove_keep` and `mints_remove_anyway`. `notes_count`, `notes_detail_separator` and
   `notes_trusted` are in the design system now (a brand overrides them by name as before).
 - For developers: the account switcher (`AccountSwitcher`, `AccountActions`, `WalletAccountButton`) moved from
   `feature/home` to `core/designsystem`, with its strings (a brand overrides them by name as before), and with the new

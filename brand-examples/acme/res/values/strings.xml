@@ -219,6 +219,11 @@
     <string name="notes_collect_pending">Moving the banknotes from %1$s; they arrive shortly.</string>
     <string name="mints_remove_body">The app forgets it, its signing key and whether you trust it. Banknotes and history stay. If you add it again later, it\'s like the first time: the key it shows then is the one the app remembers.</string>
     <string name="mints_remove_in_use">Can\'t be removed while an account uses it: with money, an address or an unfinished payment there.</string>
+    <string name="mints_remove_home_this">It\'s this account\'s own provider: it has none until you choose another.</string>
+    <plurals name="mints_remove_home_others">
+        <item quantity="one">%1$s has it as its own provider, and has none until you choose another there.</item>
+        <item quantity="other">%1$s have it as their own provider, and have none until you choose another there.</item>
+    </plurals>
     <string name="claim_not_spendable">This link doesn\'t unlock the banknote it names, so it can\'t be claimed.</string>
     <string name="claim_other_paths">This banknote can also be spent another way, so someone else may take it before you claim it.</string>
     <plurals name="notice_combined_into_one">

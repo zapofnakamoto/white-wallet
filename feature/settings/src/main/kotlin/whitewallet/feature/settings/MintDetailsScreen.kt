@@ -1,5 +1,6 @@
 package whitewallet.feature.settings
 
+import android.icu.text.ListFormatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +48,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.AccountActions
 import whitewallet.core.designsystem.AccountSwitcher
 import whitewallet.core.designsystem.HostText
@@ -66,6 +68,7 @@ import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.screenLoaded
 import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.model.AccountChoice
+import whitewallet.core.model.AccountSummary
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.MintDetails
 import whitewallet.core.wallet.MintInfo
@@ -109,6 +112,8 @@ data class MintDetailsState(
     val keyAccepted: Boolean = false,
     /** Accepting the new key didn't go through: the mint didn't answer, or shows yet another key. Said once, like [keyAccepted]. */
     val keyNotAccepted: Boolean = false,
+    /** The other accounts of the wallet that have this mint as their home, by name: removing it leaves them without one. */
+    val homeOf: List<String> = emptyList(),
 )
 
 /**
@@ -169,6 +174,11 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
             }
         }
         viewModelScope.launch {
+            wallet.activeWalletAccounts.collect { accounts ->
+                whileShown { s -> s.copy(homeOf = homeOf(accounts, s.details?.host ?: requestedHost, shownAccount)) }
+            }
+        }
+        viewModelScope.launch {
             wallet.mints.collect { mints ->
                 whileShown { s -> s.copy(mint = mints.firstOrNull { it.host == (s.details?.host ?: requestedHost) }) }
             }
@@ -200,6 +210,7 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
             val keyChanged =
                 details.host in wallet.mintsWithChangedKey.first() || details.reachability == MintDetails.Reachability.KeyChanged
             val canChangeHome = canChangeHome(defaults, details)
+            val homeOf = homeOf(wallet.activeWalletAccounts.first(), details.host, accountId)
             val canReceive =
                 defaults.mintAllowed(details.host) &&
                     details.mint?.mintPubkey != null &&
@@ -220,10 +231,15 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
                     moneyElsewhere = moneyElsewhere,
                     keyChanged = keyChanged,
                     accounts = accounts,
+                    homeOf = homeOf,
                 )
             }
         }
     }
+
+    /** The names of the accounts in [accounts], [activeId]'s aside, that have [host] as their home. */
+    private fun homeOf(accounts: List<AccountSummary>, host: String?, activeId: String?) =
+        accounts.filter { it.account.id != activeId && it.account.homeHost == host }.map { it.account.name }
 
     /** Forgets this mint (see [Wallet.removeMint]); the page closes once it's gone. */
     fun remove() {
@@ -437,7 +453,7 @@ fun MintDetailsScreen(
                     }
                 },
             )
-            state.mint?.let { RemoveSection(it, state.removeRefused, state.removing, onRemove) }
+            state.mint?.let { RemoveSection(it, state.removeRefused, state.removing, details.isHome, state.homeOf, onRemove) }
         }
     }
     val accounts = state.accounts
@@ -586,10 +602,18 @@ private fun AccountSection(
 
 /**
  * Removing the mint from this wallet: only when nothing ties an account to it, after a confirmation. The question stays while it is
- * [removing] (the page closes once it's gone); a refusal closes it.
+ * [removing] (the page closes once it's gone); a refusal closes it. Where it is the home of this account ([home]) or of others ([homeOf]),
+ * the question says which lose their home, and keeping it is the way back.
  */
 @Composable
-private fun RemoveSection(mint: MintInfo, refused: MintUse?, removing: Boolean, onRemove: () -> Unit) {
+private fun RemoveSection(
+    mint: MintInfo,
+    refused: MintUse?,
+    removing: Boolean,
+    home: Boolean,
+    homeOf: List<String>,
+    onRemove: () -> Unit,
+) {
     var confirming by remember { mutableStateOf(false) }
     LaunchedEffect(removing) { if (!removing) confirming = false }
     HorizontalDivider()
@@ -618,18 +642,37 @@ private fun RemoveSection(mint: MintInfo, refused: MintUse?, removing: Boolean, 
             )
         }
     if (confirming) {
+        val leavesHome = home || homeOf.isNotEmpty()
         WalletDialog(
             onDismissRequest = { if (!removing) confirming = false },
             title = { Text(stringResource(R.string.mints_remove_title, mint.host)) },
-            text = { Text(stringResource(R.string.mints_remove_body)) },
-            confirmButton = {
-                WalletButton(kind = ButtonKind.Text, onClick = onRemove, busy = removing) {
-                    Text(stringResource(R.string.mints_remove_confirm))
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (home) Text(stringResource(R.string.mints_remove_home_this))
+                    if (homeOf.isNotEmpty())
+                        Text(
+                            pluralStringResource(
+                                R.plurals.mints_remove_home_others,
+                                homeOf.size,
+                                ListFormatter.getInstance().format(homeOf),
+                            )
+                        )
+                    Text(stringResource(R.string.mints_remove_body))
                 }
+            },
+            confirmButton = {
+                if (leavesHome)
+                    WalletButton(kind = ButtonKind.Text, onClick = onRemove, busy = removing, tone = Tone.Danger) {
+                        Text(stringResource(R.string.mints_remove_anyway))
+                    }
+                else
+                    WalletButton(kind = ButtonKind.Text, onClick = onRemove, busy = removing) {
+                        Text(stringResource(R.string.mints_remove_confirm))
+                    }
             },
             dismissButton = {
                 WalletButton(kind = ButtonKind.Text, onClick = { confirming = false }, enabled = !removing) {
-                    Text(stringResource(DesignR.string.cancel))
+                    Text(stringResource(if (leavesHome) R.string.mints_remove_keep else DesignR.string.cancel))
                 }
             },
         )

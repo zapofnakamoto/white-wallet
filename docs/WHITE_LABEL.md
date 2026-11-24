@@ -333,8 +333,10 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notes_collect_hint` | Notes you get elsewhere are moved here automatically, when the fees stay within your limit. Then the note strategy above applies to them too. |
 | `settings_notices_hint` | A short message when the wallet combined, split, renewed or moved your notes by itself. |
 | `notes_collect_pending` | Moving the notes from %1$s; they arrive shortly. |
-| `mints_remove_body` | This wallet forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it's like the first time: the key it shows then is the one the wallet remembers. An account that has it as its home mint has none until you choose another. |
+| `mints_remove_body` | This wallet forgets it, its signing key and whether you trust it. Notes and history stay. If you add it again later, it's like the first time: the key it shows then is the one the wallet remembers. |
 | `mints_remove_in_use` | Can't be removed while an account uses it: with money, an address or an unfinished payment there. |
+| `mints_remove_home_this` | It's this account's home mint: it has none until you choose another. |
+| `mints_remove_home_others` | %1$s has it as its home mint, and has none until you choose another there. / %1$s have it as their home mint, and have none until you choose another there. (plural) |
 | `notes_pay_from_others_first` | Pay from other mints first |
 | `notes_pay_from_others_first_hint` | Payments use notes on your other mints before those at %1$s, so your money gathers at your home mint. |
 | `notes_collect_confirm_body` | Turning this on moves your notes on other mints there now: |
