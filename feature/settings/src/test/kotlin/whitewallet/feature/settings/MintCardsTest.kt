@@ -91,6 +91,13 @@ class MintCardsTest {
     }
 
     @Test
+    fun `a mint the account still has notes on out of its balance is used, without money`() {
+        val card = mintCards(listOf(info("a.example")), emptyList(), emptySet(), holding = setOf("a.example")).single()
+        assertTrue(card.used)
+        assertEquals(0L, card.balanceMsat)
+    }
+
+    @Test
     fun `the home is used even when empty`() {
         assertTrue(
             mintCards(listOf(info("h.example", home = true)), listOf(held("h.example", 0, notes = 0, home = true)), emptySet())

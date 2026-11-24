@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.core.model.AccountChoice
+import whitewallet.core.model.NoteState
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.NoHome
 import whitewallet.core.wallet.Wallet
@@ -59,13 +60,13 @@ class MintsPageViewModel @Inject constructor(private val wallet: Wallet, private
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MintsPageState(custom = defaults.customMints, loaded = false))
 
     private fun forAccount(accountId: String?) =
-        combine(wallet.mints, wallet.accountMints, wallet.mintsWithChangedKey, wallet.noHome, wallet.accountChoice) {
+        combine(wallet.mints, wallet.accountMints, wallet.mintsWithChangedKey, wallet.noHome, accountWithNotes()) {
                 mints,
                 held,
                 changed,
                 noHome,
-                accounts ->
-                val cards = mintCards(mints, held, changed)
+                (accounts, holding) ->
+                val cards = mintCards(mints, held, changed, holding)
                 val home = cards.firstOrNull { it.isHome }
                 val known = cards.map { it.host }
                 MintsPageState(
@@ -80,6 +81,12 @@ class MintsPageViewModel @Inject constructor(private val wallet: Wallet, private
             }
             // A source still on the account before: not this account's page yet.
             .filter { it.accounts?.activeId == accountId }
+
+    /** The account mark, with the mints where that account has a note that isn't spent: read together, so both are the same account's. */
+    private fun accountWithNotes() =
+        combine(wallet.accountChoice, wallet.notes) { accounts, notes ->
+            accounts to notes.filter { it.state != NoteState.Spent }.map { it.host }.toSet()
+        }
 
     /** Makes [accountId] the account in use; the page then shows its mints and money. */
     fun switchAccount(accountId: String) {

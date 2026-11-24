@@ -466,6 +466,20 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun aKeyKnownNotToMatchKeepsTheSwitchOffEvenWhenTheMintDidntAnswerNow() {
+        // The lists mark it from what the wallet saw; the page says the same while the mint can't be asked.
+        compose.setContent {
+            MintDetailsScreen(
+                trustPage(info(default = TrustDefault.Home), MintDetails.Reachability.Unreachable).copy(keyChanged = true),
+                {},
+                {},
+            )
+        }
+        trustSwitch().assertIsOff().assertIsNotEnabled()
+        compose.onNodeWithText(text(R.string.mints_default_home)).assertDoesNotExist()
+    }
+
+    @Test
     fun aHomesDefaultTrustSaysAnAccountsHome() {
         compose.setContent { MintDetailsScreen(trustPage(info(default = TrustDefault.Home)), {}, {}) }
         compose.onNodeWithText(text(R.string.mints_default_home)).performScrollTo().assertExists()

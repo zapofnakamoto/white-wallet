@@ -37,6 +37,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.text.NumberFormat
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -97,6 +98,11 @@ data class MintDetailsState(
     val offline: Boolean = false,
     /** The account can receive here: the brand lets the mint hold money, and its signing key is the one pinned. */
     val canReceive: Boolean = false,
+    /**
+     * The mint's signing key doesn't match the pinned one: as the wallet last saw it ([Wallet.mintsWithChangedKey], what the lists show),
+     * or as it answered just now. Its trust can't change then, and it isn't shown trusted.
+     */
+    val keyChanged: Boolean = false,
     /** The account mark in the top bar, read with [host] and again with [details]: never one account's mark over another's money. */
     val accounts: AccountChoice? = null,
     /** The user just accepted the mint's new signing key: a short message says so, once. */
@@ -125,13 +131,22 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
     private val _state = MutableStateFlow(MintDetailsState())
     val state: StateFlow<MintDetailsState> = _state
 
+    /** The account the page's money, home and actions were read for: what changes live is taken only while it is still in use. */
+    @Volatile private var shownAccount: String? = null
+    private var refreshing: Job? = null
+
+    /** [change] to the page, unless another account is in use than the page shows: its refresh brings that account's page whole. */
+    private suspend fun whileShown(change: (MintDetailsState) -> MintDetailsState) {
+        if (wallet.activeAccount.first()?.account?.id == shownAccount) _state.update(change)
+    }
+
     init {
         refresh()
         // After a change of the home mint (see onChangeHome), back here: this page may be the old or the new home.
         viewModelScope.launch { wallet.homeHost.drop(1).collect { refresh() } }
         // Another account in use (its switcher is in the top bar): its money here, and its home.
         viewModelScope.launch { wallet.activeAccount.map { it?.account?.id }.distinctUntilChanged().drop(1).collect { refresh() } }
-        viewModelScope.launch { wallet.collectAtHome.collect { c -> _state.update { it.copy(collects = c) } } }
+        viewModelScope.launch { wallet.collectAtHome.collect { c -> whileShown { it.copy(collects = c) } } }
         viewModelScope.launch {
             wallet.followOffline { offline, back ->
                 _state.update { it.copy(offline = offline) }
@@ -142,12 +157,20 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
         }
         viewModelScope.launch {
             wallet.accountMints.collect { mints ->
-                _state.update { it.copy(moneyElsewhere = mints.any { m -> !m.isHome && m.balanceMsat > 0 }) }
+                whileShown { it.copy(moneyElsewhere = mints.any { m -> !m.isHome && m.balanceMsat > 0 }) }
+            }
+        }
+        viewModelScope.launch {
+            wallet.mintsWithChangedKey.collect { changed ->
+                whileShown { s ->
+                    val host = s.details?.host ?: return@whileShown s
+                    s.copy(keyChanged = host in changed || s.details.reachability == MintDetails.Reachability.KeyChanged)
+                }
             }
         }
         viewModelScope.launch {
             wallet.mints.collect { mints ->
-                _state.update { s -> s.copy(mint = mints.firstOrNull { it.host == (s.details?.host ?: requestedHost) }) }
+                whileShown { s -> s.copy(mint = mints.firstOrNull { it.host == (s.details?.host ?: requestedHost) }) }
             }
         }
     }
@@ -156,24 +179,38 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
         // Removing it clears the home of an account that had it: nothing to show again, the page closes.
         if (_state.value.removing || _state.value.removed) return
         _state.update { it.copy(loading = true) }
-        viewModelScope.launch {
+        // One at a time: an older one (another account's, or a home before it changed) never writes after this one.
+        refreshing?.cancel()
+        refreshing = viewModelScope.launch {
+            val accountId = wallet.activeAccount.first()?.account?.id
             val home = wallet.homeHost.first()
             val accounts = wallet.accountChoice.first()
-            val host = requestedHost ?: home ?: return@launch _state.update { it.copy(loading = false, accounts = accounts) }
-            // The mark comes with the title the first time; after a switch, only with the new account's money below.
-            _state.update { it.copy(host = host, home = host == home, accounts = it.accounts ?: accounts) }
+            val host = requestedHost ?: home
+            if (host == null) {
+                shownAccount = accountId
+                return@launch _state.update { it.copy(loading = false, accounts = accounts) }
+            }
+            // The title and the mark come together the first time; after a switch, they change only with the new account's page below.
+            if (_state.value.details == null) _state.update { it.copy(host = host, home = host == home, accounts = accounts) }
             val details = wallet.mintDetails(host)
             val mint = wallet.mints.first().firstOrNull { it.host == details.host }
             // Read here too, so the page shows with them: the collectors above may not have had their first value yet.
             val collects = wallet.collectAtHome.first()
             val moneyElsewhere = wallet.accountMints.first().any { !it.isHome && it.balanceMsat > 0 }
+            val keyChanged =
+                details.host in wallet.mintsWithChangedKey.first() || details.reachability == MintDetails.Reachability.KeyChanged
             val canChangeHome = canChangeHome(defaults, details)
             val canReceive =
                 defaults.mintAllowed(details.host) &&
                     details.mint?.mintPubkey != null &&
                     details.reachability != MintDetails.Reachability.KeyChanged
+            // Another account came into use meanwhile: its own refresh shows it.
+            if (wallet.activeAccount.first()?.account?.id != accountId) return@launch
+            shownAccount = accountId
             _state.update {
                 it.copy(
+                    host = host,
+                    home = host == home,
                     details = details,
                     loading = false,
                     mint = mint,
@@ -181,6 +218,7 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
                     canReceive = canReceive,
                     collects = collects,
                     moneyElsewhere = moneyElsewhere,
+                    keyChanged = keyChanged,
                     accounts = accounts,
                 )
             }
@@ -207,7 +245,7 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
     fun setTrusted(trusted: Boolean) {
         val s = _state.value
         val mint = s.mint ?: return
-        if (mint.pubkey == null || s.details?.reachability == MintDetails.Reachability.KeyChanged) return
+        if (mint.pubkey == null || s.keyChanged) return
         viewModelScope.launch {
             if (mint.host in wallet.mintsWithChangedKey.first()) return@launch
             wallet.setMintTrusted(mint.host, trusted)
@@ -352,7 +390,7 @@ fun MintDetailsScreen(
                 },
             )
             AccountSection(details, state, onChangeHome, onMoveMoney, onMoveAllHere, onSend, onReceive)
-            state.mint?.let { TrustSection(it, details.reachability == MintDetails.Reachability.KeyChanged, onTrusted) }
+            state.mint?.let { TrustSection(it, state.keyChanged || details.reachability == MintDetails.Reachability.KeyChanged, onTrusted) }
             details.mint?.let { mint ->
                 val base = mint.feeBaseMsat
                 val ppm = mint.feePpm

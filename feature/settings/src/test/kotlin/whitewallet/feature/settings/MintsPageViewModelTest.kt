@@ -148,4 +148,20 @@ class MintsPageViewModelTest {
         val many = MintsPageViewModel(wallet(maxAccounts = 5), AppDefaults(emptyList(), allowMintChange = true)).also { it.watch() }
         assertEquals(true, many.state.first { it.loaded }.accounts?.shown)
     }
+
+    @Test
+    fun `a mint where the account still has notes out of its balance is used, one with only spent notes is not`() = runTest {
+        twoAccounts()
+        val states =
+            listOf(NoteState.Shared, NoteState.SharedUnconfirmed, NoteState.Unknown, NoteState.Paying, NoteState.Ambiguous, NoteState.Spent)
+        for (st in states) {
+            val host = "${st.name.lowercase()}.example"
+            store.saveMint(mint(host))
+            store.upsertNotes(listOf(note("x-${st.name}", "a", host, 3_000).copy(state = st)))
+        }
+        val screen = MintsPageViewModel(wallet(), AppDefaults(emptyList(), allowMintChange = true))
+        screen.watch()
+        val used = screen.state.first { it.loaded }.others.associate { it.host to it.used }
+        for (st in states) assertEquals(st != NoteState.Spent, used["${st.name.lowercase()}.example"], "a note $st")
+    }
 }

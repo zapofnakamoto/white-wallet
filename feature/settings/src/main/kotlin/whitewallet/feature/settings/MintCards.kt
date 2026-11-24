@@ -16,17 +16,20 @@ data class MintCard(
     val trusted: Boolean,
     val keyChanged: Boolean,
     val answering: Boolean,
+    /** The account has notes there out of its balance (handed out, set aside, being paid, unsettled): not counted, but still its own. */
+    val holdsNotes: Boolean = false,
 ) {
     /** The account uses it: its home, or money, notes or an address there. Otherwise the card says it isn't used in this account. */
     val used: Boolean
-        get() = isHome || balanceMsat > 0 || noteCount > 0 || addresses > 0
+        get() = isHome || balanceMsat > 0 || noteCount > 0 || addresses > 0 || holdsNotes
 }
 
 /**
  * Every mint of the wallet ([mints]) and every one the account holds something on ([held]), once each: the home first, then the mints with
  * money, most first, then the rest; by host where that leaves a tie. Trust is the wallet's; money, notes and addresses the account's.
+ * [holding]: the mints where the account has a note that isn't spent, in its balance or not.
  */
-fun mintCards(mints: List<MintInfo>, held: List<AccountMint>, keyChanged: Set<String>): List<MintCard> {
+fun mintCards(mints: List<MintInfo>, held: List<AccountMint>, keyChanged: Set<String>, holding: Set<String> = emptySet()): List<MintCard> {
     val wallet = mints.associateBy { it.host }
     val account = held.associateBy { it.host }
     return (mints.map { it.host } + held.map { it.host })
@@ -44,6 +47,7 @@ fun mintCards(mints: List<MintInfo>, held: List<AccountMint>, keyChanged: Set<St
                 trusted = !changed && info?.trusted == true,
                 keyChanged = changed,
                 answering = mine?.answering ?: true,
+                holdsNotes = host in holding,
             )
         }
         .sortedWith(compareBy<MintCard>({ !it.isHome }, { -it.balanceMsat }, { it.host }))

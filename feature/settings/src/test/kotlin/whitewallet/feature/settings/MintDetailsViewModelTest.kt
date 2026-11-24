@@ -2,6 +2,7 @@ package whitewallet.feature.settings
 
 import androidx.lifecycle.SavedStateHandle
 import java.io.IOException
+import java.util.concurrent.CountDownLatch
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -21,6 +22,9 @@ import kotlinx.coroutines.test.setMain
 import okhttp3.Interceptor
 import whitewallet.core.model.Account
 import whitewallet.core.model.Mint
+import whitewallet.core.model.Note
+import whitewallet.core.model.NoteKind
+import whitewallet.core.model.NoteState
 import whitewallet.core.model.WalletRecord
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.InMemorySeedStore
@@ -34,7 +38,12 @@ import whitewallet.lnurlcash.client.LnurlcashClient
 class MintDetailsViewModelTest {
     private val store = InMemoryWalletStore()
     private val trust = MintTrustStore.InMemory()
-    private val silent = Interceptor { throw IOException("no answer") }
+    /** While set, no request gets its failure until it is released. */
+    @Volatile private var hold: CountDownLatch? = null
+    private val silent = Interceptor {
+        hold?.await()
+        throw IOException("no answer")
+    }
     private val wallet =
         Wallet(
             store,
@@ -82,6 +91,51 @@ class MintDetailsViewModelTest {
         screen.setTrusted(true)
         testScheduler.advanceUntilIdle()
         assertFalse(trusted("other.example"))
+    }
+
+    private fun note(id: String, account: String, host: String, msat: Long) =
+        Note(id, account, host, NoteKind.KeyPath, 0, id.hashCode().toLong() and 0xffff, msat, null, NoteState.Outstanding, 0)
+
+    @Test
+    fun `switching account on a mint's page never shows one account's home with another's money`() = runTest {
+        // A: at home on h1, money there. B: at home on h2, money on h3 (so "Move all money here" is B's, for h2).
+        store.saveWallet(WalletRecord("w", null, 0))
+        store.saveAccount(Account("a", "A", 0, walletId = "w", index = 0, homeHost = "h1.example"))
+        store.saveAccount(Account("b", "B", 1, walletId = "w", index = 1, homeHost = "h2.example"))
+        for (h in listOf("h1.example", "h2.example", "h3.example")) store.saveMint(
+            Mint("w", h, "https://$h/w", "02" + "ab".repeat(32), 1_000, 1_000_000_000, null, null)
+        )
+        store.upsertNotes(listOf(note("n1", "a", "h1.example", 5_000), note("n2", "b", "h3.example", 7_000)))
+        store.setActiveAccount("a")
+        val screen =
+            MintDetailsViewModel(wallet, SavedStateHandle(mapOf("host" to "h1.example")), AppDefaults(emptyList(), allowMintChange = true))
+        val seen = mutableListOf<MintDetailsState>()
+        CoroutineScope(Dispatchers.Unconfined).launch { screen.state.collect { seen += it } }
+        screen.state.first { it.details != null && !it.loading && it.accounts?.activeId == "a" }
+
+        // The mint takes its time to answer for B: what the page shows meanwhile is still all A's.
+        val latch = CountDownLatch(1).also { hold = it }
+        screen.switchAccount("b")
+        wallet.activeAccount.first { it?.account?.id == "b" }
+        testScheduler.advanceUntilIdle()
+        hold = null
+        latch.countDown()
+        screen.state.first { it.details != null && !it.loading && it.accounts?.activeId == "b" }
+
+        for (s in seen.filter { it.details != null }) {
+            when (s.accounts?.activeId) {
+                "a" -> assertTrue(s.details!!.isHome && s.home && !s.moneyElsewhere && s.details.balanceMsat == 5_000L, "A's page: $s")
+                "b" -> assertTrue(!s.details!!.isHome && !s.home && s.moneyElsewhere && s.details.balanceMsat == 0L, "B's page: $s")
+                else -> error("a page without its account: $s")
+            }
+        }
+    }
+
+    @Test
+    fun `a key the wallet saw not match is known to the page though the mint doesn't answer`() = runTest {
+        trust.setKeyChanged("w", "other.example", true)
+        val screen = page()
+        assertTrue(screen.state.first { it.details != null }.keyChanged)
     }
 
     @Test
