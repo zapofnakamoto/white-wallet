@@ -211,7 +211,9 @@ private fun MintsPreview() = MintsScreen(mintsState, onBack = {}, onOpen = {}, o
 
 @WalletPreviews @Composable private fun MintDetailsPreview() = MintDetailsScreen(mintDetailsState, onBack = {}, onRefresh = {})
 
-@WalletPreviews @Composable private fun AccountMintsPreview() = AccountMintsScreen(accountMints, onBack = {}, onOpen = {})
+@WalletPreviews
+@Composable
+private fun AccountMintsPreview() = AccountMintsScreen(accountMints, onBack = {}, onOpen = {}, onChangeHome = {})
 
 @WalletPreviews
 @Composable

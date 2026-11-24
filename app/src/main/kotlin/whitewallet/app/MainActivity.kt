@@ -689,6 +689,7 @@ private fun WalletApp(
                 onBack = { nav.popBackStack() },
                 onOpen = { host -> nav.navigate(Routes.mint(host)) },
                 onNoHome = { noHome -> nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) },
+                onChangeHome = { nav.navigate(Routes.changeMint(null)) },
             )
         }
         composable(Routes.MINTS) {

@@ -450,6 +450,19 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun theAccountsMintsOfferChangingItsHomeOnlyWhereItCanChange() {
+        val mints = listOf(AccountMint("home.example", isHome = true, balanceMsat = 21_000, noteCount = 2, addresses = 1, trusted = true))
+        var asked = 0
+        var change: (() -> Unit)? by mutableStateOf({ asked++ })
+        compose.setContent { AccountMintsScreen(mints, {}, {}, onChangeHome = change) }
+        compose.onNodeWithText(text(R.string.mint_change_home)).performClick()
+        assertEquals(1, asked)
+
+        change = null
+        compose.onNodeWithText(text(R.string.mint_change_home)).assertDoesNotExist()
+    }
+
+    @Test
     fun anAccountWithoutMintsSaysWhatIsMissingAndLeadsThere() {
         var asked: NoHome? = null
         var noHome by mutableStateOf(NoHome.NoMint)

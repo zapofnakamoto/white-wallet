@@ -142,6 +142,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- Changing an account's home mint is one level up: "Change home mint" is now on Your mints, below the account's
+  mints, where it was only on the home mint's own page before (still there too, as "Make this my home mint" is on
+  another mint's page). Only where it can change: the brand lets users change it, and allows another mint.
 - A note received from someone else whose mint answers 0 or `pending` for it (spent, or someone paying it out) is now
   spent for good, at the check as at the claim: its spend is dropped and it is never tried again, whatever becomes of
   that payment. A note two people try to spend isn't tried again. Notes kept that way by an older version, gone or archived
