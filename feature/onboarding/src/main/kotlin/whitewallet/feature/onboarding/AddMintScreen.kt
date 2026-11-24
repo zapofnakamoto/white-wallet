@@ -37,6 +37,7 @@ import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
@@ -161,6 +162,8 @@ private fun PickContent(state: AddMintState, actions: AddMintActions) {
 /** What the mint says about itself, before anything is saved: the user decides here. */
 @Composable
 private fun InfoContent(preview: MintPreview.Ready, state: AddMintState, actions: AddMintActions) {
+    // As the mint will show in its lists: in setup it becomes the home mint.
+    WalletMintMark(preview.host, home = state.setup, size = 40.dp)
     Text(preview.host, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
     preview.description?.let { Text(it, textAlign = TextAlign.Center) }
     // The wallet has it with another key: that is all there is to decide here, and leaving decides nothing.

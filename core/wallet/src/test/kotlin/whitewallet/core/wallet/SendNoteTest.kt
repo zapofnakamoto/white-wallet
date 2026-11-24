@@ -139,7 +139,10 @@ class SendNoteTest {
         withMint(strategy = SingleNoteStrategy.ID) {
             fund(40)
             val note = assertIs<CreateNoteResult.Created>(wallet.createNote(15_000)).note
-            assertEquals(ClaimPreview.OwnShared(note.id, 15_000, reachable = true, certified = true), wallet.previewClaim(note.link!!))
+            assertEquals(
+                ClaimPreview.OwnShared(note.id, 15_000, reachable = true, certified = true, note.host),
+                wallet.previewClaim(note.link!!),
+            )
             assertIs<ReclaimResult.Reclaimed>(wallet.reclaimNote(note.id))
             assertEquals(40_000, wallet.balanceMsat.first())
             wallet.refresh()

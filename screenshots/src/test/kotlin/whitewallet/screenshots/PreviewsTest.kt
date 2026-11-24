@@ -92,6 +92,7 @@ class PreviewsTest {
                 "NotesOutcomeFailedPreview",
                 "NoteSheetUnknownPreview",
                 "ArchiveRetryingPreview",
+                "MintPatternsPreview",
                 "OnboardingNetworkErrorPreview",
                 "OnboardingUsernameTakenPreview",
                 "RestoreAlreadyInWalletPreview",

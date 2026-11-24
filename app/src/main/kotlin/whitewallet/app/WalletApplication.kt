@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import whitewallet.core.designsystem.warmHostText
 import whitewallet.core.wallet.ReleaseNoteTracker
 
 @HiltAndroidApp
@@ -23,5 +24,6 @@ class WalletApplication : Application() {
         events.start()
         // Whether there was a wallet before this start, asked before onboarding can make one.
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { releaseNotes.start() }
+        CoroutineScope(Dispatchers.IO).launch { warmHostText(this@WalletApplication) }
     }
 }

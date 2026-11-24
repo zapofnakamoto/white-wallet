@@ -41,10 +41,19 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   paths it draws; Acme draws handed-out and set-aside notes faded, names a handed-out note's mint and fills a
   certified bill's seals; new brand term `notes_attention_offline_unnamed`, new strings `notes_attention_silent` and
   `notes_details_open`.
-- A bill whose amount the mint certified looks like a banknote: a foil stripe with engraved lines and a medal, and
-  soft waves under the amount (a small bill shows the stripe). A bill without a certificate stays plain, and still
-  says "Amount not certified" in words. For brands: `NoteFaceParams.certified`,
-  `NotePileParams.billsCertified`.
+- Every mint's bills have a design of their own, taken from its host alone, so the same on every phone and whatever
+  other mints the wallet has: a border (double, dashes, dots or zigzag), waves under the amount, and a seal low on the
+  right (a toothed circle, hexagon, diamond, square or star, around a rosette, spokes, rings or a double rosette); a
+  small bill shows the border. The same seal, ringed by the mint's border, is its mark beside its name wherever mints
+  are listed or picked: Home, Settings → Mints, an account's mints, a mint's page, the pickers of Send, Receive and
+  Change home mint, Add mint, Scan for notes, the notes view and Addresses. Two mints can share a design; their names
+  always tell them apart, and the part of a host that was registered is now bolder ("mint.**example**.com", public
+  suffixes like co.uk known), so a host that only looks like another stands out. A bill whose amount the mint
+  certified carries a foil stripe with engraved lines, at the mint's own angle; one without stays without, and still
+  says "Amount not certified" in words. For brands: `MintPattern` (`of(host)`, its traits and their enums: give a
+  `when` an `else`), the component `MintMark` with `MintMarkParams`, `NoteFaceParams.pattern`,
+  `NotePileParams.pattern`, `NoteGroupParams.pattern` and `colors` (the mark replaces `trustedIcon`, gone from both),
+  `NoteFaceParams.certified`, `NotePileParams.billsCertified`.
 - Every money moment ends on the same pair of screens: the success screen when it worked, else the result screen.
   Claiming a handed-out note yourself on its page (its QR code's) now ends on the success screen ("Claimed", "You can
   spend it again."), as from its link; too late, no answer, waiting for its mint and refused on the result screen, a

@@ -3,9 +3,12 @@ package whitewallet.core.designsystem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -21,8 +24,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import whitewallet.brand.ui.ButtonKind
 
-/** A mint [MintChoiceSheet] offers: its host, a line on what it has for this (money, an address), and whether it can be picked. */
-data class MintOption(val host: String, val detail: String?, val enabled: Boolean = true)
+/**
+ * A mint [MintChoiceSheet] offers: its host, whether it is the [home] mint (its mark's colours), a line on what it has for this (money, an
+ * address), and whether it can be picked.
+ */
+data class MintOption(val host: String, val home: Boolean, val detail: String?, val enabled: Boolean = true)
 
 /**
  * Which mint a payment or receive is on, said quietly with a way to pick another: "On mint.example.com · Change". [text] is the whole
@@ -60,9 +66,22 @@ fun MintChoiceSheet(
             Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp))
             // One choice: each row is a radio button to screen readers.
             Column(Modifier.selectableGroup()) {
-                automatic?.let { (name, line) -> Choice(name, line, selected == null, enabled = true) { onSelect(null) } }
+                // No mark for the wallet's own pick, but its room: the names stay in one column.
+                automatic?.let { (name, line) ->
+                    Choice({ Text(name) }, line, selected == null, enabled = true, mark = { Spacer(Modifier.size(MARK_SIZE)) }) {
+                        onSelect(null)
+                    }
+                }
                 options.forEach { option ->
-                    Choice(option.host, option.detail, selected == option.host, option.enabled) { onSelect(option.host) }
+                    Choice(
+                        { HostText(option.host) },
+                        option.detail,
+                        selected == option.host,
+                        option.enabled,
+                        mark = { WalletMintMark(option.host, option.home, size = MARK_SIZE) },
+                    ) {
+                        onSelect(option.host)
+                    }
                 }
             }
         }
@@ -70,10 +89,22 @@ fun MintChoiceSheet(
 }
 
 @Composable
-private fun Choice(name: String, line: String?, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun Choice(
+    name: @Composable () -> Unit,
+    line: String?,
+    selected: Boolean,
+    enabled: Boolean,
+    mark: @Composable () -> Unit,
+    onClick: () -> Unit,
+) {
     WalletListItem(
-        leadingContent = { WalletRadioButton(selected = selected, onClick = null, enabled = enabled) },
-        headlineContent = { Text(name) },
+        leadingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                WalletRadioButton(selected = selected, onClick = null, enabled = enabled)
+                mark()
+            }
+        },
+        headlineContent = name,
         supportingContent = line?.let { { Text(it) } },
         // One that can't be picked stays in the list, quieter: its line says why.
         modifier =
@@ -83,3 +114,5 @@ private fun Choice(name: String, line: String?, selected: Boolean, enabled: Bool
 }
 
 private const val DISABLED_ALPHA = 0.38f
+
+private val MARK_SIZE = 32.dp

@@ -13,6 +13,8 @@ dependencies {
     api(project(":core:brand-ui"))
     implementation(project(":core:model"))
     implementation(libs.zxing.core)
+    // The public suffix list, for the part of a host that tells it apart (HostText).
+    implementation(libs.okhttp)
     implementation(libs.androidx.activity.compose)
 
     // Component tests on the JVM: Compose UI tests under Robolectric, as in the feature modules.

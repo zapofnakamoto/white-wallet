@@ -47,6 +47,7 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ResultScreen
@@ -57,6 +58,7 @@ import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
@@ -108,6 +110,8 @@ data class MoneyMoveState(
     /** The mints the user knows (Settings → Mints) that can be picked (see [moveTargets]); a new one is added there first. */
     val targets: List<String> = emptyList(),
     val target: String? = null,
+    /** The account's home mint when the page opened: its mark's colours among [targets]. */
+    val home: String? = null,
     /** The wallet collects at its home mint: what's within the fee cap moves along, without a choice per mint. */
     val collects: Boolean = false,
     val preview: MovePreview? = null,
@@ -202,6 +206,7 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
                         from = from,
                         targets = targets,
                         target = target,
+                        home = home,
                         collects = collects,
                         canAddMint = canAdd,
                         loaded = true,
@@ -385,7 +390,7 @@ private fun PickContent(state: MoneyMoveState, actions: MoneyMoveActions) {
     else if (state.mode == MoneyMoveMode.Move)
         state.from?.let { Text(stringResource(R.string.money_move_from, it), textAlign = TextAlign.Center) }
     else Text(stringResource(R.string.money_change_body), textAlign = TextAlign.Center)
-    MintPicker(state.targets, state.target, state.busy, actions.onTarget)
+    MintPicker(state.targets, state.target, state.home, state.busy, actions.onTarget)
     state.error?.let { ErrorText(it) }
     if (state.offline) Text(stringResource(R.string.money_offline), textAlign = TextAlign.Center)
     PrimaryButton(stringResource(R.string.money_continue), actions.onReview, enabled = state.canContinue, busy = state.busy)
@@ -394,7 +399,7 @@ private fun PickContent(state: MoneyMoveState, actions: MoneyMoveActions) {
 /** The known mints to pick from; a new one is added on the Mints page first. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MintPicker(targets: List<String>, selected: String?, busy: Boolean, onSelect: (String) -> Unit) {
+private fun MintPicker(targets: List<String>, selected: String?, home: String?, busy: Boolean, onSelect: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { if (!busy) expanded = it }) {
         WalletTextField(
@@ -407,7 +412,7 @@ private fun MintPicker(targets: List<String>, selected: String?, busy: Boolean, 
             enabled = !busy,
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        DropdownMenuItems(expanded, targets, { expanded = false }) { host ->
+        DropdownMenuItems(expanded, targets, home, { expanded = false }) { host ->
             expanded = false
             onSelect(host)
         }
@@ -419,11 +424,18 @@ private fun MintPicker(targets: List<String>, selected: String?, busy: Boolean, 
 private fun androidx.compose.material3.ExposedDropdownMenuBoxScope.DropdownMenuItems(
     expanded: Boolean,
     targets: List<String>,
+    home: String?,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
     ExposedDropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        targets.forEach { host -> DropdownMenuItem(text = { Text(host) }, onClick = { onSelect(host) }) }
+        targets.forEach { host ->
+            DropdownMenuItem(
+                text = { HostText(host) },
+                onClick = { onSelect(host) },
+                leadingIcon = { WalletMintMark(host, host == home) },
+            )
+        }
     }
 }
 

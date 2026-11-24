@@ -213,6 +213,7 @@ internal fun SendFromSheet(mints: List<SendMint>, from: String?, amountMsat: Lon
             mints.map {
                 MintOption(
                     it.host,
+                    it.isHome,
                     mintDetail(it, amountMsat),
                     enabled = !it.keyChanged && (amountMsat == null || it.maxMsat >= amountMsat),
                 )

@@ -1,6 +1,8 @@
 package whitewallet.feature.onboarding
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -11,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -21,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ScreenColumn
@@ -28,6 +32,7 @@ import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
@@ -74,15 +79,22 @@ fun ScanScreen(state: ScanState, onBack: () -> Unit, onScan: () -> Unit) {
             Column(Modifier.fillMaxWidth()) {
                 state.mints.forEach { mint ->
                     val current = state.scanning && mint.host == state.host
-                    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                        Text(mint.host, style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            if (current) scanningText(state.progress) else scanStatus(mint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color =
-                                if (current || mint.scan == MintScan.Finished) MaterialTheme.colorScheme.onSurfaceVariant
-                                else MaterialTheme.colorScheme.error,
-                        )
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        WalletMintMark(mint.host, mint.isHome)
+                        Column {
+                            HostText(mint.host, style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                if (current) scanningText(state.progress) else scanStatus(mint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color =
+                                    if (current || mint.scan == MintScan.Finished) MaterialTheme.colorScheme.onSurfaceVariant
+                                    else MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }

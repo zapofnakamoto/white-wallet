@@ -100,7 +100,8 @@ private object AcmeComponents : BrandComponents {
      * A banknote: in the list a small bill beside the amount, on a note's own page the whole bill, with the provider as its issuer, the
      * amount as its denomination and the QR code (drawn by the app) in its middle. A bill out of the balance (being paid, unclear, set
      * aside, handed out) is printed faded; a handed-out one's row names its provider, as it has no heading above it. A certified bill's
-     * seals are filled. All bills share one palette ([NoteFaceParams.colors] is left unused). The app's texts are drawn as `Text`.
+     * seals are filled. All bills share one palette and one design ([NoteFaceParams.colors] and [NoteFaceParams.pattern] are left unused):
+     * Acme's provider is the issuer of every note. Its mints keep the default mark beside their names. The app's texts are drawn as `Text`.
      */
     @Composable
     override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {

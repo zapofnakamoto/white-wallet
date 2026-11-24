@@ -278,6 +278,7 @@ private fun ReadyCard(preview: ClaimPreview.Ready, state: ClaimState) {
                 place = NoteFacePlace.Claim,
                 // In the colour its mint's notes have on the notes view, once it is claimed.
                 colors = MaterialTheme.walletColors.note(homeMint = preview.link.host == state.home),
+                host = preview.link.host,
             )
             // Without showMints, only what needs the user: an amount that can't be verified, other spend paths, and the bearer warning.
             if (showMints) {
@@ -408,6 +409,7 @@ private fun OwnCard(preview: ClaimPreview.OwnShared) {
                 status = NoteStatus.Waiting,
                 certified = preview.certified,
                 place = NoteFacePlace.Claim,
+                host = preview.host,
             )
             Text(stringResource(R.string.claim_own_shared), style = MaterialTheme.typography.bodyMedium)
         }

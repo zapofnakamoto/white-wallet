@@ -76,15 +76,21 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -105,6 +111,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.math.tan
 import whitewallet.brand.ReleaseStage
 
 /**
@@ -174,6 +181,12 @@ interface BrandComponents {
 
     /** An account's mark: the first letter of its name on a colour of its own, so accounts tell apart at a glance. */
     @Composable fun AccountMark(params: AccountMarkParams, modifier: Modifier) = DefaultComponents.accountMark(params, modifier)
+
+    /**
+     * A mint's mark beside its name in lists and pickers: its seal in small ([MintPattern]), so the mint is recognised at a glance, as on
+     * its bills. Always decorative: the name beside it is what is read.
+     */
+    @Composable fun MintMark(params: MintMarkParams, modifier: Modifier) = DefaultComponents.mintMark(params, modifier)
 
     /** The app's release stage (alpha, beta) by its name, at setup and in About; never shown for a stable release. */
     @Composable fun ReleaseBadge(params: ReleaseBadgeParams, modifier: Modifier) = DefaultComponents.releaseBadge(params, modifier)
@@ -433,6 +446,16 @@ enum class NoteStatus {
     Unknown,
 }
 
+class MintMarkParams(
+    /** How the mint's bills are drawn: the mark is its seal ([MintPattern.sealShape], [MintPattern.sealMotif]) ringed by its border. */
+    val pattern: MintPattern,
+    /** Its bills' colours: the home mint's or the other mints' ([WalletColors.note]). */
+    val colors: NoteColors,
+    val home: Boolean,
+    /** The mark's diameter. */
+    val size: Dp,
+)
+
 class NoteFaceParams(
     val size: NoteFaceSize,
     /** The amount, formatted in the user's unit. */
@@ -469,10 +492,11 @@ class NoteFaceParams(
     val colors: NoteColors? = null,
     /**
      * Its mint's certificate for its amount verified (a certificate that doesn't verify is never kept). The default draws a certified bill
-     * like a banknote (a foil stripe, engraved lines, a medal) and another plain; the words for one that isn't ([statusText]) stay the
-     * app's.
+     * with a foil stripe and its engraving, and another without; the words for one that isn't ([statusText]) stay the app's.
      */
     val certified: Boolean,
+    /** How its mint's bills are drawn, also where mints aren't named ([mint] null): the default's border, waves and seal. */
+    val pattern: MintPattern,
 )
 
 /** Whether a note of this status counts in the balance: else a bill is drawn greyed out. */
@@ -499,14 +523,16 @@ class NotePileParams(
     val colors: NoteColors,
     val home: Boolean,
     val trusted: Boolean,
-    /** The mark of a trusted mint. */
-    val trustedIcon: Painter,
     /** The mark that says a tap opens the mint's notes (decorative). */
     val openIcon: Painter,
     /** Opens the mint's notes: make the whole pile clickable with it, inside the pile's own shape, so the ripple keeps its corners. */
     val onClick: () -> Unit,
     /** What a tap does, for screen readers ("Open this mint's notes"). */
     val onClickLabel: String,
+    /**
+     * How the mint's bills are drawn, also where mints aren't named ([mint] null); the default shows its [MintMark] beside a named mint.
+     */
+    val pattern: MintPattern,
 )
 
 class NoteGroupParams(
@@ -521,8 +547,10 @@ class NoteGroupParams(
      * [home], [trusted] and how many notes, in words ("Home mint · Trusted · 84 notes"), as on the pile; null when there's nothing to say.
      */
     val labels: String?,
-    /** The mark of a trusted mint. */
-    val trustedIcon: Painter,
+    /** How the mint's bills are drawn; the default shows its [MintMark] beside a named mint. */
+    val pattern: MintPattern,
+    /** Its bills' colours, for its mark. */
+    val colors: NoteColors,
 )
 
 class ActivityIconParams(
@@ -956,6 +984,7 @@ object DefaultComponents : BrandComponents {
                                 }
                                 Bill(
                                     params.billColors(),
+                                    params.pattern,
                                     Modifier.size(width = 48.dp, height = 26.dp),
                                     corner = 4.dp,
                                     frame = 3.dp,
@@ -974,6 +1003,7 @@ object DefaultComponents : BrandComponents {
                         val colors = params.billColors()
                         Bill(
                             colors,
+                            params.pattern,
                             Modifier.widthIn(max = 360.dp).fillMaxWidth().aspectRatio(2.04f),
                             corner = 14.dp,
                             frame = 10.dp,
@@ -985,14 +1015,14 @@ object DefaultComponents : BrandComponents {
                                 MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
                                 colors,
                                 Modifier.align(Alignment.TopStart)
-                                    .fillMaxWidth(billTextWidth(params.certified))
+                                    .fillMaxWidth(BILL_TEXT_WIDTH)
                                     .padding(start = 24.dp, top = 20.dp, end = 8.dp),
                             )
                             params.mint?.let {
                                 Text(
                                     it,
                                     Modifier.align(Alignment.BottomStart)
-                                        .fillMaxWidth(billTextWidth(params.certified))
+                                        .fillMaxWidth(BILL_TEXT_WIDTH)
                                         .padding(start = 24.dp, bottom = 20.dp, end = 8.dp),
                                     color = colors.ink,
                                     style = MaterialTheme.typography.bodyMedium,
@@ -1032,13 +1062,12 @@ object DefaultComponents : BrandComponents {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (params.trusted && params.mint != null)
-                            Icon(
-                                params.trustedIcon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp),
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Its mark, as beside its name in lists; "Trusted" is in its labels.
+                        if (params.mint != null)
+                            LocalBrandDesign.current.components.MintMark(
+                                MintMarkParams(params.pattern, params.colors, params.home, 24.dp),
+                                Modifier,
                             )
                         Text(
                             params.mint ?: params.labels,
@@ -1080,10 +1109,16 @@ object DefaultComponents : BrandComponents {
             ListRowParams(
                 headline = { Text(mint ?: params.total, style = MaterialTheme.typography.titleMedium) },
                 supporting = params.labels?.let { labels -> { Text(labels) } },
+                // Its mark, as beside its name in lists; "Trusted" is in its labels.
                 leading =
-                    if (params.trusted && mint != null)
-                        ({ Icon(params.trustedIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) })
-                    else null,
+                    mint?.let {
+                        {
+                            LocalBrandDesign.current.components.MintMark(
+                                MintMarkParams(params.pattern, params.colors, params.home, 32.dp),
+                                Modifier,
+                            )
+                        }
+                    },
                 trailing = mint?.let { { Text(params.total, style = MaterialTheme.typography.titleMedium) } },
             ),
             modifier,
@@ -1148,6 +1183,49 @@ object DefaultComponents : BrandComponents {
             }
             if (params.active) ActiveBadge(params.activeBadge, params.size * 0.45f)
         }
+    }
+
+    /**
+     * The mint's seal small: a disc in its bills' colour, ringed by its border style, the seal's outline and motif inside. Decorative: the
+     * mint's name sits beside it.
+     */
+    @Composable
+    fun mintMark(params: MintMarkParams, modifier: Modifier) {
+        val colors = params.colors
+        val pattern = params.pattern
+        Box(
+            modifier
+                .size(params.size)
+                .clearAndSetSemantics {}
+                .drawWithCache {
+                    val r = size.minDimension / 2
+                    val center = size.center
+                    val line = 1.dp.toPx()
+                    val ring = r - 2.dp.toPx()
+                    val bounds = Rect(center, ring)
+                    val step = maxOf(ring * 0.3f, 3.dp.toPx())
+                    val border: DrawScope.(Color) -> Unit =
+                        when (pattern.border) {
+                            BillBorder.Zigzag -> {
+                                val teeth = (2 * PI.toFloat() * ring / step).toInt().coerceAtLeast(8)
+                                val zigzag = star(center, ring, ring - step * 0.4f, teeth, 0f)
+                                ({ color -> drawPath(zigzag, color, style = Stroke(line, join = StrokeJoin.Round)) })
+                            }
+                            else -> borderLine(pattern.border, bounds, ring, step, line)
+                        }
+                    // The mark always waves the same: its size leaves no room to tell depths apart.
+                    val seal = Seal(pattern, center, 0.6f * r, depth = 0.3f)
+                    val stroke = Stroke(line)
+                    onDrawBehind {
+                        drawCircle(colors.paper)
+                        drawCircle(colors.ink.copy(alpha = 0.12f), style = Stroke(line))
+                        border(colors.ink.copy(alpha = 0.55f))
+                        drawPath(seal.outline, colors.ink.copy(alpha = 0.08f))
+                        drawPath(seal.outline, colors.ink.copy(alpha = 0.75f), style = stroke)
+                        seal.motif.forEach { drawPath(it, colors.ink.copy(alpha = 0.7f), style = stroke) }
+                    }
+                }
+        )
     }
 
     /** The type's icon on a circle tinted by where the money went; a small badge when the wallet did it by itself. */
@@ -1227,7 +1305,13 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
         val smallest = largest * 0.6f
         val shown = params.billsMsat.take(7)
         if (shown.isEmpty()) {
-            Bill(greyedBill(), Modifier.align(Alignment.CenterStart).size(smallest, smallest * 0.52f), corner = 8.dp, frame = 6.dp)
+            Bill(
+                greyedBill(),
+                params.pattern,
+                Modifier.align(Alignment.CenterStart).size(smallest, smallest * 0.52f),
+                corner = 8.dp,
+                frame = 6.dp,
+            )
             return@BoxWithConstraints
         }
         fun width(msat: Long) = smallest + (largest - smallest) * sqrt(msat.toFloat() / params.largestMsat.coerceAtLeast(1))
@@ -1239,6 +1323,7 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
             val h = w * 0.52f
             Bill(
                 if (r == 0) params.colors else tint,
+                params.pattern,
                 Modifier.offset(x = front - w + step * r, y = (maxHeight - h) / 2)
                     .size(w, h)
                     .rotate(
@@ -1260,7 +1345,7 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
                         MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         params.colors,
                         Modifier.align(Alignment.TopStart)
-                            .fillMaxWidth(billTextWidth(params.billsCertified.firstOrNull() ?: false))
+                            .fillMaxWidth(BILL_TEXT_WIDTH)
                             .padding(start = 14.dp, top = 12.dp, end = 6.dp)
                             .clearAndSetSemantics {},
                     )
@@ -1269,17 +1354,19 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
     }
 }
 
-/** How much of a bill's width its texts may take: a certified bill keeps the rest for its foil stripe. */
-private fun billTextWidth(certified: Boolean) = if (certified) 0.76f else 1f
+/** How much of a bill's width its texts may take: the rest is its seal's and its foil stripe's. */
+private const val BILL_TEXT_WIDTH = 0.76f
 
 /**
- * The default bill: the mint's colour with a dashed frame [frame] inside its edge; [content] holds its texts. A [certified] note's bill
- * carries the marks of a banknote: a foil stripe with fine engraved lines and a medal near its right edge, and soft waves under the amount;
- * a small bill only the stripe. Decorative: the texts it holds are what is read.
+ * The default bill: the mint's colour, and the mint's design ([pattern]) laid out on a bill 204 units wide and 100 high: its border just
+ * inside the edge ([frame] in), and on a bill wide enough to show them, three waves under the amount and the seal low on the right. A
+ * [certified] note's bill carries a foil stripe from 160 to 184 with engraved lines at the mint's angle. [content] holds its texts.
+ * Decorative: the texts it holds are what is read.
  */
 @Composable
 private fun Bill(
     colors: NoteColors,
+    pattern: MintPattern,
     modifier: Modifier,
     corner: Dp,
     frame: Dp,
@@ -1288,7 +1375,6 @@ private fun Bill(
     content: @Composable BoxScope.() -> Unit = {},
 ) {
     val shape = RoundedCornerShape(corner)
-    val line = colors.ink.copy(alpha = 0.35f)
     Box(
         modifier
             .shadow(elevation, shape)
@@ -1297,112 +1383,224 @@ private fun Bill(
             .border(1.dp, Color.Black.copy(alpha = 0.12f), shape)
             // Built once per size: a list scrolls many bills.
             .drawWithCache {
-                val marks = if (certified) certificateMarks(colors, detailed = size.width >= 100.dp.toPx()) else null
-                val inset = frame.toPx()
-                val dashes = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
-                val radius = CornerRadius((corner - frame / 2).coerceAtLeast(2.dp).toPx())
-                onDrawBehind {
-                    marks?.invoke(this)
-                    drawRoundRect(
-                        line,
-                        topLeft = Offset(inset, inset),
-                        size = Size(size.width - 2 * inset, size.height - 2 * inset),
-                        cornerRadius = radius,
-                        style = dashes,
-                    )
-                }
+                val marks = billMarks(colors, pattern, certified, frame, corner)
+                onDrawBehind { marks() }
             },
         content = content,
     )
 }
 
-/**
- * A certified bill's marks, laid out on a bill 204 units wide and 100 high: the foil stripe from 160 to 184 with engraved lines (three on a
- * small bill, six else), and when [detailed] the medal low on it and three soft waves under the amount. Built once, drawn by what it
- * returns.
- */
-private fun CacheDrawScope.certificateMarks(colors: NoteColors, detailed: Boolean): DrawScope.() -> Unit {
+/** The paths of [Bill], built once per size; a small bill builds no waves or seal. */
+private fun CacheDrawScope.billMarks(
+    colors: NoteColors,
+    pattern: MintPattern,
+    certified: Boolean,
+    frame: Dp,
+    corner: Dp,
+): DrawScope.() -> Unit {
     val ux = size.width / 204
     val uy = size.height / 100
     val u = minOf(ux, uy)
     val ink = colors.ink
+    val detailed = size.width >= 100.dp.toPx()
     val hairline = maxOf(0.45f * u, 0.5.dp.toPx())
+    val inset = frame.toPx()
+    val border =
+        borderLine(
+            pattern.border,
+            Rect(inset, inset, size.width - inset, size.height - inset),
+            (corner - frame / 2).coerceAtLeast(2.dp).toPx(),
+            step = maxOf(4 * u, 3.dp.toPx()),
+            width = if (detailed) 1.dp.toPx() else 0.75.dp.toPx(),
+        )
     val left = 160 * ux
     val right = 184 * ux
-    val foil =
-        Brush.linearGradient(
-            0f to ink.copy(alpha = 0.08f),
-            0.45f to ink.copy(alpha = 0.34f),
-            0.55f to ink.copy(alpha = 0.16f),
-            1f to ink.copy(alpha = 0.06f),
-            start = Offset(left, 0f),
-            end = Offset(left + 0.35f * (right - left), size.height),
-        )
-    val lines = if (detailed) 6 else 3
-    val engraving =
-        Path().apply {
-            for (k in 0 until lines) {
-                val x0 = left + (k + 0.5f) * (right - left) / lines
-                for (y in 0..100 step 2) {
-                    val x = x0 + 1.5f * ux * sin((y + k * 4) / 18f * 2 * PI.toFloat())
-                    if (y == 0) moveTo(x, 0f) else lineTo(x, y * uy)
+    val stripe =
+        if (!certified) null
+        else {
+            val foil =
+                Brush.linearGradient(
+                    0f to ink.copy(alpha = 0.08f),
+                    0.45f to ink.copy(alpha = 0.34f),
+                    0.55f to ink.copy(alpha = 0.16f),
+                    1f to ink.copy(alpha = 0.06f),
+                    start = Offset(left, 0f),
+                    end = Offset(left + 0.35f * (right - left), size.height),
+                )
+            val lines = if (detailed) 6 else 3
+            val lean = tan(pattern.engravingAngle * PI.toFloat() / 180) * size.height
+            val engraving =
+                Path().apply {
+                    // Past the stripe on both sides: leaning lines still cover it from edge to edge once clipped.
+                    for (k in -lines..2 * lines) {
+                        val x = left + (k + 0.5f) * (right - left) / lines
+                        moveTo(x - lean / 2, 0f)
+                        lineTo(x + lean / 2, size.height)
+                    }
                 }
+            val draw: DrawScope.() -> Unit = {
+                drawRect(foil, topLeft = Offset(left, 0f), size = Size(right - left, size.height))
+                clipRect(left, 0f, right, size.height) { drawPath(engraving, ink.copy(alpha = 0.3f), style = Stroke(hairline)) }
+                drawLine(ink.copy(alpha = 0.3f), Offset(left, 0f), Offset(left, size.height), hairline)
+                drawLine(ink.copy(alpha = 0.3f), Offset(right, 0f), Offset(right, size.height), hairline)
             }
+            draw
         }
-    // The medal and waves only where they are drawn: a small bill builds none of their paths.
+    // The waves and the seal only where they are drawn: a small bill builds none of their paths.
     val details: (DrawScope.() -> Unit)? =
         if (!detailed) null
         else {
             val waves =
                 Path().apply {
+                    val phase = pattern.wavePhase * 2 * PI.toFloat()
                     for (k in 0 until 3) {
                         for (x in 0..160 step 2) {
-                            val y = (60 + k * 6) * uy + 2.5f * u * sin((x + k * 7) / 40f * 2 * PI.toFloat())
+                            val t = 2 * PI.toFloat() * pattern.waveFrequency * x / 160 + phase + k * 0.7f
+                            val y = (58 + k * 7) * uy + 2.5f * u * sin(t)
                             if (x == 0) moveTo(0f, y) else lineTo(x * ux, y)
                         }
                     }
                 }
-            val center = Offset(172 * ux, 76 * uy)
-            val teeth = star(center, 12.5f * u, 10.8f * u, 28)
-            val rosette = rose(center, 5f * u, 1.6f * u, 10, 0f)
-            val inner = rose(center, 3.2f * u, 1f * u, 10, PI.toFloat() / 10)
-            val medal: DrawScope.() -> Unit = {
-                drawPath(waves, ink.copy(alpha = 0.18f), style = Stroke(hairline))
-                drawPath(teeth, colors.paper)
-                drawPath(teeth, ink.copy(alpha = 0.24f))
-                drawCircle(colors.paper, 8.4f * u, center)
-                drawCircle(ink.copy(alpha = 0.6f), 8.4f * u, center, style = Stroke(maxOf(0.7f * u, hairline)))
-                drawPath(rosette, ink.copy(alpha = 0.55f), style = Stroke(hairline))
-                drawPath(inner, ink.copy(alpha = 0.35f), style = Stroke(hairline * 0.9f))
+            val center = Offset(172 * ux, 74 * uy)
+            val seal = Seal(pattern, center, 15 * u, pattern.depth)
+            val sealLine = Stroke(maxOf(0.7f * u, hairline))
+            val draw: DrawScope.() -> Unit = {
+                drawPath(waves, ink.copy(alpha = 0.2f), style = Stroke(hairline))
+                drawPath(seal.outline, colors.paper)
+                drawPath(seal.outline, ink.copy(alpha = 0.6f), style = sealLine)
+                seal.motif.forEach { drawPath(it, ink.copy(alpha = 0.55f), style = sealLine) }
             }
-            medal
+            draw
         }
     return {
-        drawRect(foil, topLeft = Offset(left, 0f), size = Size(right - left, size.height))
-        drawLine(ink.copy(alpha = 0.3f), Offset(left, 0f), Offset(left, size.height), hairline)
-        drawLine(ink.copy(alpha = 0.3f), Offset(right, 0f), Offset(right, size.height), hairline)
-        drawPath(engraving, ink.copy(alpha = 0.3f), style = Stroke(hairline))
+        stripe?.invoke(this)
+        border(ink.copy(alpha = 0.4f))
         details?.invoke(this)
     }
 }
 
-/** A medal's toothed edge: [points] teeth between radius [outer] and [inner]. */
-private fun star(center: Offset, outer: Float, inner: Float, points: Int) =
+/**
+ * A mint's [border] style along [rect] (corners of [radius]); [step] is the distance between dots or zigzag points, [width] the line's.
+ * Returns what draws it in a colour.
+ */
+private fun CacheDrawScope.borderLine(border: BillBorder, rect: Rect, radius: Float, step: Float, width: Float): DrawScope.(Color) -> Unit {
+    val round = Path().apply { addRoundRect(RoundRect(rect, CornerRadius(radius))) }
+    return when (border) {
+        BillBorder.Double -> {
+            val gap = maxOf(width * 2.5f, 2.dp.toPx())
+            val inner = Path().apply { addRoundRect(RoundRect(rect.deflate(gap), CornerRadius((radius - gap).coerceAtLeast(1f)))) }
+            ({ color ->
+                drawPath(round, color, style = Stroke(width))
+                drawPath(inner, color.copy(alpha = color.alpha * 0.75f), style = Stroke(width * 0.75f))
+            })
+        }
+        BillBorder.Dots -> {
+            val dots = Stroke(width * 1.8f, cap = StrokeCap.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(0.01f, step * 1.6f)))
+            ({ color -> drawPath(round, color, style = dots) })
+        }
+        BillBorder.Zigzag -> {
+            val zigzag = zigzag(rect, step, amplitude = step * 0.45f)
+            ({ color -> drawPath(zigzag, color, style = Stroke(width, join = StrokeJoin.Round)) })
+        }
+        else -> {
+            val dashes = Stroke(width, pathEffect = PathEffect.dashPathEffect(floatArrayOf(step, step * 0.75f)))
+            ({ color -> drawPath(round, color, style = dashes) })
+        }
+    }
+}
+
+/** A zigzag around [rect]: points every [step], [amplitude] in and out, each side on its own so the corners stay sharp. */
+private fun zigzag(rect: Rect, step: Float, amplitude: Float) =
+    Path().apply {
+        fun side(from: Offset, to: Offset, inward: Offset) {
+            val length = (to - from).getDistance()
+            val n = maxOf(2, (length / step).toInt())
+            for (i in 0..n) {
+                val along = from + (to - from) * (i.toFloat() / n)
+                val p = along + inward * (if (i % 2 == 0) 0f else amplitude)
+                if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
+            }
+        }
+        side(rect.topLeft, rect.topRight, Offset(0f, 1f))
+        side(rect.topRight, rect.bottomRight, Offset(-1f, 0f))
+        side(rect.bottomRight, rect.bottomLeft, Offset(0f, -1f))
+        side(rect.bottomLeft, rect.topLeft, Offset(1f, 0f))
+    }
+
+/**
+ * A mint's seal ([MintPattern.sealShape] around its [MintPattern.sealMotif]) centred on [center], [radius] its outline's size, its rosette
+ * waving [depth] of its radius.
+ */
+private class Seal(pattern: MintPattern, center: Offset, radius: Float, depth: Float) {
+    val outline: Path
+    val motif: List<Path>
+
+    init {
+        val petals = pattern.petals
+        // Smooth at any size, without thousands of points on a small mark.
+        val segments = (radius * 2).toInt().coerceIn(48, 180)
+        outline =
+            when (pattern.sealShape) {
+                SealShape.Hexagon -> polygon(center, radius, 6, PI.toFloat() / 6)
+                SealShape.Diamond -> polygon(center, radius * 1.15f, 4, -PI.toFloat() / 2)
+                SealShape.Square -> polygon(center, radius * 1.1f, 4, PI.toFloat() / 4)
+                SealShape.Star -> star(center, radius * 1.2f, radius * 0.62f, 5, -PI.toFloat() / 2)
+                else -> star(center, radius, radius * 0.84f, 14 + petals, 0f)
+            }
+        // Inside a star's arms there is less room.
+        val r = radius * if (pattern.sealShape == SealShape.Star) 0.72f else 1f
+        motif =
+            when (pattern.sealMotif) {
+                SealMotif.Spokes ->
+                    listOf(
+                        Path().apply {
+                            for (i in 0 until petals) {
+                                val t = i * 2 * PI.toFloat() / petals
+                                moveTo(center.x + 0.16f * r * cos(t), center.y + 0.16f * r * sin(t))
+                                lineTo(center.x + 0.6f * r * cos(t), center.y + 0.6f * r * sin(t))
+                            }
+                        },
+                        rose(center, 0.62f * r, 0f, petals, 0f, segments),
+                    )
+                SealMotif.Rings -> listOf(0.2f, 0.4f, 0.6f).map { rose(center, it * r, 0f, petals, 0f, segments) }
+                SealMotif.DoubleRosette ->
+                    listOf(
+                        rose(center, 0.56f * r, 0.3f * 0.56f * r, petals, 0f, segments),
+                        rose(center, 0.3f * r, 0.4f * 0.3f * r, petals, PI.toFloat() / petals, segments),
+                    )
+                else -> listOf(rose(center, 0.48f * r, depth * 0.48f * r, petals, 0f, segments))
+            }
+    }
+}
+
+/** A regular polygon of [corners] corners on a circle of [radius], the first at angle [rotation]. */
+private fun polygon(center: Offset, radius: Float, corners: Int, rotation: Float) =
+    Path().apply {
+        for (i in 0 until corners) {
+            val t = rotation + i * 2 * PI.toFloat() / corners
+            if (i == 0) moveTo(center.x + radius * cos(t), center.y + radius * sin(t))
+            else lineTo(center.x + radius * cos(t), center.y + radius * sin(t))
+        }
+        close()
+    }
+
+/** A toothed edge or a star: [points] points between radius [outer] and [inner], the first at angle [rotation]. */
+private fun star(center: Offset, outer: Float, inner: Float, points: Int, rotation: Float) =
     Path().apply {
         for (i in 0 until 2 * points) {
             val r = if (i % 2 == 0) outer else inner
-            val t = i / (2f * points) * 2 * PI.toFloat()
+            val t = rotation + i / (2f * points) * 2 * PI.toFloat()
             val p = Offset(center.x + r * cos(t), center.y + r * sin(t))
             if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
         }
         close()
     }
 
-/** A rosette: a circle of radius [radius] waving [amplitude] in and out [petals] times. */
-private fun rose(center: Offset, radius: Float, amplitude: Float, petals: Int, phase: Float) =
+/** A rosette: a circle of radius [radius] waving [amplitude] in and out [petals] times ([amplitude] 0: a ring), in [segments] points. */
+private fun rose(center: Offset, radius: Float, amplitude: Float, petals: Int, phase: Float, segments: Int) =
     Path().apply {
-        for (i in 0..360) {
-            val t = i / 360f * 2 * PI.toFloat()
+        for (i in 0..segments) {
+            val t = i * 2 * PI.toFloat() / segments
             val r = radius + amplitude * cos(petals * t + phase)
             val p = Offset(center.x + r * cos(t), center.y + r * sin(t))
             if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)

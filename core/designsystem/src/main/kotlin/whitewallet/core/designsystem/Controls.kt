@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -37,6 +38,8 @@ import whitewallet.brand.ui.ListIconParams
 import whitewallet.brand.ui.ListIconSize
 import whitewallet.brand.ui.ListRowParams
 import whitewallet.brand.ui.LocalBrandDesign
+import whitewallet.brand.ui.MintMarkParams
+import whitewallet.brand.ui.MintPattern
 import whitewallet.brand.ui.MoneyDirection
 import whitewallet.brand.ui.NavigationBarParams
 import whitewallet.brand.ui.NavigationItem
@@ -56,6 +59,7 @@ import whitewallet.brand.ui.TextFieldParams
 import whitewallet.brand.ui.ToggleKind
 import whitewallet.brand.ui.ToggleParams
 import whitewallet.brand.ui.Tone
+import whitewallet.brand.ui.walletColors
 
 // The controls feature screens are built from. Each draws through the brand's components (whitewallet.brand.ui,
 // docs/WHITE_LABEL.md "Design"), so a brand restyles every screen at once; features never use Material's directly
@@ -239,8 +243,10 @@ fun WalletNoteFace(
     qrCovered: Boolean = false,
     colors: NoteColors? = null,
     certified: Boolean,
+    host: String,
 ) {
     val spoken = if (size == NoteFaceSize.Large) spokenAmount(amountMsat) else null
+    val pattern = remember(host) { MintPattern.of(host) }
     LocalBrandDesign.current.components.NoteFace(
         NoteFaceParams(
             size,
@@ -259,6 +265,7 @@ fun WalletNoteFace(
             qrCovered,
             colors,
             certified,
+            pattern,
         ),
         if (spoken != null) modifier.semantics { contentDescription = spoken } else modifier,
     )
@@ -266,10 +273,19 @@ fun WalletNoteFace(
 
 /**
  * The heading of a mint's page ([whitewallet.brand.ui.BrandComponents.NoteGroupHeader]): its name, total and labels; a heading for screen
- * readers when it names the [mint].
+ * readers when it names the [mint]. [host]: the mint's, for its pattern, also where [mint] isn't named.
  */
 @Composable
-fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted: Boolean, labels: String?, modifier: Modifier = Modifier) {
+fun WalletNoteGroupHeader(
+    mint: String?,
+    host: String,
+    totalMsat: Long,
+    home: Boolean,
+    trusted: Boolean,
+    labels: String?,
+    modifier: Modifier = Modifier,
+) {
+    val pattern = remember(host) { MintPattern.of(host) }
     LocalBrandDesign.current.components.NoteGroupHeader(
         NoteGroupParams(
             mint,
@@ -278,7 +294,8 @@ fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted
             home,
             trusted,
             labels,
-            trustedIcon = painterResource(R.drawable.ic_check_circle),
+            pattern,
+            colors = MaterialTheme.walletColors.note(home),
         ),
         if (mint != null) modifier.semantics(mergeDescendants = true) { heading() } else modifier,
     )
@@ -287,11 +304,12 @@ fun WalletNoteGroupHeader(mint: String?, totalMsat: Long, home: Boolean, trusted
 /**
  * One mint's notes as a pile of bills ([whitewallet.brand.ui.BrandComponents.NotePile]): [bills] are the amounts of the notes in the
  * balance, the biggest first, drawn to the scale of [largestMsat] (the biggest on any mint). Read out as one: the mint, its labels, total
- * and range.
+ * and range. [host]: the mint's, for its pattern, also where [mint] isn't named.
  */
 @Composable
 fun WalletNotePile(
     mint: String?,
+    host: String,
     labels: String,
     totalMsat: Long,
     range: String?,
@@ -306,6 +324,7 @@ fun WalletNotePile(
     modifier: Modifier = Modifier,
 ) {
     val shown = bills.take(7)
+    val pattern = remember(host) { MintPattern.of(host) }
     LocalBrandDesign.current.components.NotePile(
         NotePileParams(
             mint,
@@ -320,13 +339,23 @@ fun WalletNotePile(
             colors,
             home,
             trusted,
-            trustedIcon = painterResource(R.drawable.ic_check_circle),
             openIcon = painterResource(R.drawable.ic_chevron_end),
             onClick,
             onClickLabel,
+            pattern,
         ),
         modifier.semantics(mergeDescendants = true) {},
     )
+}
+
+/**
+ * The mark of the mint at [host] ([whitewallet.brand.ui.BrandComponents.MintMark]) beside its name: its seal, drawn from its host alone, in
+ * the [home] mint's or the other mints' colours. Decorative: the name says which mint it is.
+ */
+@Composable
+fun WalletMintMark(host: String, home: Boolean, modifier: Modifier = Modifier, size: Dp = 32.dp) {
+    val pattern = remember(host) { MintPattern.of(host) }
+    LocalBrandDesign.current.components.MintMark(MintMarkParams(pattern, MaterialTheme.walletColors.note(home), home, size), modifier)
 }
 
 /**

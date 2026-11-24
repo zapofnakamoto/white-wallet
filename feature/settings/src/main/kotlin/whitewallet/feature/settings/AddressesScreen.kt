@@ -50,6 +50,7 @@ import whitewallet.brand.ui.Page
 import whitewallet.brand.ui.Tone
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
 import whitewallet.core.designsystem.SensitiveClipboard
@@ -57,6 +58,7 @@ import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletDialog
+import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.pageLoaded
@@ -348,11 +350,14 @@ fun AddressesScreen(
                 state.message?.takeUnless { it.confirms }?.let { item { ProblemText(it) } }
                 state.byMint.forEach { (host, entries) ->
                     item(key = "host:$host") {
-                        Text(
-                            host,
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
-                        )
+                        Row(
+                            Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            WalletMintMark(host, host == state.homeHost)
+                            HostText(host, style = MaterialTheme.typography.titleSmall)
+                        }
                     }
                     items(entries, key = { it.address.address }) { entry -> AddressCard(entry, state, actions) }
                 }

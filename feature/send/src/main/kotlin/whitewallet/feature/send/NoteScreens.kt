@@ -454,6 +454,7 @@ fun SharedNoteScreen(
                     },
                 place = NoteFacePlace.Shared,
                 qrCovered = link != null && !qrShown,
+                host = note.host,
             )
             if (link != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -540,6 +541,7 @@ fun SharedNoteScreen(
                 statusText = if (note.certified) null else stringResource(R.string.note_uncertified),
                 qrCode = { QrCode(format.qr(checkNotNull(note.link)), description = qrDescription) },
                 place = NoteFacePlace.Paper,
+                host = note.host,
             )
             Text(stringResource(R.string.note_print_warning), textAlign = TextAlign.Center)
         }

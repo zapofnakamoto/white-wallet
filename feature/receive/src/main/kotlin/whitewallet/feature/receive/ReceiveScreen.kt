@@ -150,7 +150,7 @@ fun ReceiveScreen(
                 if (picking && state.canPickMint) {
                     MintChoiceSheet(
                         title = stringResource(R.string.receive_on_title),
-                        options = state.mints.map { MintOption(it.host, mintDetail(it), enabled = !it.keyChanged) },
+                        options = state.mints.map { MintOption(it.host, it.isHome, mintDetail(it), enabled = !it.keyChanged) },
                         selected = state.receivingHost,
                         onSelect = { host ->
                             picking = false

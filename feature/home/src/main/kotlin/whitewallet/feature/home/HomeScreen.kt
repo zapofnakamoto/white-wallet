@@ -109,6 +109,7 @@ import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletNavigationBar
 import whitewallet.core.designsystem.WalletSheet
 import whitewallet.core.designsystem.WalletSnackbarHost
@@ -1169,6 +1170,8 @@ private fun MintRow(
     val openLabel = stringResource(R.string.home_mint_open)
     Box {
         WalletListItem(
+            // The mark goes with the name: the row's actions slide in over both.
+            leadingContent = { WalletMintMark(mint.host, mint.isHome, Modifier.alpha(nameAlpha)) },
             headlineContent = { HostText(mint.host, Modifier.alpha(nameAlpha)) },
             supportingContent = note?.let { { Text(stringResource(it), Modifier.alpha(nameAlpha)) } },
             // Money that can't be spent for now: quieter than the rest.

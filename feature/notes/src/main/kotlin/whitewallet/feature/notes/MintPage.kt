@@ -95,6 +95,7 @@ private fun MintPageHeader(mint: MintNotes, state: NotesState, actions: NotesAct
             )
         WalletNoteGroupHeader(
             mint = mint.host.takeIf { state.showMints },
+            host = mint.host,
             totalMsat = mint.totalMsat,
             home = mint.isHome,
             trusted = mint.trusted && state.showMints,
@@ -188,6 +189,7 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
         statusIcon = noteStatusIcon(status),
         age = recentTime(note.updatedAtMillis),
         mint = note.host.takeIf { state.showMints },
+        host = note.host,
         trusted = state.mints.any { it.host == note.host && it.trusted },
         selected = selected,
         enabled = enabled && !state.busy,

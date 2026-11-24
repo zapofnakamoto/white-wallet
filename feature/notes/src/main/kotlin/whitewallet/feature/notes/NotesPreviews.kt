@@ -1,7 +1,25 @@
 package whitewallet.feature.notes
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import whitewallet.brand.ui.NoteFaceSize
+import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.PREVIEW_MILLIS
+import whitewallet.core.designsystem.WalletMintMark
+import whitewallet.core.designsystem.WalletNoteFace
 import whitewallet.core.designsystem.WalletPreviews
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -37,12 +55,21 @@ private fun received(id: String, host: String, msat: Long, state: ReceivedState)
         updatedAtMillis = PREVIEW_MILLIS,
     )
 
-/** Notes on the home mint and another one, a note handed out, and one received that waits to be claimed. */
+/**
+ * Notes on the home mint and another one (its biggest certified, drawn with the foil stripe), a note handed out, and one received that
+ * waits to be claimed.
+ */
 internal val notesState =
     NotesState(
         mints =
             listOf(
-                MintNotes(HOME, isHome = true, listOf(note("n1", HOME, 13_000_000), note("n2", HOME, 8_000_000)), trusted = true),
+                MintNotes(
+                    HOME,
+                    isHome = true,
+                    // Never verified in a preview: any certificate draws the stripe.
+                    listOf(note("n1", HOME, 13_000_000).copy(certificate = "preview"), note("n2", HOME, 8_000_000)),
+                    trusted = true,
+                ),
                 MintNotes(OTHER, isHome = false, listOf(note("n3", OTHER, 4_000_000)), trusted = true),
             ),
         shared = listOf(note("s1", HOME, 2_100_000, NoteState.Shared, NoteKind.Bearer)),
@@ -126,3 +153,32 @@ private fun NoteSheetUnknownPreview() =
 @WalletPreviews
 @Composable
 private fun ArchiveRetryingPreview() = ArchiveScreen(archiveState.copy(retrying = "r2"), ArchiveActions(), onBack = {})
+
+/**
+ * Five mints' bills and marks, which between them take every border, seal outline and motif: how a brand's bills tell mints apart. The
+ * first is the home mint's, certified.
+ */
+@WalletPreviews
+@Composable
+private fun MintPatternsPreview() =
+    Column(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        listOf("mint.example", "mint.heron.example", "mint.kestrel.example", "mint.alder.example", "notes.fjord.example").forEachIndexed {
+            i,
+            host ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                WalletMintMark(host, home = i == 0)
+                Text(host, style = MaterialTheme.typography.titleSmall)
+            }
+            WalletNoteFace(
+                size = NoteFaceSize.Large,
+                (i + 1) * 1_000_000L,
+                modifier = Modifier.fillMaxWidth(0.55f),
+                colors = MaterialTheme.walletColors.note(homeMint = i == 0),
+                certified = i == 0,
+                host = host,
+            )
+        }
+    }

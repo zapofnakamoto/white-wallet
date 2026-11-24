@@ -15,6 +15,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.GraphicsMode
 import sergio.sastre.composable.preview.scanner.android.AndroidPreviewInfo
 import sergio.sastre.composable.preview.scanner.core.preview.ComposablePreview
+import whitewallet.core.designsystem.warmHostText
 
 /** One image: a preview in one configuration, at one moment. */
 class Shot(val preview: ComposablePreview<AndroidPreviewInfo>, val millis: Long) {
@@ -46,6 +47,8 @@ class PreviewScreenshotTest(private val shot: Shot) {
         shot.preview.previewInfo.locale.ifEmpty { null }?.let { Locale.setDefault(Locale.forLanguageTag(it)) }
         RuntimeEnvironment.setQualifiers(qualifiers(shot.preview.previewInfo))
         RuntimeEnvironment.setFontScale(shot.preview.previewInfo.fontScale.takeIf { it > 0 } ?: 1f)
+        // Hosts show their distinctive part as in the app, which reads the public suffix list at its start.
+        warmHostText(RuntimeEnvironment.getApplication())
         // The clock moves only as far as the moment drawn, so endless animations (a brand's breathing mark) come out the same each time.
         compose.mainClock.autoAdvance = false
         compose.setContent { BrandFrame(BrandDesigns.design) { shot.preview() } }

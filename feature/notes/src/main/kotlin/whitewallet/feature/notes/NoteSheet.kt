@@ -79,6 +79,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 statusText = noteStatusText(noteStatus(note), handedOut = note.handedOut != null),
                 age = recentTime(note.updatedAtMillis),
                 mint = note.host.takeIf { state.showMints },
+                host = note.host,
                 trusted = state.openTrusted,
                 enabled = NotesViewModel.selectable(note) && !state.busy,
                 colors = MaterialTheme.walletColors.note(state.isHomeMint(note.host)),

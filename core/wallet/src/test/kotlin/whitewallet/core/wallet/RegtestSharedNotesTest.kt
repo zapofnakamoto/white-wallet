@@ -110,7 +110,7 @@ class RegtestSharedNotesTest {
 
             wire.offline = true
             assertEquals(
-                ClaimPreview.OwnShared(sent.id, 1_000_000, reachable = false, certified = true),
+                ClaimPreview.OwnShared(sent.id, 1_000_000, reachable = false, certified = true, sent.host),
                 alice.wallet.previewClaim(assertNotNull(sent.link)),
             )
 

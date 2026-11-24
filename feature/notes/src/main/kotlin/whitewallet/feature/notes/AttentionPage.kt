@@ -24,9 +24,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.walletColors
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.WalletLinearProgress
+import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletNoteFace
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.designsystem.showsWorking
@@ -64,7 +66,7 @@ internal fun AttentionPage(state: NotesState, actions: NotesActions, backArrow: 
         state.outcome?.takeIf { state.open == null }?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
         hosts.forEachIndexed { index, host ->
             // Named, each mint under its name; unnamed, still apart from the one before.
-            if (state.showMints) item(key = "mint $host") { Heading(host) }
+            if (state.showMints) item(key = "mint $host") { Heading(host, mark = { WalletMintMark(host, state.isHomeMint(host)) }) }
             else if (index > 0) item(key = "apart $host") { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             // Under its name, the line needn't name it again; without names, it says whose.
             if (host in state.silentMints)
@@ -105,13 +107,20 @@ internal fun AttentionPage(state: NotesState, actions: NotesActions, backArrow: 
     }
 }
 
+/** A section's heading; a mint's has its [mark] beside it. */
 @Composable
-private fun Heading(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleSmall,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp).semantics { heading() },
-    )
+private fun Heading(text: String, mark: (@Composable () -> Unit)? = null) {
+    Row(
+        Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // A mint's name with its distinctive part bolder, as in every list of mints.
+        if (mark != null) {
+            mark()
+            HostText(text, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall)
+        } else Text(text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
+    }
 }
 
 /** What is wrong with a mint itself; [onClick] leads to where the user can do something about it. */
@@ -143,6 +152,7 @@ private fun TroubledNoteRow(note: Note, state: NotesState, actions: NotesActions
         statusIcon = noteStatusIcon(status),
         age = recentTime(note.updatedAtMillis),
         mint = note.host.takeIf { state.showMints },
+        host = note.host,
         trusted = state.mints.any { it.host == note.host && it.trusted },
         // Drawn as on its mint's page: one its mint doesn't know as out of the balance.
         enabled = NotesViewModel.selectable(note) && !state.busy,

@@ -417,7 +417,7 @@ brand chooses every value, under names of its own.
 |---|---|---|
 | 1. Tokens | `res/` | colour roles, fonts, text sizes, corners, spacing |
 | 2. Theme | `code/`: `BrandDesign.Theme` | change any token, or add CompositionLocals of the brand's own |
-| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, short messages (`Snackbar`), toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the cover over a secret one (`QrCodeCover`), the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status, and the wallets, where the one in use carries `activeBadge` as the account in use does on its `AccountMark`), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`, `NotePile`) and the release stage's badge (`ReleaseBadge`) look |
+| 3. Components | `code/`: `BrandDesign.components` | how buttons, fields, rows, cards, dialogs, sheets, short messages (`Snackbar`), toggles, chips, progress, the tab bar, the top bar, amounts, QR codes and the cover over a secret one (`QrCodeCover`), the icons of History entries (`ActivityIcon`: type, direction, automatic), the marks of list rows (`ListIcon`: settings pages, a note's status, and the wallets, where the one in use carries `activeBadge` as the account in use does on its `AccountMark`), accounts' marks (`AccountMark`: the first letter of the name on a colour by the account's place), notes (`NoteFace`, `NoteGroupHeader`, `NotePile`), a mint's mark beside its name (`MintMark`) and the release stage's badge (`ReleaseBadge`) look |
 | 4. Decorations | `code/`: `BrandDesign.Decoration` | the brand's own content at named places (a logo, a mascot, a wordmark), knowing the app's name and release stage |
 | 5. Status and events | `code/`: `WalletStatus`, `WalletEvent` | what a screen is about and what just happened, to show or react to |
 | 6. Screens | `code/`: `BrandScreen` | pages of the brand's own, reached from Settings, the wallet's menu or right after setup |
@@ -440,7 +440,7 @@ like and point the roles at them:
 | Tokens | Names |
 |---|---|
 | Colour roles (Material 3) | `brand_primary`, `brand_on_primary`, `brand_primary_container`, `brand_on_primary_container`, `brand_inverse_primary`, `brand_secondary` …, `brand_tertiary` …, `brand_background`, `brand_on_background`, `brand_surface`, `brand_on_surface`, `brand_surface_variant`, `brand_on_surface_variant`, `brand_surface_container{_lowest,_low,,_high,_highest}`, `brand_surface_dim`, `brand_surface_bright`, `brand_surface_tint`, `brand_inverse_surface`, `brand_inverse_on_surface`, `brand_error` …, `brand_outline`, `brand_outline_variant`, `brand_scrim` |
-| Wallet roles | `brand_incoming`, `brand_outgoing` (history amounts), `brand_success`, `brand_warning`, `brand_warning_container`, `brand_on_warning_container` (notices), `brand_amount` (the balance), `brand_note_color_home_mint` with `brand_note_text_color_home_mint` (the home mint's bills in the notes view; default primary, on_primary), `brand_note_color_other_mints` with `brand_note_text_color_other_mints` (every other mint's bills; default secondary, on_secondary; mints are told apart by name, not colour) |
+| Wallet roles | `brand_incoming`, `brand_outgoing` (history amounts), `brand_success`, `brand_warning`, `brand_warning_container`, `brand_on_warning_container` (notices), `brand_amount` (the balance), `brand_note_color_home_mint` with `brand_note_text_color_home_mint` (the home mint's bills in the notes view; default primary, on_primary), `brand_note_color_other_mints` with `brand_note_text_color_other_mints` (every other mint's bills; default secondary, on_secondary; mints are told apart by name and their bills' design, `MintPattern`, not colour) |
 | Fonts | `font/brand_font_display`, `_headline`, `_title`, `_body`, `_label`: a font file or a font-family XML (several weights). Headline falls back to display; title and label to body; any unset group to the system font |
 | Text styles | `brand_text_<style>_size`, `_line_height` (sp) and `brand_text_<style>_weight` (integer), for Material's 15 styles (`display_large` … `label_small`); 0 keeps Material's |
 | Shapes | `brand_corner_extra_small`, `_small`, `_medium`, `_large`, `_extra_large`; -1dp keeps Material's |
@@ -492,15 +492,26 @@ and the CHANGELOG says so for each.
   `Spent`, `TakenBack`, `Unknown`; give a `when` an `else`), its words and mark, the age, the mint (null with
   `mints.visible=false`), whether it is trusted, `selected` while the user selects (null otherwise) and `colors`, its
   mint's bill colours (`WalletColors.homeMintNote` or `otherMintsNote`; a status out of the balance, `!status.inBalance`, is drawn greyed out by
-  default), and `certified` when its mint's certificate for its amount verified (a certificate that
-  doesn't verify is never kept; the default draws a certified bill like a banknote, with a foil stripe, engraved lines and a medal, and the
-  words for an uncertified one stay the app's). The notes view shows each mint as a pile of its bills, swiped through: `NotePile(params, modifier)` draws
+  default), `certified` when its mint's certificate for its amount verified (a certificate that
+  doesn't verify is never kept; the default draws a foil stripe with engraved lines on a certified bill, and the
+  words for an uncertified one stay the app's), and `pattern`, its mint's design (below). The notes view shows each mint as a pile of its bills, swiped through: `NotePile(params, modifier)` draws
   one (the top bills, biggest first, formatted and in msat, `largestMsat` to draw every mint's bills to one scale, the
   mint, its `labels` with the count, total, `range`, `colors` and `billsCertified`, whether each bill is certified); keep every mint's pile the same height, so swiping
   doesn't move the page. The default is a card with the bills fanned out. Make the whole pile clickable with
   `onClick` and `onClickLabel` inside its own shape (so the ripple keeps its corners); what a tap does (it opens the
   mint's page) and the swiping, arrows and dots stay the app's. `NoteGroupHeader`
-  heads that page: the mint (null with `mints.visible=false`), its total and labels (home, trusted, how many notes, in the pile's order). The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
+  heads that page: the mint (null with `mints.visible=false`), its total and labels (home, trusted, how many notes, in the pile's order), its
+  `pattern` and `colors`; by default with the mint's mark.
+- **A mint's design:** `MintPattern.of(host)` gives each mint a design from its host alone, the same on every phone:
+  `border` (`BillBorder`), `waveFrequency` and `wavePhase`, `engravingAngle` (of a certified bill's stripe), and its
+  seal, `sealShape` (`SealShape`) around `sealMotif` (`SealMotif`) with `petals` and `depth`. New values may come: give
+  a `when` an `else`. It reaches `NoteFace`, `NotePile` and `NoteGroupHeader` as `params.pattern`, also with
+  `mints.visible=false`. The default bills draw all of it; a brand may use only some traits, or none, but if it draws
+  a seal, keep its outline and motif, which tell mints apart most. `MintMark(params, modifier)` draws the mint's mark
+  beside its name in every list and picker of mints, and on the pile and a mint's page: by default the seal on a disc
+  in the mint's bill colour (`params.colors`), ringed by its border, at `params.size`; decorative, the name beside it
+  is what is read. Two mints can share a design, and a host can be picked to match another's: the name identifies the
+  mint (the app shows its registered part bolder), the design only helps recognise it. Never present it as a check. The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
   confirmations and the bearer warning, and on a large face the status, age and mint in words below it. Draw the
   texts you are given with `Text`, so screen readers read them. The defaults draw a bill in the mint's colour beside the row
   (and the checkbox), the bill alone on a note's details and the claim preview (the amount as on the wallet tab where

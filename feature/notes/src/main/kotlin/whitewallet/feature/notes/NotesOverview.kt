@@ -233,6 +233,7 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
             )
         WalletNotePile(
             mint = mint.host.takeIf { state.showMints },
+            host = mint.host,
             labels = labels.joinToString(stringResource(R.string.notes_detail_separator)),
             totalMsat = mint.totalMsat,
             range = range,
@@ -391,6 +392,7 @@ private fun SharedRow(note: Note, showMints: Boolean, onOpen: (String) -> Unit) 
         certified = note.certificate != null,
         age = recentTime(note.updatedAtMillis),
         mint = note.host.takeIf { showMints },
+        host = note.host,
         place = NoteFacePlace.Shared,
     )
 }
@@ -411,6 +413,7 @@ private fun HandedOutUnknownRow(note: Note, showMints: Boolean, onOpen: (Note) -
         statusIcon = noteStatusIcon(NoteStatus.Unknown),
         age = recentTime(note.updatedAtMillis),
         mint = note.host.takeIf { showMints },
+        host = note.host,
         place = NoteFacePlace.Shared,
     )
 }

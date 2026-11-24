@@ -19,11 +19,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -41,12 +44,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
+import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.KeyChangedCard
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCircularProgress
 import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletListItem
+import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
@@ -80,6 +85,8 @@ data class MintDetailsState(
     val moneyElsewhere: Boolean = false,
     /** The mint the page is about, known before it is asked anything: the page's title from the start. */
     val host: String? = null,
+    /** [host] is the active account's home mint: its mark's colours. Read with [host], so the title never changes colour. */
+    val home: Boolean = false,
     /** The phone is offline: a mint that couldn't be asked isn't said not to answer. */
     val offline: Boolean = false,
     /** The account can receive here: the brand lets the mint hold money, and its signing key is the one pinned. */
@@ -106,7 +113,8 @@ class MintDetailsViewModel
 constructor(private val wallet: Wallet, savedState: SavedStateHandle, private val defaults: AppDefaults) : ViewModel() {
     /** The mint to show: the route's `host`, else the active account's home mint. */
     private val requestedHost: String? = savedState.get<String>("host")
-    private val _state = MutableStateFlow(MintDetailsState(host = requestedHost, device = savedState.get<Boolean>("device") ?: false))
+    // The host comes with whether it is home (a moment, from the phone), so the title is drawn once.
+    private val _state = MutableStateFlow(MintDetailsState(device = savedState.get<Boolean>("device") ?: false))
     val state: StateFlow<MintDetailsState> = _state
 
     init {
@@ -139,8 +147,9 @@ constructor(private val wallet: Wallet, savedState: SavedStateHandle, private va
         if (_state.value.removing || _state.value.removed) return
         _state.update { it.copy(loading = true) }
         viewModelScope.launch {
-            val host = requestedHost ?: wallet.homeHost.first() ?: return@launch _state.update { it.copy(loading = false) }
-            _state.update { it.copy(host = host) }
+            val home = wallet.homeHost.first()
+            val host = requestedHost ?: home ?: return@launch _state.update { it.copy(loading = false) }
+            _state.update { it.copy(host = host, home = host == home) }
             val details = wallet.mintDetails(host)
             val mint = wallet.mints.first().firstOrNull { it.host == details.host }
             // Read here too, so the page shows with them: the collectors above may not have had their first value yet.
@@ -259,7 +268,22 @@ fun MintDetailsScreen(
     // Which mint it is (the account's home, read from the phone) isn't known yet (a moment): nothing, not a title that changes.
     if (!screenLoaded(details != null || state.host != null || !state.loading)) return
     Scaffold(
-        topBar = { WalletTopBar(details?.host ?: state.host ?: stringResource(R.string.mint_title), onBack) },
+        topBar = {
+            val host = details?.host ?: state.host
+            if (host == null) WalletTopBar(stringResource(R.string.mint_title), onBack)
+            else
+                WalletTopBar(
+                    title = {
+                        // The mark beside the name, as in the lists that open this page.
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            WalletMintMark(host, state.home)
+                            HostText(host, Modifier.semantics { heading() })
+                        }
+                    },
+                    onBack = onBack,
+                    actions = {},
+                )
+        },
         snackbarHost = { WalletSnackbarHost(snackbars) },
     ) { padding ->
         // The mint is asked what it is: nothing of it before it answers.
