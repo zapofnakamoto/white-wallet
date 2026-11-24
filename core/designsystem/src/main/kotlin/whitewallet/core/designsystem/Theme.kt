@@ -101,13 +101,13 @@ internal object BrandTokens {
                         amount = res.role(R.color.brand_amount) ?: amount,
                         homeMintNote =
                             NoteColors(
-                                res.role(R.color.brand_home_mint_note_color) ?: homeMintNote.paper,
-                                res.role(R.color.brand_home_mint_note_text_color) ?: homeMintNote.ink,
+                                res.role(R.color.brand_note_color_home_mint) ?: homeMintNote.paper,
+                                res.role(R.color.brand_note_text_color_home_mint) ?: homeMintNote.ink,
                             ),
                         otherMintsNote =
                             NoteColors(
-                                res.role(R.color.brand_other_mints_note_color) ?: otherMintsNote.paper,
-                                res.role(R.color.brand_other_mints_note_text_color) ?: otherMintsNote.ink,
+                                res.role(R.color.brand_note_color_other_mints) ?: otherMintsNote.paper,
+                                res.role(R.color.brand_note_text_color_other_mints) ?: otherMintsNote.ink,
                             ),
                     )
                 },

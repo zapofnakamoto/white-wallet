@@ -17,7 +17,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   it as a large bill. Money outside the balance sits apart under "Not in your balance": received links (opened by a
   tap; already open when the view opens while one needs you), handed-out notes (a closed row) and the archive. Note settings moved from
   the top bar to a row at the bottom. For brands: the component `NotePile`, `NoteFaceParams.colors`, the colour roles
-  `brand_home_mint_note_color` and `brand_other_mints_note_color` with their `*_text_color`, `NoteGroupHeader` now heads a mint's page (no
+  `brand_note_color_home_mint` and `brand_note_color_other_mints` with their `brand_note_text_color_*`, `NoteGroupHeader` now heads a mint's page (no
   divider); new strings `notes_attention_*`, `notes_outside_title`, `notes_range`, `notes_mint_*`, `notes_section_*`.
 - The notes view, after a review: a note handed out while its mint doesn't know it no longer shows "No notes yet"
   beside it, and its row names its mint; Received counts only the links its amount sums; offline, the page of what
