@@ -57,11 +57,11 @@ import whitewallet.core.wallet.NoteAction
  * first. Sorting and selecting are here; Back leads to all mints.
  */
 @Composable
-internal fun MintPage(mint: MintNotes, state: NotesState, actions: NotesActions) {
+internal fun MintPage(mint: MintNotes, state: NotesState, actions: NotesActions, backArrow: Boolean) {
     val working = showsWorking(state.busy)
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize()) {
-            item(key = "header") { MintPageHeader(mint, state, actions) }
+            item(key = "header") { MintPageHeader(mint, state, actions, backArrow) }
             if (working) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
             state.outcome
                 ?.takeIf { state.open == null }
@@ -80,17 +80,18 @@ internal fun MintPage(mint: MintNotes, state: NotesState, actions: NotesActions)
  * When collecting at the home mint left its notes here, why, and Move anyway.
  */
 @Composable
-private fun MintPageHeader(mint: MintNotes, state: NotesState, actions: NotesActions) {
+private fun MintPageHeader(mint: MintNotes, state: NotesState, actions: NotesActions, backArrow: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = actions.closeMint) {
-            Icon(painterResource(DesignR.drawable.ic_arrow_back), contentDescription = stringResource(DesignR.string.back))
-        }
+        if (backArrow)
+            IconButton(onClick = actions.closeMint) {
+                Icon(painterResource(DesignR.drawable.ic_arrow_back), contentDescription = stringResource(DesignR.string.back))
+            }
         val labels =
             listOfNotNull(
                 // In the balance, as the total and the pile count them; the others say so on their rows.
-                pluralStringResource(R.plurals.notes_count, mint.inBalance.size, mint.inBalance.size),
                 stringResource(R.string.notes_home_mint).takeIf { mint.isHome && state.showMints },
                 stringResource(R.string.notes_trusted).takeIf { mint.trusted && state.showMints },
+                pluralStringResource(R.plurals.notes_count, mint.inBalance.size, mint.inBalance.size),
             )
         WalletNoteGroupHeader(
             mint = mint.host.takeIf { state.showMints },

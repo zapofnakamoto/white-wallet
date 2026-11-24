@@ -301,6 +301,8 @@ fun WalletNotePile(
     colors: NoteColors,
     home: Boolean,
     trusted: Boolean,
+    onClick: () -> Unit,
+    onClickLabel: String,
     modifier: Modifier = Modifier,
 ) {
     val shown = bills.take(7)
@@ -320,6 +322,8 @@ fun WalletNotePile(
             trusted,
             trustedIcon = painterResource(R.drawable.ic_check_circle),
             openIcon = painterResource(R.drawable.ic_chevron_end),
+            onClick,
+            onClickLabel,
         ),
         modifier.semantics(mergeDescendants = true) {},
     )

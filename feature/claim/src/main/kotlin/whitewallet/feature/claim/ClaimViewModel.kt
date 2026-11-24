@@ -48,6 +48,8 @@ data class ClaimState(
     val home: String? = null,
     /** The phone is offline: a note that can't be claimed is said to wait for the connection, not for its mint. */
     val offline: Boolean = false,
+    /** The mints the notes view shows notes on: a received note's bill takes the colour its mint has there ([noteColorIndex]). */
+    val noteHosts: Set<String> = emptySet(),
 ) {
     /** What was checked couldn't be asked: checked again once the phone is back. */
     val waitsForConnection: Boolean
@@ -75,6 +77,11 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
     init {
         viewModelScope.launch { faucet.noteMints.collect { mints -> _state.update { it.copy(faucetMints = mints, loaded = true) } } }
         viewModelScope.launch { wallet.homeHost.collect { home -> _state.update { it.copy(home = home) } } }
+        viewModelScope.launch {
+            wallet.notes.collect { notes ->
+                _state.update { s -> s.copy(noteHosts = notes.filter { it.isWithItsMint }.map { it.host }.toSet()) }
+            }
+        }
         viewModelScope.launch {
             wallet.followOffline { offline, back ->
                 _state.update { it.copy(offline = offline) }

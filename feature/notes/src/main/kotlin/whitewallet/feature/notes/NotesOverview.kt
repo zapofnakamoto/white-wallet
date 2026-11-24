@@ -34,7 +34,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.collapse
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.expand
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -75,7 +77,7 @@ internal fun NotesOverview(state: NotesState, actions: NotesActions, overview: O
         Summary(state)
         if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
         state.outcome?.takeIf { state.open == null }?.let { Outcome(it, state.showMints, actions.dismissOutcome) }
-        if (state.mints.isEmpty() && state.shared.isEmpty() && state.received.isEmpty() && state.archivedCount == 0) {
+        if (state.empty) {
             EmptyState(stringResource(R.string.notes_empty), anchor = Anchor.NotesEmpty) {
                 PrimaryButton(stringResource(R.string.notes_receive), actions.openReceive)
             }
@@ -239,8 +241,9 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
             colors = MaterialTheme.walletColors.note(state.colorIndex(mint.host)),
             home = mint.isHome,
             trusted = mint.trusted && state.showMints,
-            modifier =
-                Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.notes_mint_open)) { actions.openMint(mint.host) },
+            onClick = { actions.openMint(mint.host) },
+            onClickLabel = stringResource(R.string.notes_mint_open),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
     if (several) PageControls(pager, state.mints.size)
@@ -299,7 +302,9 @@ private fun OutsideBalance(
     if (state.received.isNotEmpty()) {
         Section(
             stringResource(DesignR.string.received_title),
-            amount(state.receivedMsat, state.received.size),
+            // What may still come in, summed and counted alike; links spent by someone else are only listed.
+            state.receivedPending.size.takeIf { it > 0 }?.let { amount(state.receivedMsat, it) }
+                ?: pluralStringResource(R.plurals.notes_count, state.received.size, state.received.size),
             receivedOpen,
             { receivedOpen = !receivedOpen },
         )
@@ -351,7 +356,16 @@ private fun Section(title: String, detail: String, open: Boolean, onToggle: () -
                 modifier = if (open) Modifier.rotate(180f) else Modifier,
             )
         },
-        modifier = modifier.clickable(onClick = onToggle).semantics { stateDescription = state },
+        modifier =
+            modifier.clickable(onClick = onToggle).semantics {
+                stateDescription = state
+                // Spoken as a section that opens and closes, not as a button that says "open".
+                val toggle = {
+                    onToggle()
+                    true
+                }
+                if (open) collapse(action = toggle) else expand(action = toggle)
+            },
     )
 }
 

@@ -155,6 +155,8 @@
     <string name="notes_attention_title">Braucht deine Aufmerksamkeit</string>
     <!-- The card's link to everything that needs the user, on a page of its own. -->
     <string name="notes_attention_open">Alle anzeigen</string>
+    <!-- On the page of what needs the user, under a mint that wasn't answering, while the phone is offline. -->
+    <string name="notes_attention_offline">Hat nicht geantwortet, und du bist offline. Wird wieder gefragt, sobald du wieder online bist.</string>
     <plurals name="notes_attention_not_answering">
         <item quantity="one">%2$s antwortet nicht</item>
         <item quantity="other">%2$s antworten nicht</item>
@@ -165,8 +167,8 @@
     </plurals>
     <string name="notes_outside_title">Nicht in deinem Guthaben</string>
     <string name="notes_range">Von %1$s bis %2$s</string>
-    <string name="notes_section_open">Geöffnet</string>
-    <string name="notes_section_closed">Geschlossen</string>
+    <string name="notes_section_open">Ausgeklappt</string>
+    <string name="notes_section_closed">Eingeklappt</string>
     <plurals name="notes_attention_waiting">
         <item quantity="one">%d Schein wartet auf eine Antwort</item>
         <item quantity="other">%d Scheine warten auf eine Antwort</item>

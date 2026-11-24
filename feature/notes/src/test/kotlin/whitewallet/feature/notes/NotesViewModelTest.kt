@@ -158,7 +158,7 @@ class NotesViewModelTest {
 
         // The mint knows it after all: nothing needs the user, the overview again.
         store.upsertNotes(listOf(note("u1", home, 7_000)))
-        screen.await { !it.needsAttention }
+        assertFalse(screen.await { !it.needsAttention }.attentionOpen)
 
         // Another note it doesn't know: the card says so, the page stays closed.
         store.upsertNotes(listOf(note("u2", home, 1_000, NoteState.Unknown)))
@@ -173,6 +173,8 @@ class NotesViewModelTest {
         // Offline, no mint is said to be not answering; the page stays all the same.
         assertFalse(silent.copy(offline = true).needsAttention)
         assertTrue(silent.copy(offline = true).keepsAttentionOpen)
+        // And the page lists that mint while it does, so it is never open with nothing on it.
+        assertEquals(listOf(other), silent.copy(offline = true).silentWhileOffline)
         assertFalse(silent.copy(notAnsweringHosts = emptySet()).keepsAttentionOpen)
     }
 }

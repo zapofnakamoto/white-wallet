@@ -3,6 +3,7 @@ package whitewallet.brand.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -467,7 +468,7 @@ class NoteFaceParams(
      * like a banknote (a foil stripe, engraved lines, a medal) and another plain; the words for one that isn't ([statusText]) stay the
      * app's.
      */
-    val certified: Boolean = status != NoteStatus.Uncertified,
+    val certified: Boolean,
 )
 
 /** Whether a note of this status counts in the balance: else a bill is drawn greyed out. */
@@ -487,7 +488,7 @@ class NotePileParams(
     /** The notes on top of the pile, the biggest first (a few at most), formatted and in msat; empty when none counts in the balance. */
     val bills: List<String>,
     val billsMsat: List<Long>,
-    /** Whether each of [bills] is certified ([NoteFaceParams.certified]). */
+    /** Whether each of [bills] is certified ([NoteFaceParams.certified]), in the same order; a bill without one is drawn plain. */
     val billsCertified: List<Boolean>,
     /** The biggest note on any of the user's mints: bills are drawn to one scale across the mints. */
     val largestMsat: Long,
@@ -498,6 +499,10 @@ class NotePileParams(
     val trustedIcon: Painter,
     /** The mark that says a tap opens the mint's notes (decorative). */
     val openIcon: Painter,
+    /** Opens the mint's notes: make the whole pile clickable with it, inside the pile's own shape, so the ripple keeps its corners. */
+    val onClick: () -> Unit,
+    /** What a tap does, for screen readers ("Open this mint's notes"). */
+    val onClickLabel: String,
 )
 
 class NoteGroupParams(
@@ -508,7 +513,9 @@ class NoteGroupParams(
     val totalMsat: Long,
     val home: Boolean,
     val trusted: Boolean,
-    /** How many notes, [home] and [trusted], in words ("84 notes · Home mint · Trusted"); null when there's nothing to say. */
+    /**
+     * [home], [trusted] and how many notes, in words ("Home mint · Trusted · 84 notes"), as on the pile; null when there's nothing to say.
+     */
     val labels: String?,
     /** The mark of a trusted mint. */
     val trustedIcon: Painter,
@@ -907,25 +914,34 @@ object DefaultComponents : BrandComponents {
                     ListRowParams(
                         headline = { Text(params.amount, style = MaterialTheme.typography.bodyLarge) },
                         supporting =
-                            params.statusText?.let { text ->
-                                {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        params.statusIcon?.let {
-                                            components.ListIcon(ListIconParams(it, size = ListIconSize.Inline), Modifier)
+                            // A handed-out note has no mint header above it, so its row names the mint, below what is unusual about it.
+                            params.mint
+                                ?.takeIf { params.place == NoteFacePlace.Shared }
+                                .let { mint ->
+                                    if (params.statusText == null && mint == null) null
+                                    else {
+                                        {
+                                            Column {
+                                                params.statusText?.let { text ->
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                    ) {
+                                                        params.statusIcon?.let {
+                                                            components.ListIcon(ListIconParams(it, size = ListIconSize.Inline), Modifier)
+                                                        }
+                                                        Text(
+                                                            text,
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        )
+                                                    }
+                                                }
+                                                mint?.let { Text(it) }
+                                            }
                                         }
-                                        Text(
-                                            text,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
                                     }
-                                }
-                            }
-                                // A handed-out note has no mint header above it, so its row names the mint.
-                                ?: params.mint?.takeIf { params.place == NoteFacePlace.Shared }?.let { mint -> { Text(mint) } },
+                                },
                         leading = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 params.selected?.let { selected ->
@@ -1005,6 +1021,7 @@ object DefaultComponents : BrandComponents {
         Column(
             modifier
                 .clip(shape)
+                .clickable(onClickLabel = params.onClickLabel, onClick = params.onClick)
                 .background(MaterialTheme.colorScheme.surfaceContainerLowest)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
                 .padding(16.dp)
@@ -1229,7 +1246,7 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
                     ),
                 corner = 8.dp,
                 frame = 6.dp,
-                certified = params.billsCertified.getOrElse(r) { true },
+                certified = params.billsCertified.getOrElse(r) { false },
                 elevation = 2.dp,
             ) {
                 // Decorative: the card is read out by its mint, labels, total and range, not by its biggest note.
@@ -1239,7 +1256,7 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
                         MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         params.colors,
                         Modifier.align(Alignment.TopStart)
-                            .fillMaxWidth(billTextWidth(params.billsCertified.firstOrNull() ?: true))
+                            .fillMaxWidth(billTextWidth(params.billsCertified.firstOrNull() ?: false))
                             .padding(start = 14.dp, top = 12.dp, end = 6.dp)
                             .clearAndSetSemantics {},
                     )

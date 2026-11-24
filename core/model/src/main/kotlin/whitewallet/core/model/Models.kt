@@ -156,6 +156,17 @@ data class Note(
     /** Archived by the user: its mint doesn't know it, and it is still asked about, but Home no longer warns of it. */
     val isArchived: Boolean
         get() = state == NoteState.Unknown && archivedAtMillis != null
+
+    /**
+     * Shown with its mint on the notes view, in its mint's colour: in the balance, being paid, waiting for an answer, or unknown to its
+     * mint and neither archived nor handed out.
+     */
+    val isWithItsMint: Boolean
+        get() =
+            state == NoteState.Outstanding ||
+                state == NoteState.Paying ||
+                state == NoteState.Ambiguous ||
+                (state == NoteState.Unknown && !isArchived && handedOut == null)
 }
 
 /** Where a [ReceivedNote] stands. Only [Claimed] puts its money in the balance, as one of the wallet's own notes. */

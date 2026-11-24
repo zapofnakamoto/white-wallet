@@ -38,16 +38,20 @@ import whitewallet.core.model.Note
  * its own come last, with their own actions. Back leads to all mints.
  */
 @Composable
-internal fun AttentionPage(state: NotesState, actions: NotesActions) {
+internal fun AttentionPage(state: NotesState, actions: NotesActions, backArrow: Boolean) {
     val troubled = (state.unknownNotes + state.waitingNotes).groupBy { it.host }
-    val hosts = state.mints.map { it.host }.filter { it in troubled || it in state.silentMints || it in state.keyChangedMints }
+    val hosts =
+        state.mints
+            .map { it.host }
+            .filter { it in troubled || it in state.silentMints || it in state.silentWhileOffline || it in state.keyChangedMints }
     val working = showsWorking(state.busy)
     LazyColumn(Modifier.fillMaxSize()) {
         item(key = "header") {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = actions.closeAttention) {
-                    Icon(painterResource(DesignR.drawable.ic_arrow_back), contentDescription = stringResource(DesignR.string.back))
-                }
+                if (backArrow)
+                    IconButton(onClick = actions.closeAttention) {
+                        Icon(painterResource(DesignR.drawable.ic_arrow_back), contentDescription = stringResource(DesignR.string.back))
+                    }
                 Text(
                     stringResource(R.string.notes_attention_title),
                     style = MaterialTheme.typography.titleLarge,
@@ -63,6 +67,8 @@ internal fun AttentionPage(state: NotesState, actions: NotesActions) {
             else if (index > 0) item(key = "apart $host") { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             if (host in state.silentMints)
                 item(key = "silent $host") { MintLine(stringResource(DesignR.string.mint_not_answering_unnamed)) }
+            // Offline, a mint that wasn't answering stays here (the page stays open for it), saying why nothing is asked now.
+            if (host in state.silentWhileOffline) item(key = "offline $host") { MintLine(stringResource(R.string.notes_attention_offline)) }
             if (host in state.keyChangedMints)
                 item(key = "key $host") {
                     MintLine(

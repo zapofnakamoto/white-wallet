@@ -19,6 +19,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   the top bar to a row at the bottom. For brands: the component `NotePile`, `NoteFaceParams.colors`, the colour roles
   `brand_note_1` … `brand_note_3` with their `brand_on_note_*`, `NoteGroupHeader` now heads a mint's page (no
   divider); new strings `notes_attention_*`, `notes_outside_title`, `notes_range`, `notes_mint_*`, `notes_section_*`.
+- The notes view, after a review: a note handed out while its mint doesn't know it no longer shows "No notes yet"
+  beside it, and its row names its mint; Received counts only the links its amount sums; offline, the page of what
+  needs you lists a mint that wasn't answering with "you're offline" instead of staying empty; the top bar's back
+  arrow ends selecting first, as Back does; Select only shows where a note can be picked; a mint's page lists its
+  labels in the pile's order; the open/closed sections are read out as expanded and collapsed; the claim preview
+  draws a note in its mint's colour. For brands: `NotePileParams.onClick` and `onClickLabel` (the pile is clickable
+  inside its own shape), `NoteFaceParams.certified` has no default any more, and a bill missing from
+  `billsCertified` is drawn plain.
 - A bill whose amount the mint certified looks like a banknote: a foil stripe with engraved lines and a medal, and
   soft waves under the amount (a small bill shows the stripe). A bill without a certificate stays plain, and still
   says "Amount not certified" in words. For brands: `NoteFaceParams.certified`,

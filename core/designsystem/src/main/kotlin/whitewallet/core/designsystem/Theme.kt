@@ -328,3 +328,11 @@ internal object BrandTokens {
 
     @Suppress("DEPRECATION") private fun android.util.DisplayMetrics.scaledDensity() = scaledDensity
 }
+
+/**
+ * Which bill colours ([whitewallet.brand.ui.WalletColors.note]) [host]'s notes are drawn in, as on the notes view: 0 for the [home] mint,
+ * then the other mints in [hosts] in turn, by name. A note received from a mint not among [hosts] yet: add it, for the colour it gets
+ * there.
+ */
+fun noteColorIndex(host: String, home: String?, hosts: Collection<String>): Int =
+    if (host == home) 0 else hosts.filter { it != home }.distinct().sorted().indexOf(host) + 1

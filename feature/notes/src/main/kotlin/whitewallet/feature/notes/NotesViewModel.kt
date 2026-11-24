@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.designsystem.needsUser
+import whitewallet.core.designsystem.noteColorIndex
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
 import whitewallet.core.model.NoteState
@@ -167,18 +168,19 @@ data class NotesState(
                 keyChangedMints.isNotEmpty() ||
                 receivedNeedingUser.isNotEmpty()
 
+    /** Mints holding notes that didn't answer, while offline: the page of what needs the user keeps them, saying the phone is offline. */
+    val silentWhileOffline: List<String>
+        get() = if (offline) mints.map { it.host }.filter { it in notAnsweringHosts } else emptyList()
+
     /**
      * Whether the page of what needs the user stays open: also while offline hides a mint that isn't answering, so a moment without network
-     * doesn't close it for good.
+     * doesn't close it for good. The page lists such a mint then ([silentWhileOffline]), so it is never open with nothing on it.
      */
     val keepsAttentionOpen: Boolean
-        get() = needsAttention || (offline && mints.any { it.host in notAnsweringHosts })
+        get() = needsAttention || silentWhileOffline.isNotEmpty()
 
-    /** The bill colours of [host]'s notes: the home mint's first, the other mints' in turn ([whitewallet.brand.ui.WalletColors.note]). */
-    fun colorIndex(host: String): Int {
-        val others = mints.filterNot { it.isHome }
-        return if (mints.any { it.isHome && it.host == host }) 0 else others.indexOfFirst { it.host == host } + 1
-    }
+    /** The bill colours of [host]'s notes: the home mint's first, the other mints' in turn ([noteColorIndex]). */
+    fun colorIndex(host: String): Int = noteColorIndex(host, mints.firstOrNull { it.isHome }?.host, mints.map { it.host })
 
     val sharedMsat: Long
         get() = shared.sumOf { it.amountMsat }
@@ -190,8 +192,16 @@ data class NotesState(
     val handedOutCount: Int
         get() = shared.size + handedOutUnknown.size
 
+    /** Received links that may still become the wallet's: what the Received row sums and counts. */
+    val receivedPending: List<ReceivedNote>
+        get() = received.filter { it.isPending }
+
     val receivedMsat: Long
-        get() = received.filter { it.isPending }.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
+        get() = receivedPending.sumOf { it.amountMsat ?: it.declaredMsat ?: 0 }
+
+    /** Nothing to show at all: no notes on a mint, handed out or received, and an empty archive. */
+    val empty: Boolean
+        get() = mints.isEmpty() && handedOutCount == 0 && received.isEmpty() && archivedCount == 0
 
     /** A note the view shows, by its id: on a mint, or handed out and unknown to its mint. */
     fun note(id: String): Note? = all.firstOrNull { it.id == id } ?: handedOutUnknown.firstOrNull { it.id == id }
@@ -219,9 +229,15 @@ data class NotesState(
     val canAct: Boolean
         get() = !busy && selected.isNotEmpty()
 
-    /** Selecting several notes only makes sense with an action that works on several, or with notes to archive. */
+    /**
+     * Selecting several notes only makes sense with an action that works on several and notes it works on, or with notes to archive; on a
+     * mint's page, among that mint's notes.
+     */
     val canSelect: Boolean
-        get() = noteActions.any { it.bulk } || all.any(NotesViewModel::archivable)
+        get() {
+            val notes = pageMint?.notes ?: all
+            return (noteActions.any { it.bulk } && notes.any(NotesViewModel::selectable)) || notes.any(NotesViewModel::archivable)
+        }
 
     /** A split by hand would be undone by the account's strategy, so it switches to manual first (if offered). */
     val switchesToManual: Boolean
@@ -349,12 +365,7 @@ constructor(
 
     val state: StateFlow<NotesState> =
         combine(wallet.notes, wallet.receivedNotes, context, ui, reach) { notes, received, c, u, (offline, notAnswering, keyChanged) ->
-                val live = notes.filter {
-                    it.state == NoteState.Outstanding ||
-                        it.state == NoteState.Paying ||
-                        it.state == NoteState.Ambiguous ||
-                        (it.state == NoteState.Unknown && !it.isArchived && it.handedOut == null)
-                }
+                val live = notes.filter { it.isWithItsMint }
                 val handedOutUnknown =
                     notes.filter { it.state == NoteState.Unknown && !it.isArchived && it.handedOut != null }.sortedWith(c.sort.order)
                 val mints =

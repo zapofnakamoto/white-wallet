@@ -1,5 +1,7 @@
 package whitewallet.feature.notes
 
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -445,7 +447,7 @@ class NotesScreenTest {
         compose.onNodeWithText("4 Scheine · 2 Mints").assertExists()
         compose.onNodeWithText("Haupt-Mint · 2 Scheine").assertExists()
         s = state(onPage(), { it.copy(selecting = true, selected = setOf("h1", "h2")) })
-        compose.onNodeWithText("2 Scheine · Haupt-Mint").assertExists()
+        compose.onNodeWithText("Haupt-Mint · 2 Scheine").assertExists()
         compose.onNodeWithText("2 Scheine ausgewählt · 45.000 ₿").assertExists()
         compose.onNodeWithText("Zusammenlegen").assertExists()
     }
@@ -867,5 +869,67 @@ class NotesScreenTest {
     fun untilTheNotesAreReadNothingIsDrawnNotATotalOfNothing() {
         compose.setContent { NotesContent(NotesState(loaded = false), NotesActions()) }
         compose.onNodeWithText(text(R.string.notes_empty)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aHandedOutNoteItsMintDoesNotKnowIsNotAnEmptyWallet() {
+        val handedOut = note("u1", "home.example", 5_000, NoteState.Unknown).copy(handedOut = HandedOut.Waiting)
+        val s = NotesState(loaded = true, handedOutUnknown = listOf(handedOut))
+        assertEquals(WalletStatus.Idle, notesStatus(s))
+        compose.setContent { NotesContent(s, NotesActions()) }
+        compose.onNodeWithText(text(R.string.notes_empty)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.handed_out_title)).performClick()
+        // No mint's pile above it: its row names the mint.
+        compose.onNodeWithText("home.example").assertExists()
+    }
+
+    @Test
+    fun theReceivedRowCountsWhatItSums() {
+        val gone = waiting().copy(id = "g".repeat(64), state = ReceivedState.Gone)
+        compose.setContent { NotesContent(NotesState(loaded = true, received = listOf(waiting(), gone)), NotesActions()) }
+        compose.onNodeWithText("₿4,000 · 1 note").assertExists()
+    }
+
+    @Test
+    fun receivedLinksWorthNothingAreCountedWithoutAnAmount() {
+        val gone = waiting().copy(state = ReceivedState.Gone)
+        compose.setContent { NotesContent(NotesState(loaded = true, received = listOf(gone)), NotesActions()) }
+        compose.onNodeWithText("1 note").assertExists()
+        compose.onNodeWithText("₿0 · ", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun offlineTheAttentionPageKeepsAMintThatWasNotAnsweringAndSaysWhy() {
+        val s = state({ it.copy(notAnsweringHosts = setOf("other.example"), offline = true, attentionOpen = true) })
+        assertTrue(s.keepsAttentionOpen)
+        compose.setContent { NotesContent(s, NotesActions()) }
+        compose.onNodeWithText("other.example").assert(isHeading())
+        compose.onNodeWithText(text(R.string.notes_attention_offline)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_not_answering_unnamed)).assertDoesNotExist()
+    }
+
+    @Test
+    fun backEndsSelectingBeforeItLeavesTheMintsPage() {
+        lateinit var dispatcher: OnBackPressedDispatcher
+        var stopped = 0
+        var closed = 0
+        var s by mutableStateOf(state(onPage(), { it.copy(selecting = true, selected = setOf("h1")) }))
+        compose.setContent {
+            dispatcher = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            NotesContent(s, NotesActions(stopSelecting = { stopped++ }, closeMint = { closed++ }))
+        }
+        compose.runOnIdle { dispatcher.onBackPressed() }
+        assertEquals(1 to 0, stopped to closed)
+        s = s.copy(selecting = false, selected = emptySet())
+        compose.runOnIdle { dispatcher.onBackPressed() }
+        assertEquals(1 to 1, stopped to closed)
+    }
+
+    @Test
+    fun selectIsOfferedOnlyWhereSomethingCanBePicked() {
+        val paying = note("p", "other.example", 1_000, NoteState.Paying)
+        val s = state({ it.copy(mints = it.mints + MintNotes("paying.example", false, listOf(paying.copy(host = "paying.example")))) })
+        assertTrue(s.copy(mintPage = "home.example").canSelect)
+        assertTrue(!s.copy(mintPage = "paying.example").canSelect)
     }
 }

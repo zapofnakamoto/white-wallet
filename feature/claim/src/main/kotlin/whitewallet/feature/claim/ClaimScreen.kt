@@ -38,6 +38,7 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
+import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ResultScreen
@@ -52,6 +53,7 @@ import whitewallet.core.designsystem.WalletNoteFace
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
+import whitewallet.core.designsystem.noteColorIndex
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.model.ReceivedState
@@ -209,7 +211,7 @@ fun ClaimScreen(
 
             when (val preview = state.preview) {
                 is ClaimPreview.Ready -> {
-                    ReadyCard(preview, state.showMints)
+                    ReadyCard(preview, state)
                     PrimaryButton(stringResource(R.string.claim_action, formatAmount(preview.amountMsat)), onClaim, busy = state.busy)
                 }
                 is ClaimPreview.Keepable -> {
@@ -262,7 +264,8 @@ private fun FaucetButtons(state: ClaimState, onFaucet: (String) -> Unit) {
 }
 
 @Composable
-private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
+private fun ReadyCard(preview: ClaimPreview.Ready, state: ClaimState) {
+    val showMints = state.showMints
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             WalletNoteFace(
@@ -274,6 +277,9 @@ private fun ReadyCard(preview: ClaimPreview.Ready, showMints: Boolean) {
                 mint = preview.link.host.takeIf { showMints },
                 trusted = preview.trusted,
                 place = NoteFacePlace.Claim,
+                // In the colour its mint's notes have on the notes view, once it is claimed.
+                colors =
+                    MaterialTheme.walletColors.note(noteColorIndex(preview.link.host, state.home, state.noteHosts + preview.link.host)),
             )
             // Without showMints, only what needs the user: an amount that can't be verified, other spend paths, and the bearer warning.
             if (showMints) {

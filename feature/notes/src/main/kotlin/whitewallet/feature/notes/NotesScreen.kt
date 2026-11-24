@@ -186,9 +186,11 @@ fun NotesRoute(
             viewModel.sharedShown()
         }
     }
-    // On a mint's page or what needs the user, the top bar's back arrow leads to all mints, as Back does.
+    // The top bar's back arrow does what Back does: ends selecting, then leads from a mint's page or what needs the user to all mints. The
+    // pages leave out their own arrow here, so there is one.
     val back =
         when {
+            state.selecting -> viewModel::stopSelecting
             state.mintPage != null -> viewModel::closeMint
             state.attentionOpen -> viewModel::closeAttention
             else -> onBack
@@ -199,7 +201,11 @@ fun NotesRoute(
             onRefresh = viewModel::refresh,
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {
-            NotesContent(state, rememberNotesActions(viewModel, onOpenShared, onOpenArchive, onClaim, onReceive, onSettings, onOpenMint))
+            NotesContent(
+                state,
+                rememberNotesActions(viewModel, onOpenShared, onOpenArchive, onClaim, onReceive, onSettings, onOpenMint),
+                pageBackArrow = false,
+            )
         }
     }
 }
@@ -207,10 +213,11 @@ fun NotesRoute(
 /**
  * The notes: the balance, what needs the user (all of it on a page of its own, by mint), each mint's notes as a pile of bills (swiped
  * through, tapped to open the mint's notes) and what isn't in the balance. On a mint's page, tap a note for its details and actions;
- * long-press (or Select) to pick several.
+ * long-press (or Select) to pick several. [pageBackArrow]: a mint's page and what needs the user draw their own back arrow; false where the
+ * screen's top bar has one already.
  */
 @Composable
-fun NotesContent(state: NotesState, actions: NotesActions) {
+fun NotesContent(state: NotesState, actions: NotesActions, pageBackArrow: Boolean = true) {
     // Back ends selecting first, then leaves the mint's page or what needs the user, before it leaves the tab.
     BackHandler(enabled = state.selecting || state.mintPage != null || state.attentionOpen) {
         when {
@@ -233,8 +240,8 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
     BrandBody(Page.Notes, notesStatus(state)) {
         val mint = state.pageMint
         when {
-            mint != null -> MintPage(mint, state, actions)
-            state.attentionOpen -> AttentionPage(state, actions)
+            mint != null -> MintPage(mint, state, actions, pageBackArrow)
+            state.attentionOpen -> AttentionPage(state, actions, pageBackArrow)
             else -> NotesOverview(state, actions, overview)
         }
     }
@@ -250,7 +257,7 @@ fun NotesContent(state: NotesState, actions: NotesActions) {
 internal fun notesStatus(state: NotesState): WalletStatus =
     when {
         // Empty first, offline too: its empty state draws the brand's mark already, and offline holds nothing up there.
-        state.noteCount == 0 && state.shared.isEmpty() && state.received.none { it.isPending } -> WalletStatus.Empty
+        state.noteCount == 0 && state.handedOutCount == 0 && state.receivedPending.isEmpty() -> WalletStatus.Empty
         state.offline -> WalletStatus.Problem(ProblemKind.Offline)
         state.sharedMsat > 0 -> WalletStatus.WaitingForRecipient
         else -> WalletStatus.Idle

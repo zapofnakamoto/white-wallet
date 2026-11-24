@@ -494,9 +494,10 @@ releases don't break it; the parameter objects of components (`ButtonParams`, â€
   words for an uncertified one stay the app's). The notes view shows each mint as a pile of its bills, swiped through: `NotePile(params, modifier)` draws
   one (the top bills, biggest first, formatted and in msat, `largestMsat` to draw every mint's bills to one scale, the
   mint, its `labels` with the count, total, `range`, `colors` and `billsCertified`, whether each bill is certified); keep every mint's pile the same height, so swiping
-  doesn't move the page. The default is a card with the bills fanned out. The app keeps the tap (it opens the mint's
-  page) and the swiping, arrows and dots. `NoteGroupHeader`
-  heads that page: the mint (null with `mints.visible=false`), its total and labels (how many notes, home, trusted). The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
+  doesn't move the page. The default is a card with the bills fanned out. Make the whole pile clickable with
+  `onClick` and `onClickLabel` inside its own shape (so the ripple keeps its corners); what a tap does (it opens the
+  mint's page) and the swiping, arrows and dots stay the app's. `NoteGroupHeader`
+  heads that page: the mint (null with `mints.visible=false`), its total and labels (home, trusted, how many notes, in the pile's order). The app keeps what a note does: taps, the checkbox state for screen readers, its actions, their
   confirmations and the bearer warning, and on a large face the status, age and mint in words below it. Draw the
   texts you are given with `Text`, so screen readers read them. The defaults draw a bill in the mint's colour beside the row
   (and the checkbox), the bill alone on a note's details and the claim preview (the amount as on the wallet tab where
