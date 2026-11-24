@@ -107,7 +107,7 @@ fun MoveFundsScreen(
                             to?.let {
                                 val name =
                                     if (state.showWallets)
-                                        stringResource(R.string.home_account_in_wallet, walletLabel(state, it.walletId), it.name)
+                                        stringResource(DesignR.string.account_in_wallet, walletLabel(state, it.walletId), it.name)
                                     else it.name
                                 stringResource(R.string.move_success_to, name)
                             }
@@ -118,7 +118,7 @@ fun MoveFundsScreen(
         // The account the money leaves and the wallet it goes to, as the form names them.
         val fromName =
             state.from?.account?.let {
-                if (state.showWallets) stringResource(R.string.home_account_in_wallet, walletLabel(state, it.walletId), it.name)
+                if (state.showWallets) stringResource(DesignR.string.account_in_wallet, walletLabel(state, it.walletId), it.name)
                 else it.name
             } ?: ""
         val toWallet = state.targets.firstOrNull { it.account.id == state.targetId }?.let { walletLabel(state, it.account.walletId) } ?: ""
@@ -187,7 +187,7 @@ fun MoveFundsScreen(
                 WalletAccountMark(from.account.name, state.places[from.account.id] ?: 0, size = 24.dp)
                 val name =
                     if (state.showWallets)
-                        stringResource(R.string.home_account_in_wallet, walletLabel(state, from.account.walletId), from.account.name)
+                        stringResource(DesignR.string.account_in_wallet, walletLabel(state, from.account.walletId), from.account.name)
                     else from.account.name
                 Text(stringResource(R.string.move_from, name, formatAmount(from.balanceMsat)), modifier = Modifier.weight(1f))
             }
@@ -220,7 +220,7 @@ fun MoveFundsScreen(
             if (folded) {
                 val others = state.targetsByWallet.size - 1
                 WalletListItem(
-                    headlineContent = { Text(pluralStringResource(R.plurals.accounts_other_wallets, others, others)) },
+                    headlineContent = { Text(pluralStringResource(DesignR.plurals.accounts_other_wallets, others, others)) },
                     trailingContent = { Icon(painterResource(DesignR.drawable.ic_arrow_drop_down), contentDescription = null) },
                     modifier = Modifier.clickable(role = Role.Button) { showOthers = true },
                 )
@@ -262,7 +262,7 @@ fun MoveFundsScreen(
 /** A wallet by the name the user gave it, else its number. */
 @Composable
 private fun walletLabel(state: MoveFundsState, walletId: String): String =
-    state.walletNames[walletId] ?: stringResource(R.string.accounts_wallet, state.walletNumbers[walletId] ?: 1)
+    state.walletNames[walletId] ?: stringResource(DesignR.string.accounts_wallet, state.walletNumbers[walletId] ?: 1)
 
 /** What a move left where it was, per mint; nothing for a move that was whole or didn't fail at a mint. */
 private val MoveResult.stayed: List<MoveStayed>

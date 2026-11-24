@@ -37,6 +37,7 @@ import whitewallet.brand.ui.BrandDesign
 import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.LocalBrandDesign
 import whitewallet.brand.ui.Page
+import whitewallet.core.designsystem.AccountActions
 import whitewallet.core.designsystem.LocalBuildLabel
 import whitewallet.core.designsystem.LocalReleaseStage
 import whitewallet.core.designsystem.R as DesignR
@@ -380,7 +381,7 @@ class HomeScreenTest {
         compose.onNodeWithText("Main").assertDoesNotExist()
         compose.onNodeWithContentDescription("Main").performClick()
         compose.onNodeWithText("Savings").assertExists()
-        compose.onNodeWithText(text(R.string.accounts_manage)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.accounts_manage)).assertExists()
     }
 
     @Test
@@ -397,11 +398,11 @@ class HomeScreenTest {
         val main = AccountSummary(Account("a", "Main", 0), 0)
         val other = AccountSummary(Account("c", "Main", 2), 0)
         show(HomeState(accounts = listOf(main, other), activeAccountId = "c", walletNames = mapOf("a" to "Family")))
-        val name = text(R.string.home_account_in_wallet, text(R.string.accounts_wallet, 2), "Main")
+        val name = text(DesignR.string.account_in_wallet, text(DesignR.string.accounts_wallet, 2), "Main")
         compose.onNodeWithContentDescription(name).assertExists()
         compose.onNodeWithText(name).performClick()
         // The switcher: the wallet in use, the other one a step away.
-        compose.onNodeWithText(plural(R.plurals.accounts_other_wallets, 1, 1)).assertExists()
+        compose.onNodeWithText(plural(DesignR.plurals.accounts_other_wallets, 1, 1)).assertExists()
     }
 
     @Test
@@ -409,7 +410,7 @@ class HomeScreenTest {
         val main = AccountSummary(Account("a", "Main", 0), 0)
         val other = AccountSummary(Account("c", "Main", 2), 0)
         show(HomeState(accounts = listOf(main, other), activeAccountId = "a", walletNames = mapOf("a" to "Family")))
-        compose.onNodeWithText(text(R.string.home_account_in_wallet, "Family", "Main")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.account_in_wallet, "Family", "Main")).assertExists()
     }
 
     @Test

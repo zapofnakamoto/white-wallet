@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import whitewallet.brand.ProblemKind
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.WalletTask
+import whitewallet.core.model.AccountChoice
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ReceivedNote
@@ -275,13 +276,11 @@ class HomeViewModel(
         combine(wallet.task, wallet.noteStrategy) { task, strategy ->
             task to strategy.workingText?.takeIf { task is WalletTask.Maintaining && task.strategyId == strategy.id }
         }
-    private val walletNames =
-        wallet.walletGroups.map { groups -> groups.mapNotNull { g -> g.wallet.name?.let { g.wallet.id to it } }.toMap() }
-    private val accountInfo = combine(wallet.accounts, wallet.activeAccount, work, walletNames, ::AccountInfo)
+    private val accountInfo = combine(wallet.accountChoice, wallet.activeAccount, work, ::AccountInfo)
 
     val state: StateFlow<HomeState> =
         combine(accountInfo, wallet.activity, walletFlags, status) {
-                (accounts, active, work, names),
+                (choice, active, work),
                 activity,
                 (backedUp, inactive, hidden, hasMint, unscanned),
                 s ->
@@ -289,7 +288,7 @@ class HomeViewModel(
                 s.copy(
                     task = work.first,
                     strategyText = work.second,
-                    accounts = accounts,
+                    accounts = choice.accounts,
                     activeAccountId = active?.account?.id,
                     inactiveAddress = inactive,
                     balanceMsat = balance,
@@ -298,8 +297,8 @@ class HomeViewModel(
                     showAddMintPrompt = active != null && !hasMint,
                     showScanPrompt = active != null && unscanned,
                     balanceHidden = hidden,
-                    walletNames = names,
-                    showAccounts = wallet.maxAccounts > 1 || wallet.maxWallets > 1 || accounts.size > 1,
+                    walletNames = choice.walletNames,
+                    showAccounts = choice.shown,
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState(loaded = false))
@@ -475,9 +474,4 @@ private data class WalletFlags(
     val unscanned: Boolean,
 )
 
-private data class AccountInfo(
-    val accounts: List<AccountSummary>,
-    val active: AccountSummary?,
-    val work: Pair<WalletTask?, Int?>,
-    val walletNames: Map<String, String>,
-)
+private data class AccountInfo(val choice: AccountChoice, val active: AccountSummary?, val work: Pair<WalletTask?, Int?>)

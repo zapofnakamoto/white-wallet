@@ -134,7 +134,6 @@
     <string name="home_send_soon">Sending is coming soon</string>
     <string name="home_tab_wallet">Wallet</string>
     <string name="home_tab_history">History</string>
-    <string name="home_switch_account">Switch account</string>
     <string name="history_filter_received">Received</string>
     <string name="history_filter_sent">Sent</string>
     <string name="history_filter_moved">Moved</string>
@@ -180,10 +179,6 @@
     <string name="home_unknown_asked_now">Last asked: just now</string>
     <!-- "Check again" got no answer. %1$s: the mint. -->
     <string name="notice_unknown_unreachable">%1$s isn\'t answering. Your wallet asks again later.</string>
-    <string name="accounts_title">Accounts</string>
-    <string name="accounts_manage">Manage wallets</string>
-    <string name="accounts_move">Move funds</string>
-    <string name="accounts_separate_backups">Accounts in a wallet share its recovery phrase. Each wallet has its own: back up every wallet.</string>
     <string name="move_title">Move funds</string>
     <string name="move_from">From %1$s (%2$s)</string>
     <string name="move_to">To</string>
@@ -231,18 +226,11 @@
     <!-- Home's loading screen: what the wallet is doing, shown instead of figures about to change. -->
     <string name="home_working_updating">Updating your balance…</string>
     <string name="home_scan">Scan a QR code</string>
-    <string name="accounts_wallet">Wallet %1$d</string>
     <!-- Under the balance: what of it is on mints whose signing key doesn't match (%1$s); counted, but it can't be spent for now -->
     <string name="home_key_changed_part">%1$s of it can\'t be spent right now</string>
     <!-- As home_key_changed_part, while the balance is hidden -->
     <string name="home_key_changed_part_title">Some of it can\'t be spent right now</string>
     <!-- Unfolds the accounts of the wallets not in use, in the account switcher. %1$d: how many such wallets. -->
-    <plurals name="accounts_other_wallets">
-        <item quantity="one">%1$d other wallet</item>
-        <item quantity="other">%1$d other wallets</item>
-    </plurals>
-    <!-- The account in use, with several wallets, over the balance. %1$s: the wallet's name, %2$s: the account's. -->
-    <string name="home_account_in_wallet">%1$s · %2$s</string>
     <plurals name="home_alerts_more">
         <item quantity="one">%1$d more alert</item>
         <item quantity="other">%1$d more alerts</item>

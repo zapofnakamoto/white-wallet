@@ -196,7 +196,7 @@ class MoveFundsScreenTest {
         assertEquals(listOf(Anchor.MoneyMoved to WalletStatus.Done(9_000)), decorated.distinct())
         compose.onNodeWithText(text(R.string.move_success_title)).assertExists()
         // Where it went, under its wallet: there are two.
-        compose.onNodeWithText(text(R.string.move_success_to, text(R.string.home_account_in_wallet, "Wallet 2", "Savings"))).assertExists()
+        compose.onNodeWithText(text(R.string.move_success_to, text(DesignR.string.account_in_wallet, "Wallet 2", "Savings"))).assertExists()
         compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.done)).performClick()
         assertEquals(1, back)
@@ -258,7 +258,7 @@ class MoveFundsScreenTest {
         compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
         // With several wallets, the account the money is still in is named with its wallet.
         compose
-            .onNode(hasText(text(R.string.home_account_in_wallet, text(R.string.accounts_wallet, 1), "Main"), substring = true))
+            .onNode(hasText(text(DesignR.string.account_in_wallet, text(DesignR.string.accounts_wallet, 1), "Main"), substring = true))
             .assertExists()
     }
 

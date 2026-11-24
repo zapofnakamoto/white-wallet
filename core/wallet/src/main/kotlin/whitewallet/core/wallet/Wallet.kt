@@ -39,6 +39,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import whitewallet.brand.NoteStrategy
 import whitewallet.brand.WalletTask
 import whitewallet.core.model.Account
+import whitewallet.core.model.AccountChoice
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityStatus
@@ -310,6 +311,20 @@ class Wallet(
             wallets
                 .sortedBy { it.createdAtMillis }
                 .mapIndexed { i, w -> WalletGroup(w, i + 1, accounts.filter { it.account.walletId == w.id }) }
+        }
+
+    /**
+     * The accounts the switcher offers and the one in use, with the names the user gave wallets. Its mark shows wherever one account's
+     * things are shown when there is a choice: the brand allows several accounts or wallets, or there are several.
+     */
+    val accountChoice: Flow<AccountChoice> =
+        combine(store.accounts, store.activeAccountId, walletGroups) { accounts, active, groups ->
+            AccountChoice(
+                accounts,
+                accounts.firstOrNull { it.account.id == active }?.account?.id,
+                groups.mapNotNull { g -> g.wallet.name?.let { g.wallet.id to it } }.toMap(),
+                shown = maxAccounts > 1 || maxWallets > 1 || accounts.size > 1,
+            )
         }
 
     /** The active account's home mint, the one the user trusts most for its money; null while it has none. */

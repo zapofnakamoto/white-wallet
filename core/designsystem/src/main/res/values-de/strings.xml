@@ -123,4 +123,16 @@
     <string name="handed_out_title">Weitergegeben, noch nicht eingelöst</string>
     <string name="handed_out_total">%1$s weitergegeben, noch nicht eingelöst</string>
     <string name="waiting_for_answer">Warte auf Antwort …</string>
+    <!-- The account switcher and the account in use in the top bar, on every page that shows one account's things -->
+    <string name="accounts_title">Konten</string>
+    <string name="accounts_manage">Wallets verwalten</string>
+    <string name="accounts_move">Guthaben verschieben</string>
+    <string name="accounts_separate_backups">Konten in einer Wallet teilen sich ihre Wiederherstellungsphrase. Jede Wallet hat ihre eigene: Sichere jede Wallet.</string>
+    <string name="accounts_wallet">Wallet %1$d</string>
+    <string name="account_switch">Konto wechseln</string>
+    <string name="account_in_wallet">%1$s · %2$s</string>
+    <plurals name="accounts_other_wallets">
+        <item quantity="one">%1$d weitere Wallet</item>
+        <item quantity="other">%1$d weitere Wallets</item>
+    </plurals>
 </resources>

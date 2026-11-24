@@ -1,10 +1,13 @@
-package whitewallet.feature.home
+package whitewallet.core.designsystem
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -13,7 +16,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import whitewallet.core.model.Account
+import whitewallet.core.model.AccountChoice
 import whitewallet.core.model.AccountSummary
 
 @RunWith(RobolectricTestRunner::class)
@@ -103,4 +108,56 @@ class AccountSwitcherTest {
         compose.onNodeWithText(text(R.string.accounts_manage)).performScrollTo().performClick()
         assertEquals(true, managing)
     }
+
+    private fun choice(vararg accounts: AccountSummary, active: String, shown: Boolean = true, names: Map<String, String> = emptyMap()) =
+        AccountChoice(accounts.toList(), active, names, shown)
+
+    @Test
+    fun theAccountButtonIsReadAsTheAccountInUse() {
+        compose.setContent { WalletAccountButton(choice(summary("a", "Savings"), summary("b", "Daily"), active = "a")) {} }
+        compose.onNodeWithContentDescription("Savings").assertExists()
+        compose.onNode(hasClickLabel(text(R.string.account_switch))).assertExists()
+    }
+
+    @Test
+    fun withSeveralWalletsTheButtonNamesTheWalletToo() {
+        val other = AccountSummary(Account("c", "Kids", 0, walletId = "v"), 0)
+        compose.setContent { WalletAccountButton(choice(summary("a", "Savings"), other, active = "c", names = mapOf("v" to "Family"))) {} }
+        compose.onNodeWithContentDescription(text(R.string.account_in_wallet, "Family", "Kids")).assertExists()
+    }
+
+    @Test
+    fun anUnnamedWalletIsCalledByItsNumber() {
+        val other = AccountSummary(Account("c", "Kids", 0, walletId = "v"), 0)
+        compose.setContent { WalletAccountButton(choice(summary("a", "Savings"), other, active = "c")) {} }
+        compose.onNodeWithContentDescription(text(R.string.account_in_wallet, text(R.string.accounts_wallet, 2), "Kids")).assertExists()
+    }
+
+    @Test
+    fun theButtonIsAbsentWhenNotShown() {
+        compose.setContent { WalletAccountButton(choice(summary("a", "Savings"), active = "a", shown = false)) {} }
+        compose.onNodeWithContentDescription("Savings").assertDoesNotExist()
+    }
+
+    @Test
+    fun theButtonIsAbsentWithoutAnAccountInUse() {
+        compose.setContent { WalletAccountButton(choice(summary("a", "Savings"), active = "x")) {} }
+        compose.onNodeWithContentDescription("Savings").assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingTheButtonOpensTheSwitcher() {
+        var opened = false
+        compose.setContent { WalletAccountButton(choice(summary("a", "Savings"), active = "a")) { opened = true } }
+        compose.onNodeWithContentDescription("Savings").performClick()
+        assertEquals(true, opened)
+    }
 }
+
+private fun text(id: Int, vararg args: Any): String = RuntimeEnvironment.getApplication().getString(id, *args)
+
+private fun plural(id: Int, count: Int, vararg args: Any): String =
+    RuntimeEnvironment.getApplication().resources.getQuantityString(id, count, *args)
+
+private fun hasClickLabel(label: String) =
+    SemanticsMatcher("click label $label") { SemanticsActions.OnClick in it.config && it.config[SemanticsActions.OnClick].label == label }

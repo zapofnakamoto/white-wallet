@@ -109,7 +109,6 @@
     <string name="home_send_soon">Senden kommt bald</string>
     <string name="home_tab_wallet">Wallet</string>
     <string name="home_tab_history">Verlauf</string>
-    <string name="home_switch_account">Konto wechseln</string>
     <string name="history_filter_received">Empfangen</string>
     <string name="history_filter_sent">Gesendet</string>
     <string name="history_filter_moved">Verschoben</string>
@@ -148,10 +147,6 @@
     <string name="home_unknown_asked">Zuletzt gefragt: %1$s</string>
     <string name="home_unknown_asked_now">Zuletzt gefragt: gerade eben</string>
     <string name="notice_unknown_unreachable">%1$s antwortet nicht. Deine Wallet fragt später wieder.</string>
-    <string name="accounts_title">Konten</string>
-    <string name="accounts_manage">Wallets verwalten</string>
-    <string name="accounts_move">Guthaben verschieben</string>
-    <string name="accounts_separate_backups">Konten in einer Wallet teilen sich ihre Wiederherstellungsphrase. Jede Wallet hat ihre eigene: Sichere jede Wallet.</string>
     <string name="move_title">Guthaben verschieben</string>
     <string name="move_from">Von %1$s (%2$s)</string>
     <string name="move_to">Nach</string>
@@ -189,14 +184,8 @@
     <!-- Home's loading screen: what the wallet is doing, shown instead of figures about to change. -->
     <string name="home_working_updating">Dein Guthaben wird aktualisiert …</string>
     <string name="home_scan">QR-Code scannen</string>
-    <string name="accounts_wallet">Wallet %1$d</string>
     <string name="home_key_changed_part">%1$s davon lässt sich gerade nicht ausgeben</string>
     <string name="home_key_changed_part_title">Ein Teil davon lässt sich gerade nicht ausgeben</string>
-    <plurals name="accounts_other_wallets">
-        <item quantity="one">%1$d weitere Wallet</item>
-        <item quantity="other">%1$d weitere Wallets</item>
-    </plurals>
-    <string name="home_account_in_wallet">%1$s · %2$s</string>
     <plurals name="home_alerts_more">
         <item quantity="one">%1$d weiterer Hinweis</item>
         <item quantity="other">%1$d weitere Hinweise</item>

@@ -148,4 +148,17 @@
     <string name="handed_out_title">Handed out, not claimed yet</string>
     <string name="handed_out_total">%1$s handed out, not claimed yet</string>
     <string name="waiting_for_answer">Waiting for an answer…</string>
+    <!-- The account switcher and the account in use in the top bar, on every page that shows one account's things -->
+    <string name="accounts_title">Accounts</string>
+    <string name="accounts_manage">Manage wallets</string>
+    <string name="accounts_move">Move funds</string>
+    <string name="accounts_separate_backups">Accounts in a wallet share its recovery phrase. Each wallet has its own: back up every wallet.</string>
+    <string name="accounts_wallet">Wallet %1$d</string>
+    <string name="account_switch">Switch account</string>
+    <!-- The account in use, with several wallets, over the balance. %1$s: the wallet's name, %2$s: the account's. -->
+    <string name="account_in_wallet">%1$s · %2$s</string>
+    <plurals name="accounts_other_wallets">
+        <item quantity="one">%1$d other wallet</item>
+        <item quantity="other">%1$d other wallets</item>
+    </plurals>
 </resources>

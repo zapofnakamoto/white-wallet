@@ -55,7 +55,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.node.Ref
@@ -88,6 +87,8 @@ import whitewallet.brand.ui.NavigationItem
 import whitewallet.brand.ui.Page
 import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
+import whitewallet.core.designsystem.AccountActions
+import whitewallet.core.designsystem.AccountSwitcher
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.BrandTitle
@@ -102,7 +103,7 @@ import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteActions
 import whitewallet.core.designsystem.ReceivedNoteRow
 import whitewallet.core.designsystem.ReleaseNotesSheet
-import whitewallet.core.designsystem.WalletAccountMark
+import whitewallet.core.designsystem.WalletAccountButton
 import whitewallet.core.designsystem.WalletActivityIcon
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
@@ -121,6 +122,7 @@ import whitewallet.core.designsystem.loadingPhase
 import whitewallet.core.designsystem.needsUser
 import whitewallet.core.designsystem.recentTime
 import whitewallet.core.designsystem.waitsFor
+import whitewallet.core.model.AccountChoice
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.Activity
 import whitewallet.core.model.ActivityKind
@@ -308,7 +310,8 @@ fun HomeScreen(
                 }
                 // The account in use, on every tab: its mark opens the switcher. Where it shows, it has the Refresh button's place, and
                 // the page is pulled to refresh.
-                val account = state.activeAccount?.takeIf { state.showAccounts }
+                val choice = AccountChoice(state.accounts, state.activeAccountId, state.walletNames, state.showAccounts)
+                val account = choice.active?.takeIf { choice.shown }
                 if (account == null) {
                     IconButton(onClick = if (tab == HomeTab.Notes) notesTab!!.onRefresh else onRefresh) {
                         Icon(painterResource(DesignR.drawable.ic_refresh), stringResource(DesignR.string.refresh))
@@ -317,7 +320,7 @@ fun HomeScreen(
                 IconButton(onClick = onSettings) {
                     Icon(painterResource(DesignR.drawable.ic_settings), stringResource(DesignR.string.settings))
                 }
-                account?.let { AccountButton(state, it) { showAccounts = true } }
+                WalletAccountButton(choice) { showAccounts = true }
                 if (menu.isNotEmpty()) MenuButton(menu)
             }
             if (tab == HomeTab.Wallet) {
@@ -555,23 +558,8 @@ private fun workingText(task: WalletTask, state: HomeState): String {
 /** The active account's wallet and name, as one line: the wallet by the name the user gave it, else its number. */
 @Composable
 private fun accountInWallet(state: HomeState, active: AccountSummary): String {
-    val wallet = state.walletNames[active.account.walletId] ?: stringResource(R.string.accounts_wallet, state.activeWalletNumber)
-    return stringResource(R.string.home_account_in_wallet, wallet, active.account.name)
-}
-
-/** The account in use as its mark, in the top bar: opens the switcher. Read out by its name (and wallet, with several). */
-@Composable
-private fun AccountButton(state: HomeState, active: AccountSummary, onClick: () -> Unit) {
-    val name = if (state.walletCount > 1) accountInWallet(state, active) else active.account.name
-    Box(
-        Modifier.size(48.dp)
-            .clip(CircleShape)
-            .clickable(onClickLabel = stringResource(R.string.home_switch_account), role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = name },
-        contentAlignment = Alignment.Center,
-    ) {
-        WalletAccountMark(active.account.name, state.accounts.indexOf(active), size = 32.dp)
-    }
+    val wallet = state.walletNames[active.account.walletId] ?: stringResource(DesignR.string.accounts_wallet, state.activeWalletNumber)
+    return stringResource(DesignR.string.account_in_wallet, wallet, active.account.name)
 }
 
 /** Balance and the two actions, centred; notices only when something needs the user. */
