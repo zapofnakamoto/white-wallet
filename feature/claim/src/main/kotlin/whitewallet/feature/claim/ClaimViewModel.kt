@@ -8,6 +8,7 @@ import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import whitewallet.core.wallet.AppDefaults
@@ -37,7 +38,9 @@ data class ClaimState(
     /** Developer: the local regtest mints the faucet makes a note on, and its last attempt. Empty outside developer mode. */
     val faucetMints: List<String> = emptyList(),
     val faucet: FaucetState = FaucetState(),
-    /** [faucetMints] are known: until then nothing is drawn, so their buttons don't come in late. */
+    /**
+     * [faucetMints], [home] and [noteHosts] are known: until then nothing is drawn, so buttons don't come in late nor a bill change colour.
+     */
     val loaded: Boolean = true,
     /**
      * A link from outside without a note in it is being asked what it is (a withdraw or a pay link): only "Opening link" is drawn, then
@@ -75,12 +78,14 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
     val state: StateFlow<ClaimState> = _state
 
     init {
-        viewModelScope.launch { faucet.noteMints.collect { mints -> _state.update { it.copy(faucetMints = mints, loaded = true) } } }
-        viewModelScope.launch { wallet.homeHost.collect { home -> _state.update { it.copy(home = home) } } }
+        // Loaded once all three are known: a note's bill is drawn in its mint's colour from the start, never in another first.
         viewModelScope.launch {
-            wallet.notes.collect { notes ->
-                _state.update { s -> s.copy(noteHosts = notes.filter { it.isWithItsMint }.map { it.host }.toSet()) }
-            }
+            combine(faucet.noteMints, wallet.homeHost, wallet.notes) { mints, home, notes ->
+                    Triple(mints, home, notes.filter { it.isWithItsMint }.map { it.host }.toSet())
+                }
+                .collect { (mints, home, hosts) ->
+                    _state.update { it.copy(faucetMints = mints, home = home, noteHosts = hosts, loaded = true) }
+                }
         }
         viewModelScope.launch {
             wallet.followOffline { offline, back ->
@@ -111,6 +116,7 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
             loaded = from.loaded,
             home = from.home,
             offline = from.offline,
+            noteHosts = from.noteHosts,
         )
 
     /** Developer: has the regtest faucet make a note on the local mint [mint], and checks it as if it was pasted. */

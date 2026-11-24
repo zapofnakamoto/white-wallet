@@ -157,6 +157,8 @@
     <string name="notes_attention_open">Alle anzeigen</string>
     <!-- On the page of what needs the user, under a mint that wasn't answering, while the phone is offline. -->
     <string name="notes_attention_offline">Hat nicht geantwortet, und du bist offline. Wird wieder gefragt, sobald du wieder online bist.</string>
+    <string name="notes_attention_silent">Antwortet nicht. Versuche es später erneut.</string>
+    <string name="notes_details_open">Details anzeigen</string>
     <plurals name="notes_attention_not_answering">
         <item quantity="one">%2$s antwortet nicht</item>
         <item quantity="other">%2$s antworten nicht</item>
@@ -181,6 +183,7 @@
     <string name="notes_mint_previous">Vorherige Mint</string>
     <string name="notes_mint_next">Nächste Mint</string>
     <string name="notes_mint_position">Mint %1$d von %2$d</string>
+    <string name="notes_attention_offline_unnamed">Deine Mint hat nicht geantwortet, und du bist offline. Sie wird wieder gefragt, sobald du wieder online bist.</string>
     <plurals name="notes_attention_unknown_at">
         <item quantity="one">%2$s kennt %1$d deiner Scheine nicht</item>
         <item quantity="other">%2$s kennt %1$d deiner Scheine nicht</item>

@@ -6,8 +6,8 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 
 class ReceivedWaitTest {
-    private fun note(state: ReceivedState = ReceivedState.Waiting) =
-        ReceivedNote("r".padEnd(64, '0'), "a", "mint.example", "w", "k1", null, null, 1_000, null, null, state, null, 1, 1)
+    private fun note(state: ReceivedState = ReceivedState.Waiting, lockedUntilMillis: Long? = null) =
+        ReceivedNote("r".padEnd(64, '0'), "a", "mint.example", "w", "k1", null, null, 1_000, lockedUntilMillis, null, state, null, 1, 1)
 
     @Test
     fun offlineWinsOverASilentMint() {
@@ -25,8 +25,14 @@ class ReceivedWaitTest {
     }
 
     @Test
-    fun onlyAChangedKeyLightningOnlyAndSpentElsewhereNeedTheUser() {
-        val needing = ReceivedState.entries.filter { note(it).needsUser }.toSet()
-        assertEquals(setOf(ReceivedState.KeyChanged, ReceivedState.LightningOnly, ReceivedState.Gone), needing)
+    fun aChangedKeyLightningOnlySpentElsewhereAndALockWithoutADateNeedTheUser() {
+        val needing = ReceivedState.entries.filter { note(it).needsUser(nowMillis = 0) }.toSet()
+        assertEquals(setOf(ReceivedState.KeyChanged, ReceivedState.LightningOnly, ReceivedState.Gone, ReceivedState.Locked), needing)
+    }
+
+    @Test
+    fun aLockNeedsTheUserOnlyOnceItsDatePassed() {
+        assertEquals(false, note(ReceivedState.Locked, lockedUntilMillis = 2_000).needsUser(nowMillis = 1_999))
+        assertEquals(true, note(ReceivedState.Locked, lockedUntilMillis = 2_000).needsUser(nowMillis = 2_000))
     }
 }

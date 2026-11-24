@@ -124,6 +124,8 @@
     <string name="notes_mint_next">Next mint</string>
     <!-- Read out on the dots under the mints' piles. -->
     <string name="notes_mint_position">Mint %1$d of %2$d</string>
+    <!-- On the page of what needs the user, with mints not named: a mint that wasn't answering, while the phone is offline. -->
+    <string name="notes_attention_offline_unnamed">Your mint didn\'t answer, and you\'re offline. It\'s asked again when you\'re back online.</string>
 
     <string name="notes_sort_largest">Largest first</string>
     <string name="notes_sort_newest">Newest first</string>
@@ -204,6 +206,10 @@
     <string name="notes_attention_open">Show all</string>
     <!-- On the page of what needs the user, under a mint that wasn't answering, while the phone is offline. -->
     <string name="notes_attention_offline">It didn\'t answer, and you\'re offline. It\'s asked again when you\'re back online.</string>
+    <!-- On the page of what needs the user, under the name of a mint that isn't answering. -->
+    <string name="notes_attention_silent">Isn\'t answering. Try again later.</string>
+    <!-- Read out on a row of the notes view: a tap opens its details (a note's, or for a changed key, its mint's). -->
+    <string name="notes_details_open">Show details</string>
     <!-- One or more mints (%2$s, joined for the language, "a.com and b.com"); %1$d: how many. -->
     <plurals name="notes_attention_not_answering">
         <item quantity="one">%2$s isn\'t answering</item>

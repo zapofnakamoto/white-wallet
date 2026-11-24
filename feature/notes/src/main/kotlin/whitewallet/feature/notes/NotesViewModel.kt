@@ -415,6 +415,10 @@ constructor(
                     ui.update { it.copy(mintPage = null, selecting = false, selected = emptySet()) }
                 // So does the page of what needs the user, once nothing does.
                 if (!s.attentionOpen && ui.value.attentionOpen) ui.update { it.copy(attentionOpen = false) }
+                // And a note's sheet whose note left the view: it must not pop open when the note comes back.
+                ui.value.open
+                    ?.takeIf { s.note(it) == null }
+                    ?.let { gone -> ui.update { u -> if (u.open == gone) u.copy(open = null) else u } }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesState(loaded = false))
 

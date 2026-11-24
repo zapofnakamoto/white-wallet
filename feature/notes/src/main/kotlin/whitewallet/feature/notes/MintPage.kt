@@ -184,7 +184,7 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
         size = NoteFaceSize.Row,
         note.amountMsat,
         status = status,
-        statusText = noteStatusText(status, handedOut = note.handedOut != null),
+        statusText = noteStatusText(status),
         statusIcon = noteStatusIcon(status),
         age = recentTime(note.updatedAtMillis),
         mint = note.host.takeIf { state.showMints },
@@ -196,6 +196,7 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
         modifier =
             Modifier.combinedClickable(
                     enabled = !state.busy && (pickable || !state.selecting),
+                    onClickLabel = stringResource(R.string.notes_details_open).takeIf { !state.selecting },
                     onClick = { actions.tap(note) },
                     onLongClick = { if (pickable && state.canSelect) actions.longPress(note) },
                 )

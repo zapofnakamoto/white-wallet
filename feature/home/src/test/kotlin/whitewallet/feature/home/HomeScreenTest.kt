@@ -1076,11 +1076,24 @@ class HomeScreenTest {
         )
 
     @Test
+    fun aLockedNotePastItsDateNeedsYouOnHomeAsInTheNotesView() {
+        show(
+            HomeState(activeAccountId = "a", received = listOf(received("r1", ReceivedState.Locked, lockedUntil = 1))),
+            withNotesTab = true,
+        )
+        compose.onNodeWithText(text(DesignR.string.received_title)).assertExists()
+    }
+
+    @Test
     fun aNoteNotClaimedYetIsOneLineNextToTheBalanceNotInIt() {
         show(
             HomeState(
                 activeAccountId = "a",
-                received = listOf(received("r1", ReceivedState.Waiting), received("r2", ReceivedState.Locked, null, 1_000_000)),
+                received =
+                    listOf(
+                        received("r1", ReceivedState.Waiting),
+                        received("r2", ReceivedState.Locked, null, 1_000_000, lockedUntil = Long.MAX_VALUE),
+                    ),
             ),
             withNotesTab = true,
         )

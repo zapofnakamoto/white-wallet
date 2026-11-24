@@ -11,6 +11,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -51,14 +52,21 @@ class NotesViewModelTest {
     // The view model runs on the test's dispatcher: a test waits for a state as it comes, with no clock of its own.
     @BeforeTest fun setMain() = Dispatchers.setMain(StandardTestDispatcher())
 
-    @AfterTest fun resetMain() = Dispatchers.resetMain()
+    // What collects the state, ended with the test: no view model of an earlier test keeps running.
+    private val collectors = CoroutineScope(Dispatchers.Unconfined)
+
+    @AfterTest
+    fun resetMain() {
+        collectors.cancel()
+        Dispatchers.resetMain()
+    }
 
     /** One account at [home], with two notes there and two on [other]. */
     private suspend fun screen(): NotesViewModel {
         store.addAccount("a", "Main", null, home)
         store.upsertNotes(listOf(note("h1", home, 3_000), note("h2", home, 2_000), note("o1", other, 5_000), note("o2", other, 1_000)))
         return NotesViewModel(wallet, AppPreferences.InMemory(), AppDefaults(emptyList(), allowMintChange = true)).also { screen ->
-            CoroutineScope(Dispatchers.Unconfined).launch { screen.state.collect {} }
+            collectors.launch { screen.state.collect {} }
         }
     }
 
@@ -85,6 +93,21 @@ class NotesViewModelTest {
         val again = screen.await { it.mints.size == 2 }
         assertNull(again.mintPage)
         assertFalse(again.selecting)
+    }
+
+    @Test
+    fun `a note's sheet whose note left the view stays closed when the note comes back`() = runTest {
+        val screen = screen()
+        screen.await { it.mints.size == 2 }
+        screen.tap(note("o1", other, 5_000))
+        screen.await { it.open == "o1" }
+
+        // A refresh finds it spent, then a flaky mint says it's there again: the sheet doesn't pop open by itself.
+        store.upsertNotes(listOf(note("o1", other, 5_000, NoteState.Spent)))
+        screen.await { s -> s.mints.first { it.host == other }.notes.none { it.id == "o1" } }
+        store.upsertNotes(listOf(note("o1", other, 5_000)))
+        val back = screen.await { s -> s.mints.first { it.host == other }.notes.any { it.id == "o1" } }
+        assertNull(back.open)
     }
 
     @Test

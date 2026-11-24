@@ -191,7 +191,8 @@ interface BrandComponents {
 
     /**
      * One mint's notes at a glance on the notes view: a pile of its bills, the biggest in front, with the mint's name, labels, total and
-     * the range of its notes. The app handles the tap (it opens the mint's notes) and the swiping between mints.
+     * the range of its notes. The pile takes the tap itself ([NotePileParams.onClick], inside its own shape); the app handles the swiping
+     * between mints.
      */
     @Composable fun NotePile(params: NotePileParams, modifier: Modifier) = DefaultComponents.notePile(params, modifier)
 }
@@ -1345,33 +1346,40 @@ private fun CacheDrawScope.certificateMarks(colors: NoteColors, detailed: Boolea
                 }
             }
         }
-    val waves =
-        Path().apply {
-            for (k in 0 until 3) {
-                for (x in 0..160 step 2) {
-                    val y = (60 + k * 6) * uy + 2.5f * u * sin((x + k * 7) / 40f * 2 * PI.toFloat())
-                    if (x == 0) moveTo(0f, y) else lineTo(x * ux, y)
+    // The medal and waves only where they are drawn: a small bill builds none of their paths.
+    val details: (DrawScope.() -> Unit)? =
+        if (!detailed) null
+        else {
+            val waves =
+                Path().apply {
+                    for (k in 0 until 3) {
+                        for (x in 0..160 step 2) {
+                            val y = (60 + k * 6) * uy + 2.5f * u * sin((x + k * 7) / 40f * 2 * PI.toFloat())
+                            if (x == 0) moveTo(0f, y) else lineTo(x * ux, y)
+                        }
+                    }
                 }
+            val center = Offset(172 * ux, 76 * uy)
+            val teeth = star(center, 12.5f * u, 10.8f * u, 28)
+            val rosette = rose(center, 5f * u, 1.6f * u, 10, 0f)
+            val inner = rose(center, 3.2f * u, 1f * u, 10, PI.toFloat() / 10)
+            val medal: DrawScope.() -> Unit = {
+                drawPath(waves, ink.copy(alpha = 0.18f), style = Stroke(hairline))
+                drawPath(teeth, colors.paper)
+                drawPath(teeth, ink.copy(alpha = 0.24f))
+                drawCircle(colors.paper, 8.4f * u, center)
+                drawCircle(ink.copy(alpha = 0.6f), 8.4f * u, center, style = Stroke(maxOf(0.7f * u, hairline)))
+                drawPath(rosette, ink.copy(alpha = 0.55f), style = Stroke(hairline))
+                drawPath(inner, ink.copy(alpha = 0.35f), style = Stroke(hairline * 0.9f))
             }
+            medal
         }
-    val center = Offset(172 * ux, 76 * uy)
-    val teeth = star(center, 12.5f * u, 10.8f * u, 28)
-    val rosette = rose(center, 5f * u, 1.6f * u, 10, 0f)
-    val inner = rose(center, 3.2f * u, 1f * u, 10, PI.toFloat() / 10)
     return {
         drawRect(foil, topLeft = Offset(left, 0f), size = Size(right - left, size.height))
         drawLine(ink.copy(alpha = 0.3f), Offset(left, 0f), Offset(left, size.height), hairline)
         drawLine(ink.copy(alpha = 0.3f), Offset(right, 0f), Offset(right, size.height), hairline)
         drawPath(engraving, ink.copy(alpha = 0.3f), style = Stroke(hairline))
-        if (detailed) {
-            drawPath(waves, ink.copy(alpha = 0.18f), style = Stroke(hairline))
-            drawPath(teeth, colors.paper)
-            drawPath(teeth, ink.copy(alpha = 0.24f))
-            drawCircle(colors.paper, 8.4f * u, center)
-            drawCircle(ink.copy(alpha = 0.6f), 8.4f * u, center, style = Stroke(maxOf(0.7f * u, hairline)))
-            drawPath(rosette, ink.copy(alpha = 0.55f), style = Stroke(hairline))
-            drawPath(inner, ink.copy(alpha = 0.35f), style = Stroke(hairline * 0.9f))
-        }
+        details?.invoke(this)
     }
 }
 

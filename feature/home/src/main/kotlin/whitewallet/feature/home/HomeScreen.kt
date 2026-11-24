@@ -1225,7 +1225,7 @@ private fun MintRowAction(@DrawableRes icon: Int, label: String, onClick: () -> 
  */
 @Composable
 private fun ReceivedCard(state: HomeState, actions: ReceivedNoteActions, waitingElsewhere: Boolean) {
-    val shown = state.received.filter { it.needsUser || !waitingElsewhere }
+    val shown = state.received.filter { it.needsUser() || !waitingElsewhere }
     if (shown.isEmpty()) return
     WalletCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 8.dp)) {

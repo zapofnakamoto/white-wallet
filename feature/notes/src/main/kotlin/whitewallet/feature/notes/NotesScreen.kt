@@ -253,11 +253,11 @@ fun NotesContent(state: NotesState, actions: NotesActions, pageBackArrow: Boolea
     }
 }
 
-/** Empty without notes, waiting while handed-out notes are out, else idle. */
+/** Empty when the view shows its empty state ([NotesState.empty]), waiting while handed-out notes are out, else idle. */
 internal fun notesStatus(state: NotesState): WalletStatus =
     when {
         // Empty first, offline too: its empty state draws the brand's mark already, and offline holds nothing up there.
-        state.noteCount == 0 && state.handedOutCount == 0 && state.receivedPending.isEmpty() -> WalletStatus.Empty
+        state.empty -> WalletStatus.Empty
         state.offline -> WalletStatus.Problem(ProblemKind.Offline)
         state.sharedMsat > 0 -> WalletStatus.WaitingForRecipient
         else -> WalletStatus.Idle

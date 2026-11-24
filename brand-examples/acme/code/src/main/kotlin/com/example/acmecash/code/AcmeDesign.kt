@@ -41,9 +41,10 @@ import whitewallet.brand.ui.DecorationContext
 import whitewallet.brand.ui.DefaultComponents
 import whitewallet.brand.ui.MoneyDirection
 import whitewallet.brand.ui.NoteFaceParams
+import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
-import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.Tone
+import whitewallet.brand.ui.inBalance
 import whitewallet.brand.ui.walletColors
 
 /**
@@ -97,8 +98,9 @@ private object AcmeComponents : BrandComponents {
 
     /**
      * A banknote: in the list a small bill beside the amount, on a note's own page the whole bill, with the provider as its issuer, the
-     * amount as its denomination and the QR code (drawn by the app) in its middle. A bill that is out of use (being paid, unclear, spent or
-     * taken back) is printed faded. The app's texts are drawn as `Text`.
+     * amount as its denomination and the QR code (drawn by the app) in its middle. A bill out of the balance (being paid, unclear, set
+     * aside, handed out) is printed faded; a handed-out one's row names its provider, as it has no heading above it. A certified bill's
+     * seals are filled. All bills share one palette ([NoteFaceParams.colors] is left unused). The app's texts are drawn as `Text`.
      */
     @Composable
     override fun NoteFace(params: NoteFaceParams, modifier: Modifier) {
@@ -110,12 +112,23 @@ private object AcmeComponents : BrandComponents {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     params.selected?.let { Checkbox(it, onCheckedChange = null, enabled = params.enabled) }
-                    Bill(params.status, Modifier.size(width = 44.dp, height = 28.dp), corner = 4.dp, seal = 5.dp)
+                    Bill(
+                        Modifier.size(width = 44.dp, height = 28.dp),
+                        corner = 4.dp,
+                        seal = 5.dp,
+                        certified = params.certified,
+                        faded = params.outOfBalance,
+                    )
                     Column(Modifier.weight(1f)) {
                         Text(params.amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         params.statusText?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                        params.mint
+                            ?.takeIf { params.place == NoteFacePlace.Shared }
+                            ?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                     }
                     params.age?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -124,11 +137,11 @@ private object AcmeComponents : BrandComponents {
             NoteFaceSize.Large ->
                 Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Bill(
-                        params.status,
                         Modifier.matchParentSize(),
                         corner = 12.dp,
                         seal = 14.dp,
-                        faded = params.qrCode == null && params.status.outOfUse,
+                        certified = params.certified,
+                        faded = params.qrCode == null && params.outOfBalance,
                     )
                     Column(
                         Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
@@ -157,17 +170,13 @@ private object AcmeComponents : BrandComponents {
     }
 }
 
-private val NoteStatus.outOfUse: Boolean
-    get() =
-        this == NoteStatus.Paying ||
-            this == NoteStatus.Unclear ||
-            this == NoteStatus.Spent ||
-            this == NoteStatus.TakenBack ||
-            this == NoteStatus.Unknown
+/** Not in the balance, as the app draws it greyed out: its status says so, or it was handed out. */
+private val NoteFaceParams.outOfBalance: Boolean
+    get() = !status.inBalance || place == NoteFacePlace.Shared
 
-/** The paper of a bill: tinted, a double border and a round seal in each corner. Decorative. */
+/** The paper of a bill: tinted, a double border and a round seal in each corner, filled when [certified]. Decorative. */
 @Composable
-private fun Bill(status: NoteStatus, modifier: Modifier, corner: Dp, seal: Dp, faded: Boolean = status.outOfUse) {
+private fun Bill(modifier: Modifier, corner: Dp, seal: Dp, certified: Boolean, faded: Boolean) {
     val ink = MaterialTheme.colorScheme.primary.copy(alpha = if (faded) 0.35f else 1f)
     val paper = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (faded) 0.25f else 0.6f)
     val shape = RoundedCornerShape(corner)
@@ -181,7 +190,7 @@ private fun Bill(status: NoteStatus, modifier: Modifier, corner: Dp, seal: Dp, f
         val r = seal.toPx() / 2
         val inset = r + 4.dp.toPx()
         for (x in listOf(inset, size.width - inset)) for (y in listOf(inset, size.height - inset)) {
-            drawCircle(ink, r, Offset(x, y), style = Stroke(1.dp.toPx()))
+            if (certified) drawCircle(ink, r, Offset(x, y)) else drawCircle(ink, r, Offset(x, y), style = Stroke(1.dp.toPx()))
         }
     }
 }

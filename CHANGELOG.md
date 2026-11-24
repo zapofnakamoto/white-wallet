@@ -15,7 +15,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   biggest in front, with its name, labels, total and range; swipe between mints, or use the arrows. A tap opens the
   mint's page: its notes as rows with a small bill, sorting and Select (selecting is only there). A note's sheet shows
   it as a large bill. Money outside the balance sits apart under "Not in your balance": received links (opened by a
-  tap, or by themselves when one needs you), handed-out notes (a closed row) and the archive. Note settings moved from
+  tap; already open when the view opens while one needs you), handed-out notes (a closed row) and the archive. Note settings moved from
   the top bar to a row at the bottom. For brands: the component `NotePile`, `NoteFaceParams.colors`, the colour roles
   `brand_note_1` … `brand_note_3` with their `brand_on_note_*`, `NoteGroupHeader` now heads a mint's page (no
   divider); new strings `notes_attention_*`, `notes_outside_title`, `notes_range`, `notes_mint_*`, `notes_section_*`.
@@ -27,6 +27,19 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   draws a note in its mint's colour. For brands: `NotePileParams.onClick` and `onClickLabel` (the pile is clickable
   inside its own shape), `NoteFaceParams.certified` has no default any more, and a bill missing from
   `billsCertified` is drawn plain.
+- The notes view, after a second review: Home and the notes view agree on which received links need you (a locked one
+  past its date does on both); the notes view counts as empty only when it shows its empty state, so the brand's mark
+  above it stays while only archived notes or spent links are left; a note's sheet closed because its note left the
+  view doesn't open by itself when the note comes back; "0 notes" no longer shows while every note is set aside; a
+  mint that holds only a handed-out note no longer takes the home mint's colour; the claim screen waits for the
+  wallet's mints before drawing, so a bill never changes colour, and keeps them for the next link; the page of what
+  needs you says which mint isn't answering without naming it twice, and whose when mints aren't named; its rows and
+  the handed-out rows read out "Show details" and are at least 48dp high. For brands: the `NotePile` KDoc says the
+  pile takes the tap itself; `WHITE_LABEL.md` no longer promises that parameter objects only gain options with
+  defaults (`NoteFaceParams.certified` and `WalletColors.notes` have none); a small certified bill builds only the
+  paths it draws; Acme draws handed-out and set-aside notes faded, names a handed-out note's mint and fills a
+  certified bill's seals; new brand term `notes_attention_offline_unnamed`, new strings `notes_attention_silent` and
+  `notes_details_open`.
 - A bill whose amount the mint certified looks like a banknote: a foil stripe with engraved lines and a medal, and
   soft waves under the amount (a small bill shows the stripe). A bill without a certificate stays plain, and still
   says "Amount not certified" in words. For brands: `NoteFaceParams.certified`,

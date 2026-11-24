@@ -106,7 +106,8 @@ private fun Summary(state: NotesState) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         WalletStatusScope(notesStatus(state)) { BrandDecoration(Anchor.NotesHeader) }
         Text(formatAmount(state.totalMsat), style = MaterialTheme.typography.headlineMedium)
-        if (state.noteCount > 0) {
+        // What the balance holds: no "0 notes" while every note is set aside (they are in the needs-attention card).
+        if (state.balanceNoteCount > 0) {
             val count = state.balanceNoteCount
             val parts = buildList {
                 add(pluralStringResource(R.plurals.notes_count, count, count))
@@ -385,7 +386,7 @@ private fun SharedRow(note: Note, showMints: Boolean, onOpen: (String) -> Unit) 
     WalletNoteFace(
         size = NoteFaceSize.Row,
         note.amountMsat,
-        modifier = Modifier.clickable { onOpen(note.id) },
+        modifier = Modifier.clickable(onClickLabel = stringResource(R.string.notes_details_open)) { onOpen(note.id) },
         status = NoteStatus.Waiting,
         certified = note.certificate != null,
         age = recentTime(note.updatedAtMillis),
@@ -403,10 +404,10 @@ private fun HandedOutUnknownRow(note: Note, showMints: Boolean, onOpen: (Note) -
     WalletNoteFace(
         size = NoteFaceSize.Row,
         note.amountMsat,
-        modifier = Modifier.clickable { onOpen(note) },
+        modifier = Modifier.clickable(onClickLabel = stringResource(R.string.notes_details_open)) { onOpen(note) },
         status = NoteStatus.Unknown,
         certified = note.certificate != null,
-        statusText = noteStatusText(NoteStatus.Unknown),
+        statusText = noteStatusText(NoteStatus.Unknown, handedOut = true),
         statusIcon = noteStatusIcon(NoteStatus.Unknown),
         age = recentTime(note.updatedAtMillis),
         mint = note.host.takeIf { showMints },

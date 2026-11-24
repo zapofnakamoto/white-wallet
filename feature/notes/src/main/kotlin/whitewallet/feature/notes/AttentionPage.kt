@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -65,10 +66,20 @@ internal fun AttentionPage(state: NotesState, actions: NotesActions, backArrow: 
             // Named, each mint under its name; unnamed, still apart from the one before.
             if (state.showMints) item(key = "mint $host") { Heading(host) }
             else if (index > 0) item(key = "apart $host") { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+            // Under its name, the line needn't name it again; without names, it says whose.
             if (host in state.silentMints)
-                item(key = "silent $host") { MintLine(stringResource(DesignR.string.mint_not_answering_unnamed)) }
+                item(key = "silent $host") {
+                    MintLine(
+                        stringResource(if (state.showMints) R.string.notes_attention_silent else DesignR.string.mint_not_answering_unnamed)
+                    )
+                }
             // Offline, a mint that wasn't answering stays here (the page stays open for it), saying why nothing is asked now.
-            if (host in state.silentWhileOffline) item(key = "offline $host") { MintLine(stringResource(R.string.notes_attention_offline)) }
+            if (host in state.silentWhileOffline)
+                item(key = "offline $host") {
+                    MintLine(
+                        stringResource(if (state.showMints) R.string.notes_attention_offline else R.string.notes_attention_offline_unnamed)
+                    )
+                }
             if (host in state.keyChangedMints)
                 item(key = "key $host") {
                     MintLine(
@@ -107,7 +118,9 @@ private fun Heading(text: String) {
 @Composable
 private fun MintLine(text: String, onClick: (() -> Unit)? = null) {
     Row(
-        (if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        (if (onClick != null) Modifier.clickable(onClickLabel = stringResource(R.string.notes_details_open), onClick = onClick)
+            else Modifier)
+            .heightIn(min = 48.dp)
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -135,6 +148,11 @@ private fun TroubledNoteRow(note: Note, state: NotesState, actions: NotesActions
         enabled = NotesViewModel.selectable(note) && !state.busy,
         colors = MaterialTheme.walletColors.note(state.colorIndex(note.host)),
         certified = note.certificate != null,
-        modifier = Modifier.clickable(enabled = !state.busy, onClick = { actions.tap(note) }),
+        modifier =
+            Modifier.clickable(
+                enabled = !state.busy,
+                onClickLabel = stringResource(R.string.notes_details_open),
+                onClick = { actions.tap(note) },
+            ),
     )
 }

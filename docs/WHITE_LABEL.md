@@ -153,6 +153,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_mint_previous` | Previous mint |
 | `notes_mint_next` | Next mint |
 | `notes_mint_position` | Mint %1$d of %2$d |
+| `notes_attention_offline_unnamed` | Your mint didn't answer, and you're offline. It's asked again when you're back online. |
 | `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
 | `home_unknown_title_unnamed` | Your mint doesn't know %1$d of your notes / Your mint doesn't know %1$d of your notes (plural) |
 | `home_unknown_body` | %1$s isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again. / %1$s isn't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again. (plural) |
@@ -464,7 +465,9 @@ object MyModule {
 ```
 
 `BrandDesign` has a default for every member, so a brand overrides only what it changes and new members in later
-releases don't break it; the parameter objects of components (`ButtonParams`, …) only gain options with defaults.
+releases don't break it. The parameter objects of components (`ButtonParams`, …) and the colour roles mostly gain
+options with defaults; one a brand must decide for itself has none (`NoteFaceParams.certified`, `WalletColors.notes`),
+and the CHANGELOG says so for each.
 
 - **Theme:** `Theme(tokens, content)` gets the tokens from the resources (`tokens.copy(typography = …)`) and ends
   with `WalletMaterialTheme(tokens, content)`. Read the wallet roles with `MaterialTheme.walletColors`.

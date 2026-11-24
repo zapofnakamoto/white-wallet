@@ -36,13 +36,6 @@ fun ReceivedNote.waitsFor(offline: Boolean, notAnswering: Set<String>): Received
     }
 
 /**
- * Whether the user should look at it: its mint's key changed, only Lightning brings it in, or someone else spent it. Every other pending
- * note only waits, and the wallet claims it on its own.
- */
-val ReceivedNote.needsUser: Boolean
-    get() = state == ReceivedState.KeyChanged || state == ReceivedState.LightningOnly || state == ReceivedState.Gone
-
-/**
  * Where a received note stands, in the user's language: why it isn't claimed yet ([wait], naming its mint where [mintNamed]), or why it
  * can't be.
  */
@@ -156,7 +149,7 @@ fun ReceivedNoteRow(
 /**
  * A received note the wallet can't claim on its own, so it waits for the user: one only Lightning can bring in, one spent by someone else,
  * one whose mint's key changed, or a locked one past its date (or without one) that its mint keeps refusing. Its row offers what they can
- * do.
+ * do. Every other pending note only waits, and the wallet claims it on its own. Home and the notes view both ask this.
  */
 fun ReceivedNote.needsUser(nowMillis: Long = System.currentTimeMillis()): Boolean =
     when (state) {

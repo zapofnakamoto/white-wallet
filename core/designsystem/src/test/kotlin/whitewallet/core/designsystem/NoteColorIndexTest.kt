@@ -15,7 +15,13 @@ class NoteColorIndexTest {
 
     @Test
     fun `a note from a mint not shown yet takes the colour it gets there once added`() {
-        assertEquals(2, noteColorIndex("aa.example", "home.example", hosts + "aa.example"))
-        assertEquals(3, noteColorIndex("c.example", "home.example", hosts + "c.example"))
+        assertEquals(2, noteColorIndex("aa.example", "home.example", hosts))
+        assertEquals(3, noteColorIndex("c.example", "home.example", hosts))
+    }
+
+    @Test
+    fun `a mint not shown is never drawn in the home mint's colour`() {
+        assertEquals(1, noteColorIndex("a.example", "home.example", listOf("home.example")))
+        assertEquals(1, noteColorIndex("a.example", null, emptyList()))
     }
 }

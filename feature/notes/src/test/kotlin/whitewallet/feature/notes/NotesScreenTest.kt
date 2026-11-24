@@ -685,6 +685,14 @@ class NotesScreenTest {
     }
 
     @Test
+    fun onlyArchivedNotesOrASpentLinkAreNotAnEmptyView() {
+        // The view draws them, not its empty state, so the header keeps the brand's mark.
+        val gone = waiting().copy(state = ReceivedState.Gone, k1 = null)
+        assertEquals(WalletStatus.Idle, notesStatus(NotesState(loaded = true, archivedNotes = 1)))
+        assertEquals(WalletStatus.Idle, notesStatus(NotesState(loaded = true, received = listOf(gone))))
+    }
+
+    @Test
     fun aWaitingReceivedNoteOnASilentMintSaysSoAndOffersNoArchive() {
         compose.setContent {
             NotesContent(NotesState(loaded = true, notAnsweringHosts = setOf("mint.example"), received = listOf(waiting())), NotesActions())
@@ -783,7 +791,7 @@ class NotesScreenTest {
         compose.onNodeWithText("₿5,000 · 1 note").assertExists()
         compose.onNodeWithText(text(DesignR.string.handed_out_title)).performScrollTo().performClick()
         // Its details, not its QR code: nobody can claim it until its mint knows it again.
-        compose.onNodeWithText(text(R.string.notes_state_unknown)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.notes_state_unknown_handed_out)).performScrollTo().performClick()
         assertEquals("u1", opened?.id)
     }
 
