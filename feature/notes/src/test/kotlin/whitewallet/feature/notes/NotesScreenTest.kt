@@ -224,7 +224,7 @@ class NotesScreenTest {
             )
         }
         compose.onNodeWithText("Home mint · Trusted · 2 notes").assertExists()
-        compose.onNodeWithText(text(R.string.notes_trusted)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.notes_trusted)).assertExists()
     }
 
     @Test
@@ -512,7 +512,7 @@ class NotesScreenTest {
         compose.onAllNodesWithText("2 notes").assertCountEquals(2)
         compose.onNodeWithText("home.example", substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.notes_home_mint), substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.notes_trusted)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.notes_trusted)).assertDoesNotExist()
     }
 
     @Test

@@ -138,6 +138,8 @@ class PreviewsTest {
                 "MintDetailsUnreachablePreview",
                 "MintDetailsKeyChangedPreview",
                 "MintsKeyChangedPreview",
+                "MintsHomeKeyChangedPreview",
+                "MintsNoHomePreview",
                 "AddressesProblemPreview",
                 "NotesSettingsCollectProblemPreview",
                 "DeleteWalletUnresolvedPreview",

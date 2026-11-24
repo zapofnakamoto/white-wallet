@@ -16,10 +16,6 @@
     <string name="notes_problem_different_mints">Select notes on one mint.</string>
     <string name="notes_title">Notes</string>
     <string name="notes_settings">Note settings</string>
-    <plurals name="notes_count">
-        <item quantity="one">%1$d note</item>
-        <item quantity="other">%1$d notes</item>
-    </plurals>
     <string name="notes_sort">Sort notes</string>
     <string name="notes_select_hint">Tap notes to select them.</string>
     <string name="notes_share_hint">Hands out the whole note as a QR code. It leaves your balance until someone claims it, or you claim it yourself.</string>
@@ -178,7 +174,6 @@
     <string name="notes_renewed">Renewed: %1$s, now under a fresh key.</string>
     <string name="notes_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in its details, nothing more is done with it.</string>
     <string name="notes_state_paying">Paying…</string>
-    <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Combine</string>
     <string name="notes_split">Split</string>
     <string name="notes_move">Move</string>
@@ -197,7 +192,6 @@
     <string name="notes_problem_invoice_mismatch">The answer came with an invoice that doesn\'t match. Nothing was moved.</string>
     <string name="notes_problem_refused">Refused. Nothing was moved.</string>
     <string name="notes_problem_declined">Not moved: the fee is more than your limit.</string>
-    <string name="notes_trusted">Trusted</string>
     <!-- The empty notes view's way forward: opens Receive. -->
     <string name="notes_receive">Receive</string>
     <!-- The notes view: the card that says what needs the user, one line each. -->

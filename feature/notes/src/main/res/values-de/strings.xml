@@ -11,10 +11,6 @@
     <string name="notes_problem_different_mints">Wähle Scheine bei einer einzigen Mint aus.</string>
     <string name="notes_title">Scheine</string>
     <string name="notes_settings">Schein-Einstellungen</string>
-    <plurals name="notes_count">
-        <item quantity="one">%1$d Schein</item>
-        <item quantity="other">%1$d Scheine</item>
-    </plurals>
     <string name="notes_sort">Scheine sortieren</string>
     <string name="notes_select_hint">Tippe auf Scheine, um sie auszuwählen.</string>
     <string name="notes_share_hint">Gibt den ganzen Schein als QR-Code weiter. Er ist nicht mehr in deinem Guthaben, bis ihn jemand einlöst oder du ihn selbst einlöst.</string>
@@ -131,7 +127,6 @@
     <string name="notes_renewed">Erneuert: %1$s, jetzt mit einem neuen Schlüssel.</string>
     <string name="notes_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details den neuen Schlüssel annimmst, passiert damit nichts mehr.</string>
     <string name="notes_state_paying">Wird bezahlt …</string>
-    <string name="notes_detail_separator">" · "</string>
     <string name="notes_combine">Zusammenlegen</string>
     <string name="notes_split">Aufteilen</string>
     <string name="notes_move">Verschieben</string>
@@ -150,7 +145,6 @@
     <string name="notes_problem_invoice_mismatch">Die Antwort kam mit einer Rechnung, die nicht passt. Es wurde nichts verschoben.</string>
     <string name="notes_problem_refused">Abgelehnt. Es wurde nichts verschoben.</string>
     <string name="notes_problem_declined">Nicht verschoben: Die Gebühr ist höher als dein Limit.</string>
-    <string name="notes_trusted">Vertraut</string>
     <string name="notes_receive">Empfangen</string>
     <string name="notes_attention_title">Braucht deine Aufmerksamkeit</string>
     <!-- The card's link to everything that needs the user, on a page of its own. -->

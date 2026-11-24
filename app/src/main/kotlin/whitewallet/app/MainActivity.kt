@@ -695,8 +695,12 @@ private fun WalletApp(
         composable(Routes.MINTS) {
             MintsRoute(
                 onBack = { nav.popBackStack() },
-                onOpen = { host -> nav.navigate(Routes.mint(host, device = true)) },
+                onOpen = { host -> nav.navigate(Routes.mint(host)) },
                 onAdd = { nav.navigate(Routes.ADD_MINT) },
+                onNoHome = { noHome -> nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) },
+                onChangeHome = { nav.navigate(Routes.changeMint(null)) },
+                onManageAccounts = { nav.navigate(Routes.WALLETS) },
+                onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
             )
         }
         composable(Routes.SECURITY) {

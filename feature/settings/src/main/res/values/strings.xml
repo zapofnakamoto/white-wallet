@@ -465,4 +465,7 @@
     <!-- On a mint's page: pay from it, receive on it -->
     <string name="mint_send">Send</string>
     <string name="mint_receive">Receive</string>
+
+    <!-- Mints page: a mint the account in use has no money, note or address on -->
+    <string name="mints_card_unused">Not used in this account</string>
 </resources>

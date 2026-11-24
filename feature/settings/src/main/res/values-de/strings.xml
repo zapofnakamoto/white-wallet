@@ -450,4 +450,7 @@
     <string name="account_remove_blocked_last">Es ist das einzige Konto seiner Wallet. Um es zu entfernen, lösche die Wallet.</string>
     <string name="mint_send">Senden</string>
     <string name="mint_receive">Empfangen</string>
+
+    <!-- Mints page: a mint the account in use has no money, note or address on -->
+    <string name="mints_card_unused">In diesem Konto nicht genutzt</string>
 </resources>

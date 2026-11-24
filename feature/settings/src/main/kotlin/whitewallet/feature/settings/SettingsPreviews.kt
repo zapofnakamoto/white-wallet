@@ -1,15 +1,16 @@
 package whitewallet.feature.settings
 
 import androidx.compose.runtime.Composable
+import whitewallet.core.designsystem.AccountActions
 import whitewallet.core.designsystem.LocalAppName
 import whitewallet.core.designsystem.Moment
 import whitewallet.core.designsystem.PREVIEW_MILLIS
 import whitewallet.core.designsystem.WalletPreviews
 import whitewallet.core.model.Account
+import whitewallet.core.model.AccountChoice
 import whitewallet.core.model.AccountSummary
 import whitewallet.core.model.AmountUnit
 import whitewallet.core.model.Mint
-import whitewallet.core.model.MintScan
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.model.WalletGroup
 import whitewallet.core.model.WalletRecord
@@ -24,16 +25,15 @@ import whitewallet.core.wallet.KeySet
 import whitewallet.core.wallet.KeyStatus
 import whitewallet.core.wallet.ManualStrategy
 import whitewallet.core.wallet.MintDetails
-import whitewallet.core.wallet.MintInfo
 import whitewallet.core.wallet.MintMoveResult
 import whitewallet.core.wallet.MoneyMoved
 import whitewallet.core.wallet.MovePreview
+import whitewallet.core.wallet.NoHome
 import whitewallet.core.wallet.NotCollected
 import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.RotateResult
 import whitewallet.core.wallet.SingleNoteStrategy
-import whitewallet.core.wallet.TrustDefault
 import whitewallet.lnurlcash.client.LogEntry
 
 // The settings pages in their everyday state, and their success screens (docs/DEVELOPMENT.md, "Screenshots"). Made-up data only; every
@@ -86,13 +86,24 @@ internal val walletsState =
         canAddAccount = true,
     )
 
+/** The Mints page: Satoshi's home with money, another mint with some, one Satoshi doesn't use; the account mark (two accounts). */
 internal val mintsState =
-    MintsState(
-        mints =
+    MintsPageState(
+        home =
+            MintCard(HOME, isHome = true, 21_000_000, noteCount = 3, addresses = 1, trusted = true, keyChanged = false, answering = true),
+        others =
             listOf(
-                MintInfo(HOME, "02a1b2c3", trusted = true, TrustDefault.Home, isHome = true, scan = MintScan.Finished),
-                MintInfo(OTHER, "03d4e5f6", trusted = true, TrustDefault.Brand, removable = true, scan = MintScan.Never),
-            )
+                MintCard(OTHER, isHome = false, 4_000_000, noteCount = 1, addresses = 0, trusted = true, false, answering = true),
+                MintCard("old.example", isHome = false, 0, noteCount = 0, addresses = 0, trusted = false, false, answering = true),
+            ),
+        canChangeHome = true,
+        accounts =
+            AccountChoice(
+                listOf(AccountSummary(satoshi, 21_000_000, used = true), AccountSummary(hal, 5_000_000, used = true)),
+                satoshi.id,
+                emptyMap(),
+                shown = true,
+            ),
     )
 
 internal val mintDetailsState =
@@ -205,9 +216,11 @@ private fun WalletPagePreview() =
 @Composable
 private fun AccountNotInUsePreview() = AccountNotInUseScreen(AccountSummary(hal, 0), place = 1, onBack = {}, onUse = {})
 
-@WalletPreviews
+@WalletPreviews @Composable private fun MintsPreview() = MintsWith(mintsState)
+
 @Composable
-private fun MintsPreview() = MintsScreen(mintsState, onBack = {}, onOpen = {}, onTrusted = { _, _ -> }, onAdd = {})
+private fun MintsWith(state: MintsPageState) =
+    MintsScreen(state, onBack = {}, onOpen = {}, onAdd = {}, onNoHome = {}, onChangeHome = {}, accountActions = AccountActions({}, {}, {}))
 
 @WalletPreviews @Composable private fun MintDetailsPreview() = MintDetailsScreen(mintDetailsState, onBack = {}, onRefresh = {})
 
@@ -487,11 +500,24 @@ private fun MintDetailsKeyChangedPreview() =
         onRefresh = {},
     )
 
-/** A mint whose signing key changed: its row says so in place of its key. */
+/** Another mint whose signing key doesn't match: its card turns the error colour and says so in place of its notes. */
 @WalletPreviews
 @Composable
 private fun MintsKeyChangedPreview() =
-    MintsScreen(mintsState.copy(keyChanged = setOf(OTHER)), onBack = {}, onOpen = {}, onTrusted = { _, _ -> }, onAdd = {})
+    MintsWith(mintsState.copy(others = mintsState.others.map { if (it.host == OTHER) it.copy(keyChanged = true, trusted = false) else it }))
+
+/** The home's signing key doesn't match: the home card turns the error colour, and stays the home card with its button. */
+@WalletPreviews
+@Composable
+private fun MintsHomeKeyChangedPreview() = MintsWith(mintsState.copy(home = mintsState.home?.copy(keyChanged = true, trusted = false)))
+
+/** No home: the way to choose one in the home card's place, the mints below. */
+@WalletPreviews
+@Composable
+private fun MintsNoHomePreview() =
+    MintsWith(
+        mintsState.copy(home = null, noHome = NoHome.PickHome, others = listOf(mintsState.home!!.copy(isHome = false)) + mintsState.others)
+    )
 
 /** The addresses' checks: one that the mint can't be asked about, and a refused unregister said on the page. */
 @WalletPreviews

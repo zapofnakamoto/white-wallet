@@ -90,8 +90,8 @@ private fun MintPageHeader(mint: MintNotes, state: NotesState, actions: NotesAct
             listOfNotNull(
                 // In the balance, as the total and the pile count them; the others say so on their rows.
                 stringResource(R.string.notes_home_mint).takeIf { mint.isHome && state.showMints },
-                stringResource(R.string.notes_trusted).takeIf { mint.trusted && state.showMints },
-                pluralStringResource(R.plurals.notes_count, mint.inBalance.size, mint.inBalance.size),
+                stringResource(DesignR.string.notes_trusted).takeIf { mint.trusted && state.showMints },
+                pluralStringResource(DesignR.plurals.notes_count, mint.inBalance.size, mint.inBalance.size),
             )
         WalletNoteGroupHeader(
             mint = mint.host.takeIf { state.showMints },
@@ -99,7 +99,7 @@ private fun MintPageHeader(mint: MintNotes, state: NotesState, actions: NotesAct
             totalMsat = mint.totalMsat,
             home = mint.isHome,
             trusted = mint.trusted && state.showMints,
-            labels = labels.joinToString(stringResource(R.string.notes_detail_separator)),
+            labels = labels.joinToString(stringResource(DesignR.string.notes_detail_separator)),
             modifier = Modifier.weight(1f),
         )
     }

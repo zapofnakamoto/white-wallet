@@ -1,117 +1,87 @@
 package whitewallet.feature.settings
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
+import whitewallet.core.designsystem.AccountActions
+import whitewallet.core.designsystem.AccountSwitcher
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
-import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PrimaryButton
-import whitewallet.core.designsystem.R as DesignR
+import whitewallet.core.designsystem.WalletAccountButton
 import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletListItem
-import whitewallet.core.designsystem.WalletMintMark
-import whitewallet.core.designsystem.WalletSwitch
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.pageLoaded
-import whitewallet.core.wallet.AppDefaults
-import whitewallet.core.wallet.MintInfo
-import whitewallet.core.wallet.TrustDefault
-import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.NoHome
 
-data class MintsState(
-    val mints: List<MintInfo> = emptyList(),
-    /** The brand's suggested mints not in the list yet. */
-    val offered: List<String> = emptyList(),
-    /** The brand lets users add a mint by typing it (`mints.custom`); without, only [offered] ones can be added. */
-    val custom: Boolean = true,
-    /**
-     * Mints whose signing key was last seen not to match the pinned one ([Wallet.mintsWithChangedKey]): known from what the wallet saw, no
-     * mint is asked for the list.
-     */
-    val keyChanged: Set<String> = emptySet(),
-    /** The mints were read: until then the page draws none, and no button under them. */
-    val loaded: Boolean = true,
+@Composable
+fun MintsRoute(
+    onBack: () -> Unit,
+    onOpen: (host: String) -> Unit,
+    onAdd: () -> Unit,
+    onNoHome: (NoHome) -> Unit,
+    onChangeHome: () -> Unit,
+    onManageAccounts: () -> Unit,
+    onMoveFunds: () -> Unit,
+    viewModel: MintsPageViewModel = hiltViewModel(),
 ) {
-    /** Whether there is anything to add: without [custom], only while a suggested mint is missing from the list. */
-    val canAdd: Boolean
-        get() = custom || offered.isNotEmpty()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    MintsScreen(
+        state,
+        onBack,
+        onOpen,
+        onAdd,
+        onNoHome,
+        onChangeHome,
+        AccountActions(viewModel::switchAccount, onManageAccounts, onMoveFunds),
+    )
 }
 
 /**
- * The active wallet's mints, for all its accounts: which of them the user trusts (by signing key), which is the active account's home, and
- * the way to add one (removing one is on its page): by its address if the brand lets users (`mints.custom`), or one of the brand's
- * suggested mints. Nothing about one account's money: see Account → Mints.
+ * The wallet's mints as the account in use sees them: its home as a card on top with the way to change it, the other mints as quiet cards
+ * below, and the way to add one. The account's mark in the top bar switches account, as on Home. Nothing until everything is read.
  */
-@HiltViewModel
-class MintsViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {
-    val state: StateFlow<MintsState> =
-        combine(wallet.mints, wallet.mintsWithChangedKey) { mints, keyChanged ->
-                val known = mints.map { it.host }
-                MintsState(
-                    mints,
-                    offered = defaults.mintSuggestions.filter { it !in known },
-                    custom = defaults.customMints,
-                    keyChanged = keyChanged,
-                )
-            }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MintsState(custom = defaults.customMints, loaded = false))
-
-    fun setTrusted(mint: MintInfo, trusted: Boolean) {
-        if (mint.pubkey == null || mint.host in state.value.keyChanged) return
-        viewModelScope.launch { wallet.setMintTrusted(mint.host, trusted) }
-    }
-}
-
-@Composable
-fun MintsRoute(onBack: () -> Unit, onOpen: (host: String) -> Unit, onAdd: () -> Unit, viewModel: MintsViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    MintsScreen(state, onBack, onOpen, onTrusted = viewModel::setTrusted, onAdd = onAdd)
-}
-
 @Composable
 fun MintsScreen(
-    state: MintsState,
+    state: MintsPageState,
     onBack: () -> Unit,
     onOpen: (String) -> Unit,
-    onTrusted: (MintInfo, Boolean) -> Unit,
     onAdd: () -> Unit,
+    onNoHome: (NoHome) -> Unit,
+    onChangeHome: () -> Unit,
+    accountActions: AccountActions,
 ) {
-    Scaffold(topBar = { WalletTopBar(stringResource(R.string.settings_mints), onBack) }) { padding ->
+    var showAccounts by remember { mutableStateOf(false) }
+    Scaffold(
+        topBar = {
+            WalletTopBar(stringResource(R.string.settings_mints), onBack) {
+                if (state.loaded) state.accounts?.let { WalletAccountButton(it) { showAccounts = true } }
+            }
+        }
+    ) { padding ->
         if (!pageLoaded(state.loaded, Modifier.padding(padding))) return@Scaffold
-        val empty = state.mints.isEmpty()
-        BrandBody(Page.Mints, if (empty) WalletStatus.Empty else WalletStatus.Idle) {
+        BrandBody(Page.Mints, if (state.empty) WalletStatus.Empty else WalletStatus.Idle) {
             LazyColumn(Modifier.padding(padding).imePadding().fillMaxWidth()) {
-                if (empty) {
+                if (state.empty) {
                     item {
                         EmptyState(
                             stringResource(R.string.mints_empty),
@@ -120,14 +90,13 @@ fun MintsScreen(
                     }
                     return@LazyColumn
                 }
-                item {
-                    Text(
-                        stringResource(R.string.mints_intro),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp),
-                    )
+                item(key = "home") {
+                    when {
+                        state.home != null -> HomeMintCard(state.home, onOpen, onChangeHome.takeIf { state.canChangeHome })
+                        state.noHome != null -> NoHomeCard(state.noHome, onNoHome)
+                    }
                 }
-                items(state.mints, key = { it.host }) { mint -> MintRow(mint, mint.host in state.keyChanged, onOpen, onTrusted) }
+                items(state.others, key = { it.host }) { OtherMintCard(it, onOpen) }
                 if (state.canAdd)
                     item {
                         WalletButton(kind = ButtonKind.Secondary, onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
@@ -137,52 +106,34 @@ fun MintsScreen(
             }
         }
     }
+    val accounts = state.accounts
+    if (showAccounts && accounts != null) {
+        AccountSwitcher(
+            accounts = accounts.accounts,
+            activeId = accounts.activeId,
+            walletNames = accounts.walletNames,
+            onSelect = {
+                showAccounts = false
+                accountActions.onSwitch(it)
+            },
+            onManage = {
+                showAccounts = false
+                accountActions.onManage()
+            },
+            onMove = {
+                showAccounts = false
+                accountActions.onMove()
+            },
+            onDismiss = { showAccounts = false },
+        )
+    }
 }
 
+/** In the home card's place while the account has none: what is missing, and the way to it, as on Receive. */
 @Composable
-private fun MintRow(mint: MintInfo, keyChanged: Boolean, onOpen: (String) -> Unit, onTrusted: (MintInfo, Boolean) -> Unit) {
-    val hint = MaterialTheme.typography.bodySmall
-    WalletListItem(
-        leadingContent = { WalletMintMark(mint.host, mint.isHome) },
-        headlineContent = { HostText(mint.host) },
-        supportingContent = {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (mint.isHome) Text(stringResource(R.string.settings_home_mint), style = hint, color = MaterialTheme.colorScheme.primary)
-                // A key that doesn't match is what the user has to decide about, on the mint's page: said in place of the key.
-                if (keyChanged)
-                    Text(stringResource(DesignR.string.key_mismatch_short), style = hint, color = MaterialTheme.colorScheme.error)
-                else
-                    Text(
-                        mint.pubkey?.let { stringResource(R.string.mints_key, it.take(8) + "…" + it.takeLast(8)) }
-                            ?: stringResource(R.string.mints_no_key),
-                        style = hint,
-                        fontFamily = FontFamily.Monospace,
-                    )
-                mint.trustedByDefault?.let { default ->
-                    Text(
-                        stringResource(
-                            when {
-                                !mint.trusted -> R.string.mints_untrusted_default
-                                default == TrustDefault.Home -> R.string.mints_default_home
-                                else -> R.string.mints_default_brand
-                            }
-                        ),
-                        style = hint,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        },
-        trailingContent = {
-            WalletSwitch(
-                checked = mint.trusted,
-                onCheckedChange = { onTrusted(mint, it) },
-                // Trust is in the remembered key: not to be changed while the mint presents another.
-                enabled = mint.pubkey != null && !keyChanged,
-                modifier = Modifier,
-            )
-        },
-        modifier = Modifier.clickable { onOpen(mint.host) },
-    )
-    HorizontalDivider()
+private fun NoHomeCard(missing: NoHome, onNoHome: (NoHome) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text(stringResource(R.string.settings_no_home), style = MaterialTheme.typography.bodyLarge)
+        PrimaryButton(stringResource(R.string.settings_no_home_action), { onNoHome(missing) }, Modifier.fillMaxWidth().padding(top = 12.dp))
+    }
 }

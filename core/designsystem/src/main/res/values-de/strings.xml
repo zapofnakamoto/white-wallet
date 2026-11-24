@@ -137,4 +137,12 @@
     </plurals>
     <!-- A mint that didn't answer the last time the wallet asked: wherever mints are listed -->
     <string name="mint_not_answering_short">Antwortet nicht</string>
+    <!-- A count of notes and the separator between details, wherever notes or mints are listed (brands name their notes here) -->
+    <string name="notes_detail_separator">" · "</string>
+    <plurals name="notes_count">
+        <item quantity="one">%1$d Schein</item>
+        <item quantity="other">%1$d Scheine</item>
+    </plurals>
+    <!-- A mint the user trusts, said wherever mints are listed -->
+    <string name="notes_trusted">Vertraut</string>
 </resources>

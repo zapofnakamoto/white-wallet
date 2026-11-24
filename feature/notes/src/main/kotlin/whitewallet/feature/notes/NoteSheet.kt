@@ -94,7 +94,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TrustedIcon()
                     Text(
-                        stringResource(R.string.notes_trusted),
+                        stringResource(DesignR.string.notes_trusted),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )

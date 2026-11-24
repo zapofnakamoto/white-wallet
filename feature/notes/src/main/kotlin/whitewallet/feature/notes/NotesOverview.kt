@@ -110,11 +110,11 @@ private fun Summary(state: NotesState) {
         if (state.balanceNoteCount > 0) {
             val count = state.balanceNoteCount
             val parts = buildList {
-                add(pluralStringResource(R.plurals.notes_count, count, count))
+                add(pluralStringResource(DesignR.plurals.notes_count, count, count))
                 if (state.showMints && state.mints.size > 1)
                     add(pluralStringResource(R.plurals.notes_mints, state.mints.size, state.mints.size))
             }
-            Text(parts.joinToString(stringResource(R.string.notes_detail_separator)), style = MaterialTheme.typography.bodyMedium)
+            Text(parts.joinToString(stringResource(DesignR.string.notes_detail_separator)), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -228,13 +228,13 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
         val labels =
             listOfNotNull(
                 stringResource(R.string.notes_home_mint).takeIf { mint.isHome && state.showMints },
-                stringResource(R.string.notes_trusted).takeIf { mint.trusted && state.showMints },
-                pluralStringResource(R.plurals.notes_count, bills.size, bills.size),
+                stringResource(DesignR.string.notes_trusted).takeIf { mint.trusted && state.showMints },
+                pluralStringResource(DesignR.plurals.notes_count, bills.size, bills.size),
             )
         WalletNotePile(
             mint = mint.host.takeIf { state.showMints },
             host = mint.host,
-            labels = labels.joinToString(stringResource(R.string.notes_detail_separator)),
+            labels = labels.joinToString(stringResource(DesignR.string.notes_detail_separator)),
             totalMsat = mint.totalMsat,
             range = range,
             bills = bills.map { it.amountMsat },
@@ -306,7 +306,7 @@ private fun OutsideBalance(
             stringResource(DesignR.string.received_title),
             // What may still come in, summed and counted alike; links spent by someone else are only listed.
             state.receivedPending.size.takeIf { it > 0 }?.let { amount(state.receivedMsat, it) }
-                ?: pluralStringResource(R.plurals.notes_count, state.received.size, state.received.size),
+                ?: pluralStringResource(DesignR.plurals.notes_count, state.received.size, state.received.size),
             receivedOpen,
             { receivedOpen = !receivedOpen },
         )
@@ -341,8 +341,8 @@ private fun OutsideBalance(
 
 @Composable
 private fun amount(msat: Long, count: Int): String =
-    listOf(formatAmount(msat), pluralStringResource(R.plurals.notes_count, count, count))
-        .joinToString(stringResource(R.string.notes_detail_separator))
+    listOf(formatAmount(msat), pluralStringResource(DesignR.plurals.notes_count, count, count))
+        .joinToString(stringResource(DesignR.string.notes_detail_separator))
 
 /** A row that opens and closes what's below it: its title, what it holds, and the arrow that says which way it goes. */
 @Composable

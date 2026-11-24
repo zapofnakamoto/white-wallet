@@ -5,6 +5,11 @@
       it issues ("note"). A brand that uses other words overrides exactly these, per language, in
       brand/res/values*/strings.xml. All other strings are written without either word. See docs/WHITE_LABEL.md.
     -->
+    <!-- A count of notes, wherever notes or mints are listed -->
+    <plurals name="notes_count">
+        <item quantity="one">%1$d note</item>
+        <item quantity="other">%1$d notes</item>
+    </plurals>
     <!-- What's new in the release that dropped the older key derivation (LUD-26 draft 2f17578); shown once to users who updated. -->
     <string name="release_note_old_keys_title">Notes from before version 0.8</string>
     <string name="release_note_old_keys_body">This version no longer finds notes and Lightning addresses made the way the app made them before version 0.8. Since then, the app moved them over by itself whenever it was opened. If money is missing, open your recovery phrase once in version 0.9.0, which still moves them, then use “Scan for notes” here.</string>
@@ -161,7 +166,10 @@
         <item quantity="one">%1$d other wallet</item>
         <item quantity="other">%1$d other wallets</item>
     </plurals>
-    <!-- A mint that didn't answer the last time the wallet asked: wherever mints are listed -->
     <!-- Under a mint's row below the balance: it didn't answer the last time the wallet asked it. -->
     <string name="mint_not_answering_short">Not answering</string>
+    <!-- The separator between details, wherever notes or mints are listed -->
+    <string name="notes_detail_separator">" · "</string>
+    <!-- A mint the user trusts, said wherever mints are listed -->
+    <string name="notes_trusted">Trusted</string>
 </resources>
