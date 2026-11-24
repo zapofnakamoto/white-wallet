@@ -2,21 +2,31 @@
 
 ## First
 
-Asked what to do next, take these first, in this order. Left open by the protocol hotfixes of 2026-11-15 (the note
-on them: `docs/plans/2026-11-15-protocol-hotfixes-result.md`, untracked). Each fails safe today: no note is dropped
-or marked spent on a guess.
+Asked what to do next, take these first, in this order.
 
-1. **Address-proof refusals are matched by substring.** `RegistrationRejection.fromReason` (`LnurlcashClient.kt`)
+1. **Paying the account's own address at another mint is refused, not offered as a move.** `Payer` returns
+   `PayProblem.OwnAddress` for any of the account's own addresses (`Payer.kt`, before the destination), even when
+   the money would come from another mint and the payment would work. Recognise that case (a new problem, e.g. own
+   address on another mint) and hand it to Move: "This is your own address at <mint>. Move your money there
+   instead?", opening Move with that mint chosen. Move shows the fees, records one move instead of a payment and a
+   receipt, and keeps the collect rule (`moveTargets`: while collecting, money only moves home); where that rule
+   refuses the mint, say why in Move's words. Own address on the mint the money is on: keep today's refusal.
+
+Left open by the protocol hotfixes of 2026-11-15 (the note on them:
+`docs/plans/2026-11-15-protocol-hotfixes-result.md`, untracked). Each fails safe today: no note is dropped or marked
+spent on a guess.
+
+2. **Address-proof refusals are matched by substring.** `RegistrationRejection.fromReason` (`LnurlcashClient.kt`)
    lowercases a mint's reason and looks for words in it (`"signature" in r`, `"cx1 already used" in r`, …), as
    `RejectionKind.fromReason` did before it was made exact. `AddressCheck.proveOwner` reads `Cx1AlreadyUsed` as "the
    address is ours". Match exactly: the spec's reasons and lnurl-mint's own sentences (read them from its source).
-2. **`already in use` at a combine or renew can't tell a burned input.** Since LUD-25 at 92e430f a mutation refuses a
+3. **`already in use` at a combine or renew can't tell a burned input.** Since LUD-25 at 92e430f a mutation refuses a
    burned input with `already in use`, the same reason as a `p1`/`p2` already used, which `NoteMutator` retries at
    the next index. Look the inputs up by `p` before retrying: a burned one is spent, not retried.
-3. **A received note refused `already in use` waits a week.** `ReceivedNotes` looks a refused claim's note up only
+4. **A received note refused `already in use` waits a week.** `ReceivedNotes` looks a refused claim's note up only
    when the mint words it spent or unknown (`UnknownNotes.GONE`); refused `already in use`, it is retried for a week
    and archived instead of shown gone. Look it up there too.
-4. **The Keys screen's scan doesn't stop on a refused key.** `KeyInspector` (Developer options → Keys) counts a
+5. **The Keys screen's scan doesn't stop on a refused key.** `KeyInspector` (Developer options → Keys) counts a
    `KeyProbe.Refused` key (`pending`, a spent note in a mint's own words, any other refusal) toward the gap, against
    LUD-26 "Recovery": any error but a note or `already in use` is asked again, never counted unused. It only advances
    the counter less. `IndexDiscovery` and `AddressScanner` stop there as they should.
