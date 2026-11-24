@@ -34,7 +34,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   are in the home mint's colour or the other mints' colour (no longer one per mint, which shifted as mints came and
   went), and the claim screen waits for the home mint before drawing, so a bill never changes colour; the page of what
   needs you says which mint isn't answering without naming it twice, and whose when mints aren't named; its rows and
-  the handed-out rows read out "Show details" and are at least 48dp high. For brands: the `NotePile` KDoc says the
+  the handed-out rows read out "Show details" and are at least 48dp high. Send lists the mints to pay from like every
+  other list of mints: the home mint first, then by name (was in no set order). For brands: the `NotePile` KDoc says the
   pile takes the tap itself; `WHITE_LABEL.md` no longer promises that parameter objects only gain options with
   defaults (`NoteFaceParams.certified` and `WalletColors.notes` have none); a small certified bill builds only the
   paths it draws; Acme draws handed-out and set-aside notes faded, names a handed-out note's mint and fills a

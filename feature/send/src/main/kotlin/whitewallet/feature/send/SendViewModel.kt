@@ -36,8 +36,15 @@ internal suspend fun Wallet.sendMints(): List<SendMint> {
     val home = homeHost.first()
     val sendable = sendableByMint().map { (host, max) -> SendMint(host, host == home, max) }
     val held = heldWhereKeyChanged().map { (host, msat) -> SendMint(host, host == home, msat, keyChanged = true) }
-    return (sendable + held).sortedWith(compareBy({ it.keyChanged }, { !it.isHome }))
+    return inPickerOrder(sendable + held)
 }
+
+/**
+ * As every list of mints to pick from: the home mint first, the others by name, so a mint stays where it was when amounts change; those
+ * whose signing key doesn't match last (nothing is sent from them).
+ */
+internal fun inPickerOrder(mints: List<SendMint>): List<SendMint> =
+    mints.sortedWith(compareBy({ it.keyChanged }, { !it.isHome }, { it.host }))
 
 /** What the regtest faucet's invoice asks for. */
 internal const val FAUCET_SATS = 1_000L
