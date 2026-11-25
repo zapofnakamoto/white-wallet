@@ -72,7 +72,13 @@ class ProtocolVectorsTest {
                             RejectionKind.Pending -> "pending"
                             RejectionKind.Spent -> "spent"
                             RejectionKind.NoteUnknown -> "unknown"
-                            else -> "error"
+                            RejectionKind.AlreadyInUse,
+                            RejectionKind.RateLimited,
+                            RejectionKind.InsufficientValue,
+                            RejectionKind.TooManyK1,
+                            RejectionKind.OwnInvoice,
+                            RejectionKind.InvoiceUsed,
+                            RejectionKind.Other -> "error"
                         }
                 }
             assertEquals(expected, actual, c.str("name"))

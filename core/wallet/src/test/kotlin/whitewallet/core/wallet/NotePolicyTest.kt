@@ -48,7 +48,7 @@ class NotePolicyTest {
         mint.credit(Cp1.encode(keys.pubkey(KeySet.Share(0), i.toLong())), msat)
     }
 
-    private suspend fun Fixture.outstanding(account: String = "a") =
+    private fun Fixture.outstanding(account: String = "a") =
         store.allNotes().filter { it.accountId == account && it.state == NoteState.Outstanding }
 
     @Test

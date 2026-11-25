@@ -59,6 +59,7 @@ class LoadingTest {
 
     @Test
     fun aLoadedPageShowsAtOnce() {
+        @Suppress("IgnoredReturnValue") // The setter isn't needed: the page stays as first drawn.
         page(loaded = true)
         assertPage()
     }

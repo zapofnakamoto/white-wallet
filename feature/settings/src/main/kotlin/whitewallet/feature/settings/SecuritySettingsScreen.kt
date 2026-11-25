@@ -121,7 +121,8 @@ private fun appLockHint(relockAfterMillis: Long): String {
         when (after.unit) {
             WholeDuration.Unit.Hours -> R.plurals.security_app_lock_hint_hours
             WholeDuration.Unit.Minutes -> R.plurals.security_app_lock_hint_minutes
-            else -> R.plurals.security_app_lock_hint_seconds
+            WholeDuration.Unit.Seconds,
+            WholeDuration.Unit.Days -> R.plurals.security_app_lock_hint_seconds
         }
     return pluralStringResource(id, after.count, after.count)
 }

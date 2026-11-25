@@ -9,4 +9,4 @@ internal fun text(@StringRes id: Int, vararg args: Any): String = RuntimeEnviron
 
 /** A plural for [count], with [args] as its arguments, or [count] without any. */
 internal fun plural(@PluralsRes id: Int, count: Int, vararg args: Any): String =
-    RuntimeEnvironment.getApplication().resources.getQuantityString(id, count, *(if (args.isEmpty()) arrayOf(count) else args))
+    RuntimeEnvironment.getApplication().resources.getQuantityString(id, count, *(if (args.isEmpty()) arrayOf<Any>(count) else args))

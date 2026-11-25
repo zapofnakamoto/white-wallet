@@ -1,6 +1,7 @@
 package whitewallet.lnurl
 
 import fr.acinq.bitcoin.Bech32
+import java.util.Locale
 
 /**
  * The parts of a BOLT-11 invoice a wallet shows and checks before paying. The signature is not verified here: the service that pays the
@@ -117,7 +118,7 @@ public object Bolt11 {
         return out
     }
 
-    private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
+    private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(Locale.ROOT, it) }
 
     private const val TAG_PAYMENT_HASH = 1
     private const val TAG_DESCRIPTION = 13

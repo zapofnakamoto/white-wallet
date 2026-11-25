@@ -61,7 +61,7 @@ class RegtestAccountsTest {
             assertEquals(MoveResult.Moved(2_500_000), phone.wallet.moveFunds(savings, 2_500_000))
             val balances = phone.balances()
             assertEquals(2_500_000, balances[savings])
-            assertTrue(balances[main]!! >= 2_998_000 - 2_500_000 - 1_000, "the change, less at most the split fee: $balances")
+            assertTrue(balances.getValue(main) >= 2_998_000 - 2_500_000 - 1_000, "the change, less at most the split fee: $balances")
         }
 
     @Test

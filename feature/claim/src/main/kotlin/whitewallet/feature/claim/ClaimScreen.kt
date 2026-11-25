@@ -589,10 +589,11 @@ private fun claimOutcome(result: ClaimResult, overLightning: Boolean, keepForLig
             )
         is ClaimResult.Kept -> {
             val note = result.note
+            val lockedUntil = note.lockedUntilMillis
             val why =
                 when {
-                    note.state == ReceivedState.Locked && note.lockedUntilMillis != null ->
-                        stringResource(R.string.claim_kept_until, recentTime(note.lockedUntilMillis!!))
+                    note.state == ReceivedState.Locked && lockedUntil != null ->
+                        stringResource(R.string.claim_kept_until, recentTime(lockedUntil))
                     note.state == ReceivedState.Locked -> stringResource(R.string.claim_kept_locked)
                     note.state == ReceivedState.KeyChanged -> stringResource(R.string.claim_kept_key_changed)
                     // Kept from a melt the account had no mint for: received over Lightning once it has one.
@@ -654,5 +655,20 @@ private fun ownClaimReason(problem: PayProblem, mintMessage: String?): String? =
         PayProblem.KeyChanged -> stringResource(DesignR.string.mint_key_changed_nothing_sent)
         // The mint's own words, if any, say why: else the app says it.
         PayProblem.Refused -> if (mintMessage == null) stringResource(DesignR.string.own_claim_refused) else null
-        else -> null
+        PayProblem.NotRecognized,
+        PayProblem.WithdrawLink,
+        PayProblem.NoAmount,
+        PayProblem.Expired,
+        PayProblem.MintNotAnswering,
+        PayProblem.PayeeRefused,
+        PayProblem.InvoiceMismatch,
+        PayProblem.OwnAddress,
+        PayProblem.NoFunds,
+        PayProblem.TooMuch,
+        PayProblem.NotExact,
+        PayProblem.BelowMinimum,
+        PayProblem.AboveMaximum,
+        PayProblem.OwnMintInvoice,
+        PayProblem.InvoiceUsed,
+        PayProblem.PaymentFailed -> null
     }

@@ -41,7 +41,7 @@ class CustomStrategyTest {
     }
 
     private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val keys: AccountKeys) {
-        suspend fun outstanding() = store.allNotes().filter { it.state == NoteState.Outstanding }
+        fun outstanding() = store.allNotes().filter { it.state == NoteState.Outstanding }
     }
 
     private fun withMint(strategy: NoteStrategy, test: suspend Fixture.() -> Unit) =

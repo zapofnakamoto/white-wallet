@@ -45,7 +45,7 @@ internal object Pinning {
         val changed = presented == null || pinned != presented.toHex()
         wallet.sawKey(mint.walletId, mint.host, changed)
         if (changed) throw MintKeyChangedException(mint.host)
-        return checkNotNull(presented)
+        return presented
     }
 
     /**

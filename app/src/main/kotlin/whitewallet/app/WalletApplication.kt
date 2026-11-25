@@ -16,6 +16,7 @@ class WalletApplication : Application() {
     @Inject lateinit var network: NetworkSimulation
     @Inject lateinit var releaseNotes: ReleaseNoteTracker
 
+    @Suppress("InjectDispatcher") // Started once with the process: nothing to swap the dispatcher for.
     override fun onCreate() {
         super.onCreate()
         network.start()

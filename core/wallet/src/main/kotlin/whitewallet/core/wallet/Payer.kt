@@ -2,6 +2,7 @@ package whitewallet.core.wallet
 
 import java.io.IOException
 import java.security.MessageDigest
+import java.util.Locale
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.ActivityKind
 import whitewallet.core.model.ActivityStatus
@@ -176,7 +177,8 @@ internal class Payer(private val wallet: Wallet) {
                 is LnurlResponse.PayRequest -> response
                 is LnurlResponse.Error -> return PayPreview.Invalid(PayProblem.PayeeRefused)
                 is LnurlResponse.WithdrawRequest -> return PayPreview.Invalid(PayProblem.WithdrawLink)
-                else -> return PayPreview.Invalid(PayProblem.NotRecognized)
+                is LnurlResponse.Ok,
+                is LnurlResponse.Unrecognized -> return PayPreview.Invalid(PayProblem.NotRecognized)
             }
         val accountId = wallet.activeId()
         val payeeHost = Lnurl.host(url)?.lowercase()
@@ -473,7 +475,15 @@ internal class Payer(private val wallet: Wallet) {
         when (RejectionKind.fromReason(reason)) {
             RejectionKind.OwnInvoice -> PayResult.Failed(PayProblem.OwnMintInvoice)
             RejectionKind.InvoiceUsed -> PayResult.Failed(PayProblem.InvoiceUsed)
-            else -> PayResult.Failed(PayProblem.Refused, mintMessage(reason, wallet.settings.paymentMintMessageMaxCharacters))
+            RejectionKind.Pending,
+            RejectionKind.Spent,
+            RejectionKind.NoteUnknown,
+            RejectionKind.AlreadyInUse,
+            RejectionKind.RateLimited,
+            RejectionKind.InsufficientValue,
+            RejectionKind.TooManyK1,
+            RejectionKind.Other ->
+                PayResult.Failed(PayProblem.Refused, mintMessage(reason, wallet.settings.paymentMintMessageMaxCharacters))
         }
 
     internal fun MutationResult.toFailure(): PayResult.Failed =
@@ -481,7 +491,9 @@ internal class Payer(private val wallet: Wallet) {
             is MutationResult.Refused ->
                 if (kind == RejectionKind.InsufficientValue) PayResult.Failed(PayProblem.TooMuch) else refused(reason)
             is MutationResult.Unreachable if keyChanged -> PayResult.Failed(PayProblem.KeyChanged)
-            else -> PayResult.Failed(PayProblem.Unreachable)
+            is MutationResult.Done,
+            is MutationResult.Pending,
+            is MutationResult.Unreachable -> PayResult.Failed(PayProblem.Unreachable)
         }
 
     companion object {
@@ -509,6 +521,6 @@ internal class Payer(private val wallet: Wallet) {
             text.removePrefix("lightning:").removePrefix("LIGHTNING:").trim().takeIf { Lnurl.lightningAddressUrl(it) != null }?.lowercase()
 
         fun sha256Hex(text: String): String =
-            MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
+            MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(Locale.ROOT, it) }
     }
 }

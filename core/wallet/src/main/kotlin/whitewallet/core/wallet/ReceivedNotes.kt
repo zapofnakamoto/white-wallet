@@ -277,7 +277,8 @@ internal class ReceivedNotes(private val wallet: Wallet) {
                     }
                 if (burned) ended(note) else update(note.copy(state = ReceivedState.Waiting, journalId = null))
             }
-            else -> Unit
+            JournalStatus.Prepared,
+            JournalStatus.Unknown -> Unit
         }
     }
 

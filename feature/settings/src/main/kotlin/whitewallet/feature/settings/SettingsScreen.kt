@@ -221,7 +221,9 @@ internal fun addressSummary(status: AddressStatus?): Pair<String?, Color> =
         AddressStatus.Unconfirmed -> stringResource(R.string.settings_address_unconfirmed) to Color.Unspecified
         AddressStatus.Taken,
         AddressStatus.Available -> stringResource(R.string.settings_address_inactive) to MaterialTheme.colorScheme.error
-        else -> null to Color.Unspecified
+        is AddressStatus.CheckFailed,
+        is AddressStatus.Invalid,
+        null -> null to Color.Unspecified
     }
 
 /** Under Mints, wherever it is a row: the account in use's home mint, the first thing the page shows. */

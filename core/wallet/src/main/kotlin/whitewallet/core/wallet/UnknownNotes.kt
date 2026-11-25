@@ -60,9 +60,10 @@ internal class UnknownNotes(private val wallet: Wallet) {
         for (note in due) {
             wallet.unknownCheckedAt[note.id] = now
             // Nothing is asked of a mint whose key doesn't match; the user decides first.
-            val mint = KeyCheckedMint.of(wallet, wallet.mintOf(accountId, note.host)!!) ?: continue
+            val known = wallet.mintOf(accountId, note.host) ?: continue
+            val mint = KeyCheckedMint.of(wallet, known) ?: continue
             try {
-                val probe = prober.probe(KeySet.of(note).key(accountId, note.host, note.index!!), mint)
+                val probe = prober.probe(KeySet.of(note).key(accountId, note.host, note.indexInSet), mint)
                 if (probe is KeyProbe.Unused) wallet.unknownAnsweredAt.update { it + (note.id to now) }
             } catch (e: MintKeyChangedException) {
                 // Its key changed with this answer: the same.

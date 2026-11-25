@@ -202,21 +202,21 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
     }
 
     /** From the index until gap unused keys follow the last used one. A mint whose key doesn't match says so above instead. */
-    fun scanAhead() = action { s ->
-        val result = wallet.scanKeysAhead(s.host!!, s.set, s.gapLimit)
+    fun scanAhead() = action { s, host ->
+        val result = wallet.scanKeysAhead(host, s.set, s.gapLimit)
         _state.update { it.copy(indexMessage = IndexMessage.Scanned(result).takeUnless { result.keyChanged }) }
     }
 
     /** From 0 until gap unused keys follow the last used one (at least index + gap). */
-    fun recheckAll() = action { s ->
-        val result = wallet.recheckAllKeys(s.host!!, s.set, s.gapLimit)
+    fun recheckAll() = action { s, host ->
+        val result = wallet.recheckAllKeys(host, s.set, s.gapLimit)
         _state.update { it.copy(indexMessage = IndexMessage.Scanned(result).takeUnless { result.keyChanged }) }
     }
 
-    fun recheck(index: Long) = action { s -> wallet.recheckKey(s.host!!, s.set, index) }
+    fun recheck(index: Long) = action { s, host -> wallet.recheckKey(host, s.set, index) }
 
-    fun findIndex() = action { s ->
-        val result = wallet.findKeyIndex(s.host!!, s.set, s.gapLimit)
+    fun findIndex() = action { s, host ->
+        val result = wallet.findKeyIndex(host, s.set, s.gapLimit)
         _state.update { it.copy(indexMessage = IndexMessage.Found(result).takeUnless { result.keyChanged }) }
     }
 
@@ -229,26 +229,27 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
     fun confirmSetIndex() {
         val value = _state.value.setIndexInput?.toLongOrNull() ?: return
         _state.update { it.copy(setIndexInput = null) }
-        action { s ->
-            val result = wallet.setKeyIndex(s.host!!, s.set, value)
+        action { s, host ->
+            val result = wallet.setKeyIndex(host, s.set, value)
             _state.update { it.copy(indexMessage = IndexMessage.Set(result)) }
         }
     }
 
     fun askRotate(index: Long) {
         val s = _state.value
+        val host = s.host ?: return
         val key = s.keys.firstOrNull { it.id.index == index && it.noteState == NoteState.Outstanding } ?: return
-        viewModelScope.launch { _state.update { it.copy(rotateRequest = RotateRequest.One(key, wallet.nextWalletIndex(s.host!!))) } }
+        viewModelScope.launch { _state.update { it.copy(rotateRequest = RotateRequest.One(key, wallet.nextWalletIndex(host))) } }
     }
 
     fun askRotateAll() {
         val s = _state.value
+        val host = s.host ?: return
         val notes = s.rotatable.takeIf { it.isNotEmpty() } ?: return
         viewModelScope.launch {
             _state.update {
                 it.copy(
-                    rotateRequest =
-                        RotateRequest.All(notes.size, notes.sumOf { k -> k.noteAmountMsat ?: 0 }, wallet.nextWalletIndex(s.host!!))
+                    rotateRequest = RotateRequest.All(notes.size, notes.sumOf { k -> k.noteAmountMsat ?: 0 }, wallet.nextWalletIndex(host))
                 )
             }
         }
@@ -259,11 +260,11 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
     fun confirmRotate() {
         val request = _state.value.rotateRequest ?: return
         _state.update { it.copy(rotateRequest = null) }
-        action { s ->
+        action { s, host ->
             val outcome =
                 when (request) {
-                    is RotateRequest.One -> RotateOutcome.One(wallet.rotateKey(s.host!!, s.set, request.key.id.index))
-                    is RotateRequest.All -> RotateOutcome.All(wallet.rotateAllKeys(s.host!!, s.set))
+                    is RotateRequest.One -> RotateOutcome.One(wallet.rotateKey(host, s.set, request.key.id.index))
+                    is RotateRequest.All -> RotateOutcome.All(wallet.rotateAllKeys(host, s.set))
                 }
             _state.update { it.copy(lastRotate = outcome, expanded = null) }
         }
@@ -274,13 +275,15 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
         viewModelScope.launch { reload() }
     }
 
-    private fun action(block: suspend (DerivedKeysState) -> Unit) {
+    /** Runs [block] with the state and its mint's host, unless busy or without a mint. */
+    private fun action(block: suspend (DerivedKeysState, String) -> Unit) {
         val s = _state.value
-        if (s.busy || s.host == null) return
+        val host = s.host
+        if (s.busy || host == null) return
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
             try {
-                block(s)
+                block(s, host)
             } finally {
                 reload()
                 _state.update { it.copy(busy = false) }

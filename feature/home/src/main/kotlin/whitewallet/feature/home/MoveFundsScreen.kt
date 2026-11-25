@@ -361,6 +361,8 @@ private fun resultTitle(result: MoveResult): String =
                 // A mint was why: the money is safe where it was, and the reasons follow.
                 else if result.stayed.isNotEmpty() -> stringResource(R.string.move_none)
                 // The mint's own words if it gave any, never the app's name for the reason.
-                else -> result.detail?.let { stringResource(R.string.move_failed, it) } ?: stringResource(R.string.move_none)
+                MoveFailure.SameAccount,
+                MoveFailure.UnknownAccount,
+                MoveFailure.Refused -> result.detail?.let { stringResource(R.string.move_failed, it) } ?: stringResource(R.string.move_none)
             }
     }

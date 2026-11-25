@@ -172,7 +172,7 @@ internal class Restore(private val wallet: Wallet) {
                 .first()
                 .filter { it.host == host && (it.isRecheckable() || it.isUnknown()) }
                 .map {
-                    KeyId(account.id, host, KeySet.of(it), it.index!!)
+                    KeyId(account.id, host, KeySet.of(it), it.indexInSet)
                 }
         }
         if (ids.isEmpty()) return true

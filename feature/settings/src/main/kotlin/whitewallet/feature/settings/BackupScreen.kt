@@ -144,7 +144,9 @@ private fun Display(
     val (copiedText, copyBody) =
         when (cleared.unit) {
             WholeDuration.Unit.Minutes -> R.plurals.backup_copied_minutes to R.plurals.backup_copy_body_minutes
-            else -> R.plurals.backup_copied_seconds to R.plurals.backup_copy_body_seconds
+            WholeDuration.Unit.Seconds,
+            WholeDuration.Unit.Hours,
+            WholeDuration.Unit.Days -> R.plurals.backup_copied_seconds to R.plurals.backup_copy_body_seconds
         }
     var confirmCopy by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }

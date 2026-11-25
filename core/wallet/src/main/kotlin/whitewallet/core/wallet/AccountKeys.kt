@@ -52,6 +52,10 @@ sealed interface KeySet {
     }
 }
 
+/** A key-path note's index in its [KeySet]. */
+internal val Note.indexInSet: Long
+    get() = checkNotNull(index) { "not a key-path note" }
+
 /** The account's own counter on the mint's domain, for the wallet and change chains; shares have none. */
 internal val KeySet.counter: KeyCounter?
     get() =

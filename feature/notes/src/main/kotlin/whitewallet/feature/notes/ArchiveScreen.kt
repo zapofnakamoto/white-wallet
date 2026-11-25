@@ -132,7 +132,9 @@ class ArchiveViewModel @Inject constructor(private val wallet: Wallet, defaults:
                         when (result) {
                             is ClaimResult.Claimed -> RetryOutcome.Claimed(result.amountMsat)
                             null -> null
-                            else -> RetryOutcome.Back
+                            is ClaimResult.Failed,
+                            is ClaimResult.Kept,
+                            ClaimResult.Pending -> RetryOutcome.Back
                         },
                 )
             }

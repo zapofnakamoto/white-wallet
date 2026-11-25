@@ -63,6 +63,7 @@ class AccountRuleTest {
     private fun note(accountId: String, state: NoteState, q: String = "c".repeat(64)) =
         Note(q, accountId, "mint.example", NoteKind.KeyPath, 0, 0, 1_000, null, state, 0)
 
+    @Suppress("ArrayPrimitive") // null: an account that never held a note isn't listed.
     private fun summaries(vararg used: Boolean?) = used.mapIndexedNotNull { i, u ->
         u?.let { AccountSummary(Account("a$i", "A$i", 0, "w", i.toLong()), 0, used = it) }
     }

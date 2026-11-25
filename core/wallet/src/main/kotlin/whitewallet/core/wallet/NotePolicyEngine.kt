@@ -325,7 +325,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     }
 
     private suspend fun rotate(accountId: String, note: Note): Outcome =
-        when (val r = rotator.rotate(accountId, note.host, KeySet.of(note), note.index!!, automatic = true)) {
+        when (val r = rotator.rotate(accountId, note.host, KeySet.of(note), note.indexInSet, automatic = true)) {
             is RotateResult.Rotated -> Outcome.Done(rotated = 1)
             is RotateResult.Failed ->
                 if (r.noAnswer) Outcome.Stop(r.reason ?: "no answer", failed = true) else Outcome.Refused(listOf(note.id))
@@ -377,7 +377,19 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
                             refused
                                 ?: when (result.problem) {
                                     NoteProblem.BelowMinimum -> NotCollected.Reason.TooSmall(result.limitMsat)
-                                    else ->
+                                    NoteProblem.NotFound,
+                                    NoteProblem.DifferentMints,
+                                    NoteProblem.TooFewNotes,
+                                    NoteProblem.InvalidAmount,
+                                    NoteProblem.SameMint,
+                                    NoteProblem.MintInvalid,
+                                    NoteProblem.Unreachable,
+                                    NoteProblem.KeyChanged,
+                                    NoteProblem.AboveMaximum,
+                                    NoteProblem.InvoiceMismatch,
+                                    NoteProblem.Refused,
+                                    NoteProblem.PaymentFailed,
+                                    NoteProblem.Declined ->
                                         NotCollected.Reason.Failed(result.problem).also {
                                             // A payment attempt that failed (or a refusal) waits; an unreachable mint is just asked again,
                                             // as is one whose key doesn't match (nothing is sent until it does), and one that refused a

@@ -1242,7 +1242,9 @@ object DefaultComponents : BrandComponents {
                                 val zigzag = star(center, ring, ring - step * 0.4f, teeth, 0f)
                                 ({ color -> drawPath(zigzag, color, style = Stroke(line, join = StrokeJoin.Round)) })
                             }
-                            else -> borderLine(pattern.border, bounds, ring, step, line)
+                            BillBorder.Double,
+                            BillBorder.Dashes,
+                            BillBorder.Dots -> borderLine(pattern.border, bounds, ring, step, line)
                         }
                     // Inside the ring, whatever its style and the outline's points. The mark always waves the same: its size leaves
                     // no room to tell depths apart.
@@ -1544,7 +1546,7 @@ private fun CacheDrawScope.borderLine(border: BillBorder, rect: Rect, radius: Fl
             val zigzag = zigzag(rect, step, amplitude = step * 0.45f)
             ({ color -> drawPath(zigzag, color, style = Stroke(width, join = StrokeJoin.Round)) })
         }
-        else -> {
+        BillBorder.Dashes -> {
             val dashes = Stroke(width, pathEffect = PathEffect.dashPathEffect(floatArrayOf(step, step * 0.75f)))
             ({ color -> drawPath(round, color, style = dashes) })
         }
@@ -1600,7 +1602,8 @@ private fun reach(shape: SealShape): Float =
         SealShape.Star -> 1.2f
         SealShape.Diamond -> 1.15f
         SealShape.Square -> 1.1f
-        else -> 1f
+        SealShape.Teeth,
+        SealShape.Hexagon -> 1f
     }
 
 /**
@@ -1621,7 +1624,7 @@ private class Seal(pattern: MintPattern, center: Offset, radius: Float, depth: F
                 SealShape.Diamond -> polygon(center, radius * 1.15f, 4, -PI.toFloat() / 2)
                 SealShape.Square -> polygon(center, radius * 1.1f, 4, PI.toFloat() / 4)
                 SealShape.Star -> star(center, radius * 1.2f, radius * 0.62f, 5, -PI.toFloat() / 2)
-                else -> star(center, radius, radius * 0.84f, 14 + petals, 0f)
+                SealShape.Teeth -> star(center, radius, radius * 0.84f, 14 + petals, 0f)
             }
         // Inside a star's arms there is less room.
         val r = radius * if (pattern.sealShape == SealShape.Star) 0.72f else 1f
@@ -1644,7 +1647,7 @@ private class Seal(pattern: MintPattern, center: Offset, radius: Float, depth: F
                         rose(center, 0.56f * r, 0.3f * 0.56f * r, petals, 0f, segments),
                         rose(center, 0.3f * r, 0.4f * 0.3f * r, petals, PI.toFloat() / petals, segments),
                     )
-                else -> listOf(rose(center, 0.48f * r, depth * 0.48f * r, petals, 0f, segments))
+                SealMotif.Rosette -> listOf(rose(center, 0.48f * r, depth * 0.48f * r, petals, 0f, segments))
             }
     }
 }

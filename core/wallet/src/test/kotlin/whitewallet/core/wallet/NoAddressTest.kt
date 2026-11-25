@@ -50,6 +50,7 @@ class NoAddressTest {
     }
 
     @Test
+    @Suppress("CoroutineLaunchedInTestWithoutRunTest") // Real time against a running mint: runTest's virtual clock would skip its waits.
     fun `a refresh with nothing to ask a mint about isn't work to show`() = withMint { mint, _, wallet ->
         wallet.createAccount(mint.host, "Main")
         val seen = mutableListOf<WalletTask?>()

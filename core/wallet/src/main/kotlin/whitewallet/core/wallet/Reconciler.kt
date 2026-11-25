@@ -34,7 +34,9 @@ internal class Reconciler(private val wallet: Wallet) {
             when (entry.type) {
                 OperationType.Melt -> melts.reconcile(entry)
                 OperationType.Mint -> mints.reconcile(entry)
-                else -> reconcile(entry)
+                OperationType.Rotate,
+                OperationType.Split,
+                OperationType.Merge -> reconcile(entry)
             }
         }
     }

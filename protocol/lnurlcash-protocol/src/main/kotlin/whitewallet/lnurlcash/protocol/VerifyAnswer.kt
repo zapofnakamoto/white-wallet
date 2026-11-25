@@ -21,6 +21,7 @@ public data class VerifyAnswer(val settled: Boolean, val preimage: ByteVector32?
             val settled =
                 (response.raw["settled"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull
                     ?: throw ProtocolViolation("verify: no settled")
+            @Suppress("ElseCaseInsteadOfExhaustiveWhen") // JsonElement's other cases include kotlinx's internal JsonLiteral.
             val preimage =
                 when (response.raw["preimage"]) {
                     null,
@@ -39,5 +40,6 @@ public fun MutationOutcome.verifyUrl(): String? =
     when (this) {
         is MutationOutcome.Confirmed -> raw.string("verify")
         is MutationOutcome.Unverifiable -> raw.string("verify")
-        else -> null
+        is MutationOutcome.Ambiguous,
+        is MutationOutcome.Rejected -> null
     }

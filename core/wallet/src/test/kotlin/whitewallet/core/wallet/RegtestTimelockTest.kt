@@ -119,5 +119,5 @@ class RegtestTimelockTest {
             assertEquals(0, alice.balance())
         }
 
-    private suspend fun Regtest.Phone.withdrawUrl(): String = assertNotNull(store.mint(HOST)).withdrawUrl
+    private fun Regtest.Phone.withdrawUrl(): String = assertNotNull(store.mint(HOST)).withdrawUrl
 }

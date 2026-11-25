@@ -58,7 +58,12 @@ fun receivedNoteStatus(note: ReceivedNote, wait: ReceivedWait = ReceivedWait.Nex
             stringResource(
                 when (note.unclaimedReason) {
                     UnclaimedReason.NoSigningKey -> R.string.received_lightning_no_key
-                    else -> R.string.received_lightning_not_a_note
+                    UnclaimedReason.Refused,
+                    UnclaimedReason.Unreachable,
+                    UnclaimedReason.NotANote,
+                    UnclaimedReason.ByUser,
+                    UnclaimedReason.Spent,
+                    null -> R.string.received_lightning_not_a_note
                 }
             )
         ReceivedState.Claiming -> stringResource(R.string.received_claiming)
@@ -87,7 +92,9 @@ private fun archived(note: ReceivedNote): String {
     val tried = WholeDuration.atLeast(note.updatedAtMillis - since, listOf(WholeDuration.Unit.Hours, WholeDuration.Unit.Days))
     return when (tried.unit) {
         WholeDuration.Unit.Days -> pluralStringResource(days, tried.count, tried.count)
-        else -> pluralStringResource(hours, tried.count, tried.count)
+        WholeDuration.Unit.Seconds,
+        WholeDuration.Unit.Minutes,
+        WholeDuration.Unit.Hours -> pluralStringResource(hours, tried.count, tried.count)
     }
 }
 
@@ -126,11 +133,13 @@ fun ReceivedNoteRow(
     trailing: (@Composable () -> Unit)?,
 ) {
     val status = receivedNoteStatus(note, wait, mintNamed = showMint)
+    val known = note.amountMsat
+    val declared = note.declaredMsat
     val amount =
         when {
             amountHidden -> null
-            note.amountMsat != null -> formatAmount(note.amountMsat!!)
-            note.declaredMsat != null -> stringResource(R.string.received_unconfirmed, formatAmount(note.declaredMsat!!))
+            known != null -> formatAmount(known)
+            declared != null -> stringResource(R.string.received_unconfirmed, formatAmount(declared))
             else -> stringResource(R.string.received_unknown_amount)
         }
     WalletListItem(
@@ -157,7 +166,11 @@ fun ReceivedNote.needsUser(nowMillis: Long = System.currentTimeMillis()): Boolea
         ReceivedState.Gone,
         ReceivedState.KeyChanged -> true
         ReceivedState.Locked -> lockedUntilMillis.let { it == null || it <= nowMillis }
-        else -> false
+        ReceivedState.Waiting,
+        ReceivedState.Claiming,
+        ReceivedState.Melting,
+        ReceivedState.Claimed,
+        ReceivedState.Archived -> false
     }
 
 /**
@@ -193,5 +206,10 @@ private fun receivedNoteAction(note: ReceivedNote, actions: ReceivedNoteActions)
         // A locked one past its date that still isn't claimed: its mint keeps refusing it, and the wallet never gives it up by itself.
         ReceivedState.Locked if note.needsUser() -> archive(note, actions)
         ReceivedState.KeyChanged -> archive(note, actions)
-        else -> null
+        ReceivedState.Waiting,
+        ReceivedState.Locked,
+        ReceivedState.Claiming,
+        ReceivedState.Melting,
+        ReceivedState.Claimed,
+        ReceivedState.Archived -> null
     }

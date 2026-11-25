@@ -319,7 +319,7 @@ fun HomeScreen(
                 val choice = AccountChoice(state.accounts, state.activeAccountId, state.walletNames, state.showAccounts)
                 val account = choice.active?.takeIf { choice.shown }
                 if (account == null) {
-                    IconButton(onClick = if (tab == HomeTab.Notes) notesTab!!.onRefresh else onRefresh) {
+                    IconButton(onClick = notesTab?.takeIf { tab == HomeTab.Notes }?.onRefresh ?: onRefresh) {
                         Icon(painterResource(DesignR.drawable.ic_refresh), stringResource(DesignR.string.refresh))
                     }
                 }
@@ -1039,7 +1039,9 @@ private fun NotesAlert(
             is HomeAlert.MintsNotAnswering ->
                 pluralStringResource(R.plurals.home_mints_silent_title, alert.mints.size, alert.mints.size) to
                     stringResource(DesignR.string.attention_not_answering_line)
-            else -> return
+            HomeAlert.AddMint,
+            HomeAlert.Backup,
+            HomeAlert.Scan -> return
         }
     when {
         onOpenAttention != null -> AttentionCard(title, line, stringResource(DesignR.string.attention_show), onOpenAttention)

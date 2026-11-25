@@ -93,6 +93,7 @@ internal class Melter(private val wallet: Wallet) {
         // Nothing is paid through a mint with another signing key than the pinned one, or none (or one that isn't a key).
         val mint = KeyCheckedMint.of(wallet, known) ?: return MeltOutcome.KeyChanged
         val spend = wallet.keys(accountId, host).spend(note, spendDomain(host))
+        @Suppress("TooGenericExceptionCaught") // Whatever else stops the lookup, nothing went out: the mint didn't answer.
         val info =
             try {
                 // Asked by the note's key alone: the spend goes out only with the melt.
@@ -173,7 +174,8 @@ internal class Melter(private val wallet: Wallet) {
             when (melts.reconcile(inFlight, final)) {
                 JournalStatus.Confirmed -> MeltOutcome.Paid(entry.id)
                 JournalStatus.Rejected -> MeltOutcome.PaymentFailed(entry.id)
-                else -> null
+                JournalStatus.Prepared,
+                JournalStatus.Unknown -> null
             }
         } ?: MeltOutcome.Pending(entry.id)
     }
@@ -246,6 +248,7 @@ internal class MeltReconciler(private val wallet: Wallet) {
      */
     private suspend fun settleByVerify(entry: JournalEntry): JournalStatus {
         val url = entry.verifyUrl ?: return JournalStatus.Unknown
+        @Suppress("TooGenericExceptionCaught") // Any failure to ask leaves the entry as it was, to be asked again.
         val answer =
             try {
                 // key-checked: asked only after Pinning.settling answered for this mint.

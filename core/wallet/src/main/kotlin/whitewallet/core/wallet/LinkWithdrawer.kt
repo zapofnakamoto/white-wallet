@@ -93,7 +93,10 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
                 is KeyLookup.OtherService ->
                     @OptIn(RevealsNoteSecret::class)
                     unasked.copy(callback = found.callback, k1 = found.k1, minMsat = found.minMsat, maxMsat = found.maxMsat)
-                else -> return melt(unasked, reason, accountId, target = wallet.homeOf(accountId), amountMsat = null)
+                KeyLookup.KeyChanged,
+                KeyLookup.NotANote,
+                is KeyLookup.Refused,
+                KeyLookup.Unreachable -> return melt(unasked, reason, accountId, target = wallet.homeOf(accountId), amountMsat = null)
             }
         return withTarget(withdraw, reason, accountId, null)
     }
@@ -142,7 +145,8 @@ internal class LinkWithdrawer(private val wallet: Wallet) {
             is LnurlResponse.WithdrawRequest -> withdraw(response)
             is LnurlResponse.PayRequest -> payLink?.let(ClaimPreview::PayLink) ?: ClaimPreview.Invalid("not a withdraw link")
             is LnurlResponse.Error -> ClaimPreview.Invalid(response.reason ?: "refused")
-            else -> ClaimPreview.Invalid("not a withdraw link")
+            is LnurlResponse.Ok,
+            is LnurlResponse.Unrecognized -> ClaimPreview.Invalid("not a withdraw link")
         }
     }
 

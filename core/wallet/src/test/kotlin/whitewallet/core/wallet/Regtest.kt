@@ -7,6 +7,7 @@ import java.io.IOException
 import java.net.URI
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertIs
 import kotlinx.coroutines.delay
@@ -378,4 +379,4 @@ internal val HttpUrl.isMutation: Boolean
 internal val HttpUrl.isMelt: Boolean
     get() = queryParameter("k1") != null && queryParameter("pr") != null
 
-private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }
+private fun ByteArray.toHex() = joinToString("") { "%02x".format(Locale.ROOT, it) }

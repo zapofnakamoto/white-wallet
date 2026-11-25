@@ -81,7 +81,9 @@ class WalletEvents(private val wallet: Wallet, private val clock: () -> Long = S
                     when (new.status) {
                         ActivityStatus.Done -> WalletEvent.PaymentSent(new.amountMsat)
                         ActivityStatus.Failed -> WalletEvent.Problem(ProblemKind.Other)
-                        else -> null
+                        ActivityStatus.Pending,
+                        ActivityStatus.Cancelled,
+                        ActivityStatus.Unverified -> null
                     }
                 // A note handed out has left the wallet's hands once it is shared, whether claimed yet or not.
                 ActivityKind.SentNote ->
@@ -93,7 +95,12 @@ class WalletEvents(private val wallet: Wallet, private val clock: () -> Long = S
                     }
                 // Note maintenance is told once per run of the note policies (see changes); what the user does to
                 // their notes they see on screen.
-                else -> null
+                ActivityKind.MovedIn,
+                ActivityKind.MovedOut,
+                ActivityKind.MovedMint,
+                ActivityKind.Split,
+                ActivityKind.Combined,
+                ActivityKind.Rotated -> null
             }
         }
     }

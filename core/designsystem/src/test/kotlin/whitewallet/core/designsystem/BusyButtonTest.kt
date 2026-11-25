@@ -42,6 +42,7 @@ class BusyButtonTest {
 
     @Test
     fun aButtonThatIsntAtWorkIsTapped() {
+        @Suppress("IgnoredReturnValue") // The setter isn't needed: the page stays as first drawn.
         button()
         label().assertIsEnabled().performClick()
         assertEquals(1, taps)

@@ -83,7 +83,8 @@ internal class ActivityLog(private val wallet: Wallet) {
         when (status) {
             JournalStatus.Confirmed -> wallet.store.settleActivities(journalId, ActivityStatus.Done)
             JournalStatus.Rejected -> wallet.store.settleActivities(journalId, ActivityStatus.Failed)
-            else -> Unit
+            JournalStatus.Prepared,
+            JournalStatus.Unknown -> Unit
         }
     }
 

@@ -985,6 +985,7 @@ class HomeScreenTest {
     @Test
     fun checkingTheNotesCountsThemOff() {
         compose.mainClock.autoAdvance = false
+        @Suppress("IgnoredReturnValue") // The setter isn't needed: the page stays as first drawn.
         showLive(HomeState(task = WalletTask.CheckingNotes(2, 5)))
         compose.mainClock.advanceTimeBy(SHOWN_AFTER + 100)
         compose.onNodeWithText("Checking note 3 of 5…").assertExists()
@@ -993,6 +994,7 @@ class HomeScreenTest {
     @Test
     fun aStrategyNamesItsOwnSteps() {
         compose.mainClock.autoAdvance = false
+        @Suppress("IgnoredReturnValue") // The setter isn't needed: the page stays as first drawn.
         showLive(HomeState(task = WalletTask.Maintaining(MaintenanceStep.Splitting, "small"), strategyText = R.string.home_send))
         compose.mainClock.advanceTimeBy(SHOWN_AFTER + 100)
         compose.onNodeWithText(text(R.string.home_send)).assertExists()

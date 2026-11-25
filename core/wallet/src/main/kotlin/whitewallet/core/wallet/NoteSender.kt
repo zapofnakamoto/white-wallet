@@ -281,7 +281,10 @@ internal class NoteSender(private val wallet: Wallet) {
             return when (askAgain(note)) {
                 is KeyProbe.Outstanding -> takeBackIfAsked(id) ?: ReclaimResult.WhenKnown
                 is KeyProbe.Spent -> ReclaimResult.AlreadySpent
-                else -> ReclaimResult.WhenKnown
+                is KeyProbe.Failed,
+                is KeyProbe.Refused,
+                is KeyProbe.Unused,
+                null -> ReclaimResult.WhenKnown
             }
         }
         return when (val check = check(note)) {
@@ -375,7 +378,14 @@ internal class NoteSender(private val wallet: Wallet) {
         when (check) {
             Check.Spent -> ReclaimResult.AlreadySpent
             Check.UnknownToMint -> whenKnown(note.id)
-            else -> null
+            Check.InUse,
+            Check.KeyChanged,
+            Check.NoMint,
+            Check.Offline,
+            is Check.Refused,
+            Check.Unreadable,
+            Check.Waiting,
+            null -> null
         }
 
     /** Why [check] keeps a take back from going through; null if it doesn't. "Couldn't connect" only when the mint wasn't reached. */

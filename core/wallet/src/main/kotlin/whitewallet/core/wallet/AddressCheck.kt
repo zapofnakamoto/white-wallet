@@ -101,7 +101,8 @@ internal class AddressCheck(private val wallet: Wallet) {
                         // Published, yet not a registration: one of the mint's own names.
                         RegistrationRejection.UnknownUser -> return Ownership(AddressStatus.Unconfirmed)
                         RegistrationRejection.RateLimited -> return Ownership(AddressStatus.CheckFailed(outcome.reason ?: "rate limited"))
-                        else -> return Ownership(AddressStatus.Unconfirmed)
+                        RegistrationRejection.AlreadyRegistered,
+                        RegistrationRejection.Other -> return Ownership(AddressStatus.Unconfirmed)
                     }
                 is RegistrationOutcome.Ambiguous -> return Ownership(AddressStatus.CheckFailed(outcome.cause))
                 // Accepted: the name was ours and is on this share now (the mint should have refused an update to the share on file).

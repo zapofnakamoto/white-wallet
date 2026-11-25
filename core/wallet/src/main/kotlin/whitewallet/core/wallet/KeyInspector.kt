@@ -188,7 +188,8 @@ internal class KeyInspector(private val wallet: Wallet) {
                     stopped = probe.reason
                     break
                 }
-                else -> Unit
+                is KeyProbe.Refused,
+                is KeyProbe.Unused -> Unit
             }
             if (lastUsed == index) end = maxOf(end, index + 1 + gap)
             index++
@@ -220,6 +221,4 @@ internal class KeyInspector(private val wallet: Wallet) {
         if (lastUsed + 1 <= index(accountId, host, set)) return
         wallet.store.setIndexOf(accountId, host, set, lastUsed + 1)
     }
-
-    private companion object {}
 }

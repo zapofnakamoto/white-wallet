@@ -111,9 +111,9 @@ internal class NoteRotator(private val wallet: Wallet) {
                 val out = result.outputs.single()
                 val now = wallet.now()
                 // Keep the developer key page current without a rescan.
-                wallet.recordProbe(KeySet.of(note).key(accountId, note.host, note.index!!), KeyProbe.Spent(now))
+                wallet.recordProbe(KeySet.of(note).key(accountId, note.host, note.indexInSet), KeyProbe.Spent(now))
                 wallet.recordProbe(
-                    KeySet.of(out).key(accountId, note.host, out.index!!),
+                    KeySet.of(out).key(accountId, note.host, out.indexInSet),
                     KeyProbe.Outstanding(out.amountMsat, out.certificate != null, imported = false, now),
                 )
                 log.record(
@@ -125,7 +125,7 @@ internal class NoteRotator(private val wallet: Wallet) {
                     automatic = automatic,
                     journalId = result.journalId,
                 )
-                RotateResult.Rotated(note.index!!, out.index!!, out.amountMsat, out.certificate != null)
+                RotateResult.Rotated(note.indexInSet, out.indexInSet, out.amountMsat, out.certificate != null)
             }
             is MutationResult.Refused -> RotateResult.Failed(result.reason ?: result.kind.name, noAnswer = false)
             is MutationResult.Unreachable -> RotateResult.Failed(result.reason, noAnswer = true, keyChanged = result.keyChanged)

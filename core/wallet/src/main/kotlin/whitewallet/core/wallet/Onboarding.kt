@@ -326,7 +326,8 @@ internal class Onboarding(private val wallet: Wallet) {
         }
         val held = wallet.store.addresses(accountId).first().firstOrNull { it.username == name && it.host == h }
         val invoice = held?.feeInvoice?.let(Bolt11::decode)?.takeUnless { it.isExpired(wallet.now()) }
-        if (held != null && invoice?.amountMsat != null) return OnboardResult.AwaitingFee(held, invoice.amountMsat!!)
+        val fee = invoice?.amountMsat
+        if (held != null && fee != null) return OnboardResult.AwaitingFee(held, fee)
         return claimShare(name, h, accountId, ready) { n, pr -> hold(pr, n, name, h, accountId) }
     }
 
@@ -351,7 +352,11 @@ internal class Onboarding(private val wallet: Wallet) {
                     when (outcome.kind) {
                         // Another phone with this phrase registered that share already: take the next one.
                         RegistrationRejection.Cx1AlreadyUsed -> continue
-                        else -> {
+                        RegistrationRejection.AlreadyRegistered,
+                        RegistrationRejection.UnknownUser,
+                        RegistrationRejection.InvalidSignature,
+                        RegistrationRejection.RateLimited,
+                        RegistrationRejection.Other -> {
                             // The mint refused the name, not the share: the next address gets this share, so a restore meets no gap.
                             giveBackShare(accountId, domain, n)
                             return if (addresses.check(name, h, accountId) == AddressStatus.Taken) taken(name, accountId, h)
@@ -417,7 +422,10 @@ internal class Onboarding(private val wallet: Wallet) {
                 if (address.feeInvoice?.let(Bolt11::decode)?.isExpired(wallet.now()) != false) {
                     wallet.store.deleteAddress(accountId, address.username, address.host)
                 }
-            else -> Unit
+            is AddressStatus.CheckFailed,
+            is AddressStatus.Invalid,
+            AddressStatus.Taken,
+            AddressStatus.Unconfirmed -> Unit
         }
     }
 

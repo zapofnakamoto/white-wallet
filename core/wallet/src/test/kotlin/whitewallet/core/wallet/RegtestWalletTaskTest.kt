@@ -32,6 +32,7 @@ class RegtestWalletTaskTest {
     }
 
     @Test
+    @Suppress("CoroutineLaunchedInTestWithoutRunTest") // Real time against a running mint: runTest's virtual clock would skip its waits.
     fun `a refresh says it updates, and which maintenance step runs`() =
         runBlocking<Unit> {
             val alice = Regtest.phone(strategy = SingleNoteStrategy.ID)
@@ -52,6 +53,7 @@ class RegtestWalletTaskTest {
         }
 
     @Test
+    @Suppress("CoroutineLaunchedInTestWithoutRunTest") // Real time against a running mint: runTest's virtual clock would skip its waits.
     fun `auto-renew is maintenance of no strategy`() =
         runBlocking<Unit> {
             val bob = Regtest.phone(strategy = ManualStrategy.ID)

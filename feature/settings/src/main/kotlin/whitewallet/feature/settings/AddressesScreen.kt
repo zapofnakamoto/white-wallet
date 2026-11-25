@@ -210,7 +210,13 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
         when (wallet.registerAgain(address)) {
             is OnboardResult.Ready,
             is OnboardResult.AwaitingFee -> Unit
-            else -> {
+            is OnboardResult.FeeRefused,
+            is OnboardResult.LimitReached,
+            is OnboardResult.MintInvalid,
+            is OnboardResult.NetworkError,
+            is OnboardResult.RegistrationFailed,
+            OnboardResult.UsernameInvalid,
+            is OnboardResult.UsernameTaken -> {
                 wallet.checkAddresses(address)
                 ui.update { it.copy(message = AddressesMessage.NotRegisteredAgain(address.address)) }
             }
@@ -443,7 +449,11 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
                         WalletButton(onClick = { actions.onRemoveTaken(a) }, enabled = !state.busy) {
                             Text(stringResource(R.string.addresses_remove))
                         }
-                    else -> Unit
+                    is AddressStatus.CheckFailed,
+                    is AddressStatus.Invalid,
+                    AddressStatus.Ours,
+                    AddressStatus.Unconfirmed,
+                    null -> Unit
                 }
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

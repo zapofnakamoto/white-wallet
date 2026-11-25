@@ -204,7 +204,8 @@ internal class InvoiceReceiver(private val wallet: Wallet) {
         return when (mints.reconcile(entry)) {
             JournalStatus.Confirmed -> InvoiceStatus.Paid(wallet.store.note(entry.outputs.single().q)?.amountMsat ?: 0)
             JournalStatus.Rejected -> InvoiceStatus.Expired
-            else -> InvoiceStatus.Waiting
+            JournalStatus.Prepared,
+            JournalStatus.Unknown -> InvoiceStatus.Waiting
         }
     }
 }

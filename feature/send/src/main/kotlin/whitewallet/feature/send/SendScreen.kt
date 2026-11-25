@@ -248,7 +248,21 @@ internal fun problemKind(problem: PayProblem): ProblemKind =
         PayProblem.TooMuch -> ProblemKind.NotEnoughFunds
         PayProblem.Unreachable -> ProblemKind.Offline
         PayProblem.MintNotAnswering -> ProblemKind.MintNotAnswering
-        else -> ProblemKind.Other
+        PayProblem.NotRecognized,
+        PayProblem.WithdrawLink,
+        PayProblem.NoAmount,
+        PayProblem.Expired,
+        PayProblem.KeyChanged,
+        PayProblem.PayeeRefused,
+        PayProblem.InvoiceMismatch,
+        PayProblem.OwnAddress,
+        PayProblem.NotExact,
+        PayProblem.BelowMinimum,
+        PayProblem.AboveMaximum,
+        PayProblem.Refused,
+        PayProblem.OwnMintInvoice,
+        PayProblem.InvoiceUsed,
+        PayProblem.PaymentFailed -> ProblemKind.Other
     }
 
 @Composable
@@ -474,7 +488,22 @@ private fun QuoteText(quote: PayQuote?) {
                     PayProblem.BelowMinimum -> stringResource(R.string.send_below_minimum, formatAmount(quote.limitMsat ?: 0))
                     PayProblem.AboveMaximum -> stringResource(R.string.send_above_maximum, formatAmount(quote.limitMsat ?: 0))
                     PayProblem.TooMuch -> stringResource(R.string.send_too_much, formatAmount(quote.limitMsat ?: 0))
-                    else -> problemText(quote.problem)
+                    PayProblem.NotRecognized,
+                    PayProblem.WithdrawLink,
+                    PayProblem.NoAmount,
+                    PayProblem.Expired,
+                    PayProblem.Unreachable,
+                    PayProblem.MintNotAnswering,
+                    PayProblem.KeyChanged,
+                    PayProblem.PayeeRefused,
+                    PayProblem.InvoiceMismatch,
+                    PayProblem.OwnAddress,
+                    PayProblem.NoFunds,
+                    PayProblem.NotExact,
+                    PayProblem.Refused,
+                    PayProblem.OwnMintInvoice,
+                    PayProblem.InvoiceUsed,
+                    PayProblem.PaymentFailed -> problemText(quote.problem)
                 } to true
         }
     Text(

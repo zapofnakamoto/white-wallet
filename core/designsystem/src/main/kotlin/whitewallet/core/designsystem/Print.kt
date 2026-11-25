@@ -113,6 +113,7 @@ private class BitmapDocument(private val context: Context, private val name: Str
         callback.onLayoutFinished(info, new != old)
     }
 
+    @Suppress("TooGenericExceptionCaught") // Whatever fails the print is the print framework's to show.
     override fun onWrite(
         pages: Array<out PageRange>,
         destination: ParcelFileDescriptor,

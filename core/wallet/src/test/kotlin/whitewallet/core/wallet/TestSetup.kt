@@ -1,6 +1,7 @@
 package whitewallet.core.wallet
 
 import java.security.SecureRandom
+import java.util.Locale
 import kotlinx.coroutines.flow.first
 import whitewallet.core.model.Note
 import whitewallet.core.model.NoteKind
@@ -53,6 +54,6 @@ internal suspend fun Wallet.inSetup(): Boolean = setupStep.first() != null
  * adds another account after it ([accountToUseFirst]), and nothing else.
  */
 internal suspend fun WalletStore.useAccount(accountId: String) {
-    val q = ByteArray(32).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
+    val q = ByteArray(32).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(Locale.ROOT, it) }
     upsertNotes(listOf(Note(q, accountId, "used.example", NoteKind.KeyPath, 0, 0, 1_000, null, NoteState.Spent, 0)))
 }

@@ -148,7 +148,8 @@ internal class NoteManager(private val wallet: Wallet) {
                     noteCount = notes.size,
                     journalId = result.journalId,
                 )
-            else -> Unit
+            is MutationResult.Refused,
+            is MutationResult.Unreachable -> Unit
         }
         return result.toAction()
     }
@@ -200,7 +201,8 @@ internal class NoteManager(private val wallet: Wallet) {
                     noteCount = 2,
                     journalId = result.journalId,
                 )
-            else -> Unit
+            is MutationResult.Refused,
+            is MutationResult.Unreachable -> Unit
         }
         return result.toAction()
     }

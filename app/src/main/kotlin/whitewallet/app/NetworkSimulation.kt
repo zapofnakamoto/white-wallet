@@ -20,6 +20,7 @@ constructor(
     private val connection: ConnectionState,
     private val preferences: AppPreferences,
 ) {
+    @Suppress("InjectDispatcher") // Started once with the process: nothing to swap the dispatcher for.
     fun start() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             combine(preferences.developerMode, preferences.networkProfile) { on, profile ->

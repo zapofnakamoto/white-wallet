@@ -168,6 +168,7 @@ internal object ScriptPath {
             ScriptFlags.SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE
 
     @OptIn(RevealsNoteSecret::class)
+    @Suppress("TooGenericExceptionCaught") // correctlySpends throws whatever fails the spend; any of it means it doesn't verify.
     fun verify(cw1: Cw1, q: ByteVector32, domain: String): Boolean {
         val tx =
             CanonicalSpend.transaction(domain, cw1.lockTime, cw1.sequence)

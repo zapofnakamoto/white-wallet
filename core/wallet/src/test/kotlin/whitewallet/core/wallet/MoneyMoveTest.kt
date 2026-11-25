@@ -4,6 +4,7 @@ package whitewallet.core.wallet
 
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.secp256k1.Hex
+import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -56,7 +57,7 @@ class MoneyMoveTest {
                 store.addAccount("a", "Main", null, host = old.host)
                 assertIs<ConnectResult.Connected>(wallet.connectMint(old.host))
                 val claim: suspend (Long) -> Unit = { sats ->
-                    val bearer = Spend.Bearer(ByteVector32(Hex.decode("%02x".format(nextBearer++).repeat(32))))
+                    val bearer = Spend.Bearer(ByteVector32(Hex.decode("%02x".format(Locale.ROOT, nextBearer++).repeat(32))))
                     old.credit(bearer.h.toHex(), sats * 1000)
                     assertIs<ClaimResult.Claimed>(
                         wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim("lnurlw://${old.host}/w?k1=${bearer.k1}")))

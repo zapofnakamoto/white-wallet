@@ -108,7 +108,8 @@ fun AddMintScreen(state: AddMintState, actions: AddMintActions) {
                         state.setup && !state.keyAccepted -> R.string.mint_added_title
                         else -> R.string.add_mint_done_title
                     }
-                else -> if (state.setup) R.string.add_mint_setup_title else R.string.add_mint_title
+                AddMintStep.Pick,
+                AddMintStep.Info -> if (state.setup) R.string.add_mint_setup_title else R.string.add_mint_title
             }
         )
     // A failure that added nothing goes back to the pick from here too.

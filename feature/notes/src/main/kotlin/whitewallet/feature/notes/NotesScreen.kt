@@ -281,7 +281,10 @@ internal fun noteStatusText(status: NoteStatus, handedOut: Boolean = false): Str
         NoteStatus.Unclear -> stringResource(DesignR.string.waiting_for_answer)
         NoteStatus.Uncertified -> stringResource(DesignR.string.uncertified)
         NoteStatus.Unknown -> stringResource(if (handedOut) R.string.notes_state_unknown_handed_out else R.string.notes_state_unknown)
-        else -> null
+        NoteStatus.Ready,
+        NoteStatus.Waiting,
+        NoteStatus.Spent,
+        NoteStatus.TakenBack -> null
     }
 
 internal fun noteStatusIcon(status: NoteStatus): Int? =
@@ -290,7 +293,10 @@ internal fun noteStatusIcon(status: NoteStatus): Int? =
         NoteStatus.Unclear -> DesignR.drawable.ic_unknown
         NoteStatus.Uncertified -> DesignR.drawable.ic_uncertified
         NoteStatus.Unknown -> DesignR.drawable.ic_warning
-        else -> null
+        NoteStatus.Ready,
+        NoteStatus.Waiting,
+        NoteStatus.Spent,
+        NoteStatus.TakenBack -> null
     }
 
 @Composable

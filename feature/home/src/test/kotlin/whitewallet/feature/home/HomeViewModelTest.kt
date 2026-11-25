@@ -91,6 +91,7 @@ class HomeViewModelTest {
      * Home for an account whose home mint is [host], with a Lightning address there held for its fee (which every refresh asks about,
      * whatever the network), its first refresh (at the start, offline) done.
      */
+    @Suppress("SuspendFunWithCoroutineScopeReceiver") // The scope gives the view model its virtual clock, nothing else.
     private suspend fun TestScope.home(): HomeViewModel {
         store.addAccount("a", "Main", null, host)
         store.saveAddress("a", RegisteredAddress("alice", host, addedAtMillis = 0, share = 0, feeInvoice = "lnbc1fee"))

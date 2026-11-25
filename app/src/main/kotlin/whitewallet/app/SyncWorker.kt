@@ -30,6 +30,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         fun wallet(): Wallet
     }
 
+    @Suppress("TooGenericExceptionCaught") // Whatever stops a refresh, the next period tries again.
     override suspend fun doWork(): Result {
         val wallet = EntryPointAccessors.fromApplication(applicationContext, Deps::class.java).wallet()
         if (!wallet.isSetUp()) return Result.success()

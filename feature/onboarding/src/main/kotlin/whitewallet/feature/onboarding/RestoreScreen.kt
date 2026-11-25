@@ -112,7 +112,8 @@ private fun PhraseHint(state: RestoreState) {
         when (hint) {
             is PhraseCheck.Valid -> MaterialTheme.colorScheme.primary
             is PhraseCheck.WrongCount -> MaterialTheme.colorScheme.onSurfaceVariant
-            else -> MaterialTheme.colorScheme.error
+            PhraseCheck.BadChecksum,
+            is PhraseCheck.UnknownWords -> MaterialTheme.colorScheme.error
         }
     Text(text, color = color)
 }

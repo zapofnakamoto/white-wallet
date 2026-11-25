@@ -243,7 +243,8 @@ internal class FundsMover(private val wallet: Wallet) {
             }
             is MutationResult.Pending ->
                 log.move(fromId, toId, host, amountMsat = inputs, feeMsat = null, status = ActivityStatus.Pending, result.journalId)
-            else -> Unit
+            is MutationResult.Refused,
+            is MutationResult.Unreachable -> Unit
         }
         return result.toMove(host, inputs)
     }
@@ -280,7 +281,8 @@ internal class FundsMover(private val wallet: Wallet) {
             }
             is MutationResult.Pending ->
                 log.move(fromId, toId, host, amountMsat, feeMsat = null, status = ActivityStatus.Pending, result.journalId)
-            else -> Unit
+            is MutationResult.Refused,
+            is MutationResult.Unreachable -> Unit
         }
         val r = result.toMove(host, amountMsat)
         return if (r is MoveResult.Moved) MoveResult.Moved(amountMsat) else r

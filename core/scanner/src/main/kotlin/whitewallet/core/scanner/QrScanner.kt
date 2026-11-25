@@ -111,6 +111,7 @@ private fun CameraPreview(onScanned: (String) -> Unit, modifier: Modifier) {
 }
 
 /** Reads a QR code from the frame's luminance (Y) plane, or null. */
+@Suppress("TooGenericExceptionCaught") // A frame that can't be read holds no code: the next frame tries again.
 private fun decode(reader: MultiFormatReader, image: ImageProxy): String? {
     val plane = image.planes.firstOrNull() ?: return null
     val buffer = plane.buffer

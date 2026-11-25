@@ -140,10 +140,12 @@ data class MoneyMoveState(
 
     /** The lines that can move: quoted, and when collecting decides, within its fee cap. */
     val movable: List<MovePreview.Line>
-        get() =
-            preview?.lines.orEmpty().filter {
-                it.quote is MovePreview.Quote.Ok && !(changingHome && collects && it.overCap(preview!!.feeCapPercent))
+        get() {
+            val preview = preview ?: return emptyList()
+            return preview.lines.filter {
+                it.quote is MovePreview.Quote.Ok && !(changingHome && collects && it.overCap(preview.feeCapPercent))
             }
+        }
 
     /** What moves when the user confirms: every movable line, less the unchecked ones (a choice only without collecting). */
     val chosen: List<MovePreview.Line>
@@ -637,7 +639,15 @@ private fun reason(problem: NoteProblem): String =
             NoteProblem.Unreachable -> R.string.money_reason_offline
             NoteProblem.KeyChanged -> R.string.money_reason_key_changed
             NoteProblem.NotFound -> R.string.money_reason_gone
-            else -> R.string.money_reason_refused
+            NoteProblem.DifferentMints,
+            NoteProblem.TooFewNotes,
+            NoteProblem.InvalidAmount,
+            NoteProblem.SameMint,
+            NoteProblem.MintInvalid,
+            NoteProblem.BelowMinimum,
+            NoteProblem.AboveMaximum,
+            NoteProblem.InvoiceMismatch,
+            NoteProblem.Refused -> R.string.money_reason_refused
         }
     )
 

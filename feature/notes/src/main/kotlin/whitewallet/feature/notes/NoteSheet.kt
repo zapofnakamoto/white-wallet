@@ -183,13 +183,15 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 )
             }
             // For developers, last and apart, so everything above is exactly what a user sees.
-            val key = note.takeIf { state.developerMode && it.purpose != null && it.index != null }
-            if (state.failuresOffered || key != null) {
+            val purpose = note.purpose
+            val index = note.index
+            val showKey = state.developerMode && purpose != null && index != null
+            if (state.failuresOffered || showKey) {
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 if (state.failuresOffered) SimulatedFailureChips(state.simulatedFailure, actions.simulateFailure)
-                key?.let {
+                if (showKey) {
                     Text(
-                        stringResource(R.string.notes_dev_key, it.purpose!!, it.index!!, it.id.take(8) + "…" + it.id.takeLast(8)),
+                        stringResource(R.string.notes_dev_key, purpose, index, note.id.take(8) + "…" + note.id.takeLast(8)),
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
                     )

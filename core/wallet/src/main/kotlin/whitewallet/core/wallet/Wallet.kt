@@ -7,6 +7,7 @@ import java.io.IOException
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -116,6 +117,8 @@ class Wallet(
     internal val settings: WalletSettings = WalletSettings(),
     /** Where the wallet keeps state of its own up to date, for as long as it lives ([offline]); tests pass theirs. */
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    /** Where key derivation runs, off the caller's thread; tests pass theirs. */
+    private val compute: CoroutineDispatcher = Dispatchers.Default,
 ) {
     private val lock = Mutex()
 
@@ -841,7 +844,7 @@ class Wallet(
     suspend fun defaultUsername(host: String): String? {
         val h = Onboarding.normalizeHost(host) ?: return null
         val keys = keysIfSeeded(store.currentAccountId(), h) ?: return null
-        return withContext(Dispatchers.Default) { DefaultAddress.names(keys).first() }
+        return withContext(compute) { DefaultAddress.names(keys).first() }
     }
 
     /**
@@ -1054,6 +1057,7 @@ class Wallet(
     suspend fun acceptMintKey(host: String, key: String): Boolean = lock.withLock {
         val walletId = walletOf(activeId())
         val mint = store.mint(walletId, host) ?: return false
+        @Suppress("TooGenericExceptionCaught") // Not asked, not accepted: whatever stopped it.
         val presented =
             try {
                 client.withdrawDiscovery(host).mintPubkey
@@ -1296,7 +1300,7 @@ class Wallet(
         if (note.isConfirming()) return settle(note)
         val probe =
             try {
-                inspector.recheck(KeySet.of(note).key(note.accountId, note.host, note.index!!))
+                inspector.recheck(KeySet.of(note).key(note.accountId, note.host, note.indexInSet))
             } catch (e: MintKeyChangedException) {
                 return NoteCheck.KeyChanged(note.host)
             }
@@ -1331,7 +1335,23 @@ class Wallet(
                     PayProblem.KeyChanged -> NoteCheck.KeyChanged(note.host)
                     PayProblem.Unreachable -> NoteCheck.Unreachable
                     // The wish stays: tried again on the next refresh while the mint knows it.
-                    else -> NoteCheck.TakeBackRefused(taken.mintMessage)
+                    PayProblem.NotRecognized,
+                    PayProblem.WithdrawLink,
+                    PayProblem.NoAmount,
+                    PayProblem.Expired,
+                    PayProblem.MintNotAnswering,
+                    PayProblem.PayeeRefused,
+                    PayProblem.InvoiceMismatch,
+                    PayProblem.OwnAddress,
+                    PayProblem.NoFunds,
+                    PayProblem.TooMuch,
+                    PayProblem.NotExact,
+                    PayProblem.BelowMinimum,
+                    PayProblem.AboveMaximum,
+                    PayProblem.Refused,
+                    PayProblem.OwnMintInvoice,
+                    PayProblem.InvoiceUsed,
+                    PayProblem.PaymentFailed -> NoteCheck.TakeBackRefused(taken.mintMessage)
                 }
         }
 
@@ -1431,7 +1451,8 @@ class Wallet(
         return when (Reconciler(this).reconcile(entry)) {
             JournalStatus.Confirmed -> NoteCheck.Landed
             JournalStatus.Rejected -> NoteCheck.NotLanded
-            else -> NoteCheck.Unreachable
+            JournalStatus.Prepared,
+            JournalStatus.Unknown -> NoteCheck.Unreachable
         }
     }
 
@@ -1440,7 +1461,7 @@ class Wallet(
         val note =
             store.note(id)?.takeIf { it.accountId == activeId() && it.isRecheckable() }
                 ?: return@withLock RotateResult.NotRotatable("no outstanding note $id")
-        rotator.rotate(note.accountId, note.host, KeySet.of(note), note.index!!)
+        rotator.rotate(note.accountId, note.host, KeySet.of(note), note.indexInSet)
     }
 
     /**
@@ -1972,7 +1993,11 @@ class Wallet(
         when (status) {
             null -> addressChecks.forget(accountId, address)
             is AddressStatus.CheckFailed -> Unit
-            else -> addressChecks.record(accountId, address, AddressCheckRecord(now(), status))
+            AddressStatus.Available,
+            is AddressStatus.Invalid,
+            AddressStatus.Ours,
+            AddressStatus.Taken,
+            AddressStatus.Unconfirmed -> addressChecks.record(accountId, address, AddressCheckRecord(now(), status))
         }
     }
 

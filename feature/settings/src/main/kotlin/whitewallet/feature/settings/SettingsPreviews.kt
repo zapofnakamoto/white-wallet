@@ -469,7 +469,7 @@ private fun DerivedKeysLookupRefusedPreview() =
 @Composable
 private fun MintDetailsUnreachablePreview() =
     MintDetailsScreen(
-        mintDetailsState.copy(details = mintDetailsState.details!!.copy(reachability = MintDetails.Reachability.Unreachable)),
+        mintDetailsState.copy(details = checkNotNull(mintDetailsState.details).copy(reachability = MintDetails.Reachability.Unreachable)),
         onBack = {},
         onRefresh = {},
     )
@@ -481,10 +481,11 @@ private fun MintDetailsKeyChangedPreview() =
     MintDetailsScreen(
         mintDetailsState.copy(
             details =
-                mintDetailsState.details!!.copy(
-                    reachability = MintDetails.Reachability.KeyChanged,
-                    presentedKey = "03d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
-                ),
+                checkNotNull(mintDetailsState.details)
+                    .copy(
+                        reachability = MintDetails.Reachability.KeyChanged,
+                        presentedKey = "03d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+                    ),
             canReceive = false,
         ),
         onBack = {},
@@ -507,7 +508,11 @@ private fun MintsHomeKeyChangedPreview() = MintsWith(mintsState.copy(home = mint
 @Composable
 private fun MintsNoHomePreview() =
     MintsWith(
-        mintsState.copy(home = null, noHome = NoHome.PickHome, others = listOf(mintsState.home!!.copy(isHome = false)) + mintsState.others)
+        mintsState.copy(
+            home = null,
+            noHome = NoHome.PickHome,
+            others = listOf(checkNotNull(mintsState.home).copy(isHome = false)) + mintsState.others,
+        )
     )
 
 /** The addresses' checks: one that the mint can't be asked about, and a refused unregister said on the page. */

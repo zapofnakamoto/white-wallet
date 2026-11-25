@@ -293,13 +293,15 @@ fun CreateNoteScreen(
                         stringResource(R.string.send_not_exact, formatAmount(quote.allMsat), formatAmount(quote.maxWithChangeMsat)),
                         color = MaterialTheme.colorScheme.error,
                     )
-                is PayQuote.Invalid ->
+                is PayQuote.Invalid -> {
+                    val limit = quote.limitMsat
                     Text(
-                        if (quote.problem == PayProblem.TooMuch && quote.limitMsat != null)
-                            stringResource(R.string.send_too_much, formatAmount(quote.limitMsat!!))
+                        if (quote.problem == PayProblem.TooMuch && limit != null)
+                            stringResource(R.string.send_too_much, formatAmount(limit))
                         else problemText(quote.problem),
                         color = MaterialTheme.colorScheme.error,
                     )
+                }
                 null -> Unit
             }
             if (state.offline) Text(stringResource(R.string.send_offline), textAlign = TextAlign.Center)
@@ -638,5 +640,20 @@ private fun ownClaimReason(problem: PayProblem, mintMessage: String?): String? =
         PayProblem.KeyChanged -> stringResource(DesignR.string.mint_key_changed_nothing_sent)
         // The mint's own words, if any, say why: else the app says it.
         PayProblem.Refused -> if (mintMessage == null) stringResource(DesignR.string.own_claim_refused) else null
-        else -> null
+        PayProblem.NotRecognized,
+        PayProblem.WithdrawLink,
+        PayProblem.NoAmount,
+        PayProblem.Expired,
+        PayProblem.MintNotAnswering,
+        PayProblem.PayeeRefused,
+        PayProblem.InvoiceMismatch,
+        PayProblem.OwnAddress,
+        PayProblem.NoFunds,
+        PayProblem.TooMuch,
+        PayProblem.NotExact,
+        PayProblem.BelowMinimum,
+        PayProblem.AboveMaximum,
+        PayProblem.OwnMintInvoice,
+        PayProblem.InvoiceUsed,
+        PayProblem.PaymentFailed -> null
     }

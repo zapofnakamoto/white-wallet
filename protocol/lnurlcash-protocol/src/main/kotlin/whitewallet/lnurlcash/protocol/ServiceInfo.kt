@@ -93,5 +93,8 @@ public fun parseMintPubkey(hex: String): PublicKey? {
 internal fun unexpected(response: LnurlResponse, expected: String): ProtocolViolation =
     when (response) {
         is LnurlResponse.Error -> ServiceRefused(response.reason)
-        else -> ProtocolViolation("expected a $expected")
+        is LnurlResponse.Ok,
+        is LnurlResponse.PayRequest,
+        is LnurlResponse.Unrecognized,
+        is LnurlResponse.WithdrawRequest -> ProtocolViolation("expected a $expected")
     }
