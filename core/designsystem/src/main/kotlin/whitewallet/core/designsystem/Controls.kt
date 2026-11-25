@@ -9,7 +9,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -423,15 +428,22 @@ fun WalletSheet(onDismissRequest: () -> Unit, openFully: Boolean = false, conten
 
 /**
  * Where [WalletSnackbarHost]'s messages appear: Material's [SnackbarHost] with each message drawn by the brand. A message's action label is
- * its button; [SnackbarHostState.showSnackbar] says whether it was tapped.
+ * its button; [SnackbarHostState.showSnackbar] says whether it was tapped. A swipe to either side dismisses it.
  */
 @Composable
 fun WalletSnackbarHost(state: SnackbarHostState, modifier: Modifier = Modifier) {
     SnackbarHost(state, modifier) { data ->
-        LocalBrandDesign.current.components.Snackbar(
-            SnackbarParams(data.visuals.message, data.visuals.actionLabel, data::performAction),
-            Modifier,
-        )
+        // A fresh swipe for each message.
+        key(data) {
+            val swipe = rememberSwipeToDismissBoxState()
+            LaunchedEffect(swipe.currentValue) { if (swipe.currentValue != SwipeToDismissBoxValue.Settled) data.dismiss() }
+            SwipeToDismissBox(swipe, backgroundContent = {}) {
+                LocalBrandDesign.current.components.Snackbar(
+                    SnackbarParams(data.visuals.message, data.visuals.actionLabel, data::performAction),
+                    Modifier,
+                )
+            }
+        }
     }
 }
 
