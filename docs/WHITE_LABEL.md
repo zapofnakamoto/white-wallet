@@ -156,11 +156,6 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_attention_offline_unnamed` | Your mint didn't answer, and you're offline. It's asked again when you're back online. |
 | `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
 | `home_unknown_title_unnamed` | Your mint doesn't know %1$d of your notes / Your mint doesn't know %1$d of your notes (plural) |
-| `home_unknown_body` | %1$s isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again. / %1$s isn't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again. (plural) |
-| `home_unknown_body_hidden` | It isn't in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again. / They aren't in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again. (plural) |
-| `home_unknown_help` | There's nothing you need to do. If it stays this way, ask the mint's operator. |
-| `home_unknown_help_late` | If the mint still doesn't know them, ask its operator, or archive them in your notes. |
-| `home_unknown_show` | Show note / Show notes (plural) |
 | `notice_unknown_back` | The mint knows a note again: you can spend it. / The mint knows %1$d notes again: you can spend them. (plural) |
 | `notice_unknown_still` | Asked just now: the mint still doesn't know your note. / Asked just now: the mint still doesn't know your notes. (plural) |
 | `notice_unknown_unreachable_unnamed` | Your mint isn't answering. Your wallet asks again later. |
@@ -172,7 +167,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `add_mint_title` | Add a mint |
 | `mint_added_title` | Mint added |
 | `home_add_mint_title` | Add a mint |
-| `home_add_mint_body` | This wallet has no mint yet, so nothing can be received. Adding the mint you use finds the money your recovery phrase holds there. |
+| `home_add_mint_body` | Without one, nothing can be received. |
 | `home_add_mint_action` | Add mint |
 | `home_mint_is_home` | Home mint |
 | `home_mint_is_home_not_answering` | Home mint · not answering |
@@ -261,7 +256,6 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `notice_split` | Split %1$d note into %2$d / Split %1$d notes into %2$d (plural) |
 | `notice_rearranged` | Rearranged %1$d note into %2$d / Rearranged %1$d notes into %2$d (plural) |
 | `notice_renewed` | Renewed %1$d note / Renewed %1$d notes (plural) |
-| `home_key_changed_body` | Nothing is sent there until it matches again, or you accept the new key in the mint's details. |
 | `notes_title` | Notes |
 | `notes_settings` | Note settings |
 | `notes_count` | %1$d note / %1$d notes (plural) |

@@ -89,6 +89,9 @@ internal fun AttentionPage(state: NotesState, actions: NotesActions, backArrow: 
                         actions.openMintDetails?.let { open -> { open(host) } },
                     )
                 }
+            // Notes it doesn't know: that nothing is lost by waiting, and who to ask if it stays so (a note's sheet archives it).
+            if (state.unknownNotes.any { it.host == host })
+                item(key = "unknown $host") { MintLine(stringResource(R.string.notes_attention_unknown_help)) }
             items(troubled[host].orEmpty(), key = { it.id }) { note -> TroubledNoteRow(note, state, actions) }
         }
         val received = state.receivedNeedingUser

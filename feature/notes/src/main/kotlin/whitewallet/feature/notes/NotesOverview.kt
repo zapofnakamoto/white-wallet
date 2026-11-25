@@ -43,20 +43,17 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.Anchor
-import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
-import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.AmountText
+import whitewallet.core.designsystem.AttentionCard
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ReceivedNoteRow
-import whitewallet.core.designsystem.WalletButton
-import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletLinearProgress
 import whitewallet.core.designsystem.WalletListItem
 import whitewallet.core.designsystem.WalletNoteFace
@@ -129,79 +126,79 @@ private fun Summary(state: NotesState) {
 @Composable
 private fun Attention(state: NotesState, onOpen: () -> Unit) {
     if (!state.needsAttention) return
-    val lines = buildList {
-        state.unknownNotes
-            .takeIf { it.isNotEmpty() }
-            ?.let { notes ->
-                val hosts = notes.map { it.host }.distinct()
-                add(
-                    when {
-                        !state.showMints -> pluralStringResource(R.plurals.notes_attention_unknown_unnamed, notes.size, notes.size)
-                        hosts.size == 1 ->
-                            pluralStringResource(R.plurals.notes_attention_unknown_at, notes.size, notes.size, hosts.single())
-                        else -> pluralStringResource(R.plurals.notes_attention_unknown, notes.size, notes.size)
-                    }
-                )
-            }
-        state.waitingNotes
-            .takeIf { it.isNotEmpty() }
-            ?.let { notes -> add(pluralStringResource(R.plurals.notes_attention_waiting, notes.size, notes.size)) }
-        state.silentMints
-            .takeIf { it.isNotEmpty() }
-            ?.let { hosts ->
-                add(
-                    if (state.showMints)
-                        pluralStringResource(
-                            R.plurals.notes_attention_not_answering,
-                            hosts.size,
-                            hosts.size,
-                            ListFormatter.getInstance().format(hosts),
-                        )
-                    else stringResource(DesignR.string.mint_not_answering_unnamed)
-                )
-            }
-        state.keyChangedMints
-            .takeIf { it.isNotEmpty() }
-            ?.let { hosts ->
-                add(
-                    if (state.showMints)
-                        pluralStringResource(
-                            R.plurals.notes_attention_key_changed,
-                            hosts.size,
-                            hosts.size,
-                            ListFormatter.getInstance().format(hosts),
-                        )
-                    else stringResource(DesignR.string.mint_key_changed_nothing_sent)
-                )
-            }
-        state.receivedNeedingUser.size
-            .takeIf { it > 0 }
-            ?.let { count -> add(pluralStringResource(R.plurals.notes_attention_received, count, count)) }
-    }
-    WalletCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), tone = Tone.Warning) {
-        Row(
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(painterResource(DesignR.drawable.ic_warning), contentDescription = null, modifier = Modifier.size(20.dp))
-            Text(
-                stringResource(R.string.notes_attention_title),
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
-            )
+    // Each problem as a title and what it means, the most important first: the card shows that one, and counts the others.
+    val problems =
+        buildList<Pair<String, String>> {
+            state.keyChangedMints
+                .takeIf { it.isNotEmpty() }
+                ?.let { hosts ->
+                    add(
+                        (if (state.showMints)
+                            pluralStringResource(
+                                R.plurals.notes_attention_key_changed,
+                                hosts.size,
+                                hosts.size,
+                                ListFormatter.getInstance().format(hosts),
+                            )
+                        else stringResource(DesignR.string.key_mismatch_short)) to stringResource(DesignR.string.attention_key_changed_line)
+                    )
+                }
+            state.unknownNotes
+                .takeIf { it.isNotEmpty() }
+                ?.let { notes ->
+                    val hosts = notes.map { it.host }.distinct()
+                    add(
+                        when {
+                            !state.showMints -> pluralStringResource(R.plurals.notes_attention_unknown_unnamed, notes.size, notes.size)
+                            hosts.size == 1 ->
+                                pluralStringResource(R.plurals.notes_attention_unknown_at, notes.size, notes.size, hosts.single())
+                            else -> pluralStringResource(R.plurals.notes_attention_unknown, notes.size, notes.size)
+                        } to stringResource(DesignR.string.attention_unknown_line, formatAmount(notes.sumOf { it.amountMsat }))
+                    )
+                }
+            state.silentMints
+                .takeIf { it.isNotEmpty() }
+                ?.let { hosts ->
+                    add(
+                        (if (state.showMints)
+                            pluralStringResource(
+                                R.plurals.notes_attention_not_answering,
+                                hosts.size,
+                                hosts.size,
+                                ListFormatter.getInstance().format(hosts),
+                            )
+                        else stringResource(DesignR.string.mint_not_answering_unnamed)) to
+                            stringResource(
+                                if (hosts.any(state::isHomeMint)) DesignR.string.attention_not_answering_home_line
+                                else DesignR.string.attention_not_answering_line
+                            )
+                    )
+                }
+            state.waitingNotes
+                .takeIf { it.isNotEmpty() }
+                ?.let { notes ->
+                    add(
+                        pluralStringResource(R.plurals.notes_attention_waiting, notes.size, notes.size) to
+                            stringResource(DesignR.string.attention_waiting_line)
+                    )
+                }
+            state.receivedNeedingUser.size
+                .takeIf { it > 0 }
+                ?.let { count ->
+                    add(
+                        pluralStringResource(R.plurals.notes_attention_received, count, count) to
+                            stringResource(DesignR.string.attention_received_line)
+                    )
+                }
         }
-        lines.forEach { line ->
-            Text(
-                line,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().padding(start = 44.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
-            )
-        }
-        Row(Modifier.fillMaxWidth().padding(end = 8.dp, bottom = 4.dp), horizontalArrangement = Arrangement.End) {
-            WalletButton(kind = ButtonKind.Text, onClick = onOpen) { Text(stringResource(R.string.notes_attention_open)) }
-        }
-    }
+    val (title, line) = problems.firstOrNull() ?: return
+    AttentionCard(
+        title,
+        if (problems.size == 1) line else pluralStringResource(DesignR.plurals.attention_more, problems.size - 1, problems.size - 1),
+        stringResource(DesignR.string.attention_show),
+        onOpen,
+        Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 /**

@@ -1,6 +1,5 @@
 package whitewallet.feature.home
 
-import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -48,7 +47,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -75,7 +73,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import whitewallet.brand.MaintenanceStep
 import whitewallet.brand.WalletStatus
 import whitewallet.brand.WalletTask
@@ -89,6 +86,7 @@ import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.AccountActions
 import whitewallet.core.designsystem.AccountSwitcher
+import whitewallet.core.designsystem.AttentionCard
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.BrandTitle
@@ -154,6 +152,8 @@ fun HomeRoute(
     onOpenMint: (String) -> Unit = {},
     /** The Notes tab, if the brand shows one. */
     notesTab: NotesTabSlot? = null,
+    /** Opens the notes view's page of what needs the user, where the notes view is a page of its own (no tab); null without one. */
+    onOpenNotesAttention: (() -> Unit)? = null,
     /** The brand's own pages, in the top bar's menu. */
     menu: List<HomeMenuItem> = emptyList(),
     /** Scan any QR code: a note to claim or something to pay. Null hides the button. */
@@ -194,6 +194,7 @@ fun HomeRoute(
         onOpenMint,
         notesTab,
         menu,
+        onOpenNotesAttention = onOpenNotesAttention,
         mintRow = MintRowActions(onSendFrom, onReceiveOn),
         onNoticeShown = viewModel::noticeShown,
         onRecheckUnknown = viewModel::recheckUnknown,
@@ -220,7 +221,13 @@ class HomeMenuItem(@StringRes val title: Int, val onClick: () -> Unit)
  * The Notes tab, supplied by the app (the notes view lives in its own module): its content and its own refresh (asking the mints about
  * every note).
  */
-class NotesTabSlot(val refreshing: Boolean, val onRefresh: () -> Unit, val content: @Composable () -> Unit)
+class NotesTabSlot(
+    val refreshing: Boolean,
+    val onRefresh: () -> Unit,
+    val content: @Composable () -> Unit,
+    /** Opens the tab's page of what needs the user (Home's alerts about notes and mints lead there). */
+    val onOpenAttention: () -> Unit = {},
+)
 
 private enum class HomeTab {
     Wallet,
@@ -246,6 +253,7 @@ fun HomeScreen(
     onOpenMint: (String) -> Unit = {},
     notesTab: NotesTabSlot? = null,
     menu: List<HomeMenuItem> = emptyList(),
+    onOpenNotesAttention: (() -> Unit)? = null,
     mintRow: MintRowActions = MintRowActions(),
     onNoticeShown: () -> Unit = {},
     onRecheckUnknown: () -> Unit = {},
@@ -387,6 +395,13 @@ fun HomeScreen(
                                 onRefresh,
                                 received,
                                 onOpenIncoming = if (notesTab != null) ({ saved = HomeTab.Notes }) else null,
+                                onOpenAttention =
+                                    notesTab?.let { slot ->
+                                        {
+                                            slot.onOpenAttention()
+                                            saved = HomeTab.Notes
+                                        }
+                                    } ?: onOpenNotesAttention,
                                 onOpenShared = { saved = if (notesTab != null) HomeTab.Notes else HomeTab.History },
                                 onOpenMints,
                                 onAddMint,
@@ -576,6 +591,8 @@ private fun WalletTab(
     received: ReceivedNoteActions,
     /** Opens the notes view, where received notes and those a mint doesn't know are listed too; null without one. */
     onOpenIncoming: (() -> Unit)?,
+    /** Opens the notes view's page of what needs the user; null without a notes view (each card then keeps its own action). */
+    onOpenAttention: (() -> Unit)?,
     /** Opens where the notes handed out are listed, each leading to its QR code and to taking it back. */
     onOpenShared: () -> Unit,
     /** Opens the account's mints, all of them, for those without a row here. */
@@ -600,25 +617,10 @@ private fun WalletTab(
             @Composable
             fun Alert(alert: HomeAlert) =
                 when (alert) {
-                    is HomeAlert.KeyChanged -> KeyChanged(alert.host) { onOpenMint(alert.host) }
-                    is HomeAlert.UnknownNotes ->
-                        UnknownNotesCard(
-                            mint = alert.mint,
-                            state.mintsVisible,
-                            state.balanceHidden,
-                            checking = state.checkingUnknown,
-                            onRecheck = onRecheckUnknown,
-                            onShowNotes = onOpenIncoming,
-                        )
-                    is HomeAlert.MintNotAnswering ->
-                        MintNotAnswering(alert.mint, state.mintsVisible, checking = state.refreshing, onCheck = onRefresh)
-                    is HomeAlert.MintsNotAnswering ->
-                        NotAnsweringCard(
-                            pluralStringResource(R.plurals.home_mints_silent_title, alert.mints.size, alert.mints.size),
-                            stringResource(R.string.home_mints_silent_body),
-                            checking = state.refreshing,
-                            onCheck = onRefresh,
-                        )
+                    is HomeAlert.KeyChanged,
+                    is HomeAlert.UnknownNotes,
+                    is HomeAlert.MintNotAnswering,
+                    is HomeAlert.MintsNotAnswering -> NotesAlert(alert, state, onOpenAttention, onOpenMint, onRecheckUnknown, onRefresh)
                     HomeAlert.AddMint -> AddMintPrompt(onAddMint)
                     HomeAlert.Backup -> BackupPrompt(onBackup, onDismissBackup)
                     HomeAlert.Scan -> ScanPrompt(onScanMints)
@@ -993,89 +995,60 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
     )
 }
 
-@Composable
-private fun KeyChanged(host: String, onDetails: () -> Unit) {
-    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.home_key_changed_title, host), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.home_key_changed_body), style = MaterialTheme.typography.bodyMedium)
-            WalletButton(onClick = onDetails) { Text(stringResource(DesignR.string.details)) }
-        }
-    }
-}
-
 /**
- * A mint says it doesn't know some of the account's notes: they're out of the balance, so say why, that the wallet keeps them and asks
- * again (and when it last did), and that there is nothing to do but wait or ask the mint's operator; past the grace period
- * ([AccountMint.unknownGraceEndsAtMillis]), that they can be archived too. The amount stays hidden with the balance. Asking now is offered,
- * not urged; [onShowNotes] leads to the notes themselves, where the app has a notes view (and so an archive).
+ * An alert about the notes or the mints, as short as the notes view's: what happened, what it means, and "Show", to the notes view's page
+ * of what needs the user, where each has its full story and actions. Without a notes view ([onOpenAttention] null) the card keeps the one
+ * thing to do instead: the mint's details for a changed key, "Check again" for the rest. The amount stays hidden with the balance.
  */
 @Composable
-private fun UnknownNotesCard(
-    mint: AccountMint,
-    mintsVisible: Boolean,
-    balanceHidden: Boolean,
-    checking: Boolean,
-    onRecheck: () -> Unit,
-    onShowNotes: (() -> Unit)?,
+private fun NotesAlert(
+    alert: HomeAlert,
+    state: HomeState,
+    onOpenAttention: (() -> Unit)?,
+    onOpenMint: (String) -> Unit,
+    onRecheckUnknown: () -> Unit,
+    onRefresh: () -> Unit,
 ) {
-    val n = mint.unknownCount
-    val now = rememberNow()
-    val late = onShowNotes != null && mint.unknownGraceEndsAtMillis in 1..now
-    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                if (mintsVisible) pluralStringResource(R.plurals.home_unknown_title, n, n, mint.host)
-                else pluralStringResource(R.plurals.home_unknown_title_unnamed, n, n),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                if (balanceHidden) pluralStringResource(R.plurals.home_unknown_body_hidden, n)
-                else pluralStringResource(R.plurals.home_unknown_body, n, formatAmount(mint.unknownMsat)),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                stringResource(if (late) R.string.home_unknown_help_late else R.string.home_unknown_help),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (mint.unknownAskedAtMillis > 0) Text(lastAsked(mint.unknownAskedAtMillis, now), style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WalletButton(kind = ButtonKind.Secondary, onClick = onRecheck, enabled = !checking) {
-                    Text(stringResource(DesignR.string.check_again))
-                }
-                onShowNotes?.let {
-                    WalletButton(kind = ButtonKind.Text, onClick = it) { Text(pluralStringResource(R.plurals.home_unknown_show, n)) }
-                }
+    val named = state.mintsVisible
+    val (title, line) =
+        when (alert) {
+            is HomeAlert.KeyChanged ->
+                stringResource(R.string.home_key_changed_title, alert.host) to stringResource(DesignR.string.attention_key_changed_line)
+            is HomeAlert.UnknownNotes -> {
+                val n = alert.mint.unknownCount
+                (if (named) pluralStringResource(R.plurals.home_unknown_title, n, n, alert.mint.host)
+                else pluralStringResource(R.plurals.home_unknown_title_unnamed, n, n)) to
+                    (if (state.balanceHidden) stringResource(DesignR.string.attention_unknown_line_hidden)
+                    else stringResource(DesignR.string.attention_unknown_line, formatAmount(alert.mint.unknownMsat)))
             }
+            is HomeAlert.MintNotAnswering -> {
+                val mint = alert.mint
+                when {
+                    !named -> stringResource(R.string.home_mint_silent_title_unnamed)
+                    mint.isHome -> stringResource(R.string.home_mint_silent_title_home, mint.host)
+                    else -> stringResource(R.string.home_mint_silent_title, mint.host)
+                } to
+                    stringResource(
+                        when {
+                            !mint.isHome -> DesignR.string.attention_not_answering_line
+                            mint.balanceMsat > 0 -> DesignR.string.attention_not_answering_home_line
+                            else -> DesignR.string.attention_not_answering_home_empty_line
+                        }
+                    )
+            }
+            is HomeAlert.MintsNotAnswering ->
+                pluralStringResource(R.plurals.home_mints_silent_title, alert.mints.size, alert.mints.size) to
+                    stringResource(DesignR.string.attention_not_answering_line)
+            else -> return
         }
+    when {
+        onOpenAttention != null -> AttentionCard(title, line, stringResource(DesignR.string.attention_show), onOpenAttention)
+        alert is HomeAlert.KeyChanged -> AttentionCard(title, line, stringResource(DesignR.string.details), { onOpenMint(alert.host) })
+        alert is HomeAlert.UnknownNotes ->
+            AttentionCard(title, line, stringResource(DesignR.string.check_again), onRecheckUnknown, enabled = !state.checkingUnknown)
+        else -> AttentionCard(title, line, stringResource(DesignR.string.check_again), onRefresh, enabled = !state.refreshing)
     }
 }
-
-/** The time now, kept current while it shows. */
-@Composable
-private fun rememberNow(): Long {
-    val now by
-        produceState(System.currentTimeMillis()) {
-            while (true) {
-                value = System.currentTimeMillis()
-                delay(ASKED_TICK_MILLIS)
-            }
-        }
-    return now
-}
-
-/** "Last asked: 5 minutes ago", in the phone's words for the time, at [now]. */
-@Composable
-private fun lastAsked(atMillis: Long, now: Long): String =
-    if (now - atMillis < DateUtils.MINUTE_IN_MILLIS) stringResource(R.string.home_unknown_asked_now)
-    else
-        stringResource(
-            R.string.home_unknown_asked,
-            DateUtils.getRelativeTimeSpanString(atMillis, now, DateUtils.MINUTE_IN_MILLIS).toString(),
-        )
-
-/** How often [rememberNow] looks at the clock. */
-private const val ASKED_TICK_MILLIS = 20_000L
 
 /** What a mint's row under the balance offers once opened, besides its page: paying from that mint, receiving on it. */
 class MintRowActions(val onSend: (String) -> Unit = {}, val onReceive: (String) -> Unit = {})
@@ -1235,43 +1208,6 @@ private fun ReceivedCard(state: HomeState, actions: ReceivedNoteActions, waiting
                     actions,
                     wait = it.waitsFor(state.offline, state.notAnsweringHosts),
                 )
-            }
-        }
-    }
-}
-
-/**
- * [mint] didn't answer the last time the wallet asked: say what that stops (spending the money there; for the home mint, money coming in
- * too), that the wallet keeps asking, and offer to check now. Nothing is lost by waiting, so nothing more is urged.
- */
-@Composable
-private fun MintNotAnswering(mint: AccountMint, mintsVisible: Boolean, checking: Boolean, onCheck: () -> Unit) =
-    NotAnsweringCard(
-        when {
-            !mintsVisible -> stringResource(R.string.home_mint_silent_title_unnamed)
-            mint.isHome -> stringResource(R.string.home_mint_silent_title_home, mint.host)
-            else -> stringResource(R.string.home_mint_silent_title, mint.host)
-        },
-        stringResource(
-            when {
-                !mint.isHome -> R.string.home_mint_silent_body
-                mint.balanceMsat > 0 -> R.string.home_mint_silent_body_home
-                else -> R.string.home_mint_silent_body_home_empty
-            }
-        ),
-        checking,
-        onCheck,
-    )
-
-/** The card for one mint or several that don't answer: [title], what that stops ([body]), and one "Check again" that asks them all. */
-@Composable
-private fun NotAnsweringCard(title: String, body: String, checking: Boolean, onCheck: () -> Unit) {
-    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(body, style = MaterialTheme.typography.bodyMedium)
-            WalletButton(kind = ButtonKind.Secondary, onClick = onCheck, enabled = !checking) {
-                Text(stringResource(DesignR.string.check_again))
             }
         }
     }

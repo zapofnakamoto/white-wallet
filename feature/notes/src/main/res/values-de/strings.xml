@@ -148,7 +148,7 @@
     <string name="notes_receive">Empfangen</string>
     <string name="notes_attention_title">Braucht deine Aufmerksamkeit</string>
     <!-- The card's link to everything that needs the user, on a page of its own. -->
-    <string name="notes_attention_open">Alle anzeigen</string>
+    <string name="notes_attention_unknown_help">Deine Wallet behält sie und fragt von selbst wieder nach. Du musst nichts tun; bleibt es dabei, frag den Betreiber.</string>
     <!-- On the page of what needs the user, under a mint that wasn't answering, while the phone is offline. -->
     <string name="notes_attention_offline">Hat nicht geantwortet, und du bist offline. Wird wieder gefragt, sobald du wieder online bist.</string>
     <string name="notes_attention_silent">Antwortet nicht. Versuche es später erneut.</string>

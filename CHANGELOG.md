@@ -146,6 +146,15 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- Shorter alerts. Home's alerts about notes and mints (a changed signing key, notes a mint doesn't know, a mint not
+  answering) are one title, one line of what it means ("Nothing is sent there for now", "₿6,000 isn't in your
+  balance for now", "You can't spend the money there for now") and "Show", which opens the notes view's page of what
+  needs you; without a notes view they keep their one action (Details, Check again). The notes view's card shows
+  the most important problem the same way, the others counted ("And 2 more"). The backup, add-mint and scan cards
+  say it in one sentence. That a mint doesn't know some notes, and that there is nothing to do, is said on the page
+  of what needs you, under the mint. For brands: the component `AttentionCard`, `NotesTabSlot.onOpenAttention`,
+  `HomeRoute(onOpenNotesAttention)`; new strings `attention_*`, `notes_attention_unknown_help`; shorter
+  `home_backup_body`, `home_add_mint_body`, `home_scan_body`.
 - A Lightning address is no longer checked with its mint on every refresh: each check tells the mint, signed, that
   this phone holds the name, which would tie the name to the phone's network and times. It is checked as Receive
   shows it, at most once a day (`address.check.interval.millis` in `wallet.properties`; the answer is kept across
@@ -327,6 +336,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Removed
 
+- For brands: the strings `home_key_changed_body`, `home_unknown_body`, `home_unknown_body_hidden`,
+  `home_unknown_help`, `home_unknown_help_late`, `home_unknown_asked`, `home_unknown_asked_now`, `home_unknown_show`,
+  `home_mint_silent_body`, `home_mint_silent_body_home`, `home_mint_silent_body_home_empty`,
+  `home_mints_silent_body` and `notes_attention_open`.
 - For brands: the strings `home_address_inactive_title`, `home_address_inactive_body` and
   `home_address_inactive_action`.
 - For developers and brands: the strings `receive_copy`, `receive_share` (now `copy`, `share` in the design system),

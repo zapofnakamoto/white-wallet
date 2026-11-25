@@ -132,15 +132,21 @@ class NotesScreenTest {
             )
 
     @Test
-    fun theAttentionCardSaysWhatNeedsTheUserAndOneLinkShowsIt() {
+    fun theAttentionCardSaysTheMostImportantProblemCountsTheOthersAndShowsThem() {
         var opened = 0
         compose.setContent { NotesContent(state(::troubled), NotesActions(openAttention = { opened++ })) }
-        compose.onNodeWithText(text(R.string.notes_attention_title)).assertExists()
-        compose.onNodeWithText("home.example doesn't know 2 of your notes").assertExists()
-        compose.onNodeWithText(plural(R.plurals.notes_attention_waiting, 1, 1)).assertExists()
         compose.onNodeWithText("The signing key of other.example doesn't match").assertExists()
-        compose.onNodeWithText(text(R.string.notes_attention_open)).performClick()
+        compose.onNodeWithText("And 2 more").assertExists()
+        compose.onNodeWithText("home.example doesn't know 2 of your notes").assertDoesNotExist()
+        compose.onNodeWithText("Show").performClick()
         assertEquals(1, opened)
+    }
+
+    @Test
+    fun oneProblemOnTheAttentionCardSaysWhatItMeans() {
+        compose.setContent { NotesContent(state(::withUnknown), NotesActions()) }
+        compose.onNodeWithText("home.example doesn't know 2 of your notes").assertExists()
+        compose.onNodeWithText("isn't in your balance for now", substring = true).assertExists()
     }
 
     @Test

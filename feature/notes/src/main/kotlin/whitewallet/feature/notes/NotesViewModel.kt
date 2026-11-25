@@ -1,5 +1,6 @@
 package whitewallet.feature.notes
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -323,8 +324,17 @@ constructor(
     private val wallet: Wallet,
     private val preferences: AppPreferences,
     defaults: AppDefaults,
+    savedState: SavedStateHandle,
 ) : ViewModel() {
-    private val ui = MutableStateFlow(NotesState(noteActions = defaults.noteActions, showMints = defaults.showMints))
+    // Opened from a Home alert: on the page of what needs the user, from the first frame.
+    private val ui =
+        MutableStateFlow(
+            NotesState(
+                noteActions = defaults.noteActions,
+                showMints = defaults.showMints,
+                attentionOpen = savedState.get<Boolean>("attention") == true,
+            )
+        )
     private val failuresBuilt = defaults.simulatedFailures
     private var quoteJob: Job? = null
 

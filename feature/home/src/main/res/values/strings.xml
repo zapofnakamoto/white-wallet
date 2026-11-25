@@ -7,7 +7,7 @@
       aside). See docs/WHITE_LABEL.md.
     -->
     <string name="home_add_mint_title">Add a mint</string>
-    <string name="home_add_mint_body">This wallet has no mint yet, so nothing can be received. Adding the mint you use finds the money your recovery phrase holds there.</string>
+    <string name="home_add_mint_body">Without one, nothing can be received.</string>
     <string name="home_add_mint_action">Add mint</string>
     <string name="home_mint_is_home">Home mint</string>
     <!-- Under the home mint's row below the balance: it didn't answer the last time the wallet asked it. -->
@@ -43,7 +43,6 @@
     <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a note may cost a split fee.</string>
     <!-- Before a move to an account of another wallet. %1$s: the mint's host, %2$s: that wallet's name. -->
     <string name="move_adds_mint">%1$s will be added to the mints of %2$s.</string>
-    <string name="home_key_changed_body">Nothing is sent there until it matches again, or you accept the new key in the mint\'s details.</string>
     <!-- What the wallet did to the notes by itself, in a short message on the home screen. -->
     <plurals name="notice_combined_into_one">
         <item quantity="one">Combined %1$d note into one of %2$s</item>
@@ -86,25 +85,6 @@
         <item quantity="one">Your mint doesn\'t know %1$d of your notes</item>
         <item quantity="other">Your mint doesn\'t know %1$d of your notes</item>
     </plurals>
-    <!-- %1$s: what the notes are worth. Plural by how many notes there are. -->
-    <plurals name="home_unknown_body">
-        <item quantity="one">%1$s isn\'t in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again.</item>
-        <item quantity="other">%1$s isn\'t in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again.</item>
-    </plurals>
-    <!-- The same while the balance is hidden: no amount. -->
-    <plurals name="home_unknown_body_hidden">
-        <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the note and asks the mint again by itself; once the mint knows it again, you can spend it again.</item>
-        <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the notes and asks the mint again by itself; once the mint knows them again, you can spend them again.</item>
-    </plurals>
-    <!-- Under the card's text: the user has nothing to do, and who to turn to. -->
-    <string name="home_unknown_help">There\'s nothing you need to do. If it stays this way, ask the mint\'s operator.</string>
-    <!-- The same once the mint hasn't known them for a while (a day), where the app has a notes view to archive them from. -->
-    <string name="home_unknown_help_late">If the mint still doesn\'t know them, ask its operator, or archive them in your notes.</string>
-    <!-- Opens the notes view, where the notes the mint doesn't know are marked. The count is how many those are. -->
-    <plurals name="home_unknown_show">
-        <item quantity="one">Show note</item>
-        <item quantity="other">Show notes</item>
-    </plurals>
     <!-- Short messages after "Check again": what the mint answered. %1$d: how many notes. -->
     <plurals name="notice_unknown_back">
         <item quantity="one">The mint knows a note again: you can spend it.</item>
@@ -119,12 +99,6 @@
 
     <!-- A card on the home screen: a mint the account uses (not the home mint) didn't answer. %1$s: the mint. -->
     <string name="home_mint_silent_title">%1$s isn\'t answering</string>
-    <!-- Under the title: what that stops. A mint that isn't the home mint only holds money. -->
-    <string name="home_mint_silent_body">Until it answers, you can\'t spend the money there. Your wallet keeps asking.</string>
-    <!-- Under home_mints_silent_title: what that stops. Their rows under the balance say which. -->
-    <string name="home_mints_silent_body">Until they answer, you can\'t spend the money there. Your wallet keeps asking.</string>
-    <string name="home_mint_silent_body_home">Until it answers, you can\'t receive or spend money there. Your wallet keeps asking.</string>
-    <string name="home_mint_silent_body_home_empty">Until it answers, you can\'t receive money there. Your wallet keeps asking.</string>
     <string name="home_link_unreadable">This link can\'t be used here.</string>
     <string name="home_receive">Receive</string>
     <string name="home_empty">No payments yet. What you receive and send shows up here.</string>
@@ -163,15 +137,12 @@
     <string name="home_offline">You\'re offline. Your wallet updates when you\'re back online.</string>
     <string name="home_update_failed">Couldn\'t update. What you see may be out of date.</string>
     <string name="home_backup_title">Back up your wallet</string>
-    <string name="home_backup_body">If you lose this phone, your recovery phrase is the only way to get your money back. It takes two minutes.</string>
+    <string name="home_backup_body">Without it, your money is gone if you lose this phone.</string>
     <string name="home_backup_action">Back up</string>
     <string name="home_backup_later">Later</string>
     <string name="home_scan_title">Scan not finished</string>
-    <string name="home_scan_body">This wallet may hold more than it shows: not everything your recovery phrase holds was looked for yet.</string>
+    <string name="home_scan_body">Your wallet may hold more than it shows.</string>
     <string name="home_scan_action">Scan</string>
-    <!-- When the mint last said it doesn't know them. %1$s: how long ago, in the phone's own words ("5 minutes ago"). -->
-    <string name="home_unknown_asked">Last asked: %1$s</string>
-    <string name="home_unknown_asked_now">Last asked: just now</string>
     <!-- "Check again" got no answer. %1$s: the mint. -->
     <string name="notice_unknown_unreachable">%1$s isn\'t answering. Your wallet asks again later.</string>
     <string name="move_title">Move funds</string>

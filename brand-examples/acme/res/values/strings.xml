@@ -65,7 +65,6 @@
     <string name="activity_sent_note">Sent a banknote</string>
     <string name="move_hint">Funds stay where they are held and move into the other account\'s keys. Moving part of a banknote may cost a split fee.</string>
     <string name="move_adds_mint">%1$s will be added to the providers of %2$s.</string>
-    <string name="home_key_changed_body">Nothing is sent there until it matches again, or you accept the new key in the provider\'s details.</string>
     <string name="notes_title">Banknotes</string>
     <string name="notes_settings">Banknote settings</string>
     <plurals name="notes_count">
@@ -133,20 +132,6 @@
     <plurals name="home_unknown_title_unnamed">
         <item quantity="one">Your provider doesn\'t know %1$d of your banknotes</item>
         <item quantity="other">Your provider doesn\'t know %1$d of your banknotes</item>
-    </plurals>
-    <plurals name="home_unknown_body">
-        <item quantity="one">%1$s isn\'t in your balance for now. Your wallet keeps the banknote and asks the provider again by itself; once the provider knows it again, you can spend it again.</item>
-        <item quantity="other">%1$s isn\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, you can spend them again.</item>
-    </plurals>
-    <plurals name="home_unknown_body_hidden">
-        <item quantity="one">It isn\'t in your balance for now. Your wallet keeps the banknote and asks the provider again by itself; once the provider knows it again, you can spend it again.</item>
-        <item quantity="other">They aren\'t in your balance for now. Your wallet keeps the banknotes and asks the provider again by itself; once the provider knows them again, you can spend them again.</item>
-    </plurals>
-    <string name="home_unknown_help">There\'s nothing you need to do. If it stays this way, ask the provider.</string>
-    <string name="home_unknown_help_late">If the provider still doesn\'t know them, ask it, or archive them in your banknotes.</string>
-    <plurals name="home_unknown_show">
-        <item quantity="one">Show banknote</item>
-        <item quantity="other">Show banknotes</item>
     </plurals>
     <plurals name="notice_unknown_back">
         <item quantity="one">The provider knows a banknote again: you can spend it.</item>
@@ -280,7 +265,7 @@
     <string name="add_mint_found_none">The provider is added. Nothing of your recovery phrase was found there.</string>
     <string name="address_fee_notice">This provider charges %1$s for an address, once.</string>
     <string name="home_add_mint_title">Add a provider</string>
-    <string name="home_add_mint_body">This wallet has no provider yet, so nothing can be received. Adding the provider you use finds the money your recovery phrase holds there.</string>
+    <string name="home_add_mint_body">Without one, nothing can be received.</string>
     <string name="home_add_mint_action">Add provider</string>
     <string name="home_mint_is_home">Provider</string>
     <plurals name="home_more_mints">

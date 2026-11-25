@@ -152,6 +152,7 @@ class MainActivity : FragmentActivity() {
                                     incoming,
                                     brand = BrandScreens(brandScreens),
                                     showNotesTab = defaults.notesView == NotesView.Tab,
+                                    notesPage = defaults.notesView == NotesView.Settings,
                                     backupAtSetup = defaults.backupRequired == BackupRequired.Setup,
                                     onIncomingHandled = { incoming.value = null },
                                 )
@@ -276,6 +277,9 @@ internal object Routes {
 
     /** The notes view on its own page, for brands without a Notes tab. */
     const val NOTE_LIST = "notes"
+    /** The same, opened on its page of what needs the user ([NOTE_LIST_ATTENTION]) or not. */
+    const val NOTE_LIST_WITH = "notes?attention={attention}"
+    const val NOTE_LIST_ATTENTION = "notes?attention=true"
     const val MINTS = "settings/mints"
     const val DISPLAY = "settings/display"
     const val MINT = "settings/mint?host={host}"
@@ -309,6 +313,8 @@ private fun WalletApp(
     incoming: StateFlow<String?>,
     brand: BrandScreens,
     showNotesTab: Boolean,
+    /** The notes view is a page of its own (in the settings), not a tab. */
+    notesPage: Boolean,
     backupAtSetup: Boolean,
     onIncomingHandled: () -> Unit,
     start: StartViewModel = hiltViewModel(),
@@ -441,6 +447,7 @@ private fun WalletApp(
                 onAddMint = { nav.navigate(Routes.ADD_MINT) },
                 onScanMints = { nav.navigate(Routes.scanNotes(start = true)) },
                 onOpenMints = { nav.navigate(Routes.MINTS) },
+                onOpenNotesAttention = if (notesPage) ({ nav.navigate(Routes.NOTE_LIST_ATTENTION) }) else null,
                 menu =
                     brand.on(BrandScreenEntry.HomeMenu).map { screen ->
                         HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) }
@@ -458,7 +465,16 @@ private fun WalletApp(
                     else null,
             )
         }
-        composable(Routes.NOTE_LIST) {
+        composable(
+            Routes.NOTE_LIST_WITH,
+            arguments =
+                listOf(
+                    navArgument("attention") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    }
+                ),
+        ) {
             NotesRoute(
                 onBack = { nav.popBackStack() },
                 onSettings = { nav.navigate(Routes.NOTES) },
@@ -812,6 +828,7 @@ private fun notesTab(
         refreshing = state.refreshing,
         onRefresh = viewModel::refresh,
         content = { NotesTab(viewModel, onOpenShared, onOpenArchive, onClaim, onReceive, onSettings, onOpenMint) },
+        onOpenAttention = viewModel::openAttention,
     )
 }
 

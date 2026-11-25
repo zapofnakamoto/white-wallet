@@ -96,7 +96,7 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
 8. **A changed signing key with `mints.visible=false`.** Without `mints.visible`, users never see mints, yet a mint that
    signs with a new key still names it and sends them to its details: the notes view's outcome (`notes_key_changed`,
    "The signing key of %1$s doesn't match … in its details") and the wallet tab's card
-   (`home_key_changed_title`, `home_key_changed_body`, its Details button → `onOpenMint`), on a mint page the brand
+   (`home_key_changed_title`, its Details button → `onOpenMint` where there is no notes view), on a mint page the brand
    hides. Open: what such a user should see and can decide (wording without the mint; whether Details opens a page
    of its own or the mint page anyway, since deciding about the new key is the user's), and whether other outcomes
    and cards name a mint the same way. Found while fixing the notes view for `mints.visible=false`.

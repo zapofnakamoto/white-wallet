@@ -1,5 +1,6 @@
 package whitewallet.feature.notes
 
+import androidx.lifecycle.SavedStateHandle
 import java.io.IOException
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -65,9 +66,10 @@ class NotesViewModelTest {
     private suspend fun screen(): NotesViewModel {
         store.addAccount("a", "Main", null, home)
         store.upsertNotes(listOf(note("h1", home, 3_000), note("h2", home, 2_000), note("o1", other, 5_000), note("o2", other, 1_000)))
-        return NotesViewModel(wallet, AppPreferences.InMemory(), AppDefaults(emptyList(), allowMintChange = true)).also { screen ->
-            collectors.launch { screen.state.collect {} }
-        }
+        return NotesViewModel(wallet, AppPreferences.InMemory(), AppDefaults(emptyList(), allowMintChange = true), SavedStateHandle())
+            .also { screen ->
+                collectors.launch { screen.state.collect {} }
+            }
     }
 
     private suspend fun NotesViewModel.await(settled: (NotesState) -> Boolean): NotesState = state.first(settled)

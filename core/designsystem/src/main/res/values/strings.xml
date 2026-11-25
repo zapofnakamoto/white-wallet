@@ -139,6 +139,23 @@
     <string name="mint_key_not_accepted">%1$s didn\'t answer, or shows yet another key by now. Nothing changed.</string>
     <string name="done">Done</string>
     <string name="try_again">Try again</string>
+    <!-- The card of something that needs the user (AttentionCard): its way to the page where it is dealt with. -->
+    <string name="attention_show">Show</string>
+    <!-- Under the most important problem, the others counted. -->
+    <plurals name="attention_more">
+        <item quantity="one">And %d more</item>
+        <item quantity="other">And %d more</item>
+    </plurals>
+    <!-- What a problem means for the user, one line under its title. -->
+    <string name="attention_key_changed_line">Nothing is sent there for now</string>
+    <string name="attention_not_answering_line">You can\'t spend the money there for now</string>
+    <string name="attention_not_answering_home_line">You can\'t receive or spend money there for now</string>
+    <string name="attention_not_answering_home_empty_line">You can\'t receive money there for now</string>
+    <!-- %1$s: the amount. -->
+    <string name="attention_unknown_line">%1$s isn\'t in your balance for now</string>
+    <string name="attention_unknown_line_hidden">It isn\'t in your balance for now</string>
+    <string name="attention_waiting_line">Your wallet keeps asking by itself</string>
+    <string name="attention_received_line">It isn\'t in your balance yet</string>
     <string name="check_again">Check again</string>
     <string name="not_claimed_yet_title">Not claimed yet</string>
     <string name="payment_failed_nothing_paid">The payment didn\'t go through. Nothing was paid, and the money stays in your wallet.</string>

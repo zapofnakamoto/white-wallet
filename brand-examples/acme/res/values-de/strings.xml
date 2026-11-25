@@ -65,7 +65,6 @@
     <string name="activity_sent_note">Geldschein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Geldscheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="move_adds_mint">%1$s wird zu den Anbietern von %2$s hinzugefügt.</string>
-    <string name="home_key_changed_body">Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details des Anbieters den neuen Schlüssel annimmst.</string>
     <string name="notes_title">Geldscheine</string>
     <string name="notes_settings">Geldschein-Einstellungen</string>
     <plurals name="notes_count">
@@ -133,20 +132,6 @@
     <plurals name="home_unknown_title_unnamed">
         <item quantity="one">Dein Anbieter kennt %1$d deiner Geldscheine nicht</item>
         <item quantity="other">Dein Anbieter kennt %1$d deiner Geldscheine nicht</item>
-    </plurals>
-    <plurals name="home_unknown_body">
-        <item quantity="one">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält den Geldschein und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, kannst du ihn wieder ausgeben.</item>
-        <item quantity="other">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, kannst du sie wieder ausgeben.</item>
-    </plurals>
-    <plurals name="home_unknown_body_hidden">
-        <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Geldschein und fragt den Anbieter von selbst wieder; sobald der Anbieter ihn wieder kennt, kannst du ihn wieder ausgeben.</item>
-        <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Geldscheine und fragt den Anbieter von selbst wieder; sobald der Anbieter sie wieder kennt, kannst du sie wieder ausgeben.</item>
-    </plurals>
-    <string name="home_unknown_help">Du musst nichts tun. Bleibt es dabei, frag den Anbieter.</string>
-    <string name="home_unknown_help_late">Kennt der Anbieter sie weiterhin nicht, frag ihn, oder archiviere sie bei deinen Geldscheinen.</string>
-    <plurals name="home_unknown_show">
-        <item quantity="one">Geldschein anzeigen</item>
-        <item quantity="other">Geldscheine anzeigen</item>
     </plurals>
     <plurals name="notice_unknown_back">
         <item quantity="one">Der Anbieter kennt einen Geldschein wieder: Du kannst ihn ausgeben.</item>
@@ -281,7 +266,7 @@
     <string name="add_mint_found_none">Der Anbieter ist hinzugefügt. Von deiner Wiederherstellungsphrase wurde dort nichts gefunden.</string>
     <string name="address_fee_notice">Dieser Anbieter verlangt einmalig %1$s für eine Adresse.</string>
     <string name="home_add_mint_title">Anbieter hinzufügen</string>
-    <string name="home_add_mint_body">Diese Wallet hat noch keinen Anbieter, deshalb kann nichts empfangen werden. Fügst du den Anbieter hinzu, den du benutzt, wird das Geld gefunden, das deine Wiederherstellungsphrase dort hat.</string>
+    <string name="home_add_mint_body">Ohne einen kann nichts empfangen werden.</string>
     <string name="home_add_mint_action">Anbieter hinzufügen</string>
     <string name="home_mint_is_home">Anbieter</string>
     <plurals name="home_more_mints">

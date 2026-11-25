@@ -2,7 +2,7 @@
 <resources>
     <!-- Brand terms (see values/strings.xml). -->
     <string name="home_add_mint_title">Mint hinzufügen</string>
-    <string name="home_add_mint_body">Diese Wallet hat noch keine Mint, deshalb kann nichts empfangen werden. Fügst du die Mint hinzu, die du benutzt, wird das Geld gefunden, das deine Wiederherstellungsphrase dort hat.</string>
+    <string name="home_add_mint_body">Ohne eine kann nichts empfangen werden.</string>
     <string name="home_add_mint_action">Mint hinzufügen</string>
     <string name="home_mint_is_home">Haupt-Mint</string>
     <string name="home_mint_is_home_not_answering">Haupt-Mint · antwortet nicht</string>
@@ -14,10 +14,6 @@
         <item quantity="one">%1$d Mint antwortet nicht</item>
         <item quantity="other">%1$d Mints antworten nicht</item>
     </plurals>
-    <string name="home_mint_silent_body">Bis eine Antwort kommt, kannst du das Geld dort nicht ausgeben. Deine Wallet fragt weiter nach.</string>
-    <string name="home_mints_silent_body">Bis sie antworten, kannst du das Geld dort nicht ausgeben. Deine Wallet fragt weiter nach.</string>
-    <string name="home_mint_silent_body_home">Bis eine Antwort kommt, kannst du dort weder empfangen noch Geld ausgeben. Deine Wallet fragt weiter nach.</string>
-    <string name="home_mint_silent_body_home_empty">Bis eine Antwort kommt, kannst du dort nichts empfangen. Deine Wallet fragt weiter nach.</string>
     <plurals name="home_more_mints">
         <item quantity="one">%1$d weitere Mint</item>
         <item quantity="other">%1$d weitere Mints</item>
@@ -38,7 +34,6 @@
     <string name="activity_sent_note">Schein verschickt</string>
     <string name="move_hint">Das Guthaben bleibt, wo es liegt, und wechselt auf die Schlüssel des anderen Kontos. Einen Teil eines Scheins zu verschieben kann eine Teilungsgebühr kosten.</string>
     <string name="move_adds_mint">%1$s wird zu den Mints von %2$s hinzugefügt.</string>
-    <string name="home_key_changed_body">Es wird nichts dorthin gesendet, bis er wieder passt oder du in den Details der Mint den neuen Schlüssel annimmst.</string>
     <plurals name="notice_combined_into_one">
         <item quantity="one">%1$d Schein zu einem über %2$s zusammengelegt</item>
         <item quantity="other">%1$d Scheine zu einem über %2$s zusammengelegt</item>
@@ -77,20 +72,6 @@
     <plurals name="home_unknown_title_unnamed">
         <item quantity="one">Deine Mint kennt %1$d deiner Scheine nicht</item>
         <item quantity="other">Deine Mint kennt %1$d deiner Scheine nicht</item>
-    </plurals>
-    <plurals name="home_unknown_body">
-        <item quantity="one">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält den Schein und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, kannst du ihn wieder ausgeben.</item>
-        <item quantity="other">%1$s sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, kannst du sie wieder ausgeben.</item>
-    </plurals>
-    <plurals name="home_unknown_body_hidden">
-        <item quantity="one">Er ist vorerst nicht in deinem Guthaben. Deine Wallet behält den Schein und fragt die Mint von selbst wieder; sobald die Mint ihn wieder kennt, kannst du ihn wieder ausgeben.</item>
-        <item quantity="other">Sie sind vorerst nicht in deinem Guthaben. Deine Wallet behält die Scheine und fragt die Mint von selbst wieder; sobald die Mint sie wieder kennt, kannst du sie wieder ausgeben.</item>
-    </plurals>
-    <string name="home_unknown_help">Du musst nichts tun. Bleibt es dabei, frag den Betreiber der Mint.</string>
-    <string name="home_unknown_help_late">Kennt die Mint sie weiterhin nicht, frag ihren Betreiber, oder archiviere sie bei deinen Scheinen.</string>
-    <plurals name="home_unknown_show">
-        <item quantity="one">Schein anzeigen</item>
-        <item quantity="other">Scheine anzeigen</item>
     </plurals>
     <plurals name="notice_unknown_back">
         <item quantity="one">Die Mint kennt einen Schein wieder: Du kannst ihn ausgeben.</item>
@@ -134,14 +115,12 @@
     <string name="home_offline">Du bist offline. Deine Wallet aktualisiert sich, sobald du wieder online bist.</string>
     <string name="home_update_failed">Aktualisieren fehlgeschlagen. Was du siehst, ist vielleicht nicht aktuell.</string>
     <string name="home_backup_title">Sichere deine Wallet</string>
-    <string name="home_backup_body">Wenn du dieses Handy verlierst, bekommst du dein Geld nur mit deiner Wiederherstellungsphrase zurück. Es dauert zwei Minuten.</string>
+    <string name="home_backup_body">Ohne sie ist dein Geld weg, wenn du dieses Handy verlierst.</string>
     <string name="home_backup_action">Sichern</string>
     <string name="home_backup_later">Später</string>
     <string name="home_scan_title">Suche nicht abgeschlossen</string>
-    <string name="home_scan_body">Diese Wallet hat vielleicht mehr, als sie zeigt: Es wurde noch nicht nach allem gesucht, was zu deiner Wiederherstellungsphrase gehört.</string>
+    <string name="home_scan_body">Deine Wallet hat vielleicht mehr, als sie zeigt.</string>
     <string name="home_scan_action">Suchen</string>
-    <string name="home_unknown_asked">Zuletzt gefragt: %1$s</string>
-    <string name="home_unknown_asked_now">Zuletzt gefragt: gerade eben</string>
     <string name="notice_unknown_unreachable">%1$s antwortet nicht. Deine Wallet fragt später wieder.</string>
     <string name="move_title">Guthaben verschieben</string>
     <string name="move_from">Von %1$s (%2$s)</string>

@@ -109,6 +109,19 @@
     <string name="mint_key_not_accepted">%1$s hat nicht geantwortet oder zeigt inzwischen noch einen anderen Schlüssel. Nichts wurde geändert.</string>
     <string name="done">Fertig</string>
     <string name="try_again">Erneut versuchen</string>
+    <string name="attention_show">Anzeigen</string>
+    <plurals name="attention_more">
+        <item quantity="one">Und %d weiteres</item>
+        <item quantity="other">Und %d weitere</item>
+    </plurals>
+    <string name="attention_key_changed_line">Vorerst wird nichts dorthin gesendet</string>
+    <string name="attention_not_answering_line">Das Geld dort kannst du vorerst nicht ausgeben</string>
+    <string name="attention_not_answering_home_line">Dort kannst du vorerst weder empfangen noch Geld ausgeben</string>
+    <string name="attention_not_answering_home_empty_line">Dort kannst du vorerst nichts empfangen</string>
+    <string name="attention_unknown_line">%1$s sind vorerst nicht in deinem Guthaben</string>
+    <string name="attention_unknown_line_hidden">Das ist vorerst nicht in deinem Guthaben</string>
+    <string name="attention_waiting_line">Deine Wallet fragt von selbst weiter nach</string>
+    <string name="attention_received_line">Das ist noch nicht in deinem Guthaben</string>
     <string name="check_again">Erneut prüfen</string>
     <string name="not_claimed_yet_title">Noch nicht eingelöst</string>
     <string name="payment_failed_nothing_paid">Die Zahlung ist nicht durchgegangen. Es wurde nichts bezahlt und das Geld bleibt in deiner Wallet.</string>

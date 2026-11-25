@@ -447,7 +447,7 @@ class HomeScreenTest {
             onRefresh = { refreshed++ },
         )
         compose.onNodeWithText(text(R.string.home_mint_silent_title_home, "home.example")).assertExists()
-        compose.onNodeWithText(text(R.string.home_mint_silent_body_home)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.attention_not_answering_home_line)).assertExists()
         compose.onNodeWithText(text(DesignR.string.check_again)).performClick()
         assertEquals(1, refreshed)
     }
@@ -462,7 +462,7 @@ class HomeScreenTest {
             )
         )
         compose.onNodeWithText(text(R.string.home_mint_silent_title, "other.example")).assertExists()
-        compose.onNodeWithText(text(R.string.home_mint_silent_body)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.attention_not_answering_line)).assertExists()
         compose.onNodeWithText(text(DesignR.string.mint_not_answering_short)).assertExists()
         compose.onNodeWithText(text(R.string.home_mint_is_home)).assertExists()
     }
@@ -484,7 +484,7 @@ class HomeScreenTest {
             onRefresh = { refreshed++ },
         )
         compose.onNodeWithText(plural(R.plurals.home_mints_silent_title, 2, 2)).assertExists()
-        compose.onNodeWithText(text(R.string.home_mints_silent_body)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.attention_not_answering_line)).assertExists()
         compose.onAllNodesWithText(text(R.string.home_mint_silent_title, "b.example")).assertCountEquals(0)
         compose.onAllNodesWithText(text(DesignR.string.mint_not_answering_short)).assertCountEquals(2)
         compose.onNodeWithText(text(DesignR.string.check_again)).performClick()
@@ -501,7 +501,7 @@ class HomeScreenTest {
             )
         )
         compose.onNodeWithText(text(R.string.home_mint_silent_title_unnamed)).assertExists()
-        compose.onNodeWithText(text(R.string.home_mint_silent_body_home_empty)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.attention_not_answering_home_empty_line)).assertExists()
     }
 
     @Test
@@ -724,20 +724,21 @@ class HomeScreenTest {
     }
 
     @Test
-    fun theUnknownNotesCardSaysWhenTheMintWasLastAskedAndThatNothingIsToDo() {
-        show(HomeState(unknownNotes = listOf(unknown(askedAtMillis = System.currentTimeMillis()))))
-        compose.onNodeWithText(text(R.string.home_unknown_help)).assertExists()
-        compose.onNodeWithText(text(R.string.home_unknown_asked_now)).assertExists()
+    fun theUnknownNotesCardSaysWhatIsOutOfTheBalance() {
+        show(HomeState(unknownNotes = listOf(unknown())))
+        compose.onNodeWithText(text(DesignR.string.attention_unknown_line, "₿5")).assertExists()
     }
 
     @Test
-    fun theUnknownNotesCardSaysHowLongAgoTheMintWasAsked() {
-        show(HomeState(unknownNotes = listOf(unknown(askedAtMillis = System.currentTimeMillis() - 5 * 60_000))))
-        compose.onNodeWithText(text(R.string.home_unknown_asked, "5 minutes ago")).assertExists()
+    fun aHiddenBalanceHidesTheUnknownNotesAmountToo() {
+        show(HomeState(unknownNotes = listOf(unknown()), balanceHidden = true))
+        compose.onNodeWithText(text(DesignR.string.attention_unknown_line_hidden)).assertExists()
+        compose.onNodeWithText("₿5", substring = true).assertDoesNotExist()
     }
 
     @Test
-    fun theUnknownNotesCardLeadsToTheNotesWhereTheAppShowsThem() {
+    fun withATabEveryNotesAlertShowsItsPageInTheTab() {
+        var opened = 0
         compose.setContent {
             HomeScreen(
                 "Wallet",
@@ -749,19 +750,24 @@ class HomeScreenTest {
                 onBackup = {},
                 onDismissBackup = {},
                 accountActions = AccountActions({}, {}, {}),
-                notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, content = { Text("the notes") }),
+                notesTab =
+                    NotesTabSlot(refreshing = false, onRefresh = {}, content = { Text("the notes") }, onOpenAttention = { opened++ }),
             )
         }
-        compose.onNodeWithText(plural(R.plurals.home_unknown_show, 2)).performClick()
+        compose.onNodeWithText(text(DesignR.string.check_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.attention_show)).performClick()
         compose.onNodeWithText("the notes").assertExists()
+        assertEquals(1, opened)
     }
 
     @Test
-    fun pastTheGracePeriodTheUnknownNotesCardSaysTheyCanBeArchived() {
+    fun withTheNotesOnAPageOfTheirOwnAKeyChangeShowsThatPage() {
+        var opened = 0
+        var details = 0
         compose.setContent {
             HomeScreen(
                 "Wallet",
-                HomeState(unknownNotes = listOf(unknown(graceEndsAtMillis = System.currentTimeMillis() - 1))),
+                HomeState(keyChangedHost = "mint.example"),
                 onSend = {},
                 onReceive = {},
                 onRefresh = {},
@@ -769,18 +775,15 @@ class HomeScreenTest {
                 onBackup = {},
                 onDismissBackup = {},
                 accountActions = AccountActions({}, {}, {}),
-                notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, content = { Text("the notes") }),
+                onOpenMint = { details++ },
+                onOpenNotesAttention = { opened++ },
             )
         }
-        compose.onNodeWithText(text(R.string.home_unknown_help_late)).assertExists()
-        compose.onNodeWithText(text(R.string.home_unknown_help)).assertDoesNotExist()
-    }
-
-    @Test
-    fun withoutANotesViewTheUnknownNotesCardNeverMentionsTheArchive() {
-        show(HomeState(unknownNotes = listOf(unknown(graceEndsAtMillis = System.currentTimeMillis() - 1))))
-        compose.onNodeWithText(text(R.string.home_unknown_help)).assertExists()
-        compose.onNodeWithText(text(R.string.home_unknown_help_late)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.attention_key_changed_line)).assertExists()
+        compose.onNodeWithText(text(DesignR.string.details)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.attention_show)).performClick()
+        assertEquals(1, opened)
+        assertEquals(0, details)
     }
 
     @Test
@@ -800,7 +803,7 @@ class HomeScreenTest {
                 onRecheckUnknown = { asked++ },
             )
         }
-        compose.onNodeWithText(plural(R.plurals.home_unknown_show, 2)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.attention_show)).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.check_again)).performClick()
         assertEquals(1, asked)
     }
@@ -1390,7 +1393,7 @@ class HomeScreenTest {
     @Test
     fun aHiddenBalanceHidesWhatIsIncomingToo() {
         show(HomeState(activeAccountId = "a", balanceHidden = true, received = listOf(received("r1", ReceivedState.Waiting))))
-        compose.onNodeWithText("₿2,000", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("₿5", substring = true).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.received_waiting)).assertExists()
     }
 
@@ -1400,7 +1403,7 @@ class HomeScreenTest {
             HomeState(activeAccountId = "a", balanceHidden = true, received = listOf(received("r1", ReceivedState.Waiting))),
             withNotesTab = true,
         )
-        compose.onNodeWithText("₿2,000", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("₿5", substring = true).assertDoesNotExist()
         // The line under the balance, without its amount; no card repeats it.
         compose.onAllNodesWithText(text(DesignR.string.received_title)).assertCountEquals(1)
         compose.onNodeWithText(text(DesignR.string.received_waiting)).assertDoesNotExist()

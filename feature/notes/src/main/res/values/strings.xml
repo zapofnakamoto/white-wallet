@@ -196,8 +196,8 @@
     <string name="notes_receive">Receive</string>
     <!-- The notes view: the card that says what needs the user, one line each. -->
     <string name="notes_attention_title">Needs attention</string>
-    <!-- The card's link to everything that needs the user, on a page of its own. -->
-    <string name="notes_attention_open">Show all</string>
+    <!-- On the page of what needs the user, under a mint that doesn't know some notes. -->
+    <string name="notes_attention_unknown_help">Your wallet keeps them and asks again by itself. There\'s nothing you need to do; if it stays this way, ask the operator.</string>
     <!-- On the page of what needs the user, under a mint that wasn't answering, while the phone is offline. -->
     <string name="notes_attention_offline">It didn\'t answer, and you\'re offline. It\'s asked again when you\'re back online.</string>
     <!-- On the page of what needs the user, under the name of a mint that isn't answering. -->
